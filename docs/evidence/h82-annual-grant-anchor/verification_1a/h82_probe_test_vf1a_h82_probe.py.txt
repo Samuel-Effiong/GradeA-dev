@@ -1,0 +1,315 @@
+"""1a's verification probes for H-82 Path A. Not committed.
+
+Every year below runs the REAL task (process_annual_plan_credit_grants) at
+02:00 on EVERY day, from the start to three days past the cycle end (not
+only on due days), so a run that grants when nothing is due, or after the
+end, would show.
+
+V1 (c, d): 12 grants a cycle (activation + 11 mid-cycle), each on its own
+    anchor day's first 02:00 run, for every start day 1-31 at 01:00 and
+    14:00, 02:03 (inside the 5-minute tolerance) on the 28th-31st, leap
+    starts and a leap-February-crossing start. Nothing granted at or after
+    the cycle end; the chain ends capped at the end.
+V2 (a): the transition hazard with REAL drift. Before `deploy`, each grant
+    is followed by the OLD rule (next = the run's now + 1 month, the bucket
+    expiry from that), producing the chains production rows actually have;
+    from `deploy` on, the fix runs alone. Exactly 11 mid-cycle grants, no
+    two within 21 days, and every grant after the first post-deploy one on
+    its anchor day's run.
+V3 (b, d): outages. No catch-up bucket born expired (expiry strictly after
+    its grant, and never past the cycle end); one WARNING (ids only) per
+    late grant; nothing at or after the end, including when the outage
+    swallows the cycle's last anchors.
+V4 (a, observation): the delayed-webhook activation (_resolve_billing_period
+    with a period start more than a month back sets next = now + 1 month,
+    off the anchor).
+"""
+
+import logging
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+from unittest.mock import patch
+
+from dateutil.relativedelta import relativedelta
+from django.test import TestCase
+
+from billing.models import (
+    CreditBucket,
+    CreditBucketType,
+    CreditLedger,
+    CreditLedgerType,
+    UserSubscription,
+)
+from billing.refresh_timing import monthly_bucket_expiry as grace_expiry
+from billing.services import SubscriptionService
+from billing.tasks import process_annual_plan_credit_grants
+from billing.tests.test_annual_mid_cycle_grants import make_annual_plan
+from billing.tests.test_beat_lock_catch_up import make_clean_user
+
+UTC = dt_timezone.utc
+
+
+class Clock:
+    def __init__(self, moment):
+        self.moment = moment
+
+    def __call__(self):
+        self.moment += timedelta(milliseconds=3)
+        return self.moment
+
+
+class Capture(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.WARNING)
+        self.lines = []
+
+    def emit(self, record):
+        self.lines.append((record.levelname, record.getMessage()))
+
+
+def run_time_for(due):
+    run = due.replace(hour=2, minute=0, second=0, microsecond=0)
+    return run if run >= due - timedelta(minutes=5) else run + timedelta(days=1)
+
+
+def minute(dt):
+    return dt.replace(second=0, microsecond=0)
+
+
+class Year(TestCase):
+    def setUp(self):
+        self.clock = Clock(datetime(2026, 1, 1, tzinfo=UTC))
+        patcher = patch("django.utils.timezone.now", self.clock)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.plan = make_annual_plan()
+        self.n = 0
+
+    def anchors(self, start, end):
+        out, k = [], 1
+        while start + relativedelta(months=k) < end:
+            out.append(start + relativedelta(months=k))
+            k += 1
+        return out
+
+    def grants(self, sub):
+        return list(
+            CreditLedger.objects.filter(
+                user_id=sub.user_id,
+                ledger_type=CreditLedgerType.GRANT,
+                metadata__grant_type="ANNUAL_MID_CYCLE",
+            )
+            .order_by("created_at")
+            .values_list("created_at", flat=True)
+        )
+
+    def year(self, start, *, activate_at=None, outage=None, deploy=None):
+        """Returns (sub, grants, births, warnings). `outage` = (first, last):
+        no run in between. Before `deploy`, the OLD next-due rule is applied
+        after each grant."""
+        self.n += 1
+        self.clock.moment = activate_at or start
+        user, _ = make_clean_user(f"vf1a-h82-{self.n}@example.com")
+        sub = SubscriptionService.activate_subscription(
+            user, self.plan, period_start=start, period_end=start + relativedelta(years=1)
+        )
+        end = sub.billing_cycle_end
+        capture = Capture()
+        logger = logging.getLogger("billing")
+        logger.addHandler(capture)
+        self.addCleanup(logger.removeHandler, capture)
+        births = []
+        day = (activate_at or start).replace(hour=2, minute=0, second=0, microsecond=0)
+        seen = len(self.grants(sub))
+        while day <= end + timedelta(days=3):
+            run_at = day
+            day += timedelta(days=1)
+            if run_at <= (activate_at or start):
+                continue
+            if outage and outage[0] <= run_at <= outage[1]:
+                continue
+            self.clock.moment = run_at
+            process_annual_plan_credit_grants()
+            now_grants = len(self.grants(sub))
+            if now_grants == seen:
+                continue
+            seen = now_grants
+            newest = (
+                CreditBucket.objects.filter(
+                    wallet__user_id=sub.user_id, bucket_type=CreditBucketType.MONTHLY
+                )
+                .order_by("-created_at")
+                .first()
+            )
+            if deploy is not None and run_at < deploy:
+                # The OLD rule (c4ac9e08): next = now + 1 month, capped.
+                nxt = min(run_at + relativedelta(months=1), end)
+                UserSubscription.objects.filter(pk=sub.pk).update(next_credit_grant_at=nxt)
+                CreditBucket.objects.filter(pk=newest.pk).update(
+                    expires_at=grace_expiry(nxt, end)
+                )
+                newest.refresh_from_db()
+            births.append((run_at, newest.created_at, newest.expires_at))
+        sub.refresh_from_db()
+        warnings = [line for line in capture.lines if "caught up" in line[1]]
+        return sub, self.grants(sub), births, warnings
+
+    # -- V1 (c, d) ---------------------------------------------------------
+
+    def v1_case(self, start):
+        sub, grants, births, _ = self.year(start)
+        end = sub.billing_cycle_end
+        expected = [run_time_for(a) for a in self.anchors(start, end)]
+        got = [minute(g) for g in grants]
+        problems = []
+        if got != expected:
+            problems.append(f"grants {[g.strftime('%m-%d %H:%M') for g in got]} != "
+                            f"expected {[e.strftime('%m-%d %H:%M') for e in expected]}")
+        if len(grants) != 11:
+            problems.append(f"{len(grants)} mid-cycle grants")
+        after = [g for g in grants if g >= end]
+        if after:
+            problems.append(f"granted at/after the end: {after}")
+        if sub.next_credit_grant_at != end:
+            problems.append(f"chain ends at {sub.next_credit_grant_at}, not {end}")
+        early = [b for b in births if b[2] <= b[1]]
+        if early:
+            problems.append(f"born expired: {early}")
+        return problems
+
+    def test_v1_every_start_day_and_time(self):
+        starts = []
+        for d in range(1, 32):
+            starts.append(datetime(2027, 1, d, 1, 0, tzinfo=UTC))
+            starts.append(datetime(2027, 1, d, 14, 0, tzinfo=UTC))
+        for d in (28, 29, 30, 31):
+            starts.append(datetime(2027, 1, d, 2, 3, tzinfo=UTC))
+        starts += [
+            datetime(2028, 1, 29, 1, 0, tzinfo=UTC),
+            datetime(2028, 1, 30, 14, 0, tzinfo=UTC),
+            datetime(2028, 1, 31, 1, 0, tzinfo=UTC),
+            datetime(2028, 2, 29, 1, 0, tzinfo=UTC),
+            datetime(2027, 3, 31, 1, 0, tzinfo=UTC),
+            datetime(2027, 8, 31, 14, 0, tzinfo=UTC),
+            datetime(2027, 12, 31, 23, 30, tzinfo=UTC),
+        ]
+        failures = {}
+        for start in starts:
+            problems = self.v1_case(start)
+            if problems:
+                failures[start.strftime("%Y-%m-%d %H:%M")] = problems
+        print(f"\nVF1A_H82_V1 starts={len(starts)} failing={len(failures)}")
+        for k, v in failures.items():
+            print(f"  {k}: {v}")
+        self.assertEqual(failures, {})
+
+    # -- V2 (a): real drift, then deploy -------------------------------------
+
+    def test_v2_real_drift_then_deploy(self):
+        starts = [
+            datetime(2027, 1, 31, 1, 0, tzinfo=UTC),
+            datetime(2027, 1, 31, 14, 0, tzinfo=UTC),
+            datetime(2027, 1, 30, 1, 0, tzinfo=UTC),
+            datetime(2027, 1, 29, 14, 0, tzinfo=UTC),
+            datetime(2027, 1, 15, 14, 0, tzinfo=UTC),
+            datetime(2028, 1, 31, 1, 0, tzinfo=UTC),
+        ]
+        failures, rows = {}, []
+        for start in starts:
+            for months, day in ((1, 2), (2, 1), (2, 29), (4, 15), (10, 20)):
+                deploy = (start + relativedelta(months=months)).replace(
+                    day=1, hour=12, minute=0
+                ) + timedelta(days=day - 1)
+                sub, grants, births, _ = self.year(start, deploy=deploy)
+                end = sub.billing_cycle_end
+                gaps = [(b - a).days for a, b in zip(grants, grants[1:])]
+                post = [g for g in grants if g >= deploy]
+                anchor_runs = {run_time_for(a) for a in self.anchors(start, end)}
+                off_anchor = [minute(g) for g in post[1:] if minute(g) not in anchor_runs]
+                key = f"{start:%Y-%m-%d %H:%M} deploy {deploy:%m-%d}"
+                rows.append(f"{key}: {len(grants)} grants, min gap {min(gaps)}d, "
+                            f"dates {[g.strftime('%m-%d') for g in grants]}")
+                problems = []
+                if len(grants) != 11:
+                    problems.append(f"{len(grants)} grants")
+                if min(gaps) < 21:
+                    problems.append(f"two grants {min(gaps)} days apart")
+                if off_anchor:
+                    problems.append(f"post-deploy grants off the anchor: {off_anchor}")
+                if any(g >= end for g in grants):
+                    problems.append("granted at/after the end")
+                if problems:
+                    failures[key] = problems
+        print(f"\nVF1A_H82_V2 cases={len(rows)} failing={len(failures)}")
+        for r in rows:
+            print(f"  {r}")
+        for k, v in failures.items():
+            print(f"  FAIL {k}: {v}")
+        self.assertEqual(failures, {})
+
+    # -- V3 (b, d): outages ----------------------------------------------------
+
+    def test_v3_outages(self):
+        cases = []
+        for start in (
+            datetime(2027, 1, 31, 1, 0, tzinfo=UTC),
+            datetime(2027, 1, 15, 14, 0, tzinfo=UTC),
+        ):
+            end = start + relativedelta(years=1)
+            a = self.anchors(start, end)
+            cases += [
+                (start, "one anchor", (a[2] - timedelta(days=1), a[2] + timedelta(days=3))),
+                (start, "two anchors", (a[2] - timedelta(days=1), a[3] + timedelta(days=3))),
+                (start, "the last two anchors, up to end-2d",
+                 (a[9] - timedelta(days=1), end - timedelta(days=2))),
+                (start, "the last anchor, up to end-1h", (a[10] - timedelta(days=1), end - timedelta(hours=1))),
+            ]
+        failures, rows = {}, []
+        for start, label, outage in cases:
+            sub, grants, births, warnings = self.year(start, outage=outage)
+            end = sub.billing_cycle_end
+            lives = [(b[2] - b[0]) for b in births]
+            carry = sum(
+                CreditBucket.objects.filter(
+                    wallet__user_id=sub.user_id, bucket_type=CreditBucketType.CARRY_OVER
+                ).values_list("total_credits", flat=True)
+            )
+            key = f"{start:%Y-%m-%d %H:%M} {label}"
+            rows.append(
+                f"{key}: {len(grants)} grants; shortest bucket life "
+                f"{min(lives)}; carry-over total {carry}; warnings {len(warnings)}; "
+                f"late grants {[b[0].strftime('%m-%d') for b in births if b[0] > outage[1]][:4]}"
+            )
+            problems = []
+            born_expired = [b for b in births if b[2] <= b[0]]
+            if born_expired:
+                problems.append(f"born expired: {born_expired}")
+            past_end = [b for b in births if b[2] > end]
+            if past_end:
+                problems.append(f"bucket past the cycle end: {past_end}")
+            if any(g >= end for g in grants):
+                problems.append("granted at/after the end")
+            if any("@" in w[1] or w[0] != "WARNING" for w in warnings):
+                problems.append(f"a catch-up line is not an ids-only WARNING: {warnings}")
+            if problems:
+                failures[key] = problems
+        print(f"\nVF1A_H82_V3 cases={len(rows)} failing={len(failures)}")
+        for r in rows:
+            print(f"  {r}")
+        for k, v in failures.items():
+            print(f"  FAIL {k}: {v}")
+        self.assertEqual(failures, {})
+
+    # -- V4 (a, observation): the delayed-webhook activation -------------------
+
+    def test_v4_delayed_webhook_activation(self):
+        start = datetime(2027, 1, 1, 1, 0, tzinfo=UTC)
+        activate_at = datetime(2027, 2, 10, 9, 0, tzinfo=UTC)
+        sub, grants, births, _ = self.year(start, activate_at=activate_at)
+        gaps = [(b - a).days for a, b in zip(grants, grants[1:])]
+        print(
+            f"\nVF1A_H82_V4 activated {activate_at:%m-%d} on a {start:%m-%d} anchor: "
+            f"{len(grants)} mid-cycle grants {[g.strftime('%m-%d') for g in grants]}, "
+            f"min gap {min(gaps)}d"
+        )
+        self.assertGreaterEqual(min(gaps), 21)

@@ -1,0 +1,12 @@
+# S6: a second install does not wrap again
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '    if getattr(previous, _MARKER, False):\n        return\n'
+# new: ''
+# commit: 9a37e092550003832733f9a36c22d036f9bf3d14
+# exit: 1
+# elapsed_s: 14.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_second_install_does_not_wrap_again (AutoGrader.tests_log_scrubbing.InstallTests.test_a_second_install_does_not_wrap_again)
+
+FAILED (failures=1)

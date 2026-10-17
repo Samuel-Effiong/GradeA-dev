@@ -1,0 +1,28 @@
+H-123, second deliberate-load run (load2_h123.sh): expected outcome,
+written by d5 at 2026-10-06 12:07:33 WAT, BEFORE the run and before any grant.
+
+Configuration: 8 busy loops at nice 10, the test at nice 10, 8 cores,
+60 s of loops before the test starts.
+
+Expected:
+1. The test PASSES: "Ran 1 test", "OK", exit 0.
+2. Its "[stall test]" line shows a baseline (slowest healthy render
+   alone) between 2.0 s and 7.5 s, so a limit between 6.4 s and 24 s:
+   clearly above the old fixed 4.0 s. My best guess for the baseline is
+   3 to 5 s (quiet runs today: 1.30 to 1.94 s serial, 2.29 s beside a
+   second test process; the first load run: 11.5 s, with loops that
+   outranked the test).
+3. The 1-minute load is about 7 to 9 at the test's start (8 loops for
+   60 s give about 5, on top of 2 to 3 already there) and higher at the
+   end.
+
+What would count against the change:
+- FAILED with "healthy renders were dragged out by the hung one": the
+  relative limit went red under load with no stall. That is the defect
+  this row is meant to remove, and it would be a finding.
+What would NOT be a pass but is not a finding either:
+- FAILED with "too loaded to judge" (baseline over 7.5 s): recorded as
+  it is; by the SM's ruling there is no third run, and the evidence then
+  says plainly that a pass under heavy load is not shown.
+- OK with a baseline at or under 1.25 s (limit 4.0 s): the load did not
+  bite; the run then shows nothing about the stretch.

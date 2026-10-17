@@ -1,0 +1,6 @@
+V1_one_pass_not_a_fixed_point | the rule's tests | KILLED | Ran 15 tests in 0.449s | FAILED (failures=1) | expected test_the_rule_sees_each_shape | failing ['test_the_rule_sees_each_shape']
+  restore AutoGrader/tests_no_playwright_at_import.py ok | __pycache__ cleared
+V2_bracketless_decorators_on_functions_only | the rule's tests | KILLED | Ran 15 tests in 0.548s | FAILED (failures=1) | expected test_the_rule_follows_a_decorator_applied_without_brackets | failing ['test_the_rule_follows_a_decorator_applied_without_brackets']
+  restore AutoGrader/tests_no_playwright_at_import.py ok | __pycache__ cleared
+V3_any_own_method_counts_in_the_class_body | the rule's tests | SURVIVED (predicted to survive) | Ran 15 tests in 0.528s | OK | expected test_the_wider_rule_still_allows_what_starts_nothing | failing []
+  restore AutoGrader/tests_no_playwright_at_import.py ok | __pycache__ cleared

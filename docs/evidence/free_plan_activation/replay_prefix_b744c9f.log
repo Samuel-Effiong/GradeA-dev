@@ -1,0 +1,48 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+....API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-free-plan-prefix-repro/billing/views.py", line 648, in create
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'plan': [ErrorDetail(string='The Beta plan can only be assigned to teachers.', code='invalid')]}
+....
+----------------------------------------------------------------------
+Ran 8 tests in 3.326s
+
+OK
+Destroying test database for alias 'default'...
+Found 8 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+REPLAY S01-10x-BETA-user-subscriptions EXPLOITED {"codes": [201, 201, 201, 201, 201, 201, 201, 201, 201, 201], "raw_credits_spent": 100000000}
+
+REPLAY S02-30x-rapid EXPLOITED {"status_counts": {"201": 30}, "beta_subscriptions": 30}
+
+REPLAY S03-paid-to-BETA EXPLOITED {"codes": [201, 201], "paid_row_still_active": false, "active_plan": "BETA", "active_row_stripe_id": null}
+
+REPLAY S04-direct-id-benchmark EXPLOITED {"codes": [201, 201]}
+
+REPLAY S05-inactive-free-plan EXPLOITED {"codes": [201, 201]}
+
+REPLAY S06-TRIAL-plan EXPLOITED {"codes": [201, 201]}
+
+REPLAY S07-school-admin-subscription-route EXPLOITED {"codes": {"TRIAL": 201, "Grading Benchmark Plan": 201, "BETA": 400}, "buckets": [["MONTHLY", 5000000], ["MONTHLY", 5000000]]}
+
+REPLAY S08-licensed-teacher-license-plan EXPLOITED {"me_status": 200, "plan_id_read_from_me": "0e5e0726-3520-4811-b2e9-fcd9b6adea9a", "codes": [201, 201]}
+
+REPLAY S09-plan-discovery EXPLOITED {"subscription_plan": ["BETA", "CUSTOM", "CUSTOM_LICENSE_STARTER", "Grading Benchmark Plan", "PRO", "STANDARD", "TRIAL"], "subscription_plans": ["BETA", "Grading Benchmark Plan", "PRO", "STANDARD", "TRIAL"], "hidden_exposed": ["BETA", "CUSTOM", "CUSTOM_LICENSE_STARTER", "Grading Benchmark Plan", "TRIAL"]}
+
+REPLAY S10-carry-over-100pct-5x EXPLOITED {"codes": [201, 201, 201, 201, 201], "live_balance_raw": 50000000}

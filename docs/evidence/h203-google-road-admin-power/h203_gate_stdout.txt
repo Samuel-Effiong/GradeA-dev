@@ -1,0 +1,97 @@
+=== 0. reproduce-first: the new module on the base's services.py and license_service.py (own DB) 18:07:57
+load at start: 3.81 4.48 3.65 3/2907 1673604
+prefix exit=1 (non-zero expected)
+source restored
+FAIL: test_a_student_typed_row_carrying_is_staff_is_refused (users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_staff_is_refused)
+FAIL: test_a_student_typed_row_carrying_is_superuser_is_refused (users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_superuser_is_refused)
+FAIL: test_google_refuses_a_command_line_superuser (users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_command_line_superuser)
+FAIL: test_google_refuses_a_never_verified_staff_account (users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_staff_account)
+FAIL: test_google_refuses_a_never_verified_super_admin_type (users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_super_admin_type)
+FAIL: test_google_refuses_a_never_verified_superuser_flag (users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_superuser_flag)
+FAIL: test_that_refusal_is_the_failed_google_sign_in_answer (users.tests_admin_power_principle.GoogleRoadTests.test_that_refusal_is_the_failed_google_sign_in_answer)
+FAIL: test_that_refusal_is_the_invalid_invitation_answer (users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_that_refusal_is_the_invalid_invitation_answer)
+FAIL: test_the_invitation_road_refuses_a_pending_row_carrying_is_staff (users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_the_invitation_road_refuses_a_pending_row_carrying_is_staff)
+FAIL: test_the_invitation_road_refuses_a_pending_row_carrying_is_superuser (users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_the_invitation_road_refuses_a_pending_row_carrying_is_superuser)
+FAIL: test_a_command_line_superuser_is_refused_and_untouched (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_command_line_superuser_is_refused_and_untouched)
+FAIL: test_a_never_verified_staff_teacher_is_refused_and_untouched (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_staff_teacher_is_refused_and_untouched)
+FAIL: test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched)
+FAIL: test_a_switched_off_verified_teacher_is_refused_and_untouched (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_switched_off_verified_teacher_is_refused_and_untouched)
+FAIL: test_the_non_raising_path_returns_none_and_writes_nothing (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_non_raising_path_returns_none_and_writes_nothing)
+FAIL: test_the_refusal_does_not_say_which_school_the_row_belongs_to (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_refusal_does_not_say_which_school_the_row_belongs_to)
+FAIL: test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used)
+FAIL: test_bulk_import_refuses_a_student_typed_row_carrying_is_staff (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_staff)
+FAIL: test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser)
+FAIL: test_direct_add_refuses_a_student_typed_row_carrying_is_staff (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_staff)
+FAIL: test_direct_add_refuses_a_student_typed_row_carrying_is_superuser (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_superuser)
+FAIL: test_single_add_refuses_a_student_typed_row_carrying_is_staff (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_staff)
+FAIL: test_single_add_refuses_a_student_typed_row_carrying_is_superuser (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_superuser)
+Ran 37 tests in 2.912s
+FAILED (failures=23)
+step 0: Ran 37 tests in 2.912s; distinct red found 23, written 23 (Ran 37 written)
+step 0 is as written
+reason ok: test_google_refuses_a_never_verified_staff_account <- 200 != 400
+reason ok: test_google_refuses_a_never_verified_superuser_flag <- 200 != 400
+reason ok: test_google_refuses_a_never_verified_super_admin_type <- 200 != 400
+reason ok: test_google_refuses_a_command_line_superuser <- 200 != 400
+reason ok: test_that_refusal_is_the_failed_google_sign_in_answer <- 200 != 400
+reason ok: test_the_invitation_road_refuses_a_pending_row_carrying_is_staff <- 200 != 400
+reason ok: test_the_invitation_road_refuses_a_pending_row_carrying_is_superuser <- 200 != 400
+reason ok: test_that_refusal_is_the_invalid_invitation_answer <- 200 != 400
+reason ok: test_a_student_typed_row_carrying_is_staff_is_refused <- EnrollmentError not raised
+reason ok: test_a_student_typed_row_carrying_is_superuser_is_refused <- EnrollmentError not raised
+reason ok: test_a_never_verified_staff_teacher_is_refused_and_untouched <- ValueError not raised
+reason ok: test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched <- ValueError not raised
+reason ok: test_a_command_line_superuser_is_refused_and_untouched <- ValueError not raised
+reason ok: test_a_switched_off_verified_teacher_is_refused_and_untouched <- ValueError not raised
+reason ok: test_the_non_raising_path_returns_none_and_writes_nothing <- is not None
+reason ok: test_the_refusal_does_not_say_which_school_the_row_belongs_to <- already belongs to another school
+reason ok: test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used <- 0 != 1
+reason ok: test_single_add_refuses_a_student_typed_row_carrying_is_staff <- 200 != 400
+reason ok: test_single_add_refuses_a_student_typed_row_carrying_is_superuser <- 200 != 400
+reason ok: test_bulk_import_refuses_a_student_typed_row_carrying_is_staff <- 0 != 1
+reason ok: test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser <- 0 != 1
+reason ok: test_direct_add_refuses_a_student_typed_row_carrying_is_staff <- 200 not found in (400, 500)
+reason ok: test_direct_add_refuses_a_student_typed_row_carrying_is_superuser <- 200 not found in (400, 500)
+=== 1a. makemigrations --check 18:08:14
+makemigrations exit=0 (0 = no changes)
+No changes detected
+=== 1. new + related modules + guards at 0631283a 18:08:16
+load at start: 3.23 4.31 3.61 1/2935 1673830
+exit=0 18:10:21
+load at end: 1.58 3.26 3.31 2/2871 1675372
+Ran 609 tests in 110.668s
+OK (skipped=3)
+=== 2. mutants: 23 (own DB, rules 17 and 18) 18:10:21
+mutants exit=0 18:12:33
+23 mutants: anchors unique, all parse, expected tests named
+23 of 23 mutants selected
+T1_the_helper_forgets_is_staff KILLED exit 1 ran 37 failed 11 expected-but-passed []
+T2_the_helper_forgets_is_superuser KILLED exit 1 ran 37 failed 8 expected-but-passed []
+T3_the_helper_forgets_the_super_admin_type KILLED exit 1 ran 37 failed 1 expected-but-passed []
+T4_google_has_no_admin_power_refusal KILLED exit 1 ran 37 failed 5 expected-but-passed []
+T5_google_refuses_every_never_verified_account KILLED exit 1 ran 37 failed 1 expected-but-passed []
+T6_google_refuses_a_verified_admin_too KILLED exit 1 ran 37 failed 1 expected-but-passed []
+T7_google_answers_an_admin_in_its_own_words KILLED exit 1 ran 37 failed 1 expected-but-passed []
+T8_google_stamps_the_email_before_refusing KILLED_NOT_AS_EXPECTED exit 1 ran 37 failed 1 expected-but-passed ['users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_command_line_superuser', 'users.tests_admin_power_principle.GoogleRoadTests.t
+T9_the_invitation_road_has_no_admin_power_refusal KILLED exit 1 ran 37 failed 3 expected-but-passed []
+T10_the_invitation_road_refuses_every_pending_admin KILLED exit 1 ran 37 failed 1 expected-but-passed []
+T11_the_invitation_road_answers_an_admin_in_its_own_words KILLED exit 1 ran 37 failed 1 expected-but-passed []
+T12_add_by_email_has_no_admin_power_refusal KILLED exit 1 ran 37 failed 8 expected-but-passed []
+T13_add_by_email_refuses_every_student KILLED exit 1 ran 37 failed 4 expected-but-passed []
+T14_a_new_site_that_switches_an_account_on_is_added KILLED exit 1 ran 37 failed 1 expected-but-passed []
+T15_the_licence_road_has_no_guard KILLED exit 1 ran 37 failed 7 expected-but-passed []
+T16_the_licence_guard_forgets_the_switched_off_clause KILLED exit 1 ran 37 failed 1 expected-but-passed []
+T17_the_licence_guard_forgets_the_admin_power_clause KILLED exit 1 ran 37 failed 2 expected-but-passed []
+T18_the_licence_guard_refuses_a_verified_admin_too KILLED exit 1 ran 37 failed 1 expected-but-passed []
+T19_the_licence_guard_answers_in_its_own_words KILLED exit 1 ran 37 failed 6 expected-but-passed []
+T20_the_licence_guard_attaches_the_school_before_refusing KILLED_NOT_AS_EXPECTED exit 1 ran 37 failed 1 expected-but-passed ['billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_command_line_superuser_is_refused_and_untouched', 'billing
+T21_a_new_site_that_sets_a_password_is_added KILLED exit 1 ran 37 failed 1 expected-but-passed []
+T22_a_new_site_that_makes_a_credential_is_added KILLED exit 1 ran 37 failed 1 expected-but-passed []
+T23_the_not_a_teacher_answer_changes_its_words KILLED exit 1 ran 37 failed 1 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: ['T8_google_stamps_the_email_before_refusing', 'T20_the_licence_guard_attaches_the_school_before_refusing']
+BROKEN: []
+KILLED: 21 of 23
+source clean after mutants
+dropped test_h164_invited_reset_mut
+load at end: 1.97 2.76 3.11 1/2852 1676687

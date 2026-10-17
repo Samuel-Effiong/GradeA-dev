@@ -1,0 +1,15 @@
+9 mutants: anchors unique, all parse, expected tests named
+9 of 9 mutants selected
+D1_the_door_answers_200 KILLED exit 1 ran 11 failed 6 expected-but-passed []
+D2_the_renewal_answers_200 KILLED exit 1 ran 11 failed 2 expected-but-passed []
+D3_the_sentence_is_another KILLED exit 1 ran 11 failed 8 expected-but-passed []
+D4_the_door_gives_the_code_back KILLED exit 1 ran 11 failed 2 expected-but-passed []
+D5_the_renewal_gives_the_code_back KILLED exit 1 ran 11 failed 1 expected-but-passed []
+D6_a_knock_spends_the_budget_for_wrong_codes KILLED exit 1 ran 11 failed 1 expected-but-passed []
+C1_the_command_does_not_count_the_nameless KILLED exit 1 ran 11 failed 2 expected-but-passed []
+C2_the_command_counts_every_converted_account_as_nameless KILLED exit 1 ran 11 failed 2 expected-but-passed []
+C3_the_command_prints_an_address KILLED exit 1 ran 11 failed 1 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 9 of 9

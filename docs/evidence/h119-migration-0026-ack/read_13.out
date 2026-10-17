@@ -1,0 +1,83 @@
+
+== assignments/0038_assignment_updated_at
+  AddField assignment.updated_at: DateTimeField null=False default=no  preserve_default=True
+
+== assignments/0040_db_defaults_for_rollback
+  AlterField assignment.updated_at: BEFORE DateTimeField null=False default=no  | AFTER DateTimeField null=False default=no db_default | becomes NOT NULL: False
+
+== billing/0009_betaprofile_uuid_and_more
+  AddField betaprofile.uuid: UUIDField null=False default=yes max_length=32 preserve_default=True
+  AlterField betaprofile.initial_beta_credits: BEFORE PositiveIntegerField null=False default=yes  | AFTER PositiveIntegerField null=False default=yes  | becomes NOT NULL: False
+  AlterField creditbucket.bucket_type: BEFORE CharField null=False default=no max_length=20 choices=3 | AFTER CharField null=False default=no max_length=20 choices=4 | becomes NOT NULL: False
+  AlterField creditbucket.expires_at: BEFORE DateTimeField null=True default=no  | AFTER DateTimeField null=True default=no  | becomes NOT NULL: False
+
+== billing/0011_remove_betaprofile_uuid_betaprofile_uid_and_more
+  RemoveField betaprofile.uuid
+  AddField betaprofile.uid: UUIDField null=True default=yes max_length=32 preserve_default=True
+  AlterField betaprofile.id: BEFORE CharField null=False default=yes max_length=100 unique=True primary_key=True | AFTER BigAutoField null=False default=no unique=True primary_key=True | becomes NOT NULL: False
+
+== billing/0013_remove_betaprofile_id_alter_betaprofile_uid
+  RemoveField betaprofile.id
+  AlterField betaprofile.uid: BEFORE UUIDField null=True default=yes max_length=32 | AFTER UUIDField null=False default=yes max_length=32 unique=True primary_key=True | becomes NOT NULL: True
+
+== billing/0014_rename_uid_betaprofile_id
+  RenameField betaprofile.uid -> id
+
+== billing/0016_planfeature_alter_subscriptionplan_options_and_more
+  CreateModel PlanFeature
+  AlterModelOptions subscriptionplan
+  RemoveField subscriptionplan.overage_block_price
+  AddField subscriptionplan.category: CharField null=False default=yes max_length=20 choices=2 preserve_default=True
+  AddField subscriptionplan.highlight: CharField null=True default=no max_length=20 choices=2 preserve_default=True
+  AddField subscriptionplan.interval: CharField null=False default=yes max_length=20 choices=2 preserve_default=True
+  AddField subscriptionplan.is_contact_sales: BooleanField null=False default=yes  preserve_default=True
+  AddField subscriptionplan.overage_credit_price_cents: PositiveIntegerField null=False default=yes  preserve_default=True
+  AddField subscriptionplan.price_cents: PositiveIntegerField null=False default=yes  preserve_default=True
+  AddField subscriptionplan.product_id: CharField null=True default=no max_length=100 preserve_default=True
+  AddField subscriptionplan.stripe_price_id: CharField null=True default=no max_length=100 preserve_default=True
+  AddField subscriptionplan.tagline: CharField null=False default=no max_length=100 preserve_default=True
+  AddField subscriptionplan.tier: CharField null=False default=yes max_length=20 choices=5 preserve_default=True
+  AlterField subscriptionplan.carry_over_expiry_months: BEFORE PositiveSmallIntegerField null=False default=yes  | AFTER PositiveSmallIntegerField null=False default=yes  | becomes NOT NULL: False
+  AlterField subscriptionplan.carry_over_max: BEFORE PositiveIntegerField null=False default=yes  | AFTER PositiveIntegerField null=False default=yes  | becomes NOT NULL: False
+  AlterField subscriptionplan.carry_over_percent: BEFORE DecimalField null=False default=no  | AFTER DecimalField null=False default=yes  | becomes NOT NULL: False
+  AlterField subscriptionplan.max_overage_blocks: BEFORE PositiveSmallIntegerField null=False default=yes  | AFTER PositiveSmallIntegerField null=False default=yes  | becomes NOT NULL: False
+  AlterField subscriptionplan.monthly_credits: BEFORE PositiveIntegerField null=False default=yes  | AFTER PositiveIntegerField null=True default=yes  | becomes NOT NULL: False
+  AlterField subscriptionplan.overage_block_size: BEFORE PositiveIntegerField null=False default=yes  | AFTER PositiveIntegerField null=False default=yes  | becomes NOT NULL: False
+  CreateModel PlanFeatureInclusion
+  AddField subscriptionplan.features: ManyToManyField null=False default=no  preserve_default=True
+
+== billing/0017_remove_subscriptionplan_overage_credit_price_cents_and_more
+  RemoveField subscriptionplan.overage_credit_price_cents
+  AlterField subscriptionplan.overage_block_size: BEFORE PositiveIntegerField null=False default=yes  | AFTER PositiveIntegerField null=False default=yes  | becomes NOT NULL: False
+
+== billing/0021_alter_creditbucket_bucket_type_and_more
+  AlterField creditbucket.bucket_type: BEFORE CharField null=False default=no max_length=20 choices=4 | AFTER CharField null=False default=no max_length=20 choices=5 | becomes NOT NULL: False
+  AlterField creditledger.ledger_type: BEFORE CharField null=False default=no max_length=20 choices=5 | AFTER CharField null=False default=no max_length=20 choices=6 | becomes NOT NULL: False
+  AlterField licensesubscription.contract_months: BEFORE PositiveSmallIntegerField null=False default=yes choices=3 | AFTER PositiveSmallIntegerField null=False default=yes choices=4 | becomes NOT NULL: False
+  AlterField subscriptionplan.name: BEFORE CharField null=False default=no max_length=20 unique=True choices=4 | AFTER CharField null=False default=no max_length=20 unique=True choices=5 | becomes NOT NULL: False
+
+== billing/0022_usersubscription_is_trial_usersubscription_trial_end_and_more
+  AddField usersubscription.is_trial: BooleanField null=False default=yes  preserve_default=True
+  AddField usersubscription.trial_end: DateTimeField null=True default=no  preserve_default=True
+  AlterField creditbucket.bucket_type: BEFORE CharField null=False default=no max_length=20 choices=5 | AFTER CharField null=False default=no max_length=20 choices=5 | becomes NOT NULL: False
+
+== billing/0023_alter_subscriptionplan_name
+  AlterField subscriptionplan.name: BEFORE CharField null=False default=no max_length=20 unique=True choices=5 | AFTER CharField null=False default=no max_length=20 unique=True choices=8 | becomes NOT NULL: False
+
+== billing/0025_alter_subscriptionplan_name
+  AlterField subscriptionplan.name: BEFORE CharField null=False default=no max_length=20 unique=True choices=8 | AFTER CharField null=False default=no max_length=100 unique=True choices=13 | becomes NOT NULL: False
+
+== billing/0059_append_only_audit_tables
+  AlterField creditledger.user: BEFORE ForeignKey null=False default=no  | AFTER ForeignKey null=True default=no  | becomes NOT NULL: False
+  SeparateDatabaseAndState
+  AddField creditledger.user_email: CharField null=True default=no max_length=254 preserve_default=True
+  AddField creditusagelog.user_id: UUIDField null=True default=no max_length=32 preserve_default=True
+  AddField creditusagelog.user_email: CharField null=True default=no max_length=254 preserve_default=True
+  AlterField creditledger.bucket: BEFORE ForeignKey null=True default=no  | AFTER ForeignKey null=True default=no  | becomes NOT NULL: False
+  AlterField creditusagelog.wallet: BEFORE ForeignKey null=False default=no  | AFTER ForeignKey null=False default=no  | becomes NOT NULL: False
+  AlterField creditusagelog.bucket: BEFORE ForeignKey null=False default=no  | AFTER ForeignKey null=False default=no  | becomes NOT NULL: False
+  AlterField creditusagelog.course: BEFORE ForeignKey null=True default=no  | AFTER ForeignKey null=True default=no  | becomes NOT NULL: False
+  AlterField creditusagelog.school: BEFORE ForeignKey null=True default=no  | AFTER ForeignKey null=True default=no  | becomes NOT NULL: False
+
+== students/0026_alter_backgroundprocessingtask_task_type
+  AlterField backgroundprocessingtask.task_type: BEFORE CharField null=False default=no max_length=64 choices=8 | AFTER CharField null=False default=no max_length=64 choices=9 | becomes NOT NULL: False

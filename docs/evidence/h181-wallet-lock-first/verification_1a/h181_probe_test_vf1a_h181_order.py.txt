@@ -1,0 +1,345 @@
+"""1a's own order test for H-181 (the wallet lock before the bucket lock).
+
+Not the author's race. No threads, no hook, no timing: the SQL a function
+sends is captured and the ORDER of its statements is read. For each function
+the first `SELECT ... FOR UPDATE` of the wallet table must come before the
+first statement that locks or writes the bucket table (a `FOR UPDATE` select,
+an INSERT or an UPDATE of a bucket row, whose foreign key needs a share lock on
+the wallet row), and before any UPDATE of the wallet row. The test also
+asserts that the function really reached both (a function that never locked a
+bucket would otherwise pass without testing anything).
+
+Nine functions: the six individual-plan ones, and the three licence callers of
+the shared helper; the helper itself is a tenth, called directly.
+
+Copied into billing/tests/test_vf1a_h181_order.py of a scratch checkout.
+Usage: python manage.py test billing.tests.test_vf1a_h181_order
+"""
+
+from datetime import timedelta
+from unittest.mock import patch
+
+from dateutil.relativedelta import relativedelta
+from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
+
+from billing.immutable import allow_unsafe_mutation
+from billing.license_service import LicenseSubscriptionService
+from billing.models import (
+    BillingInterval,
+    CreditBucket,
+    CreditBucketType,
+    CreditLedger,
+    CreditWallet,
+    LicenseBillingMethod,
+    LicenseSubscription,
+    PlanCategory,
+    PlanTier,
+    PlanType,
+    SchoolCreditAllocation,
+    SubscriptionPlan,
+    UserSubscription,
+)
+from billing.services import SubscriptionService
+from billing.tests.tests_free_trial import make_individual_plan
+from classrooms.models import School
+from users.models import UserTypes
+
+CustomUser = get_user_model()
+
+WALLET = '"billing_creditwallet"'
+BUCKET = '"billing_creditbucket"'
+
+
+def make_annual_plan(name="VF_ANNUAL", price_id="price_vf1a_annual"):
+    return SubscriptionPlan.objects.create(
+        name=name,
+        display_name=name,
+        category=PlanCategory.INDIVIDUAL,
+        tier=PlanTier.PRO,
+        interval=BillingInterval.ANNUAL,
+        price_cents=4_999,
+        monthly_credits=12_000_000,
+        stripe_price_id=price_id,
+        carry_over_percent=50,
+        carry_over_expiry_months=1,
+        is_active=True,
+    )
+
+
+class OrderBase(TestCase):
+    def setUp(self):
+        for target in (
+            "billing.services.queue_sync",
+            "billing.services.safe_delay",
+            "billing.license_service.queue_sync",
+            "billing.license_service.safe_delay",
+        ):
+            started = patch(target, return_value=None)
+            started.start()
+            self.addCleanup(started.stop)
+        self.user = CustomUser.objects.create_user(
+            email="vf1a-order@example.com",
+            password="testpass123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+        )
+        UserSubscription.objects.filter(user=self.user).delete()
+        self.wallet, _ = CreditWallet.objects.get_or_create(user=self.user)
+        self.wallet.buckets.all().delete()
+        with allow_unsafe_mutation():
+            CreditLedger.objects.filter(user_id=self.user.id).delete()
+
+    def run_and_read(self, call):
+        """Call `call()` and return (its result, the SQL sent, in order)."""
+        with CaptureQueriesContext(connection) as captured:
+            result = call()
+        return result, [query["sql"] for query in captured.captured_queries]
+
+    def assertWalletLockedFirst(self, sqls):
+        wallet_locks = [
+            i
+            for i, sql in enumerate(sqls)
+            if sql.startswith("SELECT") and f"FROM {WALLET}" in sql and "FOR UPDATE" in sql
+        ]
+        bucket_touches = [
+            i
+            for i, sql in enumerate(sqls)
+            if BUCKET in sql
+            and (
+                "FOR UPDATE" in sql
+                or sql.startswith((f"INSERT INTO {BUCKET}", f"UPDATE {BUCKET}"))
+            )
+        ]
+        wallet_writes = [i for i, sql in enumerate(sqls) if sql.startswith(f"UPDATE {WALLET}")]
+        self.assertTrue(wallet_locks, "the function never locked the wallet row")
+        self.assertTrue(
+            bucket_touches, "the function never locked or wrote a bucket (vacuous)"
+        )
+        self.assertLess(
+            wallet_locks[0],
+            bucket_touches[0],
+            f"a bucket was locked or written (statement {bucket_touches[0]}) "
+            f"before the wallet row was locked (statement {wallet_locks[0]})",
+        )
+        if wallet_writes:
+            self.assertLess(
+                wallet_locks[0],
+                wallet_writes[0],
+                "the wallet row was updated before it was locked",
+            )
+
+
+class TheSixIndividualPlanFunctions(OrderBase):
+    def give_trial_bucket(self):
+        return CreditBucket.objects.create(
+            wallet=self.wallet,
+            bucket_type=CreditBucketType.TRIAL,
+            total_credits=5_000_000,
+            used_credits=0,
+            expires_at=timezone.now() + timedelta(days=7),
+        )
+
+    def test_o1_activate_subscription(self):
+        self.give_trial_bucket()
+        plan = make_individual_plan()
+
+        result, sqls = self.run_and_read(
+            lambda: SubscriptionService.activate_subscription(self.user, plan)
+        )
+
+        self.assertIsNotNone(result)
+        self.assertWalletLockedFirst(sqls)
+
+    def test_o2_apply_immediate_plan_change(self):
+        plan = make_individual_plan()
+        sub = SubscriptionService.activate_subscription(self.user, plan)
+        bigger = make_individual_plan(
+            name=PlanType.PRO, display_name="Pro Grader", monthly_credits=20_000_000
+        )
+        bigger.tier = PlanTier.PRO
+        bigger.save(update_fields=["tier"])
+
+        result, sqls = self.run_and_read(
+            lambda: SubscriptionService.apply_immediate_plan_change(sub, bigger)
+        )
+
+        self.assertIsNotNone(result)
+        self.assertWalletLockedFirst(sqls)
+
+    def test_o3_process_mid_cycle_credit_grant(self):
+        plan = make_annual_plan()
+        t0 = timezone.now().replace(microsecond=0) - relativedelta(months=1)
+        sub = UserSubscription.objects.create(
+            user=self.user,
+            plan=plan,
+            is_active=True,
+            is_trial=False,
+            billing_cycle_start=t0,
+            billing_cycle_end=t0 + relativedelta(years=1),
+            next_credit_grant_at=t0 + relativedelta(months=1) - timedelta(minutes=1),
+        )
+        CreditBucket.objects.create(
+            wallet=self.wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=12_000_000,
+            used_credits=3_000_000,
+            expires_at=timezone.now() + timedelta(days=1),
+        )
+
+        result, sqls = self.run_and_read(
+            lambda: SubscriptionService.process_mid_cycle_credit_grant(sub)
+        )
+
+        self.assertIsNotNone(result)
+        self.assertWalletLockedFirst(sqls)
+
+    def test_o4_process_rollover_and_renewal(self):
+        plan = make_individual_plan()
+        sub = SubscriptionService.activate_subscription(self.user, plan)
+
+        result, sqls = self.run_and_read(
+            lambda: SubscriptionService.process_rollover_and_renewal(sub)
+        )
+
+        self.assertIsNotNone(result)
+        self.assertWalletLockedFirst(sqls)
+
+    def test_o5_finalize_trial_conversion_via_stripe(self):
+        annual = make_annual_plan()
+        trial = SubscriptionService.activate_free_trial(self.user, annual)
+        start = timezone.now()
+
+        result, sqls = self.run_and_read(
+            lambda: SubscriptionService.finalize_trial_conversion_via_stripe(
+                trial, period_start=start, period_end=start + relativedelta(years=1)
+            )
+        )
+
+        self.assertIsNotNone(result)
+        self.assertWalletLockedFirst(sqls)
+
+    def test_o6_finalize_trial_to_paid_conversion(self):
+        annual = make_annual_plan()
+        paid = make_annual_plan(name="VF_ANNUAL_PAID", price_id="price_vf1a_paid")
+        trial = SubscriptionService.activate_free_trial(self.user, annual)
+
+        result, sqls = self.run_and_read(
+            lambda: SubscriptionService.finalize_trial_to_paid_conversion(
+                trial, paid, "sub_vf1a"
+            )
+        )
+
+        self.assertIsNotNone(result)
+        self.assertWalletLockedFirst(sqls)
+
+
+class TheThreeLicenceCallersAndTheirHelper(OrderBase):
+    def setUp(self):
+        super().setUp()
+        self.school = School.objects.create(name="VF1a Order High")
+        self.plan = SubscriptionPlan.objects.create(
+            name=PlanType.POWER_LICENSE,
+            display_name="Power License",
+            category=PlanCategory.LICENSE,
+            tier=PlanTier.POWER,
+            interval=BillingInterval.MONTHLY,
+            price_cents=19_900,
+            monthly_credits=12_000_000,
+            carry_over_percent=50,
+            carry_over_expiry_months=6,
+            is_active=True,
+        )
+        self.admin = CustomUser.objects.create_user(
+            email="vf1a-order-admin@example.com",
+            password="testpass123",  # pragma: allowlist secret
+            user_type=UserTypes.SUPER_ADMIN,
+        )
+        self.user.school = self.school
+        self.user.save(update_fields=["school"])
+
+    def make_licence(self, *, cycle_ended, method=LicenseBillingMethod.STRIPE):
+        now = timezone.now()
+        start = now - relativedelta(months=12) if cycle_ended else now
+        end = now - timedelta(days=1) if cycle_ended else now + relativedelta(months=12)
+        licence = LicenseSubscription.objects.create(
+            school=self.school,
+            admin_user=self.admin,
+            plan=self.plan,
+            contract_months=12,
+            max_seats=2,
+            billing_cycle_start=start,
+            billing_cycle_end=end,
+            billing_method=method,
+            is_active=True,
+            auto_renew=True,
+        )
+        allocation = SchoolCreditAllocation.objects.create(
+            license_subscription=licence,
+            user=self.user,
+            monthly_allocation=12_000_000,
+            is_active=True,
+            next_credit_grant_at=now - timedelta(minutes=1),
+        )
+        CreditBucket.objects.create(
+            wallet=self.wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=12_000_000,
+            used_credits=3_000_000,
+            expires_at=now + timedelta(days=1),
+        )
+        return licence, allocation
+
+    def test_o7_process_license_renewal(self):
+        licence, _ = self.make_licence(cycle_ended=True)
+
+        _, sqls = self.run_and_read(
+            lambda: LicenseSubscriptionService.process_license_renewal(licence)
+        )
+
+        self.assertWalletLockedFirst(sqls)
+
+    def test_o8_process_offline_renewal(self):
+        licence, _ = self.make_licence(
+            cycle_ended=True, method=LicenseBillingMethod.OFFLINE
+        )
+
+        _, sqls = self.run_and_read(
+            lambda: LicenseSubscriptionService.process_offline_renewal(
+                licence,
+                performed_by=self.admin,
+                new_billing_cycle_end=timezone.now() + relativedelta(months=12),
+            )
+        )
+
+        self.assertWalletLockedFirst(sqls)
+
+    def test_o9_refresh_teacher_credits(self):
+        _, allocation = self.make_licence(cycle_ended=False)
+
+        _, sqls = self.run_and_read(
+            lambda: LicenseSubscriptionService._refresh_teacher_credits(allocation)
+        )
+
+        self.assertWalletLockedFirst(sqls)
+
+    def test_o10_the_helper_called_directly(self):
+        licence, _ = self.make_licence(cycle_ended=False)
+
+        result, sqls = self.run_and_read(
+            lambda: LicenseSubscriptionService._rollover_and_grant_monthly_bucket(
+                teacher=self.user,
+                wallet=self.wallet,
+                plan=self.plan,
+                grant_amount=12_000_000,
+                new_expiry=timezone.now() + timedelta(days=30),
+                now=timezone.now(),
+                reference="vf1a order test",
+                metadata={"license_id": str(licence.id)},
+            )
+        )
+
+        self.assertIsNotNone(result)
+        self.assertWalletLockedFirst(sqls)

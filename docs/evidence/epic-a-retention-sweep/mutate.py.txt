@@ -1,0 +1,135 @@
+"""Mutation battery for the A6/X-4 retention sweep (audit/tasks.py:
+sweep_audit_retention, sweep_audit_pii_short_retention). Each mutant weakens
+ONE retention protection; a test named for that protection must fail.
+Restores from collision-safe copies and verifies by md5 (never git checkout).
+"""
+import hashlib, json, os, re, shutil, subprocess, sys, time
+
+ROOT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-retention-sweep"
+SCR = os.path.dirname(os.path.abspath(__file__))
+T = "audit/tasks.py"
+LABEL = "audit.tests_retention_sweep"
+
+MUTANTS = [
+    ("C1", "general cutoff uses the 3-year window instead of 1 year",
+     [(T, "general_cutoff = now - timedelta(days=365)\n    student_cutoff = now - timedelta(days=365 * 3)",
+          "general_cutoff = now - timedelta(days=365 * 3)\n    student_cutoff = now - timedelta(days=365 * 3)")],
+     "test_general_row_past_cutoff_is_deleted_within_cutoff_survives"),
+    ("C2", "student_record cutoff uses the 1-year window instead of 3 years",
+     [(T, "general_cutoff = now - timedelta(days=365)\n    student_cutoff = now - timedelta(days=365 * 3)",
+          "general_cutoff = now - timedelta(days=365)\n    student_cutoff = now - timedelta(days=365)")],
+     "test_student_record_row_past_cutoff_is_deleted_within_cutoff_survives"),
+    ("X1", "the two retention_class filters are swapped (general deleted by student cutoff and vice versa)",
+     [(T, "retention_class=RetentionClass.GENERAL, occurred_at__lt=general_cutoff\n        ).delete()\n        deleted_student, _ = AuditEvent.objects.filter(\n            retention_class=RetentionClass.STUDENT_RECORD, occurred_at__lt=student_cutoff",
+          "retention_class=RetentionClass.STUDENT_RECORD, occurred_at__lt=general_cutoff\n        ).delete()\n        deleted_student, _ = AuditEvent.objects.filter(\n            retention_class=RetentionClass.GENERAL, occurred_at__lt=student_cutoff")],
+     "test_general_row_past_cutoff_is_deleted_within_cutoff_survives"),
+    ("G1", "allow_unsafe_mutation() removed from the delete sweep (ImmutableRecordError instead of a clean delete)",
+     [(T, "    with allow_unsafe_mutation():\n        deleted_general, _ = AuditEvent.objects.filter(",
+          "    if True:\n        deleted_general, _ = AuditEvent.objects.filter(")],
+     "test_general_row_past_cutoff_is_deleted_within_cutoff_survives"),
+    ("S1", "summary string mislabels general/student_record (values swapped in the message)",
+     [(T, 'f"Audit retention sweep: deleted general={deleted_general} "\n        f"student_record={deleted_student}"',
+          'f"Audit retention sweep: deleted general={deleted_student} "\n        f"student_record={deleted_general}"')],
+     "test_general_row_past_cutoff_is_deleted_within_cutoff_survives"),
+    ("P1", "PII short-retention cutoff uses 900 days instead of PII_SHORT_RETENTION_DAYS (90)",
+     [(T, "cutoff = timezone.now() - timedelta(days=PII_SHORT_RETENTION_DAYS)",
+          "cutoff = timezone.now() - timedelta(days=PII_SHORT_RETENTION_DAYS * 10)")],
+     "test_ip_and_agent_are_nulled_past_cutoff_and_untouched_within_it"),
+    ("P2", "PII sweep only nulls source_ip, leaves user_agent untouched",
+     [(T, ".update(source_ip=None, user_agent=None)",
+          ".update(source_ip=None)")],
+     "test_ip_and_agent_are_nulled_past_cutoff_and_untouched_within_it"),
+    ("P3", "PII sweep drops the exclude() guard, so already-null rows are recounted as updated",
+     [(T, "        AuditEvent.objects.filter(occurred_at__lt=cutoff)\n        .exclude(source_ip__isnull=True, user_agent__isnull=True)\n        .update(source_ip=None, user_agent=None)",
+          "        AuditEvent.objects.filter(occurred_at__lt=cutoff)\n        .update(source_ip=None, user_agent=None)")],
+     "test_a_row_with_no_ip_or_agent_is_left_out_of_the_update_count"),
+    ("P4", "PII sweep's own summary always reports 0 regardless of the real update count",
+     [(T, 'summary = f"Audit PII short-retention sweep: nulled {updated} rows"',
+          'summary = f"Audit PII short-retention sweep: nulled 0 rows"')],
+     "test_ip_and_agent_are_nulled_past_cutoff_and_untouched_within_it"),
+]
+
+
+def md5(p):
+    return hashlib.md5(open(p, "rb").read()).hexdigest()
+
+
+def run(timeout=300):
+    env = dict(os.environ)
+    env["DJANGO_SETTINGS_MODULE"] = "settings_worktree"
+    r = subprocess.run(
+        [sys.executable, "manage.py", "test", LABEL, "--settings=settings_worktree", "--keepdb", "--noinput"],
+        cwd=ROOT, capture_output=True, text=True, timeout=timeout, env=env,
+    )
+    out = r.stdout + r.stderr
+    fails = re.findall(r"^(?:FAIL|ERROR): (\S+) \(([^)]*)\)", out, re.M)
+    m = re.search(r"^(OK.*|FAILED.*)$", out, re.M)
+    return r.returncode, out, fails, (m.group(1) if m else "?")
+
+
+def precheck():
+    bad = []
+    for mid, desc, edits, expect in MUTANTS:
+        for f, old, new in edits:
+            n = open(os.path.join(ROOT, f)).read().count(old)
+            if n != 1:
+                bad.append((mid, f, n, old[:60]))
+    return bad
+
+
+def main(only=None):
+    bad = precheck()
+    if bad:
+        for b in bad:
+            print("PATTERN PROBLEM", b)
+        raise SystemExit(1)
+    log = open(os.path.join(SCR, "mutation_log_retention_sweep.jsonl"), "a")
+    results = []
+    files = sorted({f for _, _, ms, _ in MUTANTS for f, _, _ in ms})
+    orig = {f: md5(os.path.join(ROOT, f)) for f in files}
+    backups = {}
+    for f in files:
+        b = os.path.join(SCR, "backup_retention_sweep_" + f.replace("/", "__"))
+        shutil.copy2(os.path.join(ROOT, f), b)
+        backups[f] = b
+    rc, out, fails, summary = run()
+    base = {"id": "BASE", "rc": rc, "summary": summary, "fails": fails}
+    print("BASELINE", rc, summary, flush=True)
+    log.write(json.dumps(base) + "\n")
+    if rc != 0:
+        raise SystemExit("baseline not green")
+    for mid, desc, edits, expect in MUTANTS:
+        if only and mid not in only:
+            continue
+        try:
+            for f, old, new in edits:
+                p = os.path.join(ROOT, f)
+                s = open(p).read()
+                open(p, "w").write(s.replace(old, new))
+            t = time.time()
+            rc, out, fails, summary = run()
+            names = sorted({n for n, _ in fails})
+            killed = rc != 0 and any(expect in n for n, _ in fails)
+            res = {"id": mid, "desc": desc, "rc": rc, "summary": summary, "expected_test": expect,
+                   "failing": names, "killed_for_named_reason": killed, "secs": round(time.time() - t)}
+        except Exception as e:
+            res = {"id": mid, "desc": desc, "error": str(e), "killed_for_named_reason": False}
+        finally:
+            for f in files:
+                shutil.copy2(backups[f], os.path.join(ROOT, f))
+            bad = [f for f in files if md5(os.path.join(ROOT, f)) != orig[f]]
+            if bad:
+                raise SystemExit(f"RESTORE MISMATCH after {mid}: {bad}")
+        res["restored_md5_ok"] = True
+        print(mid, "KILLED" if res["killed_for_named_reason"] else "SURVIVED/ERR",
+              (res.get("failing") or res.get("error"))[:6] if res.get("failing") else res.get("error"), flush=True)
+        log.write(json.dumps(res) + "\n")
+        log.flush()
+        results.append(res)
+    json.dump({"baseline": base, "mutants": results, "md5": orig},
+               open(os.path.join(SCR, "mutation_results_retention_sweep.json"), "w"), indent=1)
+    print("KILLED", sum(r["killed_for_named_reason"] for r in results), "/", len(results))
+
+
+if __name__ == "__main__":
+    main(set(sys.argv[1:]) or None)

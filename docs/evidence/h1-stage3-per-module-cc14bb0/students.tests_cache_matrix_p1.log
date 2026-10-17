@@ -1,0 +1,4 @@
+students.tests_cache_matrix_p1.GradingClaimFreshnessTests.test_claim_now_refreshes_only_the_owning_teacher ... ok
+students.tests_cache_matrix_p1.GradingClaimFreshnessTests.test_retry_after_a_failed_run_refreshes_the_teachers_list ... ok
+Ran 2 tests in 4.874s
+OK

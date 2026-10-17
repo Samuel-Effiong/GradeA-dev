@@ -1,0 +1,202 @@
+# TRIMMED: last 200 of 10914 lines. Full log (sha256 acb9e49cf4d0e86ad261a699bfcdcc9dcc709cdf259e210563db5cb0e1d5534a) is outside the repo at
+# ~/Documents/Projects/GAP-evidence-logs/epic-a-s7d_bu_modules_and_guards_734bef49_full.txt (chmod 600). At 734bef49: 590 tests OK (step 1).
+01:45:35 ok
+01:45:35 test_create_license_carry_forward_cancels_pending_overage_requests (billing.tests.test_license_service.TestLicenseCreation.test_create_license_carry_forward_cancels_pending_overage_requests)
+01:45:35 A PENDING offline overage request against the old license ... [2026-10-01 00:45:35,819: WARNING/MainProcess] School 625443e3-5a1d-403e-8383-a317937281c4 already has active license subscription 35d8b704-afdd-4d4e-a1d8-86ead15abe4a. Deactivating old license before creating new one.
+01:45:35 ok
+01:45:36 test_create_license_carry_forward_dedupes_against_teacher_emails (billing.tests.test_license_service.TestLicenseCreation.test_create_license_carry_forward_dedupes_against_teacher_emails)
+01:45:36 A teacher carried forward should not also be re-invited even ... [2026-10-01 00:45:36,214: WARNING/MainProcess] Cannot activate automatic trial for user teacher_a@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:36 [2026-10-01 00:45:36,247: WARNING/MainProcess] School 61ace371-0c56-4078-944d-31659159a71a already has active license subscription caebabaf-d578-42e9-ad2b-a17bf672e1a6. Deactivating old license before creating new one.
+01:45:36 ok
+01:45:36 test_create_license_carry_forward_excludes_admin_allocation (billing.tests.test_license_service.TestLicenseCreation.test_create_license_carry_forward_excludes_admin_allocation)
+01:45:36 The old admin's own analytics-only allocation ... [2026-10-01 00:45:36,752: WARNING/MainProcess] School ef31cb5f-d823-4a52-8a65-5ea2727d9726 already has active license subscription dac61a70-70a6-487d-afbe-b8871951932a. Deactivating old license before creating new one.
+01:45:36 ok
+01:45:37 test_create_license_carry_forward_live_vs_expired_monthly_bucket (billing.tests.test_license_service.TestLicenseCreation.test_create_license_carry_forward_live_vs_expired_monthly_bucket)
+01:45:37 A carried-forward teacher with a still-live MONTHLY bucket ... [2026-10-01 00:45:37,248: WARNING/MainProcess] Cannot activate automatic trial for user teacher_live@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:37 [2026-10-01 00:45:37,263: WARNING/MainProcess] Cannot activate automatic trial for user teacher_expired@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:37 [2026-10-01 00:45:37,332: WARNING/MainProcess] School 02ccae4f-3b82-4293-a3d6-fd7dbc4905c3 already has active license subscription 4e00f8ff-a835-4c9f-96d8-690791821f18. Deactivating old license before creating new one.
+01:45:37 ok
+01:45:37 test_create_license_carry_forward_opt_out (billing.tests.test_license_service.TestLicenseCreation.test_create_license_carry_forward_opt_out)
+01:45:37 carry_forward_teachers=False should leave old teachers off the ... [2026-10-01 00:45:37,696: WARNING/MainProcess] Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:37 [2026-10-01 00:45:37,724: WARNING/MainProcess] School 9c1462b7-1090-4108-b3c0-66852268f5e1 already has active license subscription 1e1ad3e8-365c-4a6b-9508-058a0af8e466. Deactivating old license before creating new one.
+01:45:37 ok
+01:45:37 test_create_license_carry_forward_seat_overflow_rejected (billing.tests.test_license_service.TestLicenseCreation.test_create_license_carry_forward_seat_overflow_rejected)
+01:45:38 Combined carried-forward + new teachers exceeding max_seats ... [2026-10-01 00:45:38,010: WARNING/MainProcess] Cannot activate automatic trial for user teacher1@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:38 [2026-10-01 00:45:38,025: WARNING/MainProcess] Cannot activate automatic trial for user teacher2@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:38 ok
+01:45:38 test_create_license_deactivates_previous_license (billing.tests.test_license_service.TestLicenseCreation.test_create_license_deactivates_previous_license)
+01:45:38 Previous active license for school should be deactivated ... [2026-10-01 00:45:38,357: WARNING/MainProcess] School 057a7fbf-e821-4e30-8dc0-db7726814a3c already has active license subscription 7e5c9e9c-adb7-484f-9bc2-758b2215fd0a. Deactivating old license before creating new one.
+01:45:38 ok
+01:45:38 test_create_license_rejects_teacher_with_active_individual_subscription (billing.tests.test_license_service.TestLicenseCreation.test_create_license_rejects_teacher_with_active_individual_subscription)
+01:45:38 A teacher with an active individual subscription should be ... [2026-10-01 00:45:38,644: WARNING/MainProcess] Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:38 [2026-10-01 00:45:38,671: WARNING/MainProcess] Teacher e34b1385-c051-4e35-ab11-51d3ea73cfdb has an individual subscription: not enrolled.
+01:45:38 [2026-10-01 00:45:38,672: WARNING/MainProcess] Skipped enrolling a teacher in license 3bc7106d-7eb2-4224-ad22-8dee54d26461 (school 63f834f0-5364-4902-8bce-d51cd3c47d6a): IndividualSubscriptionConflictError
+01:45:38 [2026-10-01 00:45:38,672: ERROR/MainProcess] License 3bc7106d-7eb2-4224-ad22-8dee54d26461 creation: 1/1 teacher invitations FAILED: [{'email': 'teacher@school.edu', 'successful': False, 'teacher_id': None, 'error': 'Teacher teacher@school.edu has an active individual subscription. Individual subscriptions cannot be converted to a license. Please cancel the individual subscription first.'}]
+01:45:38 ok
+01:45:38 test_create_license_subscription_basic (billing.tests.test_license_service.TestLicenseCreation.test_create_license_subscription_basic)
+01:45:38 Should create basic license subscription ... ok
+01:45:39 test_create_license_subscription_with_teachers (billing.tests.test_license_service.TestLicenseCreation.test_create_license_subscription_with_teachers)
+01:45:39 Should create license and enroll teachers ... [2026-10-01 00:45:39,217: WARNING/MainProcess] Cannot activate automatic trial for user teacher1@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:39 [2026-10-01 00:45:39,235: WARNING/MainProcess] Cannot activate automatic trial for user teacher2@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:39 ok
+01:45:39 test_license_renewal_applies_rollover (billing.tests.test_license_service.TestLicenseRenewal.test_license_renewal_applies_rollover)
+01:45:39 Renewal should apply rollover if credits remain ... [2026-10-01 00:45:39,567: WARNING/MainProcess] Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:39 ok
+01:45:39 test_license_renewal_creates_new_monthly_bucket (billing.tests.test_license_service.TestLicenseRenewal.test_license_renewal_creates_new_monthly_bucket)
+01:45:39 Renewal should create new MONTHLY bucket for each teacher ... [2026-10-01 00:45:39,882: WARNING/MainProcess] Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:39 ok
+01:45:40 test_license_renewal_inactive_license_skips (billing.tests.test_license_service.TestLicenseRenewal.test_license_renewal_inactive_license_skips)
+01:45:40 Renewal of inactive license should skip ... [2026-10-01 00:45:40,213: WARNING/MainProcess] Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:40 [2026-10-01 00:45:40,242: WARNING/MainProcess] Renewal requested for inactive license 68dc6057-a8c3-4ee6-9a91-cc24c8e8e794. Skipping.
+01:45:40 ok
+01:45:40 test_license_renewal_no_auto_renew_deactivates (billing.tests.test_license_service.TestLicenseRenewal.test_license_renewal_no_auto_renew_deactivates)
+01:45:40 Renewal with auto_renew=False should deactivate license ... [2026-10-01 00:45:40,485: WARNING/MainProcess] Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:40 ok
+01:45:40 test_add_single_teacher_creates_allocation (billing.tests.test_license_service.TestTeacherAllocation.test_add_single_teacher_creates_allocation)
+01:45:40 Adding single teacher should create allocation ... [2026-10-01 00:45:40,807: WARNING/MainProcess] Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:40 ok
+01:45:41 test_add_teachers_batch_invalid_email (billing.tests.test_license_service.TestTeacherAllocation.test_add_teachers_batch_invalid_email)
+01:45:41 Batch add with a non-business email should handle gracefully ... [2026-10-01 00:45:41,131: WARNING/MainProcess] Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:41 [2026-10-01 00:45:41,170: WARNING/MainProcess] Not a business email: teacher not enrolled.
+01:45:41 [2026-10-01 00:45:41,170: WARNING/MainProcess] Skipped enrolling a teacher in license e070bad0-6896-468f-87db-c760fbb308ce (school 76e74ad4-f9c0-4c31-8be1-3fef7d0a1557): ValueError
+01:45:41 ok
+01:45:41 test_add_teachers_batch_success (billing.tests.test_license_service.TestTeacherAllocation.test_add_teachers_batch_success)
+01:45:41 Batch add should return success count ... [2026-10-01 00:45:41,456: WARNING/MainProcess] Cannot activate automatic trial for user teacher1@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:41 [2026-10-01 00:45:41,470: WARNING/MainProcess] Cannot activate automatic trial for user teacher2@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:41 ok
+01:45:41 test_remove_teacher_deactivates_allocation (billing.tests.test_license_service.TestTeacherAllocation.test_remove_teacher_deactivates_allocation)
+01:45:41 Removing teacher should deactivate allocation ... [2026-10-01 00:45:41,872: WARNING/MainProcess] Cannot activate automatic trial for user teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:41 ok
+01:45:42 test_an_already_active_normal_signup_is_unaffected (billing.tests.test_license_service.TestTeacherInvitePasswordGeneration.test_an_already_active_normal_signup_is_unaffected)
+01:45:42 The must_change_password path is exclusive to this invite flow - ... [2026-10-01 00:45:42,178: WARNING/MainProcess] Cannot activate automatic trial for user self_registered@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:42 ok
+01:45:42 test_generated_password_is_never_logged (billing.tests.test_license_service.TestTeacherInvitePasswordGeneration.test_generated_password_is_never_logged) ... ok
+01:45:42 test_invitation_email_links_to_the_login_page (billing.tests.test_license_service.TestTeacherInvitePasswordGeneration.test_invitation_email_links_to_the_login_page)
+01:45:42 The teacher already has an active account, so the invitation ... ok
+01:45:43 test_new_teacher_gets_a_usable_generated_password (billing.tests.test_license_service.TestTeacherInvitePasswordGeneration.test_new_teacher_gets_a_usable_generated_password) ... ok
+01:45:43 test_new_teacher_is_active_immediately_with_no_activation_token (billing.tests.test_license_service.TestTeacherInvitePasswordGeneration.test_new_teacher_is_active_immediately_with_no_activation_token)
+01:45:43 A license-invited teacher logs straight in with the temporary ... ok
+01:45:43 test_re_adding_an_already_onboarded_teacher_does_not_reset_password_or_resend (billing.tests.test_license_service.TestTeacherInvitePasswordGeneration.test_re_adding_an_already_onboarded_teacher_does_not_reset_password_or_resend)
+01:45:43 Once a teacher has set their own password (must_change_password ... ok
+01:45:43 test_re_adding_an_already_onboarded_teacher_still_attaches_missing_school (billing.tests.test_license_service.TestTeacherInvitePasswordGeneration.test_re_adding_an_already_onboarded_teacher_still_attaches_missing_school)
+01:45:44 The school-attach-if-needed behavior is unconditional, even when ... ok
+01:45:44 test_resending_an_invitation_to_a_still_pending_teacher_issues_a_fresh_password (billing.tests.test_license_service.TestTeacherInvitePasswordGeneration.test_resending_an_invitation_to_a_still_pending_teacher_issues_a_fresh_password)
+01:45:44 A resend can't reuse the first email's password (only its hash is ... ok
+01:45:46 test_no_production_code_calls_a_wildcard_cache_operation (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_no_production_code_calls_a_wildcard_cache_operation) ... ok
+01:45:46 test_test_infrastructure_is_not_imported_by_production (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_test_infrastructure_is_not_imported_by_production)
+01:45:47 The path exclusion above is only honest if production never ... ok
+01:45:49 test_the_allowlisted_exception_is_exactly_as_documented (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_allowlisted_exception_is_exactly_as_documented) ... ok
+01:45:49 test_the_pdf_clear_stays_an_exact_prefix (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_pdf_clear_stays_an_exact_prefix)
+01:45:49 The exception is only safe while it is one assignment's prefix: ... ok
+01:45:49 test_the_scanner_detects_every_wildcard_form (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_scanner_detects_every_wildcard_form)
+01:45:49 Guard on the guard: each form is found in a synthetic module, and ... ok
+01:45:49 test_another_entitys_bump_leaves_the_entry_reachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_another_entitys_bump_leaves_the_entry_reachable)
+01:45:49 The over-invalidation half, stated as a property. Under the ... ok
+01:45:49 test_bumping_any_scope_of_a_family_makes_its_entry_unreachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_bumping_any_scope_of_a_family_makes_its_entry_unreachable) ... ok
+01:45:49 test_the_pdf_and_grading_caches_have_their_own_invalidation (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_the_pdf_and_grading_caches_have_their_own_invalidation)
+01:45:49 Not response caches in the generation scheme, deliberately. ... ok
+01:45:50 test_every_extra_cache_scopes_override_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_extra_cache_scopes_override_is_listed) ... ok
+01:45:50 test_every_family_embeds_at_least_one_generation (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_family_embeds_at_least_one_generation) ... ok
+01:45:50 test_every_mixin_viewset_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_mixin_viewset_is_listed) ... ok
+01:45:52 test_nothing_is_cached_under_a_raw_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_nothing_is_cached_under_a_raw_key) ... ok
+01:45:53 test_the_key_map_matches_every_versioned_key_call (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_key_map_matches_every_versioned_key_call) ... ok
+01:45:53 test_the_mixin_appends_the_extra_scopes_to_its_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_mixin_appends_the_extra_scopes_to_its_key)
+01:45:53 Otherwise MIXIN_EXTRA_SCOPES would describe keys nobody builds. ... ok
+01:45:53 test_the_status_summary_family_is_versioned_on_the_student (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_status_summary_family_is_versioned_on_the_student)
+01:45:53 H-1 step 4: the one family that was still raw is on generations. ... ok
+01:45:53 test_an_insert_that_omits_the_column_succeeds_with_the_default (AutoGrader.tests_migration_rollback_defaults.OldCodeInsertTests.test_an_insert_that_omits_the_column_succeeds_with_the_default) ... [2026-10-01 00:45:53,651: WARNING/MainProcess] Cannot activate automatic trial for user h56-teacher@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:53 [2026-10-01 00:45:53,687: WARNING/MainProcess] Cannot activate automatic trial for user h56-wallet-3199130c@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:53 [2026-10-01 00:45:53,705: WARNING/MainProcess] Cannot activate automatic trial for user h56-wallet-aeec803a@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:53 [2026-10-01 00:45:53,721: WARNING/MainProcess] Cannot activate automatic trial for user h56-wallet-223e27f1@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+01:45:53 ok
+01:45:53 test_a_nullability_preserving_alter_on_the_real_graph_is_skipped (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_a_nullability_preserving_alter_on_the_real_graph_is_skipped)
+01:45:53 The eight AlterFields since production that change choices, ... ok
+01:45:54 test_every_not_null_field_added_since_production_has_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_every_not_null_field_added_since_production_has_a_db_default) ... ok
+01:45:54 test_rule_b_fires_only_when_an_alter_makes_a_column_not_null (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_fires_only_when_an_alter_makes_a_column_not_null)
+01:45:54 Rule (b) on a synthetic migration: nullable to NOT NULL without a ... ok
+01:45:54 test_rule_b_reads_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_reads_the_state_before_each_migration)
+01:45:54 The production wiring (the Verification Engineer's H6 on ... ok
+01:45:54 test_the_guard_flags_a_not_null_field_without_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_flags_a_not_null_field_without_a_db_default)
+01:45:54 Rule (a) on the real graph with a synthetic final state: drop ... ok
+01:45:54 test_the_guard_sees_the_nine_rollback_columns (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_sees_the_nine_rollback_columns)
+01:45:54 Guard on the guard: the fields H-56 found are rule (a) ... ok
+01:45:54 test_the_guard_uses_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_uses_the_state_before_each_migration)
+01:45:54 fields_a_rollback_would_break wires rule (b) to state_before, not to ... ok
+01:45:54 test_the_production_heads_exist (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_production_heads_exist) ... ok
+01:45:54 test_an_assignment_with_a_real_timestamp_keys_on_it (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_assignment_with_a_real_timestamp_keys_on_it) ... ok
+01:45:54 test_an_unsaved_assignment_gets_the_never_matching_pdf_key (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_unsaved_assignment_gets_the_never_matching_pdf_key) ... ok
+01:45:54 test_only_assignment_updated_at_has_a_db_default_without_a_default (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_only_assignment_updated_at_has_a_db_default_without_a_default) ... ok
+01:45:54 test_another_process_purging_the_same_queue_cannot_touch_our_messages (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_another_process_purging_the_same_queue_cannot_touch_our_messages)
+01:45:56 THE ACCEPTANCE TEST for broker isolation. ... ok
+01:45:56 test_no_test_module_builds_its_own_broker_client (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_no_test_module_builds_its_own_broker_client)
+01:45:56 A raw Redis client built from the broker URL bypasses the prefix. ... ok
+01:45:56 test_the_broker_and_result_backend_are_prefixed_per_process (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_the_broker_and_result_backend_are_prefixed_per_process) ... ok
+01:45:56 test_a_forked_workers_cache_clear_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_cache_clear_cannot_reach_a_sibling) ...  OK
+01:45:58 ok
+01:46:01 test_a_forked_workers_queue_purge_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_queue_purge_cannot_reach_a_sibling) ... ok
+01:46:01 test_a_concurrent_process_cannot_flush_our_cache (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_flush_our_cache)
+01:46:02 THE ACCEPTANCE TEST FOR H-9 - now passing. ... ok
+01:46:02 test_a_concurrent_process_cannot_reset_our_generation_counters (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_reset_our_generation_counters)
+01:46:04 Same requirement, for the H-1 invariant specifically. ... ok
+01:46:04 test_generation_counters_are_also_destroyed_by_a_flush (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_generation_counters_are_also_destroyed_by_a_flush)
+01:46:04 The blast radius is wider than the Django cache. ... ok
+01:46:04 test_the_mechanism_a_cache_clear_destroys_a_warm_entry (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_the_mechanism_a_cache_clear_destroys_a_warm_entry)
+01:46:04 The mechanism, demonstrated deterministically in-process. ... ok
+01:46:04 test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours)
+01:46:05 THE ACCEPTANCE TEST for the regression. ... ok
+01:46:07 test_no_test_module_configures_the_unscoped_redis_backend (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_configures_the_unscoped_redis_backend) ... ok
+01:46:07 test_no_test_module_measures_redis_server_wide (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_measures_redis_server_wide)
+01:46:07 Server-wide Redis statistics are shared by every concurrent run. ... ok
+01:46:07 test_the_real_redis_override_is_scoped_to_this_process (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_the_real_redis_override_is_scoped_to_this_process) ... ok
+01:46:07 test_every_allow_list_entry_has_a_reason (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_every_allow_list_entry_has_a_reason) ... ok
+01:46:09 test_no_unlisted_bulk_write_of_a_tracked_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_no_unlisted_bulk_write_of_a_tracked_field) ... ok
+01:46:12 test_the_allow_list_has_no_stale_entries (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_allow_list_has_no_stale_entries) ... ok
+01:46:12 test_the_tracked_names_cover_every_registered_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_tracked_names_cover_every_registered_field) ... ok
+01:46:14 test_no_unlisted_production_use_of_suppressed (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_no_unlisted_production_use_of_suppressed) ... ok
+01:46:14 test_the_scanner_finds_both_spellings (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_scanner_finds_both_spellings) ... ok
+01:46:15 test_the_suppression_allow_list_has_no_stale_entries (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_suppression_allow_list_has_no_stale_entries) ... ok
+01:46:15 test_a_multi_line_update_and_an_fk_name_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_multi_line_update_and_an_fk_name_are_flagged) ... ok
+01:46:15 test_a_tracked_bulk_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_bulk_update_is_flagged) ... ok
+01:46:15 test_a_tracked_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_update_is_flagged) ... ok
+01:46:15 test_an_untracked_update_and_record_bulk_are_not_flagged (audit.tests_history_guard.ScannerSelfTests.test_an_untracked_update_and_record_bulk_are_not_flagged) ... ok
+01:46:15 test_the_enclosing_function_is_reported (audit.tests_history_guard.ScannerSelfTests.test_the_enclosing_function_is_reported) ... ok
+01:46:15 test_unreadable_fields_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_unreadable_fields_are_flagged) ... ok
+01:46:15 test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) ... ok
+01:46:15 test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) ... ok
+01:46:16 test_allowlist_has_no_stale_entries (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_allowlist_has_no_stale_entries) ... ok
+01:46:16 test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping) ... ok
+01:46:16 test_scanner_flags_every_shape_it_exists_to_catch (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_flags_every_shape_it_exists_to_catch) ... ok
+01:46:16 test_scanner_ignores_the_shapes_it_must_not_flag (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_ignores_the_shapes_it_must_not_flag) ... ok
+01:46:19 test_every_allow_list_entry_is_still_needed (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_allow_list_entry_is_still_needed) ... ok
+01:46:21 test_every_roster_bearing_cached_view_keys_on_a_roster_scope (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_roster_bearing_cached_view_keys_on_a_roster_scope) ... ok
+01:46:21 test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone)
+01:46:23 Guard on the guard, on synthetic source. ... ok
+01:46:25 test_the_sweep_sees_course_serializer_as_roster_bearing (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_sees_course_serializer_as_roster_bearing) ... ok
+01:46:25 test_connection_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_connection_error_is_recognized) ... ok
+01:46:25 test_image_compression_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_image_compression_error_is_recognized) ... ok
+01:46:25 test_non_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_non_exception_returns_none) ... ok
+01:46:25 test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+01:46:25 test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+01:46:25 test_storage_oserror_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_storage_oserror_is_recognized) ... ok
+01:46:25 test_timeout_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_timeout_is_recognized) ... ok
+01:46:25 test_unidentified_image_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unidentified_image_is_recognized) ... ok
+01:46:25 test_unrecognized_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unrecognized_exception_returns_none) ... ok
+01:46:25 test_walks_cause_chain_through_generic_wrapper_exception (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_walks_cause_chain_through_generic_wrapper_exception) ... ok
+01:46:25 test_infra_failure_gets_distinct_message_over_generic_fallback (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_infra_failure_gets_distinct_message_over_generic_fallback) ... ok
+01:46:25 test_known_user_facing_exception_still_passes_through_verbatim (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_known_user_facing_exception_still_passes_through_verbatim) ... ok
+01:46:25 test_unclassified_exception_falls_back_like_describe_user_error (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_unclassified_exception_falls_back_like_describe_user_error) ... ok
+01:46:25 test_falls_back_to_generic_classifier_for_known_exceptions (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_to_generic_classifier_for_known_exceptions) ... ok
+01:46:25 test_falls_back_when_no_user_message (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_when_no_user_message) ... ok
+01:46:25 test_uses_stripe_user_message_when_present (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_uses_stripe_user_message_when_present) ... ok
+01:46:25 test_empty_user_facing_exception_message_falls_back (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_empty_user_facing_exception_message_falls_back) ... ok
+01:46:25 test_known_user_facing_exceptions_pass_through_verbatim (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_known_user_facing_exceptions_pass_through_verbatim) ... ok
+01:46:25 test_none_error_uses_fallback (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_none_error_uses_fallback) ... ok
+01:46:25 test_plain_string_is_treated_as_unknown (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_plain_string_is_treated_as_unknown) ... ok
+01:46:25 test_unknown_exception_falls_back_to_default_when_no_fallback_given (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_falls_back_to_default_when_no_fallback_given) ... ok
+01:46:25 test_unknown_exception_never_leaks_raw_technical_detail (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_never_leaks_raw_technical_detail) ... ok
+01:46:25
+01:46:25 ----------------------------------------------------------------------
+01:46:25 Ran 590 tests in 120.369s
+01:46:25
+01:46:25 OK
+01:46:25 Destroying test database for alias 'default' ('test_epic_a_s7d')...

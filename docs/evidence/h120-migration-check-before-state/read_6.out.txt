@@ -1,0 +1,25 @@
+
+== billing/0010_alter_betaprofile_id  (1 operations)
+  AlterField betaprofile.id: BigAutoField null=False no-default primary_key=True unique=True  ->  CharField null=False default max_length=100 primary_key=True unique=True
+
+== billing/0031_alter_licensesubscription_custom_price_cents_and_more  (2 operations)
+  AlterField licensesubscription.custom_price_cents: PositiveSmallIntegerField null=True no-default  ->  PositiveIntegerField null=True no-default
+  AlterField licensesubscription.max_seats: PositiveSmallIntegerField null=False default  ->  PositiveIntegerField null=False default
+
+== billing/0032_remove_subscriptionplan_price_cents_and_more  (3 operations)
+  RemoveField subscriptionplan.price_cents
+  AddField subscriptionplan.price: DecimalField null=False default max_digits=10 decimal_places=2
+  AlterField subscriptionplan.overage_block_price: PositiveIntegerField null=False default  ->  DecimalField null=False default max_digits=10 decimal_places=2
+
+== billing/0034_alter_licensesubscription_custom_price_cents  (1 operations)
+  AlterField licensesubscription.custom_price_cents: PositiveIntegerField null=True no-default  ->  DecimalField null=True no-default max_digits=10 decimal_places=2
+
+== billing/0036_alter_licensesubscription_contract_months_and_more  (2 operations)
+  AlterField licensesubscription.contract_months: PositiveSmallIntegerField null=False default choices=4  ->  PositiveSmallIntegerField null=False default
+  AlterField licensesubscription.custom_price_cents: DecimalField null=True no-default max_digits=10 decimal_places=2  ->  IntegerField null=True no-default
+
+== billing/0039_alter_subscriptionplan_overage_block_price  (1 operations)
+  AlterField subscriptionplan.overage_block_price: DecimalField null=False default max_digits=10 decimal_places=2  ->  IntegerField null=False default
+
+== students/0027_alter_studentsubmission_ai_grading_completed_at  (1 operations)
+  AlterField studentsubmission.ai_grading_completed_at: DateField null=True no-default  ->  DateTimeField null=True no-default

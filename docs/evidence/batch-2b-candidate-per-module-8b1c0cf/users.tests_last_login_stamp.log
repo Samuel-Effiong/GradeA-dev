@@ -1,0 +1,7 @@
+users.tests_last_login_stamp.GoogleSignInStampTests.test_a_google_sign_in_stamps_last_login ... ok
+users.tests_last_login_stamp.PasswordLoginStampTests.test_a_failed_login_stamps_nothing ... ok
+users.tests_last_login_stamp.PasswordLoginStampTests.test_a_student_login_stamps_last_login_with_no_cache_invalidation ... ok
+users.tests_last_login_stamp.PasswordLoginStampTests.test_a_teacher_login_stamps_last_login_with_no_cache_invalidation ... ok
+users.tests_last_login_stamp.PasswordLoginStampTests.test_simplejwt_update_last_login_stays_off ... ok
+Ran 5 tests in 0.454s
+OK

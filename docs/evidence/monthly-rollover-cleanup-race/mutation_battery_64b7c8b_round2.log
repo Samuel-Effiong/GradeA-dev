@@ -1,0 +1,22 @@
+R1	annual task: due tolerance	KILLED	FAILED (failures=2)	True	7.6
+R2	annual service: the run's now, not its own	KILLED	FAILED (failures=1)	True	5.8
+R3	annual task passes its start time	KILLED	FAILED (failures=1)	True	4.8
+R4	annual re-check: due tolerance	KILLED	FAILED (failures=2)	True	4.9
+R5	annual task: a due time capped at the cycle end is excluded	KILLED	FAILED (failures=1)	True	5.0
+R6	annual re-check: a due time capped at the cycle end is excluded	KILLED	FAILED (failures=1)	True	4.7
+R7	annual grant: bucket grace	KILLED	FAILED (failures=1)	True	5.3
+R8	activation: first month's bucket grace	KILLED	FAILED (failures=1)	True	5.2
+R9	licence task: due tolerance	KILLED	FAILED (failures=2)	True	5.1
+R10	licence re-check: due tolerance	KILLED	FAILED (failures=2)	True	5.2
+R11	licence task passes its start time	KILLED	FAILED (failures=1)	True	5.3
+R12	licence service: the run's now, not its own	KILLED	FAILED (failures=1)	True	4.7
+R13	licence refresh: bucket grace	KILLED	FAILED (failures=1)	True	4.2
+R14	cleanup keeps an owed bucket at all	KILLED	FAILED (failures=5)	True	5.2
+R15	cleanup keeps only the NEWEST monthly bucket	KILLED	FAILED (failures=1)	True	4.7
+R16	cleanup: only an ACTIVE subscription entitles	KILLED	FAILED (failures=1, errors=1)	True	5.4
+R17	cleanup: an active licence allocation entitles	KILLED	FAILED (failures=1)	True	5.2
+R19	immediate plan change: bucket grace	KILLED	FAILED (failures=1)	True	5.1
+R18	cleanup: an overdue refresh is logged	KILLED	FAILED (failures=1)	True	5.2
+
+19/19 killed with verified restore
+exit=0

@@ -1,0 +1,14 @@
+2c336a509a82	P1	billing/access_control.py: a user by id	KILLED	FAILED (failures=1)	True	9.2
+2c336a509a82	P2	billing/services.py: a user by id	KILLED	FAILED (failures=1)	True	9.0
+2c336a509a82	P3	billing/stripe_service.py: a subscription's user by id	KILLED	FAILED (failures=1)	True	9.4
+2c336a509a82	P4	billing/views.py: the requesting user by id	KILLED	FAILED (failures=1)	True	10.2
+2c336a509a82	P5	billing/tasks.py: a subscription's user by id	KILLED	FAILED (failures=1)	True	11.3
+2c336a509a82	P6	the rule covers a name, not only an address	KILLED	FAILED (failures=1)	True	12.0
+2c336a509a82	P7	the rule covers print()	KILLED	FAILED (failures=1)	True	13.6
+2c336a509a82	P8	the rule covers a keyword argument and any receiver	KILLED	FAILED (failures=1)	True	10.6
+2c336a509a82	P9	the price-drift line names the user by id (read by a behaviour test)	KILLED	FAILED (failures=3)	True	14.5
+2c336a509a82	Q1	users/mailerlite_service.py: the user by id	KILLED	FAILED (failures=1)	True	14.7
+2c336a509a82	Q2	classrooms/services/roster_import.py: a failed row by position, not by name	KILLED	FAILED (failures=1)	True	12.3
+2c336a509a82	Q3	assignments/tasks.py: the print names the submission, not the student	KILLED	FAILED (failures=1)	True	11.1
+2c336a509a82	Q4	scripts/: a one-off script's print names the user by id	KILLED	FAILED (failures=1)	True	12.5
+2c336a509a82	Q5	classrooms/serializers.py: the admin by id	KILLED	FAILED (failures=1)	True	10.8

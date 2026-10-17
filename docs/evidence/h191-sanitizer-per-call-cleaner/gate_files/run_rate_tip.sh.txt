@@ -1,0 +1,43 @@
+#!/bin/bash
+# H-191: how often is the many-thread test red on the shared Cleaner, and is it
+# EVER red on the per-call Cleaner? Runs assignments.tests_sanitizer_threads
+# N times (default 5) at the tip
+# (the cure), each in a disposable worktree, output to files (rule 18), the
+# usual wrappers. The counts are the evidence for "red reliably, not by luck".
+# The test module is taken FROM THE TIP onto the red commit (the cache test was added after it).
+# TIP SIDE ONLY (run_rate_tip.sh): the red side was run by run_rate.sh and stopped after
+# its fifth red run. Usage: run_rate_tip.sh <tip-sha8> [N]
+set -euo pipefail
+TIP=$1; N=${2:-5}
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-h191-sanitizer
+RW=$P/Grade-Automator-Plus-h191-rate-tip
+OUT=$P/GAP-d5-runs/h191/rate_tip
+WRAP="systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 10 400"
+say() { echo "$(date +%H:%M:%S) $*" | tee -a $OUT/rate.status; }
+cd $WT
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { echo "ABORT: tree not frozen at $TIP"; exit 9; }
+[ ! -e $OUT ] || { echo "ABORT: $OUT exists already"; exit 9; }
+[ ! -e $RW ] || { echo "ABORT: $RW exists already"; exit 9; }
+mkdir -p $OUT
+tidy() { set +e; cd $WT; [ -e $RW ] && { git worktree remove --force $RW; git worktree prune; }; }
+trap tidy EXIT
+for which in $TIP; do
+  git worktree add --detach $RW $which > /dev/null 2>&1
+  git show $TIP:assignments/tests_sanitizer_threads.py > $RW/assignments/tests_sanitizer_threads.py
+  ln -s $P/Grade-Automator-Plus/.env $RW/.env
+  printf 'from AutoGrader.settings import *  # noqa: F401,F403\nfrom AutoGrader.settings import DATABASES\n\nDATABASES["default"].setdefault("TEST", {})\nDATABASES["default"]["TEST"]["NAME"] = "test_h191_rate_tip"\n' > $RW/settings_worktree.py
+  say "$which: $N runs start, loadavg $(cat /proc/loadavg)"
+  red=0
+  for i in $(seq 1 $N); do
+    say "$which run $i start: loadavg $(cat /proc/loadavg)"
+    rc=0
+    ( cd $RW && PYTHONDONTWRITEBYTECODE=1 $WRAP python manage.py test assignments.tests_sanitizer_threads --settings=settings_worktree --noinput > $OUT/${which}_run$i.log 2>&1 < /dev/null ) || rc=$?
+    echo "exit=$rc" >> $OUT/${which}_run$i.log
+    [ $rc -eq 0 ] || red=$((red+1))
+    say "$which run $i exit=$rc$([ $rc -eq 124 ] && echo " TIMEOUT-COUNTED-RED") ($(grep -cE '^(FAIL|ERROR):' $OUT/${which}_run$i.log) failing lines)"
+  done
+  say "$which: $red of $N runs RED"
+  git worktree remove --force $RW; git worktree prune
+done
+say "H-191 RATE END"

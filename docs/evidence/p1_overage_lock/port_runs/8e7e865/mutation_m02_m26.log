@@ -1,0 +1,4 @@
+M02	lookup inline at overage grant site (put lookup back inside)	KILLED	FAILED (failures=8, errors=1)	True	41.6
+M26	unexpanded latest_charge check	KILLED	FAILED (failures=1)	True	4.8
+
+2/2 killed with verified restore

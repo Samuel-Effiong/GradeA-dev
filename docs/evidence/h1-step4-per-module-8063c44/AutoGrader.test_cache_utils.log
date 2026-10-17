@@ -1,0 +1,6 @@
+AutoGrader.test_cache_utils.RedisCacheSettingsTest.test_cache_keys_are_prefixed_away_from_celery_keys ... ok
+AutoGrader.test_cache_utils.RedisCacheSettingsTest.test_scan_itersize_is_configured_far_above_default ... ok
+AutoGrader.test_cache_utils.WildcardHelpersAreGoneTest.test_cache_utils_module_no_longer_exists ... ok
+AutoGrader.test_cache_utils.WildcardHelpersAreGoneTest.test_no_signal_module_still_defines_a_wildcard_helper ... ok
+Ran 4 tests in 0.001s
+OK

@@ -1,0 +1,267 @@
+"""1a's own tests for H-180 (the student upload credit door). Rule 19 and rule 22.
+
+p1  The window the door leaves open (said by the author): the door lets an
+    upload through because the teacher's balance equals the door's number, the
+    task's own gate then asks for MORE (system prompt, questions, roster) and
+    refuses. A real student upload through the real route, then the real task
+    and the real gate, with only the provider replaced (it must not be reached).
+    What the student reads on the polled status is the fixed sentence.
+p2  Known limit N1: a teacher's batch of three files, each affordable alone,
+    not together. The door queues all three (balance below two files' worth).
+    Other work then spends the balance (a direct charge); each task meets the
+    real gate. What the teacher reads, per file, is the generic credit message,
+    never the student sentence and never a number.
+
+Copied to students/tests_vf1a_h180.py of a scratch checkout.
+Usage: python manage.py test students.tests_vf1a_h180
+"""
+
+import io
+from unittest.mock import patch
+from uuid import uuid4
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
+from PIL import Image
+from rest_framework import status
+from rest_framework.test import APIClient
+
+from ai_processor.services import AIProcessor
+from assignments.models import Assignment, AssignmentStatus
+from assignments.tasks import upload_answers_engine_async
+from billing.errors import INSUFFICIENT_CREDITS_MESSAGE
+from billing.models import CreditWallet, PlanType
+from billing.tests.test_execute_graded_task import ExecuteGradedTaskTestBase
+from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
+from students.models import BackgroundProcessingTask, BackgroundTaskStatus, BatchUploadSession
+from users.models import CustomUser, UserTypes
+
+STUDENT_SENTENCE = (
+    "Your answers were not submitted. Your teacher's account can't process "
+    "uploads right now. Please keep your file and try again later, or let "
+    "your teacher know."
+)
+PROMPT = (
+    "Analyze the image of an educational assignment and return a JSON"
+)
+MONEY_WORDS = ("credit", "wallet", "balance", "refill", "top up", "topped")
+RICH = 200_000
+
+
+def _png():
+    buffer = io.BytesIO()
+    Image.new("RGB", (64, 64), "white").save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+PNG = _png()
+
+
+def _file(name="a.png"):
+    return SimpleUploadedFile(name, PNG, content_type="image/png")
+
+
+class _Spy:
+    """Every number the real shared estimate method returns, in order."""
+
+    def __init__(self):
+        self.values = []
+        real = AIProcessor.estimate_messages_cost
+        spy = self
+
+        def wrapped(processor, *args, **kwargs):
+            value = real(processor, *args, **kwargs)
+            spy.values.append(value)
+            return value
+
+        self.patcher = patch.object(AIProcessor, "estimate_messages_cost", wrapped)
+
+    def __enter__(self):
+        self.patcher.start()
+        return self
+
+    def __exit__(self, *exc):
+        self.patcher.stop()
+
+
+class VF1aH180(ExecuteGradedTaskTestBase):
+    def _classroom(self, credits):
+        if not hasattr(self, "_vf_plan"):
+            self._vf_plan = self._make_plan(PlanType.PRO)
+        teacher = self._make_teacher_with_credits(plan=self._vf_plan, credits=credits)
+        teacher.email_verified_at = timezone.now()
+        teacher.save(update_fields=["email_verified_at"])
+        student = CustomUser.objects.create_user(
+            email=f"s-{uuid4().hex[:8]}@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            is_active=True,
+            email_verified_at=timezone.now(),
+        )
+        session = Session.objects.create(name="S", teacher=teacher)
+        course = Course.objects.create(name="C", teacher=teacher, session=session)
+        StudentCourse.objects.create(
+            student=student,
+            course=course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+        assignment = Assignment.objects.create(
+            title="A",
+            course=course,
+            status=AssignmentStatus.PUBLISHED,
+            questions=[
+                {"question_number": 1, "question_text": "Q1?", "points": 10},
+                {"question_number": 2, "question_text": "Q2?", "points": 10},
+            ],
+        )
+        return teacher, student, course, assignment
+
+    def _client(self, user):
+        client = APIClient()
+        client.force_authenticate(user=user)
+        return client
+
+    def _polled(self, user, tracked):
+        tracked.refresh_from_db()
+        if not tracked.celery_task_id:
+            tracked.celery_task_id = str(uuid4())
+            tracked.save(update_fields=["celery_task_id"])
+        return self._client(user).get(f"/api/v1/tasks/status/{tracked.celery_task_id}")
+
+    def _run_task(self, launch_call, tracked):
+        args = launch_call.args  # (callable, processing_task, assignment_id, payload, prompt, user_id)
+        return upload_answers_engine_async.apply(
+            args=tuple(args[2:6]),
+            kwargs={**launch_call.kwargs, "processing_task_id": str(tracked.id)},
+        )
+
+    # ------------------------------------------------------------------ p1
+    @patch("students.views.launch_processing_task")
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_p1_door_passes_at_its_number_the_gate_refuses_the_student_reads_the_sentence(
+        self, ai_model, launch
+    ):
+        ai_model.side_effect = AssertionError("the provider was reached")
+        launch.return_value.id = "task-learn"
+        # Learn the door's number for this very file from a funded request.
+        _, learn_student, _, learn_assignment = self._classroom(RICH)
+        with _Spy() as spy:
+            learned = self._client(learn_student).post(
+                self._student_url(learn_assignment),
+                {"answer": _file()},
+                format="multipart",
+            )
+        self.assertEqual(learned.status_code, status.HTTP_200_OK, "learning request")
+        self.assertEqual(len(spy.values), 1)
+        door_number = spy.values[0]
+
+        # The teacher's balance is exactly the door's number: the door queues.
+        launch.reset_mock()
+        launch.return_value.id = "task-p1"
+        teacher, student, _, assignment = self._classroom(door_number)
+        wallet = CreditWallet.objects.get(user=teacher)
+        self.assertEqual(wallet.total_remaining_credits(), door_number, "premise: balance")
+        response = self._client(student).post(
+            self._student_url(assignment), {"answer": _file()}, format="multipart"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, "the door refused at its own number")
+        launch.assert_called_once()
+        tracked = BackgroundProcessingTask.objects.get(requested_by=student)
+
+        with _Spy() as gate_spy:
+            outcome = self._run_task(launch.call_args, tracked)
+        self.assertEqual(len(gate_spy.values), 1, "the gate must ask exactly once")
+        gate_number = gate_spy.values[0]
+        self.assertGreater(gate_number, door_number, "premise: the gate asks for more than the door")
+        ai_model.assert_not_called()
+        tracked.refresh_from_db()
+        self.assertEqual(tracked.status, BackgroundTaskStatus.FAILURE, repr(outcome.result))
+
+        polled = self._polled(student, tracked)
+        self.assertEqual(polled.status_code, status.HTTP_200_OK)
+        text = polled.data["meta"]
+        print("P1_POLLED_META:", repr(text))
+        print("P1_POLLED_KEYS:", sorted(polled.data))
+        print("P1_STORED_ERROR:", repr(tracked.error))
+        print("P1_NUMBERS: door", door_number, "gate", gate_number)
+        self.assertIn(STUDENT_SENTENCE, text)
+        self.assertEqual(tracked.error, STUDENT_SENTENCE)
+        for word in MONEY_WORDS + (str(door_number), str(gate_number)):
+            self.assertNotIn(word, text.lower())
+        for key in ("status", "action", "resource_type"):
+            for word in MONEY_WORDS:
+                self.assertNotIn(word, str(polled.data[key]).lower(), key)
+
+    def _student_url(self, assignment):
+        from django.urls import reverse
+
+        return reverse(
+            "student-submission-upload-async", kwargs={"assignment_id": assignment.pk}
+        )
+
+    # ------------------------------------------------------------------ p2
+    @patch("students.views.launch_processing_task")
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_p2_a_batch_each_file_affordable_not_together_door_queues_all_tasks_refuse_generic(
+        self, ai_model, launch
+    ):
+        from django.urls import reverse
+
+        ai_model.side_effect = AssertionError("the provider was reached")
+        launch.return_value.id = "task-learn"
+        _, learn_student, _, learn_assignment = self._classroom(RICH)
+        with _Spy() as spy:
+            self.assertEqual(
+                self._client(learn_student)
+                .post(self._student_url(learn_assignment), {"answer": _file()}, format="multipart")
+                .status_code,
+                status.HTTP_200_OK,
+            )
+        one_file = spy.values[0]
+
+        # One file's worth plus a margin; below two files' worth.
+        balance = one_file + 1_000
+        self.assertLess(balance, 2 * one_file, "premise: the wallet pays for one file, not two")
+        teacher, _, _, assignment = self._classroom(balance)
+        launch.reset_mock()
+        launch.return_value.id = "task-batch"
+        url = reverse("student-submission-batch-upload", kwargs={"assignment_id": assignment.pk})
+        response = self._client(teacher).post(
+            url, {"answers": [_file("s1.png"), _file("s2.png"), _file("s3.png")]}, format="multipart"
+        )
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED, "the door refused the batch")
+        self.assertEqual(launch.call_count, 3)
+        calls = list(launch.call_args_list)
+        by_name = {
+            row.file_name: row
+            for row in BackgroundProcessingTask.objects.filter(requested_by=teacher)
+        }
+        self.assertEqual(sorted(by_name), ["s1.png", "s2.png", "s3.png"])
+        tracked_rows = [by_name[call.kwargs["file_name"]] for call in calls]
+
+        # Other work spends the balance after the door and before the tasks.
+        wallet = CreditWallet.objects.get(user=teacher)
+        wallet.consume_credits(
+            balance - 1_000, feature="grading", task_id=str(uuid4())
+        )
+        self.assertEqual(CreditWallet.objects.get(user=teacher).total_remaining_credits(), 1_000)
+
+        for call, tracked in zip(calls, tracked_rows):
+            self._run_task(call, tracked)
+        ai_model.assert_not_called()
+
+        session = BatchUploadSession.objects.get(teacher=teacher)
+        self.assertEqual(len(session.results), 3)
+        for entry in session.results:
+            print("P2_SESSION_RESULT:", entry["file_name"], entry["status"], repr(entry["error"]))
+            self.assertEqual(entry["status"], "FAILED")
+            self.assertEqual(entry["error"], INSUFFICIENT_CREDITS_MESSAGE)
+        for tracked in tracked_rows:
+            polled = self._polled(teacher, tracked)
+            text = polled.data["meta"]
+            print("P2_POLLED_META:", repr(text))
+            self.assertIn(INSUFFICIENT_CREDITS_MESSAGE, text)
+            self.assertNotIn(STUDENT_SENTENCE, text)
+            self.assertNotIn(str(one_file), text)
+            tracked.refresh_from_db()
+            self.assertEqual(tracked.error, INSUFFICIENT_CREDITS_MESSAGE)

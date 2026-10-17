@@ -1,0 +1,51 @@
+Using existing test database for alias 'default' ('test_epic_i_be_i_04_a_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_each_column_is_not_null_with_the_placeholder_as_its_default (students.tests_grading_label_fields.TheDatabaseHoldsTheDefaultTest.test_each_column_is_not_null_with_the_placeholder_as_its_default) ... ok
+test_no_index_was_added_for_them (students.tests_grading_label_fields.TheDatabaseHoldsTheDefaultTest.test_no_index_was_added_for_them)
+An index on the busiest table is its own careful job; none in ... ok
+test_no_serializer_file_names_a_label_column (students.tests_grading_label_fields.NothingTheFrontendReceivesChangesTest.test_no_serializer_file_names_a_label_column) ... ok
+test_no_serializer_of_the_submission_exposes_all_fields (students.tests_grading_label_fields.NothingTheFrontendReceivesChangesTest.test_no_serializer_of_the_submission_exposes_all_fields) ... ok
+test_the_six_columns_are_read_only_there (students.tests_grading_label_fields.TheAdminScreenTest.test_the_six_columns_are_read_only_there) ... ok
+test_they_are_read_only_for_a_real_request_object_too (students.tests_grading_label_fields.TheAdminScreenTest.test_they_are_read_only_for_a_real_request_object_too) ... ok
+test_each_document_says_first_form_and_names_the_later_table (students.tests_grading_label_fields.TheArchitectureDocumentsSayItTest.test_each_document_says_first_form_and_names_the_later_table) ... ok
+test_each_column_carries_the_sentence_in_its_help_text (students.tests_grading_label_fields.TheFoundersConditionTest.test_each_column_carries_the_sentence_in_its_help_text) ... ok
+test_the_model_and_both_modules_say_it_too (students.tests_grading_label_fields.TheFoundersConditionTest.test_the_model_and_both_modules_say_it_too) ... ok
+test_the_sentence_says_first_form_and_names_the_later_table (students.tests_grading_label_fields.TheFoundersConditionTest.test_the_sentence_says_first_form_and_names_the_later_table) ... FAIL
+test_a_new_unsaved_submission_reads_the_placeholder (students.tests_grading_label_fields.TheSixColumnsTest.test_a_new_unsaved_submission_reads_the_placeholder) ... ok
+test_each_has_the_placeholder_as_both_defaults (students.tests_grading_label_fields.TheSixColumnsTest.test_each_has_the_placeholder_as_both_defaults) ... ok
+test_each_is_a_not_null_text_column_of_the_designed_length (students.tests_grading_label_fields.TheSixColumnsTest.test_each_is_a_not_null_text_column_of_the_designed_length) ... ok
+test_every_word_a_grading_can_write_fits_its_column (students.tests_grading_label_fields.TheSixColumnsTest.test_every_word_a_grading_can_write_fits_its_column) ... ok
+test_no_grading_word_is_the_placeholder (students.tests_grading_label_fields.TheSixColumnsTest.test_no_grading_word_is_the_placeholder)
+"unlabelled" must mean only "no label recorded". ... ok
+test_the_placeholder_fits_every_column (students.tests_grading_label_fields.TheSixColumnsTest.test_the_placeholder_fits_every_column) ... ok
+test_there_are_exactly_these_six (students.tests_grading_label_fields.TheSixColumnsTest.test_there_are_exactly_these_six) ... ok
+
+======================================================================
+FAIL: test_the_sentence_says_first_form_and_names_the_later_table (students.tests_grading_label_fields.TheFoundersConditionTest.test_the_sentence_says_first_form_and_names_the_later_table)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-i-be-i-04-a/students/tests_grading_label_fields.py", line 127, in test_the_sentence_says_first_form_and_names_the_later_table
+    self.assertIn("A later stage improves on it", FIRST_FORM_NOTE)
+AssertionError: 'A later stage improves on it' not found in 'First form of the grading record (BE-I-04). See the plan for the rest: a table of grading runs, built beside re-grading or feedback editing and filled from these fields.'
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.190s
+
+FAILED (failures=1)
+Preserving test database for alias 'default' ('test_epic_i_be_i_04_a_mut')...
+Found 17 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+  Your models in app(s): 'students' have changes that are not yet reflected in a migration, and so won't be applied.
+  Run 'manage.py makemigrations' to make new migrations, and then re-run 'manage.py migrate' to apply them.

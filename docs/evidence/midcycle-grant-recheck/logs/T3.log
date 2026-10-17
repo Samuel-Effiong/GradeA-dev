@@ -1,0 +1,14 @@
+# T3: expiry: still a trial
+# file: billing/services.py (occurrence 1)
+# old: '        if not (locked.is_trial and locked.is_active):\n'
+# new: '        if not locked.is_active:\n'
+# commit: ae944e9664f7cb27d116f20f49b3230dda9f4f9c
+# exit: 1
+# elapsed_s: 4.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_conversion_in_between_is_not_undone (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_a_conversion_in_between_is_not_undone)
+FAIL: test_each_trial_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_each_trial_condition_is_rechecked_under_the_lock) [converted to paid]
+FAIL: test_expiry_blocked_behind_a_conversion_leaves_it_paid (billing.tests.test_overlapping_run_rechecks.TrialConversionRealLockTests.test_expiry_blocked_behind_a_conversion_leaves_it_paid)
+
+FAILED (failures=3)

@@ -1,0 +1,203 @@
+[
+ {
+  "id": "M1",
+  "file": "classrooms/services/enrollment.py",
+  "what": "a different name is accepted",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_different_middle_name_is_a_different_name",
+   "test_a_different_name_fails_the_row_with_its_code",
+   "test_a_different_typed_name_is_refused",
+   "test_a_missing_middle_name_is_a_different_name",
+   "test_a_named_student_who_never_signed_in_is_refused_a_different_name",
+   "test_any_other_difference_refuses",
+   "test_direct_add_refuses_a_different_name",
+   "test_half_a_name_is_a_name_and_is_not_replaced",
+   "test_import_fails_the_row_with_its_code",
+   "test_keeping_access_does_not_let_the_name_change",
+   "test_single_add_refuses_a_different_name"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "ff3aeb39e0c91b114a9e7f118a3adafed489a9461995ee544629f9be8b517b46"
+ },
+ {
+  "id": "M2",
+  "file": "classrooms/services/enrollment.py",
+  "what": "case counts as a difference",
+  "verdict": "KILLED",
+  "failed": [
+   "test_capitals_and_spaces_are_the_same_name_on_every_route",
+   "test_case_and_spaces_are_not_a_different_name",
+   "test_inner_spaces_capitals_and_ends_do_not_count",
+   "test_the_stored_name_in_another_case_is_enrolled"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "ff3aeb39e0c91b114a9e7f118a3adafed489a9461995ee544629f9be8b517b46"
+ },
+ {
+  "id": "M3",
+  "file": "classrooms/services/enrollment.py",
+  "what": "inner spaces count as a difference",
+  "verdict": "KILLED",
+  "failed": [
+   "test_inner_spaces_capitals_and_ends_do_not_count"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "ff3aeb39e0c91b114a9e7f118a3adafed489a9461995ee544629f9be8b517b46"
+ },
+ {
+  "id": "M4",
+  "file": "classrooms/services/enrollment.py",
+  "what": "middle name ignored",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_different_middle_name_is_a_different_name",
+   "test_a_missing_middle_name_is_a_different_name",
+   "test_any_other_difference_refuses"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "ff3aeb39e0c91b114a9e7f118a3adafed489a9461995ee544629f9be8b517b46"
+ },
+ {
+  "id": "M5",
+  "file": "classrooms/services/enrollment.py",
+  "what": "a nameless account is not filled",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_filled_name_that_clashes_fails_the_row_and_fills_nothing",
+   "test_a_filled_name_that_clashes_is_refused_and_nothing_is_filled",
+   "test_a_nameless_account_takes_the_typed_name",
+   "test_a_nameless_student_who_never_signed_in_is_filled_and_invited",
+   "test_a_nameless_student_who_never_signed_in_is_filled_and_invited_by_name",
+   "test_an_empty_name_is_filled_from_the_row",
+   "test_an_empty_name_is_filled_with_the_typed_one",
+   "test_direct_add_names_a_nameless_account"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "ff3aeb39e0c91b114a9e7f118a3adafed489a9461995ee544629f9be8b517b46"
+ },
+ {
+  "id": "M6",
+  "file": "classrooms/services/enrollment.py",
+  "what": "fill_empty ignored",
+  "verdict": "KILLED",
+  "failed": [
+   "test_without_fill_a_nameless_account_is_left_alone"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "ff3aeb39e0c91b114a9e7f118a3adafed489a9461995ee544629f9be8b517b46"
+ },
+ {
+  "id": "M7",
+  "file": "classrooms/services/enrollment.py",
+  "what": "rule (b) removed",
+  "verdict": "KILLED",
+  "failed": [
+   "test_by_direct_add",
+   "test_by_import",
+   "test_by_single_add",
+   "test_keeping_access_does_not_let_the_name_change"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "ff3aeb39e0c91b114a9e7f118a3adafed489a9461995ee544629f9be8b517b46"
+ },
+ {
+  "id": "M8",
+  "file": "classrooms/services/enrollment.py",
+  "what": "already_teaches always true",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_reachable_course_counts",
+   "test_a_school_course_the_teacher_has_left_does_not_count",
+   "test_a_teacher_who_never_taught_her_is_still_refused",
+   "test_an_individual_teacher_who_never_taught_them_is_refused_everywhere",
+   "test_another_schools_student_names_no_school",
+   "test_another_schools_teacher_is_refused",
+   "test_the_school_gate_answers_before_the_name"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "ff3aeb39e0c91b114a9e7f118a3adafed489a9461995ee544629f9be8b517b46"
+ },
+ {
+  "id": "M9",
+  "file": "classrooms/services/enrollment.py",
+  "what": "already_teaches ignores reachability (H-38)",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_school_course_the_teacher_has_left_does_not_count"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "ff3aeb39e0c91b114a9e7f118a3adafed489a9461995ee544629f9be8b517b46"
+ },
+ {
+  "id": "M10",
+  "file": "classrooms/services/enrollment.py",
+  "what": "name checked before the school gate",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_switched_off_account",
+   "test_the_school_gate_answers_before_the_name"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "ff3aeb39e0c91b114a9e7f118a3adafed489a9461995ee544629f9be8b517b46"
+ },
+ {
+  "id": "M11",
+  "file": "classrooms/services/roster_import.py",
+  "what": "mismatch not mapped to its row code",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_different_name_fails_the_row_with_its_code",
+   "test_import_fails_the_row_with_its_code"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "b4e2a219289806e954a6334120ce40dd9b62f3020f6d634e33f6897d4a8ab5ae"
+ },
+ {
+  "id": "M12",
+  "file": "classrooms/services/roster_import.py",
+  "what": "same name in the same course not recognised",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_no_email_row_with_an_enrolled_students_name_is_that_student",
+   "test_an_enrolled_student_is_skipped_on_both_paths",
+   "test_the_same_name_in_the_same_course_is_that_student"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "b4e2a219289806e954a6334120ce40dd9b62f3020f6d634e33f6897d4a8ab5ae"
+ },
+ {
+  "id": "M13",
+  "file": "classrooms/services/roster_import.py",
+  "what": "no-email row joined to the teacher's student by name across courses",
+  "verdict": "KILLED",
+  "failed": [
+   "test_import_into_another_course_of_the_same_teacher_is_a_new_student"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "b4e2a219289806e954a6334120ce40dd9b62f3020f6d634e33f6897d4a8ab5ae"
+ },
+ {
+  "id": "M14",
+  "file": "classrooms/serializers.py",
+  "what": "direct add skips the name rule",
+  "verdict": "KILLED",
+  "failed": [
+   "test_direct_add_names_a_nameless_account",
+   "test_direct_add_refuses_a_different_name"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "1566772216766bb66849da4954c7925b5d53c79f11573fd73258fa0c3738ee6a"
+ },
+ {
+  "id": "M15",
+  "file": "classrooms/serializers.py",
+  "what": "direct add does not save a filled name",
+  "verdict": "KILLED",
+  "failed": [
+   "test_direct_add_names_a_nameless_account"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "1566772216766bb66849da4954c7925b5d53c79f11573fd73258fa0c3738ee6a"
+ }
+]

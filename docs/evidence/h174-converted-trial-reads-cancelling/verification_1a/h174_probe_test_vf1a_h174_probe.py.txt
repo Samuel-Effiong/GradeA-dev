@@ -1,0 +1,113 @@
+"""1a's probes for H-174's delta (a cancellation Stripe has scheduled).
+
+Edges the author named as places to attack and did not test:
+pa  a cancel date that has ALREADY PASSED (Stripe answers it, flag false)
+pb  a record that is both waiting on a plan change AND scheduled at Stripe
+pc  a TRIAL whose Stripe answer carries a dated cancellation
+
+Answers are read from response.data. No helper is named `client`. The
+classes below subclass the author's fixture class through its module so
+that the author's own tests are not collected a second time here.
+"""
+
+from datetime import timedelta
+from unittest.mock import patch
+
+from django.urls import reverse
+from django.utils import timezone
+from rest_framework import status
+
+from billing.models import StripeSubscriptionStatus, UserSubscription
+from billing.tests import test_converted_trial_is_not_cancelling as author
+
+
+class ResumeProbe(author.BoughtDuringTheTrial):
+    def setUp(self):
+        super().setUp()
+        self.client.force_authenticate(user=self.teacher)
+        self.url = reverse("subscription-resume")
+
+    def stripe_answers(self, stripe_subscription, **answer):
+        stripe_subscription.retrieve.return_value = author.StripeAnswer(
+            status="active", cancel_at_period_end=False, **answer
+        )
+
+
+class PastDateAndPendingChange(ResumeProbe):
+    @patch("stripe.Subscription")
+    def test_pa_a_cancel_date_already_passed_is_still_a_cancellation(
+        self, stripe_subscription
+    ):
+        sub = self.converted_before_the_fix()
+        before = UserSubscription.objects.get(pk=sub.pk)
+        self.stripe_answers(
+            stripe_subscription,
+            cancel_at=int((timezone.now() - timedelta(days=2)).timestamp()),
+        )
+
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        after = UserSubscription.objects.get(pk=sub.pk)
+        self.assertIs(after.auto_renew, False)
+        self.assertIsNone(after.cancelled_at)
+        self.assertEqual(after.updated_at, before.updated_at)
+        self.assertEqual(response.data["status"], "cancellation_scheduled")
+        self.assertIn(author.SCHEDULED_AT_PROVIDER, response.data["message"])
+        stripe_subscription.modify.assert_not_called()
+
+    @patch("stripe.SubscriptionSchedule")
+    @patch("stripe.Subscription")
+    def test_pb_a_pending_plan_change_survives_a_scheduled_cancellation(
+        self, stripe_subscription, stripe_schedule
+    ):
+        sub = self.converted_before_the_fix(self.pro)
+        UserSubscription.objects.filter(pk=sub.pk).update(
+            pending_plan=self.standard, stripe_schedule_id="sched_vf1a_made"
+        )
+        before = UserSubscription.objects.get(pk=sub.pk)
+        self.assertEqual(before.pending_plan_id, self.standard.id)
+        self.stripe_answers(
+            stripe_subscription,
+            cancel_at=int((timezone.now() + timedelta(days=9)).timestamp()),
+        )
+
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        after = UserSubscription.objects.get(pk=sub.pk)
+        self.assertEqual(after.pending_plan_id, self.standard.id)
+        self.assertEqual(after.stripe_schedule_id, "sched_vf1a_made")
+        self.assertIs(after.auto_renew, False)
+        self.assertIsNone(after.cancelled_at)
+        self.assertEqual(after.updated_at, before.updated_at)
+        self.assertEqual(response.data["status"], "cancellation_scheduled")
+        stripe_subscription.modify.assert_not_called()
+        stripe_schedule.modify.assert_not_called()
+        stripe_schedule.release.assert_not_called()
+
+
+class ATrialWithADatedCancellation(ResumeProbe):
+    @patch("stripe.Subscription")
+    def test_pc_a_trial_keeps_its_trial_answer_beside_a_dated_cancellation(
+        self, stripe_subscription
+    ):
+        UserSubscription.objects.filter(pk=self.trial.pk).update(
+            stripe_subscription_id=author.STRIPE_ID,
+            stripe_status=StripeSubscriptionStatus.ACTIVE,
+        )
+        self.stripe_answers(
+            stripe_subscription,
+            cancel_at=int((timezone.now() + timedelta(days=5)).timestamp()),
+        )
+
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.trial.refresh_from_db()
+        self.assertTrue(self.trial.is_trial)
+        self.assertIs(self.trial.auto_renew, False)
+        self.assertEqual(response.data["status"], "already_active")
+        self.assertIn("don't require resuming", response.data["message"])
+        self.assertNotIn(author.SCHEDULED_AT_PROVIDER, response.data["message"])
+        stripe_subscription.modify.assert_not_called()

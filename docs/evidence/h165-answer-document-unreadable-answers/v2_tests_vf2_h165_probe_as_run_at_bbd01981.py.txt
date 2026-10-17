@@ -1,0 +1,262 @@
+"""v2's probe for H-165 (d5): the answer document builder does not raise on
+stored answers it cannot print. Copy to students/tests_vf2_h165_probe.py of
+the scratch worktree; never committed to the branch. Written 2026-10-07
+before any run of mine, after reading bbd01981 (code as at e42a8d2e): the
+four production files, d5's 31 tests, ASSERTIONS_READ.md, the runner U1 to
+U19, and in ai_processor/services.py every step between grade_engine and
+the model call that walks the answers.
+
+Why these four. Every grading test of d5's replaces the whole of
+`students.services.ai_processor`, so the REAL grading code never ran on a
+paper whose answers hold an entry that is not an object. Here the real
+pipeline runs; only the provider call (`execute_graded_task`) is replaced,
+as in my H-154 probe.
+
+  Y1  a paper with SOME left out, through the real pipeline with the
+      settings as they are: graded and saved (16 of 30), flagged with
+      `answers_unreadable` (1) beside `answer_not_found` for the question
+      whose entry could not be read, tier critical; the stored document
+      has the fixed line and not the entry. A fact beside it: the entry
+      that is not printed IS sent to the model, inside the answers JSON.
+  Y2  a limit, stated as a fact: with GRADING_DETERMINISTIC_OBJECTIVE off
+      (an environment switch) the same paper is NOT graded. The step that
+      reuses saved evaluations (`_partition_cached`) walks the answers and
+      calls `.get` on the entry that is not an object. No paid call; the
+      claim is released as FAILED; nothing of a grade and no flag.
+  Y3  d5's push point 2: a paper ALREADY GRADED whose answers were then
+      damaged, with a review reason of another kind on it. Asked to grade
+      again: refused; the grade, the stored document and the grading
+      state are exactly as before; the earlier reason is kept and the new
+      one stands after it; the tier rises to critical.
+  Y4  a never-graded paper with nothing printable while a fresh grading
+      claim is held: the refusal comes first (not "already being graded")
+      and does not touch the claim.
+
+Rule 19, every line of Y1 to Y4 read against each mutant (setUp and the
+controls too):
+  M1 (the refusal drops the reasons already on the paper): Y3 fails at its
+     reasons line. Y4's paper has no earlier reason: passes. Y1, Y2 are
+     never refused: pass.
+  M2 (the refusal comes after the claim): Y3: a graded paper can be
+     claimed, so the state is RUNNING after the refusal: fails. Y4: the
+     claim is held, so "already being graded" is raised instead: fails.
+     Y1, Y2: not refused, pass.
+  M3 (grading does not add the reason): Y1 fails at its reason line. Y2
+     never reaches the save. Y3's first, ordinary grading has nothing left
+     out. Pass: Y2, Y3, Y4.
+  M4 (the reuse step skips entries that are not objects: a CURE of Y2's
+     limit, to show Y2 decides): Y2 fails, the paper is graded. Y1 has the
+     switch on, where the step before already filtered: passes. Y3, Y4 pass.
+  M5 (the builder walks the stored value again): Y1 fails at the save
+     (the builder raises on the entry). Y2 fails before the builder, as it
+     should: passes. Y3's ordinary grading prints a list of objects; the
+     refusals never build: Y3, Y4 pass.
+Expected failing, exact: M1 {Y3}; M2 {Y3, Y4}; M3 {Y1}; M4 {Y2}; M5 {Y1}.
+"""
+
+import types
+from decimal import Decimal
+from unittest.mock import patch
+
+from django.core.cache import cache
+from django.test import TransactionTestCase, override_settings
+from django.utils import timezone
+
+import ai_processor.tests_reply_repeated_evaluation as d5t
+from ai_processor import services as ai_services
+from ai_processor.services import AIProcessor
+from assignments.models import Assignment, AssignmentStatus
+from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
+from students import services
+from students.exceptions import SubmissionAnswersUnreadableError
+from students.models import GradingState, StudentSubmission
+from students.services import grade_engine
+from users.models import CustomUser, UserTypes
+
+SOME = "Some of this submission's answers could not be displayed."
+NOTHING = "This submission's answers could not be displayed."
+STRAY = "vf2-stray-entry-text"
+UNREADABLE_ALL = {"type": "answers_unreadable", "left_out": "all"}
+EARLIER = {"type": "answer_not_found", "question_number": 2}
+KEPT_AS_IT_WAS = (
+    "score",
+    "ai_score",
+    "max_points",
+    "score_percentage",
+    "graded_at",
+    "feedback",
+    "raw_input",
+    "grading_state",
+    "grading_started_at",
+)
+
+
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False,
+    GRADING_EVIDENCE_ENFORCEMENT=ai_services.MODE_LOG,
+    GRADING_ANSWER_CACHE_ENABLED=True,
+)
+class VF2H165Probe(TransactionTestCase):
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.teacher = CustomUser.objects.create_user(
+            email="vf2-h165-teacher@example.com", user_type=UserTypes.TEACHER
+        )
+        self.student = CustomUser.objects.create_user(
+            email="vf2-h165-student@example.com", user_type=UserTypes.STUDENT
+        )
+        session = Session.objects.create(name="S", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="C", teacher=self.teacher, session=session
+        )
+        StudentCourse.objects.create(
+            student=self.student,
+            course=self.course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+        self.prompts = []
+        self.calls = 0
+
+    def paper(self, answers):
+        assignment = Assignment.objects.create(
+            title="A paper",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            total_points=30,
+            questions=[d5t.essay(n) for n in (1, 2, 3)],
+        )
+        return StudentSubmission.objects.create(
+            assignment=assignment, student=self.student, answers=answers
+        )
+
+    def row(self, submission):
+        return StudentSubmission.objects.get(pk=submission.pk)
+
+    def grade(self, submission, scores):
+        """The real pipeline; the provider call alone is replaced. Returns
+        what grade_engine raised, or None."""
+
+        def provider(**kwargs):
+            self.prompts.append(str(kwargs.get("user_prompt")))
+            return d5t.reply(
+                {
+                    "question_evaluations": [
+                        d5t.evaluation(number, score)
+                        for number, score in zip((1, 2, 3), scores, strict=True)
+                    ]
+                }
+            )
+
+        raised = None
+        with (
+            patch.object(AIProcessor, "execute_graded_task") as execute,
+            patch("students.services._formatted_grade_task") as formatted,
+            patch("students.services.student_summary_async"),
+        ):
+            execute.side_effect = provider
+            formatted.return_value.delay.return_value = types.SimpleNamespace(
+                id="vf2-fake-task-id"
+            )
+            try:
+                grade_engine(self.teacher, self.row(submission))
+            except Exception as error:  # the test asserts on it
+                raised = error
+        self.calls = execute.call_count
+        return raised
+
+    def mixed(self):
+        return self.paper([d5t.answer(1), STRAY, d5t.answer(3)])
+
+    def test_y1_some_left_out_through_the_real_pipeline(self):
+        submission = self.mixed()
+
+        raised = self.grade(submission, (8, 0, 8))
+
+        self.assertIsNone(raised)
+        self.assertGreaterEqual(self.calls, 1)
+        saved = self.row(submission)
+        self.assertIsNotNone(saved.graded_at)
+        self.assertEqual(saved.score, Decimal("16"))
+        self.assertEqual(saved.max_points, 30)
+        self.assertTrue(saved.needs_review)
+        self.assertIn(
+            {"type": "answers_unreadable", "left_out": 1}, saved.review_reasons
+        )
+        self.assertIn(
+            "answer_not_found", [reason["type"] for reason in saved.review_reasons]
+        )
+        self.assertEqual(saved.review_tier, "critical")
+        document = str(saved.raw_input)
+        self.assertIn(SOME, document)
+        self.assertIn("Essay 1 answer.", document)
+        self.assertNotIn(NOTHING, document)
+        self.assertNotIn(STRAY, document)
+        # a fact: what is not printed is still sent to the model
+        self.assertTrue(self.prompts)
+        self.assertIn(STRAY, self.prompts[0])
+
+    @override_settings(GRADING_DETERMINISTIC_OBJECTIVE=False)
+    def test_y2_with_the_objective_step_off_the_same_paper_is_not_graded(self):
+        submission = self.mixed()
+
+        raised = self.grade(submission, (8, 0, 8))
+
+        self.assertIsNotNone(raised)
+        self.assertIn("has no attribute 'get'", str(raised))
+        self.assertEqual(self.calls, 0)
+        saved = self.row(submission)
+        self.assertIsNone(saved.graded_at)
+        self.assertEqual(saved.grading_state, GradingState.FAILED)
+        self.assertFalse(saved.needs_review)
+        self.assertIsNone(saved.review_reasons)
+
+    def test_y3_a_graded_paper_whose_answers_were_then_damaged(self):
+        submission = self.paper([d5t.answer(n) for n in (1, 2, 3)])
+        self.assertIsNone(self.grade(submission, (8, 8, 8)))
+        graded = self.row(submission)
+        self.assertIsNotNone(graded.graded_at)
+        self.assertEqual(graded.score, Decimal("24"))
+        self.assertEqual(graded.grading_state, GradingState.DONE)
+        StudentSubmission.objects.filter(pk=submission.pk).update(
+            answers={"q1": STRAY},
+            needs_review=True,
+            review_reasons=[EARLIER],
+            review_tier="moderate",
+            review_severity=0.4,
+        )
+        before = self.row(submission)
+
+        raised = self.grade(submission, (8, 8, 8))
+
+        self.assertIsInstance(raised, SubmissionAnswersUnreadableError)
+        self.assertEqual(self.calls, 0)
+        after = self.row(submission)
+        for name in KEPT_AS_IT_WAS:
+            self.assertEqual(getattr(after, name), getattr(before, name), name)
+        self.assertEqual(after.score, Decimal("24"))
+        self.assertTrue(after.needs_review)
+        self.assertEqual(after.review_reasons, [EARLIER, UNREADABLE_ALL])
+        self.assertEqual(after.review_tier, "critical")
+        self.assertEqual(
+            after.review_severity,
+            max(0.4, services._review_sort_key("critical", 1.0)),
+        )
+
+    def test_y4_the_refusal_comes_before_a_claim_that_is_held(self):
+        submission = self.paper({"q1": STRAY})
+        held_since = timezone.now()
+        StudentSubmission.objects.filter(pk=submission.pk).update(
+            grading_state=GradingState.RUNNING, grading_started_at=held_since
+        )
+
+        raised = self.grade(submission, (8, 8, 8))
+
+        self.assertIsInstance(raised, SubmissionAnswersUnreadableError)
+        self.assertEqual(self.calls, 0)
+        after = self.row(submission)
+        self.assertEqual(after.grading_state, GradingState.RUNNING)
+        self.assertEqual(after.grading_started_at, held_since)
+        self.assertIsNone(after.graded_at)
+        self.assertTrue(after.needs_review)
+        self.assertEqual(after.review_reasons, [UNREADABLE_ALL])

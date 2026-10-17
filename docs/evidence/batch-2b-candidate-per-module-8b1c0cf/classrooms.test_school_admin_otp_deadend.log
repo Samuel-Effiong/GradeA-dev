@@ -1,0 +1,4 @@
+classrooms.test_school_admin_otp_deadend.OtpEndpointNeverDeadEndsAPendingSchoolAdminTests.test_verify_email_otp_does_not_invalidate_the_pending_invite ... ok
+classrooms.test_school_admin_otp_deadend.SendUserActivationEmailNeverHijacksSchoolAdminInviteTests.test_resends_a_fresh_invitation_instead_of_the_generic_otp_flow ... ok
+Ran 2 tests in 0.466s
+OK

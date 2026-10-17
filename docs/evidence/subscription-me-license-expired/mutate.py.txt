@@ -1,0 +1,146 @@
+"""Mutation battery for extending /subscription/me EXPIRED to the two
+license tracks (billing/views.py: SubscriptionManagementViewSet.
+get_my_subscription's last_managed_license/last_allocation fallback;
+billing/serializers.py: MyLicenseAdminSubscriptionSerializer/
+MyLicenseTeacherSubscriptionSerializer's new status/renewal-guard
+logic). Each mutant reverts ONE piece of the new logic; a named test
+must fail. Restores from a collision-safe backup copy and verifies by
+md5 (never git checkout).
+"""
+import hashlib, json, os, re, shutil, subprocess, sys, time
+
+ROOT = "/home/bond-servant-in-training/Documents/Projects/GAP-subscription-me-license-expired"
+SCR = os.path.dirname(os.path.abspath(__file__))
+VW = "billing/views.py"
+SZ = "billing/serializers.py"
+LABELS = "billing.tests.test_subscription_me_status"
+
+MUTANTS = [
+    ("ASTATUS", "MyLicenseAdminSubscriptionSerializer.get_status ignores context, always ACTIVE",
+     [(SZ, 'def get_status(self, obj) -> str:\n        return self.context.get("status", "ACTIVE")\n\n    def get_plan_display_name(self, obj) -> str:\n        return obj.plan.display_name or obj.plan.name',
+           'def get_status(self, obj) -> str:\n        return "ACTIVE"\n\n    def get_plan_display_name(self, obj) -> str:\n        return obj.plan.display_name or obj.plan.name')],
+     "test_lapsed_license_admin_reports_status_expired"),
+    ("ADAYSREN", "MyLicenseAdminSubscriptionSerializer.get_days_until_renewal EXPIRED guard removed",
+     [(SZ, '    def get_days_until_renewal(self, obj) -> int | None:\n        # EXPIRED: same guard as MySubscriptionSerializer — a lapsed\n        # license\'s billing_cycle_end - now is negative, and clamping to\n        # 0 would misleadingly read as "renews today".\n        if self.context.get("status") == "EXPIRED":\n            return None\n        delta = obj.billing_cycle_end - timezone.now()',
+           '    def get_days_until_renewal(self, obj) -> int | None:\n        delta = obj.billing_cycle_end - timezone.now()')],
+     "test_expired_license_admin_nulls_days_until_renewal"),
+    ("TSTATUS", "MyLicenseTeacherSubscriptionSerializer.get_status ignores context, always ACTIVE",
+     [(SZ, 'def get_status(self, obj) -> str:\n        return self.context.get("status", "ACTIVE")\n\n    def get_plan_display_name(self, obj) -> str:\n        plan = obj.license_subscription.plan',
+           'def get_status(self, obj) -> str:\n        return "ACTIVE"\n\n    def get_plan_display_name(self, obj) -> str:\n        plan = obj.license_subscription.plan')],
+     "test_teachers_own_allocation_deactivated_reports_status_expired"),
+    ("TDAYSREN", "MyLicenseTeacherSubscriptionSerializer.get_days_until_next_credit_grant EXPIRED guard removed",
+     [(SZ, 'if not obj.next_credit_grant_at or self.context.get("status") == "EXPIRED":\n            return None',
+           'if not obj.next_credit_grant_at:\n            return None')],
+     "test_expired_teacher_nulls_days_until_next_credit_grant"),
+    ("AORDER", "last_managed_license ordering reversed (oldest lapsed license wins)",
+     [(VW, 'LicenseSubscription.objects.filter(admin_user=request.user, is_active=False)\n            .select_related("plan", "school")\n            .order_by("-billing_cycle_end")',
+           'LicenseSubscription.objects.filter(admin_user=request.user, is_active=False)\n            .select_related("plan", "school")\n            .order_by("billing_cycle_end")')],
+     "test_most_recent_lapsed_license_is_the_one_returned"),
+    ("ACOUNT", "last_managed_license reports the ACTIVE-path default managed_license_count of 1 instead of 0",
+     [(VW, '                    "managed_license_count": 0,\n                    "status": "EXPIRED",\n                },\n            )\n            return Response(serializer.data)\n\n        # Broadened',
+           '                    "managed_license_count": 1,\n                    "status": "EXPIRED",\n                },\n            )\n            return Response(serializer.data)\n\n        # Broadened')],
+     "test_expired_license_admin_reports_zero_managed_licenses"),
+    ("NARROW", "last_allocation reverts to the SM's literal is_active=False spec, dropping the license-lapsed-only shape",
+     [(VW, '.exclude(is_active=True, license_subscription__is_active=True)',
+           '.filter(is_active=False)')],
+     "test_license_itself_lapsed_reports_status_expired_and_is_license_active_false"),
+    ("TORDER", "last_allocation ordering reversed (oldest-touched allocation wins)",
+     [(VW, '.order_by("-updated_at")\n            .first()\n        )\n        if last_allocation:',
+           '.order_by("updated_at")\n            .first()\n        )\n        if last_allocation:')],
+     "test_most_recently_updated_lapsed_allocation_is_the_one_returned"),
+    ("NOEXCL", "last_allocation drops the is_admin_allocation=False filter, admin-analytics rows can surface as a teacher EXPIRED row",
+     [(VW, 'SchoolCreditAllocation.objects.filter(\n                user=request.user, is_admin_allocation=False\n            )',
+           'SchoolCreditAllocation.objects.filter(\n                user=request.user\n            )')],
+     "test_admin_only_allocation_without_managed_license_is_excluded_from_teacher_lookup"),
+    ("PRIORITY", "priority chain reordered — teacher lookup checked before license-admin lookup",
+     [(VW, '        if last_managed_license:\n            serializer = MyLicenseAdminSubscriptionSerializer(\n                last_managed_license,\n                context={\n                    "admin_user": request.user,',
+           '        if False:\n            serializer = MyLicenseAdminSubscriptionSerializer(\n                last_managed_license,\n                context={\n                    "admin_user": request.user,')],
+     "test_expired_license_admin_history_wins_over_expired_license_teacher_history"),
+]
+
+
+def md5(p):
+    return hashlib.md5(open(p, "rb").read()).hexdigest()
+
+
+def run(timeout=300):
+    env = dict(os.environ)
+    env["DJANGO_SETTINGS_MODULE"] = "settings_worktree"
+    r = subprocess.run(
+        [sys.executable, "manage.py", "test", *LABELS.split(),
+         "--settings=settings_worktree", "--keepdb", "--noinput"],
+        cwd=ROOT, capture_output=True, text=True, timeout=timeout, env=env,
+    )
+    out = r.stdout + r.stderr
+    fails = re.findall(r"^(?:FAIL|ERROR): (\S+) \(([^)]*)\)", out, re.M)
+    m = re.search(r"^(OK.*|FAILED.*)$", out, re.M)
+    return r.returncode, out, fails, (m.group(1) if m else "?")
+
+
+def precheck():
+    bad = []
+    for mid, desc, edits, expect in MUTANTS:
+        for f, old, new in edits:
+            n = open(os.path.join(ROOT, f)).read().count(old)
+            if n != 1:
+                bad.append((mid, f, n, old[:60]))
+    return bad
+
+
+def main(only=None):
+    bad = precheck()
+    if bad:
+        for b in bad:
+            print("PATTERN PROBLEM", b)
+        raise SystemExit(1)
+    log = open(os.path.join(SCR, "mutation_log.jsonl"), "a")
+    results = []
+    files = sorted({f for _, _, ms, _ in MUTANTS for f, _, _ in ms})
+    orig = {f: md5(os.path.join(ROOT, f)) for f in files}
+    backups = {}
+    for f in files:
+        b = os.path.join(SCR, "backup_" + f.replace("/", "__"))
+        shutil.copy2(os.path.join(ROOT, f), b)
+        backups[f] = b
+    rc, out, fails, summary = run()
+    base = {"id": "BASE", "rc": rc, "summary": summary, "fails": fails}
+    print("BASELINE", rc, summary, flush=True)
+    log.write(json.dumps(base) + "\n")
+    if rc != 0:
+        print(out[-3000:])
+        raise SystemExit("baseline not green")
+    for mid, desc, edits, expect in MUTANTS:
+        if only and mid not in only:
+            continue
+        try:
+            for f, old, new in edits:
+                p = os.path.join(ROOT, f)
+                s = open(p).read()
+                open(p, "w").write(s.replace(old, new))
+            t = time.time()
+            rc, out, fails, summary = run()
+            names = sorted({n for n, _ in fails})
+            killed = rc != 0 and any(expect in n for n, _ in fails)
+            res = {"id": mid, "desc": desc, "rc": rc, "summary": summary, "expected_test": expect,
+                   "failing": names, "killed_for_named_reason": killed, "secs": round(time.time() - t)}
+        except Exception as e:
+            res = {"id": mid, "desc": desc, "error": str(e), "killed_for_named_reason": False}
+        finally:
+            for f in files:
+                shutil.copy2(backups[f], os.path.join(ROOT, f))
+            bad = [f for f in files if md5(os.path.join(ROOT, f)) != orig[f]]
+            if bad:
+                raise SystemExit(f"RESTORE MISMATCH after {mid}: {bad}")
+        res["restored_md5_ok"] = True
+        print(mid, "KILLED" if res["killed_for_named_reason"] else "SURVIVED/ERR",
+              (res.get("failing") or res.get("error"))[:6] if res.get("failing") else res.get("error"), flush=True)
+        log.write(json.dumps(res) + "\n")
+        log.flush()
+        results.append(res)
+    json.dump({"baseline": base, "mutants": results, "md5": orig},
+               open(os.path.join(SCR, "mutation_results.json"), "w"), indent=1)
+    print("KILLED", sum(r["killed_for_named_reason"] for r in results), "/", len(results))
+
+
+if __name__ == "__main__":
+    main(set(sys.argv[1:]) or None)

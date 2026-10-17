@@ -1,0 +1,12 @@
+# S4: a message that cannot be scrubbed fails closed (SM's D4)
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '            return _withheld_message(self)\n'
+# new: '            return str(self.msg) + str(self.args)\n'
+# commit: 7d05b17342e11450893a2de06f244b1e36effa57
+# exit: 1
+# elapsed_s: 7.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_message_that_cannot_be_formatted_fails_closed (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_a_message_that_cannot_be_formatted_fails_closed)
+
+FAILED (failures=1)

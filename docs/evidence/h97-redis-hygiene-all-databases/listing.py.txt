@@ -1,0 +1,40 @@
+"""Read-only: per Redis database, our gaplus-t<pid>: test keys of dead and of
+live pids, and the count of every other key family. Deletes nothing."""
+
+import collections
+import datetime
+import os
+import re
+import sys
+
+import redis
+
+print(
+    "listing",
+    sys.argv[1] if len(sys.argv) > 1 else "",
+    datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+)
+total_dead = 0
+for db in range(16):
+    c = redis.Redis(host="127.0.0.1", port=6379, db=db)
+    dead, live, other = (
+        collections.Counter(),
+        collections.Counter(),
+        collections.Counter(),
+    )
+    for k in c.scan_iter(count=10000):
+        m = re.match(rb"^gaplus-t(\d+):", k)
+        if not m:
+            other[
+                re.sub(r"\d+", "N", k.decode(errors="replace").split(":")[0])[:24]
+            ] += 1
+            continue
+        pid = int(m.group(1))
+        (live if os.path.exists(f"/proc/{pid}") else dead)[pid] += 1
+    if dead or live or other:
+        families = ", ".join(f"{name}={n}" for name, n in sorted(other.items()))
+        print(
+            f"db{db}: dead-pid gaplus-t keys={sum(dead.values())} ({len(dead)} prefixes); live-pid gaplus-t keys={sum(live.values())} ({len(live)} pids); other families: {families or 'none'}"
+        )
+    total_dead += sum(dead.values())
+print("TOTAL dead-pid gaplus-t keys:", total_dead)

@@ -1,0 +1,499 @@
+{
+  "V1": {
+    "what": "a tie goes to the first by alphabet, not to the main model",
+    "file": "ai_processor/vote.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 2.164s",
+    "expected": "test_a_two_way_tie_goes_to_the_main_model",
+    "failing_tests": [
+      "test_a_mixed_paper_counts_only_the_answers_an_ai_marked",
+      "test_a_three_way_tie_goes_to_the_main_model",
+      "test_a_tie_goes_to_the_main_model_then_to_alphabet",
+      "test_a_two_way_tie_goes_to_the_main_model",
+      "test_the_same_model_over_many_random_patterns"
+    ]
+  },
+  "V2": {
+    "what": "a tie goes to the LAST by alphabet",
+    "file": "ai_processor/vote.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.679s",
+    "expected": "test_a_tie_without_the_main_model_goes_to_the_first_by_alphabet",
+    "failing_tests": [
+      "test_a_main_model_that_is_none_is_never_preferred",
+      "test_a_tie_goes_to_the_first_by_alphabet",
+      "test_a_tie_goes_to_the_main_model_then_to_alphabet",
+      "test_a_tie_without_the_main_model_goes_to_the_first_by_alphabet",
+      "test_the_order_of_arrival_does_not_change_the_answer",
+      "test_the_same_model_over_many_random_patterns"
+    ]
+  },
+  "V3": {
+    "what": "an unnamed model wins a tie against a named one",
+    "file": "ai_processor/vote.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.480s",
+    "expected": "test_an_unnamed_model_loses_a_tie_to_a_named_one",
+    "failing_tests": [
+      "test_an_unnamed_model_loses_a_tie_to_a_named_one",
+      "test_the_fixed_word_loses_a_tie_like_any_unnamed_model",
+      "test_the_order_of_arrival_does_not_change_the_answer",
+      "test_the_same_model_over_many_random_patterns",
+      "test_unknown_loses_a_tie_to_a_named_model",
+      "test_unnamed_loses_a_tie_to_a_named_model"
+    ]
+  },
+  "V4": {
+    "what": "a model with zero votes can lead",
+    "file": "ai_processor/vote.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.612s",
+    "expected": "test_only_zero_votes_give_none",
+    "failing_tests": [
+      "test_only_zero_votes_give_none"
+    ]
+  },
+  "V5": {
+    "what": "the model with the FEWEST votes wins",
+    "file": "ai_processor/vote.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.617s",
+    "expected": "test_the_model_with_most_votes_wins",
+    "failing_tests": [
+      "test_a_backup_marking_one_part_is_seen",
+      "test_a_counter_is_accepted_as_it_is",
+      "test_a_reply_votes_once_however_many_items_it_supplied",
+      "test_a_reused_answer_first_made_by_a_backup_is_yes",
+      "test_a_tie_without_the_main_model_goes_to_the_first_by_alphabet",
+      "test_an_unnamed_model_that_has_the_most_votes_wins_as_none",
+      "test_any_backup_answer_is_yes",
+      "test_backup_with_an_unnamed_model_is_yes",
+      "test_fresh_and_reused_answers_are_counted_together",
+      "test_main_with_a_model_on_neither_list_is_unknown",
+      "test_main_with_an_unnamed_model_is_unknown",
+      "test_one_call_marking_three_answers_votes_three_times",
+      "test_the_main_model_loses_to_a_clear_majority",
+      "test_the_majority_of_answers_wins",
+      "test_the_majority_wins",
+      "test_the_model_with_most_votes_wins",
+      "test_the_order_of_arrival_does_not_change_the_answer",
+      "test_the_part_with_the_most_answers_names_the_model",
+      "test_the_same_model_over_many_random_patterns",
+      "test_the_version_most_replies_used_wins",
+      "test_unknown_wins_when_it_marked_the_most"
+    ]
+  },
+  "V6": {
+    "what": "the helper changes the votes it was given",
+    "file": "ai_processor/vote.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.523s",
+    "expected": "test_the_input_is_not_changed",
+    "failing_tests": [
+      "test_not_run_as_a_providers_name_reads_unknown",
+      "test_the_input_is_not_changed",
+      "test_unknown_as_a_providers_name_reads_unknown",
+      "test_unlabelled_as_a_providers_name_reads_unknown"
+    ]
+  },
+  "V7": {
+    "what": "the grading run keeps its own copy of the rule instead of calling the helper",
+    "file": "ai_processor/grading_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.915s",
+    "expected": "test_the_run_calls_the_helper_with_the_counts_and_the_main_model",
+    "failing_tests": [
+      "test_a_backup_marking_one_part_is_seen",
+      "test_a_mixed_paper_counts_only_the_answers_an_ai_marked",
+      "test_a_reused_answer_first_made_by_a_backup_is_yes",
+      "test_a_three_way_tie_goes_to_the_main_model",
+      "test_a_two_way_tie_goes_to_the_main_model",
+      "test_any_backup_answer_is_yes",
+      "test_one_call_marking_three_answers_votes_three_times",
+      "test_the_run_calls_the_helper_with_the_counts_and_the_main_model",
+      "test_the_same_model_over_many_random_patterns",
+      "test_unknown_wins_when_it_marked_the_most"
+    ]
+  },
+  "V8": {
+    "what": "the grading run lets a helper answer of None through",
+    "file": "ai_processor/grading_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.781s",
+    "expected": "test_a_helper_answer_of_none_reads_unknown",
+    "failing_tests": [
+      "test_a_helper_answer_of_none_reads_unknown",
+      "test_a_reused_answer_whose_first_model_was_not_named_is_unknown",
+      "test_marked_by_a_model_the_provider_did_not_name",
+      "test_no_value_is_ever_the_placeholder",
+      "test_the_same_model_over_many_random_patterns",
+      "test_unknown_wins_when_it_marked_the_most"
+    ]
+  },
+  "V9": {
+    "what": "the grading run gives the helper no main model",
+    "file": "ai_processor/grading_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 2.111s",
+    "expected": "test_the_run_calls_the_helper_with_the_counts_and_the_main_model",
+    "failing_tests": [
+      "test_a_mixed_paper_counts_only_the_answers_an_ai_marked",
+      "test_a_three_way_tie_goes_to_the_main_model",
+      "test_a_two_way_tie_goes_to_the_main_model",
+      "test_the_run_calls_the_helper_with_the_counts_and_the_main_model",
+      "test_the_same_model_over_many_random_patterns"
+    ]
+  },
+  "V10": {
+    "what": "the grading run forgets the reused answers' votes",
+    "file": "ai_processor/grading_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.879s",
+    "expected": "test_the_same_model_over_many_random_patterns",
+    "failing_tests": [
+      "test_a_reused_answer_whose_first_model_was_not_named_is_unknown",
+      "test_a_wholly_reused_paper_names_the_model_that_first_answered",
+      "test_a_wholly_reused_run_is_judged_by_the_first_models",
+      "test_fresh_and_reused_answers_are_counted_together",
+      "test_the_run_calls_the_helper_with_the_counts_and_the_main_model",
+      "test_the_same_model_over_many_random_patterns"
+    ]
+  },
+  "S1": {
+    "what": "a provider name equal to a fixed word is kept as a name",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 2.225s",
+    "expected": "test_unlabelled_as_a_providers_name_reads_unknown",
+    "failing_tests": [
+      "test_a_reply_named_with_a_fixed_word_records_unknown",
+      "test_not_run_as_a_providers_name_reads_unknown",
+      "test_unknown_as_a_providers_name_reads_unknown",
+      "test_unlabelled_as_a_providers_name_reads_unknown"
+    ]
+  },
+  "S2": {
+    "what": "not_run is not among the fixed words",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.934s",
+    "expected": "test_not_run_as_a_providers_name_reads_unknown",
+    "failing_tests": [
+      "test_not_run_as_a_providers_name_reads_unknown",
+      "test_the_fixed_model_words_are_the_three_that_may_not_be_a_providers",
+      "test_the_step_modules_words_equal_the_students_apps"
+    ]
+  },
+  "S3": {
+    "what": "a new attempt keeps the votes of the one before",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 2.063s",
+    "expected": "test_a_new_attempt_starts_from_nothing",
+    "failing_tests": [
+      "test_a_new_attempt_starts_from_nothing"
+    ]
+  },
+  "S4": {
+    "what": "a new attempt keeps the marks of the call before",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.910s",
+    "expected": "test_a_new_attempt_starts_from_nothing",
+    "failing_tests": [
+      "test_a_new_attempt_starts_from_nothing"
+    ]
+  },
+  "S5": {
+    "what": "a negative count votes",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 2.204s",
+    "expected": "test_a_negative_count_votes_for_nobody",
+    "failing_tests": [
+      "test_a_negative_count_votes_for_nobody"
+    ]
+  },
+  "S6": {
+    "what": "a reply that supplied no item is not a kept reply",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 2.036s",
+    "expected": "test_a_reply_that_supplied_no_item_is_kept_but_does_not_vote",
+    "failing_tests": [
+      "test_a_kept_reply_with_no_item_and_no_name_reads_unknown",
+      "test_a_kept_reply_with_no_item_reads_unknown_even_when_it_is_named",
+      "test_a_reply_that_supplied_no_item_is_kept_but_does_not_vote",
+      "test_a_reply_with_no_item_does_not_outvote_one_that_has_items",
+      "test_a_tie_goes_to_the_main_model_then_to_alphabet",
+      "test_not_run_as_a_providers_name_reads_unknown",
+      "test_only_an_exact_match_is_a_fixed_word",
+      "test_only_unnamed_replies_read_unknown",
+      "test_the_fixed_word_loses_a_tie_like_any_unnamed_model",
+      "test_the_majority_wins",
+      "test_the_providers_exact_text_is_kept",
+      "test_unknown_as_a_providers_name_reads_unknown",
+      "test_unlabelled_as_a_providers_name_reads_unknown",
+      "test_unnamed_loses_a_tie_to_a_named_model"
+    ]
+  },
+  "S7": {
+    "what": "nothing kept reads unknown instead of None",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 2.077s",
+    "expected": "test_nothing_kept_gives_none_so_the_caller_chooses_its_word",
+    "failing_tests": [
+      "test_a_new_step_has_kept_nothing",
+      "test_nothing_kept_gives_none_so_the_caller_chooses_its_word"
+    ]
+  },
+  "S8": {
+    "what": "only unnamed replies give None instead of unknown",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.687s",
+    "expected": "test_only_unnamed_replies_read_unknown",
+    "failing_tests": [
+      "test_a_kept_reply_with_no_item_and_no_name_reads_unknown",
+      "test_a_kept_reply_with_no_item_reads_unknown_even_when_it_is_named",
+      "test_not_run_as_a_providers_name_reads_unknown",
+      "test_only_unnamed_replies_read_unknown",
+      "test_unknown_as_a_providers_name_reads_unknown",
+      "test_unlabelled_as_a_providers_name_reads_unknown"
+    ]
+  },
+  "S9": {
+    "what": "a reply can be marked received before the call left",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.532s",
+    "expected": "test_a_reply_cannot_be_marked_before_the_call_left",
+    "failing_tests": [
+      "test_a_reply_cannot_be_marked_before_the_call_left"
+    ]
+  },
+  "S10": {
+    "what": "the reply's name is recorded raw, a fixed word included",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.599s",
+    "expected": "test_a_reply_named_with_a_fixed_word_records_unknown",
+    "failing_tests": [
+      "test_a_reply_named_with_a_fixed_word_records_unknown"
+    ]
+  },
+  "S11": {
+    "what": "the scope is not restored after an exception",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.989s",
+    "expected": "test_the_scope_is_restored_after_an_exception",
+    "failing_tests": [
+      "test_an_exception_in_the_inner_scope_restores_the_outer_one",
+      "test_no_scope_is_open_by_default",
+      "test_the_same_run_can_be_entered_again",
+      "test_the_scope_is_restored_after_an_exception",
+      "test_the_scope_is_restored_after_an_exception_that_is_not_an_exception",
+      "test_two_steps_one_after_the_other_do_not_leak"
+    ]
+  },
+  "S12": {
+    "what": "leaving a scope clears the variable, not restoring the outer scope",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.907s",
+    "expected": "test_a_nested_scope_restores_the_outer_one",
+    "failing_tests": [
+      "test_a_nested_scope_restores_the_outer_one",
+      "test_an_exception_in_the_inner_scope_restores_the_outer_one"
+    ]
+  },
+  "S13": {
+    "what": "a call with no scope never fails",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 2.748s",
+    "expected": "test_a_task_type_that_needs_a_scope_raises_when_none_is_open",
+    "failing_tests": [
+      "test_a_task_type_that_needs_a_scope_raises_when_none_is_open"
+    ]
+  },
+  "S14": {
+    "what": "a task type that is not enforced fails without a scope",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.780s",
+    "expected": "test_a_task_type_that_is_not_enforced_passes_without_a_scope",
+    "failing_tests": [
+      "test_a_task_type_that_is_not_enforced_passes_without_a_scope",
+      "test_in_slice_0_nothing_is_enforced_yet"
+    ]
+  },
+  "S15": {
+    "what": "a task type is enforced already in slice 0",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.714s",
+    "expected": "test_in_slice_0_nothing_is_enforced_yet",
+    "failing_tests": [
+      "test_in_slice_0_nothing_is_enforced_yet"
+    ]
+  },
+  "S16": {
+    "what": "grading is counted among the step task types",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.651s",
+    "expected": "test_grading_is_not_a_step_task_type",
+    "failing_tests": [
+      "test_grading_is_not_a_step_task_type",
+      "test_the_known_step_task_types_are_the_ones_of_the_design_note"
+    ]
+  },
+  "P1": {
+    "what": "a kept reply does not record its prompt version",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.665s",
+    "expected": "test_one_reply_with_a_version_gives_that_version",
+    "failing_tests": [
+      "test_a_reply_that_supplied_no_item_still_brings_its_version",
+      "test_a_reply_votes_once_however_many_items_it_supplied",
+      "test_a_reply_with_no_version_does_not_vote",
+      "test_a_tie_goes_to_the_first_by_alphabet",
+      "test_one_reply_with_a_version_gives_that_version",
+      "test_the_version_is_the_exact_text",
+      "test_the_version_most_replies_used_wins"
+    ]
+  },
+  "P2": {
+    "what": "a new attempt keeps the prompt versions of the one before",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 2.049s",
+    "expected": "test_a_new_attempt_forgets_the_prompt_versions",
+    "failing_tests": [
+      "test_a_new_attempt_forgets_the_prompt_versions"
+    ]
+  },
+  "P3": {
+    "what": "the prompt version of the last reply wins, not the most used",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.518s",
+    "expected": "test_the_version_most_replies_used_wins",
+    "failing_tests": [
+      "test_the_version_most_replies_used_wins"
+    ]
+  },
+  "P4": {
+    "what": "a reply votes for its prompt version once per item",
+    "file": "ai_processor/step_run.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.703s",
+    "expected": "test_a_reply_votes_once_however_many_items_it_supplied",
+    "failing_tests": [
+      "test_a_reply_votes_once_however_many_items_it_supplied"
+    ]
+  },
+  "L1": {
+    "what": "a word of the students app differs from the AI-processor's",
+    "file": "students/step_label.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.512s",
+    "expected": "test_the_words",
+    "failing_tests": [
+      "test_the_fixed_model_words",
+      "test_the_recheck_results_are_these_four_and_unlabelled",
+      "test_the_step_modules_words_equal_the_students_apps",
+      "test_the_words"
+    ]
+  },
+  "L2": {
+    "what": "the words module imports from the project",
+    "file": "students/step_label.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.543s",
+    "expected": "test_no_project_import",
+    "failing_tests": [
+      "test_no_project_import"
+    ]
+  },
+  "L3": {
+    "what": "the failed result is missing from the re-check's results",
+    "file": "students/step_label.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 171 tests in 1.553s",
+    "expected": "test_the_recheck_results_are_these_four_and_unlabelled",
+    "failing_tests": [
+      "test_the_recheck_results_are_these_four_and_unlabelled"
+    ]
+  }
+}

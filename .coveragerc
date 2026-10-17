@@ -1,0 +1,56 @@
+# Coverage measurement scope.
+#
+# Without `source`, coverage reports on everything imported - including the
+# virtualenv, Django itself, and the test files - which drags the headline
+# number far away from anything meaningful about this project's code.
+#
+# A note on how to read the output: coverage shows which lines *ran*, not
+# which lines were *checked*. A line exercised by a test that asserts
+# nothing about it still counts as covered. Treat a low number as a
+# reliable signal ("nothing here has ever executed") and a high number as
+# no guarantee at all.
+
+[run]
+# `manage.py test --parallel` runs actual tests in forked worker
+# processes, not the process `coverage run` started - without this,
+# coverage only sees whatever the parent dispatcher itself executes (a
+# small fraction of the suite), reporting real code as uncovered. This
+# tells coverage to also start measurement in each forked child; the
+# workflow then runs `coverage combine` to merge every worker's data file
+# into one before `coverage report` reads it.
+concurrency = multiprocessing
+source =
+    ai_processor
+    assignments
+    AutoGrader
+    billing
+    classrooms
+    dashboard
+    students
+    users
+branch = True
+omit =
+    */migrations/*
+    */tests/*
+    */test_*.py
+    */tests_*.py
+    */tests.py
+    AutoGrader/settings.py
+    AutoGrader/wsgi.py
+    AutoGrader/asgi.py
+    */__init__.py
+
+[report]
+show_missing = True
+skip_covered = False
+precision = 1
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    def __str__
+    raise NotImplementedError
+    if TYPE_CHECKING:
+    if __name__ == .__main__.:
+
+[html]
+directory = htmlcov

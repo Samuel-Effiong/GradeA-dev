@@ -1,0 +1,16 @@
+users.tests_patch_email.EmailChangeTests.test_a_changed_email_is_refused_even_alongside_valid_edits ... ok
+users.tests_patch_email.EmailChangeTests.test_a_legacy_mixed_case_stored_email_sent_back_unchanged_is_accepted ... ok
+users.tests_patch_email.EmailChangeTests.test_account_creation_is_unaffected ... ok
+users.tests_patch_email.EmailChangeTests.test_an_account_without_a_usable_password_is_refused_the_same_way ... ok
+users.tests_patch_email.EmailChangeTests.test_an_unchanged_email_is_accepted_with_case_and_whitespace_variants ... ok
+users.tests_patch_email.EmailChangeTests.test_nobody_can_change_someone_elses_email ... ok
+users.tests_patch_email.EmailChangeTests.test_other_field_edits_without_an_email_still_succeed ... ok
+users.tests_patch_email.EmailChangeTests.test_password_and_email_together_is_still_refused ... ok
+users.tests_patch_email.EmailChangeTests.test_refusing_does_not_touch_the_login_lockout_counter ... ok
+users.tests_patch_email.EmailChangeTests.test_super_admin_editing_another_users_other_fields_still_succeeds ... ok
+users.tests_patch_email.EmailChangeTests.test_super_admin_on_another_account_is_refused_too ... ok
+users.tests_patch_email.EmailChangeTests.test_super_admin_on_their_own_account_is_refused ... ok
+users.tests_patch_email.EmailChangeTests.test_the_old_current_password_mechanism_no_longer_unlocks_a_change ... ok
+users.tests_patch_email.EmailChangeTests.test_the_stolen_token_takeover_chain_is_closed ... ok
+Ran 14 tests in 2.121s
+OK

@@ -1,0 +1,15 @@
+Destroying test database for alias 'default'...
+
+[scale] 30-file batch (24 good, 6 bad) took 0.93s
+
+[scale] 6 concurrent 30-file batches took 1.03s; provider calls=24
+
+  backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+
+  backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+  backfilled identity on 1 ledger row(s) and 1 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

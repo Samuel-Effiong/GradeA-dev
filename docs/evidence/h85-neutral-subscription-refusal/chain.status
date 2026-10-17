@@ -1,0 +1,6 @@
+13:25:24 repro exit=1 (red expected)
+13:27:02 (a) exit=0
+13:30:17 chain shell stopped by d5 at 0b's request; (b) left to finish; (c) not started
+13:30:43 (b) finished: 7/7 killed, restores verified, tree clean. PAUSED after (b); (c) to run under a new GRANT
+14:09:23 (c) exit=0 (resumed under a new GRANT)
+14:09:23 CHAIN END

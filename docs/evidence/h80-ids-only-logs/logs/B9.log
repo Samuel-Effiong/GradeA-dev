@@ -1,0 +1,13 @@
+# B9: H-86: the enrolment's other-school refusal logs a WARNING reason line
+# file: billing/license_service.py (occurrence 1)
+# old: '            logger.warning(\n                "Teacher %s belongs to school %s, not licence %s\'s school %s: "\n'
+# new: '            logger.debug(\n                "Teacher %s belongs to school %s, not licence %s\'s school %s: "\n'
+# commit: af5cee0442448447293933eae2bfd9e122149b38
+# tests: billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest billing.tests.test_logs_carry_no_email.SignalsLogNoAddressTest
+# exit: 1
+# elapsed_s: 5.0
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_other_school_refusal_logs_its_reason_with_ids (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_an_other_school_refusal_logs_its_reason_with_ids)
+
+FAILED (failures=1)

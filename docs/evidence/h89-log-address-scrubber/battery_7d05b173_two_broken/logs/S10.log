@@ -1,0 +1,15 @@
+# S10: override_settings switches the scrubber
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: 'setting_changed.connect(_follow_the_setting)\n'
+# new: ''
+# commit: 7d05b17342e11450893a2de06f244b1e36effa57
+# exit: 1
+# elapsed_s: 8.2
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_control_with_the_scrubber_off_the_traceback_has_the_address (billing.tests.test_log_scrubbing_end_to_end.ScrubberOnEndToEndTests.test_control_with_the_scrubber_off_the_traceback_has_the_address)
+FAIL: test_once_settings_are_configured_the_switch_is_theirs (AutoGrader.tests_log_scrubbing.BeforeSettingsAreConfiguredTests.test_once_settings_are_configured_the_switch_is_theirs)
+FAIL: test_it_is_off_under_the_test_runner (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_it_is_off_under_the_test_runner)
+FAIL: test_override_settings_switches_it_on_and_back_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_override_settings_switches_it_on_and_back_off)
+
+FAILED (failures=4)

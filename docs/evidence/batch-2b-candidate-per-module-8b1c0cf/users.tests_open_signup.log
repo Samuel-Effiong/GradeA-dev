@@ -1,0 +1,16 @@
+users.tests_open_signup.OpenSignupTests.test_google_signup_creates_an_account_for_an_unwhitelisted_email ... ok
+users.tests_open_signup.OpenSignupTests.test_register_does_not_park_the_email_on_the_waitlist ... ok
+users.tests_open_signup.OpenSignupTests.test_register_never_answers_403_not_in_beta ... ok
+users.tests_open_signup.OpenSignupTests.test_register_still_normalises_the_email ... ok
+users.tests_open_signup.OpenSignupTests.test_register_succeeds_for_email_absent_from_whitelist ... ok
+users.tests_open_signup.OpenSignupTests.test_register_succeeds_when_the_whitelist_entry_is_inactive ... ok
+users.tests_open_signup.OpenSignupTests.test_registered_user_can_verify_then_log_in ... ok
+users.tests_open_signup.SignupGuardsSurviveTests.test_duplicate_email_is_still_rejected ... ok
+users.tests_open_signup.SignupGuardsSurviveTests.test_new_account_is_inactive_until_verified ... ok
+users.tests_open_signup.SignupGuardsSurviveTests.test_school_admin_created_on_a_personal_email_is_rejected ... ok
+users.tests_open_signup.SignupGuardsSurviveTests.test_school_admin_moving_to_a_personal_email_is_still_rejected ... ok
+users.tests_open_signup.SignupGuardsSurviveTests.test_teacher_with_a_business_email_is_still_rejected ... ok
+users.tests_open_signup.WhitelistRecordsSurviveTests.test_superadmin_can_still_add_a_whitelist_entry ... ok
+users.tests_open_signup.WhitelistRecordsSurviveTests.test_superadmin_can_still_transfer_a_waitlist_entry ... ok
+Ran 14 tests in 0.723s
+OK

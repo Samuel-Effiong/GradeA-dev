@@ -1,0 +1,12 @@
+# R12: licence service: the run's now, not its own
+# file: billing/license_service.py (occurrence 1)
+# old: '        now = now or timezone.now()\n        next_refresh'
+# new: '        now = timezone.now()\n        next_refresh'
+# commit: 47bdc73e5fc740f2904d9a339dad0c5b4c870a31
+# exit: 0
+# elapsed_s: 4.5
+# restored_sha256_matches_commit_blob: True
+
+
+
+OK

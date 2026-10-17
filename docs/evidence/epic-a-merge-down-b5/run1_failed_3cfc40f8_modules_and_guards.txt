@@ -1,0 +1,201 @@
+[trimmed: last 200 lines of 18910 lines; full log (sha256 prefix 4ef376a310656971) at ~/Documents/Projects/GAP-evidence-logs/mdb5_run1_failed_3cfc40f8_modules_and_guards.txt]
+13:51:36 test_an_audit_only_code_has_no_error_body (AutoGrader.tests_reason_codes.CodedErrorTests.test_an_audit_only_code_has_no_error_body) ... ok
+13:51:36 test_defaults_fill_a_param_the_raiser_left_out (AutoGrader.tests_reason_codes.CodedErrorTests.test_defaults_fill_a_param_the_raiser_left_out) ... ok
+13:51:36 test_detail_stays_out_of_the_message (AutoGrader.tests_reason_codes.CodedErrorTests.test_detail_stays_out_of_the_message) ... ok
+13:51:36 test_display_for_no_placeholder_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_for_no_placeholder_is_refused) ... ok
+13:51:36 test_display_may_stand_in_for_an_unknown_param (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_may_stand_in_for_an_unknown_param) ... ok
+13:51:36 test_display_shapes_the_message_but_never_the_params (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_shapes_the_message_but_never_the_params) ... ok
+13:51:36 test_display_values_must_be_text (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_values_must_be_text) ... ok
+13:51:36 test_only_user_and_validation_classes_are_user_facing (AutoGrader.tests_reason_codes.CodedErrorTests.test_only_user_and_validation_classes_are_user_facing) ... ok
+13:51:36 test_refusal_response_still_answers_refusals_only (AutoGrader.tests_reason_codes.CodedErrorTests.test_refusal_response_still_answers_refusals_only) ... ok
+13:51:36 test_the_message_is_rendered_from_the_spec (AutoGrader.tests_reason_codes.CodedErrorTests.test_the_message_is_rendered_from_the_spec) ... ok
+13:51:36 test_the_message_layer_shows_the_message_and_never_the_detail (AutoGrader.tests_reason_codes.CodedErrorTests.test_the_message_layer_shows_the_message_and_never_the_detail)
+13:51:36 The path background-task item text and _failure_response's ... ok
+13:51:36 test_a_variant_survives_being_rebuilt_from_its_args (AutoGrader.tests_reason_codes.MessageVariantTests.test_a_variant_survives_being_rebuilt_from_its_args) ... ok
+13:51:36 test_an_unapproved_variant_is_refused (AutoGrader.tests_reason_codes.MessageVariantTests.test_an_unapproved_variant_is_refused) ... ok
+13:51:36 test_the_variant_renders_its_own_template (AutoGrader.tests_reason_codes.MessageVariantTests.test_the_variant_renders_its_own_template) ... ok
+13:51:36 test_a_row_code_always_carries_its_row (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_a_row_code_always_carries_its_row) ... ok
+13:51:36 test_every_approved_code_is_user_facing_with_its_approved_text (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_every_approved_code_is_user_facing_with_its_approved_text) ... ok
+13:51:36 test_no_neutral_code_names_a_role_or_a_school (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_no_neutral_code_names_a_role_or_a_school) ... ok
+13:51:36 test_the_individual_subscription_text_lives_in_one_constant (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_the_individual_subscription_text_lives_in_one_constant) ... ok
+13:51:36 test_the_seat_message_reads_as_both_approved_forms (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_the_seat_message_reads_as_both_approved_forms) ... ok
+13:51:36 test_a_chosen_remediation_survives_being_rebuilt_from_its_args (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_a_chosen_remediation_survives_being_rebuilt_from_its_args)
+13:51:36 Celery's json backend rebuilds an error as cls(*args). ... ok
+13:51:36 test_an_approved_alternative_is_carried_to_the_body (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_an_approved_alternative_is_carried_to_the_body) ... ok
+13:51:36 test_an_unapproved_remediation_is_refused (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_an_unapproved_remediation_is_refused) ... ok
+13:51:36 test_nothing_to_do_is_null (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_nothing_to_do_is_null) ... ok
+13:51:36 test_the_default_is_the_specs (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_the_default_is_the_specs) ... ok
+13:51:36 test_a_coded_body_flattens_to_its_display_sentence_alone (AutoGrader.tests_reason_codes.RendererMessageTests.test_a_coded_body_flattens_to_its_display_sentence_alone) ... ok
+13:51:36 test_a_balance_reason_gets_the_credits_refusal (AutoGrader.tests_reason_codes.RequireAiAccessTests.test_a_balance_reason_gets_the_credits_refusal) ... AI access denied for user ANON (feature=None): No credits remaining. Please purchase more credits to continue using AI features.
+13:51:36 AI access denied for user ANON (feature=None): Out of trial credits. Please subscribe to continue using AI features.
+13:51:36 ok
+13:51:36 test_a_refused_request_gets_the_plan_refusal_without_the_reason (AutoGrader.tests_reason_codes.RequireAiAccessTests.test_a_refused_request_gets_the_plan_refusal_without_the_reason) ... AI access denied for user ANON (feature=None): User not authenticated
+13:51:36 ok
+13:51:36 test_connection_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_connection_error_is_recognized) ... ok
+13:51:36 test_image_compression_error_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_image_compression_error_is_recognized) ... ok
+13:51:36 test_non_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_non_exception_returns_none) ... ok
+13:51:36 test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+13:51:36 test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault) ... ok
+13:51:36 test_storage_oserror_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_storage_oserror_is_recognized) ... ok
+13:51:36 test_timeout_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_timeout_is_recognized) ... ok
+13:51:36 test_unidentified_image_is_recognized (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unidentified_image_is_recognized) ... ok
+13:51:36 test_unrecognized_exception_returns_none (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_unrecognized_exception_returns_none) ... ok
+13:51:36 test_walks_cause_chain_through_generic_wrapper_exception (AutoGrader.tests_error_messages.ClassifyInfraErrorTest.test_walks_cause_chain_through_generic_wrapper_exception) ... ok
+13:51:36 test_infra_failure_gets_distinct_message_over_generic_fallback (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_infra_failure_gets_distinct_message_over_generic_fallback) ... ok
+13:51:36 test_known_user_facing_exception_still_passes_through_verbatim (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_known_user_facing_exception_still_passes_through_verbatim) ... ok
+13:51:36 test_unclassified_exception_falls_back_like_describe_user_error (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_unclassified_exception_falls_back_like_describe_user_error) ... ok
+13:51:36 test_falls_back_to_generic_classifier_for_known_exceptions (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_to_generic_classifier_for_known_exceptions) ... ok
+13:51:36 test_falls_back_when_no_user_message (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_when_no_user_message) ... ok
+13:51:36 test_uses_stripe_user_message_when_present (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_uses_stripe_user_message_when_present) ... ok
+13:51:36 test_empty_user_facing_exception_message_falls_back (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_empty_user_facing_exception_message_falls_back) ... ok
+13:51:36 test_known_user_facing_exceptions_pass_through_verbatim (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_known_user_facing_exceptions_pass_through_verbatim) ... ok
+13:51:36 test_none_error_uses_fallback (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_none_error_uses_fallback) ... ok
+13:51:36 test_plain_string_is_treated_as_unknown (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_plain_string_is_treated_as_unknown) ... ok
+13:51:36 test_unknown_exception_falls_back_to_default_when_no_fallback_given (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_falls_back_to_default_when_no_fallback_given) ... ok
+13:51:36 test_unknown_exception_never_leaks_raw_technical_detail (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_unknown_exception_never_leaks_raw_technical_detail) ... ok
+13:51:36 test_a_display_override_survives_json (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_a_display_override_survives_json)
+13:51:36 The message shows "460 bytes", not the raw int, after a rebuild. ... ok
+13:51:36 test_a_real_task_that_fails_with_one_keeps_it (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_a_real_task_that_fails_with_one_keeps_it) ... ok
+13:51:36 test_pickle_at_every_protocol_and_copy (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_pickle_at_every_protocol_and_copy) ... ok
+13:51:36 test_reflection_finds_every_coded_class (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_reflection_finds_every_coded_class) ... ok
+13:51:36 test_through_celerys_result_backend_both_serializers (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_through_celerys_result_backend_both_serializers) ... ok
+13:51:36 test_the_variant_survives_json_and_pickle (AutoGrader.tests_codederror_serialization.MessageVariantThroughCeleryTests.test_the_variant_survives_json_and_pickle) ... ok
+13:51:36 test_no_param_is_an_email_or_an_id (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_no_param_is_an_email_or_an_id) ... ok
+13:51:41 test_no_sync_only_email_code_is_raised_or_reached_from_a_task (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_no_sync_only_email_code_is_raised_or_reached_from_a_task) ... ok
+13:51:41 test_stored_results_expire (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_stored_results_expire) ... ok
+13:51:41 test_the_email_exception_is_exactly_the_four_approved_codes (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_the_email_exception_is_exactly_the_four_approved_codes) ... ok
+13:51:41 test_the_guard_catches_what_it_is_meant_to (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_the_guard_catches_what_it_is_meant_to) ... ok
+13:51:41 test_the_stored_form_adds_nothing_the_message_does_not_carry (AutoGrader.tests_codederror_serialization.StoredFormPersonalDataTests.test_the_stored_form_adds_nothing_the_message_does_not_carry)
+13:51:41 Every param that is a placeholder is already in the stored ... ok
+13:51:41 test_every_allow_list_entry_has_a_reason (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_every_allow_list_entry_has_a_reason) ... ok
+13:51:49 test_no_unlisted_bulk_write_of_a_tracked_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_no_unlisted_bulk_write_of_a_tracked_field) ... ok
+13:51:58 test_the_allow_list_has_no_stale_entries (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_allow_list_has_no_stale_entries) ... ok
+13:51:58 test_the_tracked_names_cover_every_registered_field (audit.tests_history_guard.BulkWritesKeepHistoryTests.test_the_tracked_names_cover_every_registered_field) ... ok
+13:52:08 test_no_unlisted_production_use_of_suppressed (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_no_unlisted_production_use_of_suppressed) ... ok
+13:52:08 test_the_scanner_finds_both_spellings (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_scanner_finds_both_spellings) ... ok
+13:52:16 test_the_suppression_allow_list_has_no_stale_entries (audit.tests_history_guard.HistorySuppressionIsNamedTests.test_the_suppression_allow_list_has_no_stale_entries) ... ok
+13:52:16 test_a_multi_line_update_and_an_fk_name_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_multi_line_update_and_an_fk_name_are_flagged) ... ok
+13:52:16 test_a_tracked_bulk_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_bulk_update_is_flagged) ... ok
+13:52:16 test_a_tracked_update_is_flagged (audit.tests_history_guard.ScannerSelfTests.test_a_tracked_update_is_flagged) ... ok
+13:52:16 test_an_untracked_update_and_record_bulk_are_not_flagged (audit.tests_history_guard.ScannerSelfTests.test_an_untracked_update_and_record_bulk_are_not_flagged) ... ok
+13:52:16 test_the_enclosing_function_is_reported (audit.tests_history_guard.ScannerSelfTests.test_the_enclosing_function_is_reported) ... ok
+13:52:16 test_unreadable_fields_are_flagged (audit.tests_history_guard.ScannerSelfTests.test_unreadable_fields_are_flagged) ... ok
+13:52:16 test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) ... ok
+13:52:16 test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) ... ok
+13:52:17 test_allowlist_has_no_stale_entries (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_allowlist_has_no_stale_entries) ... ok
+13:52:19 test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping) ... ok
+13:52:19 test_scanner_flags_every_shape_it_exists_to_catch (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_flags_every_shape_it_exists_to_catch) ... ok
+13:52:19 test_scanner_ignores_the_shapes_it_must_not_flag (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_ignores_the_shapes_it_must_not_flag) ... ok
+13:52:29 test_every_allow_list_entry_is_still_needed (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_allow_list_entry_is_still_needed) ... ok
+13:52:39 test_every_roster_bearing_cached_view_keys_on_a_roster_scope (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_every_roster_bearing_cached_view_keys_on_a_roster_scope) ... ok
+13:52:39 test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_flags_a_roster_view_keyed_on_the_viewer_alone)
+13:52:47 Guard on the guard, on synthetic source. ... ok
+13:52:55 test_the_sweep_sees_course_serializer_as_roster_bearing (classrooms.tests_course_roster_scope_sweep.CourseRosterScopeSweepTests.test_the_sweep_sees_course_serializer_as_roster_bearing) ... ok
+13:52:55
+13:52:55 ======================================================================
+13:52:55 ERROR: test_two_concurrent_delete_sweeps_never_double_process_or_raise (audit.tests_retention_sweep.ConcurrentSweepTests.test_two_concurrent_delete_sweeps_never_double_process_or_raise)
+13:52:55 ----------------------------------------------------------------------
+13:52:55 Traceback (most recent call last):
+13:52:55   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/audit/tests_retention_sweep.py", line 231, in test_two_concurrent_delete_sweeps_never_double_process_or_raise
+13:52:55     general_deleted = sum(int(s.split("general=")[1].split()[0]) for s in results)
+13:52:55                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+13:52:55   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/audit/tests_retention_sweep.py", line 231, in <genexpr>
+13:52:55     general_deleted = sum(int(s.split("general=")[1].split()[0]) for s in results)
+13:52:55                               ~~~~~~~~~~~~~~~~~~~^^^
+13:52:55 IndexError: list index out of range
+13:52:55
+13:52:55 ======================================================================
+13:52:55 ERROR: test_two_concurrent_pii_sweeps_never_double_process_or_raise (audit.tests_retention_sweep.ConcurrentSweepTests.test_two_concurrent_pii_sweeps_never_double_process_or_raise)
+13:52:55 ----------------------------------------------------------------------
+13:52:55 Traceback (most recent call last):
+13:52:55   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/audit/tests_retention_sweep.py", line 258, in test_two_concurrent_pii_sweeps_never_double_process_or_raise
+13:52:55     nulled_total = sum(int(s.split("nulled ")[1].split()[0]) for s in results)
+13:52:55                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+13:52:55   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/audit/tests_retention_sweep.py", line 258, in <genexpr>
+13:52:55     nulled_total = sum(int(s.split("nulled ")[1].split()[0]) for s in results)
+13:52:55                            ~~~~~~~~~~~~~~~~~~^^^
+13:52:55 IndexError: list index out of range
+13:52:55
+13:52:55 ======================================================================
+13:52:55 FAIL: test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it)
+13:52:55 ----------------------------------------------------------------------
+13:52:55 Traceback (most recent call last):
+13:52:55   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/AutoGrader/tests_beat_locks.py", line 416, in test_every_guarded_beat_task_skips_while_another_run_holds_it
+13:52:55     self.assertEqual(len(guarded), 21)
+13:52:55 AssertionError: 23 != 21
+13:52:55
+13:52:55 ======================================================================
+13:52:55 FAIL: test_every_role_gets_the_same_answer (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_every_role_gets_the_same_answer) (role='school admin')
+13:52:55 The answer must not tell one staff role from another.
+13:52:55 ----------------------------------------------------------------------
+13:52:55 Traceback (most recent call last):
+13:52:55   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/tests_h71_student_add_role.py", line 120, in test_every_role_gets_the_same_answer
+13:52:55     self.assertEqual(answer, first)
+13:52:55 AssertionError: Lists differ: [('si[658 chars]ce":"14109fb31db24e838b916d82aa40add0"}]}}'), [177 chars]}}')] != [('si[658 chars]ce":"a3b69eccdc9c48a6ba724d33f3867f87"}]}}'), [177 chars]}}')]
+13:52:55
+13:52:55 First differing element 1:
+13:52:55 ('bul[455 chars]:{"row":1},"reference":"14109fb31db24e838b916d82aa40add0"}]}}')
+13:52:55 ('bul[455 chars]:{"row":1},"reference":"a3b69eccdc9c48a6ba724d33f3867f87"}]}}')
+13:52:55
+13:52:55 Diff is 1077 characters long. Set self.maxDiff to None to see it.
+13:52:55
+13:52:55 ======================================================================
+13:52:55 FAIL: test_every_role_gets_the_same_answer (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_every_role_gets_the_same_answer) (role='super admin')
+13:52:55 The answer must not tell one staff role from another.
+13:52:55 ----------------------------------------------------------------------
+13:52:55 Traceback (most recent call last):
+13:52:55   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/tests_h71_student_add_role.py", line 120, in test_every_role_gets_the_same_answer
+13:52:55     self.assertEqual(answer, first)
+13:52:55 AssertionError: Lists differ: [('si[658 chars]ce":"8a00d99e4f184190ae73e5b0088c10a3"}]}}'), [177 chars]}}')] != [('si[658 chars]ce":"a3b69eccdc9c48a6ba724d33f3867f87"}]}}'), [177 chars]}}')]
+13:52:55
+13:52:55 First differing element 1:
+13:52:55 ('bul[455 chars]:{"row":1},"reference":"8a00d99e4f184190ae73e5b0088c10a3"}]}}')
+13:52:55 ('bul[455 chars]:{"row":1},"reference":"a3b69eccdc9c48a6ba724d33f3867f87"}]}}')
+13:52:55
+13:52:55 Diff is 1077 characters long. Set self.maxDiff to None to see it.
+13:52:55
+13:52:55 ======================================================================
+13:52:55 FAIL: test_single_add_and_bulk_import_give_the_neutral_message (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_single_add_and_bulk_import_give_the_neutral_message) (role='teacher')
+13:52:55 ----------------------------------------------------------------------
+13:52:55 Traceback (most recent call last):
+13:52:55   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/tests_h71_student_add_role.py", line 104, in test_single_add_and_bulk_import_give_the_neutral_message
+13:52:55     self.assertEqual(
+13:52:55 AssertionError: "Row 1: this email can't be added as a student." != "This email can't be added as a student."
+13:52:55 - Row 1: this email can't be added as a student.
+13:52:55 ? ^^^^^^^^
+13:52:55 + This email can't be added as a student.
+13:52:55 ? ^
+13:52:55
+13:52:55
+13:52:55 ======================================================================
+13:52:55 FAIL: test_single_add_and_bulk_import_give_the_neutral_message (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_single_add_and_bulk_import_give_the_neutral_message) (role='school admin')
+13:52:55 ----------------------------------------------------------------------
+13:52:55 Traceback (most recent call last):
+13:52:55   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/tests_h71_student_add_role.py", line 104, in test_single_add_and_bulk_import_give_the_neutral_message
+13:52:55     self.assertEqual(
+13:52:55 AssertionError: "Row 1: this email can't be added as a student." != "This email can't be added as a student."
+13:52:55 - Row 1: this email can't be added as a student.
+13:52:55 ? ^^^^^^^^
+13:52:55 + This email can't be added as a student.
+13:52:55 ? ^
+13:52:55
+13:52:55
+13:52:55 ======================================================================
+13:52:55 FAIL: test_single_add_and_bulk_import_give_the_neutral_message (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_single_add_and_bulk_import_give_the_neutral_message) (role='super admin')
+13:52:55 ----------------------------------------------------------------------
+13:52:55 Traceback (most recent call last):
+13:52:55   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/classrooms/tests_h71_student_add_role.py", line 104, in test_single_add_and_bulk_import_give_the_neutral_message
+13:52:55     self.assertEqual(
+13:52:55 AssertionError: "Row 1: this email can't be added as a student." != "This email can't be added as a student."
+13:52:55 - Row 1: this email can't be added as a student.
+13:52:55 ? ^^^^^^^^
+13:52:55 + This email can't be added as a student.
+13:52:55 ? ^
+13:52:55
+13:52:55
+13:52:55 ----------------------------------------------------------------------
+13:52:55 Ran 745 tests in 1058.383s
+13:52:55
+13:52:55 FAILED (failures=6, errors=2, skipped=1)
+13:52:55 Destroying test database for alias 'default' ('test_epic_a_merge_down_b5')...
+13:53:08 systemd-run failed with exit status 1.

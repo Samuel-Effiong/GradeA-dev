@@ -1,0 +1,180 @@
+HEAD 6cae1ad4a248e68c85ba98ff85900da19f108442
+
+=== T1 door, route name: /auth-register-student/ : 1 lines in 1 files
+  users/tests_old_activation_door_is_closed.py (1)
+      103: return self.client.post(reverse("auth-register-student"), body, format="json")
+
+=== T2 door, raw path: /register/student/ : 10 lines in 8 files
+  AutoGrader/settings.py (1)
+      1187: # H-47: global (all-IP) budget of failed POST /auth/register/student attempts
+  classrooms/management/commands/backfill_pending_student_invites.py (1)
+      12: (POST /auth/register/student and /course/student/renew-student-token): once
+  classrooms/services/enrollment.py (2)
+      208: #: sign-up (POST /auth/register/student and the renewal of a code), to every
+      248: (/auth/register/student, /auth/verify, Google sign-in), and sign-in
+  classrooms/services/notifications.py (2)
+      42: return f"https://{domain}/register/student/{activation_token}?email={email}"
+      273: f"https://{settings.STUDENT_FRONTEND_DOMAIN}/register/student/{new_token}"
+  classrooms/views.py (1)
+      1571: """H-152: closed with the door it served (/auth/register/student).
+  users/tests_old_activation_door_is_closed.py (1)
+      4: `POST /auth/register/student` let a student who held a 6-digit code set a
+  users/throttling.py (1)
+      69: # H-47: POST /auth/register/student matches a 6-digit code against EVERY
+  users/views.py (1)
+      1531: url_path="register/student",
+
+=== T3 door, view function: /register_student/ : 24 lines in 7 files
+  AutoGrader/settings.py (1)
+      1188: # per window; see users.throttling.register_student_failure_budget_spent.
+  users/serializers.py (1)
+      73: # register_student, register_school_admin, license_service - assign
+  users/tests_auth_input_validation.py (1)
+      11: * AuthViewSet.register_student compared `user.activation_expires <
+  users/tests_google_auth.py (1)
+      805: ENROLLED. The emailed-link flow (register_student) does that; signing
+  users/tests_old_activation_door_is_closed.py (4)
+      38: from users.throttling import register_student_failure_budget_spent
+      190: self.assertFalse(register_student_failure_budget_spent())
+      222: (users/tests_register_student_token_scope.py held the fix; that module
+      278: self.assertFalse(register_student_failure_budget_spent())
+  users/throttling.py (14)
+      74: def _register_student_failure_key(now=None):
+      77: return f"register_student:failures:{bucket}"
+      80: def register_student_failure_budget_spent():
+      81: count = cache.get(_register_student_failure_key()) or 0
+      85: def register_student_budget_retry_after(now=None):
+      92: def log_register_student_refused_by_budget(door="register"):
+      94: "register_student refused: global failure budget spent",
+      96: "event": "register_student.budget_refusal",
+      104: def record_register_student_failure(reason):
+      105: key = _register_student_failure_key()
+      116: "register_student failed attempt",
+      123: "register_student global failure budget exhausted; "
+      126: "event": "register_student.budget_exhausted",
+      129: "retry_after_seconds": register_student_budget_retry_after(),
+  users/views.py (2)
+      1533: def register_student(self, request, *args, **kwargs):
+      1869: # and register_student (the emailed-link flow)
+
+=== T4 renewal, route name: /course-renew-activation-token/ : 1 lines in 1 files
+  users/tests_old_activation_door_is_closed.py (1)
+      107: reverse("course-renew-activation-token"), body, format="json"
+
+=== T5 renewal, raw path: /renew-student-token/ : 5 lines in 4 files
+  classrooms/management/commands/backfill_pending_student_invites.py (1)
+      12: (POST /auth/register/student and /course/student/renew-student-token): once
+  classrooms/views.py (1)
+      1567: url_path=r"renew-student-token",
+  users/tests_old_activation_door_is_closed.py (1)
+      13: (`POST /course/student/renew-student-token`), now answer every request the
+  users/tests_throttle_client_identity.py (2)
+      215: renew-student-token into one scope, so that if it is ever split the
+      218: intentional today because renew-student-token is both a token-guessing
+
+=== T6 renewal, view function: /handle_expired_token/ : 2 lines in 2 files
+  AutoGrader/tests_student_classmates_guard.py (1)
+      110: ("CourseViewSet", "handle_expired_token"): (
+  classrooms/views.py (1)
+      1570: def handle_expired_token(self, request, token=None, *args, **kwargs):
+
+=== T7 removed service: /renew_student_activation/ : 3 lines in 2 files
+  classrooms/services/__init__.py (2)
+      29: renew_student_activation,
+      63: "renew_student_activation",
+  classrooms/services/enrollment.py (1)
+      502: def renew_student_activation(*, token):
+
+=== T8 removed forms: /StudentRegistrationCompletionSerializer|ExpiredTokenSerializer/ : 4 lines in 2 files
+  classrooms/serializers.py (2)
+      788: class StudentRegistrationCompletionSerializer(serializers.Serializer):
+      809: class ExpiredTokenSerializer(serializers.Serializer):
+  classrooms/views.py (2)
+      86: ExpiredTokenSerializer,
+      1552: request=ExpiredTokenSerializer,
+
+=== T9 conversion command: /backfill_pending_student_invites/ : 19 lines in 5 files
+  classrooms/management/commands/backfill_pending_student_invites.py (2)
+      54: python manage.py backfill_pending_student_invites --dry-run
+      55: python manage.py backfill_pending_student_invites
+  classrooms/services/enrollment.py (1)
+      212: #: backfill_pending_student_invites or healed by the teacher's next add.
+  classrooms/tests_backfill_pending_student_invites.py (11)
+      2: `backfill_pending_student_invites` converts every leftover pre-cutover
+      58: call_command("backfill_pending_student_invites", "--dry-run", stdout=out)
+      74: call_command("backfill_pending_student_invites", *args, stdout=out)
+      80: call_command("backfill_pending_student_invites", stdout=out)
+      106: call_command("backfill_pending_student_invites")
+      112: call_command("backfill_pending_student_invites", stdout=out)
+      134: call_command("backfill_pending_student_invites")
+      148: call_command("backfill_pending_student_invites", stdout=out)
+      163: call_command("backfill_pending_student_invites", "--dry-run", stdout=out)
+      178: call_command("backfill_pending_student_invites", stdout=out)
+      203: call_command("backfill_pending_student_invites", stdout=out)
+  classrooms/tests_conversion_needs_a_queued_email.py (3)
+      5: The one-off command `backfill_pending_student_invites` switches a leftover
+      143: call_command("backfill_pending_student_invites", *args, stdout=out)
+      146: call_command("backfill_pending_student_invites", *args, stdout=out)
+  users/tests_old_activation_door_is_closed.py (2)
+      9: by a one-off command (classrooms: backfill_pending_student_invites), or
+      290: call_command("backfill_pending_student_invites", *args, stdout=out)
+
+=== T10 invitation sender: /send_student_login_invitation_email/ : 29 lines in 7 files
+  classrooms/management/commands/backfill_pending_student_invites.py (2)
+      8: (notifications.send_student_login_invitation_email) in place of the old
+      219: queued = notifications.send_student_login_invitation_email(
+  classrooms/services/enrollment.py (2)
+      349: notifications.send_student_login_invitation_email(
+      421: notifications.send_student_login_invitation_email(
+  classrooms/services/notifications.py (1)
+      84: def send_student_login_invitation_email(student, course, generated_password):
+  classrooms/tests.py (4)
+      396: @patch("classrooms.services.notifications.send_student_login_invitation_email")
+      420: @patch("classrooms.services.notifications.send_student_login_invitation_email")
+      451: @patch("classrooms.services.notifications.send_student_login_invitation_email")
+      501: @patch("classrooms.services.notifications.send_student_login_invitation_email")
+  classrooms/tests_backfill_pending_student_invites.py (9)
+      55: @patch("classrooms.services.notifications.send_student_login_invitation_email")
+      69: @patch("classrooms.services.notifications.send_student_login_invitation_email")
+      77: @patch("classrooms.services.notifications.send_student_login_invitation_email")
+      104: @patch("classrooms.services.notifications.send_student_login_invitation_email")
+      119: @patch("classrooms.services.notifications.send_student_login_invitation_email")
+      141: @patch("classrooms.services.notifications.send_student_login_invitation_email")
+      158: @patch("classrooms.services.notifications.send_student_login_invitation_email")
+      170: @patch("classrooms.services.notifications.send_student_login_invitation_email")
+      193: @patch("classrooms.services.notifications.send_student_login_invitation_email")
+  classrooms/tests_conversion_needs_a_queued_email.py (1)
+      153: return notifications.send_student_login_invitation_email(
+  classrooms/tests_roster_ready_to_use.py (10)
+      94: call = self.notify.send_student_login_invitation_email.call_args
+      110: self.notify.send_student_login_invitation_email.assert_called_once()
+      153: self.notify.send_student_login_invitation_email.assert_not_called()
+      188: self.notify.send_student_login_invitation_email.assert_not_called()
+      279: self.notify.send_student_login_invitation_email.assert_not_called()
+      304: self.notify.send_student_login_invitation_email.assert_not_called()
+      396: self.notify.send_student_login_invitation_email.assert_not_called()
+      407: self.notify.send_student_login_invitation_email.assert_called_once()
+      475: self.notify.send_student_login_invitation_email.assert_not_called()
+      546: self.notify.send_student_login_invitation_email.assert_called_once()
+
+=== T11 old-scheme accounts made by tests: /activation_token/ : 76 lines in 20 files
+  billing/tests/test_license_service.py (2)
+  classrooms/test_bulk_enrollment.py (1)
+  classrooms/test_school_admin_invitation_email.py (1)
+  classrooms/test_school_admin_otp_deadend.py (9)
+  classrooms/tests.py (9)
+  classrooms/tests_backfill_pending_student_invites.py (9)
+  classrooms/tests_conversion_needs_a_queued_email.py (4)
+  classrooms/tests_roster_ready_to_use.py (8)
+  classrooms/tests_school_admin_active_invite.py (5)
+  users/tests_activation_email_domain.py (2)
+  users/tests_auth_endpoints.py (3)
+  users/tests_auth_input_validation.py (3)
+  users/tests_google_auth.py (1)
+  users/tests_h47_exposure_sql.py (3)
+  users/tests_models_and_admin.py (3)
+  users/tests_old_activation_door_is_closed.py (3)
+  users/tests_open_signup.py (2)
+  users/tests_throttling.py (1)
+  users/tests_verify_email_budget.py (5)
+  users/tests_verify_email_preset_password_characterization.py (2)

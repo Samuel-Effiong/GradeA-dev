@@ -1,0 +1,8 @@
+13:35:13 tools: record bdbd2e3d5b0e4b70 moved e67da7daee9d8fa0 first f1b124bfca081c7a tip 9705d1214627e8b6
+13:35:13 probe on record (EXPECT=RECORD) start: loadavg 4.56 4.16 6.10 11/2133 374256
+13:35:13 probe on record exit=0
+13:35:13 probe on first (EXPECT=FIRST) start: loadavg 4.56 4.16 6.10 6/2134 374269
+13:35:14 probe on first exit=0
+13:35:14 probe on tip (EXPECT=CURED) start: loadavg 4.56 4.16 6.10 8/2134 374338
+13:35:15 probe on tip exit=0
+13:35:15 end: loadavg 4.56 4.16 6.10 8/2135 374348 fail=0

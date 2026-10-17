@@ -1,0 +1,4 @@
+classrooms.test_school_admin_invitation_email.SchoolAdminInvitationEmailDomainTests.test_falls_back_to_frontend_domain_when_school_admin_domain_unset ... ok
+classrooms.test_school_admin_invitation_email.SchoolAdminInvitationEmailDomainTests.test_invite_uses_school_admin_frontend_domain ... ok
+Ran 2 tests in 0.048s
+OK

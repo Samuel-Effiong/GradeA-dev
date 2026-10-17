@@ -1,0 +1,12 @@
+# Y3: Sentry: the user context is left alone
+# file: AutoGrader/sentry_scrubbing.py (occurrence 1)
+# old: '    "extra",\n'
+# new: '    "extra",\n    "user",\n'
+# commit: 9a37e092550003832733f9a36c22d036f9bf3d14
+# exit: 1
+# elapsed_s: 6.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_user_context_tags_and_request_are_left_alone (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_user_context_tags_and_request_are_left_alone)
+
+FAILED (failures=1)

@@ -1,0 +1,110 @@
+{
+ "baseline": {
+  "id": "BASE",
+  "rc": 0,
+  "summary": "OK",
+  "fails": []
+ },
+ "mutants": [
+  {
+   "id": "STATUS",
+   "desc": "MySubscriptionSerializer.get_status ignores context, always ACTIVE",
+   "rc": 1,
+   "summary": "FAILED (failures=2)",
+   "expected_test": "test_lapsed_individual_subscription_reports_status_expired",
+   "failing": [
+    "test_lapsed_individual_subscription_reports_status_expired",
+    "test_most_recent_inactive_subscription_is_the_one_returned"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 7,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "NEXTREN",
+   "desc": "next_renewal_date EXPIRED guard removed",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_expired_nulls_out_renewal_fields_instead_of_negative_days",
+   "failing": [
+    "test_expired_nulls_out_renewal_fields_instead_of_negative_days"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 7,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "DAYSREN",
+   "desc": "days_until_renewal EXPIRED guard removed",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_expired_nulls_out_renewal_fields_instead_of_negative_days",
+   "failing": [
+    "test_expired_nulls_out_renewal_fields_instead_of_negative_days"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 7,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "FILTER",
+   "desc": "EXPIRED lookup filters is_active=True instead of False",
+   "rc": 1,
+   "summary": "FAILED (failures=3)",
+   "expected_test": "test_lapsed_individual_subscription_reports_status_expired",
+   "failing": [
+    "test_expired_still_carries_cancellation_reason",
+    "test_lapsed_individual_subscription_reports_status_expired",
+    "test_most_recent_inactive_subscription_is_the_one_returned"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 8,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "ORDER",
+   "desc": "EXPIRED lookup ordering reversed (oldest lapsed sub wins)",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_most_recent_inactive_subscription_is_the_one_returned",
+   "failing": [
+    "test_most_recent_inactive_subscription_is_the_one_returned"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 7,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "NONEVAL",
+   "desc": "_none_subscription_response reports ACTIVE instead of NONE",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_user_who_never_had_a_subscription_reports_status_none",
+   "failing": [
+    "test_user_who_never_had_a_subscription_reports_status_none"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 7,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "BRANCH",
+   "desc": "EXPIRED branch disabled, falls straight to NONE",
+   "rc": 1,
+   "summary": "FAILED (failures=3)",
+   "expected_test": "test_lapsed_individual_subscription_reports_status_expired",
+   "failing": [
+    "test_expired_still_carries_cancellation_reason",
+    "test_lapsed_individual_subscription_reports_status_expired",
+    "test_most_recent_inactive_subscription_is_the_one_returned"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 7,
+   "restored_md5_ok": true
+  }
+ ],
+ "md5": {
+  "billing/serializers.py": "8af481077176a8ba0b876163edbc9cd6",
+  "billing/views.py": "32a10c9d315f6987d78a122d8bf008b1"
+ }
+}

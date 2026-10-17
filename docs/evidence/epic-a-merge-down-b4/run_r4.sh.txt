@@ -1,0 +1,34 @@
+#!/bin/bash
+# Merge-down b4 round 4 (test-only, SM rule 15.4): the two touched modules, then M8 and M12 alone. 6G, rules 12/13/16.
+set -u
+TIP=$1
+W=/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b4
+SP=/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/aac7987f-8111-4860-bdb0-5c51de8d9291/scratchpad
+OUT=$SP/md_b4_gate_r4; mkdir -p $OUT
+cd $W || exit 1
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+CAP='systemd-inhibit --what=idle:sleep --who=GAP --why="GAP test run" --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0'
+STAMP='import sys,time;[sys.stdout.write(time.strftime("%H:%M:%S ")+l) for l in sys.stdin]'
+export EXEMPT_EMAIL_DOMAINS= RACE_COST_ENROLLMENTS=600 RACE_COST_ROWS=200
+[ "$(git rev-parse --short HEAD)" = "$TIP" ] || { echo "not at $TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+git diff --quiet 6faf303 HEAD -- . ':!docs' ':!classrooms/tests_teacher_access_sweep.py' ':!students/tests_h38_tasks_namespace.py' || { echo "more than the test changed"; exit 1; }
+echo "=== touched modules at $TIP $(date +%T)"
+eval "$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree classrooms.tests_teacher_access_sweep students.tests_h38_tasks_namespace" 2>&1 | python3 -u -c "$STAMP" > $OUT/touched_modules.txt
+echo "exit=${PIPESTATUS[0]}"; grep -E "^.{9}Ran |^.{9}OK|^.{9}FAILED \(|^.{9}(FAIL|ERROR): " $OUT/touched_modules.txt
+if grep -qE "^.{9}FAILED \(" $OUT/touched_modules.txt || ! grep -qE "^.{9}OK" $OUT/touched_modules.txt; then echo "STOP: not green"; exit 2; fi
+for M in M8 M12; do
+  mkdir -p $OUT/$M
+  echo "=== $M alone (own DB) $(date +%T)"
+  eval "MUT_ONLY=$M MUT_SETTINGS=settings_worktree_mut $CAP nice -n 10 timeout -k 60 1800 python $SP/md_b4_mutants.py $OUT/$M" > $OUT/$M/log.txt 2>&1
+  echo "$M exit=$? $(date +%T)"; cut -c1-230 $OUT/$M/log.txt
+  git diff --quiet HEAD && echo "tree clean after $M"
+done
+python manage.py shell --settings=settings_worktree_mut -c "
+from django.conf import settings
+from django.db import connection
+name = settings.DATABASES['default']['TEST']['NAME']
+with connection._nodb_cursor() as c:
+    c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
+print('dropped', name)" 2>&1 | tail -1
+echo "=== done $(date +%T)"

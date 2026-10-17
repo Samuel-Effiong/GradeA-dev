@@ -1,0 +1,8 @@
+started 2026-09-30T15:43:19+01:00 tip af26f3b
+repro_6212ce9            6212ce9  rc=1      25s Ran 12 tests in 11.094s FAILED (failures=12)
+changed_modules          af26f3b  rc=0      68s Ran 106 tests in 46.179s OK
+mutation_battery         af26f3b rc=1 414s 58/60 killed with verified restore
+
+dropped test_h62_mut
+app_billing              af26f3b  rc=1     203s Ran 1697 tests in 186.872s FAILED (failures=2, errors=45)
+finished 2026-09-30T15:55:13+01:00

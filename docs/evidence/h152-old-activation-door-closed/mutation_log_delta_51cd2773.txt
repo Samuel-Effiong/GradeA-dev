@@ -1,0 +1,20 @@
+20 mutants: anchors unique, all parse, expected tests named
+14 of 20 mutants selected
+C1_the_command_does_not_count_the_nameless KILLED exit 1 ran 22 failed 3 expected-but-passed []
+C2_the_command_counts_every_converted_account_as_nameless KILLED exit 1 ran 22 failed 3 expected-but-passed []
+C3_the_command_prints_an_address KILLED exit 1 ran 22 failed 4 expected-but-passed []
+Q01_the_sender_always_says_queued KILLED exit 1 ran 22 failed 5 expected-but-passed []
+Q02_the_sender_never_says_queued KILLED exit 1 ran 22 failed 6 expected-but-passed []
+Q03_the_command_ignores_the_answer KILLED exit 1 ran 22 failed 4 expected-but-passed []
+Q04_one_unqueued_email_stops_the_whole_run KILLED exit 1 ran 22 failed 5 expected-but-passed []
+Q05_the_conversion_is_not_undone KILLED exit 1 ran 22 failed 3 expected-but-passed []
+Q06_the_summary_does_not_count_them KILLED exit 1 ran 22 failed 1 expected-but-passed []
+Q07_the_line_shows_the_address KILLED exit 1 ran 22 failed 2 expected-but-passed []
+Q08_the_preview_converts KILLED exit 1 ran 22 failed 2 expected-but-passed []
+Q09_an_unconverted_account_is_listed_as_converted KILLED exit 1 ran 22 failed 2 expected-but-passed []
+Q10_a_new_students_add_is_undone_when_the_queue_is_down KILLED exit 1 ran 22 failed 1 expected-but-passed []
+Q11_a_reinvited_students_add_is_undone_when_the_queue_is_down KILLED exit 1 ran 22 failed 1 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 14 of 14

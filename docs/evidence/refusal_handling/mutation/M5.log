@@ -1,0 +1,556 @@
+# M5: DRF handler maps uncaught refusal
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: billing.tests.test_refusal_handling.D4UncaughtRefusalTest billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest assignments.tests_partial_update_credit_gate
+# exit 1
+
+Found 6 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user d4-create-feature-9bd865d0@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services ERROR 2026-09-17 17:53:04,128 services 1915137 138121913387968 [request_id=be7c3b9b45d6481d887ce4307fe2c935] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/assignments/views.py", line 401, in create
+    assignment = AssignmentProcessingService.update_assignment_from_extraction(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/assignments/services.py", line 870, in update_assignment_from_extraction
+    assignment_data = cls.extract_assignment_data(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/assignments/services.py", line 805, in extract_assignment_data
+    assignment_questions = ai_processor.extract_assignment_with_retry(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/ai_processor/services.py", line 1289, in extract_assignment_with_retry
+    return self.extract_assignment_image(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/ai_processor/services.py", line 815, in extract_assignment_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/ai_processor/services.py", line 4428, in execute_graded_task
+    raise AIFeatureNotAvailableError(f"AI access denied: {reason}")
+billing.access_control.AIFeatureNotAvailableError: AI access denied: No active subscription
+
+
+django.request ERROR 2026-09-17 17:53:04,275 log 1915137 138121913387968 [request_id=-] Internal Server Error: /api/v1/assignments
+
+
+FCannot activate automatic trial for user d4-create-credits-97261b0e@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services ERROR 2026-09-17 17:53:07,383 services 1915137 138121913387968 [request_id=aa1b66be92ac4880a71e4e6fbc9a05f7] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/assignments/views.py", line 401, in create
+    assignment = AssignmentProcessingService.update_assignment_from_extraction(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/assignments/services.py", line 870, in update_assignment_from_extraction
+    assignment_data = cls.extract_assignment_data(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/assignments/services.py", line 805, in extract_assignment_data
+    assignment_questions = ai_processor.extract_assignment_with_retry(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/ai_processor/services.py", line 1289, in extract_assignment_with_retry
+    return self.extract_assignment_image(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/ai_processor/services.py", line 815, in extract_assignment_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/ai_processor/services.py", line 4506, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~32234 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+django.request ERROR 2026-09-17 17:53:07,850 log 1915137 138121913387968 [request_id=-] Internal Server Error: /api/v1/assignments
+
+
+FCannot activate automatic trial for user d11-teacher-0d5006ae@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user d11-teacher-3378325e@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/assignments/views.py", line 528, in partial_update
+    if not HasCreditBalance().has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+FCannot activate automatic trial for user rigor-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user rigor-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/assignments/views.py", line 528, in partial_update
+    if not HasCreditBalance().has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/users/permissions.py", line 43, in has_permission
+    raise EmptyWalletError("Credit wallet is empty")
+billing.errors.EmptyWalletError: Credit wallet is empty
+ECannot activate automatic trial for user rigor-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.
+======================================================================
+ERROR: test_raw_input_edit_is_blocked_without_credits (assignments.tests_partial_update_credit_gate.PartialUpdateCreditGateTest.test_raw_input_edit_is_blocked_without_credits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/assignments/tests_partial_update_credit_gate.py", line 55, in test_raw_input_edit_is_blocked_without_credits
+    self.assertEqual(response.data["code"], "insufficient_credits")
+                     ~~~~~~~~~~~~~^^^^^^^^
+KeyError: 'code'
+
+======================================================================
+FAIL: test_sync_assignment_create_refusal_is_402_or_403 (billing.tests.test_refusal_handling.D4UncaughtRefusalTest.test_sync_assignment_create_refusal_is_402_or_403) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 339, in test_sync_assignment_create_refusal_is_402_or_403
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 403 : b'{"success":false,"message":"AI access denied: No active subscription","error":{}}'
+
+======================================================================
+FAIL: test_sync_assignment_create_refusal_is_402_or_403 (billing.tests.test_refusal_handling.D4UncaughtRefusalTest.test_sync_assignment_create_refusal_is_402_or_403) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 339, in test_sync_assignment_create_refusal_is_402_or_403
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER PATCH /api/v1/assignments/0351d49e-d370-4239-b3a1-2c553ef86e7d]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER PATCH /api/v1/assignments/0351d49e-d370-4239-b3a1-2c553ef86e7d/update-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/assignments/upload-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/assignments/0351d49e-d370-4239-b3a1-2c553ef86e7d/grade-all]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/assignments/0351d49e-d370-4239-b3a1-2c553ef86e7d/schedule_grade_all_submission]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER GET /api/v1/course/12ad083c-dd2b-4e94-9acf-d7456290683f/student-summary]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/0351d49e-d370-4239-b3a1-2c553ef86e7d/batch-upload]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/62db5374-975c-45af-b71d-8337f51844d3/grade]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/62db5374-975c-45af-b71d-8337f51844d3/grade-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/62db5374-975c-45af-b71d-8337f51844d3/schedule-grade-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER GET /api/v1/submissions/62db5374-975c-45af-b71d-8337f51844d3/teacher_feedback]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER PATCH /api/v1/submissions/62db5374-975c-45af-b71d-8337f51844d3/update-grade]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions/0351d49e-d370-4239-b3a1-2c553ef86e7d/upload]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions/0351d49e-d370-4239-b3a1-2c553ef86e7d/upload-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT PUT /api/v1/submissions/62db5374-975c-45af-b71d-8337f51844d3]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT PATCH /api/v1/submissions/62db5374-975c-45af-b71d-8337f51844d3]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions/62db5374-975c-45af-b71d-8337f51844d3/update-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 199, in assertCleanRefusalResponse
+    self.assertEqual(response.data.get("code"), expected_code, response.data)
+AssertionError: None != 'insufficient_credits' : {'detail': ErrorDetail(string='Credit wallet is empty', code='insufficient_credits')}
+
+----------------------------------------------------------------------
+Ran 6 tests in 21.631s
+
+FAILED (failures=20, errors=1)
+Preserving test database for alias 'default'...

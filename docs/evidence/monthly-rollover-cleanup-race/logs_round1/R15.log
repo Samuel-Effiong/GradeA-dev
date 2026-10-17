@@ -1,0 +1,12 @@
+# R15: cleanup keeps only the NEWEST monthly bucket
+# file: billing/tasks.py (occurrence 1)
+# old: '        newest.setdefault(wallet_id, bucket_id)\n'
+# new: '        newest[wallet_id] = bucket_id\n'
+# commit: 47bdc73e5fc740f2904d9a339dad0c5b4c870a31
+# exit: 1
+# elapsed_s: 7.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_older_unprocessed_monthly_bucket_is_still_written_off (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_an_older_unprocessed_monthly_bucket_is_still_written_off)
+
+FAILED (failures=1)

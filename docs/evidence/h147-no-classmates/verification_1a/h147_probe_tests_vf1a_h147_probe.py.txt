@@ -1,0 +1,161 @@
+"""Verifier 1's probes for H-147 (a student sees nothing of their classmates).
+
+Not the author's tests: each looks at something the author's tests and
+mutants do not reach. Rule 19: each is evidence only once a run has shown
+it red under the mutant named for it in h147_expected_kills.txt.
+
+  pa  the roster a student gets when the course was NOT loaded by the view
+      (the serializer's own query, the branch no route test reaches)
+  pb  a school admin still gets a session's school and creator ids
+  pc  a student gets neither id on the session DETAIL route
+  pd  a student whose enrolment is COMPLETED still gets their own entry
+  pg  the student's own state on an assignment, new in the course answer,
+      is fresh in the CACHED course answers after they hand a paper in
+"""
+
+import json
+
+from django.core.cache import cache
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
+from django.urls import reverse
+from rest_framework.test import APIRequestFactory
+
+from classrooms.models import (
+    Course,
+    EnrollmentStatusType,
+    School,
+    Session,
+    SessionOwnerType,
+    StudentCourse,
+)
+from classrooms.serializers import CourseSerializer
+from classrooms.tests_course_payload_student_exposure import make_user
+from classrooms.tests_student_sees_no_classmates import StudentCourseAnswerBase, plain
+from students.models import StudentSubmission
+from users.models import UserTypes
+
+
+class Vf1aRosterProbe(StudentCourseAnswerBase):
+    def test_pa_a_course_not_loaded_by_the_view_gives_the_own_entry_only(self):
+        course = Course.objects.get(pk=self.course_id)
+        # The branch under test: nothing was loaded beforehand.
+        self.assertFalse(hasattr(course, "active_enrollments"))
+        request = APIRequestFactory().get("/")
+        request.user = self.viewer
+        data = plain(CourseSerializer(course, context={"request": request}).data)
+
+        self.assertEqual([s["id"] for s in data["students"]], [str(self.viewer.id)])
+        self.assertEqual(
+            data["students"][0]["enrollment_status"],
+            EnrollmentStatusType.ENROLLED.value,
+        )
+        self.assertEqual(data["student_count"], 2)
+        body = json.dumps(data)
+        self.assertIn(self.viewer.first_name, body)
+        for mark in self.classmate_marks():
+            self.assertNotIn(mark, body)
+
+    def test_pd_a_student_who_completed_the_course_gets_their_own_entry(self):
+        changed = StudentCourse.objects.filter(
+            course_id=self.course_id, student=self.viewer
+        ).update(enrollment_status=EnrollmentStatusType.COMPLETED)
+        self.assertEqual(changed, 1)
+        for route in self.routes:
+            with self.subTest(route=route):
+                whole, course = self.course_as(self.viewer, route)
+                roster = plain(course["students"])
+                self.assertEqual([s["id"] for s in roster], [str(self.viewer.id)])
+                self.assertEqual(
+                    roster[0]["enrollment_status"],
+                    EnrollmentStatusType.COMPLETED.value,
+                )
+                self.assertEqual(course["student_count"], 2)
+                body = json.dumps(plain(whole))
+                self.assertIn(self.viewer.first_name, body)
+                for mark in self.classmate_marks():
+                    self.assertNotIn(mark, body)
+
+
+class Vf1aSessionProbe(StudentCourseAnswerBase):
+    def setUp(self):
+        super().setUp()
+        self.school = School.objects.create(name="VF1A school")
+        self.admin = make_user(
+            "vf1a-admin@x.test", UserTypes.SCHOOL_ADMIN, school=self.school
+        )
+        self.school_session = Session.objects.create(
+            name="School term",
+            owner_type=SessionOwnerType.SCHOOL,
+            school=self.school,
+            created_by=self.admin,
+        )
+        course = Course.objects.create(
+            name="School course", teacher=self.teacher, session=self.school_session
+        )
+        StudentCourse.objects.create(
+            student=self.viewer,
+            course=course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+        Session.objects.filter(pk=self.session.pk).update(created_by=self.teacher)
+
+    def test_pb_a_school_admin_still_gets_the_school_and_the_creator(self):
+        data = plain(self.get_as(self.admin, reverse("session-list")))
+        by_name = {row["name"]: row for row in self.rows(data)}
+        self.assertEqual(set(by_name), {"School term"})
+        self.assertEqual(by_name["School term"]["school"], str(self.school.id))
+        self.assertEqual(by_name["School term"]["created_by"], str(self.admin.id))
+
+    def test_pc_a_student_gets_neither_id_on_the_session_detail_route(self):
+        for session in (self.session, self.school_session):
+            with self.subTest(session=session.name):
+                data = plain(
+                    self.get_as(
+                        self.viewer,
+                        reverse("session-detail", kwargs={"pk": session.pk}),
+                    )
+                )
+                # The student's own session, by name...
+                self.assertEqual(data["name"], session.name)
+                self.assertIn("school", data)
+                self.assertIn("created_by", data)
+                # ...and neither id.
+                self.assertIsNone(data["school"])
+                self.assertIsNone(data["created_by"])
+                body = json.dumps(data)
+                for staff_id in (self.school.id, self.admin.id, self.teacher.id):
+                    self.assertNotIn(str(staff_id), body)
+
+
+class Vf1aCachedOwnStateProbe(StudentCourseAnswerBase):
+    def read(self, route):
+        """No cache.clear(): the point is to read what is cached."""
+        self.client.force_authenticate(self.viewer)
+        with CaptureQueriesContext(connection) as captured:
+            response = self.client.get(self.routes[route])
+        self.assertEqual(response.status_code, 200)
+        data = response.data
+        course = data if route == "detail" else self.course_in(data, self.course_id)
+        return course, len(captured)
+
+    def test_pg_handing_in_a_paper_refreshes_the_cached_course_answers(self):
+        cache.clear()
+        for route in self.routes:
+            first, cold = self.read(route)
+            self.assertEqual(first["assignments"][0]["status"], "NOT SUBMITTED")
+            _, warm = self.read(route)
+            # The second read really came from the cache.
+            self.assertLess(warm, cold, route)
+
+        StudentSubmission.objects.create(
+            assignment=self.published,
+            student=self.viewer,
+            answers=[{"question_number": 1, "answer_html": "an answer"}],
+            attempt_count=1,
+        )
+        for route in self.routes:
+            with self.subTest(route=route):
+                course, _ = self.read(route)
+                self.assertEqual(course["assignments"][0]["status"], "SUBMITTED")
+                self.assertEqual(course["assignments"][0]["remaining_attempts"], 2)

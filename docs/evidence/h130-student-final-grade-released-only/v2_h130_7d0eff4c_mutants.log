@@ -1,0 +1,10 @@
+V1_the_rebuild_only_once_there_is_a_grading_time | d5's tests | KILLED | Ran 25 tests in 5.317s | FAILED (failures=4) | expected ('test_a_rename_shows_when_it_happens_and_not_when_grading_happens', 'test_a_half_graded_row_reads_the_same_too') | failing ['test_a_half_graded_row_reads_the_same_too', 'test_a_rename_shows_when_it_happens_and_not_when_grading_happens', 'test_a_rename_the_teacher_saves_refreshes_the_students_cached_document', 'test_the_same_on_the_students_view_of_the_assignment']
+  restore students/services.py ok | __pycache__ cleared
+V1_the_rebuild_only_once_there_is_a_grading_time | v2's probe | KILLED | Ran 9 tests in 2.388s | FAILED (failures=2) | expected ('test_d3_a_rename_on_the_assignment_route', 'test_d4_the_due_date_and_the_name_follow_the_same_rule') | failing ['test_d3_a_rename_on_the_assignment_route', 'test_d4_the_due_date_and_the_name_follow_the_same_rule']
+  restore students/services.py ok | __pycache__ cleared
+V2_a_stored_maximum_of_zero_is_replaced | d5's tests | KILLED | Ran 19 tests in 2.669s | FAILED (failures=1) | expected ('test_the_student_route_chooses_rows_as_the_stored_figure_does',) | failing ['test_the_student_route_chooses_rows_as_the_stored_figure_does']
+  restore classrooms/final_grade.py ok | __pycache__ cleared
+V3_the_assignment_route_rebuilds_only_once_graded | d5's tests | KILLED | Ran 25 tests in 3.644s | FAILED (failures=2) | expected ('test_the_students_assignment_serializer_does_not_read_the_stored_column', 'test_the_same_on_the_students_view_of_the_assignment') | failing ['test_the_same_on_the_students_view_of_the_assignment', 'test_the_students_assignment_serializer_does_not_read_the_stored_column']
+  restore assignments/serializers.py ok | __pycache__ cleared
+V3_the_assignment_route_rebuilds_only_once_graded | v2's probe | KILLED | Ran 9 tests in 2.728s | FAILED (failures=2) | expected ('test_d3_a_rename_on_the_assignment_route', 'test_d4_the_due_date_and_the_name_follow_the_same_rule') | failing ['test_d3_a_rename_on_the_assignment_route', 'test_d4_the_due_date_and_the_name_follow_the_same_rule']
+  restore assignments/serializers.py ok | __pycache__ cleared

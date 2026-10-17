@@ -1,0 +1,12 @@
+# S19: P1: a local part in letters that are not ASCII
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '_LOCAL = r"[\\w.!#$%\'*+^`{|}~-]"\n'
+# new: '_LOCAL = r"[A-Za-z0-9_.!#$%\'*+^`{|}~-]"\n'
+# commit: 24dfcda64373224f8829e585e91fa0bee751184c
+# exit: 1
+# elapsed_s: 11.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) (address='jürgen@school.edu')
+
+FAILED (failures=1)

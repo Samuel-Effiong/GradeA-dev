@@ -1,0 +1,59 @@
+# M36: sweep newest first
+# file: billing/receipts.py line: None
+# old: '        .order_by("-occurred_at")'
+# new: '        .order_by("occurred_at")'
+# modules: billing.tests.test_receipts.SweepMissingReceiptUrlsTests
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
+# exit: 1
+# elapsed_s: 3.4
+# restored_sha256_matches_commit_blob: True
+
+Found 7 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_h62_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_batch_bound_newest_first (billing.tests.test_receipts.SweepMissingReceiptUrlsTests.test_batch_bound_newest_first) ... FAIL
+test_beat_schedule_and_health_expectation (billing.tests.test_receipts.SweepMissingReceiptUrlsTests.test_beat_schedule_and_health_expectation) ... ok
+test_fills_rows_in_window_only (billing.tests.test_receipts.SweepMissingReceiptUrlsTests.test_fills_rows_in_window_only) ... BillingTransactionService.record called with no stripe_invoice_id, stripe_payment_intent_id, or license_billing_record (type=INDIVIDUAL_OVERAGE_PURCHASE) — creating an un-deduplicated row.
+ok
+test_rows_it_cannot_fill_do_not_consume_the_batch (billing.tests.test_receipts.SweepMissingReceiptUrlsTests.test_rows_it_cannot_fill_do_not_consume_the_batch)
+Already-filled and reference-less rows are excluded in the query, ... BillingTransactionService.record called with no stripe_invoice_id, stripe_payment_intent_id, or license_billing_record (type=INDIVIDUAL_OVERAGE_PURCHASE) — creating an un-deduplicated row.
+BillingTransactionService.record called with no stripe_invoice_id, stripe_payment_intent_id, or license_billing_record (type=INDIVIDUAL_OVERAGE_PURCHASE) — creating an un-deduplicated row.
+BillingTransactionService.record called with no stripe_invoice_id, stripe_payment_intent_id, or license_billing_record (type=INDIVIDUAL_OVERAGE_PURCHASE) — creating an un-deduplicated row.
+ok
+test_sweep_task_wrapper (billing.tests.test_receipts.SweepMissingReceiptUrlsTests.test_sweep_task_wrapper) ... ok
+test_time_budget_stops_the_run (billing.tests.test_receipts.SweepMissingReceiptUrlsTests.test_time_budget_stops_the_run) ... ok
+test_unresolved_rows_are_retried_by_a_later_sweep (billing.tests.test_receipts.SweepMissingReceiptUrlsTests.test_unresolved_rows_are_retried_by_a_later_sweep) ... ok
+
+======================================================================
+FAIL: test_batch_bound_newest_first (billing.tests.test_receipts.SweepMissingReceiptUrlsTests.test_batch_bound_newest_first)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-M36-8_0lcr2p/wt/billing/tests/test_receipts.py", line 389, in test_batch_bound_newest_first
+    self.assertEqual(filled, [True, True, True, False, False])
+AssertionError: Lists differ: [False, False, True, True, True] != [True, True, True, False, False]
+
+First differing element 0:
+False
+True
+
+- [False, False, True, True, True]
++ [True, True, True, False, False]
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.168s
+
+FAILED (failures=1)
+Preserving test database for alias 'default' ('test_h62_mut')...

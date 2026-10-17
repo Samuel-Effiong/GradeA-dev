@@ -1,0 +1,21 @@
+as predicted | old rule silent | new rule silent | STARTS | M1 a class whose __init__ starts one, made at import
+as predicted | old rule silent | new rule silent | STARTS | M2 a decorator applied without brackets
+as predicted | old rule silent | new rule silent | STARTS | M3 a lambda bound to a name
+as predicted | old rule silent | new rule silent | STARTS | M4 a starter passed as an argument
+as predicted | old rule silent | new rule silent | STARTS | M5 functools.partial bound to a name, called later
+as predicted | old rule silent | new rule silent | STARTS | M6 bound in a tuple assignment
+as predicted | old rule silent | new rule silent | STARTS | M7 bound by := on a line of its own
+as predicted | old rule silent | new rule silent | STARTS | M8 bound through a conditional expression
+as predicted | old rule silent | new rule silent | STARTS | M9 a property read at import
+as predicted | old rule silent | new rule silent | STARTS | M10 a starter as a parameter's default value
+as predicted | old rule silent | new rule silent | STARTS | M11 __enter__ of an object used in a with at import
+as predicted | old rule silent | new rule silent | STARTS | M12 bound by a for loop
+as predicted | old rule names it | new rule silent | STARTS | C1 d5's stated give-up: the module's own function asked of the module
+as predicted | old rule names it | new rule silent | STARTS | C2 a module function wrapped as a static method under its own name
+as predicted | old rule silent | new rule names it | STARTS | C3 a module function bound in a class body under another name
+as predicted | old rule names it | new rule names it | STARTS | S1 a nested function inside a helper
+as predicted | old rule names it | new rule names it | STARTS | S2 a star import
+as predicted | old rule names it | new rule names it | STARTS | S3 := inside the call itself
+as predicted | old rule silent | new rule names it | starts nothing | F1 d5's unpinned sentence: a name bound inside one function counts everywhere
+as predicted | old rule silent | new rule names it | starts nothing | F2 a common method name: a thread started at import beside a method start() that reaches one
+20 samples, 0 not as predicted

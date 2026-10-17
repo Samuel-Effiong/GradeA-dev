@@ -1,0 +1,12 @@
+# Y11: P3: a transaction's spans are scrubbed
+# file: AutoGrader/sentry_scrubbing.py (occurrence 1)
+# old: '    "spans",\n'
+# new: ''
+# commit: 24dfcda64373224f8829e585e91fa0bee751184c
+# exit: 1
+# elapsed_s: 11.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_spans_of_a_transaction (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_the_spans_of_a_transaction)
+
+FAILED (failures=1)

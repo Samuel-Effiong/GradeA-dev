@@ -1,0 +1,26 @@
+9d0467d3:AutoGrader/tests_cache_bespoke_1114.py:290:        return f"/api/v1/submissions/{self.submission.id}"
+9d0467d3:ai_processor/tests_superadmin_unmetered_both_flags.py:188:        return reverse("student-submission-detail", kwargs={"pk": uuid4()})
+9d0467d3:assignments/tests_course_ownership_failure.py:183:                reverse("student-submission-detail", kwargs={"pk": uuid4()}),
+9d0467d3:billing/tests/test_refusal_handling.py:559:                            "student-submission-detail", kwargs={"pk": submission.pk}
+9d0467d3:billing/tests/test_refusal_handling.py:679:            (student, "put", reverse("student-submission-detail", args=[s]), text),
+9d0467d3:billing/tests/test_refusal_handling.py:680:            (student, "patch", reverse("student-submission-detail", args=[s]), text),
+9d0467d3:billing/tests/test_refusal_handling.py:713:            reverse("student-submission-detail", args=[str(self.submission.id)]),
+9d0467d3:billing/tests/test_refusal_handling_gates.py:382:                    "student-submission-detail",
+9d0467d3:billing/tests/test_refusal_handling_gates.py:446:                reverse("student-submission-detail", args=[str(submission.id)]),
+9d0467d3:billing/tests/test_refusal_handling_gates.py:495:                    reverse("student-submission-detail", args=[str(submission.id)]),
+9d0467d3:docs/evidence/refusal_handling/gate6/test_refusal_handling_scale.py:336:                "student-submission-detail", args=[str(school["submission"].id)]
+9d0467d3:students/tests_answer_document_before_release.py:115:            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+9d0467d3:students/tests_answer_document_before_release.py:393:            reverse("student-submission-detail", kwargs={"pk": made.pk})
+9d0467d3:students/tests_async_edit_path.py:275:        detail = reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+9d0467d3:students/tests_grading_review_fixes.py:256:            "student-submission-detail", kwargs={"pk": self.submission.pk}
+9d0467d3:students/tests_no_grade_tell_before_release.py:97:        return reverse("student-submission-detail", kwargs={"pk": submission.pk})
+9d0467d3:students/tests_no_grade_tell_before_release.py:651:                reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+9d0467d3:students/tests_post_grading_submission_lock.py:387:            "student-submission-detail", kwargs={"pk": self.submission.pk}
+9d0467d3:students/tests_post_grading_submission_lock.py:562:            reverse("student-submission-detail", kwargs={"pk": ungraded.pk}),
+9d0467d3:students/tests_second_opinion_queue.py:204:            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+9d0467d3:students/tests_second_opinion_queue.py:220:            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+9d0467d3:students/tests_second_opinion_queue.py:234:            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+9d0467d3:students/tests_student_feedback_routes.py:506:            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+9d0467d3:students/tests_student_feedback_routes.py:713:            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+9d0467d3:students/tests_student_feedback_scoping.py:120:            "student-submission-detail", kwargs={"pk": self.submission.pk}
+9d0467d3:students/tests_submission_update_freshness.py:72:            "student-submission-detail", kwargs={"pk": self.submission.pk}

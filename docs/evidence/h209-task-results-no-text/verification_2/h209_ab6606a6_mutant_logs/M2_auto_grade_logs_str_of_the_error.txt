@@ -1,0 +1,64 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 9b8644e5-cfa6-47e1-94c0-aafb5bcc99bc.
+Cannot activate automatic trial for user 9b8644e5-cfa6-47e1-94c0-aafb5bcc99bc (validation): ValueError
+FFree trial plan not found: no trial activated for user 74c5eea9-cdfd-433a-904d-250f22c1424d.
+Cannot activate automatic trial for user 74c5eea9-cdfd-433a-904d-250f22c1424d (validation): ValueError
+FFree trial plan not found: no trial activated for user 8914becc-a990-4ec6-90ea-77d291ef5151.
+Cannot activate automatic trial for user 8914becc-a990-4ec6-90ea-77d291ef5151 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8abcbccd-57a8-4672-ba33-84ba3eb6f5f3.
+Cannot activate automatic trial for user 8abcbccd-57a8-4672-ba33-84ba3eb6f5f3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0af6cdc7-cdb1-42ef-b937-47158a3604f1.
+Cannot activate automatic trial for user 0af6cdc7-cdb1-42ef-b937-47158a3604f1 (validation): ValueError
+.Free trial plan not found: no trial activated for user c6c8c30b-fb3e-49b3-9bc4-a21e5b57a452.
+Cannot activate automatic trial for user c6c8c30b-fb3e-49b3-9bc4-a21e5b57a452 (validation): ValueError
+.Free trial plan not found: no trial activated for user 196991eb-029e-4408-9d22-cadf702c9410.
+Cannot activate automatic trial for user 196991eb-029e-4408-9d22-cadf702c9410 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0ceeec92-194e-4750-a8a9-16f10c22adb8.
+Cannot activate automatic trial for user 0ceeec92-194e-4750-a8a9-16f10c22adb8 (validation): ValueError
+.Free trial plan not found: no trial activated for user c145c4bc-b9f1-4f60-87bc-51151f8d569c.
+Cannot activate automatic trial for user c145c4bc-b9f1-4f60-87bc-51151f8d569c (validation): ValueError
+.Free trial plan not found: no trial activated for user 4807e4b4-b94a-4cae-b7a6-4f77204b15e3.
+Cannot activate automatic trial for user 4807e4b4-b94a-4cae-b7a6-4f77204b15e3 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:03:25,013 task_tracking 1863532 137846999878592 [request_id=-] Background task 324bb51c-58b8-4e9b-96c5-b08f5859ed7d failed: error=RuntimeError frames=tasks.py:242:extract_assignment_background_task <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user e4d39196-b3cd-4888-b16f-406403374c74.
+Cannot activate automatic trial for user e4d39196-b3cd-4888-b16f-406403374c74 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:03:25,220 task_tracking 1863532 137846999878592 [request_id=-] Background task 4bcf950e-daef-4a0e-8b6f-89e2fdd1780a failed: error=RuntimeError frames=tasks.py:158:grade_all_submissions <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user b55fb22f-64d2-4988-9aeb-0c99f7ef2608.
+Cannot activate automatic trial for user b55fb22f-64d2-4988-9aeb-0c99f7ef2608 (validation): ValueError
+.
+======================================================================
+FAIL: test_a1_auto_grade_failure_returns_class_only_and_logs_one_error (students.tests_vf2_h209_probe.SwallowingTasksThroughTheRealBodies.test_a1_auto_grade_failure_returns_class_only_and_logs_one_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 146, in test_a1_auto_grade_failure_returns_class_only_and_logs_one_error
+    self.assertIn("error=RuntimeError", error["msg"])
+AssertionError: 'error=RuntimeError' not found in 'auto_grade_due_assignment failed: assignment=e65a71ad-4f28-4240-9fb5-d1f5eef04b6a cannot open student_answers_Ada_Lovelace.pdf VF2H209SECRET'
+
+======================================================================
+FAIL: test_a2_auto_grade_broker_error_logs_the_class_without_frames (students.tests_vf2_h209_probe.SwallowingTasksThroughTheRealBodies.test_a2_auto_grade_broker_error_logs_the_class_without_frames)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 160, in test_a2_auto_grade_broker_error_logs_the_class_without_frames
+    self.assertIn("error=OperationalError", error["msg"])
+AssertionError: 'error=OperationalError' not found in 'auto_grade_due_assignment failed: assignment=8acb2974-7561-491a-8e2c-26c5596eb826 cannot open student_answers_Ada_Lovelace.pdf VF2H209SECRET'
+
+----------------------------------------------------------------------
+Ran 12 tests in 2.799s
+
+FAILED (failures=2)
+Preserving test database for alias 'default'...
+Found 12 test(s).

@@ -1,0 +1,13 @@
+# S13: a record made before settings are configured is scrubbed
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '    return True if _enabled is None else _enabled\n'
+# new: '    return False if _enabled is None else _enabled\n'
+# commit: 7d05b17342e11450893a2de06f244b1e36effa57
+# exit: 1
+# elapsed_s: 10.0
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_record_made_while_settings_are_loading_is_scrubbed (AutoGrader.tests_log_scrubbing.BeforeSettingsAreConfiguredTests.test_a_record_made_while_settings_are_loading_is_scrubbed)
+FAIL: test_it_is_on_and_scrubs_from_the_first_record (AutoGrader.tests_log_scrubbing.OutsideTheTestRunnerTests.test_it_is_on_and_scrubs_from_the_first_record)
+
+FAILED (failures=2)

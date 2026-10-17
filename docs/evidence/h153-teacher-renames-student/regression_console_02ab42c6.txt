@@ -1,0 +1,8 @@
+STARTED 2026-10-07 16:46:02 WAT load 2.77 3.81 4.36 2/2548 755140
+=== 3. regression: users classrooms at 02ab42c6 16:46:02
+load at start: 2.77 3.81 4.36 3/2549 755186
+exit=0 16:48:12
+load at end: 2.64 3.43 4.15 1/2547 757781
+Ran 1160 tests in 113.233s
+OK (skipped=4)
+SCRIPT-ENDED rc=0 2026-10-07 16:48:12 WAT load 2.64 3.43 4.15 1/2546 757786

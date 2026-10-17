@@ -1,0 +1,92 @@
+"""1a's mutants V1 to V7 for H-147 (rule 19: each probe of mine is seen red;
+V5 and V6 are for the author's two guard tests that had never been seen red).
+Usage, in the checkout: python -B h147_mutants_V.py <V1|...|V7>. Applied in
+place; restore with git checkout. Expected failing tests: h147_expected_kills.txt.
+
+V1: a course not loaded by the view gives a student every enrolment (the
+    serializer's own query loses its "theirs only" filter).
+V2: a session's school and creator ids are blanked for everyone but a teacher.
+V3: a student is sent a session's school and creator ids.
+V4: the own entry is built only from an ENROLLED enrolment.
+V5: the per-student summary action loses its teacher-only permission line.
+V6: a new GET action "classmates" is added to the course view.
+V7: saving or deleting a submission bumps no cache generation.
+"""
+
+import sys
+
+MUTANTS = {
+    "V1": (
+        "classrooms/serializers.py",
+        "                ).filter(student=viewer)\n",
+        "                )\n",
+    ),
+    "V2": (
+        "classrooms/serializers.py",
+        '        if getattr(user, "user_type", None) == UserTypes.STUDENT:\n'
+        "            data.update(self.STUDENT_FIELD_VALUES)\n",
+        '        if getattr(user, "user_type", None) != UserTypes.TEACHER:\n'
+        "            data.update(self.STUDENT_FIELD_VALUES)\n",
+    ),
+    "V3": (
+        "classrooms/serializers.py",
+        "            data.update(self.STUDENT_FIELD_VALUES)\n",
+        "            pass\n",
+    ),
+    "V4": (
+        "classrooms/serializers.py",
+        "            own = [e for e in obj.active_enrollments if e.student_id == viewer.pk]\n",
+        "            own = [e for e in obj.active_enrollments if e.student_id == viewer.pk"
+        " and e.enrollment_status == EnrollmentStatusType.ENROLLED]\n",
+    ),
+    "V5": (
+        "classrooms/views.py",
+        "        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],\n",
+        "",
+    ),
+    "V6": (
+        "classrooms/views.py",
+        "    @extend_schema(\n"
+        '        tags=["02 Course"],\n'
+        '        summary="List courses a student is enrolled in",\n',
+        '    @action(detail=False, methods=["get"], url_path="classmates")\n'
+        "    def classmates(self, request, *args, **kwargs):\n"
+        "        return Response([])\n"
+        "\n"
+        "    @extend_schema(\n"
+        '        tags=["02 Course"],\n'
+        '        summary="List courses a student is enrolled in",\n',
+    ),
+    "V7": (
+        "students/signals.py",
+        "def clear_student_submission_cache(sender, instance, **kwargs):\n"
+        "    invalidate_submission_caches(instance)\n",
+        "def clear_student_submission_cache(sender, instance, **kwargs):\n"
+        "    return None\n",
+    ),
+}
+
+
+def main():
+    import ast
+
+    name = sys.argv[1]
+    path, old, new = MUTANTS[name]
+    with open(path, encoding="utf-8") as handle:
+        source = handle.read()
+    count = source.count(old)
+    if count != 1:
+        print(f"ABORT {name}: anchor found {count} times in {path}")
+        sys.exit(7)
+    mutated = source.replace(old, new, 1)
+    ast.parse(mutated)
+    if "--check" in sys.argv:
+        print(f"checked {name}: anchor once in {path}, mutant parses")
+        return
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(mutated)
+    print(f"applied {name} to {path}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,11 @@
+users.tests_add_whitelist_command.AddWhitelistCommandTests.test_a_missing_file_reports_an_error_and_writes_nothing ... ok
+users.tests_add_whitelist_command.AddWhitelistCommandTests.test_adds_emails_passed_as_arguments ... ok
+users.tests_add_whitelist_command.AddWhitelistCommandTests.test_blank_lines_in_a_file_are_ignored ... ok
+users.tests_add_whitelist_command.AddWhitelistCommandTests.test_emails_are_normalised_to_lowercase ... ok
+users.tests_add_whitelist_command.AddWhitelistCommandTests.test_file_and_arguments_combine ... ok
+users.tests_add_whitelist_command.AddWhitelistCommandTests.test_new_entries_are_active ... ok
+users.tests_add_whitelist_command.AddWhitelistCommandTests.test_no_input_is_a_warning_not_a_crash ... ok
+users.tests_add_whitelist_command.AddWhitelistCommandTests.test_reads_one_email_per_line_from_a_file ... ok
+users.tests_add_whitelist_command.AddWhitelistCommandTests.test_rerunning_is_idempotent_and_reports_the_skip ... ok
+Ran 9 tests in 0.048s
+OK

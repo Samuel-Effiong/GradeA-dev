@@ -1,0 +1,130 @@
+"""
+Mutation battery for task/fix-overage-concurrency-flake at bab3d09.
+
+Each mutant is ONE exact-string replacement that must match exactly once.
+Every mutant is run against the ConcurrentOverageDeliveryTests class only,
+so a KILL proves the concurrency tests themselves catch the fault.
+"""
+
+SVC = "billing/stripe_service.py"
+TST = "billing/tests/test_overage_purchase_integrity.py"
+LABEL = "billing.tests.test_overage_purchase_integrity.ConcurrentOverageDeliveryTests"
+
+GRANT = (
+    "SubscriptionService.grant_overage_bucket(\n"
+    "            wallet=wallet,\n"
+    "            plan=plan,\n"
+    "            quantity=quantity,\n"
+    '            stripe_payment_intent_id=session.get("payment_intent"),'
+)
+
+MUTANTS = [
+    # --- harness guards added by the diff ------------------------------------
+    dict(
+        id="M01",
+        guard="_run fails when a worker is still alive after the join",
+        path=TST,
+        old="        if still_running:\n",
+        new="        if False and still_running:\n",
+        expect="test_a_worker_outliving_the_join_fails_loudly_instead_of_reading_partial_state",
+    ),
+    dict(
+        id="M02",
+        guard="each worker closes its own DB connection in finally",
+        path=TST,
+        old="                connection.close()\n",
+        new="                pass\n",
+        expect="teardown: 'other session(s) using the database', exit 1",
+        # Small-thread tests only: if leaked connections are NOT reclaimed,
+        # the 20x10 load tests would leak up to 200 and exhaust the shared
+        # Postgres (max_connections=100) for every other session.
+        labels=[
+            LABEL + "." + name
+            for name in (
+                "test_simultaneous_duplicate_deliveries_grant_exactly_once",
+                "test_two_genuinely_different_purchases_both_land",
+                "test_concurrent_purchases_cannot_exceed_the_cap",
+                "test_concurrent_purchases_by_different_teachers_stay_separate",
+                "test_a_worker_outliving_the_join_fails_loudly_instead_of_reading_partial_state",
+            )
+        ],
+    ),
+    dict(
+        id="M03",
+        guard="receipt lookup stubbed (no live Stripe call in concurrency tests)",
+        path=TST,
+        old="        self.receipt_lookup = patcher.start()\n",
+        new="        self.receipt_lookup = patcher\n",
+        expect="test_a_worker_outliving_the_join... (no thread blocks, harness never fails)",
+        # Designated killer only: unstubbed, the 20x10 load tests would make
+        # ~600 live Stripe test-mode calls.
+        labels=[
+            LABEL
+            + ".test_a_worker_outliving_the_join_fails_loudly_instead_of_reading_partial_state"
+        ],
+    ),
+    # --- production faults the concurrency tests must catch ------------------
+    dict(
+        id="M04",
+        guard="grant goes to the paying wallet (MERGE: all school grants to one wallet)",
+        path=SVC,
+        old=GRANT,
+        new=GRANT.replace(
+            "wallet=wallet,",
+            "wallet=(CreditWallet.objects.filter(user__school_id=wallet.user.school_id)"
+            '.order_by("id").first() if wallet.user.school_id else wallet),',
+        ),
+        expect="test_concurrent_purchases_by_different_teachers_stay_separate, "
+        "test_twenty_teachers_buying_at_once_each_get_only_their_own_blocks",
+    ),
+    dict(
+        id="M05",
+        guard="grant goes to the paying wallet (CROSS-ASSIGN: next teacher in school)",
+        path=SVC,
+        old=GRANT,
+        new=GRANT.replace(
+            "wallet=wallet,",
+            "wallet=((lambda ids: CreditWallet.objects.get(pk=ids[(ids.index(wallet.pk) + 1) % len(ids)]))"
+            '(list(CreditWallet.objects.filter(user__school_id=wallet.user.school_id).order_by("id")'
+            '.values_list("pk", flat=True))) if wallet.user.school_id else wallet),',
+        ),
+        expect="test_twenty_teachers_buying_at_once_each_get_only_their_own_blocks "
+        "(payment-intent set per wallet)",
+    ),
+    dict(
+        id="M06",
+        guard="wallet row lock (select_for_update) serialises concurrent grants",
+        path=SVC,
+        old='CreditWallet.objects.select_for_update().get(id=metadata["wallet_id"])',
+        new='CreditWallet.objects.get(id=metadata["wallet_id"])',
+        expect="duplicate / cap race tests (double grant or cap breach under 20 threads)",
+    ),
+    dict(
+        id="M07",
+        guard="idempotency guard (same PaymentIntent grants once)",
+        path=SVC,
+        old="if payment_intent_id and StripeWebhookHandler._overage_already_granted(",
+        new="if False and StripeWebhookHandler._overage_already_granted(",
+        expect="test_simultaneous_duplicate_deliveries_grant_exactly_once, "
+        "test_twenty_simultaneous_duplicates_grant_once_every_round",
+    ),
+    dict(
+        id="M08",
+        guard="cap re-checked under the lock at grant time",
+        path=SVC,
+        old="if (wallet.overage_blocks_used or 0) + quantity > plan.max_overage_blocks:",
+        new="if False:",
+        expect="test_concurrent_purchases_cannot_exceed_the_cap, "
+        "test_twenty_purchases_racing_for_two_blocks_grant_exactly_two_every_round",
+    ),
+    dict(
+        id="M09",
+        guard="errors==[] asserted (a worker exception can't pass silently); "
+        "the pre-fix cap test (<= 2) would have passed with 0 grants",
+        path=SVC,
+        old='        logger.info(\n            "Overage checkout completed for wallet %s: granted',
+        new='        raise RuntimeError("mutant M09")\n'
+        '        logger.info(\n            "Overage checkout completed for wallet %s: granted',
+        expect="every test that grants; first failing assertion must be errors == []",
+    ),
+]

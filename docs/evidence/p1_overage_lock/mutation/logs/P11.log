@@ -1,0 +1,61 @@
+# P11: handler idempotency guard (_overage_already_granted)
+# file: billing/stripe_service.py line: 2928
+# old: 'if payment_intent_id and StripeWebhookHandler._overage_already_granted('
+# new: 'if False and StripeWebhookHandler._overage_already_granted('
+# modules: billing.tests.test_event_replay.ReplayTheAllowedFlowTests
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
+# exit: 1
+# elapsed_s: 4.8
+# restored_sha256_matches_commit_blob: True
+
+Found 4 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_h62_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_a_replay_that_fails_again_stays_failed (billing.tests.test_event_replay.ReplayTheAllowedFlowTests.test_a_replay_that_fails_again_stays_failed) ... Cannot activate automatic trial for user allowed@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+Stripe auto-replay: error processing event evt_failagain (checkout.session.completed).
+Traceback (most recent call last):
+  File "/tmp/p1mut-P11-pxmxxfip/wt/billing/webhooks.py", line 399, in _run_handler_inline
+    handler(event["data"]["object"])
+  File "/tmp/p1mut-P11-pxmxxfip/wt/billing/event_replay.py", line 218, in run
+    handler(obj, obj.get("metadata") or {})
+  File "/tmp/p1mut-P11-pxmxxfip/wt/billing/tests/test_event_replay.py", line 389, in handler
+    raise RuntimeError("still broken")
+RuntimeError: still broken
+ok
+test_replaying_an_already_granted_purchase_grants_nothing_more (billing.tests.test_event_replay.ReplayTheAllowedFlowTests.test_replaying_an_already_granted_purchase_grants_nothing_more)
+The idempotency proof the allow-list rests on, exercised. ... Cannot activate automatic trial for user allowed@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+Auto-replayed FAILED Stripe event evt_already (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+FAIL
+test_stripe_is_never_re_fetched_to_decide (billing.tests.test_event_replay.ReplayTheAllowedFlowTests.test_stripe_is_never_re_fetched_to_decide) ... Cannot activate automatic trial for user allowed@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+Auto-replayed FAILED Stripe event evt_nofetch (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+ok
+test_stuck_paid_purchase_is_credited (billing.tests.test_event_replay.ReplayTheAllowedFlowTests.test_stuck_paid_purchase_is_credited) ... Cannot activate automatic trial for user allowed@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+
+======================================================================
+FAIL: test_replaying_an_already_granted_purchase_grants_nothing_more (billing.tests.test_event_replay.ReplayTheAllowedFlowTests.test_replaying_an_already_granted_purchase_grants_nothing_more)
+The idempotency proof the allow-list rests on, exercised.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-P11-pxmxxfip/wt/billing/tests/test_event_replay.py", line 342, in test_replaying_an_already_granted_purchase_grants_nothing_more
+    self.assertEqual(
+AssertionError: 1000 != 500 : the replay double-granted
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.998s
+
+FAILED (failures=1)
+Preserving test database for alias 'default' ('test_h62_mut')...

@@ -1,0 +1,27 @@
+baseline exit=0
+B1	a carried-forward teacher's refusal names the teacher by id	KILLED	FAILED (failures=1)	True	4.9
+B2	a carried-forward teacher's refusal logs the class, not the text	KILLED	FAILED (failures=1)	True	4.4
+B3	the failed-creation summary does not log failed_results	KILLED	FAILED (failures=2)	True	3.8
+B4	a skipped enrolment logs the refusal's class, not its text	KILLED	FAILED (failures=1, errors=1)	True	3.3
+B5	the queued invitation line names the teacher by id	KILLED	FAILED (failures=1)	True	4.2
+B6	the enrolment line names the teacher by id	KILLED	FAILED (failures=1)	True	3.9
+B7	H-86: the seat-limit refusal logs a WARNING reason line	KILLED	FAILED (errors=1)	True	4.1
+B8	H-86: the seat-limit reason line names the teacher by id	KILLED	FAILED (failures=1)	True	4.3
+B9	H-86: the enrolment's other-school refusal logs a WARNING reason line	KILLED	FAILED (failures=1)	True	5.0
+B10	the new-user signal line names the user by id	KILLED	FAILED (failures=2)	True	5.3
+B11	the trial-check signal line names the user by id	KILLED	FAILED (failures=2)	True	4.7
+P1	1a's P1: a used trial's refusal logs a WARNING reason line	KILLED	FAILED (failures=1)	True	4.1
+P2	1a's P1: a missing trial plan is logged at ERROR	KILLED	FAILED (failures=1)	True	4.4
+P3	1a's P1: the missing-plan reason line names the user by id	KILLED	FAILED (failures=1)	True	4.2
+P4	1a's P1: the Stripe renewal-failure line carries a traceback	KILLED	FAILED (failures=1)	True	6.7
+P5	1a's P1: the offline renewal-failure line carries a traceback	KILLED	FAILED (failures=1)	True	6.6
+G6	guard (1a's P2): an address formatted into the message with %	KILLED	FAILED (failures=1)	True	3.3
+G7	guard (1a's P2): a message built by an f-string, even from an id	KILLED	FAILED (failures=1)	True	4.0
+G1	guard: an `.email` in a logger call on an undriven path	KILLED	FAILED (failures=1)	True	3.6
+G2	guard: an exception's text in a logger call (license_service)	KILLED	FAILED (failures=1)	True	4.8
+G3	guard: an exception's text in a logger call (signals)	KILLED	FAILED (failures=1)	True	3.9
+G4	guard: failed_results in a logger call	KILLED	FAILED (failures=1)	True	4.0
+G5	guard: a name holding an address in a logger call	KILLED	FAILED (failures=1)	True	3.4
+
+23/23 killed with verified restore
+exit=0 wall_s=108

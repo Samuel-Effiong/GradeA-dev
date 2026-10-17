@@ -1,0 +1,31 @@
+-- H-180 (read-only; NOT run by the team; the founder runs production queries).
+-- Question: which accounts have NO credit wallet row? Counts only: no names,
+-- no e-mail addresses, no ids are selected.
+-- Table and column names are the Django defaults for users.CustomUser and
+-- billing.CreditWallet (CreditWallet.user is a one-to-one to the user); please
+-- check them against the production schema before running.
+-- Split: by role (user_type) and by whether the account was created before or
+-- after 2026-06-30 (the day the wallet-on-signup signal was added, commit
+-- da3a1afd). The comparison uses date_joined.
+
+SELECT
+    u.user_type,
+    CASE WHEN u.date_joined < TIMESTAMPTZ '2026-06-30 00:00:00+00'
+         THEN 'before 2026-06-30' ELSE 'on or after 2026-06-30' END AS created,
+    COUNT(*) AS accounts_without_a_wallet
+FROM users_customuser AS u
+LEFT JOIN billing_creditwallet AS w ON w.user_id = u.id
+WHERE w.user_id IS NULL
+GROUP BY 1, 2
+ORDER BY 1, 2;
+
+-- For comparison (the same split, all accounts), so the first result can be
+-- read as a share:
+SELECT
+    u.user_type,
+    CASE WHEN u.date_joined < TIMESTAMPTZ '2026-06-30 00:00:00+00'
+         THEN 'before 2026-06-30' ELSE 'on or after 2026-06-30' END AS created,
+    COUNT(*) AS accounts
+FROM users_customuser AS u
+GROUP BY 1, 2
+ORDER BY 1, 2;

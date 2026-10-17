@@ -1,0 +1,111 @@
+"""Verifier 1's probes for H-148 (the teacher names a student when adding
+them by email).
+
+Not the author's tests: each looks at an edge the author named as worth
+attacking and did not test. Rule 19: each is evidence only once a run has
+shown it red under the mutant named for it in h148_expected_kills.txt.
+
+  qa  a stored name of spaces only is no name: it is filled
+  qb  an account with ONLY a middle name counts as nameless, and the fill
+      replaces that middle name with the typed one (blank when none is
+      typed). This probe SHOWS what the code does; whether it should is
+      for the Senior Manager.
+  qc  two teachers, one after the other, add the same nameless account:
+      the first teacher's name stands and the second is told so
+  qd  a name typed in another case than a classmate's is refused, and the
+      nameless account is left nameless and out of the course
+
+Second version. The first (kept as h148_probe_v1_as_run_15h49.py) read the
+answer with response.json(), the rendered body, which this project's
+renderer wraps; qa, qb and qc errored on the baseline for that and for
+nothing else. This one reads response.data, as the author's tests do.
+"""
+
+from django.core.cache import cache
+from django.urls import reverse
+from rest_framework import status
+
+from classrooms.models import Course, Session
+from classrooms.tests_teacher_names_student_on_add import (
+    ADA,
+    AddByEmailBase,
+    make_user,
+)
+from users.models import UserTypes
+
+EMAIL = "has.account@h148.test"
+
+
+class Vf1aFillEdgesProbe(AddByEmailBase):
+    def test_qa_a_stored_name_of_spaces_only_is_filled(self):
+        self.existing(EMAIL, first_name="  ", last_name=" ")
+
+        response = self.add(EMAIL, **ADA)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.assertEqual(self.name_of(EMAIL), ("Ada", "", "Lovelace"))
+        self.assertIs(response.data["typed_name_used"], True)
+        self.assertTrue(self.enrolled(EMAIL))
+
+    def test_qb_an_account_with_only_a_middle_name_is_filled_and_loses_it(self):
+        self.existing(EMAIL, middle_name="Byron")
+        self.assertEqual(self.name_of(EMAIL), ("", "Byron", ""))
+
+        response = self.add(EMAIL, **ADA)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.assertEqual(self.name_of(EMAIL), ("Ada", "", "Lovelace"))
+        self.assertEqual(
+            response.data["student_name"],
+            {"first_name": "Ada", "middle_name": "", "last_name": "Lovelace"},
+        )
+
+    def test_qc_the_first_teachers_name_stands_for_the_second_teacher(self):
+        self.existing(EMAIL)
+        self.assertEqual(self.name_of(EMAIL), ("", "", ""))
+        first = self.add(EMAIL, **ADA)
+        self.assertEqual(first.status_code, status.HTTP_200_OK, first.content)
+        self.assertIs(first.data["typed_name_used"], True)
+
+        other = make_user(
+            "other.owner@h148.test",
+            UserTypes.TEACHER,
+            first_name="Alan",
+            last_name="Turing",
+        )
+        session = Session.objects.create(name="H148 other", teacher=other)
+        course = Course.objects.create(
+            name="H148 other course", teacher=other, session=session
+        )
+        cache.clear()
+        self.client.force_authenticate(other)
+        second = self.client.post(
+            reverse("course-students", kwargs={"pk": course.id}),
+            {"email": EMAIL, "first_name": "Beatrix", "last_name": "Otherwise"},
+            format="json",
+        )
+
+        self.assertEqual(second.status_code, status.HTTP_200_OK, second.content)
+        self.assertEqual(self.name_of(EMAIL), ("Ada", "", "Lovelace"))
+        self.assertIs(second.data["typed_name_used"], False)
+        self.assertEqual(
+            second.data["student_name"],
+            {"first_name": "Ada", "middle_name": "", "last_name": "Lovelace"},
+        )
+
+    def test_qd_a_classmates_name_in_another_case_is_refused_and_nothing_is_filled(
+        self,
+    ):
+        self.classmate(**ADA)
+        self.existing(EMAIL)
+
+        response = self.add(EMAIL, first_name="ADA", last_name="lovelace")
+
+        self.assertEqual(
+            response.status_code, status.HTTP_400_BAD_REQUEST, response.content
+        )
+        # The account is the one made above, still without a name, and it
+        # is not in the course.
+        self.assertIsNotNone(self.account(EMAIL))
+        self.assertEqual(self.name_of(EMAIL), ("", "", ""))
+        self.assertFalse(self.enrolled(EMAIL))

@@ -1,0 +1,13 @@
+# R1: annual task: due tolerance
+# file: billing/tasks.py (occurrence 1)
+# old: '        next_credit_grant_at__lte=refresh_due_by(now),\n'
+# new: '        next_credit_grant_at__lte=now,\n'
+# commit: 4a80558d443c9812fa46d1afe8b13d95f4a99668
+# exit: 1
+# elapsed_s: 21.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run)
+FAIL: test_a_run_starting_a_little_earlier_than_last_months_still_refreshes (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_a_run_starting_a_little_earlier_than_last_months_still_refreshes)
+
+FAILED (failures=2)

@@ -1,0 +1,17 @@
+watchdog: stalled=0 (300 s silence rule; 0 = never fired)
+exit=0 end 2026-10-09 13:22:20 WAT wall=467s
+load at end: 4.68 5.41 5.10
+Ran 6455 tests in 428.744s
+OK (skipped=28)
+blocked_outbound=0
+per-app test counts:
+  ai_processor 861
+  assignments 710
+  AutoGrader 692
+  billing 2158
+  classrooms 487
+  dashboard 270
+  students 520
+  users 757
+FAIL/ERROR headers: 0
+suspends during run: 0

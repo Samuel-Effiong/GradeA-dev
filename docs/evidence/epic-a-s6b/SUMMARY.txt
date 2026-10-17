@@ -1,0 +1,52 @@
+=== (1) reproduce-first: committed assignments.tests_file_reason_codes on UNCHANGED phase2/epic-a 064a278 2026-09-30T17:10:35+01:00
+base 064a278
+rc=1
+Ran 20 tests in 1.662s
+FAILED (failures=16, errors=4)
+=== tree 2e0c5f9 Merge phase2/epic-a 9a91431 into task/epic-a-s6b before its gates
+=== (2) changed modules outside assignments 17:10:40
+rc=0
+Ran 293 tests in 42.962s
+OK (skipped=1)
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:56.62
+	Maximum resident set size (kbytes): 423508
+=== (3) owning-app regression: assignments 17:11:37
+rc=0
+Ran 661 tests in 112.391s
+OK (skipped=13)
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:06.73
+	Maximum resident set size (kbytes): 330700
+=== (4) mutants 17:13:44
+M1_type_check_removed KILLED FAILED (failures=4) ['test_a_text_file_is_an_unsupported_type_listing_every_accepted_type', 'test_a_type_without_an_extension_names_its_declared_type', 'test_an_empty_file_of_an_unsupported_type_is_the_type_first', 'test_each_condition_raises_its_own_coded_type']
+  restore ok
+M2_empty_check_removed KILLED FAILED (failures=1) ['test_a_zero_byte_file_is_empty']
+  restore ok
+M3_zero_pages_unreadable KILLED FAILED (failures=1, errors=1) ['test_a_pdf_with_no_pages_is_empty', 'test_each_condition_raises_its_own_coded_type']
+  restore ok
+M4_pixels_unreadable KILLED FAILED (failures=3) ['test_a_decompression_bomb_is_refused_before_its_pixels_are_allocated', 'test_a_real_decompression_bomb_is_refused_without_allocating_it', 'test_too_many_pixels_is_too_large_with_actual_and_limit']
+  restore ok
+M5_pages_unreadable KILLED FAILED (failures=1, errors=1) ['test_every_too_large_is_a_payload_too_large_answered_413', 'test_too_many_pages_is_too_large_with_actual_and_limit']
+  restore ok
+M6_task_rewraps KILLED FAILED (failures=1) ['test_the_item_fails_with_the_coded_refusal_itself']
+  restore ok
+M7_assignment_empty_not_mapped KILLED FAILED (failures=1) ['test_the_teacher_sees_the_unreadable_message']
+  restore ok
+M8_cap_bound_at_def KILLED FAILED (failures=2) ['test_the_cap_is_read_at_call_time', 'test_too_many_bytes_is_too_large_with_actual_and_limit']
+  restore ok
+M9_infra_text_conflated KILLED FAILED (failures=1) ['test_a_parser_failure_reads_as_unreadable_only']
+  restore ok
+M10_type_named_by_mime KILLED FAILED (failures=1) ['test_a_text_file_is_an_unsupported_type_listing_every_accepted_type']
+  restore ok
+=== done 17:14:40
+=== module with the compression test (uncommitted test on 2e0c5f9) 17:15:26
+rc=0
+test_an_image_too_large_even_compressed_is_too_large (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_an_image_too_large_even_compressed_is_too_large) ... Cannot activate automatic trial for user <email> (validation): Free trial plan not found. Please create one in the admin panel.
+    compressed_bytes = cls._compress_uploaded_image(uploaded_file)
+Ran 21 tests in 1.616s
+OK
+=== M11/M12
+M11_compression_unreadable KILLED FAILED (failures=1) ['test_an_image_too_large_even_compressed_is_too_large']
+  restore ok
+M12_pdf_compression_unreadable KILLED FAILED (failures=1) ['test_an_image_too_large_even_compressed_is_too_large']
+  restore ok
+ M assignments/tests_file_reason_codes.py

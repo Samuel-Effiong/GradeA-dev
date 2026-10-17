@@ -1,0 +1,35 @@
+as predicted | at c9ae46b3 silent | at 7134815d names it | STARTS | M1 a class whose __init__ starts one, made at import
+as predicted | at c9ae46b3 silent | at 7134815d names it | STARTS | M2 a decorator applied without brackets
+as predicted | at c9ae46b3 silent | at 7134815d names it | STARTS | M3 a lambda bound to a name
+as predicted | at c9ae46b3 silent | at 7134815d silent | STARTS | M4 a starter passed as an argument
+as predicted | at c9ae46b3 silent | at 7134815d silent | STARTS | M5 functools.partial bound to a name, called later
+as predicted | at c9ae46b3 silent | at 7134815d silent | STARTS | M6 bound in a tuple assignment
+as predicted | at c9ae46b3 silent | at 7134815d silent | STARTS | M7 bound by := on a line of its own
+as predicted | at c9ae46b3 silent | at 7134815d silent | STARTS | M8 bound through a conditional expression
+as predicted | at c9ae46b3 silent | at 7134815d silent | STARTS | M9 a property read at import
+as predicted | at c9ae46b3 silent | at 7134815d silent | STARTS | M10 a starter as a parameter's default value
+as predicted | at c9ae46b3 silent | at 7134815d silent | STARTS | M11 __enter__ of an object used in a with at import
+as predicted | at c9ae46b3 silent | at 7134815d silent | STARTS | M12 bound by a for loop
+as predicted | at c9ae46b3 silent | at 7134815d silent | STARTS | C1 d5's stated give-up: the module's own function asked of the module
+as predicted | at c9ae46b3 silent | at 7134815d names it | STARTS | C2 a module function wrapped as a static method under its own name
+as predicted | at c9ae46b3 names it | at 7134815d names it | STARTS | C3 a module function bound in a class body under another name
+as predicted | at c9ae46b3 names it | at 7134815d names it | STARTS | S1 a nested function inside a helper
+as predicted | at c9ae46b3 names it | at 7134815d names it | STARTS | S2 a star import
+as predicted | at c9ae46b3 names it | at 7134815d names it | STARTS | S3 := inside the call itself
+as predicted | at c9ae46b3 names it | at 7134815d names it | starts nothing | F1 d5's unpinned sentence: a name bound inside one function counts everywhere
+as predicted | at c9ae46b3 names it | at 7134815d names it | starts nothing | F2 a common method name: a thread started at import beside a method start() that reaches one
+as predicted | at c9ae46b3 silent | at 7134815d silent | STARTS | K1 a subclass of a class whose __init__ starts one, made at import
+as predicted | at c9ae46b3 silent | at 7134815d silent | STARTS | K2 such a class reached as an attribute (a nested class)
+as predicted | at c9ae46b3 silent | at 7134815d silent | STARTS | K3 a dataclass whose __post_init__ starts one, made at import
+as predicted | at c9ae46b3 silent | at 7134815d silent | STARTS | K4 an object whose __call__ starts one, called at import
+as predicted | at c9ae46b3 silent | at 7134815d names it | STARTS | K5 __init__ reaches one through another method
+as predicted | at c9ae46b3 silent | at 7134815d names it | STARTS | K6 a lambda in a class body, asked of the class
+as predicted | at c9ae46b3 silent | at 7134815d names it | STARTS | K7 a class whose __init__ starts one, used as a decorator without brackets
+as predicted | at c9ae46b3 silent | at 7134815d names it | starts nothing | K8 FALSE ALARM: a property whose getter starts one, with a setter; never read at import
+as predicted | at c9ae46b3 silent | at 7134815d names it | starts nothing | K9 FALSE ALARM (d5's stated cost): @thing.start beside a method start() that starts one
+as predicted | at c9ae46b3 silent | at 7134815d names it | starts nothing | K10 FALSE ALARM: a constant read off a class whose __init__ starts one, and a method of the constant called
+as predicted | at c9ae46b3 silent | at 7134815d silent | starts nothing | K11 such a class only listed and tested against, never made
+as predicted | at c9ae46b3 silent | at 7134815d silent | starts nothing | K12 such a class made only inside a test
+tree | AutoGrader/tests_no_playwright_at_import.py | lines named: []
+tree | assignments/tests_pdf_renderer.py | lines named: []
+32 samples and the tree part, 0 not as predicted

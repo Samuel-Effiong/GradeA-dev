@@ -1,0 +1,61 @@
+{
+  "A1_the_none_check_is_removed": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 13,
+    "expected": [
+      "audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_an_admin_with_no_school_is_shown_an_empty_list",
+      "audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_a_school_id_parameter_does_not_widen_it"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_a_school_id_parameter_does_not_widen_it",
+      "audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_an_admin_with_no_school_is_shown_an_empty_list"
+    ],
+    "pycache_left": 0
+  },
+  "A2_an_admin_with_no_school_is_shown_everything": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 13,
+    "expected": [
+      "audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_an_admin_with_no_school_is_shown_an_empty_list",
+      "audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_a_school_id_parameter_does_not_widen_it"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_a_school_id_parameter_does_not_widen_it",
+      "audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_an_admin_with_no_school_is_shown_an_empty_list"
+    ],
+    "pycache_left": 0
+  },
+  "A3_every_school_admin_is_shown_nothing": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 13,
+    "expected": [
+      "audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_an_admin_with_a_school_still_sees_only_that_school"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "audit.tests_query_api.SchoolAdminAuditEventPermissionTests.test_school_admin_sees_only_own_school",
+      "audit.tests_query_api.SchoolAdminCrossTenantAdversarialTests.test_queryset_level_ignores_other_schools_id_filter",
+      "audit.tests_query_api.SchoolAdminCrossTenantAdversarialTests.test_request_response_level_school_id_param_is_ignored",
+      "audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_an_admin_with_a_school_still_sees_only_that_school"
+    ],
+    "pycache_left": 0
+  },
+  "A4_the_super_admin_loses_the_null_school_events": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 13,
+    "expected": [
+      "audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_the_super_admin_still_sees_the_null_school_events"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "audit.tests_school_admin_without_a_school.SchoolAdminWithoutASchoolTests.test_the_super_admin_still_sees_the_null_school_events"
+    ],
+    "pycache_left": 0
+  }
+}

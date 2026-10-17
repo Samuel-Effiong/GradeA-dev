@@ -1,0 +1,5 @@
+15:22:24 repro ff2edee7 exit=1 (red expected)
+15:26:32 (a) exit=0
+15:28:38 (b) exit=0
+15:28:38 expected failing sets: every mutant's failing set is the expected one
+15:28:38 H-98 CHAIN END: (c) needs its own GRANT

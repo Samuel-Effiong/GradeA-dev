@@ -1,0 +1,33 @@
+# 1a H-167 mutant Z5 at a1397c5b929d2692c0e5d8d07a8ed0270bc3c567, my probe module alone, PYTHONDONTWRITEBYTECODE=1
+loadavg before: 3.66 3.67 4.20 9/2268 915186
+pycache dirs under AutoGrader, classrooms, students, assignments, dashboard and users after clear: 0
+applied Z5 to AutoGrader/sentry_scrubbing.py
+mutated sha differs: True
+ AutoGrader/sentry_scrubbing.py | 1 -
+ 1 file changed, 1 deletion(-)
+test_sc_the_four_new_parts_in_other_shapes (AutoGrader.tests_vf1a_h167_probe.Vf1aHookShapesProbe.test_sc_the_four_new_parts_in_other_shapes) ... ok
+test_sd_the_pattern_beside_addresses_another_name_and_an_object (AutoGrader.tests_vf1a_h167_probe.Vf1aHookShapesProbe.test_sd_the_pattern_beside_addresses_another_name_and_an_object) ... ok
+test_sa_a_real_client_with_our_values_sends_no_frame_variables (AutoGrader.tests_vf1a_h167_probe.Vf1aRealClientProbe.test_sa_a_real_client_with_our_values_sends_no_frame_variables) ... ok
+test_sb_a_real_client_with_our_values_takes_no_request_body (AutoGrader.tests_vf1a_h167_probe.Vf1aRealClientProbe.test_sb_a_real_client_with_our_values_takes_no_request_body) ... ok
+test_se_an_event_through_a_real_client_with_our_hook_arrives_scrubbed (AutoGrader.tests_vf1a_h167_probe.Vf1aRealClientProbe.test_se_an_event_through_a_real_client_with_our_hook_arrives_scrubbed) ... FAIL
+
+======================================================================
+FAIL: test_se_an_event_through_a_real_client_with_our_hook_arrives_scrubbed (AutoGrader.tests_vf1a_h167_probe.Vf1aRealClientProbe.test_se_an_event_through_a_real_client_with_our_hook_arrives_scrubbed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h167/AutoGrader/tests_vf1a_h167_probe.py", line 171, in test_se_an_event_through_a_real_client_with_our_hook_arrives_scrubbed
+    self.assertIn("queue down for [email]", text)
+AssertionError: 'queue down for [email]' not found in '[{"level": "error", "exception": {"values": [{"mechanism": {"type": "generic", "handled": true}, "module": null, "type": "RuntimeError", "value": "queue down for someone.private@school-example.edu Pool<host=q,password=mvC9z, mvD1q", "stacktrace": {"frames": [{"filename": "AutoGrader/tests_vf1a_h167_probe.py", "abs_path": "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h167/AutoGrader/tests_vf1a_h167_probe.py", "function": "sent_for", "module": "AutoGrader.tests_vf1a_h167_probe", "lineno": 97, "pre_context": ["def sent_for(client, fails):", "    \\"\\"\\"The events `client` hands to its transport for the exception that", "    `fails()` raises. Built and captured the way the SDK does it: with the", "    client\'s own resolved options.\\"\\"\\"", "    try:"], "context_line": "        fails()", "post_context": ["    except RuntimeError:", "        event, hint = event_from_exception(sys.exc_info(), client_options=client.options)", "    client.capture_event(event, hint=hint)", "    client.flush()", "    events = [envelope.get_event() for envelope in client.transport.envelopes]"], "in_app": true}, {"filename": "AutoGrader/tests_vf1a_h167_probe.py", "abs_path": "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h167/AutoGrader/tests_vf1a_h167_probe.py", "function": "fails_with_a_named_value_in_its_text", "module": "AutoGrader.tests_vf1a_h167_probe", "lineno": 121, "pre_context": ["    a_local_variable = MADE[0] + MADE[1]", "    raise RuntimeError(\\"made to fail \\" + str(len(a_local_variable)))", "", "", "def fails_with_a_named_value_in_its_text():"], "context_line": "    raise RuntimeError(", "post_context": ["        \\"queue down for someone.private@school-example.edu Pool<host=q,\\"", "        + named(\\"password\\", MADE[2] + \\", \\" + MADE[3])", "    )", "", ""], "in_app": true}]}}]}, "event_id": "b7fd9a3945574cada582351d99db6de2", "timestamp": "2026-10-07T16:52:39.798588Z", "release": "a1397c5b929d2692c0e5d8d07a8ed0270bc3c567", "environment": "production", "server_name": "bondservant-in-training", "sdk": {"name": "sentry.python", "version": "2.68.0", "packages": [{"name": "pypi:sentry-sdk", "version": "2.68.0"}], "integrations": []}, "platform": "python"}]'
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.070s
+
+FAILED (failures=1)
+Found 5 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
+systemd-run failed with exit status 1.
+exit=1 wall_s=4 loadavg after: 3.76 3.69 4.20 4/2285 915278
+restored_sha256_matches_commit_blob: True
+pycache dirs under AutoGrader, classrooms, students, assignments, dashboard and users after clear: 0
+tracked changes after restore: 0

@@ -1,0 +1,19 @@
+"""1a's mutant Y7 for H-85/H-86: the ENROLMENT site's ids-only reason line
+is dropped. With the neutral sentence, that line is the only place support
+learns why a teacher refused at enrolment (the race path) was refused.
+d5's N6 covers the invite site's line. Applied in place to
+billing/license_service.py in the current directory; restore with git
+checkout. Run with python -B (rule 17)."""
+
+P = "billing/license_service.py"
+s = open(P, encoding="utf-8").read()
+old = (
+    "            logger.warning(\n"
+    '                "Teacher %s has an individual subscription: not enrolled.",\n'
+    "                teacher.id,\n"
+    "            )\n"
+)
+new = ""
+assert s.count(old) == 1, s.count(old)
+open(P, "w", encoding="utf-8").write(s.replace(old, new))
+print("applied Y7")

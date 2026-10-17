@@ -1,0 +1,3 @@
+assignments.tests_cache_matrix_g9.GenerationSessionDeleteFreshnessTests.test_session_delete_now_refreshes_the_owners_list_only ... ok
+Ran 1 test in 1.013s
+OK

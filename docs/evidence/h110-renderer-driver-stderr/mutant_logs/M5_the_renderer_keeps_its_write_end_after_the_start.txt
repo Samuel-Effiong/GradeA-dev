@@ -1,0 +1,16 @@
+..F........................
+======================================================================
+FAIL: test_after_the_driver_is_killed_the_stderr_pipe_is_still_blocking (assignments.tests_pdf_renderer_driver_stderr.TheProcessStderrStaysBlockingTest.test_after_the_driver_is_killed_the_stderr_pipe_is_still_blocking)
+Before the fix a SIGKILLed driver left the pipe non-blocking for
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr.py", line 148, in test_after_the_driver_is_killed_the_stderr_pipe_is_still_blocking
+    self.assertIs(self.ask_child()["reader_is_reading"], False)
+AssertionError: True is not False
+
+----------------------------------------------------------------------
+Ran 27 tests in 8.190s
+
+FAILED (failures=1)
+Found 27 test(s).
+System check identified no issues (0 silenced).

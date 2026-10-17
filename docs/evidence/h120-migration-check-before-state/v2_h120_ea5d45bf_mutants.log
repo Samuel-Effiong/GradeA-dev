@@ -1,0 +1,4 @@
+M1_fewer_decimal_places_are_not_reported | d5's tests | KILLED | Ran 19 tests in 0.754s | FAILED (failures=1) | expected ('test_a_column_made_shorter_is_reported_with_both_numbers',) | failing ['test_a_column_made_shorter_is_reported_with_both_numbers']
+  restore scripts/check_migration_safety.py ok | __pycache__ cleared
+M2_a_python_default_is_not_a_default | d5's tests | KILLED | Ran 19 tests in 0.717s | FAILED (failures=6) | expected ('test_changes_that_are_additive_pass', 'test_columns_every_existing_row_can_get_a_value_for_pass', 'test_each_one') | failing ['test_changes_that_are_additive_pass', 'test_columns_every_existing_row_can_get_a_value_for_pass', 'test_each_one']
+  restore scripts/check_migration_safety.py ok | __pycache__ cleared

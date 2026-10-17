@@ -1,0 +1,77 @@
+"""v2 mutants for H-196 at 2f9dfc1d (written 2026-10-09 BEFORE any run). Run from the vf2-s1 scratch worktree
+detached at COMMIT with classrooms/tests_vf2_h196_probe.py copied in. Usage:
+  COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h196_mutants.py check | baseline | findings | mutants
+baseline = class VF2RosterOrder (7 tests) on the tip: expect all green. findings = class VF2RosterOrderFindings
+(f1: PREDICTED RED on the tip; report-only). mutants: the failing set of each run (my class only) must EQUAL the
+written one; Kq is PREDICTED TO SURVIVE (the order added at the my-students prefetch changes nothing visible:
+the serializer sorts what it reads, d5's stated reason); Fx puts the ruled order on the assignment detail and
+must make f1 PASS (rc 0) in the findings class. Rule 17: no bytecode, pycache cleared, restore verified."""
+import ast, hashlib, os, pathlib, re, shutil, subprocess, sys
+
+COMMIT = os.environ["COMMIT"]; LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])
+MD, SE, VW, ST, AS = "classrooms/models.py", "classrooms/serializers.py", "classrooms/views.py", "students/serializers.py", "assignments/serializers.py"
+K = "classrooms.tests_vf2_h196_probe."
+ORDER, FIND = K + "VF2RosterOrder", K + "VF2RosterOrderFindings"
+c1, c2, c3, c4, c5, c6, c7 = ("test_c1_detail_students_oldest_enrolment_first", "test_c2_list_students_oldest_enrolment_first",
+    "test_c3_detail_breaks_a_created_at_tie_by_id", "test_c4_serializer_fallback_without_a_prefetch",
+    "test_c5_my_students_enrolled_courses_oldest_first", "test_c6_my_students_row_is_about_the_oldest_enrolment",
+    "test_c7_characterisation_the_student_course_list_is_newest_first")
+f1 = "test_f1_assignment_detail_student_submissions_in_the_ruled_order"
+# name -> (path, edits, label, exact failing set; None = must pass)
+M = {
+ "Hv_course_prefetch_unordered": (VW, [('                    .select_related("student")\n                    .in_list_order(),\n                    to_attr="active_enrollments",', '                    .select_related("student"),\n                    to_attr="active_enrollments",')], ORDER, {c1, c2, c3}),
+ "Sf_serializer_fallback_unordered": (SE, [('                .select_related("student")\n                .in_list_order()\n            ]', '                .select_related("student")\n            ]')], ORDER, {c4}),
+ "Ko_order_by_id_only": (MD, [('ENROLLMENT_LIST_ORDER = ("created_at", "id")', 'ENROLLMENT_LIST_ORDER = ("id",)')], ORDER, {c1, c2, c4}),
+ "Kd_newest_first": (MD, [('ENROLLMENT_LIST_ORDER = ("created_at", "id")', 'ENROLLMENT_LIST_ORDER = ("-created_at", "id")')], ORDER, {c1, c2, c4}),
+ "Kt_tie_broken_by_descending_id": (MD, [('ENROLLMENT_LIST_ORDER = ("created_at", "id")', 'ENROLLMENT_LIST_ORDER = ("created_at", "-id")')], ORDER, {c3}),
+ "Kk_in_memory_key_by_id": (MD, [('    return (enrollment.created_at, enrollment.id)', '    return (enrollment.id,)')], ORDER, {c5, c6}),
+ "Kr_students_serializer_unsorted": (ST, [('        return sorted(obj.enrollments.all(), key=enrollment_list_key)', '        return list(obj.enrollments.all())')], ORDER, {c5, c6}),
+ "Kq_prefetch_reversed__PREDICTED_TO_SURVIVE": (VW, [('                        .select_related("course", "course__teacher")\n                        .prefetch_related("course__assignments"),\n', '                        .select_related("course", "course__teacher")\n                        .prefetch_related("course__assignments")\n                        .order_by("-created_at"),\n')], ORDER, set()),
+ "Mv_student_course_list_oldest_first": (VW, [('            .order_by("-created_at", "id")\n        )\n\n        if user.user_type == UserTypes.TEACHER:\n            return queryset.filter(', '            .order_by("created_at", "id")\n        )\n\n        if user.user_type == UserTypes.TEACHER:\n            return queryset.filter(')], ORDER, {c7}),
+ "Fx_assignment_detail_in_the_ruled_order": (AS, [('        enrollments = StudentCourse.objects.filter(course=obj.course).select_related(\n            "student"\n        )\n', '        enrollments = (\n            StudentCourse.objects.filter(course=obj.course)\n            .select_related("student")\n            .in_list_order()\n        )\n')], FIND, None),
+}
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+def sha(b): return hashlib.sha256(b).hexdigest()
+def clear(p): shutil.rmtree(pathlib.Path(p).parent / "__pycache__", ignore_errors=True)
+def run(label, name):
+    LOGS.mkdir(parents=True, exist_ok=True); log = LOGS / name
+    with open(log, "wb") as fh:
+        p = subprocess.run([sys.executable, "-B", "manage.py", "test", label, "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+                           stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL)
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summ = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={p.returncode}")
+    return p.returncode, ran, summ, failing, o
+if sys.argv[1:] == ["check"]:
+    for n, (path, edits, *_r) in M.items():
+        s = open(path).read(); counts = [s.count(o) for o, _ in edits]
+        for o, nw in edits: s = s.replace(o, nw, 1)
+        ast.parse(s); print(n, path, counts, "parses")
+    sys.exit()
+if sys.argv[1:] == ["baseline"]:
+    for p in (MD, SE, VW, ST, AS): clear(p)
+    rc, ran, summ, failing, o = run(ORDER, "baseline.txt"); print("baseline |", ran, "|", summ, "|", failing, flush=True)
+    if rc: print(o[-8000:])
+    sys.exit(rc)
+if sys.argv[1:] == ["findings"]:
+    rc, ran, summ, failing, o = run(FIND, "findings.txt"); print("findings (f1 PREDICTED RED) |", ran, "|", summ, "|", failing, flush=True)
+    sys.exit(0)
+for name, (path, edits, label, exact) in M.items():
+    src = open(path).read(); counts = [src.count(o) for o, _ in edits]
+    if counts != [1] * len(edits): print(name, "APPLY_FAILED", path, counts, flush=True); continue
+    for o, nw in edits: src = src.replace(o, nw, 1)
+    ast.parse(src)
+    try:
+        clear(path); open(path, "w").write(src)
+        rc, ran, summ, failing, _ = run(label, f"{name}.txt")
+        if exact is None: st = "FIX_MAKES_IT_PASS" if rc == 0 else "FIX_STILL_RED"
+        elif rc == 0: st = "SURVIVED" + ("_AS_PREDICTED" if not exact else "")
+        elif ran == "Ran ?" or not failing: st = "BROKEN"
+        elif set(failing) == exact: st = "KILLED_AS_WRITTEN"
+        else: st = "KILLED_OTHER"
+        print(name, "|", st, "|", ran, "|", summ, "| written", "(passes)" if exact is None else sorted(exact), "| failing", failing, flush=True)
+    finally:
+        subprocess.run(["git", "checkout", "--", path], check=True); clear(path)
+        ok = sha(open(path, "rb").read()) == sha(subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout)
+        print("  restore", path, "ok" if ok else "MISMATCH", flush=True)

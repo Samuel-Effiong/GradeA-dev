@@ -1,0 +1,13 @@
+# P3: the licence enrolment marks the old bucket processed (1a's N1)
+# file: billing/license_service.py (occurrence 1)
+# old: '            existing_monthly.is_processed = True\n'
+# new: ''
+# commit: 477eeeda13968ef25c0775c37ed55ef716001a9c
+# exit: 1
+# elapsed_s: 2.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_cleanup_does_not_expire_what_was_rolled_over (billing.tests.test_plan_change_retires_old_bucket.LicenceEnrolmentRetiresOldBucketTests.test_the_cleanup_does_not_expire_what_was_rolled_over)
+FAIL: test_the_old_bucket_is_retired_as_processed (billing.tests.test_plan_change_retires_old_bucket.LicenceEnrolmentRetiresOldBucketTests.test_the_old_bucket_is_retired_as_processed)
+
+FAILED (failures=2)

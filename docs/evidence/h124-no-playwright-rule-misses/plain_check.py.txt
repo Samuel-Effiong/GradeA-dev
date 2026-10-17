@@ -1,0 +1,27 @@
+"""Plain Python: calls the rule on the sample strings held in the test
+methods, WITHOUT running the tests (no Django test runner, no database, no
+browser). For my own prediction of red and green; not evidence."""
+import ast, sys, os, tempfile
+W = sys.argv[1]
+sys.path.insert(0, W)
+import AutoGrader.tests_no_playwright_at_import as m
+tree = ast.parse(open(os.path.join(W, "AutoGrader/tests_no_playwright_at_import.py")).read())
+want = {"shapes": True, "kept": True, "allowed": False, "unseen": False}
+for cls in tree.body:
+    if isinstance(cls, ast.ClassDef) and cls.name.startswith("NoTestModule"):
+        for fn in cls.body:
+            if not isinstance(fn, ast.FunctionDef): continue
+            for st in fn.body:
+                if isinstance(st, ast.Assign) and isinstance(st.targets[0], ast.Name) and st.targets[0].id in want:
+                    d = ast.literal_eval(st.value); flag = want[st.targets[0].id]
+                    for k, src in d.items():
+                        compile(src, k, "exec")
+                        got = bool(m.playwright_started_at_import(src))
+                        print(("ok  " if got == flag else "RED "), fn.name, "|", k)
+files = {"tests_quoted.py": "import playwright.sync_api as api\np = getattr(api, 'sync_playwright')()\n",
+ "tests_bracketed.py": "import functools\nfrom playwright.sync_api import (Page,\n    sync_playwright)\n\nX = functools.partial(sync_playwright)()\n",
+ "tests_clean.py": "import unittest\n", "helpers.py": "p = getattr(api, 'sync_playwright')()\n"}
+with tempfile.TemporaryDirectory() as root:
+    os.mkdir(os.path.join(root, "app"))
+    for n, src in files.items(): open(os.path.join(root, "app", n), "w").write(src)
+    print("scan:", m.starts_at_import_under(root))

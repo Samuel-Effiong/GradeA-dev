@@ -1,0 +1,4 @@
+Written 2026-10-06 18:31:23, BEFORE the run. Cross-side guards on H-133 after its base update onto batch 11 (be05f953): merged tip 73fc315f.
+Labels: AutoGrader.tests_no_playwright_at_import AutoGrader.tests_student_feedback_guard AutoGrader.tests_migration_safety_check
+Expected: exit 0, one Ran line, OK, no failure and no error. Reason: H-133 adds no migration and no import of the browser driver; its reads of the feedback columns were already green under the feedback guard in its gate at e85e2ae0 (the guard is in its label list); H-120 changes only the check script and its test.
+A red here is kept and reported to the SM, not re-run.

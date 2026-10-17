@@ -1,0 +1,14 @@
+Z1_the_student_always_reads_the_stored_document | d5's tests | KILLED | Ran 17 tests in 14.189s | FAILED (failures=1) | expected ('test_a_teachers_retitle_reaches_the_students_unreleased_document',) | failing ['test_a_teachers_retitle_reaches_the_students_unreleased_document']
+  restore students/services.py ok | __pycache__ cleared
+Z1_the_student_always_reads_the_stored_document | v2's probe | KILLED | Ran 9 tests in 5.908s | FAILED (failures=3) | expected ('test_p2_a_due_date_the_teacher_saves_reaches_the_unreleased_document', 'test_a_teachers_retitle_reaches_the_students_unreleased_document') | failing ['test_a_teachers_retitle_reaches_the_students_unreleased_document', 'test_p2_a_due_date_the_teacher_saves_reaches_the_unreleased_document', 'test_p3_the_known_limit_with_the_enrolment_row_deleted']
+  restore students/services.py ok | __pycache__ cleared
+Z2_an_assignments_save_bumps_no_student | v2's probe | KILLED | Ran 9 tests in 5.379s | FAILED (failures=3) | expected ('test_p1_the_released_students_equal_payload_is_a_fresh_one', 'test_p2_a_due_date_the_teacher_saves_reaches_the_unreleased_document') | failing ['test_a_teachers_retitle_reaches_the_students_unreleased_document', 'test_p1_the_released_students_equal_payload_is_a_fresh_one', 'test_p2_a_due_date_the_teacher_saves_reaches_the_unreleased_document']
+  restore assignments/signals.py ok | __pycache__ cleared
+Z3_the_key_gains_the_global_scope | d5's tests | SURVIVED (predicted to survive) | Ran 17 tests in 12.398s | OK | expected () | failing []
+  restore students/views.py ok | __pycache__ cleared
+Z3_the_key_gains_the_global_scope | v2's probe | KILLED | Ran 9 tests in 8.337s | FAILED (failures=1) | expected ('test_p3_the_known_limit_with_the_enrolment_row_deleted',) | failing ['test_p3_the_known_limit_with_the_enrolment_row_deleted']
+  restore students/views.py ok | __pycache__ cleared
+Z4_the_students_assignment_title_key_is_repaired | d5's tests | KILLED | Ran 17 tests in 11.521s | FAILED (failures=2) | expected ('test_a_teachers_retitle_reaches_the_students_unreleased_document',) | failing ['test_a_teachers_retitle_does_NOT_change_a_released_students_document', 'test_a_teachers_retitle_reaches_the_students_unreleased_document']
+  restore students/serializers.py ok | __pycache__ cleared
+Z4_the_students_assignment_title_key_is_repaired | v2's probe | KILLED | Ran 9 tests in 5.201s | FAILED (failures=4) | expected ('test_p4_three_declared_keys_are_not_in_the_students_answer', 'test_a_teachers_retitle_reaches_the_students_unreleased_document') | failing ['test_a_teachers_retitle_does_NOT_change_a_released_students_document', 'test_a_teachers_retitle_reaches_the_students_unreleased_document', 'test_p1_the_released_students_equal_payload_is_a_fresh_one', 'test_p4_three_declared_keys_are_not_in_the_students_answer']
+  restore students/serializers.py ok | __pycache__ cleared

@@ -1,0 +1,8 @@
+users.tests_throttle_client_identity.LoginThrottleClientIdentityTests.test_a_rotating_edge_address_cannot_reset_the_bucket ... ok
+users.tests_throttle_client_identity.LoginThrottleClientIdentityTests.test_distinct_real_clients_keep_separate_budgets ... ok
+users.tests_throttle_client_identity.LoginThrottleClientIdentityTests.test_throttle_fires_for_a_single_consistent_client ... ok
+users.tests_throttle_client_identity.OTPThrottleScopeTests.test_requesting_a_code_does_not_spend_the_reset_budget ... ok
+users.tests_throttle_client_identity.RegistrationThrottleScopeTests.test_registration_endpoints_currently_share_one_scope ... ok
+users.tests_throttle_client_identity.RegistrationThrottleScopeTests.test_student_type_exists_for_future_split ... ok
+Ran 6 tests in 0.444s
+OK

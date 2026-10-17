@@ -1,0 +1,5 @@
+pre-commit --all-files exit=0 elapsed=118s lines=25 sha256=773fe202b65d71443eb2ee3e14b6f40b9202b9a96cda215f843188447dbdaf9a
+failed_hooks 0
+files_modified_by_hooks 0
+checkout_commit 30b7b95d912c3ed33ee8b0ae8695b3299cd7ad92
+throwaway checkout removed

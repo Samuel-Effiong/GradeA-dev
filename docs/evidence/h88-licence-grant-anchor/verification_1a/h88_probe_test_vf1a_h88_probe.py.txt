@@ -1,0 +1,556 @@
+"""1a's verification probes for H-88 / H-93 / H-81. Not committed.
+
+Reuses d5's fixture (LicenceClockTestCase). Unlike d5's driver, these run
+the real refresh task at 03:00 on EVERY day, due or not.
+
+X1: enrolment on days 1, 15, 28-31 (two times of day), leap-year starts and
+    mid-cycle enrolments: one refresh per anchor point, on the first run
+    after it, none at or after the cycle end, the anchor stored.
+X2: rows older than the field (anchor NULL), run under the OLD rule up to a
+    deploy date, then the new code: no second refresh in a period, the
+    anchor stored at the first new refresh. A re-enrolled legacy row keeps
+    its rhythm. A renewal and a re-enrolment overwrite a stored anchor.
+X3: outages over 1, 2 and 3 anchors: N catch-ups on consecutive days, 12
+    months granted in all, the window reopened once during the catch-up, no
+    bucket born expired or past the end, ids-only WARNINGs.
+X4: the consumption window (the licence-point rule, d5's a26c8b5e): it
+    reopens at every refresh of a 31st chain; with four teachers on
+    different days, and with no teacher on the licence's own day, it
+    reopens once per licence month (11 times before the end), at the first
+    refresh after each of the licence's monthly points.
+X5: the renewals' owed-refresh report: nothing for a chain served to the
+    end (renewed on time and ten days late), a legacy uncapped row, a
+    legacy row drifted to the 28th, a mid-cycle enrolment; the right count
+    after an outage to the end; ids only.
+X6: my finding F1, fixed in cc22f6e2: a stored anchor left behind when
+    the due time is moved (the old code during a rollback; the QA tool
+    before its fix) no longer pulls the chain back. One refresh in the
+    period, and the due time becomes the stored anchor.
+"""
+
+import logging
+from datetime import datetime, timedelta
+
+from dateutil.relativedelta import relativedelta
+
+from billing.license_service import LicenseSubscriptionService
+from billing.models import (
+    CreditBucket,
+    CreditBucketType,
+    CreditLedger,
+    CreditLedgerType,
+    LicenseSubscription,
+    SchoolCreditAllocation,
+)
+from billing.tasks import process_license_monthly_credit_refreshes
+from billing.tests.test_licence_grant_anchor import UTC, LicenceClockTestCase, run_time_for
+from classrooms.models import School
+
+GUARDED = ("billing.license_service", "billing.tasks", "billing.services")
+
+
+class Recorder(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.rows = []
+
+    def emit(self, record):
+        self.rows.append((record.name, record.levelname, record.getMessage()))
+
+
+def minute(moment):
+    return moment.replace(second=0, microsecond=0)
+
+
+class H88Probes(LicenceClockTestCase):
+    def setUp(self):
+        super().setUp()
+        self.recorder = Recorder()
+        for name in GUARDED:
+            logger = logging.getLogger(name)
+            logger.addHandler(self.recorder)
+            self.addCleanup(logger.removeHandler, self.recorder)
+        self.schools = 0
+
+    # -- helpers -------------------------------------------------------------
+
+    def new_licence(self, start, months=12):
+        self.schools += 1
+        self.school = School.objects.create(name=f"VF1A H88 School {self.schools}")
+        self.admin.school = self.school
+        self.admin.save(update_fields=["school"])
+        return self.licence(start, months)
+
+    def monthly_buckets(self, allocation):
+        return list(
+            CreditBucket.objects.filter(
+                wallet__user_id=allocation.user_id, bucket_type=CreditBucketType.MONTHLY
+            )
+            .order_by("created_at")
+            .values_list("created_at", "expires_at", "total_credits")
+        )
+
+    def window(self, licence):
+        return LicenseSubscription.objects.get(pk=licence.pk).consumption_window_start
+
+    def daily(self, licence, first, last, outage=None, old_rule_until=None, watch=()):
+        """Run the task at 03:00 every day in [first, last]. Returns
+        (window reopenings, runs that refreshed a watched allocation).
+        Before `old_rule_until`, each refreshed allocation is put back the
+        way the OLD code left it: due = run + 1 month, no anchor."""
+        day = first.replace(hour=3, minute=0, second=0, microsecond=0)
+        if day < first:
+            day += timedelta(days=1)
+        reopened, births = [], []
+        while day <= last:
+            run_at = day
+            day += timedelta(days=1)
+            if outage and outage[0] <= run_at <= outage[1]:
+                continue
+            before_window = self.window(licence)
+            before = {a.pk: len(self.monthly_buckets(a)) for a in watch}
+            self.clock.moment = run_at
+            process_license_monthly_credit_refreshes()
+            after_window = self.window(licence)
+            if after_window != before_window:
+                reopened.append(run_at)
+            for allocation in watch:
+                buckets = self.monthly_buckets(allocation)
+                if len(buckets) != before[allocation.pk]:
+                    births.append((allocation.pk, run_at, buckets[-1][1]))
+                    if old_rule_until is not None and run_at < old_rule_until:
+                        SchoolCreditAllocation.objects.filter(pk=allocation.pk).update(
+                            next_credit_grant_at=run_at + relativedelta(months=1),
+                            grant_anchor_at=None,
+                        )
+        return reopened, births
+
+    def year(self, start, enrol_at=None, **kwargs):
+        licence = self.new_licence(start)
+        allocation = self.enrol(licence, enrol_at or start)
+        end = licence.billing_cycle_end
+        reopened, births = self.daily(
+            licence, enrol_at or start, end + timedelta(days=3), watch=(allocation,), **kwargs
+        )
+        allocation.refresh_from_db()
+        return licence, allocation, reopened, births
+
+    def points(self, anchor, end):
+        out, k = [], 1
+        while anchor + relativedelta(months=k) < end:
+            out.append(anchor + relativedelta(months=k))
+            k += 1
+        return out
+
+    def warnings(self):
+        return [r for r in self.recorder.rows if "caught up" in r[2]]
+
+    def owed(self):
+        return [r for r in self.recorder.rows if "owed" in r[2]]
+
+    # -- X1 --------------------------------------------------------------------
+
+    def test_x1_every_anchor_day(self):
+        cases = []
+        for d in (1, 15, 28, 29, 30, 31):
+            cases.append((datetime(2027, 1, d, 1, 0, tzinfo=UTC), None))
+            cases.append((datetime(2027, 1, d, 14, 0, tzinfo=UTC), None))
+        cases += [
+            (datetime(2028, 1, 29, 1, 0, tzinfo=UTC), None),
+            (datetime(2028, 1, 31, 14, 0, tzinfo=UTC), None),
+            (datetime(2028, 2, 29, 1, 0, tzinfo=UTC), None),
+            (datetime(2027, 8, 31, 3, 2, tzinfo=UTC), None),
+            # enrolled mid-cycle, on another day than the licence's
+            (datetime(2027, 1, 1, 1, 0, tzinfo=UTC), datetime(2027, 3, 31, 14, 0, tzinfo=UTC)),
+            (datetime(2027, 1, 15, 1, 0, tzinfo=UTC), datetime(2027, 5, 30, 1, 0, tzinfo=UTC)),
+            (datetime(2027, 1, 31, 1, 0, tzinfo=UTC), datetime(2027, 12, 20, 1, 0, tzinfo=UTC)),
+        ]
+        failures, tails = {}, []
+        for start, enrol_at in cases:
+            licence, allocation, _, births = self.year(start, enrol_at)
+            end = licence.billing_cycle_end
+            anchor_moment = enrol_at or start
+            expected = [run_time_for(p) for p in self.points(anchor_moment, end)]
+            expected = [e for e in expected if e < end]
+            got = [minute(b[1]) for b in births]
+            problems = []
+            if got != expected:
+                problems.append(
+                    f"refreshes {[g.strftime('%m-%d %H:%M') for g in got]} != "
+                    f"{[e.strftime('%m-%d %H:%M') for e in expected]}"
+                )
+            if enrol_at is None and len(births) != 11:
+                problems.append(f"{len(births)} refreshes")
+            if any(b[1] >= end for b in births):
+                problems.append("refreshed at/after the end")
+            if any(b[2] <= b[1] for b in births):
+                problems.append("a bucket born expired")
+            if any(b[2] > end + timedelta(days=2, minutes=1) for b in births):
+                problems.append("a bucket well past the end")
+            stored = allocation.grant_anchor_at
+            if stored is None or abs(stored - anchor_moment) > timedelta(seconds=5):
+                problems.append(f"anchor stored as {stored}, enrolled {anchor_moment}")
+            # The chain ends at the cycle end, or on the teacher's last point
+            # when that falls less than a day before the end: no daily run
+            # comes between the two, so it is never served (the previous
+            # bucket's grace covers it; see the record's observation).
+            last = allocation.next_credit_grant_at
+            unserved_tail = timedelta(0) < end - last < timedelta(days=1)
+            if last != end and not unserved_tail:
+                problems.append(f"chain ends at {last}, not {end}")
+            if unserved_tail:
+                tails.append(
+                    f"{start:%Y-%m-%d %H:%M} enrol {anchor_moment:%m-%d %H:%M}: last point "
+                    f"{last:%m-%d %H:%M} is {end - last} before the end and is not served; "
+                    f"newest bucket expires {births[-1][2]:%m-%d %H:%M}"
+                )
+            if problems:
+                failures[f"{start:%Y-%m-%d %H:%M} enrol {enrol_at}"] = problems
+        print(f"\nVF1A_H88_X1 cases={len(cases)} failing={len(failures)}")
+        for t in tails:
+            print(f"  unserved tail: {t}")
+        for k, v in failures.items():
+            print(f"  {k}: {v}")
+        self.assertEqual(failures, {})
+
+    # -- X2 --------------------------------------------------------------------
+
+    def test_x2_legacy_rows_through_a_deploy(self):
+        failures, rows = {}, []
+        for start in (
+            datetime(2027, 1, 31, 1, 0, tzinfo=UTC),
+            datetime(2027, 1, 30, 14, 0, tzinfo=UTC),
+            datetime(2027, 1, 15, 14, 0, tzinfo=UTC),
+        ):
+            for months, day in ((1, 2), (2, 1), (2, 29), (4, 15), (10, 20)):
+                deploy = (start + relativedelta(months=months)).replace(
+                    day=1, hour=12, minute=0
+                ) + timedelta(days=day - 1)
+                licence = self.new_licence(start)
+                allocation = self.enrol(licence, start)
+                SchoolCreditAllocation.objects.filter(pk=allocation.pk).update(
+                    grant_anchor_at=None
+                )
+                end = licence.billing_cycle_end
+                _, births = self.daily(
+                    licence, start, end + timedelta(days=3),
+                    old_rule_until=deploy, watch=(allocation,),
+                )
+                allocation.refresh_from_db()
+                runs = [b[1] for b in births]
+                gaps = [(b - a).days for a, b in zip(runs, runs[1:])]
+                key = f"{start:%Y-%m-%d %H:%M} deploy {deploy:%m-%d}"
+                rows.append(
+                    f"{key}: {len(runs)} refreshes, min gap {min(gaps)}d, anchor "
+                    f"{allocation.grant_anchor_at:%m-%d %H:%M}, "
+                    f"dates {[r.strftime('%m-%d') for r in runs]}"
+                )
+                problems = []
+                if len(runs) != 11:
+                    problems.append(f"{len(runs)} refreshes")
+                if min(gaps) < 21:
+                    problems.append(f"two refreshes {min(gaps)} days apart")
+                if any(r >= end for r in runs):
+                    problems.append("refreshed at/after the end")
+                if allocation.grant_anchor_at is None:
+                    problems.append("no anchor stored")
+                elif abs(allocation.grant_anchor_at - start) > timedelta(seconds=5):
+                    problems.append(f"anchor {allocation.grant_anchor_at} is not the start")
+                if problems:
+                    failures[key] = problems
+        print(f"\nVF1A_H88_X2 cases={len(rows)} failing={len(failures)}")
+        for r in rows:
+            print(f"  {r}")
+        for k, v in failures.items():
+            print(f"  FAIL {k}: {v}")
+        self.assertEqual(failures, {})
+
+    def test_x2b_a_reenrolled_legacy_row_and_overwrites(self):
+        start = datetime(2027, 1, 1, 1, 0, tzinfo=UTC)
+        licence = self.new_licence(start)
+        allocation = self.enrol(licence, start)
+        # A row older than the field, re-enrolled on 20 Feb at a time nobody
+        # stored: its due time (20 Mar) is off the licence's chain.
+        off_chain = datetime(2027, 3, 20, 9, 0, tzinfo=UTC)
+        SchoolCreditAllocation.objects.filter(pk=allocation.pk).update(
+            grant_anchor_at=None, next_credit_grant_at=off_chain
+        )
+        end = licence.billing_cycle_end
+        _, births = self.daily(licence, start, end + timedelta(days=3), watch=(allocation,))
+        allocation.refresh_from_db()
+        runs = [b[1] for b in births]
+        gaps = [(b - a).days for a, b in zip(runs, runs[1:])]
+        print(
+            f"\nVF1A_H88_X2B re-enrolled legacy row: anchor stored "
+            f"{allocation.grant_anchor_at:%m-%d %H:%M}, {len(runs)} refreshes "
+            f"{[r.strftime('%m-%d') for r in runs]}, min gap {min(gaps)}d"
+        )
+        self.assertEqual(allocation.grant_anchor_at, off_chain)
+        self.assertEqual({r.day for r in runs}, {run_time_for(off_chain).day})
+        self.assertGreaterEqual(min(gaps), 28)
+
+        # The offline renewal overwrites the stored anchor.
+        renew_at = end + timedelta(hours=2)
+        self.clock.moment = renew_at
+        licence.refresh_from_db()
+        LicenseSubscriptionService.process_offline_renewal(
+            licence, performed_by=self.admin,
+            new_billing_cycle_end=renew_at + relativedelta(months=12),
+        )
+        allocation.refresh_from_db()
+        self.assertLess(abs(allocation.grant_anchor_at - renew_at), timedelta(seconds=5))
+        # Removing and re-enrolling overwrites it again.
+        again = renew_at + timedelta(days=40)
+        self.clock.moment = again
+        licence.refresh_from_db()
+        LicenseSubscriptionService.remove_teacher_from_license(licence, allocation.user)
+        teacher = allocation.user
+        teacher.refresh_from_db()
+        teacher.school = self.school
+        teacher.save(update_fields=["school"])
+        licence.refresh_from_db()
+        LicenseSubscriptionService._enroll_teacher_internal(licence, teacher)
+        allocation.refresh_from_db()
+        self.assertTrue(allocation.is_active)
+        self.assertLess(abs(allocation.grant_anchor_at - again), timedelta(seconds=5))
+        print(f"  renewal and re-enrolment each overwrote the anchor: {allocation.grant_anchor_at:%Y-%m-%d}")
+
+    # -- X3 --------------------------------------------------------------------
+
+    def test_x3_outages(self):
+        failures, rows = {}, []
+        for start in (
+            datetime(2027, 1, 31, 1, 0, tzinfo=UTC),
+            datetime(2027, 1, 15, 14, 0, tzinfo=UTC),
+        ):
+            end = start + relativedelta(years=1)
+            p = self.points(start, end)
+            for label, anchors in (("one", 1), ("two", 2), ("three", 3)):
+                outage = (p[2] - timedelta(days=1), p[2 + anchors - 1] + timedelta(days=3))
+                before_warnings = len(self.warnings())
+                licence, allocation, reopened, births = self.year(start, outage=outage)
+                buckets = self.monthly_buckets(allocation)
+                grants = CreditLedger.objects.filter(
+                    user_id=allocation.user_id,
+                    ledger_type=CreditLedgerType.GRANT,
+                    bucket__bucket_type=CreditBucketType.MONTHLY,
+                )
+                granted = sum(g.amount for g in grants)
+                catch_up = [b for b in births if outage[1] < b[1] <= outage[1] + timedelta(days=anchors + 1)]
+                reopened_in_catch_up = [
+                    r for r in reopened if outage[1] < r <= outage[1] + timedelta(days=anchors + 1)
+                ]
+                new_warnings = self.warnings()[before_warnings:]
+                key = f"{start:%Y-%m-%d %H:%M} outage over {label}"
+                after = [r for r in reopened if r > outage[1]]
+                rows.append(
+                    f"{key}: {len(buckets)} monthly buckets, granted "
+                    f"{granted // allocation.monthly_allocation} x the allocation; "
+                    f"catch-up refreshes {[b[1].strftime('%m-%d') for b in catch_up]}; "
+                    f"window reopened in the catch-up {len(reopened_in_catch_up)} time(s), "
+                    f"next reopenings {[r.strftime('%m-%d') for r in after[1:3]]}; "
+                    f"warnings {len(new_warnings)}"
+                )
+                problems = []
+                if len(buckets) != 12 or granted != 12 * allocation.monthly_allocation:
+                    problems.append(f"{len(buckets)} buckets, granted {granted}")
+                if len(catch_up) != anchors:
+                    problems.append(f"{len(catch_up)} catch-up refreshes for {anchors} anchors")
+                if len(reopened_in_catch_up) != 1:
+                    problems.append(f"window reopened {len(reopened_in_catch_up)} times in the catch-up")
+                if any(b[2] <= b[1] for b in births):
+                    problems.append("a bucket born expired")
+                if any(b[2] > licence.billing_cycle_end + timedelta(days=2, minutes=1) for b in births):
+                    problems.append("a bucket well past the end")
+                if any(b[1] >= licence.billing_cycle_end for b in births):
+                    problems.append("refreshed at/after the end")
+                if len(new_warnings) != anchors:
+                    problems.append(f"{len(new_warnings)} warnings")
+                if any("@" in w[2] or w[1] != "WARNING" for w in new_warnings):
+                    problems.append("a catch-up line is not an ids-only WARNING")
+                if problems:
+                    failures[key] = problems
+        print(f"\nVF1A_H88_X3 cases={len(rows)} failing={len(failures)}")
+        for r in rows:
+            print(f"  {r}")
+        for k, v in failures.items():
+            print(f"  FAIL {k}: {v}")
+        self.assertEqual(failures, {})
+
+    # -- X4 --------------------------------------------------------------------
+
+    def test_x4_window_single_31st_chain(self):
+        start = datetime(2027, 1, 31, 1, 0, tzinfo=UTC)
+        licence, allocation, reopened, births = self.year(start)
+        refresh_runs = [b[1] for b in births]
+        print(
+            f"\nVF1A_H88_X4 single 31st chain: {len(refresh_runs)} refreshes, "
+            f"window reopened {len(reopened)} times"
+        )
+        self.assertEqual(reopened, refresh_runs)
+
+    def test_x4b_window_mixed_anchor_days(self):
+        start = datetime(2027, 1, 1, 1, 0, tzinfo=UTC)
+        licence = self.new_licence(start)
+        allocations = [self.enrol(licence, start)]
+        for d in (9, 17, 25):
+            allocations.append(self.enrol(licence, datetime(2027, 1, d, 1, 0, tzinfo=UTC)))
+        end = licence.billing_cycle_end
+        reopened, births = self.daily(licence, start, end - timedelta(days=1), watch=allocations)
+        gaps = [(b - a).days for a, b in zip(reopened, reopened[1:])]
+        print(
+            f"\nVF1A_H88_X4B four teachers (1st, 9th, 17th, 25th): {len(births)} refreshes; "
+            f"window reopened {len(reopened)} times in the year; gaps {gaps}; "
+            f"dates {[r.strftime('%m-%d') for r in reopened]}"
+        )
+        points = self.points(start, end)
+        expected = [run_time_for(p) for p in points if run_time_for(p) < end - timedelta(days=1)]
+        self.assertEqual([minute(r) for r in reopened], expected)
+
+    def test_x4c_window_with_no_teacher_on_the_licences_day(self):
+        start = datetime(2027, 1, 31, 1, 0, tzinfo=UTC)
+        licence = self.new_licence(start)
+        allocations = [
+            self.enrol(licence, datetime(2027, 2, 9, 1, 0, tzinfo=UTC)),
+            self.enrol(licence, datetime(2027, 2, 25, 14, 0, tzinfo=UTC)),
+        ]
+        end = licence.billing_cycle_end
+        reopened, births = self.daily(licence, start, end - timedelta(days=1), watch=allocations)
+        gaps = [(b - a).days for a, b in zip(reopened, reopened[1:])]
+        points = self.points(start, end)
+        after_point = []
+        for r in reopened:
+            latest = max(p for p in [start] + points if p <= r)
+            after_point.append((r - latest).days)
+        print(
+            f"\nVF1A_H88_X4C licence on the 31st, teachers on the 9th and 25th: "
+            f"{len(births)} refreshes; window reopened {len(reopened)} times; gaps {gaps}; "
+            f"days after the licence's point {after_point}; "
+            f"dates {[r.strftime('%m-%d') for r in reopened]}"
+        )
+        # One reopening per licence month that has a refresh in it, never two.
+        months = {max(p for p in [start] + points if p <= r) for r in reopened}
+        self.assertEqual(len(months), len(reopened))
+        self.assertEqual(len(reopened), len([p for p in points if p >= allocations[0].created_at]))
+
+    # -- X5 --------------------------------------------------------------------
+
+    def renew(self, licence, at, offline):
+        self.clock.moment = at
+        licence.refresh_from_db()
+        before = len(self.owed())
+        if offline:
+            LicenseSubscriptionService.process_offline_renewal(
+                licence, performed_by=self.admin,
+                new_billing_cycle_end=at + relativedelta(months=12),
+            )
+        else:
+            LicenseSubscriptionService.process_license_renewal(licence)
+        return self.owed()[before:]
+
+    def test_x5_owed_reports(self):
+        start = datetime(2027, 1, 31, 1, 0, tzinfo=UTC)
+        end = start + relativedelta(years=1)
+        out = {}
+
+        # a chain served to the end, renewed an hour late and ten days late
+        for label, late, offline in (
+            ("served, task +1h", timedelta(hours=1), False),
+            ("served, offline +10d", timedelta(days=10), True),
+            ("served, offline +40d", timedelta(days=40), True),
+        ):
+            licence, allocation, _, _ = self.year(start)
+            out[label] = self.renew(licence, end + late, offline)
+
+        # a mid-cycle enrolment on another day
+        licence, allocation, _, _ = self.year(start, datetime(2027, 6, 12, 9, 0, tzinfo=UTC))
+        out["mid-cycle enrolment, offline +10d"] = self.renew(licence, end + timedelta(days=10), True)
+
+        # the unserved tail (0b's question): a teacher whose last monthly
+        # point falls less than a day before the cycle end. The point is
+        # never served; does the renewal report it as owed?
+        tail_start = datetime(2027, 1, 1, 1, 0, tzinfo=UTC)
+        licence, allocation, _, _ = self.year(
+            tail_start, datetime(2027, 3, 31, 14, 0, tzinfo=UTC)
+        )
+        tail_end = licence.billing_cycle_end
+        self.assertLess(tail_end - allocation.next_credit_grant_at, timedelta(days=1))
+        self.assertLess(allocation.next_credit_grant_at, tail_end)
+        out["unserved tail (last point 11 h before the end), task +1h"] = self.renew(
+            licence, tail_end + timedelta(hours=1), False
+        )
+
+        # legacy rows: no anchor; the old code left the due time uncapped
+        licence, allocation, _, _ = self.year(start)
+        SchoolCreditAllocation.objects.filter(pk=allocation.pk).update(
+            grant_anchor_at=None, next_credit_grant_at=end + timedelta(days=28)
+        )
+        out["legacy uncapped (due after the end), offline +10d"] = self.renew(
+            licence, end + timedelta(days=10), True
+        )
+        licence, allocation, _, _ = self.year(start)
+        SchoolCreditAllocation.objects.filter(pk=allocation.pk).update(
+            grant_anchor_at=None, next_credit_grant_at=end - timedelta(days=3)
+        )
+        out["legacy drifted to the 28th, offline +10d"] = self.renew(
+            licence, end + timedelta(days=10), True
+        )
+
+        # real outages to the end
+        p = self.points(start, end)
+        licence, allocation, _, _ = self.year(start, outage=(p[10] - timedelta(days=1), end + timedelta(days=5)))
+        out["outage over the last anchor"] = self.renew(licence, end + timedelta(days=10), True)
+        last_due = SchoolCreditAllocation.objects.get(pk=allocation.pk)
+        licence, allocation, _, _ = self.year(start, outage=(p[8] - timedelta(days=1), end + timedelta(days=5)))
+        out["outage over the last three anchors"] = self.renew(licence, end + timedelta(hours=1), False)
+
+        print("\nVF1A_H88_X5")
+        for label, lines in out.items():
+            print(f"  {label}: {len(lines)} line(s) {[l[2][:150] for l in lines]}")
+        for label in (
+            "served, task +1h",
+            "served, offline +10d",
+            "served, offline +40d",
+            "mid-cycle enrolment, offline +10d",
+            "legacy uncapped (due after the end), offline +10d",
+            "legacy drifted to the 28th, offline +10d",
+            "unserved tail (last point 11 h before the end), task +1h",
+        ):
+            self.assertEqual(out[label], [], label)
+        for label, count in (
+            ("outage over the last anchor", 1),
+            ("outage over the last three anchors", 3),
+        ):
+            [line] = out[label]
+            self.assertEqual(line[1], "ERROR")
+            self.assertIn(f"owed {count} ", line[2])
+            self.assertNotIn("@", line[2])
+        self.assertIsNotNone(last_due)
+
+    # -- X6 (observation: my F1) -------------------------------------------------
+
+    def test_x6_a_stale_stored_anchor(self):
+        start = datetime(2027, 1, 5, 2, 0, tzinfo=UTC)
+        licence = self.new_licence(start)
+        allocation = self.enrol(licence, start)
+        moved = datetime(2027, 3, 28, 2, 0, tzinfo=UTC)
+        self.daily(licence, start, datetime(2027, 3, 10, tzinfo=UTC), watch=(allocation,))
+        # What billing/qa_time_travel.py does, and what the OLD code does to
+        # a row during a rollback: the due time moves, the anchor stays.
+        SchoolCreditAllocation.objects.filter(pk=allocation.pk).update(
+            next_credit_grant_at=moved
+        )
+        _, births = self.daily(
+            licence, datetime(2027, 3, 11, tzinfo=UTC), datetime(2027, 5, 31, tzinfo=UTC),
+            watch=(allocation,),
+        )
+        runs = [b[1] for b in births]
+        gaps = [(b - a).days for a, b in zip(runs, runs[1:])]
+        allocation.refresh_from_db()
+        print(
+            f"\nVF1A_H88_X6 stored anchor now {allocation.grant_anchor_at:%m-%d}, due moved to "
+            f"{moved:%m-%d}: refreshes {[r.strftime('%m-%d') for r in runs]}, gaps {gaps} days"
+        )
+        self.assertEqual(allocation.grant_anchor_at, moved)
+        self.assertEqual([r.strftime("%m-%d") for r in runs], ["03-28", "04-28", "05-28"])
+        self.assertGreaterEqual(min(gaps), 28)

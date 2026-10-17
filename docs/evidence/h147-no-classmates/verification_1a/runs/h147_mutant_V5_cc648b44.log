@@ -1,0 +1,36 @@
+# 1a H-147 mutant V5 at cc648b4446f6b7535c8ca84c06cc2bcdd9dfbe7a, the author's guard module alone, PYTHONDONTWRITEBYTECODE=1
+loadavg before: 9.68 7.60 5.95 14/2184 562476
+pycache dirs under AutoGrader, classrooms, students, assignments, dashboard and users after clear: 0
+applied V5 to classrooms/views.py
+mutated sha differs: True
+ classrooms/views.py | 1 -
+ 1 file changed, 1 deletion(-)
+test_rule_1_every_roster_site_is_classified (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_every_roster_site_is_classified) ... ok
+test_rule_1_no_classified_site_has_gone (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_no_classified_site_has_gone) ... ok
+test_rule_1_the_course_answer_serves_the_student_first (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_the_course_answer_serves_the_student_first) ... ok
+test_rule_1_the_order_check_fails_when_the_roster_comes_first (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_the_order_check_fails_when_the_roster_comes_first) ... ok
+test_rule_1_the_scan_sees_a_site_when_there_is_one (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_the_scan_sees_a_site_when_there_is_one)
+The scan on a made-up file: a use in a method, in a decorator ... ok
+test_rule_2_each_refusal_is_where_the_table_says (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_2_each_refusal_is_where_the_table_says) ... FAIL
+test_rule_2_every_action_is_classified (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_2_every_action_is_classified) ... ok
+
+======================================================================
+FAIL: test_rule_2_each_refusal_is_where_the_table_says (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_2_each_refusal_is_where_the_table_says)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-1a-scratch/vf_h147/AutoGrader/tests_student_classmates_guard.py", line 406, in test_rule_2_each_refusal_is_where_the_table_says
+    self.assertIn(IsTeacher, effective, label)
+AssertionError: <class 'classrooms.permissions.IsTeacher'> not found in [<class 'rest_framework.permissions.IsAuthenticated'>, <class 'classrooms.permissions.IsTeacherOrReadOnly'>] : CourseViewSet.student_summary
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.825s
+
+FAILED (failures=1)
+Found 7 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
+systemd-run failed with exit status 1.
+exit=1 wall_s=7 loadavg after: 9.94 7.73 6.01 8/2164 562657
+restored_sha256_matches_commit_blob: True
+pycache dirs under AutoGrader, classrooms, students, assignments, dashboard and users after clear: 0
+tracked changes after restore: 0

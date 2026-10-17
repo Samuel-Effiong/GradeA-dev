@@ -1,0 +1,27 @@
+pre-commit --all-files exit=0 elapsed=69s lines=25 sha256=773fe202b65d71443eb2ee3e14b6f40b9202b9a96cda215f843188447dbdaf9a
+check yaml Passed
+fix end of files Passed
+trim trailing whitespace Passed
+check python ast Passed
+check docstring is first Passed
+check for added large files Passed
+check for merge conflicts Passed
+check toml Passed
+check json Passed
+check xml Passed
+check for case conflicts Passed
+check builtin type constructor use Passed
+fix utf-8 byte order marker Passed
+detect private key Passed
+python tests naming Passed
+debug statements (python) Passed
+check for broken symlinks (no files to check)Skipped
+fix requirements.txt Passed
+black Passed
+mypy Passed
+flake8 Passed
+isort Passed
+bandit Passed
+Detect secrets Passed
+Check gunicorn timeout stays in sync with Stripe webhook claim window Passed
+files modified by hooks in the throwaway checkout: 0

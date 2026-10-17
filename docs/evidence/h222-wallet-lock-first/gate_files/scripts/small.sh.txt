@@ -1,0 +1,25 @@
+#!/bin/bash
+# H-222 small slot before the chain: the row's new module, the clawback race
+# tests (changed), H-181's lock-first module, the expire-bucket race module and
+# the two modules that call the real clawback. Run under ONE outer
+# systemd-inhibit. Rule 18: output straight to a file, stdin from /dev/null.
+# Usage: small.sh <tip-sha8>
+set -euo pipefail
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-h222-wallet-lock-first
+OUT=$P/GAP-d5-runs/h222
+export EXEMPT_EMAIL_DOMAINS=
+WRAP="systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800"
+say() { echo "$(date +%H:%M:%S) $*" | tee -a $OUT/small.status; }
+cd $WT
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { say "ABORT: tree not frozen at $TIP"; exit 9; }
+[ ! -e $OUT/small_$TIP.log ] || { say "ABORT: small_$TIP.log exists already"; exit 9; }
+say "small start on $TIP: loadavg $(cat /proc/loadavg)"
+rc=0; s=$(date +%s)
+PYTHONDONTWRITEBYTECODE=1 $WRAP python manage.py test billing.tests.test_wallet_lock_first_expiry audit.tests_background_attribution billing.tests.test_wallet_lock_first billing.tests.test_expire_bucket_race billing.tests.test_mailerlite_sync billing.tests.test_neutral_subscription_refusal --settings=settings_worktree --noinput > $OUT/small_$TIP.log 2>&1 < /dev/null || rc=$?
+echo "exit=$rc wall_s=$(( $(date +%s)-s ))" >> $OUT/small_$TIP.log
+say "small end: exit=$rc loadavg $(cat /proc/loadavg)"
+say "$(grep -E '^(Ran |OK|FAILED)' $OUT/small_$TIP.log | tr '\n' ' ')"
+say "SMALL END"
+exit $rc

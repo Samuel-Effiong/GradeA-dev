@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        .container {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont,"Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #1f2937;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .header {
+            background-color: #00723A;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .section {
+            margin-top: 24px;
+        }
+        .card {
+            background-color: #f8fafc;
+            border-left: 4px solid #00723A;
+            padding: 16px;
+            margin-top: 12px;
+            border-radius: 4px;
+        }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .metric {
+            background-color: #f0fdfa;
+            padding: 12px;
+            border-radius: 6px;
+        }
+        .muted {
+            color: #475569;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Weekly Course Summary</h1>
+            <p>{{ course.name }}{% if course.session %} • {{ course.session.name }}{% endif %}</p>
+        </div>
+
+        <div class="section">
+            <p>Dear {{ teacher.get_full_name }},</p>
+            <p>
+                {% if ai_narrative and ai_narrative.overall_narrative %}
+                    {{ ai_narrative.overall_narrative }}
+                {% else %}
+                    {{ summary.overall_summary }}
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="section">
+            <h2>Course Snapshot</h2>
+            <div class="metrics">
+                <div class="metric">
+                    <strong>Students</strong>
+                    <div>{{ summary.overall.student_count }}</div>
+                </div>
+                <div class="metric">
+                    <strong>Published Assignments</strong>
+                    <div>{{ summary.overall.published_assignment_count }}</div>
+                </div>
+                <div class="metric">
+                    <strong>Submission Rate</strong>
+                    <div>{{ summary.overall.submission_rate }}%</div>
+                </div>
+                <div class="metric">
+                    <strong>Average Grade</strong>
+                    <div>
+                        {% if summary.overall.average_grade != None %}
+                            {{ summary.overall.average_grade }}%
+                        {% else %}
+                            No graded work yet
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>At-Risk Students</h2>
+            {% if ai_narrative and ai_narrative.at_risk_narrative %}
+                <div class="card">
+                    <p>{{ ai_narrative.at_risk_narrative|linebreaksbr }}</p>
+                </div>
+            {% endif %}
+            {% if at_risk_students %}
+                {% for student in at_risk_students %}
+                    <div class="card">
+                        <strong>{{ student.student_name }}</strong>
+                        <p class="muted">
+                            Submitted {{ student.assignments_submitted }}/{{ student.assignments_expected }}
+                            assignment(s) • Submission rate {{ student.submission_rate }}%
+                            {% if student.average_grade != None %}• Average grade {{ student.average_grade }}%{% endif %}
+                        </p>
+                        {% if student.risk_reasons %}
+                            <ul>
+                                {% for reason in student.risk_reasons %}
+                                    <li>{{ reason }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="card">
+                    <p>No students are currently flagged as at-risk in this course.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>Shared Patterns</h2>
+            <div class="card">
+                {% if ai_narrative and ai_narrative.commonality_narrative %}
+                    <p>{{ ai_narrative.commonality_narrative|linebreaksbr }}</p>
+                {% elif commonalities %}
+                    <ul>
+                        {% for item in commonalities %}
+                            <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No strong shared issue pattern was detected this week.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Trend Watch</h2>
+            <div class="card">
+                {% if trend_watch.trending_up %}
+                    <p><strong>Trending up</strong></p>
+                    <ul>
+                        {% for student in trend_watch.trending_up %}
+                            <li>{{ student.student_name }}{% if student.average_grade != None %} ({{ student.average_grade }}% average){% endif %}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                {% if trend_watch.trending_down %}
+                    <p><strong>Trending down</strong></p>
+                    <ul>
+                        {% for student in trend_watch.trending_down %}
+                            <li>{{ student.student_name }}{% if student.average_grade != None %} ({{ student.average_grade }}% average){% endif %}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                {% if not trend_watch.trending_up and not trend_watch.trending_down %}
+                    <p>No strong upward or downward trend changes were detected this week.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Suggested Interventions</h2>
+            <div class="card">
+                {% if ai_narrative and ai_narrative.intervention_narrative %}
+                    <p>{{ ai_narrative.intervention_narrative|linebreaksbr }}</p>
+                {% elif interventions %}
+                    <ul>
+                        {% for intervention in interventions %}
+                            <li>
+                                <strong>{{ intervention.target }}:</strong>
+                                {{ intervention.recommendation }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No interventions are recommended at this time.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="section">
+            <p>Best regards,<br>Grade A+ Team</p>
+        </div>
+    </div>
+</body>
+</html>

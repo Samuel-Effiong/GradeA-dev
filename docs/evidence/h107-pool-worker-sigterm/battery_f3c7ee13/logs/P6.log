@@ -1,0 +1,12 @@
+# P6: the default patience is 120 seconds
+# file: AutoGrader/testing/patient_stream.py (occurrence 1)
+# old: 'PATIENCE = 120\n'
+# new: 'PATIENCE = 12000\n'
+# commit: f3c7ee131c29c2714afa7bab135929f6b22e4c7f
+# exit: 1
+# elapsed_s: 12.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_default_patience (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_the_default_patience)
+
+FAILED (failures=1)

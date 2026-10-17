@@ -1,0 +1,58 @@
+"""H-98: for every mutant, the tests that fail must be the expected set and
+nothing else. Written on 2026-10-05 BEFORE the battery ran, by reasoning
+from the code and the tests (a line of why beside each).
+Usage: python expected_kills.py <battery_dir>"""
+import re
+import sys
+from pathlib import Path
+
+A1 = "test_an_unserved_point_of_a_stored_anchor_is_owed"
+A2 = "test_without_a_stored_anchor_it_is_ignored_as_before"
+A3 = "test_a_due_time_near_a_point_but_not_on_it_is_ignored"
+A4 = "test_it_needs_one_full_day_before_the_end"
+A5 = "test_a_chain_served_to_the_end_owes_nothing"
+A6 = "test_an_outage_that_ran_to_the_end_counts_the_last_point_too"
+A7 = "test_every_day_of_the_month_clamped_dates_too"
+A8 = "test_outside_the_last_week_nothing_changes"
+B1 = "test_a_point_of_the_stored_anchor_in_the_last_week_is_reported"
+B2 = "test_a_row_with_no_stored_anchor_is_not_reported_there"
+B3 = "test_a_stored_anchor_that_is_not_the_one_in_use_does_not_count"
+B4 = "test_the_individual_plan_caller_has_no_stored_anchor_and_says_so"
+EXPECTED = {
+    # the stored-anchor claim ignored: every unstored expectation of 0 breaks,
+    # at the count (A2, A6, A7) and at the caller (B2, B3)
+    "R1": {A2, A6, A7, B2, B3},
+    # exactness removed: only the near-but-not-on test sees it
+    "R2": {A3},
+    # any time before the end counts: the three sub-day rows of A4
+    "R3": {A4},
+    # exactly one day no longer enough: A4's boundary row, A7's 1-day rows
+    "R4": {A4, A7},
+    # the margin gone: sub-day rows (A4), a due time past the end that is a
+    # chain point (A5), and the cycle end itself when it is a chain point (A8)
+    "R5": {A4, A5, A8},
+    # two days: A4's one-day row and A7's 1-day rows
+    "R6": {A4, A7},
+    # every due time "is a point": the near-but-not-on test
+    "R7": {A3},
+    # stored but not in use counts
+    "C1": {B3},
+    # everything claims a stored anchor
+    "C2": {B2, B3},
+    # the claim never passed
+    "C3": {B1},
+    # the individual-plan caller claims one
+    "C4": {B4},
+}
+logs = Path(sys.argv[1]) / "logs"
+bad = 0
+for mutant, expected in EXPECTED.items():
+    text = (logs / f"{mutant}.log").read_text(errors="replace")
+    failed = set(re.findall(r"^(?:FAIL|ERROR): (test_\w+)", text, re.M))
+    extra, missing = failed - expected, expected - failed
+    bad += failed != expected
+    print(f"{mutant}: {len(failed)} failing, {'as expected' if failed == expected else 'DIFFERS'}"
+          + (f"; unexpected: {sorted(extra)}" if extra else "")
+          + (f"; expected but passed: {sorted(missing)}" if missing else ""))
+print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

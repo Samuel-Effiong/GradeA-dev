@@ -1,0 +1,59 @@
+# Resolve-intent audit emit: which test modules reach the changed entry points (SM condition, 2026-10-02)
+# Tree: task/epic-a-resolve-intent-audit 21213223. Each grep is the command line, then its output.
+
+$ git grep -ln 'license_stripe_mutation\|resolve_licence_stripe_intent\|escalate_stale\|LicenseStripeMutationIntent' -- '*test*.py'
+AutoGrader/tests_beat_locks.py
+AutoGrader/tests_management_commands_are_commands.py
+audit/tests_command_actor.py
+billing/tests/test_beat_lock_catch_up.py
+billing/tests/test_h28_alerting.py
+billing/tests/test_h28_cancel_phases.py
+billing/tests/test_h28_convert_phases.py
+billing/tests/test_h28_finalise_retry.py
+billing/tests/test_h28_intent_audit.py
+billing/tests/test_h28_licence_stripe_divergence.py
+billing/tests/test_h28_licence_stripe_mutation_intent.py
+billing/tests/test_h28_plan_phases.py
+billing/tests/test_h28_seat_phases.py
+billing/tests/test_h28_stripe_budget.py
+billing/tests/test_h60_licence_stripe_text.py
+billing/tests/test_license_cancellation.py
+
+$ git grep -ln 'update_seats\|cancel_license_subscription\|convert_license_to_offline\|change_license_plan\|change_license_price\|LicenseSubscriptionService.select_plan' -- '*test*.py'
+billing/tests/test_h28_cancel_phases.py
+billing/tests/test_h28_convert_phases.py
+billing/tests/test_h28_finalise_retry.py
+billing/tests/test_h28_intent_audit.py
+billing/tests/test_h28_licence_stripe_divergence.py
+billing/tests/test_h28_plan_phases.py
+billing/tests/test_h28_seat_phases.py
+billing/tests/test_h28_stripe_budget.py
+billing/tests/test_h57_licence_patch.py
+billing/tests/test_h60_licence_stripe_text.py
+billing/tests/test_license_cancellation.py
+billing/tests/test_live_qa_scenario_registry.py
+billing/tests/test_mailerlite_sync.py
+
+$ git grep -n 'LicenseSubscriptionService\.\(update_seats\|cancel_license_subscription\|convert_license_to_offline\|change_license_plan\|select_plan\)(\|change_license_price(' -- '*.py' ':!*test*' ':!docs'
+billing/license_service.py:4331:        updated_license = LicenseSubscriptionService.change_license_plan(
+billing/license_views.py:657:            result = LicenseSubscriptionService.select_plan(
+billing/license_views.py:714:            updated_license = LicenseSubscriptionService.update_seats(
+billing/license_views.py:918:            updated = LicenseSubscriptionService.convert_license_to_offline(
+billing/license_views.py:954:            updated = LicenseSubscriptionService.cancel_license_subscription(
+billing/live_qa/scenarios_license.py:346:        increased = LicenseSubscriptionService.update_seats(
+billing/live_qa/scenarios_license.py:375:        decreased = LicenseSubscriptionService.update_seats(
+billing/live_qa/scenarios_license.py:411:        LicenseSubscriptionService.cancel_license_subscription(license_sub)
+billing/live_qa/scenarios_license.py:443:        converted = LicenseSubscriptionService.convert_license_to_offline(
+billing/stripe_service.py:1548:    def change_license_price(
+billing/stripe_service.py:1575:        updated = LicenseSubscriptionService.change_license_plan(
+
+$ git diff --stat 8a206ba5 -- audit/ ':!audit/tests*'
+ audit/metadata.py | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+# Result: the gate's 6G step runs every module of the first two greps, plus the audit modules that pin the allow-lists
+# and the emitter (tests_metadata, tests_emitter, tests_history, tests_command_actor, tests_license_admin_attribution), plus all guards.
+# The third grep is the production callers: four views (license_views.py), the live-QA scenarios, and
+# StripeSubscriptionMutationService.change_license_price, which nothing in production calls (backlog H-75). There is no webhook path.
+# The fourth shows the audit change is audit/metadata.py only: two allow-list entries added, nothing removed or renamed
+# (the one deleted line is SUBSCRIPTION_CHANGE's entry re-wrapped with license_id added).

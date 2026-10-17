@@ -1,0 +1,52 @@
+"""H-152: every caller, in the whole test tree, of the two routes this row
+closes, of the conversion command and of the invitation sender.
+
+Read-only. Run in the H-152 worktree, on the Release Engineer's grant (it
+walks every tracked .py file through `git grep`). Writes nothing into the
+tree; prints to stdout. The terms are printed with their patterns so that
+the search can be judged and not only its hits.
+"""
+
+import subprocess
+
+TERMS = {
+    "T1 door, route name": r"auth-register-student",
+    "T2 door, raw path": r"register/student",
+    "T3 door, view function": r"register_student",
+    "T4 renewal, route name": r"course-renew-activation-token",
+    "T5 renewal, raw path": r"renew-student-token",
+    "T6 renewal, view function": r"handle_expired_token",
+    "T7 removed service": r"renew_student_activation",
+    "T8 removed forms": r"StudentRegistrationCompletionSerializer|ExpiredTokenSerializer",
+    "T9 conversion command": r"backfill_pending_student_invites",
+    "T10 invitation sender": r"send_student_login_invitation_email",
+    "T11 old-scheme accounts made by tests": r"activation_token",
+}
+
+
+def grep(pattern, tests_only=False):
+    out = subprocess.run(
+        ["git", "grep", "-nE", pattern, "--", "*.py"], capture_output=True, text=True
+    ).stdout
+    hits = []
+    for line in out.splitlines():
+        path, number, text = line.split(":", 2)
+        if path.startswith("docs/"):
+            continue
+        if tests_only and "test" not in path.rsplit("/", 1)[-1]:
+            continue
+        hits.append((path, int(number), text.strip()))
+    return hits
+
+
+print("HEAD", subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip())
+for label, pattern in TERMS.items():
+    hits = grep(pattern, tests_only=label.startswith("T11"))
+    files = sorted({h[0] for h in hits})
+    print(f"\n=== {label}: /{pattern}/ : {len(hits)} lines in {len(files)} files")
+    for path in files:
+        mine = [h for h in hits if h[0] == path]
+        print(f"  {path} ({len(mine)})")
+        if not label.startswith("T11"):
+            for _, number, text in mine:
+                print(f"      {number}: {text[:150]}")

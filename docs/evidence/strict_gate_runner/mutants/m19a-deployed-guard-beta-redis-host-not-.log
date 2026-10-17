@@ -1,0 +1,24 @@
+.........F.........F..........................
+======================================================================
+FAIL: test_named_hosts_cover_beta_and_sandbox (__main__.EndToEnd.test_named_hosts_cover_beta_and_sandbox) (host='shinkansen.proxy.rlwy.net')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 596, in test_named_hosts_cover_beta_and_sandbox
+    self.assertIn(host, gate.DEPLOYED_HOSTS)
+AssertionError: 'shinkansen.proxy.rlwy.net' not found in frozenset({'sandbox-grade-automator-production.up.railway.app', 'thomas.proxy.rlwy.net', 'iriguchi.proxy.rlwy.net'})
+
+======================================================================
+FAIL: test_refuses_deployed_redis_host_even_on_another_port (__main__.EndToEnd.test_refuses_deployed_redis_host_even_on_another_port)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 570, in test_refuses_deployed_redis_host_even_on_another_port
+    s = self.assertRefusesDeployed(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 558, in assertRefusesDeployed
+    self.assertIn(fragment, " ".join(s["verdict_reasons"]))
+AssertionError: 'shinkansen.proxy.rlwy.net is a named deployed host' not found in 'REFUSING deployed infrastructure: cache target shinkansen.proxy.rlwy.net:1 is not local'
+
+----------------------------------------------------------------------
+Ran 46 tests in 23.891s
+
+FAILED (failures=2)

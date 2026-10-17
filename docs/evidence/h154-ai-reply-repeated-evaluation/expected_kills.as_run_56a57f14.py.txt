@@ -1,0 +1,153 @@
+"""H-154: for every mutant, and for each red commit, the tests that fail
+must be the expected set and nothing else. Written on 2026-10-07 BEFORE
+any test run of H-154, by reasoning from the code and the tests; the only
+code executed was two production functions called directly on inputs I
+built (_finalize_grading_result, grading_result_for_formatter). A test is
+named Class.method.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro1|--repro2|--repro3 <log> [<log>...]"""
+import re
+import sys
+from pathlib import Path
+
+C = "ACleanReplyIsUnchanged"
+S = "AShortPaperWhoseReplyRepeatsAQuestion"
+I = "AShortPaperWhoseReplyInventsAQuestion"
+L = "ALongPaperWhoseBatchRepeatsAQuestion"
+T = "AStoredAnswerTheModelReturnsAsWell"
+M = "TheTotalIsNeverAboveTheMaximum"
+K = "TheSavedAnswerStoreGetsEachKeptEvaluationOnce"
+V = "ACorrectedReplyIsPutInTheReviewQueue"
+F = "TheFormatterIsNotToldOfTheCorrection"
+A = "FinalizeGradingResultTest"
+N = "NoStudentFacingAnswerHoldsTheCorrection"
+MARK = "test_a_repeat_that_calls_itself_the_systems_is_still_a_models"
+
+s1 = (S, "test_the_repeat_is_counted_once")
+s2 = (S, "test_the_checkers_shape_one_answer_three_times")
+s3 = (S, "test_of_two_different_scores_the_lowest_is_kept")
+s4 = (S, "test_the_note_does_not_say_pass_and_names_the_question")
+s5 = (S, "test_a_warning_is_logged_with_numbers_and_counts_only")
+xs = (S, MARK)
+xn = (S, "test_a_reply_cannot_skip_the_snap_to_a_rubric_level_by_a_mark")
+n1 = (N, "test_the_students_own_submission")
+n2 = (N, "test_the_students_list_of_submissions")
+i1 = (I, "test_the_stray_is_dropped")
+i2 = (I, "test_an_evaluation_with_no_question_number_is_dropped")
+i3 = (I, "test_the_note_counts_it")
+l1 = (L, "test_the_repeat_is_counted_once")
+l2 = (L, "test_the_lowest_is_kept")
+l3 = (L, "test_the_saved_note_still_says_so_after_the_summary_call")
+l4 = (L, "test_the_store_gets_the_repeated_question_once_and_the_kept_one")
+xl = (L, MARK)
+t1 = (T, "test_it_is_counted_once")
+t2 = (T, "test_the_stored_one_stands_whichever_is_lower")
+t3 = (T, "test_the_note_says_so")
+xt = (T, "test_a_returned_one_that_calls_itself_the_systems_does_not_lower_it")
+m1 = (M, "test_whatever_the_list_holds")
+m2 = (M, "test_a_system_graded_evaluation_stands_against_a_models")
+m3 = (M, "test_the_order_of_the_questions_is_the_order_first_seen")
+k2 = (K, "test_a_repeat_is_stored_once_and_it_is_the_kept_one")
+k3 = (K, "test_the_next_paper_with_that_answer_reuses_the_kept_score")
+xk = (K, "test_a_reply_cannot_keep_its_evaluation_out_of_the_store_by_a_mark")
+v2 = (V, "test_a_dropped_repeat_flags_the_paper")
+v3 = (V, "test_a_dropped_stray_flags_the_paper")
+v4 = (V, "test_it_is_one_reason_beside_the_others_not_instead_of_them")
+f2 = (F, "test_a_corrected_note_is_sent_as_arithmetic_only")
+a1 = (A, "test_evaluation_with_no_matching_question_is_left_out_of_the_sum")
+#: green under every mutant and at every red commit where they exist (the
+#: controls): C's two tests; S.test_one_call_was_made_no_retry;
+#: K.test_a_clean_reply_stores_three; V's clean, regrade-clears, score-saved
+#: and not-a-dict tests; F's clean-whole, saved-unchanged and rest tests;
+#: the other tests of the arithmetic module; N's control (the saved row
+#: and the teacher's answer do hold the correction).
+#: Added 2026-10-07 13:17, still before any run, with commit ba684640
+#: (the Senior Manager's ruling on the build): xn, n1, n2, R18, R19.
+
+EXPECTED = {
+    # the last repeat wins: a higher one after a lower one is kept, a
+    # model's after the system's is kept.
+    "R1": {s3, l1, l4, t1, t2, m2, k2, k3, xs, xl, xt},
+    # the first repeat wins: a lower one after a higher one is not kept.
+    "R2": {s3, l2, m2, m3, k2},
+    # strays stay in the sum.
+    "R3": {i1, i2, i3, m1, a1},
+    # no precedence for the system's own: a model's lower one replaces it.
+    "R4": {t2, m2, xt},
+    # the highest of a model's repeats.
+    "R5": {s3, l1, l2, l4, m3, k2, k3, xs, xl},
+    # the note keeps PASS (and so the long path carries nothing).
+    "R6": {s4, i3, l3, t3},
+    "R7": {l3},
+    # every fresh evaluation is stored: twice for the repeat, last write wins.
+    "R8": {k2, k3},
+    "R9": {l4},
+    "R10": {v2, v3, v4},
+    "R11": {f2},
+    "R12": {s5},
+    # "dropped": 0 in the note and in the warning line.
+    "R13": {s4, s5, l3, t3},
+    # from_cache survives on a reply's evaluation.
+    "R14": {xs, xl, xt, xk},
+    # the reply's own graded_by survives.
+    # ... and with it the answer key's exemption from the snap.
+    "R15": {xs, xl, xt, xk, xn},
+    "R16": {xs, xt, xk, xn},
+    "R17": {xl},
+    # H-127's shields removed, to show N's tests can fail: the list sends
+    # the review reasons; the student's projection sends the note.
+    "R18": {n2},
+    "R19": {n1},
+}
+#: Red commit 1, 96300987 (tests of that commit, code before any fix):
+#: the two new modules. Green there: C's two, S's one-call, T's
+#: stored-stands (the stored one is first in the list), K's clean; V's
+#: clean, regrade-clears, score-saved, not-a-dict.
+REPRO1 = {s1, s2, s3, s4, s5, i1, i2, i3, l1, l2, l3, t1, t3, m1, m2, m3, k2, k3, v2, v3, v4}
+#: AMENDED 2026-10-07 13:26, AFTER a stopped run, on the Senior Manager's
+#: ruling that followed it. The chain on ba684640 stopped at (r2) at 13:24:18:
+#: the three tests named here failed and ONE more, M's
+#: test_whatever_the_list_holds, subtest "one question five times":
+#: "26 != 30". That assertion was my test's mistake (the shape's right
+#: total is 10 + 8 + 8 = 26; the code gave 26). It is corrected at the
+#: tip (42eccc7b), but the test file AS IT STANDS at the two later red
+#: commits still holds the mistake and fails there for it. So `m1` is
+#: added to REPRO2 and REPRO3, and nothing else is changed in this file:
+#: REPRO1 (where the test is red for the real reason) and every mutant's
+#: set are as written before the run. The file as it was run is kept as
+#: stopped_chain_ba684640/expected_kills.py.as_run_c1b39f88.
+#: Red commit 2, 27400a7a (code = the first fix): the formatter is still
+#: sent the whole note, and the note has no correction_note field yet.
+REPRO2 = {f2, s4, l3, m1}
+#: Red commit 3, 806f7027 (code = both fixes, no stamping yet).
+REPRO3 = {xs, xl, xt, xk, m1}
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1].startswith("--repro"):
+    wanted = {"--repro1": REPRO1, "--repro2": REPRO2, "--repro3": REPRO3}[sys.argv[1]]
+    text = "".join(Path(p).read_text(errors="replace") for p in sys.argv[2:])
+    bad = compare(sys.argv[1][2:], failing(text), wanted)
+    print("the red set is the expected one" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

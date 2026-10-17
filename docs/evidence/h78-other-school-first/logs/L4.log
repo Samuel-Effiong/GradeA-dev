@@ -1,0 +1,12 @@
+# L4: the enrolment re-check's refusal logs the id, not its message (1a's R1)
+# file: billing/license_service.py (occurrence 1)
+# old: '            logger.warning(\n                "Teacher %s has an individual subscription: not enrolled.",\n                teacher.id,\n            )\n'
+# new: '            logger.warning(error_msg)\n'
+# commit: 0c6af7d93cf5456e87a6c368893a692ad37a3f1d
+# exit: 1
+# elapsed_s: 3.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_teacher_who_subscribes_before_enrolment_is_not_logged_by_address (billing.tests.test_other_school_before_subscription.OtherSchoolBeforeSubscriptionTest.test_a_teacher_who_subscribes_before_enrolment_is_not_logged_by_address)
+
+FAILED (failures=1)

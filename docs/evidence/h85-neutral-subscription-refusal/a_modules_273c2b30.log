@@ -1,0 +1,478 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 4a87bf6c-c07b-425a-a45b-836d86754a84.
+Cannot activate automatic trial for user 4a87bf6c-c07b-425a-a45b-836d86754a84 (validation): ValueError
+Teacher 4a87bf6c-c07b-425a-a45b-836d86754a84 has an individual subscription: not enrolled.
+.Free trial plan not found: no trial activated for user 111383bc-f59f-44fc-80ed-4e8a62627b6c.
+Cannot activate automatic trial for user 111383bc-f59f-44fc-80ed-4e8a62627b6c (validation): ValueError
+Teacher 111383bc-f59f-44fc-80ed-4e8a62627b6c has an individual subscription: not enrolled.
+.Free trial plan not found: no trial activated for user ae5a7c13-fc35-4b35-9c6f-64664a1ac382.
+Cannot activate automatic trial for user ae5a7c13-fc35-4b35-9c6f-64664a1ac382 (validation): ValueError
+Teacher ae5a7c13-fc35-4b35-9c6f-64664a1ac382 has an individual subscription: not enrolled.
+.Free trial plan not found: no trial activated for user cd244a36-f9f6-4d27-8b6c-63ae17d1bda0.
+Cannot activate automatic trial for user cd244a36-f9f6-4d27-8b6c-63ae17d1bda0 (validation): ValueError
+Teacher cd244a36-f9f6-4d27-8b6c-63ae17d1bda0 has an individual subscription: not enrolled.
+Skipped enrolling a teacher in license 2dc68515-a505-49ea-a137-854054198f49 (school c0b2d69c-86b6-4608-ac8d-500ae8fdcfb0): IndividualSubscriptionConflictError
+.Free trial plan not found: no trial activated for user e5e46162-33fd-43a7-a904-08a873415875.
+Cannot activate automatic trial for user e5e46162-33fd-43a7-a904-08a873415875 (validation): ValueError
+Teacher e5e46162-33fd-43a7-a904-08a873415875 has an individual subscription: not enrolled.
+Skipped enrolling a teacher in license 3fab36ed-301b-44c1-8de4-3617ca6f2109 (school c9261596-0cfd-40c5-aa54-c29ba8021ec2): IndividualSubscriptionConflictError
+.Free trial plan not found: no trial activated for user ffe45cce-0b4e-4bb9-890a-0fa5f1d92ead.
+Cannot activate automatic trial for user ffe45cce-0b4e-4bb9-890a-0fa5f1d92ead (validation): ValueError
+.Free trial plan not found: no trial activated for user 299bba6f-352a-4824-b44a-ac722ebecf1e.
+Cannot activate automatic trial for user 299bba6f-352a-4824-b44a-ac722ebecf1e (validation): ValueError
+..Free trial plan not found: no trial activated for user 5f01e84e-416a-408b-b2a9-9d5e0b39ca66.
+Cannot activate automatic trial for user 5f01e84e-416a-408b-b2a9-9d5e0b39ca66 (validation): ValueError
+.Free trial plan not found: no trial activated for user b19eee51-414a-4b89-9ac6-c752b042ae6c.
+Cannot activate automatic trial for user b19eee51-414a-4b89-9ac6-c752b042ae6c (validation): ValueError
+.Free trial plan not found: no trial activated for user 30d625fc-077e-4677-81ac-023195aef500.
+Cannot activate automatic trial for user 30d625fc-077e-4677-81ac-023195aef500 (validation): ValueError
+Teacher 30d625fc-077e-4677-81ac-023195aef500 belongs to school 3af0379b-88ab-4b30-bc8f-ed2fdabe58e3, not 5c55d7fb-3b7e-4163-a236-1d800b0a7630: not enrolled.
+Skipped enrolling a teacher in license e9a0e323-bb21-47f9-90db-d6d3f42eb097 (school 5c55d7fb-3b7e-4163-a236-1d800b0a7630): ValueError
+.Free trial plan not found: no trial activated for user 0c003026-9b16-4526-8750-fd8a8ca10075.
+Cannot activate automatic trial for user 0c003026-9b16-4526-8750-fd8a8ca10075 (validation): ValueError
+Teacher 0c003026-9b16-4526-8750-fd8a8ca10075 belongs to school 41a7be8f-70a1-4cd8-8144-73fefd55b813, not 2766598e-8a44-4c84-9cef-19c89ca12a20: not enrolled.
+Skipped enrolling a teacher in license 1cb67294-2fa8-4d85-9c02-d1e37b5d026e (school 2766598e-8a44-4c84-9cef-19c89ca12a20): ValueError
+.Free trial plan not found: no trial activated for user d6c95f94-0710-4543-a6b4-ee8cd2f01052.
+Cannot activate automatic trial for user d6c95f94-0710-4543-a6b4-ee8cd2f01052 (validation): ValueError
+Teacher d6c95f94-0710-4543-a6b4-ee8cd2f01052 has an individual subscription: not enrolled.
+.Free trial plan not found: no trial activated for user fd957840-5531-400a-be10-7f660b578759.
+Cannot activate automatic trial for user fd957840-5531-400a-be10-7f660b578759 (validation): ValueError
+Teacher fd957840-5531-400a-be10-7f660b578759 has an individual subscription: not enrolled.
+.Free trial plan not found: no trial activated for user 8190a3bc-f8d8-4370-821a-148b739acaed.
+Cannot activate automatic trial for user 8190a3bc-f8d8-4370-821a-148b739acaed (validation): ValueError
+.Free trial plan not found: no trial activated for user 39f8ec07-c167-4d2a-8032-ae2aedfc13c0.
+Cannot activate automatic trial for user 39f8ec07-c167-4d2a-8032-ae2aedfc13c0 (validation): ValueError
+Teacher 39f8ec07-c167-4d2a-8032-ae2aedfc13c0 belongs to school 7fe94a54-1491-46e3-8eb3-95803c5103aa, not cf71d174-7233-4444-a5f2-5d0e93e4eb40: not enrolled.
+.Free trial plan not found: no trial activated for user 7aba513d-67c2-4be8-87b2-595a473bc1e0.
+Cannot activate automatic trial for user 7aba513d-67c2-4be8-87b2-595a473bc1e0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0f91ed56-81b1-47c9-b87b-b8d5406ec5ef.
+Cannot activate automatic trial for user 0f91ed56-81b1-47c9-b87b-b8d5406ec5ef (validation): ValueError
+Free trial plan not found: no trial activated for user e2861443-a08a-4070-934a-f754f9a68cab.
+Cannot activate automatic trial for user e2861443-a08a-4070-934a-f754f9a68cab (validation): ValueError
+.Free trial plan not found: no trial activated for user 94e25e20-4766-4534-981b-68aa1884e1dd.
+Cannot activate automatic trial for user 94e25e20-4766-4534-981b-68aa1884e1dd (validation): ValueError
+Free trial plan not found: no trial activated for user 6268f7be-7cc1-4a4d-9cd2-35aa46a6a8bc.
+Cannot activate automatic trial for user 6268f7be-7cc1-4a4d-9cd2-35aa46a6a8bc (validation): ValueError
+.Free trial plan not found: no trial activated for user 96ddde17-43f3-40ae-aae5-716c33e92895.
+Cannot activate automatic trial for user 96ddde17-43f3-40ae-aae5-716c33e92895 (validation): ValueError
+.Free trial plan not found: no trial activated for user 72599ce6-972c-4e9b-ad1e-e4880a82ffd1.
+Cannot activate automatic trial for user 72599ce6-972c-4e9b-ad1e-e4880a82ffd1 (validation): ValueError
+Not a business email: teacher not enrolled.
+.Free trial plan not found: no trial activated for user dafbf03b-f76d-49b6-b92d-d58d5d3a9c61.
+Cannot activate automatic trial for user dafbf03b-f76d-49b6-b92d-d58d5d3a9c61 (validation): ValueError
+Teacher dafbf03b-f76d-49b6-b92d-d58d5d3a9c61 has an individual subscription: not enrolled.
+.Free trial plan not found: no trial activated for user 898e6eb6-ed32-4a39-8c2b-a12be6bdb212.
+Cannot activate automatic trial for user 898e6eb6-ed32-4a39-8c2b-a12be6bdb212 (validation): ValueError
+Not a business email: teacher not enrolled.
+Not a business email: teacher not enrolled.
+Not a business email: teacher not enrolled.
+Not a business email: teacher not enrolled.
+Not a business email: teacher not enrolled.
+.Free trial plan not found: no trial activated for user 1b1850a8-e512-4993-9d61-62136ccd7b4f.
+Cannot activate automatic trial for user 1b1850a8-e512-4993-9d61-62136ccd7b4f (validation): ValueError
+.Free trial plan not found: no trial activated for user 4a3113d3-45a3-494a-9b37-3c18c502522a.
+Cannot activate automatic trial for user 4a3113d3-45a3-494a-9b37-3c18c502522a (validation): ValueError
+.Free trial plan not found: no trial activated for user 5d72331f-df2b-45c5-abb6-af85f3edd294.
+Cannot activate automatic trial for user 5d72331f-df2b-45c5-abb6-af85f3edd294 (validation): ValueError
+Free trial plan not found: no trial activated for user c2e610f1-b120-4448-b387-89e7a5f159e0.
+Cannot activate automatic trial for user c2e610f1-b120-4448-b387-89e7a5f159e0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 57967d83-0a7f-429c-bd7f-bcfb8872fae3.
+Cannot activate automatic trial for user 57967d83-0a7f-429c-bd7f-bcfb8872fae3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2c0add2c-1b48-4105-88f3-32187faaf169.
+Cannot activate automatic trial for user 2c0add2c-1b48-4105-88f3-32187faaf169 (validation): ValueError
+.Free trial plan not found: no trial activated for user b125181c-87eb-486e-a044-246ed79cb9fe.
+Cannot activate automatic trial for user b125181c-87eb-486e-a044-246ed79cb9fe (validation): ValueError
+.Free trial plan not found: no trial activated for user 4ed25a2b-07db-4248-9623-e2806261c506.
+Cannot activate automatic trial for user 4ed25a2b-07db-4248-9623-e2806261c506 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6cf86fde-0f62-4a5f-8b1f-207ad5fbcfbb.
+Cannot activate automatic trial for user 6cf86fde-0f62-4a5f-8b1f-207ad5fbcfbb (validation): ValueError
+.Free trial plan not found: no trial activated for user 7e2cd97e-a574-49f5-ba37-6020d84aa956.
+Cannot activate automatic trial for user 7e2cd97e-a574-49f5-ba37-6020d84aa956 (validation): ValueError
+.Free trial plan not found: no trial activated for user e4fc4b14-ec3e-401f-8324-deaa8cf0c53a.
+Cannot activate automatic trial for user e4fc4b14-ec3e-401f-8324-deaa8cf0c53a (validation): ValueError
+Free trial plan not found: no trial activated for user 65a7dc84-73c4-486d-8585-d781ff176da2.
+Cannot activate automatic trial for user 65a7dc84-73c4-486d-8585-d781ff176da2 (validation): ValueError
+.Free trial plan not found: no trial activated for user a679f175-7045-462f-82c6-39c2ea586084.
+Cannot activate automatic trial for user a679f175-7045-462f-82c6-39c2ea586084 (validation): ValueError
+.....Free trial plan not found: no trial activated for user 041d0ae6-6975-40e1-bbc6-f64f5e05b047.
+Cannot activate automatic trial for user 041d0ae6-6975-40e1-bbc6-f64f5e05b047 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4cd08d31-42d3-4bbb-afa3-54e61004d7e3.
+Cannot activate automatic trial for user 4cd08d31-42d3-4bbb-afa3-54e61004d7e3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 400d88b3-efbb-42cb-adc9-69ff65a4da7c.
+Cannot activate automatic trial for user 400d88b3-efbb-42cb-adc9-69ff65a4da7c (validation): ValueError
+Teacher 400d88b3-efbb-42cb-adc9-69ff65a4da7c belongs to school 5744be2d-4240-40a6-bae6-eb27997eda6b, not 9b6f092b-923c-4d4e-80df-ced08e2baef6: not enrolled.
+Skipped enrolling a teacher in license 96953b66-de08-4641-96d1-4b89141eb08b (school 9b6f092b-923c-4d4e-80df-ced08e2baef6): ValueError
+.Free trial plan not found: no trial activated for user 5db3b1e3-99e9-4fc0-9c98-eb3f3774d070.
+Cannot activate automatic trial for user 5db3b1e3-99e9-4fc0-9c98-eb3f3774d070 (validation): ValueError
+.Free trial plan not found: no trial activated for user 04b28207-435d-4b74-baff-0343fcd405a8.
+Cannot activate automatic trial for user 04b28207-435d-4b74-baff-0343fcd405a8 (validation): ValueError
+..School 094869e3-b7ce-4781-9e19-bbce6a17f1f3 already has active license subscription ef6e51b3-6782-4542-9a66-df7a204433ef. Deactivating old license before creating new one.
+Free trial plan not found: no trial activated for user 4471817e-8e53-405d-99e5-47e037413299.
+Cannot activate automatic trial for user 4471817e-8e53-405d-99e5-47e037413299 (validation): ValueError
+Free trial plan not found: no trial activated for user 21a6fc31-7d9f-41cd-9127-2c5d800d8d17.
+Cannot activate automatic trial for user 21a6fc31-7d9f-41cd-9127-2c5d800d8d17 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1bdf946e-4543-4a46-a778-6f7c24b53628.
+Cannot activate automatic trial for user 1bdf946e-4543-4a46-a778-6f7c24b53628 (validation): ValueError
+.Free trial plan not found: no trial activated for user 24c275f1-61c8-4cc3-a800-6f34e7485a1b.
+Cannot activate automatic trial for user 24c275f1-61c8-4cc3-a800-6f34e7485a1b (validation): ValueError
+...Free trial plan not found: no trial activated for user 5a28d289-10a8-44ed-9176-fa7b989eb6e9.
+Cannot activate automatic trial for user 5a28d289-10a8-44ed-9176-fa7b989eb6e9 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5a914c0c-67cc-495d-bd3d-9ca4330a9db0.
+Cannot activate automatic trial for user 5a914c0c-67cc-495d-bd3d-9ca4330a9db0 (validation): ValueError
+Free trial plan not found: no trial activated for user 6261c76b-dd8c-4f67-886d-7215ee2a327d.
+Cannot activate automatic trial for user 6261c76b-dd8c-4f67-886d-7215ee2a327d (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h85-neutral-subscription-refusal/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Free trial plan not found: no trial activated for user ef16f713-6420-4999-84b2-98beb8394500.
+Cannot activate automatic trial for user ef16f713-6420-4999-84b2-98beb8394500 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5d99a3aa-4140-45ea-8887-7770afb4390e.
+Cannot activate automatic trial for user 5d99a3aa-4140-45ea-8887-7770afb4390e (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h85-neutral-subscription-refusal/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h85-neutral-subscription-refusal/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+.Free trial plan not found: no trial activated for user 9d11c0fc-01df-4de5-af5a-7a93c6523f45.
+Cannot activate automatic trial for user 9d11c0fc-01df-4de5-af5a-7a93c6523f45 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9bfe9fef-7ff8-4e71-860f-ef37480342e8.
+Cannot activate automatic trial for user 9bfe9fef-7ff8-4e71-860f-ef37480342e8 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9745c781-deb0-4c3a-9971-6aa40eb71c8f.
+Cannot activate automatic trial for user 9745c781-deb0-4c3a-9971-6aa40eb71c8f (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 82, in partial_update
+    return self.update(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 65, in update
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Free trial plan not found: no trial activated for user 415d1008-3625-42d2-8b9e-267044337bca.
+Cannot activate automatic trial for user 415d1008-3625-42d2-8b9e-267044337bca (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h85-neutral-subscription-refusal/classrooms/views.py", line 1340, in students
+    course = get_object_or_404(self.get_queryset(), pk=self.kwargs["pk"])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Free trial plan not found: no trial activated for user 4d86bcee-8548-4d43-8bad-a7b2619eaffd.
+Cannot activate automatic trial for user 4d86bcee-8548-4d43-8bad-a7b2619eaffd (validation): ValueError
+.Free trial plan not found: no trial activated for user cfd1c534-f0b4-4704-8148-8fc2dd4eb91d.
+Cannot activate automatic trial for user cfd1c534-f0b4-4704-8148-8fc2dd4eb91d (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h85-neutral-subscription-refusal/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Free trial plan not found: no trial activated for user 6da52143-42fe-481a-8df6-dce4f12f7b2c.
+Cannot activate automatic trial for user 6da52143-42fe-481a-8df6-dce4f12f7b2c (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h85-neutral-subscription-refusal/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+.Free trial plan not found: no trial activated for user a238b2c5-a134-4e8c-ab01-8d84809cf319.
+Cannot activate automatic trial for user a238b2c5-a134-4e8c-ab01-8d84809cf319 (validation): ValueError
+.Free trial plan not found: no trial activated for user c38ec405-5776-4e7e-98dc-265fd6a9aa11.
+Cannot activate automatic trial for user c38ec405-5776-4e7e-98dc-265fd6a9aa11 (validation): ValueError
+.Free trial plan not found: no trial activated for user 70ef9772-bad3-43f0-8480-ec827bc9b8ca.
+Cannot activate automatic trial for user 70ef9772-bad3-43f0-8480-ec827bc9b8ca (validation): ValueError
+.Free trial plan not found: no trial activated for user c1f7f6d7-537a-4dee-9db5-61c00821b2ae.
+Cannot activate automatic trial for user c1f7f6d7-537a-4dee-9db5-61c00821b2ae (validation): ValueError
+.Free trial plan not found: no trial activated for user 671be1ec-557b-4517-8db8-614ac12703dd.
+Cannot activate automatic trial for user 671be1ec-557b-4517-8db8-614ac12703dd (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h85-neutral-subscription-refusal/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No CustomUser matches the given query.
+.Free trial plan not found: no trial activated for user 8823c3b9-5b00-4ebf-99b4-dcf7d9923a5b.
+Cannot activate automatic trial for user 8823c3b9-5b00-4ebf-99b4-dcf7d9923a5b (validation): ValueError
+.Free trial plan not found: no trial activated for user d11d44bd-fe7e-40f9-a491-c3126c3742fb.
+Cannot activate automatic trial for user d11d44bd-fe7e-40f9-a491-c3126c3742fb (validation): ValueError
+Free trial plan not found: no trial activated for user a52c1e90-11f0-4af8-bdd8-8b154a51abbd.
+Cannot activate automatic trial for user a52c1e90-11f0-4af8-bdd8-8b154a51abbd (validation): ValueError
+School 80377860-94e2-49f0-9e37-774d8ab53988 already has active license subscription 8463d369-7178-4457-9057-58d4b58cde06. Deactivating old license before creating new one.
+.School 327a9d70-e86c-4fe6-a8b4-1c0a9582369f already has active license subscription 25f604d8-dad7-41ba-a350-c6d313e4eca1. Deactivating old license before creating new one.
+.Free trial plan not found: no trial activated for user 8cc022b6-2226-4b58-99b3-ca6f57ac467d.
+Cannot activate automatic trial for user 8cc022b6-2226-4b58-99b3-ca6f57ac467d (validation): ValueError
+School 30d836f1-d4c8-4945-a503-765946ce8e6c already has active license subscription a9941748-9ee7-4130-a59f-e5a47402ace6. Deactivating old license before creating new one.
+.School 66220e4b-e3e2-4983-8bf7-900d5dddafe9 already has active license subscription ab5075f7-75ed-4ab0-9a54-fe9c7c4659f5. Deactivating old license before creating new one.
+.Free trial plan not found: no trial activated for user 6124c2a8-a6ce-46a5-8cfa-69e135c8e638.
+Cannot activate automatic trial for user 6124c2a8-a6ce-46a5-8cfa-69e135c8e638 (validation): ValueError
+Free trial plan not found: no trial activated for user c4c5c0e1-7565-414a-be03-bb7ac72ea126.
+Cannot activate automatic trial for user c4c5c0e1-7565-414a-be03-bb7ac72ea126 (validation): ValueError
+School 3cab4cc6-5b7b-4f43-99e8-7a96e88e3e5f already has active license subscription 7f370487-f4fa-406b-a132-85b9943749ce. Deactivating old license before creating new one.
+.Free trial plan not found: no trial activated for user c0ec78d1-bcd9-4df3-b6b1-773e2eda70ad.
+Cannot activate automatic trial for user c0ec78d1-bcd9-4df3-b6b1-773e2eda70ad (validation): ValueError
+School 8e3ce7db-49f0-4737-a504-45b09097717c already has active license subscription a7861c61-c37f-431d-8ed6-252a99e1170f. Deactivating old license before creating new one.
+.Free trial plan not found: no trial activated for user 27b804ca-a4dd-4e08-b170-1fd88a1ecf48.
+Cannot activate automatic trial for user 27b804ca-a4dd-4e08-b170-1fd88a1ecf48 (validation): ValueError
+Free trial plan not found: no trial activated for user 82a08121-9039-492f-8fff-847278aeb276.
+Cannot activate automatic trial for user 82a08121-9039-492f-8fff-847278aeb276 (validation): ValueError
+.School 4d9e754e-76fd-4db3-a89e-2aeb9d691b1e already has active license subscription c15a6fe7-f85c-4a77-aaba-d9894def0eca. Deactivating old license before creating new one.
+.Free trial plan not found: no trial activated for user c483b1f6-dfc3-4c85-af64-8e810986d428.
+Cannot activate automatic trial for user c483b1f6-dfc3-4c85-af64-8e810986d428 (validation): ValueError
+Teacher c483b1f6-dfc3-4c85-af64-8e810986d428 has an individual subscription: not enrolled.
+Skipped enrolling a teacher in license ae2ba021-a3c6-42d3-b140-5a857338e29d (school 8958759e-749f-4ff3-9f91-05c0817b3401): IndividualSubscriptionConflictError
+License ae2ba021-a3c6-42d3-b140-5a857338e29d creation: 1/1 teacher invitations FAILED.
+..Free trial plan not found: no trial activated for user 7e3a7641-b888-4ba9-9fe7-fbb1bc1f788a.
+Cannot activate automatic trial for user 7e3a7641-b888-4ba9-9fe7-fbb1bc1f788a (validation): ValueError
+Free trial plan not found: no trial activated for user a25516f4-ea16-4a4a-8e38-a2b893009321.
+Cannot activate automatic trial for user a25516f4-ea16-4a4a-8e38-a2b893009321 (validation): ValueError
+.Free trial plan not found: no trial activated for user d1f540a1-8c48-4f13-97e7-2bc69998740d.
+Cannot activate automatic trial for user d1f540a1-8c48-4f13-97e7-2bc69998740d (validation): ValueError
+.Free trial plan not found: no trial activated for user 20caf020-dfb6-41e6-a2fd-728706d9f363.
+Cannot activate automatic trial for user 20caf020-dfb6-41e6-a2fd-728706d9f363 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8d40de3b-3b8a-4567-8934-9d97302a50a4.
+Cannot activate automatic trial for user 8d40de3b-3b8a-4567-8934-9d97302a50a4 (validation): ValueError
+Renewal requested for inactive license fed4f837-01fd-4e26-8a0e-4871f6a7e660. Skipping.
+.Free trial plan not found: no trial activated for user ab387aa7-3165-4418-bafc-484716a99183.
+Cannot activate automatic trial for user ab387aa7-3165-4418-bafc-484716a99183 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7d350517-0331-4b68-b0ab-ed9aa4e6efb0.
+Cannot activate automatic trial for user 7d350517-0331-4b68-b0ab-ed9aa4e6efb0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9f37d851-99ee-4298-bb2a-fdbc62c781e8.
+Cannot activate automatic trial for user 9f37d851-99ee-4298-bb2a-fdbc62c781e8 (validation): ValueError
+Not a business email: teacher not enrolled.
+Skipped enrolling a teacher in license a5640a0b-48ac-46cf-b4bd-5643d7e2bbfa (school 86995b63-10ed-4f7e-ae37-5b432f41666d): ValueError
+.Free trial plan not found: no trial activated for user 0960147a-cab0-4bea-8ff0-3566925e8d1b.
+Cannot activate automatic trial for user 0960147a-cab0-4bea-8ff0-3566925e8d1b (validation): ValueError
+Free trial plan not found: no trial activated for user 6dab17ec-a156-4bb4-bb96-81639b6f2c00.
+Cannot activate automatic trial for user 6dab17ec-a156-4bb4-bb96-81639b6f2c00 (validation): ValueError
+.Free trial plan not found: no trial activated for user 45cc209e-b53b-4451-97f1-8802f8752dbe.
+Cannot activate automatic trial for user 45cc209e-b53b-4451-97f1-8802f8752dbe (validation): ValueError
+.Free trial plan not found: no trial activated for user e9dc8da3-0fdb-47c5-bb98-d7d84c77600c.
+Cannot activate automatic trial for user e9dc8da3-0fdb-47c5-bb98-d7d84c77600c (validation): ValueError
+..........
+----------------------------------------------------------------------
+Ran 95 tests in 68.080s
+
+OK
+Destroying test database for alias 'default'...
+Found 95 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+exit=0 wall_s=98

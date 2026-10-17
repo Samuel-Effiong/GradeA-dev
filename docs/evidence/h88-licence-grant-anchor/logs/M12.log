@@ -1,0 +1,12 @@
+# M12: a caught-up bucket ends by the contract end
+# file: billing/license_service.py (occurrence 1)
+# old: 'else min(now + relativedelta(months=1), license_sub.billing_cycle_end)'
+# new: 'else now + relativedelta(months=1)'
+# commit: 8ea91e215c58867ee58a2992c464e2b2f4140681
+# exit: 1
+# elapsed_s: 14.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_catch_up_at_the_cycle_end_never_outlives_the_contract (billing.tests.test_licence_grant_anchor.LicenceOutageTests.test_a_catch_up_at_the_cycle_end_never_outlives_the_contract)
+
+FAILED (failures=1)

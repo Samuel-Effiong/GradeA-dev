@@ -1,0 +1,49 @@
+# M23: no automatic retries
+# file: billing/receipts.py line: None
+# old: '        max_network_retries=0,'
+# new: '        max_network_retries=2,'
+# modules: billing.tests.test_receipts.LookupReceiptUrlTests
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
+# exit: 1
+# elapsed_s: 3.9
+# restored_sha256_matches_commit_blob: True
+
+Found 8 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_h62_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_bounded_client_short_timeout_and_no_retries (billing.tests.test_receipts.LookupReceiptUrlTests.test_bounded_client_short_timeout_and_no_retries) ... FAIL
+test_network_timeout_returns_none (billing.tests.test_receipts.LookupReceiptUrlTests.test_network_timeout_returns_none) ... ok
+test_no_reference_makes_no_call (billing.tests.test_receipts.LookupReceiptUrlTests.test_no_reference_makes_no_call) ... ok
+test_payment_intent_without_charge_returns_none (billing.tests.test_receipts.LookupReceiptUrlTests.test_payment_intent_without_charge_returns_none) ... ok
+test_priority_invoice_then_charge_then_payment_intent (billing.tests.test_receipts.LookupReceiptUrlTests.test_priority_invoice_then_charge_then_payment_intent) ... ok
+test_stripe_error_returns_none (billing.tests.test_receipts.LookupReceiptUrlTests.test_stripe_error_returns_none)
+A Stripe outage is expected and routine: WARNING, never ERROR. An ... ok
+test_unexpanded_latest_charge_returns_none (billing.tests.test_receipts.LookupReceiptUrlTests.test_unexpanded_latest_charge_returns_none) ... ok
+test_unexpected_error_returns_none (billing.tests.test_receipts.LookupReceiptUrlTests.test_unexpected_error_returns_none) ... ok
+
+======================================================================
+FAIL: test_bounded_client_short_timeout_and_no_retries (billing.tests.test_receipts.LookupReceiptUrlTests.test_bounded_client_short_timeout_and_no_retries)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-M23-r2wdxqrl/wt/billing/tests/test_receipts.py", line 127, in test_bounded_client_short_timeout_and_no_retries
+    self.assertEqual(call.max_network_retries, 0)
+AssertionError: 2 != 0
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.055s
+
+FAILED (failures=1)
+Preserving test database for alias 'default' ('test_h62_mut')...

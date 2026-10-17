@@ -1,0 +1,63 @@
+# M18: conditional UPDATE (fill-if-null)
+# file: billing/receipts.py line: None
+# old: '        BillingTransaction.objects.filter(pk=transaction_id)\n        .filter(_MISSING_RECEIPT)\n'
+# new: '        BillingTransaction.objects.filter(pk=transaction_id)\n'
+# modules: billing.tests.test_receipts.FillReceiptUrlTests billing.tests.test_receipts.ReceiptConcurrencyTests
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
+# exit: 1
+# elapsed_s: 8.6
+# restored_sha256_matches_commit_blob: True
+
+Found 10 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_h62_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_fills_empty_string_link (billing.tests.test_receipts.FillReceiptUrlTests.test_fills_empty_string_link) ... ok
+test_fills_missing_link (billing.tests.test_receipts.FillReceiptUrlTests.test_fills_missing_link) ... ok
+test_link_set_during_lookup_is_not_overwritten (billing.tests.test_receipts.FillReceiptUrlTests.test_link_set_during_lookup_is_not_overwritten)
+The conditional UPDATE, not the pre-read, is the guard. ... FAIL
+test_missing_row (billing.tests.test_receipts.FillReceiptUrlTests.test_missing_row) ... ok
+test_never_overwrites_and_makes_no_call_when_set (billing.tests.test_receipts.FillReceiptUrlTests.test_never_overwrites_and_makes_no_call_when_set) ... ok
+test_row_without_stripe_reference (billing.tests.test_receipts.FillReceiptUrlTests.test_row_without_stripe_reference) ... BillingTransactionService.record called with no stripe_invoice_id, stripe_payment_intent_id, or license_billing_record (type=INDIVIDUAL_OVERAGE_PURCHASE) — creating an un-deduplicated row.
+ok
+test_task_wrapper (billing.tests.test_receipts.FillReceiptUrlTests.test_task_wrapper) ... ok
+test_unresolved_leaves_row_for_the_sweep (billing.tests.test_receipts.FillReceiptUrlTests.test_unresolved_leaves_row_for_the_sweep) ... ok
+test_concurrent_fills_write_the_link_exactly_once (billing.tests.test_receipts.ReceiptConcurrencyTests.test_concurrent_fills_write_the_link_exactly_once) ... Cannot activate automatic trial for user receipt.concurrency@billing.test (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
+test_duplicate_webhook_deliveries_with_slow_stripe_grant_once (billing.tests.test_receipts.ReceiptConcurrencyTests.test_duplicate_webhook_deliveries_with_slow_stripe_grant_once) ... Cannot activate automatic trial for user receipt.concurrency@billing.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+
+======================================================================
+FAIL: test_link_set_during_lookup_is_not_overwritten (billing.tests.test_receipts.FillReceiptUrlTests.test_link_set_during_lookup_is_not_overwritten)
+The conditional UPDATE, not the pre-read, is the guard.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-M18-5161aqz5/wt/billing/tests/test_receipts.py", line 233, in test_link_set_during_lookup_is_not_overwritten
+    self.assertEqual(receipts.fill_receipt_url(txn.pk), FillOutcome.ALREADY_SET)
+AssertionError: <FillOutcome.FILLED: 'filled'> != <FillOutcome.ALREADY_SET: 'already_set'>
+
+======================================================================
+FAIL: test_concurrent_fills_write_the_link_exactly_once (billing.tests.test_receipts.ReceiptConcurrencyTests.test_concurrent_fills_write_the_link_exactly_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-M18-5161aqz5/wt/billing/tests/test_receipts.py", line 840, in test_concurrent_fills_write_the_link_exactly_once
+    self.assertEqual(
+AssertionError: 20 != 1 : round 0: 20 fills
+
+----------------------------------------------------------------------
+Ran 10 tests in 4.320s
+
+FAILED (failures=2)
+Preserving test database for alias 'default' ('test_h62_mut')...

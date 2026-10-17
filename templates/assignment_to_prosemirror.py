@@ -80,7 +80,3 @@ def assignment_to_prosemirror(assignment: dict) -> dict:
         content.append({"type": "orderedList", "content": list_items})
 
     return {"type": "doc", "content": content}
-
-
-# assignment = assignment_to_prosemirror(assignment)
-# pprint(assignment)

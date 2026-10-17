@@ -1,0 +1,803 @@
+# M14: credit refusal text replaced by generic message
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: billing.tests.test_refusal_handling AutoGrader.tests_error_messages students.tests_task_tracking
+# exit 1
+
+Found 64 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+FFFFFFFFFFFF.Cannot activate automatic trial for user d11-teacher-b2bafdd6@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user d11-teacher-0d829dcf@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FAPI request refused: EmptyWalletError: Credit wallet is empty
+FCannot activate automatic trial for user d1-text-feature-19c5c762@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user d1-text-credits-1c65edd3@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user d1-feature-a1b3d30a@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user d1-credits-84ccd91f@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Dashboard AI context section failed to load
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/dashboard/views.py", line 166, in dashboard_context_section
+    body = dashboard_context_json(build())
+                                  ^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/dashboard/views.py", line 2748, in <lambda>
+    lambda: self.students(request, *args, **kwargs).data,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/dashboard/views.py", line 2415, in students
+    cache_key = versioned_key(
+                ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/AutoGrader/cache_generation.py", line 299, in versioned_key
+    f"{scope}={get_generation(scope, entity_id)}" for scope, entity_id in scopes
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/AutoGrader/cache_generation.py", line 125, in get_generation
+    key = generation_key(scope, entity_id)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/AutoGrader/cache_generation.py", line 112, in generation_key
+    raise ValueError(f"scope {scope!r} requires an entity id")
+ValueError: scope 'sch' requires an entity id
+Custom AI prompt refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+.Custom AI prompt refused: AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+Superadmin custom AI prompt refused: AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+.Cannot activate automatic trial for user d2-feature-7fc3a91a@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+Cannot activate automatic trial for user d2-credits-6d9ad272@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+FCannot activate automatic trial for user d4-create-feature-f209502b@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services ERROR 2026-09-17 17:54:06,358 services 1915855 124092725607360 [request_id=536fca51b3f44c04a85f2f2a0a1ab7bc] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+API request refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+Cannot activate automatic trial for user d4-create-credits-62ff788f@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services ERROR 2026-09-17 17:54:09,876 services 1915855 124092725607360 [request_id=39f859f2409c48bcb791713e41b9a283] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+API request refused: InsufficientCreditsError: Task requires ~32234 credits, but you only have 1000 credits. Please refill your wallet to continue
+FCannot activate automatic trial for user d5-edit-feature-f0811796@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:54:12,416 refusals 1915855 124092725607360 [request_id=-] Background task 76304858-bb74-4454-b67a-8dcda800dc11 refused: AIFeatureNotAvailableError: AI access denied for this assignment's teacher: No active subscription
+
+
+Cannot activate automatic trial for user d5-edit-credits-8074f0ed@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:54:15,088 refusals 1915855 124092725607360 [request_id=-] Background task 3fee715a-00a7-486e-bc17-f4fe2cea9101 refused: InsufficientCreditsError: Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+FCannot activate automatic trial for user d5-upload-feature-197581bd@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:54:18,222 refusals 1915855 124092725607360 [request_id=-] Background task 261b4017-7f45-4e07-a9a8-0f8c6871c019 refused: AIFeatureNotAvailableError: AI access denied for this assignment's teacher: No active subscription
+
+
+Cannot activate automatic trial for user d5-upload-credits-c9774bab@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:54:20,996 refusals 1915855 124092725607360 [request_id=-] Background task 1af1078d-b281-47ab-9e13-a92a31e449bb refused: InsufficientCreditsError: Task requires ~27514 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+FCannot activate automatic trial for user d6-feature-b839ae3b@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services INFO 2026-09-17 17:54:24,251 services 1915855 124092725607360 [request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:54:24,269 services 1915855 124092725607360 [request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+students.task_tracking WARNING 2026-09-17 17:54:24,445 refusals 1915855 124092725607360 [request_id=-] Background task None refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+
+
+Cannot activate automatic trial for user d6-credits-56d0be77@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services INFO 2026-09-17 17:54:27,299 services 1915855 124092725607360 [request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:54:27,314 services 1915855 124092725607360 [request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+students.task_tracking WARNING 2026-09-17 17:54:27,470 refusals 1915855 124092725607360 [request_id=-] Background task None refused: InsufficientCreditsError: Task requires ~25521 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+FCannot activate automatic trial for user d7-course-a1201df7@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+....Cannot activate automatic trial for user d9-feature-a6cef4f9@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.views ERROR 2026-09-17 17:54:35,156 views 1915855 124092725607360 [request_id=d8799e88b8244e8e8ef54b24e197cef8] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/ai_processor/services.py", line 2129, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/ai_processor/services.py", line 1827, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/ai_processor/services.py", line 4404, in execute_graded_task
+    raise AIFeatureNotAvailableError(
+billing.access_control.AIFeatureNotAvailableError: AI access denied for this assignment's teacher: No active subscription
+Cannot activate automatic trial for user d9-credits-74914377@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.views ERROR 2026-09-17 17:54:38,445 views 1915855 124092725607360 [request_id=05defb04f3f749bca1e44563cc9d5203] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/ai_processor/services.py", line 2129, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/ai_processor/services.py", line 1827, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/ai_processor/services.py", line 4506, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue
+FCannot activate automatic trial for user broker-status-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-17 17:54:39,397 task_tracking 1915855 124092725607360 [request_id=-] Could not revoke celery task 0108357a-37b8-4c79-ae91-b8ac64b35fbd for cancelled processing task dcb697e7-c850-4e84-bc83-7ccca756857b - broker unavailable; the worker will observe the cancellation at its next cooperative check
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/students/task_tracking.py", line 397, in cancel_processing_task
+    celery_app.control.revoke(
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+redis.exceptions.ConnectionError: broker unreachable
+.Cannot activate automatic trial for user broker-status-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:54:40,210 task_tracking 1915855 124092725607360 [request_id=-] Could not read celery state for processing task 3f8fdd6a-0848-45e2-adb6-ae74bab1437d (celery id eaa27af9-8d99-46aa-a296-eea1e7fe6f29) - result backend unavailable; reporting tracked status STARTED
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/students/task_tracking.py", line 429, in normalize_processing_task_status
+    state = AsyncResult(processing_task.celery_task_id, app=celery_app).state
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 3010, in __get__
+    return self()
+           ^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+redis.exceptions.ConnectionError: result backend unreachable
+.Cannot activate automatic trial for user final-save-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user final-save-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user final-save-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user cleanup-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user cleanup-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:54:49,914 task_tracking 1915855 124092725607360 [request_id=-] Skipping cleanup for cancelled task b0b6ff5d-4569-4a82-8d43-ef83efefd6cd: assignment 6dc45c9d-759c-496b-a1df-e9b62fb18262 is missing or already has submissions.
+
+
+..F...Cannot activate automatic trial for user finished-at-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user launch-failure-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-17 17:54:53,557 task_tracking 1915855 124092725607360 [request_id=-] Background task f3e4e6e5-1741-4ab4-8a22-81a6d5b419cc failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/students/task_tracking.py", line 72, in launch_processing_task
+    async_result = task_callable.delay(*args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+ConnectionError: broker unreachable
+.Cannot activate automatic trial for user launch-failure-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-17 17:54:54,588 task_tracking 1915855 124092725607360 [request_id=-] Background task da8a72ba-8f77-4b5e-869c-6a713c8e8ab2 failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/students/task_tracking.py", line 72, in launch_processing_task
+    async_result = task_callable.delay(*args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+TypeError: unexpected keyword argument
+.Cannot activate automatic trial for user failure-message-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user failure-message-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-17 17:54:56,410 task_tracking 1915855 124092725607360 [request_id=-] Background task 69c7692a-7746-48b6-9064-4f72e0de02ca failed
+
+RuntimeError: Traceback (most recent call last): connection reset by peer
+.Cannot activate automatic trial for user failure-message-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-17 17:54:57,305 task_tracking 1915855 124092725607360 [request_id=-] Background task 1bacb7d4-0aaf-495c-b2af-02b245e4aa30 failed
+
+RuntimeError: db exploded
+.Cannot activate automatic trial for user failure-message-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:54:58,253 refusals 1915855 124092725607360 [request_id=-] Background task 1954a947-95ed-4a51-94f5-5b9e28de8e5a refused: InsufficientCreditsError: Refill your wallet to continue
+
+
+FCannot activate automatic trial for user failure-message-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user revoke-app-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user terminal-guard-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user terminal-guard-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user terminal-guard-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+............F.F...F....
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_user_error', text='Credit consumption is blocked ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 602, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit consumption is blocked on this ac[104 chars]ds).' != "There aren't enough AI credits available[65 chars]run."
+- Credit consumption is blocked on this account: a reversed payment left an unsettled deficit of 700 credits (500 from chargebacks, 200 from refunds).
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_background_task_error', text='Credit consumption is blocked ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 602, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit consumption is blocked on this ac[104 chars]ds).' != "There aren't enough AI credits available[65 chars]run."
+- Credit consumption is blocked on this account: a reversed payment left an unsettled deficit of 700 credits (500 from chargebacks, 200 from refunds).
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_stripe_error', text='Credit consumption is blocked ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 602, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit consumption is blocked on this ac[104 chars]ds).' != "There aren't enough AI credits available[65 chars]run."
+- Credit consumption is blocked on this account: a reversed payment left an unsettled deficit of 700 credits (500 from chargebacks, 200 from refunds).
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_user_error', text='Insufficient credits. Requeste')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 602, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Insufficient credits. Requested: 25000, Available: 1000' != "There aren't enough AI credits available[65 chars]run."
+- Insufficient credits. Requested: 25000, Available: 1000
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_background_task_error', text='Insufficient credits. Requeste')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 602, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Insufficient credits. Requested: 25000, Available: 1000' != "There aren't enough AI credits available[65 chars]run."
+- Insufficient credits. Requested: 25000, Available: 1000
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_stripe_error', text='Insufficient credits. Requeste')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 602, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Insufficient credits. Requested: 25000, Available: 1000' != "There aren't enough AI credits available[65 chars]run."
+- Insufficient credits. Requested: 25000, Available: 1000
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_user_error', text='Task requires ~21000 credits, ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 602, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Task requires ~21000 credits, but you on[55 chars]inue' != "There aren't enough AI credits available[65 chars]run."
+- Task requires ~21000 credits, but you only have 1000 credits. Please refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_background_task_error', text='Task requires ~21000 credits, ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 602, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Task requires ~21000 credits, but you on[55 chars]inue' != "There aren't enough AI credits available[65 chars]run."
+- Task requires ~21000 credits, but you only have 1000 credits. Please refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_stripe_error', text='Task requires ~21000 credits, ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 602, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Task requires ~21000 credits, but you on[55 chars]inue' != "There aren't enough AI credits available[65 chars]run."
+- Task requires ~21000 credits, but you only have 1000 credits. Please refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_user_error', text='Refill your wallet to continue')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 602, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Refill your wallet to continue' != "There aren't enough AI credits available[65 chars]run."
+- Refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_background_task_error', text='Refill your wallet to continue')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 602, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Refill your wallet to continue' != "There aren't enough AI credits available[65 chars]run."
+- Refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_stripe_error', text='Refill your wallet to continue')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 602, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Refill your wallet to continue' != "There aren't enough AI credits available[65 chars]run."
+- Refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER PATCH /api/v1/assignments/f3900a45-86e8-477e-9c10-59b389293d0e]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER PATCH /api/v1/assignments/f3900a45-86e8-477e-9c10-59b389293d0e/update-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/assignments/upload-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/assignments/f3900a45-86e8-477e-9c10-59b389293d0e/grade-all]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/assignments/f3900a45-86e8-477e-9c10-59b389293d0e/schedule_grade_all_submission]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER GET /api/v1/course/24d56515-e003-40aa-8482-c962fd82b153/student-summary]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/f3900a45-86e8-477e-9c10-59b389293d0e/batch-upload]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/ba70f403-0bd0-4694-8a88-0e469df16a24/grade]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/ba70f403-0bd0-4694-8a88-0e469df16a24/grade-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/ba70f403-0bd0-4694-8a88-0e469df16a24/schedule-grade-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER GET /api/v1/submissions/ba70f403-0bd0-4694-8a88-0e469df16a24/teacher_feedback]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER PATCH /api/v1/submissions/ba70f403-0bd0-4694-8a88-0e469df16a24/update-grade]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions/f3900a45-86e8-477e-9c10-59b389293d0e/upload]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions/f3900a45-86e8-477e-9c10-59b389293d0e/upload-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT PUT /api/v1/submissions/ba70f403-0bd0-4694-8a88-0e469df16a24]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT PATCH /api/v1/submissions/ba70f403-0bd0-4694-8a88-0e469df16a24]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions/ba70f403-0bd0-4694-8a88-0e469df16a24/update-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 698, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 208, in assertCleanRefusalResponse
+    self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit wallet is empty' != "There aren't enough AI credits available[65 chars]run."
+- Credit wallet is empty
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_teacher_chat_refusals_are_402_or_403_never_500 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_teacher_chat_refusals_are_402_or_403_never_500) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 283, in test_teacher_chat_refusals_are_402_or_403_never_500
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 202, in assertCleanRefusalResponse
+    self.assertNoCreditDetail(body)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 212, in assertNoCreditDetail
+    self.assertNotIn(fragment, text or "")
+AssertionError: 'Task requires' unexpectedly found in '{"success":false,"message":"Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue","error":{"field_errors":{"error":"Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_sync_assignment_create_refusal_is_402_or_403 (billing.tests.test_refusal_handling.D4UncaughtRefusalTest.test_sync_assignment_create_refusal_is_402_or_403) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 339, in test_sync_assignment_create_refusal_is_402_or_403
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 202, in assertCleanRefusalResponse
+    self.assertNoCreditDetail(body)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 212, in assertNoCreditDetail
+    self.assertNotIn(fragment, text or "")
+AssertionError: 'Task requires' unexpectedly found in '{"success":false,"message":"Task requires ~32234 credits, but you only have 1000 credits. Please refill your wallet to continue","error":{"field_errors":{"error":"Task requires ~32234 credits, but you only have 1000 credits. Please refill your wallet to continue","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_extract_answer_background_task_does_not_retry_a_refusal (billing.tests.test_refusal_handling.D5TaskRetryTest.test_extract_answer_background_task_does_not_retry_a_refusal) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 399, in test_extract_answer_background_task_does_not_retry_a_refusal
+    self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 372, in assertTerminalRefusal
+    self.assertNoCreditDetail(tracked.error)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 212, in assertNoCreditDetail
+    self.assertNotIn(fragment, text or "")
+AssertionError: 'Task requires' unexpectedly found in 'Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue'
+
+======================================================================
+FAIL: test_upload_answers_engine_async_does_not_retry_a_refusal (billing.tests.test_refusal_handling.D5TaskRetryTest.test_upload_answers_engine_async_does_not_retry_a_refusal) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 419, in test_upload_answers_engine_async_does_not_retry_a_refusal
+    self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 372, in assertTerminalRefusal
+    self.assertNoCreditDetail(tracked.error)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 212, in assertNoCreditDetail
+    self.assertNotIn(fragment, text or "")
+AssertionError: 'Task requires' unexpectedly found in 'Task requires ~27514 credits, but you only have 1000 credits. Please refill your wallet to continue'
+
+======================================================================
+FAIL: test_refused_batch_grade_records_the_refusal_message (billing.tests.test_refusal_handling.D6BatchResultErrorTest.test_refused_batch_grade_records_the_refusal_message) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 457, in test_refused_batch_grade_records_the_refusal_message
+    self.assertNoCreditDetail(entry["error"])
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 212, in assertNoCreditDetail
+    self.assertNotIn(fragment, text or "")
+AssertionError: 'Task requires' unexpectedly found in 'Task requires ~25521 credits, but you only have 1000 credits. Please refill your wallet to continue'
+
+======================================================================
+FAIL: test_sync_submission_edit_refusal_is_402_or_403 (billing.tests.test_refusal_handling.D9StudentSubmissionRefusalStatusTest.test_sync_submission_edit_refusal_is_402_or_403) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 569, in test_sync_submission_edit_refusal_is_402_or_403
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 202, in assertCleanRefusalResponse
+    self.assertNoCreditDetail(body)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 212, in assertNoCreditDetail
+    self.assertNotIn(fragment, text or "")
+AssertionError: 'Task requires' unexpectedly found in '{"success":false,"message":"Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue","error":{"field_errors":{"error":"Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue","code":"insufficient_credits"}}}'
+
+======================================================================
+FAIL: test_known_user_facing_exceptions_pass_through_verbatim (students.tests_task_tracking.DescribeTaskErrorTest.test_known_user_facing_exceptions_pass_through_verbatim)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/students/tests_task_tracking.py", line 335, in test_known_user_facing_exceptions_pass_through_verbatim
+    self.assertEqual(
+AssertionError: 'Refill your wallet to continue' != "There aren't enough AI credits available[65 chars]run."
+- Refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_known_user_facing_exception_is_stored_verbatim (students.tests_task_tracking.MarkProcessingTaskFailureMessageTest.test_known_user_facing_exception_is_stored_verbatim)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/students/tests_task_tracking.py", line 423, in test_known_user_facing_exception_is_stored_verbatim
+    self.assertEqual(self.processing_task.error, INSUFFICIENT_CREDITS_MESSAGE)
+AssertionError: 'Refill your wallet to continue' != "There aren't enough AI credits available[65 chars]run."
+- Refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_known_user_facing_exception_still_passes_through_verbatim (AutoGrader.tests_error_messages.DescribeBackgroundTaskErrorTest.test_known_user_facing_exception_still_passes_through_verbatim)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/AutoGrader/tests_error_messages.py", line 138, in test_known_user_facing_exception_still_passes_through_verbatim
+    self.assertEqual(
+AssertionError: 'Refill your wallet to continue' != "There aren't enough AI credits available[65 chars]run."
+- Refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_falls_back_to_generic_classifier_for_known_exceptions (AutoGrader.tests_error_messages.DescribeStripeErrorTest.test_falls_back_to_generic_classifier_for_known_exceptions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/AutoGrader/tests_error_messages.py", line 179, in test_falls_back_to_generic_classifier_for_known_exceptions
+    self.assertEqual(describe_stripe_error(exc), INSUFFICIENT_CREDITS_MESSAGE)
+AssertionError: 'Refill your wallet to continue' != "There aren't enough AI credits available[65 chars]run."
+- Refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_known_user_facing_exceptions_pass_through_verbatim (AutoGrader.tests_error_messages.DescribeUserErrorTest.test_known_user_facing_exceptions_pass_through_verbatim)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/AutoGrader/tests_error_messages.py", line 26, in test_known_user_facing_exceptions_pass_through_verbatim
+    self.assertEqual(
+AssertionError: 'Refill your wallet to continue' != "There aren't enough AI credits available[65 chars]run."
+- Refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+----------------------------------------------------------------------
+Ran 64 tests in 77.769s
+
+FAILED (failures=41)
+Preserving test database for alias 'default'...

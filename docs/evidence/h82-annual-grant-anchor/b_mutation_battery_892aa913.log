@@ -1,0 +1,12 @@
+baseline exit=0
+H1	the next due snaps past the served due (no snap: drift double-grants)	KILLED	FAILED (failures=932)	True	16.3
+H2	the chain is computed from the anchor, not the served due	KILLED	FAILED (failures=5)	True	15.3
+H3	the helper is fed the served due, not now	KILLED	FAILED (failures=3)	True	14.9
+H4	the last due is capped at the contract end	KILLED	FAILED (failures=1)	True	15.4
+H5	a caught-up bucket lives from its grant time	KILLED	FAILED (failures=2)	True	15.9
+H6	a caught-up grant logs a WARNING	KILLED	FAILED (failures=1)	True	15.5
+H7	the row's next due is the anchored due, not the bucket's expiry	KILLED	FAILED (failures=3)	True	16.0
+H8	a caught-up bucket ends by the contract end (1a's Y2)	KILLED	FAILED (failures=1)	True	15.9
+
+8/8 killed with verified restore
+exit=0 wall_s=181

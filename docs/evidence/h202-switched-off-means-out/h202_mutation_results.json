@@ -1,0 +1,239 @@
+{
+  "S1_a_switched_off_account_is_mailed_a_verify_code": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_the_verify_code_request_for_a_switched_off_account_sends_nothing"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_the_verify_code_request_for_a_switched_off_account_sends_nothing"
+    ],
+    "pycache_left": 0
+  },
+  "S2_that_verify_code_request_answers_with_a_refusal": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_that_verify_code_request_answers_like_an_unknown_address"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_that_verify_code_request_answers_like_an_unknown_address"
+    ],
+    "pycache_left": 0
+  },
+  "S3_verify_switches_a_switched_off_account_back_on": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_verify_does_not_switch_a_switched_off_account_back_on",
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_that_verify_refusal_is_the_wrong_code_refusal",
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_a_refused_verify_for_a_switched_off_account_spends_the_budget"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_a_refused_verify_for_a_switched_off_account_spends_the_budget",
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_that_verify_refusal_is_the_wrong_code_refusal",
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_verify_does_not_switch_a_switched_off_account_back_on"
+    ],
+    "pycache_left": 0
+  },
+  "S4_verify_refuses_a_switched_off_account_in_its_own_words": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_that_verify_refusal_is_the_wrong_code_refusal"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_that_verify_refusal_is_the_wrong_code_refusal"
+    ],
+    "pycache_left": 0
+  },
+  "S5_verify_refuses_without_spending_the_attempt": {
+    "status": "SURVIVED",
+    "exit": 0,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_a_refused_verify_for_a_switched_off_account_spends_the_budget"
+    ],
+    "expected_but_passed": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_a_refused_verify_for_a_switched_off_account_spends_the_budget"
+    ],
+    "failing_tests": [],
+    "pycache_left": 0
+  },
+  "S6_a_switched_off_account_is_sent_a_reset_code": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_the_reset_code_request_for_a_switched_off_account_makes_no_code"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_the_reset_code_request_for_a_switched_off_account_makes_no_code"
+    ],
+    "pycache_left": 0
+  },
+  "S7_that_reset_code_request_answers_with_a_refusal": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_that_reset_code_request_answers_like_an_unknown_address"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_that_reset_code_request_answers_like_an_unknown_address"
+    ],
+    "pycache_left": 0
+  },
+  "S8_the_reset_step_accepts_a_switched_off_account": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_a_reset_for_a_switched_off_account_changes_nothing_and_signs_nobody_in",
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account",
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_a_refused_reset_for_a_switched_off_account_spends_an_attempt",
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_switched_off_account_that_verified_its_email_no_longer_resets"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_switched_off_account_that_verified_its_email_no_longer_resets",
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_a_refused_reset_for_a_switched_off_account_spends_an_attempt",
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_a_reset_for_a_switched_off_account_changes_nothing_and_signs_nobody_in",
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account"
+    ],
+    "pycache_left": 0
+  },
+  "S9_the_reset_refusal_spends_no_attempt": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_a_refused_reset_for_a_switched_off_account_spends_an_attempt"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_a_refused_reset_for_a_switched_off_account_spends_an_attempt"
+    ],
+    "pycache_left": 0
+  },
+  "S10_the_reset_refusal_is_in_its_own_words": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchedOffRoadsTests.test_that_reset_refusal_is_the_same_as_for_an_address_with_no_account"
+    ],
+    "pycache_left": 0
+  },
+  "S11_the_bulk_switch_off_bumps_nothing": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_the_bulk_switch_off_bumps_the_token_epoch_by_one",
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_tokens_issued_before_the_switch_off_stay_dead_after_a_switch_on",
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_the_bulk_switch_off_leaves_an_already_inactive_rows_epoch_alone"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_the_bulk_switch_off_bumps_the_token_epoch_by_one",
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_the_bulk_switch_off_leaves_an_already_inactive_rows_epoch_alone",
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_tokens_issued_before_the_switch_off_stay_dead_after_a_switch_on"
+    ],
+    "pycache_left": 0
+  },
+  "S12_the_bulk_switch_off_bumps_every_selected_row": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_the_bulk_switch_off_leaves_an_already_inactive_rows_epoch_alone"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_the_bulk_switch_off_leaves_an_already_inactive_rows_epoch_alone"
+    ],
+    "pycache_left": 0
+  },
+  "S13_the_bulk_switch_off_bumps_by_two": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_the_bulk_switch_off_bumps_the_token_epoch_by_one",
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_the_bulk_switch_off_leaves_an_already_inactive_rows_epoch_alone"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_the_bulk_switch_off_bumps_the_token_epoch_by_one",
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_the_bulk_switch_off_leaves_an_already_inactive_rows_epoch_alone"
+    ],
+    "pycache_left": 0
+  },
+  "S14_the_edit_form_does_not_revoke": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_an_edit_that_switches_a_user_off_bumps_the_epoch"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_an_edit_that_switches_a_user_off_bumps_the_epoch"
+    ],
+    "pycache_left": 0
+  },
+  "S15_the_edit_form_revokes_on_a_switch_on_too": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_an_edit_that_switches_a_user_on_does_not_bump"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_an_edit_that_switches_a_user_on_does_not_bump"
+    ],
+    "pycache_left": 0
+  },
+  "S16_the_edit_form_revokes_on_any_edit_of_an_inactive_user": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_an_edit_of_an_already_inactive_user_that_leaves_is_active_alone_does_not_bump"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_an_edit_of_an_already_inactive_user_that_leaves_is_active_alone_does_not_bump"
+    ],
+    "pycache_left": 0
+  },
+  "S17_the_bulk_switch_on_bumps_the_epoch": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 98,
+    "expected": [
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_a_switch_on_alone_does_not_bump_the_epoch"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_switched_off_means_out.SwitchingOffRevokesSessionsTests.test_a_switch_on_alone_does_not_bump_the_epoch"
+    ],
+    "pycache_left": 0
+  }
+}

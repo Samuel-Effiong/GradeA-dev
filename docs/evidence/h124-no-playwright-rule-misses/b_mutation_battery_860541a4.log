@@ -1,0 +1,21 @@
+baseline exit=0
+N1	a starter imported under another name is followed	KILLED	FAILED (failures=2)	True	17.7
+N2	a name bound to a starter is followed	KILLED	FAILED (failures=5)	True	24.1
+N3	only the thing itself binds a name, not any mention of it	KILLED	FAILED (failures=2)	True	16.3
+N4	a method that reaches a starter is followed	KILLED	FAILED (failures=6)	True	15.7
+N5	a module function counts by its bare name only	KILLED	FAILED (failures=1)	True	15.3
+N6	a method does not count by its bare name outside its class	KILLED	FAILED (failures=1)	True	15.1
+N7	a method counts by its bare name inside its own class body	KILLED	FAILED (failures=1)	True	16.6
+N8	getattr with the name written out is read	KILLED	FAILED (failures=3)	True	15.7
+N9	the scan's first look finds a name beside a quote or a bracket	KILLED	FAILED (failures=1)	True	15.1
+N10	a binding with an annotation is followed	KILLED	FAILED (failures=1)	True	15.5
+N11	a starter asked of a module binds a name	KILLED	FAILED (failures=1)	True	15.3
+N12	a bare starter or helper binds a name	KILLED	FAILED (failures=4)	True	14.9
+N13	a starter bound to an attribute is followed	KILLED	FAILED (failures=1)	True	14.5
+N14	a name bound in a class body counts when asked of the class	KILLED	FAILED (failures=1)	True	16.1
+G1	H-118's G1, new anchor: the rule follows the module's own functions	KILLED	FAILED (failures=8)	True	16.1
+G2	H-118's G2: function bodies are not read as run at import	KILLED	FAILED (failures=6)	True	14.5
+G3	H-118's G3: the rule knows the async starter too	KILLED	FAILED (failures=2)	True	13.1
+
+17/17 killed with verified restore
+exit=0 wall_s=289

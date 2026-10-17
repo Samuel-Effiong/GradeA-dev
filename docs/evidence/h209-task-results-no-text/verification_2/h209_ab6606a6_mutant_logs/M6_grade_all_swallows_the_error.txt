@@ -1,0 +1,56 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user ff4b9d5a-53ee-40d0-b310-223fd58cbb53.
+Cannot activate automatic trial for user ff4b9d5a-53ee-40d0-b310-223fd58cbb53 (validation): ValueError
+.Free trial plan not found: no trial activated for user bd5b1e89-b81b-4150-b8cc-a9365c27eaa1.
+Cannot activate automatic trial for user bd5b1e89-b81b-4150-b8cc-a9365c27eaa1 (validation): ValueError
+.Free trial plan not found: no trial activated for user c4dc7465-a893-4277-b11c-a5ea1c89a9c3.
+Cannot activate automatic trial for user c4dc7465-a893-4277-b11c-a5ea1c89a9c3 (validation): ValueError
+.Free trial plan not found: no trial activated for user b65e1140-1cf7-4e85-8dee-45c05af454bc.
+Cannot activate automatic trial for user b65e1140-1cf7-4e85-8dee-45c05af454bc (validation): ValueError
+.Free trial plan not found: no trial activated for user 57ae23d5-173f-4b4f-ad5d-fbbe95df4e7b.
+Cannot activate automatic trial for user 57ae23d5-173f-4b4f-ad5d-fbbe95df4e7b (validation): ValueError
+.Free trial plan not found: no trial activated for user 90e1fa90-3ae7-4dd0-bf2b-9c4feb76820f.
+Cannot activate automatic trial for user 90e1fa90-3ae7-4dd0-bf2b-9c4feb76820f (validation): ValueError
+.Free trial plan not found: no trial activated for user f7102a35-1edf-49e1-b943-d9eaa9810403.
+Cannot activate automatic trial for user f7102a35-1edf-49e1-b943-d9eaa9810403 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3d62dd99-b1f6-4694-a315-a9bafa237627.
+Cannot activate automatic trial for user 3d62dd99-b1f6-4694-a315-a9bafa237627 (validation): ValueError
+.Free trial plan not found: no trial activated for user 001d23a3-ca5e-40c9-9a4e-87527dbd7e9a.
+Cannot activate automatic trial for user 001d23a3-ca5e-40c9-9a4e-87527dbd7e9a (validation): ValueError
+.Free trial plan not found: no trial activated for user 189674c5-ad4a-4506-a8ce-c17848461617.
+Cannot activate automatic trial for user 189674c5-ad4a-4506-a8ce-c17848461617 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:03:49,495 task_tracking 1863774 138523740216256 [request_id=-] Background task 3c4f8f15-c5d8-4ebb-ab9a-d927885a5a0a failed: error=RuntimeError frames=tasks.py:242:extract_assignment_background_task <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 8b5ceebc-97f0-42ac-a030-ea2eeb276d59.
+Cannot activate automatic trial for user 8b5ceebc-97f0-42ac-a030-ea2eeb276d59 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-10-09 18:03:49,691 task_tracking 1863774 138523740216256 [request_id=-] Background task c5fafbfb-c5f6-49c2-9d62-c056c4901b5f failed: error=RuntimeError frames=tasks.py:158:grade_all_submissions <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+FFree trial plan not found: no trial activated for user 8f54647b-1d7e-46a6-965b-1e472b857c60.
+Cannot activate automatic trial for user 8f54647b-1d7e-46a6-965b-1e472b857c60 (validation): ValueError
+.
+======================================================================
+FAIL: test_g1_a_failing_grade_keeps_text_out_of_meta_row_logs_and_output (students.tests_vf2_h209_probe.GradeAllAndFriendsThroughTheRealBodies.test_g1_a_failing_grade_keeps_text_out_of_meta_row_logs_and_output)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-vf2-s1/students/tests_vf2_h209_probe.py", line 249, in test_g1_a_failing_grade_keeps_text_out_of_meta_row_logs_and_output
+    self.assertTrue(result.failed(), "grade-all did not re-raise")
+AssertionError: False is not true : grade-all did not re-raise
+
+----------------------------------------------------------------------
+Ran 12 tests in 2.768s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...
+Found 12 test(s).

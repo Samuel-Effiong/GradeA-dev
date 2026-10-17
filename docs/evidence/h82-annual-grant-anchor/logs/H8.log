@@ -1,0 +1,12 @@
+# H8: a caught-up bucket ends by the contract end (1a's Y2)
+# file: billing/services.py (occurrence 1)
+# old: 'else min(now + relativedelta(months=1), user_subscription.billing_cycle_end)'
+# new: 'else now + relativedelta(months=1)'
+# commit: 892aa913b55434cff5a92aded83cd56827b1b8e6
+# exit: 1
+# elapsed_s: 15.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_catch_up_at_the_cycle_end_never_outlives_the_contract (billing.tests.test_annual_grant_anchor.AnnualGrantAnchorTests.test_a_catch_up_at_the_cycle_end_never_outlives_the_contract)
+
+FAILED (failures=1)

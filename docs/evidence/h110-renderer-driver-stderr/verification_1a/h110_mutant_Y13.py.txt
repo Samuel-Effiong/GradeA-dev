@@ -1,0 +1,23 @@
+"""1a's mutant Y13 for H-110: a line that passes the bound on an unfinished
+line is logged cut EVERY time it passes it, not once (the "not dropping"
+guard at the bound is gone). A line that never ends would then put one
+2000-character WARNING in the log for every 64 to 128 KiB of it. Not in the
+author's battery. Expected: see h110_expected_kills.txt. Applied in place
+in the current directory; restore with git checkout. Run with python -B
+(rule 17)."""
+
+P = "assignments/pdf_renderer.py"
+s = open(P, encoding="utf-8").read()
+old = (
+    "                if len(pending) > _DRIVER_STDERR_MAX_PENDING:\n"
+    "                    if not dropping:\n"
+    "                        self._emit(pending)\n"
+)
+new = (
+    "                if len(pending) > _DRIVER_STDERR_MAX_PENDING:\n"
+    "                    if True:\n"
+    "                        self._emit(pending)\n"
+)
+assert s.count(old) == 1, s.count(old)
+open(P, "w", encoding="utf-8").write(s.replace(old, new))
+print("applied Y13")

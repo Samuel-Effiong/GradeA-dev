@@ -1,0 +1,367 @@
+[
+ {
+  "id": "K1",
+  "file": "ai_processor/extraction_flags.py",
+  "what": "mismatch if ANY part says so",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_paper_is_a_mismatch_only_when_every_part_says_so",
+   "test_one_part_matching_keeps_the_paper"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d38f5d4e7ba21f6af924a12fe5d85fd7490881844ba90efb86baca0ca5fec25f"
+ },
+ {
+  "id": "K2",
+  "file": "ai_processor/extraction_flags.py",
+  "what": "no verdict counts as a mismatch",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_paper_is_a_mismatch_only_when_every_part_says_so",
+   "test_an_older_reply_with_no_verdict_or_flags_raises_only_its_statuses"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d38f5d4e7ba21f6af924a12fe5d85fd7490881844ba90efb86baca0ca5fec25f"
+ },
+ {
+  "id": "K3",
+  "file": "ai_processor/extraction_flags.py",
+  "what": "lost answer not flagged",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_mismatched_upload_is_flagged_and_queued_at_upload",
+   "test_a_paper_for_another_assignment_is_flagged_first_with_the_readers_words",
+   "test_a_status_says_more_than_a_flag",
+   "test_a_teachers_review_clears_needs_review_for_both",
+   "test_each_kind_names_its_question",
+   "test_grading_keeps_the_readers_flags_and_does_not_count_one_twice",
+   "test_the_student_sees_the_flags_before_any_grade",
+   "test_the_teacher_sees_the_flag_on_the_assignments_student_rows",
+   "test_the_teacher_sees_the_flags_on_the_submission_and_the_list"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d38f5d4e7ba21f6af924a12fe5d85fd7490881844ba90efb86baca0ca5fec25f"
+ },
+ {
+  "id": "K4",
+  "file": "ai_processor/extraction_flags.py",
+  "what": "illegible status not flagged",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_status_says_more_than_a_flag",
+   "test_each_kind_names_its_question"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d38f5d4e7ba21f6af924a12fe5d85fd7490881844ba90efb86baca0ca5fec25f"
+ },
+ {
+  "id": "K5",
+  "file": "ai_processor/extraction_flags.py",
+  "what": "no fallback to the reader's note",
+  "verdict": "KILLED",
+  "failed": [
+   "test_each_kind_names_its_question",
+   "test_grading_keeps_the_readers_flags_and_does_not_count_one_twice"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d38f5d4e7ba21f6af924a12fe5d85fd7490881844ba90efb86baca0ca5fec25f"
+ },
+ {
+  "id": "K6",
+  "file": "ai_processor/extraction_flags.py",
+  "what": "note borrowed for every kind",
+  "verdict": "KILLED",
+  "failed": [
+   "test_the_readers_note_is_not_borrowed_for_an_answer_that_was_read"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d38f5d4e7ba21f6af924a12fe5d85fd7490881844ba90efb86baca0ca5fec25f"
+ },
+ {
+  "id": "K7",
+  "file": "ai_processor/extraction_flags.py",
+  "what": "paper-level flag never raised",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_mismatched_upload_is_flagged_and_queued_at_upload",
+   "test_a_paper_for_another_assignment_is_critical_on_its_own",
+   "test_a_paper_for_another_assignment_is_flagged_first_with_the_readers_words",
+   "test_a_paper_with_one_answer_on_topic_is_not_another_assignment",
+   "test_a_teachers_review_clears_needs_review_for_both",
+   "test_a_typed_edit_is_read_and_flagged_the_same_way",
+   "test_every_part_a_mismatch_makes_the_paper_one",
+   "test_grading_keeps_the_readers_flags_and_does_not_count_one_twice",
+   "test_the_student_sees_the_flags_before_any_grade",
+   "test_the_teacher_sees_the_flag_on_the_assignments_student_rows",
+   "test_the_teacher_sees_the_flags_on_the_submission_and_the_list"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d38f5d4e7ba21f6af924a12fe5d85fd7490881844ba90efb86baca0ca5fec25f"
+ },
+ {
+  "id": "K29",
+  "file": "ai_processor/extraction_flags.py",
+  "what": "paper verdict not held against the answers",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_paper_with_one_answer_on_topic_is_not_another_assignment"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d38f5d4e7ba21f6af924a12fe5d85fd7490881844ba90efb86baca0ca5fec25f"
+ },
+ {
+  "id": "K30",
+  "file": "ai_processor/extraction_flags.py",
+  "what": "an on-topic answer in the wrong form counts as off topic",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_paper_with_one_answer_on_topic_is_not_another_assignment"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d38f5d4e7ba21f6af924a12fe5d85fd7490881844ba90efb86baca0ca5fec25f"
+ },
+ {
+  "id": "K8",
+  "file": "ai_processor/extraction_flags.py",
+  "what": "unknown flag values passed through",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_flag_on_either_part_of_a_joined_answer_stands"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d38f5d4e7ba21f6af924a12fe5d85fd7490881844ba90efb86baca0ca5fec25f"
+ },
+ {
+  "id": "K9",
+  "file": "ai_processor/extraction_flags.py",
+  "what": "joined answer keeps only one detail",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_flag_on_either_part_of_a_joined_answer_stands"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d38f5d4e7ba21f6af924a12fe5d85fd7490881844ba90efb86baca0ca5fec25f"
+ },
+ {
+  "id": "K10",
+  "file": "ai_processor/extraction_flags.py",
+  "what": "whitespace not tidied",
+  "verdict": "KILLED",
+  "failed": [
+   "test_whitespace_in_a_detail_is_tidied"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d38f5d4e7ba21f6af924a12fe5d85fd7490881844ba90efb86baca0ca5fec25f"
+ },
+ {
+  "id": "K11",
+  "file": "ai_processor/services.py",
+  "what": "chunk join drops the flags",
+  "verdict": "KILLED",
+  "failed": [
+   "test_the_chunk_merge_keeps_a_flag_from_the_later_part"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "099688ea95469f6d80e319ecc9e318c68e06eb20ff93f29314a7b10d038b63cd"
+ },
+ {
+  "id": "K12",
+  "file": "ai_processor/services.py",
+  "what": "chunked paper verdict not carried",
+  "verdict": "KILLED",
+  "failed": [
+   "test_every_part_a_mismatch_makes_the_paper_one",
+   "test_one_part_matching_keeps_the_paper"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "099688ea95469f6d80e319ecc9e318c68e06eb20ff93f29314a7b10d038b63cd"
+ },
+ {
+  "id": "K13",
+  "file": "ai_processor/services.py",
+  "what": "objective wording not given the status",
+  "verdict": "KILLED",
+  "failed": [
+   "test_grading_hands_the_readers_status_to_the_wording"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "099688ea95469f6d80e319ecc9e318c68e06eb20ff93f29314a7b10d038b63cd"
+ },
+ {
+  "id": "K14",
+  "file": "ai_processor/services.py",
+  "what": "missing entry is not a lost answer",
+  "verdict": "KILLED",
+  "failed": [
+   "test_grading_hands_the_readers_status_to_the_wording"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "099688ea95469f6d80e319ecc9e318c68e06eb20ff93f29314a7b10d038b63cd"
+ },
+ {
+  "id": "K15",
+  "file": "ai_processor/objective_grading.py",
+  "what": "unseen answers worded as skipped",
+  "verdict": "KILLED",
+  "failed": [
+   "test_an_answer_not_found_does_not_tell_the_student_they_skipped_it",
+   "test_grading_hands_the_readers_status_to_the_wording"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "ba69e7e46d3ff8a0c128333925e74d778ec7ab5bece27363abb46ff9333a0330"
+ },
+ {
+  "id": "K16",
+  "file": "ai_processor/extraction_flags.py",
+  "what": "off-topic is critical",
+  "verdict": "KILLED",
+  "failed": [
+   "test_an_off_topic_answer_alone_is_moderate",
+   "test_grading_alone_raises_an_off_topic_flag"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d38f5d4e7ba21f6af924a12fe5d85fd7490881844ba90efb86baca0ca5fec25f"
+ },
+ {
+  "id": "K17",
+  "file": "ai_processor/extraction_flags.py",
+  "what": "paper mismatch is moderate",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_paper_for_another_assignment_is_critical_on_its_own"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d38f5d4e7ba21f6af924a12fe5d85fd7490881844ba90efb86baca0ca5fec25f"
+ },
+ {
+  "id": "K18",
+  "file": "students/services.py",
+  "what": "upload does not apply the flags",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_clean_reupload_takes_the_paper_off_the_queue",
+   "test_a_mismatched_upload_is_flagged_and_queued_at_upload",
+   "test_a_paper_for_another_assignment_is_critical_on_its_own",
+   "test_a_teachers_review_clears_needs_review_for_both",
+   "test_an_off_topic_answer_alone_is_moderate",
+   "test_grading_alone_raises_an_off_topic_flag",
+   "test_grading_keeps_the_readers_flags_and_does_not_count_one_twice",
+   "test_the_student_sees_the_flags_before_any_grade",
+   "test_the_teacher_sees_the_flag_on_the_assignments_student_rows",
+   "test_the_teacher_sees_the_flags_on_the_submission_and_the_list"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "38e080cd989708502feb3c13d13d921e0123ab715ad924d0e8a65378cc035391"
+ },
+ {
+  "id": "K19",
+  "file": "students/services.py",
+  "what": "typed edit does not apply the flags",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_typed_edit_is_read_and_flagged_the_same_way"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "38e080cd989708502feb3c13d13d921e0123ab715ad924d0e8a65378cc035391"
+ },
+ {
+  "id": "K20",
+  "file": "students/services.py",
+  "what": "re-upload does not save the review state",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_clean_reupload_takes_the_paper_off_the_queue"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "38e080cd989708502feb3c13d13d921e0123ab715ad924d0e8a65378cc035391"
+ },
+ {
+  "id": "K21",
+  "file": "students/services.py",
+  "what": "clean reading leaves the paper queued",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_clean_reupload_takes_the_paper_off_the_queue"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "38e080cd989708502feb3c13d13d921e0123ab715ad924d0e8a65378cc035391"
+ },
+ {
+  "id": "K22",
+  "file": "students/services.py",
+  "what": "grading drops the reader's flags",
+  "verdict": "KILLED",
+  "failed": [
+   "test_grading_alone_raises_an_off_topic_flag",
+   "test_grading_keeps_the_readers_flags_and_does_not_count_one_twice"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "38e080cd989708502feb3c13d13d921e0123ab715ad924d0e8a65378cc035391"
+ },
+ {
+  "id": "K23",
+  "file": "students/services.py",
+  "what": "grading counts a lost answer twice",
+  "verdict": "KILLED",
+  "failed": [
+   "test_grading_keeps_the_readers_flags_and_does_not_count_one_twice"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "38e080cd989708502feb3c13d13d921e0123ab715ad924d0e8a65378cc035391"
+ },
+ {
+  "id": "K24",
+  "file": "students/services.py",
+  "what": "lost-answer reason loses the reader's message",
+  "verdict": "KILLED",
+  "failed": [
+   "test_grading_keeps_the_readers_flags_and_does_not_count_one_twice"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "38e080cd989708502feb3c13d13d921e0123ab715ad924d0e8a65378cc035391"
+ },
+ {
+  "id": "K25",
+  "file": "students/feedback_projection.py",
+  "what": "flagged ignores the teacher's review",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_teachers_review_clears_needs_review_for_both"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "128a87e9104b18ca9ee154e33be11d34b609e03dd2b07b1e6b53b587de72a9ed"
+ },
+ {
+  "id": "K26",
+  "file": "assignments/serializers.py",
+  "what": "teacher's assignment rows not flagged",
+  "verdict": "KILLED",
+  "failed": [
+   "test_the_teacher_sees_the_flag_on_the_assignments_student_rows"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "f76014076e292f4de1ee013ab83e7c999135ff3f43250b243288b7a2851ed7f6"
+ },
+ {
+  "id": "K27",
+  "file": "assignments/serializers.py",
+  "what": "student's assignment page has no flags",
+  "verdict": "KILLED",
+  "failed": [
+   "test_the_student_sees_the_flags_before_any_grade"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "f76014076e292f4de1ee013ab83e7c999135ff3f43250b243288b7a2851ed7f6"
+ },
+ {
+  "id": "K28",
+  "file": "ai_processor/extraction_schemas.py",
+  "what": "reader may omit the flag",
+  "verdict": "KILLED",
+  "failed": [
+   "test_the_reader_must_answer_every_new_field"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "f556254f8e3916c7c28231d3025c7133580e373cfb91058df749f5b8b1f35626"
+ }
+]

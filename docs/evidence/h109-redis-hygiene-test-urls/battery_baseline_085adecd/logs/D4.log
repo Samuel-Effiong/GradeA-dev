@@ -1,0 +1,26 @@
+# D4: a unix:// URL's database is its db parameter
+# file: AutoGrader/redis_test_hygiene.py (occurrence 1)
+# old: '        query.append(("db", str(db)))\n'
+# new: ''
+# commit: 085adecd340a2d630a2597e988f66a9e1594050f
+# exit: 1
+# elapsed_s: 13.9
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket', db=0)
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket', db=5)
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket', db=15)
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a password', db=0)
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a password', db=5)
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a password', db=15)
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a user and a password', db=0)
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a user and a password', db=5)
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a user and a password', db=15)
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a password and another parameter', db=0)
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a password and another parameter', db=5)
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket with a password and another parameter', db=15)
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket that names no database', db=0)
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket that names no database', db=5)
+ERROR: test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says) (shape='a socket that names no database', db=15)
+
+FAILED (errors=15)
