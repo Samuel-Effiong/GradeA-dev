@@ -377,8 +377,8 @@ APPROVED_ADDITIONS = {
         "this is a mistake, contact your school administrator.",
         "",
     ),
-    # H-247 (2026-10-16): proposed by the SM, pending the owner's approval
-    # of the wording before beta.
+    # H-247: proposed by the SM 2026-10-16, approved by the owner
+    # 2026-10-17 (neutral: never shows the stored name).
     "ROW_NAME_MISMATCH": (
         422,
         "Row {row}: this email already belongs to a student with a different " "name.",

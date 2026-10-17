@@ -26,7 +26,7 @@ Code commit: `fb7bc8bd` on `task/h247-student-identity` (from beta `ec482691`).
   - `_find_existing_student_by_name` is removed.
   - A no-email row whose name is already in the course is skipped as `ROW_ALREADY_ENROLLED`. Any other no-email row is a new student.
   - The name refusal is the new row code `ROW_NAME_MISMATCH`.
-- `ROW_NAME_MISMATCH` has been added to `audit/enums.py`, `AutoGrader/reason_codes.py` and `docs/GRADE_A_PLUS_REASON_CODES.md` (64 codes, 45 user-facing). Its wording was proposed by the SM and is **pending the owner's approval**.
+- `ROW_NAME_MISMATCH` has been added to `audit/enums.py`, `AutoGrader/reason_codes.py` and `docs/GRADE_A_PLUS_REASON_CODES.md` (64 codes, 45 user-facing). Its wording was proposed by the SM and **approved by the owner on 2026-10-17**, including the choice not to show the stored name.
 
 ## Tests
 
@@ -48,6 +48,7 @@ Code commit: `fb7bc8bd` on `task/h247-student-identity` (from beta `ec482691`).
   - Fingerprint identical before and after. Excerpt in `final_gate_fb7bc8bd_excerpt.txt`.
   - Afterwards `pg_database` had no `test_h247_gate*` rows, with 0 connections.
 
-## Open before beta
+## Approval
 
-- The owner approves the refusal wording, and the choice not to show the stored name.
+- The owner approved the refusal wording on 2026-10-17, including the choice not to show the stored name.
+- After the gate, the only change outside `docs/` is one comment in `AutoGrader/tests_reason_codes.py` recording that approval. `AutoGrader.tests_reason_codes` was re-run on it.
