@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(git branch:*)",
+      "Bash(git worktree:*)",
+      "Bash(git push backup:*)",
+      "Bash(python manage.py test:*)",
+      "Bash(timeout * python manage.py test:*)",
+      "Bash(./scripts/isolated-test-env.sh:*)"
+    ]
+  }
+}
