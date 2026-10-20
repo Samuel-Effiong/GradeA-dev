@@ -813,6 +813,19 @@ class StudentListSerializer(serializers.ModelSerializer):
     percentage_of_submission = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
     at_risk = serializers.SerializerMethodField()
+    grade_trend = serializers.SerializerMethodField(
+        help_text=(
+            "IMPROVING, DECLINING, STABLE or INSUFFICIENT DATA: the student's "
+            "last six graded scores across this teacher's courses, from the "
+            "same verdict as at_risk (H-251). Filter with ?grade_trend=."
+        )
+    )
+    trend_delta = serializers.SerializerMethodField(
+        help_text=(
+            "How far the grade moved over those scores, in percentage "
+            "points; 3 or more either way is IMPROVING or DECLINING."
+        )
+    )
 
     class Meta:
         model = CustomUser
@@ -827,6 +840,8 @@ class StudentListSerializer(serializers.ModelSerializer):
             "total_assignments_submitted",
             "percentage_of_submission",
             "at_risk",
+            "grade_trend",
+            "trend_delta",
         ]
 
     def get_email(self, obj):
@@ -1088,3 +1103,9 @@ class StudentListSerializer(serializers.ModelSerializer):
 
     def get_at_risk(self, obj) -> bool:
         return self._risk_result(obj).at_risk
+
+    def get_grade_trend(self, obj) -> str:
+        return self._risk_result(obj).grade_trend
+
+    def get_trend_delta(self, obj) -> float:
+        return self._risk_result(obj).trend_delta
