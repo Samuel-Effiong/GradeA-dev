@@ -83,4 +83,4 @@ USER appuser
 # duplicate non-refundable Stripe side effects).
 # WEB_CONCURRENCY and GUNICORN_THREADS override the worker and thread counts
 # without a rebuild; unset, they default to 9 and 4.
-CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 100 --workers ${WEB_CONCURRENCY:-9} --threads ${GUNICORN_THREADS:-4}--max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200
+CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 100 --workers ${WEB_CONCURRENCY:-9} --threads ${GUNICORN_THREADS:-4} --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200
