@@ -47,13 +47,16 @@ class MyStudentsFilter(django_filters.FilterSet):
         # a school the teacher was removed from is no longer theirs to filter
         # by, or the filter answers "is my student in that school course?".
         # The helper ANDs `course__teacher=user`, so it can only narrow H-22.
+        # H-252: `.active()`, as the student set itself is picked. Without it
+        # a student who withdrew from this course (or this session's) but is
+        # enrolled in another of the teacher's was still listed under it.
         return queryset.filter(
             Exists(
                 StudentCourse.objects.filter(
                     teacher_course_access_q(self.request.user, prefix="course__"),
                     student=OuterRef("pk"),
                     **lookup,
-                )
+                ).active()
             )
         )
 
