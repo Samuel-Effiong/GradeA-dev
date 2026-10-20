@@ -56,6 +56,12 @@ from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.query_params import boolean_query_param
 from billing.models import CreditUsageLog
 from classrooms.permissions import CanManageSession
+from dashboard.risk import (
+    TREND_DECLINING,
+    TREND_IMPROVING,
+    TREND_INSUFFICIENT_DATA,
+    TREND_STABLE,
+)
 from students.models import BackgroundTaskType, StudentSubmission
 from students.serializers import StudentListSerializer
 from students.task_tracking import create_processing_task, launch_processing_task
@@ -146,6 +152,33 @@ def _grade_query_param(request, param_name):
             {param_name: [f"{value!r} is not a number between 0 and 100."]}
         )
     return grade
+
+
+#: `?grade_trend=` values (any letter case) and the verdict each one means.
+GRADE_TRENDS = {
+    "improving": TREND_IMPROVING,
+    "declining": TREND_DECLINING,
+    "stable": TREND_STABLE,
+    "insufficient_data": TREND_INSUFFICIENT_DATA,
+}
+
+
+def _grade_trend_query_param(request, param_name):
+    """One grade trend from the query string, or None if not given (H-251).
+
+    Absent or empty means not given; anything that is not one of
+    GRADE_TRENDS, a comma-separated list included, is the caller's 400,
+    naming the parameter.
+    """
+    value = request.query_params.get(param_name)
+    if value in (None, ""):
+        return None
+    trend = GRADE_TRENDS.get(value.lower())
+    if trend is None:
+        raise ValidationError(
+            {param_name: [f"{value!r} is not one of {', '.join(GRADE_TRENDS)}."]}
+        )
+    return trend
 
 
 @extend_schema_view(
@@ -2313,6 +2346,22 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 ),
             ),
             OpenApiParameter(
+                name="grade_trend",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                enum=list(GRADE_TRENDS),
+                description=(
+                    "Only students whose grade_trend is this one value: "
+                    "improving, declining, stable or insufficient_data (any "
+                    "letter case; one value, not a list). The trend is the "
+                    "response's own grade_trend field: the student's last six "
+                    "graded scores across every course this teacher teaches "
+                    "them, IMPROVING or DECLINING when they moved 3 points or "
+                    "more, INSUFFICIENT DATA under two scores. Anything else "
+                    "is a 400."
+                ),
+            ),
+            OpenApiParameter(
                 name="ordering",
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
@@ -2340,6 +2389,7 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         min_grade = _grade_query_param(request, "min_grade")
         max_grade = _grade_query_param(request, "max_grade")
         at_risk = boolean_query_param(request, "at_risk")
+        grade_trend = _grade_trend_query_param(request, "grade_trend")
         ordering = request.query_params.get("ordering")
         sort_by_grade = ordering in ("final_grade", "-final_grade")
 
@@ -2357,6 +2407,7 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             min_grade is not None
             or max_grade is not None
             or at_risk is not None
+            or grade_trend is not None
             or sort_by_grade
         ):
             page = self.paginate_queryset(queryset)
@@ -2374,7 +2425,12 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # needed is already prefetched by get_queryset).
         probe = StudentListSerializer(context={"request": request})
         rows = [
-            (student, probe._cross_course_grade(student), probe.get_at_risk(student))
+            (
+                student,
+                probe._cross_course_grade(student),
+                probe.get_at_risk(student),
+                probe.get_grade_trend(student),
+            )
             for student in queryset
         ]
 
@@ -2384,6 +2440,8 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             rows = [r for r in rows if r[1] is not None and r[1] <= max_grade]
         if at_risk is not None:
             rows = [r for r in rows if r[2] == at_risk]
+        if grade_trend is not None:
+            rows = [r for r in rows if r[3] == grade_trend]
         if sort_by_grade:
             # Ungraded students sort last regardless of direction - "no
             # grade yet" isn't lower or higher than a real one, so it's
