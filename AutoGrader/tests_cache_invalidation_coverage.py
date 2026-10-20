@@ -108,7 +108,8 @@ FAMILIES = {
     # responses that carry an at_risk answer gained a version token, so an
     # answer cached under the old at-risk rule is not served after deploy.
     "teacheradmins:user_id__<>:instance__id__<>:view__overview:risk1": ("SCOPE_USER",),
-    "teacheradmins:user_id__<>:instance_id__<>:view__courses": ("SCOPE_USER",),
+    # ":wf1" (H-250): the course workflow counts changed meaning.
+    "teacheradmins:user_id__<>:instance_id__<>:view__courses:wf1": ("SCOPE_USER",),
     # ":qd6" (H-240 qd1, H-241 qd2, H-243 qd3, H-244 qd4, H-245 qd5,
     # H-248 qd6): the response gained hardest/easiest questions, then the
     # breakdown and student names; H-243 sent average_percentage 0 for a
