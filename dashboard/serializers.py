@@ -212,9 +212,38 @@ class TeacherDashboardOverviewSerializer(serializers.Serializer):
 class WorkflowStatsSerializer(serializers.Serializer):
     """Serializer for assignment workflow statistics"""
 
-    total_assignments_assigned = serializers.IntegerField(read_only=True)
-    total_assignments_submitted = serializers.IntegerField(read_only=True)
-    total_assignments_graded = serializers.IntegerField(read_only=True)
+    total_assignments_assigned = serializers.IntegerField(
+        read_only=True, help_text="Published assignments."
+    )
+    total_draft_assignments = serializers.IntegerField(
+        read_only=True,
+        help_text="Saved but not published: draft or unpublished assignments.",
+    )
+    total_enrolled_students = serializers.IntegerField(
+        read_only=True,
+        help_text="Students enrolled, pending or completed; not withdrawn.",
+    )
+    total_at_risk_students = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "Of the enrolled students, those at risk, by the same rule as "
+            "the overview's at_risk_students."
+        ),
+    )
+    total_assignments_submitted = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "Every submission to a published assignment by an enrolled "
+            "student: one per student per assignment."
+        ),
+    )
+    total_assignments_graded = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "Of those submissions, every one with a grade, released to the "
+            "student or not."
+        ),
+    )
 
 
 class AssignmentGradeByTypeSerializer(serializers.Serializer):
