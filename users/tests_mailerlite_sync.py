@@ -12,7 +12,7 @@ branches on it:
 
     True  -> synced
     False -> request failed, SAFE TO RETRY
-    None  -> skipped (no API key configured), NOT worth retrying
+    None  -> skipped (no API key, inactive or QA user), NOT worth retrying
 
 Getting None and False confused either retries forever on a deployment with
 no API key, or silently drops real failures.
@@ -89,6 +89,37 @@ class MailerLiteServiceTests(TestCase):
         """None, not False - a missing key is not a retryable failure."""
         with patch("users.mailerlite_service.requests.post") as mock_post:
             self.assertIsNone(MailerLiteService.sync_user(self.user))
+
+        mock_post.assert_not_called()
+
+    def test_an_inactive_user_is_skipped_without_a_call(self):
+        """
+        Stripe webhooks and trial expiry dispatch the task directly,
+        bypassing queue_sync's guard, so sync_user must check for itself.
+        """
+        self.user.is_active = False
+        self.user.save(update_fields=["is_active"])
+
+        with patch("users.mailerlite_service.requests.post") as mock_post:
+            self.assertIsNone(MailerLiteService.sync_user(self.user))
+
+        mock_post.assert_not_called()
+
+    def test_a_billing_qa_user_is_skipped_even_when_active(self):
+        """The nightly Stripe QA run once filled the real list with these."""
+        qa_user = make_user(email="liveqa-abc123-renew@stripe-live-qa.invalid")
+
+        with patch("users.mailerlite_service.requests.post") as mock_post:
+            self.assertIsNone(MailerLiteService.sync_user(qa_user))
+
+        mock_post.assert_not_called()
+
+    @override_settings(STRIPE_LIVE_QA_EMAIL_DOMAIN="qa.example.invalid")
+    def test_a_configured_qa_domain_is_skipped(self):
+        qa_user = make_user(email="liveqa-abc123-renew@QA.example.invalid")
+
+        with patch("users.mailerlite_service.requests.post") as mock_post:
+            self.assertIsNone(MailerLiteService.sync_user(qa_user))
 
         mock_post.assert_not_called()
 
@@ -197,8 +228,8 @@ class SyncUserToMailerliteTaskTests(TestCase):
     @patch("users.mailerlite_service.MailerLiteService.sync_user")
     def test_a_skipped_sync_is_not_retried(self, mock_sync):
         """
-        None = "no API key configured". Retrying that would mean every
-        deployment without a key burns its whole retry budget on every
+        None = "skipped" (no API key, inactive or QA user). Retrying that
+        would mean every deployment without a key burns its whole retry budget on every
         signup, for a call that cannot succeed.
         """
         mock_sync.return_value = None
