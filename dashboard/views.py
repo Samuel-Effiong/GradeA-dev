@@ -3495,10 +3495,14 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         - AI Trust indicators (`ai_extraction_confidence`/
           `ai_grading_confidence`): how well the AI read and graded these
           students' submissions, averaged over graded submissions only.
-        - `hardest_questions`/`easiest_questions`: up to `question_limit`
-          questions each (default 3), by the class's average share of each
-          question's marks, over the same graded, non-withdrawn
-          submissions. Answers the AI could not read, and submissions whose
+        - `hardest_questions`/`easiest_questions` (H-248): the bottom and
+          top 20% of the paper's questions, by the class's average share of
+          each question's marks, over the same graded, non-withdrawn
+          submissions. Each list holds 20% of every question on the paper,
+          rounded up, at most 5 (`question_difficulty.list_size`); a tie at
+          the end of a list is shown whole, even past 5, and the two lists
+          never share a question. A paper of fewer than 3 questions names
+          nothing. Answers the AI could not read, and submissions whose
           grade was changed by hand, are left out;
           `question_difficulty.status` says why a list is empty.
         - `question_breakdown`: every question on the paper, hardest first.
@@ -3519,9 +3523,14 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 location=OpenApiParameter.QUERY,
                 required=False,
                 description=_(
-                    "Most questions in each of hardest_questions and "
-                    "easiest_questions (default 3; never more than half the "
-                    "paper's ranked questions)."
+                    "Optional. Shortens hardest_questions and easiest_questions "
+                    "to at most this many questions each, before ties. It can "
+                    "only shorten: each list is already 20% of the paper's "
+                    "questions, rounded up, at most 5, so a value above that "
+                    "changes nothing. A tie at the end of a list is still "
+                    "shown whole. Must be a whole number of at least 1, or "
+                    "the response is a 400. question_difficulty.list_size "
+                    "reports the length applied."
                 ),
             ),
         ],
@@ -3534,14 +3543,17 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
     )
     def assignments(self, request, assignment_id, *args, **kwargs):
         try:
-            question_limit = _bounded_int_param(request, "question_limit", LIST_LIMIT)
+            # Past LIST_LIMIT changes nothing; one cache entry for all of it.
+            question_limit = min(
+                _bounded_int_param(request, "question_limit", LIST_LIMIT), LIST_LIMIT
+            )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         cache_key = versioned_key(
             f"teacheradmins:user_id__{request.user.id}"
             f":instance_id__{assignment_id}:view__assignments"
-            f":{question_limit}:qd5",
+            f":{question_limit}:qd6",
             [(SCOPE_USER, request.user.id)],
         )
         data = cache.get(cache_key)

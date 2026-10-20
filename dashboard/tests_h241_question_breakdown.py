@@ -1,6 +1,7 @@
 """
 H-241: the full per-question breakdown, the adjustable hardest/easiest
-limit (default 3), and which students struggled with each question, on
+limit (since H-248 it only shortens the 20% lists), and which students
+struggled with each question, on
 `teacher-admin/dashboard/assignments/<id>`.
 
 Builds on H-240's helpers (dashboard/tests_h240_question_difficulty.py):
@@ -64,8 +65,10 @@ class BreakdownRulesTest(SimpleTestCase):
             paper(1, 2, 3, 4, 5, 6, 7, 8),
             class_of({n: n for n in range(1, 9)}),
         )
-        self.assertEqual(result["hardest"], result["breakdown"][:3])
-        self.assertEqual(result["easiest"], list(reversed(result["breakdown"][-3:])))
+        size = result["list_size"]
+        self.assertEqual(size, 2)
+        self.assertEqual(result["hardest"], result["breakdown"][:size])
+        self.assertEqual(result["easiest"], list(reversed(result["breakdown"][-size:])))
 
     def test_a_question_short_of_the_minimum_is_shown_marked_after_trusted_ones(self):
         # Q2's answers were lost on two papers: 3 students, 0%. It would
@@ -109,13 +112,15 @@ class BreakdownRulesTest(SimpleTestCase):
         self.assertIsNone(result["breakdown"][1]["average_percentage"])
 
     def test_the_breakdown_is_there_when_nothing_is_ranked(self):
-        few = question_difficulty(paper(1, 2), class_of({1: 1, 2: 9}, students=2))
+        few = question_difficulty(
+            paper(1, 2, 3), class_of({1: 1, 2: 9, 3: 5}, students=2)
+        )
         self.assertEqual(few["status"], STATUS_NOT_ENOUGH_DATA)
-        self.assertEqual(numbers(few["breakdown"]), [1, 2])
+        self.assertEqual(numbers(few["breakdown"]), [1, 3, 2])
 
-        equal = question_difficulty(paper(1, 2), class_of({1: 5, 2: 5}))
+        equal = question_difficulty(paper(1, 2, 3), class_of({1: 5, 2: 5, 3: 5}))
         self.assertEqual(equal["status"], STATUS_NO_DIFFERENCE)
-        self.assertEqual(numbers(equal["breakdown"]), [1, 2])
+        self.assertEqual(numbers(equal["breakdown"]), [1, 2, 3])
 
     def test_no_internal_field_leaks_into_an_entry(self):
         result = question_difficulty(paper(1, 2), class_of({1: 2, 2: 8}))
@@ -283,8 +288,8 @@ class AssignmentAnalyticsBreakdownTest(Builder, APITestCase):
             str(student_id),
         )
 
-    def test_the_default_card_limit_is_three(self):
-        # Eight questions so half the paper (4) is not the binding cap.
+    def test_the_default_cards_are_twenty_percent_of_the_paper(self):
+        # Eight questions: 20%, rounded up, is two (H-248).
         questions = [
             {"question_number": n, "question_text": f"Q{n}", "points": 10}
             for n in range(1, 9)
@@ -294,8 +299,8 @@ class AssignmentAnalyticsBreakdownTest(Builder, APITestCase):
         for i in range(MINIMUM_STUDENTS):
             self._graded_on(questions, {n: n for n in range(1, 9)}, f"P{i}")
         data = self._get()
-        self.assertEqual(len(data["hardest_questions"]), 3)
-        self.assertEqual(len(data["easiest_questions"]), 3)
+        self.assertEqual(len(data["hardest_questions"]), 2)
+        self.assertEqual(len(data["easiest_questions"]), 2)
         limited = self._get(question_limit=1)
         self.assertEqual(
             [q["question_number"] for q in limited["hardest_questions"]], ["1"]
@@ -327,7 +332,15 @@ class AssignmentAnalyticsBreakdownTest(Builder, APITestCase):
         )
 
     def test_each_limit_has_its_own_cached_answer(self):
-        self._class()
+        # Ten questions: two cards each by default.
+        questions = [
+            {"question_number": n, "question_text": f"Q{n}", "points": 10}
+            for n in range(1, 11)
+        ]
+        self.assignment_obj.questions = questions
+        self.assignment_obj.save()
+        for i in range(MINIMUM_STUDENTS):
+            self._graded_on(questions, {n: n for n in range(1, 11)}, f"P{i}")
         cache.clear()
         first = self._get(clear=False, question_limit=1)
         second = self._get(clear=False)

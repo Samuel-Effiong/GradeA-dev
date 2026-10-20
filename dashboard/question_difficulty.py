@@ -1,6 +1,7 @@
 """
-How a class did on each question of one assignment (H-240, H-241): the
-full breakdown, the hardest and easiest questions, and which students
+How a class did on each question of one assignment (H-240, H-241, H-248,
+H-249):
+the full breakdown, the hardest and easiest questions, and which students
 struggled with each.
 
 THE MEASURE. A question's difficulty is the class's average share of that
@@ -36,19 +37,32 @@ a ranking to mean anything. How many is enough scales with the class
 MINIMUM_FLOOR nor more than MINIMUM_CAP (minimum_for_class). A fixed five
 left a class of four with empty cards forever, and let a class of forty be
 ranked on five papers. MINIMUM_STUDENTS is the minimum when no class size
-is given. With fewer than two rankable questions, or with
-every question on the same average, nothing is named hardest or easiest.
+is given. On a paper of fewer than MINIMUM_QUESTIONS questions, with
+fewer than two rankable questions, or with every question on the same
+average, nothing is named hardest or easiest.
 
-The two lists never share a question, nor an average: each holds at most
-LIST_LIMIT and at most half the rankable questions, a question is
-"hardest" only if some question did better and "easiest" only if some
-question did worse, and a question tied with one named hardest is never
-named easiest. Ties within a list fall to the question's position on the
-paper, not to its number as text ("10" would otherwise sort before "2").
+HOW LONG THE LISTS ARE (H-248, the user's rule). The hardest are the
+bottom 20% of the paper's questions and the easiest the top 20%: each list
+holds 20% of every question on the paper, rounded up, never more than
+LIST_LIMIT (list_size_for_paper). A caller's limit can only shorten that.
+A tie at the end of a list is shown whole, even past LIST_LIMIT.
+
+The two lists never share a question, nor an average: a question is
+"hardest" only if some question did better, and since a tie is never cut,
+every question on a hardest average is hardest and none is easiest. Ties
+within a list fall to the question's position on the paper, not to its
+number as text ("10" would otherwise sort before "2").
 
 THE BREAKDOWN lists every question on the paper, hardest first. A question
 short of the minimum is shown, marked `enough_data: false`, after the
 trusted ones; a question nobody has a mark on comes last.
+
+IN MARKS, AND WHO PASSED (H-249). Beside the share, each question gives
+the same average in marks, out of its points on the paper
+(`average_score`), and how many of the students counted earned at least
+half its marks (`passed_count`, `pass_rate`). Passing is the line that
+"struggling" is drawn under, so passed and struggling always add up to
+the students counted. The ranking stays on the share.
 
 WHO STRUGGLED. Per question, the students who earned under half its marks
 (blanks included, flagged `left_blank`), lowest first; and, separately,
@@ -72,13 +86,19 @@ MINIMUM_STUDENTS = 5
 #: students, and never waits for more than 10.
 MINIMUM_FLOOR = 3
 MINIMUM_CAP = 10
-LIST_LIMIT = 3
+#: Most questions in each list, before a tie is shown whole (H-248).
+LIST_LIMIT = 5
+#: Each list holds this percentage of the paper's questions, rounded up.
+LIST_PERCENT = 20
+#: A paper with fewer questions names nothing hardest or easiest.
+MINIMUM_QUESTIONS = 3
 # A share of a question's marks below this is "struggled with it".
 STRUGGLING_BELOW = 0.5
 
 STATUS_READY = "ready"
 STATUS_NOT_ENOUGH_DATA = "not_enough_data"
 STATUS_NO_DIFFERENCE = "no_difference"
+STATUS_TOO_FEW_QUESTIONS = "too_few_questions"
 
 # Totals are stored to 2dp; anything closer than this is the same mark.
 _SUM_TOLERANCE = 0.01
@@ -144,6 +164,7 @@ def _is_not_attempted(evaluation):
 @dataclass
 class _Tally:
     fractions: list = field(default_factory=list)
+    passed: int = 0
     not_attempted: int = 0
     struggling: list = field(default_factory=list)
     unread: list = field(default_factory=list)
@@ -161,6 +182,16 @@ def minimum_for_class(class_size):
     return min(MINIMUM_CAP, max(MINIMUM_FLOOR, half))
 
 
+def list_size_for_paper(question_count, limit=LIST_LIMIT):
+    """How many questions each of hardest/easiest holds before ties: 20% of
+    the paper, rounded up, never more than LIST_LIMIT nor `limit`; none on a
+    paper of fewer than MINIMUM_QUESTIONS."""
+    if question_count < MINIMUM_QUESTIONS:
+        return 0
+    share = -(-question_count * LIST_PERCENT // 100)  # rounded up, exactly
+    return min(share, LIST_LIMIT, limit)
+
+
 def question_difficulty(
     assignment, submissions, limit=LIST_LIMIT, minimum=MINIMUM_STUDENTS
 ):
@@ -172,7 +203,7 @@ def question_difficulty(
     each of the hardest/easiest lists; `minimum` is how many students a
     question must be counted on to be ranked. Returns a dict with `status`,
     `students_analysed`, `excluded_manual_grade_change`, `minimum_students`,
-    `hardest`, `easiest` and `breakdown`; each list entry describes one
+    `list_size`, `hardest`, `easiest` and `breakdown`; each list entry describes one
     question, and hardest/easiest entries are the breakdown's own entries.
     """
     paper = _paper(assignment)
@@ -208,7 +239,9 @@ def question_difficulty(
             blank = _is_not_attempted(evaluation)
             if blank:
                 tally.not_attempted += 1
-            if fraction < STRUGGLING_BELOW:
+            if fraction >= STRUGGLING_BELOW:
+                tally.passed += 1
+            else:
                 tally.struggling.append(
                     {
                         **_student(submission),
@@ -226,6 +259,8 @@ def question_difficulty(
     for key, (position, question) in paper.items():
         tally = tallies[key]
         counted = len(tally.fractions)
+        share = sum(tally.fractions) / counted if counted else None
+        points = _number(question.get("points"))
         breakdown.append(
             {
                 "position": position,
@@ -234,9 +269,18 @@ def question_difficulty(
                 "question_type": question.get("question_type"),
                 "points": question.get("points"),
                 "average_percentage": (
-                    round(sum(tally.fractions) / counted * 100, 2) if counted else None
+                    round(share * 100, 2) if share is not None else None
+                ),
+                "average_score": (
+                    round(share * points, 2)
+                    if share is not None and points is not None and points > 0
+                    else None
                 ),
                 "students_counted": counted,
+                "passed_count": tally.passed,
+                "pass_rate": (
+                    round(tally.passed / counted * 100, 2) if counted else None
+                ),
                 "enough_data": counted >= minimum,
                 "not_attempted": tally.not_attempted,
                 "not_read": len(tally.unread),
@@ -266,37 +310,51 @@ def question_difficulty(
         "students_analysed": students_analysed,
         "excluded_manual_grade_change": excluded_manual_grade_change,
         "minimum_students": minimum,
+        "list_size": list_size_for_paper(len(paper), limit),
         "hardest": [],
         "easiest": [],
         "breakdown": breakdown,
     }
 
     ranked = [q for q in breakdown if q["enough_data"]]
-    if len(ranked) < 2:
+    if len(paper) < MINIMUM_QUESTIONS:
+        result["status"] = STATUS_TOO_FEW_QUESTIONS
+    elif len(ranked) < 2:
         result["status"] = STATUS_NOT_ENOUGH_DATA
     elif min(q["average_percentage"] for q in ranked) == max(
         q["average_percentage"] for q in ranked
     ):
         result["status"] = STATUS_NO_DIFFERENCE
     else:
-        result["hardest"], result["easiest"] = _extremes(ranked, limit)
+        result["hardest"], result["easiest"] = _extremes(ranked, result["list_size"])
 
     for entry in breakdown:
         del entry["position"]
     return result
 
 
-def _extremes(ranked, limit):
+def _extremes(ranked, size):
     highest = max(q["average_percentage"] for q in ranked)
-    limit = min(limit, len(ranked) // 2)
     ascending = sorted(ranked, key=lambda q: (q["average_percentage"], q["position"]))
     descending = sorted(ranked, key=lambda q: (-q["average_percentage"], q["position"]))
-    hardest = [q for q in ascending if q["average_percentage"] < highest][:limit]
-    # A question tied with one already named hardest is not "easy". The
-    # lowest average is always among them, so this also keeps out every
-    # question tied for worst.
+    hardest = _with_ties(
+        [q for q in ascending if q["average_percentage"] < highest], size
+    )
+    # Every question on a hardest average is already hardest (ties are
+    # never cut), so leaving those averages out keeps the lists apart.
     hard_averages = {q["average_percentage"] for q in hardest}
-    easiest = [q for q in descending if q["average_percentage"] not in hard_averages][
-        :limit
-    ]
+    easiest = _with_ties(
+        [q for q in descending if q["average_percentage"] not in hard_averages],
+        size,
+    )
     return hardest, easiest
+
+
+def _with_ties(ordered, size):
+    """The first `size` of `ordered`, and every later one tied with the last."""
+    if not ordered:
+        return []
+    edge = ordered[:size][-1]["average_percentage"]
+    return [
+        q for i, q in enumerate(ordered) if i < size or q["average_percentage"] == edge
+    ]

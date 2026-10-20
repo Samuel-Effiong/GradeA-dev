@@ -109,12 +109,13 @@ FAMILIES = {
     # answer cached under the old at-risk rule is not served after deploy.
     "teacheradmins:user_id__<>:instance__id__<>:view__overview:risk1": ("SCOPE_USER",),
     "teacheradmins:user_id__<>:instance_id__<>:view__courses": ("SCOPE_USER",),
-    # ":qd5" (H-240 qd1, H-241 qd2, H-243 qd3, H-244 qd4, H-245 qd5): the
-    # response gained hardest/easiest questions, then the breakdown and
-    # student names; H-243 sent average_percentage 0 for a question with no
-    # marks and H-244 put null back; H-245 scales the ranking minimum with
-    # the class. The middle value is question_limit.
-    "teacheradmins:user_id__<>:instance_id__<>:view__assignments:<>:qd5": (
+    # ":qd6" (H-240 qd1, H-241 qd2, H-243 qd3, H-244 qd4, H-245 qd5,
+    # H-248 qd6): the response gained hardest/easiest questions, then the
+    # breakdown and student names; H-243 sent average_percentage 0 for a
+    # question with no marks and H-244 put null back; H-245 scales the
+    # ranking minimum with the class; H-248 makes the lists 20% of the
+    # paper and adds list_size. The middle value is question_limit.
+    "teacheradmins:user_id__<>:instance_id__<>:view__assignments:<>:qd6": (
         "SCOPE_USER",
     ),
     "teacheradmins:user_id__<>:instance_id__<>:view__students:<>:<>:risk1": (

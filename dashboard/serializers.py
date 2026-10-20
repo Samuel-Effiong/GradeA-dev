@@ -289,8 +289,33 @@ class QuestionDifficultySerializer(serializers.Serializer):
             "null when no student has a mark on it."
         ),
     )
+    average_score = serializers.FloatField(
+        read_only=True,
+        allow_null=True,
+        help_text=(
+            "The same class average in marks, out of `points`: e.g. 6.0 of "
+            "10 for an average_percentage of 60. Null when no student has a "
+            "mark on it or the question has no points."
+        ),
+    )
     students_counted = serializers.IntegerField(
         read_only=True, help_text="Students whose marks make up the average."
+    )
+    passed_count = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "Of students_counted, those who earned at least half this "
+            "question's marks. The rest are struggling_students."
+        ),
+    )
+    pass_rate = serializers.FloatField(
+        read_only=True,
+        allow_null=True,
+        help_text=(
+            "passed_count as a percentage of students_counted, 0-100; null "
+            "when no student was counted. Shown beside the average; the "
+            "hardest/easiest ranking is by average_percentage."
+        ),
     )
     enough_data = serializers.BooleanField(
         read_only=True,
@@ -327,12 +352,13 @@ class QuestionDifficultySerializer(serializers.Serializer):
 
 class QuestionDifficultySummarySerializer(serializers.Serializer):
     status = serializers.ChoiceField(
-        choices=["ready", "not_enough_data", "no_difference"],
+        choices=["ready", "too_few_questions", "not_enough_data", "no_difference"],
         read_only=True,
         help_text=(
-            "ready: lists are filled. not_enough_data: fewer than two "
-            "questions have minimum_students counted. no_difference: every "
-            "question has the same average."
+            "ready: lists are filled. too_few_questions: the paper has "
+            "fewer than 3 questions, so nothing is named. not_enough_data: "
+            "fewer than two questions have minimum_students counted. "
+            "no_difference: every question has the same average."
         ),
     )
     students_analysed = serializers.IntegerField(read_only=True)
@@ -349,6 +375,17 @@ class QuestionDifficultySummarySerializer(serializers.Serializer):
             "How many students a question must be counted on to be ranked: "
             "half the students enrolled in the course, rounded up, never "
             "fewer than 3 nor more than 10."
+        ),
+    )
+    list_size = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "How many questions each of hardest_questions and "
+            "easiest_questions holds before ties: 20% of the questions on "
+            "the paper, rounded up, at most 5, or question_limit if lower; "
+            "0 for a paper of fewer than 3 questions. A tie at the end of a "
+            "list is shown whole, so a list can be longer than this. A list "
+            "can also be shorter when fewer questions are ranked."
         ),
     )
 

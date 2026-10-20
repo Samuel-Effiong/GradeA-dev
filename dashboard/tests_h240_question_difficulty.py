@@ -9,6 +9,12 @@ grader's own _finalize_grading_result and _stamp_answer_provenance, and a
 teacher's override through the real update-grade route - so the rules are
 proven against the shapes they will actually meet.
 
+Most rules here are pinned on a three-question paper whose third question
+nobody has a mark on (`paper(1, 2, 3)` with marks on 1 and 2 only): since
+H-248 a paper of fewer than three questions names nothing, and an unmarked
+question counts toward the paper's size but is never ranked, so each list
+is one question long and the rule under test is the only thing that moves.
+
 Run with:
     python manage.py test dashboard.tests_h240_question_difficulty
 """
@@ -40,6 +46,7 @@ from dashboard.question_difficulty import (
     STATUS_NO_DIFFERENCE,
     STATUS_NOT_ENOUGH_DATA,
     STATUS_READY,
+    STATUS_TOO_FEW_QUESTIONS,
     question_difficulty,
 )
 from dashboard.tests_teacher_all_students import Builder
@@ -119,7 +126,7 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
             submission(evaluation(1, 12, 20), evaluation(2, 2, 2))
             for _ in range(MINIMUM_STUDENTS)
         ]
-        result = question_difficulty(paper(1, 2), subs)
+        result = question_difficulty(paper(1, 2, 3), subs)
         self.assertEqual(numbers(result["hardest"]), [1])
         self.assertEqual(result["hardest"][0]["average_percentage"], 60.0)
         self.assertEqual(numbers(result["easiest"]), [2])
@@ -129,7 +136,7 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
         subs = class_of({1: 10, 2: 10}, students=3) + class_of(
             {1: 0, 2: 10}, students=2
         )
-        result = question_difficulty(paper(1, 2), subs)
+        result = question_difficulty(paper(1, 2, 3), subs)
         # Q1: three 100% and two 0% -> 60%.
         self.assertEqual(result["hardest"][0]["average_percentage"], 60.0)
         self.assertEqual(result["hardest"][0]["students_counted"], 5)
@@ -137,7 +144,7 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
 
     def test_marks_are_clamped_to_the_question(self):
         subs = class_of({1: 15, 2: -5})
-        result = question_difficulty(paper(1, 2), subs)
+        result = question_difficulty(paper(1, 2, 3), subs)
         self.assertEqual(result["easiest"][0]["average_percentage"], 100.0)
         self.assertEqual(result["hardest"][0]["average_percentage"], 0.0)
 
@@ -177,7 +184,7 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
                 evaluation(2, 3),
             )
         )
-        result = question_difficulty(paper(1, 2), subs)
+        result = question_difficulty(paper(1, 2, 3), subs)
         self.assertEqual(result["easiest"][0]["average_percentage"], 90.0)
         self.assertEqual(result["easiest"][0]["not_read"], 1)
 
@@ -192,7 +199,7 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
             )
             for _ in range(2)
         ]
-        result = question_difficulty(paper(1, 2), subs)
+        result = question_difficulty(paper(1, 2, 3), subs)
         q2 = result["hardest"][0]
         self.assertEqual(q2["question_number"], 2)
         self.assertEqual(q2["average_percentage"], 60.0)
@@ -205,7 +212,7 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
         legacy_wrong = dict(legacy, level_achieved="incorrect")
         subs = [submission(evaluation(1, 10), legacy_blank) for _ in range(2)]
         subs += [submission(evaluation(1, 10), legacy_wrong) for _ in range(3)]
-        result = question_difficulty(paper(1, 2), subs)
+        result = question_difficulty(paper(1, 2, 3), subs)
         q2 = result["hardest"][0]
         self.assertEqual(q2["students_counted"], 5)
         self.assertEqual(q2["not_attempted"], 2)
@@ -220,7 +227,7 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
         subs += [
             submission(evaluation(1, 0), evaluation(2, 2), score=10) for _ in range(2)
         ]
-        result = question_difficulty(paper(1, 2), subs)
+        result = question_difficulty(paper(1, 2, 3), subs)
         self.assertEqual(result["excluded_manual_grade_change"], 2)
         self.assertEqual(result["students_analysed"], MINIMUM_STUDENTS)
         self.assertEqual(result["easiest"][0]["average_percentage"], 80.0)
@@ -231,7 +238,7 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
             for _ in range(MINIMUM_STUDENTS)
         ]
         subs.append(submission(evaluation(1, 3.334), evaluation(2, 6.67), score=10.0))
-        result = question_difficulty(paper(1, 2), subs)
+        result = question_difficulty(paper(1, 2, 3), subs)
         self.assertEqual(result["excluded_manual_grade_change"], 0)
         self.assertEqual(result["students_analysed"], MINIMUM_STUDENTS + 1)
 
@@ -242,14 +249,14 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
             submission(evaluation(1, 2), evaluation(2, 8), evaluation(99, 0))
             for _ in range(MINIMUM_STUDENTS)
         ]
-        result = question_difficulty(paper(1, 2), subs)
+        result = question_difficulty(paper(1, 2, 3), subs)
         self.assertNotIn(99, numbers(result["hardest"]) + numbers(result["easiest"]))
         self.assertEqual(numbers(result["hardest"]), [1])
 
     def test_string_and_integer_question_numbers_are_one_question(self):
         subs = class_of({1: 2, 2: 8}, students=3)
         subs += [submission(evaluation("1", 2), evaluation(" 2 ", 8)) for _ in range(2)]
-        result = question_difficulty(paper(1, 2), subs)
+        result = question_difficulty(paper(1, 2, 3), subs)
         self.assertEqual(result["hardest"][0]["students_counted"], 5)
         self.assertEqual(result["easiest"][0]["students_counted"], 5)
 
@@ -258,7 +265,7 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
             submission(evaluation(1, 0), evaluation(1, 10), evaluation(2, 5), score=15)
             for _ in range(MINIMUM_STUDENTS)
         ]
-        result = question_difficulty(paper(1, 2), subs)
+        result = question_difficulty(paper(1, 2, 3), subs)
         q1 = result["hardest"][0]
         self.assertEqual(q1["question_number"], 1)
         self.assertEqual(q1["students_counted"], MINIMUM_STUDENTS)
@@ -283,17 +290,17 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
                 evaluation(2, 0, answer_status=ILLEGIBLE),
             )
         )
-        result = question_difficulty(paper(1, 2), subs)
+        result = question_difficulty(paper(1, 2, 3), subs)
         self.assertEqual(result["students_analysed"], MINIMUM_STUDENTS)
         self.assertEqual(result["hardest"][0]["not_read"], 1)
 
     def test_a_question_tied_for_worst_is_not_easiest(self):
-        # 20%, 20%, 20%, 90%: with two named hardest, the third 20% must
-        # not be offered as easy.
+        # 20%, 20%, 20%, 90%: the tie for worst is hardest whole (H-248),
+        # and none of it may be offered as easy.
         result = question_difficulty(
             paper(1, 2, 3, 4), class_of({1: 2, 2: 2, 3: 2, 4: 9})
         )
-        self.assertEqual(numbers(result["hardest"]), [1, 2])
+        self.assertEqual(numbers(result["hardest"]), [1, 2, 3])
         self.assertEqual(numbers(result["easiest"]), [4])
 
     def test_submissions_without_grading_feedback_are_skipped(self):
@@ -307,7 +314,7 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
                 student=student(),
             ),
         ]
-        result = question_difficulty(paper(1, 2), subs)
+        result = question_difficulty(paper(1, 2, 3), subs)
         self.assertEqual(result["students_analysed"], MINIMUM_STUDENTS)
         self.assertEqual(result["excluded_manual_grade_change"], 0)
 
@@ -315,14 +322,14 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
 
     def test_below_the_minimum_nothing_is_ranked(self):
         subs = class_of({1: 1, 2: 9}, students=MINIMUM_STUDENTS - 1)
-        result = question_difficulty(paper(1, 2), subs)
+        result = question_difficulty(paper(1, 2, 3), subs)
         self.assertEqual(result["status"], STATUS_NOT_ENOUGH_DATA)
         self.assertEqual(result["hardest"], [])
         self.assertEqual(result["easiest"], [])
         self.assertEqual(result["students_analysed"], MINIMUM_STUDENTS - 1)
 
     def test_at_the_minimum_questions_are_ranked(self):
-        result = question_difficulty(paper(1, 2), class_of({1: 1, 2: 9}))
+        result = question_difficulty(paper(1, 2, 3), class_of({1: 1, 2: 9}))
         self.assertEqual(result["status"], STATUS_READY)
 
     def test_a_question_short_of_the_minimum_is_not_ranked(self):
@@ -347,7 +354,7 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
 
     def test_a_single_question_is_neither_hardest_nor_easiest(self):
         result = question_difficulty(paper(1), class_of({1: 5}))
-        self.assertEqual(result["status"], STATUS_NOT_ENOUGH_DATA)
+        self.assertEqual(result["status"], STATUS_TOO_FEW_QUESTIONS)
         self.assertEqual(result["hardest"], [])
 
     def test_all_questions_equal_names_none(self):
@@ -357,21 +364,22 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
         self.assertEqual(result["easiest"], [])
 
     def test_no_submissions(self):
-        result = question_difficulty(paper(1, 2), [])
+        result = question_difficulty(paper(1, 2, 3), [])
         self.assertEqual(result["status"], STATUS_NOT_ENOUGH_DATA)
         self.assertEqual(result["students_analysed"], 0)
 
     def test_an_assignment_without_questions(self):
         result = question_difficulty(SimpleNamespace(questions=None), class_of({1: 1}))
-        self.assertEqual(result["status"], STATUS_NOT_ENOUGH_DATA)
+        self.assertEqual(result["status"], STATUS_TOO_FEW_QUESTIONS)
 
     # -- the two lists -----------------------------------------------------
 
-    def test_at_most_three_of_each_by_default(self):
+    def test_each_list_is_twenty_percent_of_the_paper(self):
+        # H-248: 20% of eight, rounded up, is two.
         marks = {n: n for n in range(1, 9)}
         result = question_difficulty(paper(*range(1, 9)), class_of(marks))
-        self.assertEqual(numbers(result["hardest"]), [1, 2, 3])
-        self.assertEqual(numbers(result["easiest"]), [8, 7, 6])
+        self.assertEqual(numbers(result["hardest"]), [1, 2])
+        self.assertEqual(numbers(result["easiest"]), [8, 7])
 
     def test_the_limit_is_the_callers(self):
         marks = {n: n for n in range(1, 9)}
@@ -379,38 +387,33 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
         self.assertEqual(numbers(result["hardest"]), [1])
         self.assertEqual(numbers(result["easiest"]), [8])
 
-    def test_the_limit_never_passes_half_the_paper(self):
-        marks = {n: n for n in range(1, 5)}
-        result = question_difficulty(paper(*range(1, 5)), class_of(marks), limit=10)
-        self.assertEqual(numbers(result["hardest"]), [1, 2])
-        self.assertEqual(numbers(result["easiest"]), [4, 3])
-
-    def test_two_questions_give_one_each(self):
+    def test_two_questions_name_nothing(self):
         result = question_difficulty(paper(1, 2), class_of({1: 3, 2: 7}))
-        self.assertEqual(numbers(result["hardest"]), [1])
-        self.assertEqual(numbers(result["easiest"]), [2])
+        self.assertEqual(result["status"], STATUS_TOO_FEW_QUESTIONS)
+        self.assertEqual(result["hardest"], [])
+        self.assertEqual(result["easiest"], [])
 
     def test_three_questions_leave_the_middle_one_out(self):
         result = question_difficulty(paper(1, 2, 3), class_of({1: 3, 2: 5, 3: 7}))
         self.assertEqual(numbers(result["hardest"]), [1])
         self.assertEqual(numbers(result["easiest"]), [3])
 
-    def test_a_question_tied_with_a_hardest_one_is_not_easiest(self):
-        # 10%, 50%, 50%, 90%: Q2 is named hardest; Q3 has the very same
-        # average and must not be called easy.
+    def test_questions_between_the_ends_are_on_neither_list(self):
+        # 10%, 50%, 50%, 90%: one card each; the 50s are neither.
         result = question_difficulty(
             paper(1, 2, 3, 4), class_of({1: 1, 2: 5, 3: 5, 4: 9})
         )
-        self.assertEqual(numbers(result["hardest"]), [1, 2])
+        self.assertEqual(numbers(result["hardest"]), [1])
         self.assertEqual(numbers(result["easiest"]), [4])
 
     def test_a_question_tied_with_the_best_is_not_hardest(self):
-        # 50%, 100%, 100%, 100%: only Q1 did worse than anything.
+        # 50%, 100%, 100%, 100%: only Q1 did worse than anything; the tie
+        # for best is easiest whole (H-248).
         result = question_difficulty(
             paper(1, 2, 3, 4), class_of({1: 5, 2: 10, 3: 10, 4: 10})
         )
         self.assertEqual(numbers(result["hardest"]), [1])
-        self.assertEqual(numbers(result["easiest"]), [2, 3])
+        self.assertEqual(numbers(result["easiest"]), [2, 3, 4])
 
     def test_ties_follow_the_paper_not_the_number_as_text(self):
         # As text "10" sorts before "2"; on the paper Q2 comes first.
@@ -426,7 +429,9 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
         texts = {
             1: "<p>Define&nbsp;<b>photosynthesis</b>\n  &amp; give\tan example.</p>"
         }
-        result = question_difficulty(paper(1, 2, texts=texts), class_of({1: 2, 2: 8}))
+        result = question_difficulty(
+            paper(1, 2, 3, texts=texts), class_of({1: 2, 2: 8})
+        )
         entry = result["hardest"][0]
         self.assertEqual(
             entry["question_text"], "Define photosynthesis & give an example."
@@ -441,7 +446,10 @@ class QuestionDifficultyRulesTest(SimpleTestCase):
                 "question_type",
                 "points",
                 "average_percentage",
+                "average_score",
                 "students_counted",
+                "passed_count",
+                "pass_rate",
                 "enough_data",
                 "not_attempted",
                 "not_read",
@@ -600,14 +608,14 @@ class AssignmentAnalyticsQuestionDifficultyTest(AnalyticsEndpointFixtures):
                 (q["question_number"], q["average_percentage"])
                 for q in data["hardest_questions"]
             ],
-            [("2", 40.0), ("3", 60.0)],
+            [("2", 40.0)],
         )
         self.assertEqual(
             [
                 (q["question_number"], q["average_percentage"])
                 for q in data["easiest_questions"]
             ],
-            [("4", 100.0), ("1", 90.0)],
+            [("4", 100.0)],
         )
         hardest = data["hardest_questions"][0]
         self.assertEqual(
@@ -662,10 +670,9 @@ class AssignmentAnalyticsQuestionDifficultyTest(AnalyticsEndpointFixtures):
             self._graded({1: 9, 2: 8, 3: 3, 4: 0}, statuses={4: BLANK})
         data = self._get()
         # Q4: three 100% and two blanks -> 60%, tied with Q3.
-        by_number = {
-            q["question_number"]: q
-            for q in data["hardest_questions"] + data["easiest_questions"]
-        }
+        by_number = {q["question_number"]: q for q in data["question_breakdown"]}
+        self.assertEqual(by_number["4"]["average_percentage"], 60.0)
+        self.assertEqual(by_number["4"]["not_attempted"], 2)
         self.assertEqual(by_number["3"]["average_percentage"], 60.0)
         self.assertNotIn("4", [q["question_number"] for q in data["easiest_questions"]])
 
@@ -708,6 +715,8 @@ class AssignmentAnalyticsQuestionDifficultyTest(AnalyticsEndpointFixtures):
                 "excluded_manual_grade_change": 0,
                 # Nobody enrolled: the floor.
                 "minimum_students": 3,
+                # Four questions: 20%, rounded up.
+                "list_size": 1,
             },
         )
         # Every question still listed, in paper order, with nothing known.

@@ -58,14 +58,14 @@ class MinimumForClassTest(SimpleTestCase):
 
     def test_the_minimum_given_is_the_one_applied_and_reported(self):
         three = question_difficulty(
-            paper(1, 2), class_of({1: 2, 2: 8}, students=3), minimum=3
+            paper(1, 2, 3), class_of({1: 2, 2: 8, 3: 5}, students=3), minimum=3
         )
         self.assertEqual(three["status"], STATUS_READY)
         self.assertEqual(three["minimum_students"], 3)
         self.assertTrue(all(q["enough_data"] for q in three["breakdown"]))
 
         four = question_difficulty(
-            paper(1, 2), class_of({1: 2, 2: 8}, students=3), minimum=4
+            paper(1, 2, 3), class_of({1: 2, 2: 8, 3: 5}, students=3), minimum=4
         )
         self.assertEqual(four["status"], STATUS_NOT_ENOUGH_DATA)
         self.assertEqual(four["minimum_students"], 4)
