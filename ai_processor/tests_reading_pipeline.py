@@ -402,7 +402,10 @@ class TheRecheckTest(SimpleTestCase):
         )
         pair, result, _, fields = self._pair(provider)
         self.assertEqual(pair, ("found_writing", "check/model"))
-        self.assertEqual(result["answers"][0]["answer_status"], NOT_FOUND_IN_DOCUMENT)
+        # H-253: nothing re-read it in full, so the re-check's quote is its
+        # text, flagged as only part of the answer.
+        self.assertEqual(result["answers"][0]["answer_status"], ANSWERED)
+        self.assertIs(result["answers"][0]["partial_answer"], True)
         # The re-check's own model never becomes the reading's.
         self.assertEqual(fields["answers_model"], "read/model")
 

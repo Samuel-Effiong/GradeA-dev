@@ -11,9 +11,11 @@ from django.db.models.functions import Concat
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from ai_processor.extraction_flags import REVIEW_FLAG
 from ai_processor.extraction_flags import REVIEW_REASON_TYPE as EXTRACTION_FLAG
 from ai_processor.extraction_flags import TIER_OF as EXTRACTION_FLAG_TIER
-from ai_processor.extraction_flags import flags_from_extraction
+from ai_processor.extraction_flags import answers_with_flags, flags_from_extraction
+from ai_processor.extraction_schemas import BLANK, ILLEGIBLE, NOT_FOUND_IN_DOCUMENT
 from ai_processor.grading_run import GradingRun
 from ai_processor.reading_run import ReadingRun
 from ai_processor.services import (
@@ -199,8 +201,27 @@ def student_submission_to_html(submission, *, show_grade=True) -> str:
     # indentation are kept: the text below is part of the document.
     printable, left_out = printable_answers(submission.answers)
     if printable:
+        # H-253: each answer with its own flag, from the paper's stored ones.
+        printable = answers_with_flags(
+            printable, getattr(submission, "extraction_flags", None)
+        )
         for ans in printable:
-            status = "Answered" if ans.get("answer_html") else "Skipped"
+            answer_html = rich(ans.get("answer_html"))
+            if answer_html:
+                status = "Answered"
+            else:
+                # H-253: an answer not found or not read is not "skipped".
+                status, empty = EMPTY_ANSWER_WORDING.get(
+                    ans.get("answer_status"), ("Skipped", "No answer submitted.")
+                )
+                answer_html = f"<em>{empty}</em>"
+            flag = ans.get(REVIEW_FLAG)
+            flag_html = (
+                f"<p><strong>Flagged for review:</strong> "
+                f"{safe(flag.get('message'))} {safe(flag.get('detail'))}</p>"
+                if isinstance(flag, dict)
+                else ""
+            )
 
             questions_html += f"""
             <article style="margin-bottom: 24px;">
@@ -210,11 +231,11 @@ def student_submission_to_html(submission, *, show_grade=True) -> str:
                 <div>
                     <strong>Student Answer:</strong>
                     <div style="margin:8px 0; padding:10px; border-left:4px solid #ccc;">
-                        {rich(ans.get('answer_html')) or "<em>No answer submitted.</em>"}
+                        {answer_html}
                     </div>
                 </div>
 
-                <p><strong>Status:</strong> {status}</p>
+                <p><strong>Status:</strong> {status}</p>{flag_html}
             </article>
             """
 
@@ -430,6 +451,17 @@ def _whole_count(value):
         return 0
 
 
+#: H-253: what the answer document says for an answer with no text, by its
+#: status: (status line, the line in the answer's place).
+EMPTY_ANSWER_WORDING = {
+    BLANK: ("Left blank", "Left blank."),
+    NOT_FOUND_IN_DOCUMENT: (
+        "Not found in the upload",
+        "No answer could be found for this question in the upload.",
+    ),
+    ILLEGIBLE: ("Could not be read", "This answer could not be read from the upload."),
+}
+
 #: H-242: the columns a new reading of a paper owns for its review state.
 EXTRACTION_REVIEW_FIELDS = (
     "extraction_flags",
@@ -456,7 +488,10 @@ def apply_extraction_flags(submission, extraction_result):
     state too: every reason on file was about the answers being replaced.
     A paper with no flags is taken off the queue; a paper with any is put
     on it with the reader's reasons. Grading later rebuilds the reasons and
-    keeps these (_populate_and_save_grade)."""
+    keeps these (_populate_and_save_grade).
+
+    H-253: the answer document prints each answer's flag, so call this
+    before it is built."""
     flags = flags_from_extraction(extraction_result)
     submission.extraction_flags = flags
     filed = [_extraction_flag_reason(flag) for flag in flags]
@@ -1422,6 +1457,8 @@ def upload_answers_engine(
                 # the label and the answers are one INSERT or one UPDATE.
                 apply_reading_label(submission, reading_run, submission.answers)
                 ensure_task_not_cancelled(processing_task_id)
+                # Before the document: it prints each answer's flag (H-253).
+                apply_extraction_flags(submission, student_submission)
                 answer_html = student_submission_to_html(submission)
                 submission.raw_input = (
                     AssignmentProcessingService.html_to_prosemirror_text(answer_html)
@@ -1433,7 +1470,6 @@ def upload_answers_engine(
                 submission.extraction_confidence = _coerce_confidence(
                     student_submission.get("extraction_confidence")
                 )
-                apply_extraction_flags(submission, student_submission)
                 with cancellable_final_save(processing_task_id):
                     if created:
                         submission.save()
@@ -1681,13 +1717,14 @@ def update_submission_from_raw_text(
             # An edit is a new reading: its label replaces the old one in
             # the same save.
             apply_reading_label(locked, reading_run, answers)
+            # Before the document: it prints each answer's flag (H-253).
+            apply_extraction_flags(locked, extracted)
             locked.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
                 student_submission_to_html(locked)
             )
             locked.extraction_confidence = _coerce_confidence(
                 extracted.get("extraction_confidence")
             )
-            apply_extraction_flags(locked, extracted)
             with cancellable_final_save(processing_task_id):
                 # Only what this path owns - never a full-row save from an
                 # instance that predates the extraction.

@@ -11,7 +11,9 @@ The second reading transcribes those questions in full.
 Its properties, as for the re-check:
   * it costs nothing unless the re-check found writing;
   * it can never make things worse: a failure, or a reply that still finds
-    nothing, leaves the re-check's not-found entry exactly as it was;
+    nothing, leaves the re-check's not-found entry as it was, except that
+    since H-253 the re-check's quote becomes its text as a last resort
+    (ai_processor/tests_h253_answers_never_empty.py);
   * a recovered answer is never silently trusted: it stays flagged.
 
 Run with:
@@ -41,6 +43,7 @@ from ai_processor.extraction_schemas import (
 )
 from ai_processor.services import (
     ANSWERS_EXTRACTION_PROMPT,
+    PARTIAL_ANSWER_NOTE,
     RECOVERED_ANSWER_NOTE,
     AIFeatureNotAvailableError,
     AIProcessor,
@@ -119,6 +122,24 @@ class RetranscriptionTest(SimpleTestCase):
                 answers,
             )
         return result, mocked
+
+    def assert_last_resort(self, result, entry):
+        """Nothing recovered: the entry as it was, but with the re-check's
+        quote as its text (H-253)."""
+        fragment = entry["blank_verification"]["verbatim_fragment"]
+        self.assertEqual(
+            result,
+            [
+                dict(
+                    entry,
+                    answer_html=f"<p>{fragment}</p>",
+                    answer_status=ANSWERED,
+                    partial_answer=True,
+                    answer_flag=FLAG_READING_PROBLEM,
+                    answer_flag_detail=PARTIAL_ANSWER_NOTE,
+                )
+            ],
+        )
 
     # ── cost: only when the re-check found writing ─────────────────────
     def test_no_call_when_nothing_was_found_by_the_re_check(self):
@@ -247,26 +268,26 @@ class RetranscriptionTest(SimpleTestCase):
             )
         self.assertFalse(run.reading.has_kept_reply())
 
-    # ── a reply that recovers nothing changes nothing ──────────────────
+    # ── a reply that recovers nothing changes nothing but the quote ────
     def test_still_not_found_keeps_the_original_entry(self):
         entry = found(2)
         still = dict(entry, blank_verification=None)
         result, _ = self.run_step([entry], [still])
-        self.assertEqual(result, [entry])
+        self.assert_last_resort(result, entry)
 
     def test_an_answer_with_only_empty_markup_is_not_a_recovery(self):
         entry = found(2)
         for html in ("", "<p></p>", "<p>&nbsp;</p>", "  <br/> ", None):
             with self.subTest(html=html):
                 result, _ = self.run_step([entry], [answered(2, html)])
-                self.assertEqual(result, [entry])
+                self.assert_last_resort(result, entry)
 
     def test_a_blank_reply_is_not_a_recovery(self):
         entry = found(2)
         returned = answered(2, "<p>words</p>")
         returned["answer_status"] = BLANK
         result, _ = self.run_step([entry], [returned])
-        self.assertEqual(result, [entry])
+        self.assert_last_resort(result, entry)
 
     def test_an_answer_the_step_did_not_ask_for_is_ignored(self):
         # The reply re-reads question 1 too; the first reading's answer to
@@ -298,7 +319,7 @@ class RetranscriptionTest(SimpleTestCase):
                 fake.choices[0].message.content = json.dumps(payload)
                 entry = found(2)
                 result, _ = self.run_step([entry], side_effect=[fake])
-                self.assertEqual(result, [entry])
+                self.assert_last_resort(result, entry)
 
     def test_non_list_answers_are_returned_as_they_are(self):
         result, mocked = self.run_step(None)
@@ -309,14 +330,14 @@ class RetranscriptionTest(SimpleTestCase):
     def test_a_provider_failure_changes_nothing(self):
         entry = found(2)
         result, _ = self.run_step([entry], side_effect=RuntimeError("boom"))
-        self.assertEqual(result, [entry])
+        self.assert_last_resort(result, entry)
 
     def test_broken_json_changes_nothing(self):
         fake = reply([])
         fake.choices[0].message.content = "{not json"
         entry = found(2)
         result, _ = self.run_step([entry], side_effect=[fake])
-        self.assertEqual(result, [entry])
+        self.assert_last_resort(result, entry)
 
     def test_no_credits_or_no_feature_changes_nothing(self):
         for error in (
@@ -326,7 +347,7 @@ class RetranscriptionTest(SimpleTestCase):
             with self.subTest(error=type(error).__name__):
                 entry = found(2)
                 result, _ = self.run_step([entry], side_effect=error)
-                self.assertEqual(result, [entry])
+                self.assert_last_resort(result, entry)
 
     def test_a_cancellation_is_not_swallowed(self):
         with self.assertRaises(TaskCancelledError):

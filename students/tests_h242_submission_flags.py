@@ -581,14 +581,13 @@ class FlagsOnEveryPageTest(APITestCase):
         return next(r for r in rows if str(r["id"]) == str(self.submission.pk))
 
     def assert_flagged(
-        self, page, flags_key="submission_flags", flag_key="flagged_for_review"
+        self, page, mismatch_key="upload_mismatch", flag_key="flagged_for_review"
     ):
+        # H-253: the paper's flag is its own field; each question's is in
+        # its answer (students/tests_h253_flags_inside_answers.py).
         self.assertIs(page[flag_key], True)
-        self.assertEqual(
-            kinds(page[flags_key]),
-            [(SUBMISSION_MISMATCH, None), (OFF_TOPIC, 1), (ANSWER_NOT_FOUND, 2)],
-        )
-        self.assertEqual(page[flags_key][0]["detail"], ESSAY)
+        self.assertEqual(page[mismatch_key]["kind"], SUBMISSION_MISMATCH)
+        self.assertEqual(page[mismatch_key]["detail"], ESSAY)
 
     def test_the_teacher_sees_the_flags_on_the_submission_and_the_list(self):
         self.assert_flagged(self._detail(self.teacher))
@@ -606,7 +605,7 @@ class FlagsOnEveryPageTest(APITestCase):
         self.assert_flagged(self._list(self.student))
         self.assert_flagged(
             self._assignment(self.student),
-            flags_key="student_submission_flags",
+            mismatch_key="student_upload_mismatch",
             flag_key="student_flagged_for_review",
         )
 
@@ -629,7 +628,7 @@ class FlagsOnEveryPageTest(APITestCase):
             page = self._detail(user)
             self.assertIs(page["flagged_for_review"], False)
             # What the reader noticed stays on record.
-            self.assertEqual(len(page["submission_flags"]), 3)
+            self.assertEqual(page["upload_mismatch"]["kind"], SUBMISSION_MISMATCH)
 
     def test_a_paper_with_no_flags_shows_none(self):
         StudentSubmission.objects.filter(pk=self.submission.pk).update(
@@ -637,4 +636,4 @@ class FlagsOnEveryPageTest(APITestCase):
         )
         page = self._detail(self.student)
         self.assertIs(page["flagged_for_review"], False)
-        self.assertEqual(page["submission_flags"], [])
+        self.assertIsNone(page["upload_mismatch"])

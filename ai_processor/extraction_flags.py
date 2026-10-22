@@ -14,6 +14,11 @@ human must look" (NOT_FOUND_IN_DOCUMENT, ILLEGIBLE), into one list of
 flags. One place, so the upload, the typed-text edit and the grading run
 cannot word or count them differently.
 
+H-253 (the owner's ruling): each answer carries its own flag
+(`review_flag`, answer_review_flag), and the one flag about the whole
+paper is a field of its own (upload_mismatch_flag). The full list is still
+kept on the submission, for the review queue.
+
 No Django imports: ai_processor and students both use it.
 """
 
@@ -65,6 +70,9 @@ MESSAGES = {
 
 #: The reason type a flag is filed under in StudentSubmission.review_reasons.
 REVIEW_REASON_TYPE = "extraction_flag"
+
+#: H-253: the key each stored answer carries its own flag under.
+REVIEW_FLAG = "review_flag"
 
 
 def _text(value):
@@ -120,11 +128,19 @@ def _flag(kind, question_number, detail):
     }
 
 
+def _writing_seen(entry):
+    """The re-check found writing in this question's place (H-253)."""
+    check = entry.get("blank_verification")
+    return isinstance(check, dict) and bool(check.get("content_found"))
+
+
 def _question_kind(entry):
     status = entry.get("answer_status")
     flag = answer_flag(entry)
     if status == NOT_FOUND_IN_DOCUMENT:
-        return ANSWER_NOT_FOUND
+        # H-253: writing the re-check saw and nothing could copy out is a
+        # reading problem, never "no answer could be found".
+        return READING_PROBLEM if _writing_seen(entry) else ANSWER_NOT_FOUND
     if status == ILLEGIBLE or flag == FLAG_READING_PROBLEM:
         return READING_PROBLEM
     if flag in (FLAG_OFF_TOPIC, FLAG_TYPE_MISMATCH):
@@ -138,6 +154,84 @@ def _on_topic(entry):
     return entry.get("answer_status") in (ANSWERED, ILLEGIBLE) and (
         answer_flag(entry) != FLAG_OFF_TOPIC
     )
+
+
+def _question_flag(entry):
+    """The flag for one answer, with its question number, or None."""
+    kind = _question_kind(entry)
+    if kind is None:
+        return None
+    detail = _text(entry.get("answer_flag_detail"))
+    if not detail and kind in (ANSWER_NOT_FOUND, READING_PROBLEM):
+        detail = _text(entry.get("transcription_notes"))
+    return _flag(kind, entry.get("question_number"), detail)
+
+
+def _without_number(flag):
+    return {key: value for key, value in flag.items() if key != "question_number"}
+
+
+def answer_review_flag(entry):
+    """H-253: what one stored answer carries as its `review_flag`:
+    {kind, message, detail}, or None when there is nothing to check."""
+    if not isinstance(entry, dict):
+        return None
+    flag = _question_flag(entry)
+    return _without_number(flag) if flag is not None else None
+
+
+def upload_mismatch_flag(answers, *, matches=True, detail=""):
+    """H-253: the flag about the paper as a whole, {kind, message, detail},
+    or None: the paper's own field, as it belongs to no question."""
+    flags = submission_flags(answers, matches=matches, mismatch_detail=detail)
+    if flags and flags[0]["kind"] == SUBMISSION_MISMATCH:
+        return _without_number(flags[0])
+    return None
+
+
+def mismatch_in(flags):
+    """The paper-level flag in a stored list of flags, or None."""
+    for flag in flags if isinstance(flags, list) else []:
+        if isinstance(flag, dict) and flag.get("kind") == SUBMISSION_MISMATCH:
+            return _without_number(flag)
+    return None
+
+
+def _question_key(number):
+    return " ".join(str(number).split()).lower()
+
+
+def answers_with_flags(answers, flags):
+    """H-253: the answers as they are sent, each carrying its own
+    `review_flag` from the paper's stored flags (null when it has none).
+
+    Added when an answer is shown, never stored in it: the stored answers
+    stay exactly what the reader returned, a teacher's edit of an answer
+    cannot lose its flag, and a paper read since H-242 needs no rewrite.
+    Not a list of answers: returned as it is."""
+    if not isinstance(answers, list):
+        return answers
+    by_question = {}
+    for flag in flags if isinstance(flags, list) else []:
+        if isinstance(flag, dict) and flag.get("question_number") is not None:
+            by_question.setdefault(
+                _question_key(flag["question_number"]), _without_number(flag)
+            )
+    return [
+        (
+            dict(
+                entry,
+                **{
+                    REVIEW_FLAG: by_question.get(
+                        _question_key(entry.get("question_number"))
+                    )
+                },
+            )
+            if isinstance(entry, dict)
+            else entry
+        )
+        for entry in answers
+    ]
 
 
 def submission_flags(answers, *, matches=True, mismatch_detail=""):
@@ -158,13 +252,9 @@ def submission_flags(answers, *, matches=True, mismatch_detail=""):
     if matches is False and not any(_on_topic(entry) for entry in entries):
         flags.append(_flag(SUBMISSION_MISMATCH, None, _text(mismatch_detail)))
     for entry in entries:
-        kind = _question_kind(entry)
-        if kind is None:
-            continue
-        detail = _text(entry.get("answer_flag_detail"))
-        if not detail and kind in (ANSWER_NOT_FOUND, READING_PROBLEM):
-            detail = _text(entry.get("transcription_notes"))
-        flags.append(_flag(kind, entry.get("question_number"), detail))
+        flag = _question_flag(entry)
+        if flag is not None:
+            flags.append(flag)
     return flags
 
 

@@ -247,7 +247,7 @@ class EveryCallerNamesItsPromptTests(SimpleTestCase):
         "_extract_answers_chunked": "ANSWERS_EXTRACTION_PROMPT.version",
         "extract_answer_image": "ANSWERS_EXTRACTION_PROMPT.version",
         "_verify_blank_answers": "BLANK_VERIFICATION_INSTRUCTION.version",
-        "_retranscribe_found_answers": "ANSWERS_EXTRACTION_PROMPT.version",
+        "_second_reading": "ANSWERS_EXTRACTION_PROMPT.version",
         "_grade_question_batch": "GRADING_ASSIGNMENT_PROMPT.version",
         "_build_overall_grading_summary": "GRADING_ASSIGNMENT_PROMPT.version",
         "_grade_student_submission_impl": "GRADING_ASSIGNMENT_PROMPT.version",

@@ -6,6 +6,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from ai_processor.extraction_flags import answers_with_flags
 from assignments.models import is_expected_by_now, is_published
 from classrooms.final_grade import final_grade_from
 from classrooms.models import enrollment_list_key, grade_basis_enrollments
@@ -16,9 +17,9 @@ from .feedback_projection import (
     flagged_for_review,
     student_safe_feedback,
     student_safe_formatted_grade,
-    submission_flags,
+    upload_mismatch,
 )
-from .flag_serializers import SubmissionFlagSerializer
+from .flag_serializers import UPLOAD_MISMATCH_HELP, ReviewFlagSerializer
 from .models import GradingState, StudentSubmission
 from .second_opinion_serializers import (
     QuestionEvaluationSerializer,
@@ -34,14 +35,25 @@ from .services import (
 class SubmissionFlagsMixin(serializers.Serializer):
     """H-242: the same two keys on every page of a submission, teacher's
     and student's. These are about the reading of the upload, never about
-    a grade, so a student is shown them released or not."""
+    a grade, so a student is shown them released or not.
 
-    submission_flags = serializers.SerializerMethodField()
+    H-253: each question's flag is inside its answer (`review_flag`); the
+    paper's own is `upload_mismatch`. There is no list of them any more."""
+
+    upload_mismatch = serializers.SerializerMethodField(help_text=UPLOAD_MISMATCH_HELP)
     flagged_for_review = serializers.SerializerMethodField()
 
-    @extend_schema_field(SubmissionFlagSerializer(many=True))
-    def get_submission_flags(self, obj):
-        return submission_flags(obj)
+    @extend_schema_field(ReviewFlagSerializer(allow_null=True))
+    def get_upload_mismatch(self, obj):
+        return upload_mismatch(obj)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if isinstance(data.get("answers"), list):
+            data["answers"] = answers_with_flags(
+                data["answers"], getattr(instance, "extraction_flags", None)
+            )
+        return data
 
     def get_flagged_for_review(self, obj) -> bool:
         return flagged_for_review(obj)
@@ -247,7 +259,7 @@ class StudentSubmissionListSerializer(
             "scheduled_grading_at",
             "grading_task_name",
             "is_grading_scheduled",
-            "submission_flags",
+            "upload_mismatch",
             "flagged_for_review",
         ]
 
@@ -397,7 +409,7 @@ class StudentSubmissionDetailSerializer(
             "scheduled_grading_at",
             "grading_task_name",
             "is_grading_scheduled",
-            "submission_flags",
+            "upload_mismatch",
             "flagged_for_review",
         ]
 
@@ -551,7 +563,7 @@ class StudentSubmissionDetailStudentVersionSerializer(
             "grade_letter",
             "feedback",
             "is_published",
-            "submission_flags",
+            "upload_mismatch",
             "flagged_for_review",
         ]
 
@@ -724,7 +736,7 @@ class StudentUploadAnswerSerializer(SubmissionFlagsMixin, serializers.ModelSeria
             "scheduled_grading_at",
             "grading_task_name",
             "is_grading_scheduled",
-            "submission_flags",
+            "upload_mismatch",
             "flagged_for_review",
         ]
         read_only_fields = fields

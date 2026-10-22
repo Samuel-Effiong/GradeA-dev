@@ -16,9 +16,9 @@ from classrooms.models import (
 from students.feedback_projection import (
     flagged_for_review,
     student_safe_feedback,
-    submission_flags,
+    upload_mismatch,
 )
-from students.flag_serializers import SubmissionFlagSerializer
+from students.flag_serializers import UPLOAD_MISMATCH_HELP, ReviewFlagSerializer
 from students.models import StudentSubmission
 from users.models import UserTypes
 
@@ -52,7 +52,9 @@ class StudentSubmissionStatusSerializer(serializers.Serializer):
     is_published = serializers.BooleanField(read_only=True)
     # H-242: what the answer reader noticed about this student's upload.
     flagged_for_review = serializers.BooleanField(read_only=True)
-    submission_flags = SubmissionFlagSerializer(many=True, read_only=True)
+    upload_mismatch = ReviewFlagSerializer(
+        read_only=True, allow_null=True, help_text=UPLOAD_MISMATCH_HELP
+    )
 
 
 class QuestionSerializer(serializers.Serializer):
@@ -567,8 +569,8 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
                     "flagged_for_review": (
                         flagged_for_review(submission) if submission else False
                     ),
-                    "submission_flags": (
-                        submission_flags(submission) if submission else []
+                    "upload_mismatch": (
+                        upload_mismatch(submission) if submission else None
                     ),
                     # "teacher_feedback": (
                     #     submission.formatted_grade if submission else None
@@ -591,7 +593,9 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     assignment_raw_input = serializers.SerializerMethodField()
     remaining_attempts = serializers.SerializerMethodField()
     # H-242: what the answer reader noticed about the student's own upload.
-    student_submission_flags = serializers.SerializerMethodField()
+    student_upload_mismatch = serializers.SerializerMethodField(
+        help_text=UPLOAD_MISMATCH_HELP
+    )
     student_flagged_for_review = serializers.SerializerMethodField()
 
     class Meta(AssignmentListStudentSerializer.Meta):
@@ -601,7 +605,7 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
             "student_submission_id",
             "student_submission_raw_input",
             "assignment_raw_input",
-            "student_submission_flags",
+            "student_upload_mismatch",
             "student_flagged_for_review",
         ]
 
@@ -617,10 +621,10 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
         submission = self._get_submission(obj)
         return str(submission.id) if submission else None
 
-    @extend_schema_field(SubmissionFlagSerializer(many=True))
-    def get_student_submission_flags(self, obj):
+    @extend_schema_field(ReviewFlagSerializer(allow_null=True))
+    def get_student_upload_mismatch(self, obj):
         submission = self._get_submission(obj)
-        return submission_flags(submission) if submission else []
+        return upload_mismatch(submission) if submission else None
 
     def get_student_flagged_for_review(self, obj) -> bool:
         submission = self._get_submission(obj)
