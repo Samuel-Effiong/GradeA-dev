@@ -188,11 +188,17 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
         # import, the process must fail at start, not run with Sentry
         # silently off. The hooks go to init in the same call, so Sentry is
         # never initialised without them.
+        from AutoGrader.sentry_environment import sentry_environment
         from AutoGrader.sentry_scrubbing import scrub_breadcrumb, scrub_event, scrub_log
 
         sentry_sdk.init(
             dsn=SENTRY_DSN,
-            environment=ENVIRONMENT,
+            # H-246: beta runs with ENVIRONMENT=prod; SENTRY_ENVIRONMENT=beta
+            # there keeps its events apart from production's. The release is
+            # read by the SDK itself from SENTRY_RELEASE.
+            environment=sentry_environment(
+                ENVIRONMENT, env.str("SENTRY_ENVIRONMENT", default="")
+            ),
             integrations=[
                 DjangoIntegration(),
                 CeleryIntegration(),

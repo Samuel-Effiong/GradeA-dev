@@ -1,0 +1,85 @@
+# H-212 chain config for ../row_chain.py. Written 2026-10-14 by Builder 58
+# BEFORE any run, by reading the code at 1eb56e23 (base 913f248f). Tests
+# only: nothing is red on the base by design, so (r) is skipped and every
+# assertion is proven able to fail by the mutants below (rule 19).
+
+ROW = "h212"
+WT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h212-register-student-rate-limit"
+BASE = "913f248f"
+OUT = "/home/bond-servant-in-training/Documents/Projects/GAP-58-runs/h212"
+DB_PREFIX = "test_h212"
+
+CLS = "ClosedStudentDoorRateLimitTests"
+T1 = (CLS, "test_the_fourth_request_from_one_address_in_the_hour_is_a_429")
+T2 = (CLS, "test_another_address_is_still_answered_when_one_is_limited")
+T3 = (CLS, "test_the_limited_address_stays_limited_on_the_next_request")
+
+ROW_MODULES = ["users.tests_register_student_rate_limit"]
+
+R_LABELS = []
+R_FROM_TIP = []
+REPRO = set()
+R_REASON = {}
+
+A_LABELS = ROW_MODULES + [
+    "users.tests_throttle_client_identity",
+    "users.tests_old_activation_door_is_closed",
+    "users.tests_rate_limited_envelope",
+    "users.tests_auth_lock_envelope",
+    "AutoGrader.tests_migration_safety_check",
+    "AutoGrader.tests_no_playwright_at_import",
+    "AutoGrader.tests_no_wildcard_invalidation",
+    "AutoGrader.tests_cache_invalidation_coverage",
+    "AutoGrader.tests_migration_rollback_defaults",
+    "AutoGrader.tests_redis_test_isolation",
+    "AutoGrader.tests_management_commands_are_commands",
+    "AutoGrader.tests_no_pii_in_logs",
+    "AutoGrader.tests_log_scrubbing",
+    "AutoGrader.tests_sentry_scrubbing",
+    "billing.tests.test_logs_carry_no_email",
+]
+
+# The throttle unhooked: 4 requests all get 410. T1 fails at its status list
+# (before its new line), T3 at its status line; T2 (410 for another address)
+# stays green.
+UNTHROTTLED = {
+    T1: ("[410, 410, 410, 410] != [410, 410, 410, 429]", "First differing element 3:"),
+    T3: ("410 != 429",),
+}
+DOOR = """        throttle_classes=[RegisterThrottle],
+        url_path="register/student","""
+GENERIC = """        elif isinstance(exc, Throttled) and isinstance(drf_response.data, dict):
+            # The generic catch-all: every OTHER throttle (the global
+            # defaults, the named AnonRateThrottle buckets in
+            # users/throttling.py, dashboard/throttling.py's
+            # CustomAIPromptThrottle, and any future one) raises a plain
+            # `Throttled` with no `.envelope`, so it never hit the branch
+            # above. `wait` is the same number DRF already used to build
+            # `detail` and the `Retry-After` header (None only if a
+            # throttle's `wait()` can't say how long - no observed case
+            # today, but the catalogue requires every placeholder).
+            add_coded_envelope(
+                drf_response.data,
+                ReasonCode.RATE_LIMITED,
+                str(drf_response.data.get("detail", "")),
+                params={"wait_seconds": round(exc.wait) if exc.wait is not None else 0},
+            )
+"""
+
+MUTANTS = {
+    "D4a": ("users/views.py", DOOR, '        url_path="register/student",',
+            ROW_MODULES, set(UNTHROTTLED), UNTHROTTLED),
+    "D4b": ("users/views.py", DOOR, DOOR.replace("[RegisterThrottle]", "[LoginThrottle]"),
+            ROW_MODULES, set(UNTHROTTLED), UNTHROTTLED),
+    "D4c": ("users/views.py", DOOR, DOOR.replace("[RegisterThrottle]", "[]"),
+            ROW_MODULES, set(UNTHROTTLED), UNTHROTTLED),
+    "D4d": ("users/throttling.py",
+            'class RegisterThrottle(AnonRateThrottle):\n    scope = "register"',
+            'class RegisterThrottle(AnonRateThrottle):\n    scope = "anon"',
+            ROW_MODULES, set(UNTHROTTLED), UNTHROTTLED),
+    # D5 the generic RATE_LIMITED envelope removed: the 429s stay, the code
+    # goes. Only the two new assertions see it.
+    "D5": ("users/exceptions.py", GENERIC, "",
+           ROW_MODULES, {T1, T3},
+           {T1: ("None != 'RATE_LIMITED'",), T3: ("None != 'RATE_LIMITED'",)}),
+}

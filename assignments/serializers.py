@@ -6,8 +6,19 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
-from classrooms.models import Course, StudentCourse, Topic, teacher_can_reach_course
-from students.feedback_projection import student_safe_feedback
+from classrooms.models import (
+    Course,
+    EnrollmentStatusType,
+    StudentCourse,
+    Topic,
+    teacher_can_reach_course,
+)
+from students.feedback_projection import (
+    flagged_for_review,
+    student_safe_feedback,
+    upload_mismatch,
+)
+from students.flag_serializers import UPLOAD_MISMATCH_HELP, ReviewFlagSerializer
 from students.models import StudentSubmission
 from users.models import UserTypes
 
@@ -39,6 +50,11 @@ class StudentSubmissionStatusSerializer(serializers.Serializer):
     max_points = serializers.IntegerField(read_only=True, allow_null=True)
     grade_status = serializers.CharField(read_only=True)
     is_published = serializers.BooleanField(read_only=True)
+    # H-242: what the answer reader noticed about this student's upload.
+    flagged_for_review = serializers.BooleanField(read_only=True)
+    upload_mismatch = ReviewFlagSerializer(
+        read_only=True, allow_null=True, help_text=UPLOAD_MISMATCH_HELP
+    )
 
 
 class QuestionSerializer(serializers.Serializer):
@@ -479,9 +495,14 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
     @extend_schema_field(StudentSubmissionStatusSerializer(many=True))
     def get_student_submissions(self, obj):
 
-        # Fetch all enrolled students for this course
-        enrollments = StudentCourse.objects.filter(course=obj.course).select_related(
-            "student"
+        # Fetch the course's enrolments in the one defined order of enrolment
+        # lists (H-213). A WITHDRAWN student is listed only if they submitted
+        # for THIS assignment (H-220, the founder's decision); every other
+        # status is listed as before.
+        enrollments = (
+            StudentCourse.objects.filter(course=obj.course)
+            .select_related("student")
+            .in_list_order()
         )
 
         # Build a lookup map: student_id → submission
@@ -496,6 +517,11 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
         for enrollment in enrollments:
             student = enrollment.student
             submission = submission_map.get(student.id)
+            if (
+                enrollment.enrollment_status == EnrollmentStatusType.WITHDRAWN
+                and submission is None
+            ):
+                continue
 
             # Submission status
             submission_status = "SUBMITTED" if submission else "NOT SUBMITTED"
@@ -540,6 +566,12 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
                     "grade_status": grade_status,
                     "was_regraded": submission.was_regraded if submission else None,
                     "is_published": submission.is_published if submission else False,
+                    "flagged_for_review": (
+                        flagged_for_review(submission) if submission else False
+                    ),
+                    "upload_mismatch": (
+                        upload_mismatch(submission) if submission else None
+                    ),
                     # "teacher_feedback": (
                     #     submission.formatted_grade if submission else None
                     # ),
@@ -560,6 +592,11 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     student_submission_raw_input = serializers.SerializerMethodField()
     assignment_raw_input = serializers.SerializerMethodField()
     remaining_attempts = serializers.SerializerMethodField()
+    # H-242: what the answer reader noticed about the student's own upload.
+    student_upload_mismatch = serializers.SerializerMethodField(
+        help_text=UPLOAD_MISMATCH_HELP
+    )
+    student_flagged_for_review = serializers.SerializerMethodField()
 
     class Meta(AssignmentListStudentSerializer.Meta):
         fields = AssignmentListStudentSerializer.Meta.fields + [
@@ -568,6 +605,8 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
             "student_submission_id",
             "student_submission_raw_input",
             "assignment_raw_input",
+            "student_upload_mismatch",
+            "student_flagged_for_review",
         ]
 
     def get_performance_summary(self, obj):
@@ -581,6 +620,15 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     def get_student_submission_id(self, obj):
         submission = self._get_submission(obj)
         return str(submission.id) if submission else None
+
+    @extend_schema_field(ReviewFlagSerializer(allow_null=True))
+    def get_student_upload_mismatch(self, obj):
+        submission = self._get_submission(obj)
+        return upload_mismatch(submission) if submission else None
+
+    def get_student_flagged_for_review(self, obj) -> bool:
+        submission = self._get_submission(obj)
+        return flagged_for_review(submission) if submission else False
 
     def get_student_submission_raw_input(self, obj):
         # Not the stored column: before release it carries the grade

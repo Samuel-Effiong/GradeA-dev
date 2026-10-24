@@ -191,14 +191,18 @@ class StudentCoursesOrderTests(Fixture):
         data = self.get(reverse("student-course-my-students"))
         row = next(r for r in data["results"] if str(r["id"]) == str(self.student.id))
         self.assertEqual(len(row["enrolled_courses"]), N)
-        self.assertEqual(row["enrolled_courses"], self.expected_names)
+        self.assertEqual(
+            [c["name"] for c in row["enrolled_courses"]], self.expected_names
+        )
 
     def test_unprefetched_serializer_lists_enrolled_courses_in_the_same_order(self):
         student = User.objects.get(pk=self.student.pk)
         self.assertFalse(hasattr(student, "_prefetched_objects_cache"))
         data = StudentListSerializer(student).data
         self.assertEqual(len(data["enrolled_courses"]), N)
-        self.assertEqual(data["enrolled_courses"], self.expected_names)
+        self.assertEqual(
+            [c["name"] for c in data["enrolled_courses"]], self.expected_names
+        )
 
 
 # Named by string: these exist only after the change, and the tests above must

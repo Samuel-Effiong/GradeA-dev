@@ -81,4 +81,6 @@ USER appuser
 # raise the timeout here, raise that constant too, or a slow-but-alive request
 # can have its claim stolen and run concurrently with the thief (which can
 # duplicate non-refundable Stripe side effects).
-CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 100 --workers 9 --threads 4 --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200
+# WEB_CONCURRENCY and GUNICORN_THREADS override the worker and thread counts
+# without a rebuild; unset, they default to 9 and 4.
+CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 100 --workers ${WEB_CONCURRENCY:-9} --threads ${GUNICORN_THREADS:-4} --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200

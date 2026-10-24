@@ -1,0 +1,272 @@
+[
+ {
+  "id": "R1",
+  "file": "ai_processor/services.py",
+  "what": "targets ignore the re-check's verdict",
+  "verdict": "KILLED",
+  "failed": [
+   "test_no_call_for_a_not_found_the_re_check_did_not_find_writing_for"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R2",
+  "file": "ai_processor/services.py",
+  "what": "targets include blanks",
+  "verdict": "KILLED",
+  "failed": [
+   "test_no_call_for_a_blank_even_with_evidence"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R3",
+  "file": "ai_processor/services.py",
+  "what": "no-images guard removed",
+  "verdict": "KILLED",
+  "failed": [
+   "test_no_call_without_page_images"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R4",
+  "file": "ai_processor/services.py",
+  "what": "note does not name the questions",
+  "verdict": "KILLED",
+  "failed": [
+   "test_the_call_uses_the_reading_prompt_schema_and_every_page"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R5",
+  "file": "ai_processor/services.py",
+  "what": "pages not sent",
+  "verdict": "KILLED",
+  "failed": [
+   "test_the_call_uses_the_reading_prompt_schema_and_every_page"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R6",
+  "file": "ai_processor/services.py",
+  "what": "cancellation swallowed",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_cancellation_is_not_swallowed"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R7",
+  "file": "ai_processor/services.py",
+  "what": "empty markup counts as a recovery",
+  "verdict": "KILLED",
+  "failed": [
+   "test_an_answer_with_only_empty_markup_is_not_a_recovery"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R8",
+  "file": "ai_processor/services.py",
+  "what": "blank status counts as a recovery",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_blank_reply_is_not_a_recovery"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R9",
+  "file": "ai_processor/services.py",
+  "what": "last of two replies wins",
+  "verdict": "KILLED",
+  "failed": [
+   "test_the_first_of_two_replies_for_a_question_wins"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R10",
+  "file": "ai_processor/services.py",
+  "what": "answered questions may be replaced",
+  "verdict": "KILLED",
+  "failed": [
+   "test_an_already_answered_question_is_never_replaced"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R11",
+  "file": "ai_processor/services.py",
+  "what": "reply's label kept",
+  "verdict": "KILLED",
+  "failed": [
+   "test_the_assignment_label_is_kept_not_the_reply_spelling"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R12",
+  "file": "ai_processor/services.py",
+  "what": "re-check evidence dropped",
+  "verdict": "KILLED",
+  "failed": [
+   "test_reading_then_re_check_then_second_reading",
+   "test_the_re_check_evidence_is_kept"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R13",
+  "file": "ai_processor/services.py",
+  "what": "recovered marker dropped",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_recovered_answer_replaces_the_empty_one"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R14",
+  "file": "ai_processor/services.py",
+  "what": "unflagged recovery left unflagged",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_recovered_paper_stays_in_review_but_no_longer_says_not_found",
+   "test_an_unflagged_recovery_is_flagged_as_a_reading_problem",
+   "test_reading_then_re_check_then_second_reading"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R15",
+  "file": "ai_processor/services.py",
+  "what": "recovered note not added",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_recovered_paper_stays_in_review_but_no_longer_says_not_found",
+   "test_a_recovery_keeps_its_own_flag_and_adds_the_note",
+   "test_an_unflagged_recovery_is_flagged_as_a_reading_problem"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R16",
+  "file": "ai_processor/services.py",
+  "what": "own flag detail not tidied",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_recovery_keeps_its_own_flag_and_adds_the_note"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R17",
+  "file": "ai_processor/services.py",
+  "what": "reply not credited",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_recovered_answer_is_credited_to_the_second_readings_reply"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R18",
+  "file": "ai_processor/services.py",
+  "what": "answers not credited",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_recovered_answer_is_credited_to_the_second_readings_reply"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R19",
+  "file": "ai_processor/services.py",
+  "what": "second reading not wired in",
+  "verdict": "KILLED",
+  "failed": [
+   "test_reading_then_re_check_then_second_reading"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R20",
+  "file": "ai_processor/services.py",
+  "what": "canonical key not used for labels",
+  "verdict": "KILLED",
+  "failed": [
+   "test_the_assignment_label_is_kept_not_the_reply_spelling"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R21",
+  "file": "ai_processor/services.py",
+  "what": "wrong schema",
+  "verdict": "KILLED",
+  "failed": [
+   "test_the_call_uses_the_reading_prompt_schema_and_every_page"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R22",
+  "file": "ai_processor/services.py",
+  "what": "re-check wording reverted",
+  "verdict": "KILLED",
+  "failed": [
+   "test_writing_in_a_questions_place_counts_whatever_it_is_about"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ },
+ {
+  "id": "R23",
+  "file": "ai_processor/reading_config.py",
+  "what": "note version not in the reading",
+  "verdict": "KILLED",
+  "failed": [
+   "test_the_second_readings_note_version_changes_the_version"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "137ac6c1fcc07da5cef082006bf1bb80f2461eb7ec1d46fa1668f2fe6a3d1a48"
+ },
+ {
+  "id": "R24",
+  "file": "ai_processor/services.py",
+  "what": "html text keeps nbsp",
+  "verdict": "KILLED",
+  "failed": [
+   "test_an_answer_with_only_empty_markup_is_not_a_recovery",
+   "test_visible_text"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "d70ee63b5d7e2e00f6a4b725bb5c69902e2f109007371addffa6393dc8c7b937"
+ }
+]

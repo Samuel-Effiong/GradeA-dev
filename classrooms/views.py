@@ -31,6 +31,7 @@ from drf_spectacular.utils import (
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import (
+    APIException,
     NotFound,
     ParseError,
     PermissionDenied,
@@ -52,8 +53,15 @@ from AutoGrader.cache_generation import (
 )
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
+from AutoGrader.query_params import boolean_query_param
 from billing.models import CreditUsageLog
 from classrooms.permissions import CanManageSession
+from dashboard.risk import (
+    TREND_DECLINING,
+    TREND_IMPROVING,
+    TREND_INSUFFICIENT_DATA,
+    TREND_STABLE,
+)
 from students.models import BackgroundTaskType, StudentSubmission
 from students.serializers import StudentListSerializer
 from students.task_tracking import create_processing_task, launch_processing_task
@@ -119,6 +127,58 @@ def _validate_uuid_query_param(value, param_name):
         raise ValidationError(
             {param_name: [f"{value!r} is not a valid UUID."]}
         ) from exc
+
+
+def _grade_query_param(request, param_name):
+    """A 0-100 grade filter from the query string, or None if not given.
+
+    A bare float() turned `?min_grade=abc`, or an empty `?min_grade=` beside
+    another filter, into an unhandled 500, and `nan` passed it and silently
+    matched nothing (H-231). Absent or empty means not given, as
+    dashboard's `_percentage_param` reads its thresholds; anything else that
+    is not a number from 0 to 100 is the caller's 400, naming the parameter.
+    """
+    value = request.query_params.get(param_name)
+    if value in (None, ""):
+        return None
+    try:
+        grade = float(value)
+    except ValueError:
+        grade = None
+    # NaN fails `0 <= grade <= 100` too (every comparison with it is false),
+    # so the range check refuses it as well.
+    if grade is None or not 0 <= grade <= 100:
+        raise ValidationError(
+            {param_name: [f"{value!r} is not a number between 0 and 100."]}
+        )
+    return grade
+
+
+#: `?grade_trend=` values (any letter case) and the verdict each one means.
+GRADE_TRENDS = {
+    "improving": TREND_IMPROVING,
+    "declining": TREND_DECLINING,
+    "stable": TREND_STABLE,
+    "insufficient_data": TREND_INSUFFICIENT_DATA,
+}
+
+
+def _grade_trend_query_param(request, param_name):
+    """One grade trend from the query string, or None if not given (H-251).
+
+    Absent or empty means not given; anything that is not one of
+    GRADE_TRENDS, a comma-separated list included, is the caller's 400,
+    naming the parameter.
+    """
+    value = request.query_params.get(param_name)
+    if value in (None, ""):
+        return None
+    trend = GRADE_TRENDS.get(value.lower())
+    if trend is None:
+        raise ValidationError(
+            {param_name: [f"{value!r} is not one of {', '.join(GRADE_TRENDS)}."]}
+        )
+    return trend
 
 
 @extend_schema_view(
@@ -1065,7 +1125,19 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             return Response({"detail": "School not found."}, status=404)
 
         # Number of months to look back
-        months = int(request.query_params.get("months", 12))
+        # Absent or empty is the default; a value that is not a whole number
+        # is the caller's 400 (a bare int() made it a 500, H-231). A whole
+        # number out of range still falls back to the default.
+        months_param = request.query_params.get("months")
+        if months_param in (None, ""):
+            months = 12
+        else:
+            try:
+                months = int(months_param)
+            except ValueError:
+                raise ValidationError(
+                    {"months": [f"{months_param!r} is not a whole number."]}
+                ) from None
         if months < 1 or months > 36:
             months = 12
 
@@ -1427,6 +1499,11 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         except DjangoValidationError as e:
             detail = e.message_dict if hasattr(e, "message_dict") else e.messages
             raise ValidationError(detail) from e
+        except APIException:
+            # H-214: the serializer refuses by raising DRF's own exceptions
+            # ("already enrolled", the school gate); those are the caller's
+            # 400, not a server fault.
+            raise
         except Exception as e:
             logger.error("Failed to direct-add student to course", exc_info=e)
             return Response(
@@ -2118,6 +2195,16 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     teacher_course_access_q(user, prefix="course__"),
                     student=OuterRef("pk"),
                 ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+
+                # `grade` is a cross-course aggregate now (every course this
+                # teacher teaches this student, not one "relevant"
+                # enrollment) - StudentListSerializer computes it in Python
+                # from the prefetched submissions below, so there is no
+                # longer a single DB column/annotation for min_grade,
+                # max_grade or ordering=final_grade to target. See
+                # `my_students` for how those three (and at_risk) are
+                # evaluated instead.
+                #
                 # StudentListSerializer walks enrollments -> course ->
                 # teacher and assignments, and submissions -> assignment,
                 # for every row. Unprefetched that was ~140 queries PER
@@ -2131,7 +2218,7 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 # holds: unscoped, `enrolled_courses` listed other teachers'
                 # course names, and `?enrollments__course=<their course>`
                 # made that foreign course the row's subject - its
-                # description, its teacher's name and the student's grade.
+                # description and its teacher's name.
                 return CustomUser.objects.filter(
                     Exists(active_enrollment)
                 ).prefetch_related(
@@ -2211,7 +2298,8 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         summary="List Teacher's Students",
         description=(
             "Retrieves a unique list of students enrolled in any course taught by the currently authenticated teacher. "
-            "Supports filtering by specific course or session and searching by name/email."
+            "Supports filtering by specific course or session, filtering/sorting by grade performance, "
+            "filtering by at-risk status, and searching by name/email."
         ),
         parameters=[
             OpenApiParameter(
@@ -2232,6 +2320,53 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 location=OpenApiParameter.QUERY,
                 description="Search students by first name, last name, or email (case-insensitive).",
             ),
+            OpenApiParameter(
+                name="min_grade",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Only students whose grade (points-weighted across every "
+                    "course this teacher teaches them) is at least this."
+                ),
+            ),
+            OpenApiParameter(
+                name="max_grade",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Only students whose grade is at most this.",
+            ),
+            OpenApiParameter(
+                name="at_risk",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Only students flagged at_risk (true) or not (false), per the "
+                    "same StudentRiskEvaluator the response's at_risk field uses, "
+                    "evaluated across every course this teacher teaches them."
+                ),
+            ),
+            OpenApiParameter(
+                name="grade_trend",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                enum=list(GRADE_TRENDS),
+                description=(
+                    "Only students whose grade_trend is this one value: "
+                    "improving, declining, stable or insufficient_data (any "
+                    "letter case; one value, not a list). The trend is the "
+                    "response's own grade_trend field: the student's last six "
+                    "graded scores across every course this teacher teaches "
+                    "them, IMPROVING or DECLINING when they moved 3 points or "
+                    "more, INSUFFICIENT DATA under two scores. Anything else "
+                    "is a 400."
+                ),
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Sort by grade: `final_grade` (lowest first) or `-final_grade` (highest first).",
+            ),
         ],
         responses={200: StudentListSerializer(many=True)},
         tags=["Student Course"],
@@ -2251,12 +2386,80 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         """
         queryset = self.filter_queryset(self.get_queryset())
 
-        page = self.paginate_queryset(queryset)
+        min_grade = _grade_query_param(request, "min_grade")
+        max_grade = _grade_query_param(request, "max_grade")
+        at_risk = boolean_query_param(request, "at_risk")
+        grade_trend = _grade_trend_query_param(request, "grade_trend")
+        ordering = request.query_params.get("ordering")
+        sort_by_grade = ordering in ("final_grade", "-final_grade")
+
+        # `grade` and `at_risk` are cross-course Python computations
+        # (StudentListSerializer), not DB columns - DjangoFilterBackend and
+        # OrderingFilter can't filter/sort by them. The common case (none
+        # of these four params given) stays a plain DB-paginated list;
+        # only when one is actually present do we pay to materialise and
+        # evaluate every matching student up front, the same tradeoff
+        # dashboard/views.py's `all_students` action already takes for its
+        # own at_risk filter.
+        # `is not None`: a grade of 0 is a filter (it leaves out the
+        # ungraded), not "no filter".
+        if not (
+            min_grade is not None
+            or max_grade is not None
+            or at_risk is not None
+            or grade_trend is not None
+            or sort_by_grade
+        ):
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+
+        # One serializer instance, reused across every student: its
+        # memoised _cross_course_grade/_cross_course_risk_result are the
+        # SAME computation the response's grade/at_risk fields show, so
+        # this filtering/sorting can never disagree with the rows it
+        # returns - and reusing it costs no extra queries (everything
+        # needed is already prefetched by get_queryset).
+        probe = StudentListSerializer(context={"request": request})
+        rows = [
+            (
+                student,
+                probe._cross_course_grade(student),
+                probe.get_at_risk(student),
+                probe.get_grade_trend(student),
+            )
+            for student in queryset
+        ]
+
+        if min_grade is not None:
+            rows = [r for r in rows if r[1] is not None and r[1] >= min_grade]
+        if max_grade is not None:
+            rows = [r for r in rows if r[1] is not None and r[1] <= max_grade]
+        if at_risk is not None:
+            rows = [r for r in rows if r[2] == at_risk]
+        if grade_trend is not None:
+            rows = [r for r in rows if r[3] == grade_trend]
+        if sort_by_grade:
+            # Ungraded students sort last regardless of direction - "no
+            # grade yet" isn't lower or higher than a real one, so it's
+            # excluded from the reversible part of the sort entirely.
+            graded = sorted(
+                (r for r in rows if r[1] is not None),
+                key=lambda r: r[1],
+                reverse=ordering.startswith("-"),
+            )
+            ungraded = [r for r in rows if r[1] is None]
+            rows = graded + ungraded
+
+        students = [r[0] for r in rows]
+        page = self.paginate_queryset(students)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = self.get_serializer(students, many=True)
         return Response(serializer.data)
 
 

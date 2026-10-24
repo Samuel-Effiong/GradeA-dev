@@ -1,0 +1,482 @@
+{
+ "essay1": {
+  "paper": "P1_unrelated_essay",
+  "verdict": [
+   false,
+   "An English literature essay on Macbeth; nothing in it answers these maths questions."
+  ],
+  "review_tier": "critical",
+  "flags": [
+   [
+    "SUBMISSION_MISMATCH",
+    null
+   ],
+   [
+    "OFF_TOPIC",
+    1
+   ],
+   [
+    "ANSWER_NOT_FOUND",
+    2
+   ],
+   [
+    "ANSWER_NOT_FOUND",
+    3
+   ],
+   [
+    "ANSWER_NOT_FOUND",
+    4
+   ]
+  ],
+  "answers": [
+   {
+    "q": 1,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": "<p>The Role of Ambition in Macbeth</p><p>In Shakespeare's Macbeth, ambition is t"
+   },
+   {
+    "q": 2,
+    "status": "NOT_FOUND_IN_DOCUMENT",
+    "flag": "NONE",
+    "retranscribed": null,
+    "answer_start": ""
+   },
+   {
+    "q": 3,
+    "status": "NOT_FOUND_IN_DOCUMENT",
+    "flag": "NONE",
+    "retranscribed": null,
+    "answer_start": ""
+   },
+   {
+    "q": 4,
+    "status": "NOT_FOUND_IN_DOCUMENT",
+    "flag": "NONE",
+    "retranscribed": null,
+    "answer_start": ""
+   }
+  ]
+ },
+ "essay2": {
+  "paper": "P1_unrelated_essay",
+  "verdict": [
+   false,
+   "An English literature essay on Macbeth; nothing in it answers these maths questions."
+  ],
+  "review_tier": "critical",
+  "flags": [
+   [
+    "SUBMISSION_MISMATCH",
+    null
+   ],
+   [
+    "OFF_TOPIC",
+    1
+   ],
+   [
+    "ANSWER_NOT_FOUND",
+    2
+   ],
+   [
+    "ANSWER_NOT_FOUND",
+    3
+   ],
+   [
+    "ANSWER_NOT_FOUND",
+    4
+   ]
+  ],
+  "answers": [
+   {
+    "q": 1,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": "<p>Name: Ada Obi</p><p>English Literature Essay</p><p>The Role of Ambition in Ma"
+   },
+   {
+    "q": 2,
+    "status": "NOT_FOUND_IN_DOCUMENT",
+    "flag": "NONE",
+    "retranscribed": null,
+    "answer_start": ""
+   },
+   {
+    "q": 3,
+    "status": "NOT_FOUND_IN_DOCUMENT",
+    "flag": "NONE",
+    "retranscribed": null,
+    "answer_start": ""
+   },
+   {
+    "q": 4,
+    "status": "NOT_FOUND_IN_DOCUMENT",
+    "flag": "NONE",
+    "retranscribed": null,
+    "answer_start": ""
+   }
+  ]
+ },
+ "forced1": {
+  "paper": "P2_numbered_english_answers",
+  "verdict": [
+   false,
+   "The upload contains four paragraphs answering English/literature questions on metaphors, Romeo and Juliet, narration, and persuasive writing; nothing addresses the mathematics questions on this assignment."
+  ],
+  "review_tier": "critical",
+  "flags": [
+   [
+    "SUBMISSION_MISMATCH",
+    null
+   ],
+   [
+    "OFF_TOPIC",
+    1
+   ],
+   [
+    "OFF_TOPIC",
+    2
+   ],
+   [
+    "OFF_TOPIC",
+    3
+   ],
+   [
+    "OFF_TOPIC",
+    4
+   ]
+  ],
+  "answers": [
+   {
+    "q": 1,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": "<p>A metaphor is a direct comparison without using like or as, for example 'the "
+   },
+   {
+    "q": 2,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": true,
+    "answer_start": "<p>The main theme of Romeo and Juliet is the conflict between love and hate, sho"
+   },
+   {
+    "q": 3,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": true,
+    "answer_start": "<p>The narrator in the story is first person, because the story uses 'I' and we "
+   },
+   {
+    "q": 4,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": true,
+    "answer_start": "<p>Persuasive writing uses rhetorical questions, repetition and emotive language"
+   }
+  ]
+ },
+ "forced2": {
+  "paper": "P2_numbered_english_answers",
+  "verdict": [
+   false,
+   "The submission is an English literature assignment with answers on metaphors, Romeo and Juliet, narrative perspective, and persuasive writing; it does not answer any of the mathematics questions."
+  ],
+  "review_tier": "critical",
+  "flags": [
+   [
+    "SUBMISSION_MISMATCH",
+    null
+   ],
+   [
+    "OFF_TOPIC",
+    1
+   ],
+   [
+    "OFF_TOPIC",
+    2
+   ],
+   [
+    "OFF_TOPIC",
+    3
+   ],
+   [
+    "OFF_TOPIC",
+    4
+   ]
+  ],
+  "answers": [
+   {
+    "q": 1,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": "<p>A metaphor is a direct comparison without using like or as, for example 'the "
+   },
+   {
+    "q": 2,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": true,
+    "answer_start": "<p>The main theme of Romeo and Juliet is the conflict between love and hate, sho"
+   },
+   {
+    "q": 3,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": true,
+    "answer_start": "<p>The narrator in the story is first person, because the story uses 'I' and we "
+   },
+   {
+    "q": 4,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": true,
+    "answer_start": "<p>Persuasive writing uses rhetorical questions, repetition and emotive language"
+   }
+  ]
+ },
+ "natural4": {
+  "paper": "P2_numbered_english_answers",
+  "verdict": [
+   false,
+   "An English literature assignment on metaphors, Romeo and Juliet, narrative perspective, and persuasive writing; nothing in it answers these maths questions."
+  ],
+  "review_tier": "critical",
+  "flags": [
+   [
+    "SUBMISSION_MISMATCH",
+    null
+   ],
+   [
+    "OFF_TOPIC",
+    1
+   ],
+   [
+    "OFF_TOPIC",
+    2
+   ],
+   [
+    "OFF_TOPIC",
+    3
+   ],
+   [
+    "OFF_TOPIC",
+    4
+   ]
+  ],
+  "answers": [
+   {
+    "q": 1,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": "<p>A metaphor is a direct comparison without using like or as, for example 'the "
+   },
+   {
+    "q": 2,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": "<p>The main theme of Romeo and Juliet is the conflict between love and hate, sho"
+   },
+   {
+    "q": 3,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": "<p>The narrator in the story is first person, because the story uses 'I' and we "
+   },
+   {
+    "q": 4,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": "<p>Persuasive writing uses rhetorical questions, repetition and emotive language"
+   }
+  ]
+ },
+ "run1": {
+  "paper": "P2_numbered_english_answers",
+  "verdict": [
+   false,
+   "An English literature assignment with answers about metaphors, Romeo and Juliet, narrators, and persuasive writing; nothing answers these maths questions."
+  ],
+  "review_tier": "critical",
+  "flags": [
+   [
+    "SUBMISSION_MISMATCH",
+    null
+   ],
+   [
+    "OFF_TOPIC",
+    1
+   ],
+   [
+    "ANSWER_NOT_FOUND",
+    2
+   ],
+   [
+    "ANSWER_NOT_FOUND",
+    3
+   ],
+   [
+    "ANSWER_NOT_FOUND",
+    4
+   ]
+  ],
+  "answers": [
+   {
+    "q": 1,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": "<p>1. A metaphor is a direct comparison without using like or as, for example 't"
+   },
+   {
+    "q": 2,
+    "status": "NOT_FOUND_IN_DOCUMENT",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": ""
+   },
+   {
+    "q": 3,
+    "status": "NOT_FOUND_IN_DOCUMENT",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": ""
+   },
+   {
+    "q": 4,
+    "status": "NOT_FOUND_IN_DOCUMENT",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": ""
+   }
+  ]
+ },
+ "run2": {
+  "paper": "P2_numbered_english_answers",
+  "verdict": [
+   false,
+   "An English literature assignment with answers about metaphors, themes in Romeo and Juliet, narrators, and persuasive writing; nothing answers these maths questions."
+  ],
+  "review_tier": "critical",
+  "flags": [
+   [
+    "SUBMISSION_MISMATCH",
+    null
+   ],
+   [
+    "OFF_TOPIC",
+    1
+   ],
+   [
+    "OFF_TOPIC",
+    2
+   ],
+   [
+    "OFF_TOPIC",
+    3
+   ],
+   [
+    "OFF_TOPIC",
+    4
+   ]
+  ],
+  "answers": [
+   {
+    "q": 1,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": "<p>1. A metaphor is a direct comparison without using like or as, for example 't"
+   },
+   {
+    "q": 2,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": true,
+    "answer_start": "<p>The main theme of Romeo and Juliet is the conflict between love and hate, sho"
+   },
+   {
+    "q": 3,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": true,
+    "answer_start": "<p>The narrator in the story is first person, because the story uses 'I' and we "
+   },
+   {
+    "q": 4,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": true,
+    "answer_start": "<p>Persuasive writing uses rhetorical questions, repetition and emotive language"
+   }
+  ]
+ },
+ "run3": {
+  "paper": "P2_numbered_english_answers",
+  "verdict": [
+   false,
+   "The upload is a literature assignment submission answering questions about metaphors, Romeo and Juliet, narrators, and persuasive writing; nothing answers the mathematics questions."
+  ],
+  "review_tier": "critical",
+  "flags": [
+   [
+    "SUBMISSION_MISMATCH",
+    null
+   ],
+   [
+    "OFF_TOPIC",
+    1
+   ],
+   [
+    "OFF_TOPIC",
+    2
+   ],
+   [
+    "OFF_TOPIC",
+    3
+   ],
+   [
+    "OFF_TOPIC",
+    4
+   ]
+  ],
+  "answers": [
+   {
+    "q": 1,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": "<p>A metaphor is a direct comparison without using like or as, for example 'the "
+   },
+   {
+    "q": 2,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": "<p>The main theme of Romeo and Juliet is the conflict between love and hate, sho"
+   },
+   {
+    "q": 3,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": "<p>The narrator in the story is first person, because the story uses 'I' and we "
+   },
+   {
+    "q": 4,
+    "status": "ANSWERED",
+    "flag": "OFF_TOPIC",
+    "retranscribed": null,
+    "answer_start": "<p>Persuasive writing uses rhetorical questions, repetition and emotive language"
+   }
+  ]
+ }
+}

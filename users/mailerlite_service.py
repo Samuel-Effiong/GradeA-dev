@@ -64,6 +64,26 @@ class MailerLiteService:
         return payload
 
     @staticmethod
+    def _skip_reason(user):
+        """
+        Why `user` must never reach MailerLite, or None if they may.
+
+        queue_sync() already skips inactive users, but several billing
+        paths (Stripe webhooks, trial expiry, license changes) dispatch the
+        task directly. Checking here covers every path at once. Billing QA
+        users are never activated, and are also matched by domain in case
+        a scenario ever activates one.
+        """
+        if not user.is_active:
+            return "user is not active"
+
+        from billing.stripe_live_qa import qa_email_domain
+
+        if user.email.lower().endswith("@" + qa_email_domain()):
+            return "billing QA user"
+        return None
+
+    @staticmethod
     def sync_user(user):
         """
         Upserts `user` as a MailerLite subscriber, tagged with a group
@@ -71,8 +91,14 @@ class MailerLiteService:
 
         Returns True on success, False on a request failure (safe to
         retry), and None if sync was skipped outright (no API key
-        configured - not worth retrying).
+        configured, inactive user, or billing QA user - not worth
+        retrying).
         """
+        skip_reason = MailerLiteService._skip_reason(user)
+        if skip_reason:
+            logger.info("MailerLite sync skipped for user %s: %s", user.id, skip_reason)
+            return None
+
         api_key = getattr(settings, "MAILERLITE_API_KEY", "")
         if not api_key:
             logger.info(

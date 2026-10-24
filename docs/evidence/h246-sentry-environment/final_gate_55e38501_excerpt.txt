@@ -1,0 +1,4 @@
+Excerpt of the final gate log for 55e38501 (full log sha256 4cd8e94ca82da3ad86bf6a340ce484fae381db050b1c2a1b4b9bc3f3fc7b381f).
+Found 8022 test(s).
+Ran 8022 tests in 473.346s
+OK (skipped=30)

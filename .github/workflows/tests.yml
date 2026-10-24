@@ -46,7 +46,11 @@ jobs:
     # 633s, whole job 12m55s. The whole-repo mypy step added after the suite
     # costs ~2 min cold, so 20 left too little margin; 30 until the test-speed
     # work brings the job down.
-    timeout-minutes: 30
+    #
+    # 2026-10-17: the suite grew to 8060 tests (test step 26.6 min) and run
+    # 39022068364 on e65d1ae6 was cut off at 30 min inside mypy, with every
+    # test passing. 45 gives the job room until the test-speed work lands.
+    timeout-minutes: 45
 
     services:
       postgres:

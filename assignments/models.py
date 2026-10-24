@@ -2,7 +2,9 @@ import uuid
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
+from django.db.models import Q
 from django.db.models.functions import Now
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from users.models import CustomUser
@@ -21,6 +23,43 @@ class AssignmentStatus(models.TextChoices):
     DRAFT = "DRAFT", _("DRAFT")
     PUBLISHED = "PUBLISHED", _("PUBLISHED")
     UNPUBLISHED = "UNPUBLISHED", _("UNPUBLISHED")
+
+
+# The one definition of "published" and of "work a student can fairly be
+# expected to have submitted by now", in Python and as a query (H-237).
+# DRAFT and UNPUBLISHED work was never, or is no longer, shown to students;
+# published work that is not yet due is not missing. Every at-risk figure,
+# and every count that follows the published rule, reads these.
+
+
+def is_expected(status, due_date, now=None):
+    """The rule on an assignment's two fields, for code that holds them as
+    values (`.values()` rows) rather than as an Assignment."""
+    now = now or timezone.now()
+    return status == AssignmentStatus.PUBLISHED and (
+        due_date is None or due_date <= now
+    )
+
+
+def is_published(assignment):
+    return assignment.status == AssignmentStatus.PUBLISHED
+
+
+def is_expected_by_now(assignment, now=None):
+    return is_expected(assignment.status, assignment.due_date, now)
+
+
+def published_q(prefix=""):
+    """`prefix` reaches the assignment through a relation, for example
+    "student__submissions__assignment__"."""
+    return Q(**{f"{prefix}status": AssignmentStatus.PUBLISHED})
+
+
+def expected_q(prefix="", now=None):
+    now = now or timezone.now()
+    return published_q(prefix) & (
+        Q(**{f"{prefix}due_date__isnull": True}) | Q(**{f"{prefix}due_date__lte": now})
+    )
 
 
 class Assignment(models.Model):

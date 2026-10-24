@@ -260,6 +260,37 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "Upgrade your plan, or ask your school administrator to enable it.",
         retryable=False,
     ),
+    # An individual teacher's overage purchase would exceed their plan's
+    # per-cycle cap (billing.stripe_service.StripeOverageService). Mirrors
+    # LICENCE_SEATS_EXCEEDED's shape: the cap and what's left stay
+    # machine-readable in params, same as the message.
+    ReasonCode.OVERAGE_CAP_EXCEEDED: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_400_BAD_REQUEST,
+        # H-233: reads right at 0 left too (the old sentence said "Reduce
+        # your quantity to 0 or fewer").
+        "This purchase would go over your plan's limit of {max_blocks} "
+        "block(s) per billing cycle. You have {remaining} block(s) left this "
+        "cycle.",
+        "Request fewer blocks, or wait until your next billing cycle, then "
+        "try again.",
+        retryable=False,
+        params=frozenset({"max_blocks", "remaining"}),
+    ),
+    # The generic throttle catch-all (custom_exception_handler, users/
+    # exceptions.py): any DRF `Throttled` without its own `.envelope`
+    # (i.e. not one of the three named sign-in locks) gets this code.
+    # `wait_seconds` comes straight from the exception's own `wait`
+    # attribute, the same number DRF already puts in `detail` and the
+    # `Retry-After` header - this only makes it machine-readable too.
+    ReasonCode.RATE_LIMITED: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_429_TOO_MANY_REQUESTS,
+        "Too many requests. Please wait {wait_seconds} second(s) and try " "again.",
+        "Wait, then try again.",
+        retryable=True,
+        params=frozenset({"wait_seconds"}),
+    ),
     ReasonCode.NOT_RETRYABLE: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_409_CONFLICT,
@@ -402,6 +433,12 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "Row {row}: this account can't be added to this school. If you "
         "believe this is a mistake, contact your school administrator.",
         "",
+    ),
+    # H-247: one email is one student with one name. Neutral on purpose:
+    # never prints the stored name, so the import can't look one up.
+    ReasonCode.ROW_NAME_MISMATCH: _row_spec(
+        "Row {row}: this email already belongs to a student with a different " "name.",
+        "Use the name on the student's account, or check the email address.",
     ),
     ReasonCode.ROW_ACCOUNT_DISABLED: _row_spec(
         "Row {row}: this student's account is disabled.",
@@ -692,15 +729,16 @@ def coded_body(code, params, message, remediation=None):
     return body
 
 
-def add_coded_envelope(data, code, message, *, code_value=None):
+def add_coded_envelope(data, code, message, *, code_value=None, params=None):
     """ADD the coded envelope to a body a view or DRF already built (the F8
     pattern): every key the body has - the fields its docs promise - stays
     exactly as it was. `code_value` sets `code` only if the body has none.
+    `params` defaults to empty (the three named locks have none).
 
     `error` (the envelope's display sentence) is NOT added: these bodies
     already carry their text as `message` or `detail`, and a second text key
     would change what the renderer shows."""
-    body = coded_body(code, {}, message)
+    body = coded_body(code, dict(params or {}), message)
     for key in ENVELOPE_KEYS:
         if key in body and key not in data:
             data[key] = body[key]

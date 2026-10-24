@@ -271,11 +271,10 @@ class RowCodeTests(RosterFixture):
         )
         self.assertIsNone(rows[1]["remediation"])
 
-    def test_a_new_student_with_an_enrolled_students_name_is_a_clash(self):
-        """The direct-add serializer's defensive rule, now a row code. The
-        teacher's own-student match normally reaches such a student first
-        (and skips the row as already enrolled), so the match is switched
-        off to reach the rule itself."""
+    def test_a_no_email_row_with_an_enrolled_students_name_is_that_student(self):
+        """H-247: with no email a name is unique within one course, so a
+        row naming a student already in the course is that student: skipped
+        as already enrolled, nothing created."""
         twin = CustomUser.objects.create_user(
             email="twin@s7d.example.org",
             password=PASSWORD,
@@ -289,22 +288,18 @@ class RowCodeTests(RosterFixture):
             course=self.course,
             enrollment_status=EnrollmentStatusType.ENROLLED,
         )
-        with patch.object(
-            roster_import, "_find_existing_student_by_name", new=lambda **_: None
-        ):
-            rows = self.rows("first_name,middle_name,last_name\nTw,Ee,In\n")
+        students_before = CustomUser.objects.count()
+
+        rows = self.rows("first_name,middle_name,last_name\nTw,Ee,In\n")
 
         self.assert_coded(
             rows[1],
-            "ROW_NAME_CLASH",
-            "failed",
-            "Row 1: a student named Tw Ee In is already in this course.",
-        )
-        self.assertEqual(
-            rows[1]["remediation"],
-            "Add an email address to tell the two students apart.",
+            "ROW_ALREADY_ENROLLED",
+            "skipped",
+            "Row 1: Tw In is already in this course.",
         )
         self.assertEqual(self.enrolled(), 1)
+        self.assertEqual(CustomUser.objects.count(), students_before)
 
     def test_every_staff_role_answers_identically(self):
         """H-71: a teacher, a school admin and a super admin give the same

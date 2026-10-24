@@ -1,7 +1,11 @@
 """H-14: the scalar-column rewrite of _at_risk_students must agree with the
 object-based original on every edge case the rule has.
 
-`reference_at_risk_students` is the original body, verbatim from beta 4b902fc.
+`reference_at_risk_students` is the original body from beta 4b902fc, with ONE
+intended change for H-237 (the user's rule, 2026-10-14): its submitted count
+takes only submissions to published work that is due, so the oracle can no
+longer agree with a return to the old rule. The fixture's student S13 tells
+the two rules apart (an early submission to not-yet-due work).
 """
 
 from collections import defaultdict
@@ -90,13 +94,31 @@ def reference_at_risk_students(service, school):
             for submission in submissions_by_student.get(student_id, [])
             if submission.assignment.course_id in student_course_ids
         ]
+        # H-237 (intended change): only submissions to published, due work.
         submitted_count = len(
-            {submission.assignment_id for submission in student_submissions}
+            {
+                submission.assignment_id
+                for submission in student_submissions
+                if submission.assignment.status == AssignmentStatus.PUBLISHED
+                and (
+                    submission.assignment.due_date is None
+                    or submission.assignment.due_date <= timezone.now()
+                )
+            }
         )
         # Only published, graded submissions count toward the average
         # shown to school admins (matches the prior school-wide behavior).
         graded_scores = [
-            (submission.submission_date, float(submission.score_percentage))
+            (
+                submission.submission_date,
+                float(submission.score_percentage),
+                submission.score,
+                (
+                    submission.max_points
+                    if submission.max_points is not None
+                    else submission.assignment.total_points
+                ),
+            )
             for submission in student_submissions
             if submission.is_published and submission.score_percentage is not None
         ]
@@ -175,7 +197,7 @@ class AtRiskEquivalenceTests(TestCase):
         cls.a1 = [assignment(cls.c1, f"a1-{i}", past) for i in range(4)]
         cls.a1 += [assignment(cls.c1, "a1-nodue", None)]
         cls.a2 = [assignment(cls.c2, f"a2-{i}", past) for i in range(3)]
-        assignment(cls.c2, "a2-future", future)  # not yet due
+        a2_future = assignment(cls.c2, "a2-future", future)  # not yet due
         cls.af = assignment(cls.foreign, "foreign", past)
 
         def student(n, **kw):
@@ -236,6 +258,14 @@ class AtRiskEquivalenceTests(TestCase):
         enrol(s_stray, cls.c1)
         for a in cls.a2:
             submit(s_stray, a, 10)
+        # H-237: two due submissions at 65 plus an EARLY one to work not yet
+        # due. The old rule counts 3 of 3 (one flag, the grade): not at risk.
+        # The new rule counts 2 of 3 (below 70%) and the grade: at risk.
+        s_early = student(13)
+        enrol(s_early, cls.c2)
+        for a in cls.a2[:2]:
+            submit(s_early, a, 65)
+        submit(s_early, a2_future, None)
         # Identical scores (ties) for ordering.
         for n in (10, 11, 12):
             s = student(n)

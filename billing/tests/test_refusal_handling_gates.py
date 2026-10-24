@@ -44,6 +44,7 @@ from billing.tests.test_refusal_handling import (
 )
 from classrooms.models import Course, School, Session
 from dashboard.throttling import CustomAIPromptThrottle
+from students.exceptions import STUDENT_UPLOAD_NOT_PROCESSED
 from students.models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
@@ -397,7 +398,9 @@ class RefusalIsolationTest(APITestCase):
                 format="json",
             )
         self.assertEqual(response.status_code, PAYMENT_REQUIRED, response.content)
-        self.assertEqual(response.data["error"], INSUFFICIENT_CREDITS_MESSAGE)
+        # H-216: a student reads the fixed student sentence, no remediation.
+        self.assertEqual(response.data["error"], STUDENT_UPLOAD_NOT_PROCESSED)
+        self.assertIsNone(response.data["remediation"])
         self.assertNoForeignData(response)
         self.assertNotIn(self.teacher_a.email, response.content.decode())
 

@@ -148,6 +148,18 @@ class ReasonCode(models.TextChoices):
     INSUFFICIENT_CREDITS = "INSUFFICIENT_CREDITS", "Insufficient credits"
     AI_FEATURE_NOT_AVAILABLE = "AI_FEATURE_NOT_AVAILABLE", "AI feature not available"
     NOT_RETRYABLE = "NOT_RETRYABLE", "Not retryable"
+    # An individual teacher's overage purchase would exceed their plan's
+    # per-cycle cap (billing.stripe_service.StripeOverageService). Was a bare
+    # ValueError (detail only, no reason_code); wired into the catalogue
+    # alongside INSUFFICIENT_CREDITS and LICENCE_SEATS_EXCEEDED.
+    OVERAGE_CAP_EXCEEDED = "OVERAGE_CAP_EXCEEDED", "Overage cap exceeded"
+    # The generic per-IP/per-user throttle (AnonRateThrottle/ScopedRateThrottle/
+    # UserRateThrottle, DRF's DEFAULT_THROTTLE_CLASSES and the named buckets in
+    # users/throttling.py + dashboard/throttling.py) raises a bare DRF
+    # `Throttled` with no reason code. The three NAMED sign-in locks
+    # (RESET_LOCKED/VERIFY_LOCKED/ACCOUNT_LOCKED) already have their own codes
+    # and keep taking priority; this is the catch-all for every other 429.
+    RATE_LIMITED = "RATE_LIMITED", "Rate limited"
 
     # QA catalogue additions (docs/phase2/qa/catalogue_additions_proposal.md,
     # approved as written by the founder acting as QA, 2026-09-30), built in
@@ -168,6 +180,10 @@ class ReasonCode(models.TextChoices):
     ROW_NAME_CLASH = "ROW_NAME_CLASH", "Row: name clash"
     ROW_STAFF_EMAIL = "ROW_STAFF_EMAIL", "Row: email can't be added as a student"
     ROW_OTHER_SCHOOL = "ROW_OTHER_SCHOOL", "Row: account in another school"
+    ROW_NAME_MISMATCH = (
+        "ROW_NAME_MISMATCH",
+        "Row: email belongs to a differently named student",
+    )
     ROW_ACCOUNT_DISABLED = "ROW_ACCOUNT_DISABLED", "Row: account disabled"
     ROW_EMAIL_INVALID = "ROW_EMAIL_INVALID", "Row: email invalid"
     ROW_DUPLICATE = "ROW_DUPLICATE", "Row: repeats an earlier row"

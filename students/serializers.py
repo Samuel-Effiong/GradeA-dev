@@ -1,14 +1,25 @@
 import copy
+import uuid
 
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from classrooms.models import enrollment_list_key
+from ai_processor.extraction_flags import answers_with_flags
+from assignments.models import is_expected_by_now, is_published
+from classrooms.final_grade import final_grade_from
+from classrooms.models import enrollment_list_key, grade_basis_enrollments
+from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from users.models import CustomUser
 
-from .feedback_projection import student_safe_feedback, student_safe_formatted_grade
+from .feedback_projection import (
+    flagged_for_review,
+    student_safe_feedback,
+    student_safe_formatted_grade,
+    upload_mismatch,
+)
+from .flag_serializers import UPLOAD_MISMATCH_HELP, ReviewFlagSerializer
 from .models import GradingState, StudentSubmission
 from .second_opinion_serializers import (
     QuestionEvaluationSerializer,
@@ -19,6 +30,33 @@ from .services import (
     get_grade_details,
     remaining_student_attempts,
 )
+
+
+class SubmissionFlagsMixin(serializers.Serializer):
+    """H-242: the same two keys on every page of a submission, teacher's
+    and student's. These are about the reading of the upload, never about
+    a grade, so a student is shown them released or not.
+
+    H-253: each question's flag is inside its answer (`review_flag`); the
+    paper's own is `upload_mismatch`. There is no list of them any more."""
+
+    upload_mismatch = serializers.SerializerMethodField(help_text=UPLOAD_MISMATCH_HELP)
+    flagged_for_review = serializers.SerializerMethodField()
+
+    @extend_schema_field(ReviewFlagSerializer(allow_null=True))
+    def get_upload_mismatch(self, obj):
+        return upload_mismatch(obj)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if isinstance(data.get("answers"), list):
+            data["answers"] = answers_with_flags(
+                data["answers"], getattr(instance, "extraction_flags", None)
+            )
+        return data
+
+    def get_flagged_for_review(self, obj) -> bool:
+        return flagged_for_review(obj)
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -177,7 +215,9 @@ def max_points_shown(submission, request):
     return submission.max_points or submission.assignment.total_points
 
 
-class StudentSubmissionListSerializer(serializers.ModelSerializer):
+class StudentSubmissionListSerializer(
+    SubmissionFlagsMixin, serializers.ModelSerializer
+):
     # H-141: teachers and students both receive this one. It needs the
     # request in its context: the methods named here change the answer
     # when a student is asking, and without the request they cannot.
@@ -219,6 +259,8 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "scheduled_grading_at",
             "grading_task_name",
             "is_grading_scheduled",
+            "upload_mismatch",
+            "flagged_for_review",
         ]
 
         read_only_fields = [
@@ -309,7 +351,9 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
         return remaining_student_attempts(obj)
 
 
-class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
+class StudentSubmissionDetailSerializer(
+    SubmissionFlagsMixin, serializers.ModelSerializer
+):
     # H-141: the teacher's page of a submission. Its student branches are
     # from before the student had a serializer of their own; no student
     # route may build it (the guard holds that).
@@ -365,6 +409,8 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "scheduled_grading_at",
             "grading_task_name",
             "is_grading_scheduled",
+            "upload_mismatch",
+            "flagged_for_review",
         ]
 
         read_only_fields = [
@@ -463,7 +509,9 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
         return remaining_student_attempts(obj)
 
 
-class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerializer):
+class StudentSubmissionDetailStudentVersionSerializer(
+    SubmissionFlagsMixin, serializers.ModelSerializer
+):
     audience = "student"  # H-141
 
     score = serializers.SerializerMethodField()
@@ -515,6 +563,8 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
             "grade_letter",
             "feedback",
             "is_published",
+            "upload_mismatch",
+            "flagged_for_review",
         ]
 
         read_only_fields = [
@@ -604,7 +654,7 @@ class SentAs(serializers.Field):
         return copy.deepcopy(self.value)
 
 
-class StudentUploadAnswerSerializer(serializers.ModelSerializer):
+class StudentUploadAnswerSerializer(SubmissionFlagsMixin, serializers.ModelSerializer):
     """H-141: what a student's own answer upload is answered with.
 
     The route answered with the teacher's StudentSubmissionDetailSerializer,
@@ -613,7 +663,7 @@ class StudentUploadAnswerSerializer(serializers.ModelSerializer):
     the teacher's scheduled grading run and a failed or stale grading
     state.
 
-    The same thirty keys, in the same order, so a page that reads the
+    The same keys, in the same order, so a page that reads the
     answer finds what it found. The student's own facts keep their values.
     Every staff key is a constant, the value of a paper nobody has graded
     or scheduled: this class does not read the grade's columns at all, so
@@ -686,6 +736,8 @@ class StudentUploadAnswerSerializer(serializers.ModelSerializer):
             "scheduled_grading_at",
             "grading_task_name",
             "is_grading_scheduled",
+            "upload_mismatch",
+            "flagged_for_review",
         ]
         read_only_fields = fields
 
@@ -766,13 +818,26 @@ class StudentSubmissionFormattedGradeAsyncSerializer(serializers.Serializer):
 class StudentListSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source="get_full_name", read_only=True)
     enrolled_courses = serializers.SerializerMethodField()
-    course_description = serializers.SerializerMethodField()
     teacher = serializers.SerializerMethodField()
     grade = serializers.SerializerMethodField()
     total_assignments_in_course = serializers.SerializerMethodField()
     total_assignments_submitted = serializers.SerializerMethodField()
     percentage_of_submission = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
+    at_risk = serializers.SerializerMethodField()
+    grade_trend = serializers.SerializerMethodField(
+        help_text=(
+            "IMPROVING, DECLINING, STABLE or INSUFFICIENT DATA: the student's "
+            "last six graded scores across this teacher's courses, from the "
+            "same verdict as at_risk (H-251). Filter with ?grade_trend=."
+        )
+    )
+    trend_delta = serializers.SerializerMethodField(
+        help_text=(
+            "How far the grade moved over those scores, in percentage "
+            "points; 3 or more either way is IMPROVING or DECLINING."
+        )
+    )
 
     class Meta:
         model = CustomUser
@@ -781,12 +846,14 @@ class StudentListSerializer(serializers.ModelSerializer):
             "full_name",
             "email",
             "enrolled_courses",
-            "course_description",
             "teacher",
             "grade",
             "total_assignments_in_course",
             "total_assignments_submitted",
             "percentage_of_submission",
+            "at_risk",
+            "grade_trend",
+            "trend_delta",
         ]
 
     def get_email(self, obj):
@@ -844,11 +911,19 @@ class StudentListSerializer(serializers.ModelSerializer):
         return enrollments[0].course if enrollments else None
 
     def get_enrolled_courses(self, obj):
-        return [enrollment.course.name for enrollment in self._enrollments(obj)]
-
-    def get_course_description(self, obj):
-        course = self._get_relevant_course(obj)
-        return course.description if course else None
+        # One object per enrollment (id/name/description), not a bare name
+        # string - a consumer needs the id to act on it (e.g. pass it back
+        # as `?enrollments__course=<id>`), and `description` moved here
+        # since `course_description` named exactly one ambiguous "relevant"
+        # course with no way to know which one without the resolution rule.
+        return [
+            {
+                "id": enrollment.course.id,
+                "name": enrollment.course.name,
+                "description": enrollment.course.description,
+            }
+            for enrollment in self._enrollments(obj)
+        ]
 
     def get_teacher(self, obj):
         course = self._get_relevant_course(obj)
@@ -856,39 +931,114 @@ class StudentListSerializer(serializers.ModelSerializer):
             return f"{course.teacher.first_name} {course.teacher.last_name}"
         return None
 
-    def get_grade(self, obj):
-        course = self._get_relevant_course(obj)
-        if course:
-            enrollment = next(
-                (e for e in self._enrollments(obj) if e.course_id == course.id), None
+    def _counted_enrollments(self, obj):
+        """The enrolments every number of the row is built from (`grade`,
+        `at_risk` and the three counts): every one of `_enrollments(obj)`
+        except WITHDRAWN, as `.active()` and the all-students route count
+        them (H-230), within the page's `enrollments__course__session`
+        (H-234). The course filter only narrows which students appear; it
+        changes none of their numbers (the user's rule, 2026-10-14). A course
+        the student withdrew from is still listed in `enrolled_courses`, but
+        its work that came due afterwards is not missing work, and its old
+        grades are not their grade now.
+        """
+        return grade_basis_enrollments(
+            self._enrollments(obj),
+            session_id=self._filter_uuid("enrollments__course__session"),
+        )
+
+    def _filter_uuid(self, name):
+        # MyStudentsFilter has already answered 400 for a value that is
+        # not a UUID; str(uuid.UUID(...)) makes any spelling of one (upper
+        # case, no dashes) the same text the database's id prints as.
+        request = self.context.get("request")
+        value = request.query_params.get(name) if request else None
+        return str(uuid.UUID(value)) if value else None
+
+    def _teacher_course_ids(self, obj):
+        return {enrollment.course_id for enrollment in self._counted_enrollments(obj)}
+
+    def _cross_course_submissions(self, obj):
+        """Every submission of this student's that falls under a course
+        this teacher teaches them - every one of `_counted_enrollments(obj)`,
+        not just the one "relevant" course `teacher` describes. `grade` and
+        `at_risk` are person-level summaries now, so both are built from
+        this, not from one course's slice of it.
+        """
+        course_ids = self._teacher_course_ids(obj)
+        return [
+            submission
+            for submission in obj.submissions.all()
+            if submission.assignment.course_id in course_ids
+        ]
+
+    def _cross_course_grade(self, obj):
+        """The points-weighted grade across every course this teacher
+        teaches this student, memoised per student - the same
+        `final_grade_from` formula every other final-grade figure in the
+        codebase uses, just fed this student's FULL submission set instead
+        of one course's.
+        """
+        if not hasattr(self, "_cross_course_grade_cache"):
+            self._cross_course_grade_cache = {}
+        if obj.pk in self._cross_course_grade_cache:
+            return self._cross_course_grade_cache[obj.pk]
+
+        # Same row selection as classrooms.signals.compute_final_grade (the
+        # stored StudentCourse.final_grade this used to just read): graded
+        # and scored, keyed on `graded_at`/`score`, NOT `score_percentage` -
+        # a submission graded before that field existed/was backfilled
+        # still counts (H-33), same as the per-course figure always did.
+        scored = (
+            (
+                submission.score,
+                (
+                    submission.max_points
+                    if submission.max_points is not None
+                    else submission.assignment.total_points
+                ),
             )
-            if enrollment and enrollment.final_grade is not None:
-                grade_details = get_grade_details(enrollment.final_grade)
-                return {
-                    "letter_grade": grade_details["letter_grade"],
-                    "gpa": grade_details["gpa"],
-                    "remark": grade_details["remark"],
-                    "percentage": enrollment.final_grade,
-                }
-        return None
+            for submission in self._cross_course_submissions(obj)
+            if submission.graded_at is not None and submission.score is not None
+        )
+        grade = final_grade_from(scored)
+        self._cross_course_grade_cache[obj.pk] = grade
+        return grade
+
+    def get_grade(self, obj):
+        grade = self._cross_course_grade(obj)
+        if grade is None:
+            return None
+        grade_details = get_grade_details(grade)
+        return {
+            "letter_grade": grade_details["letter_grade"],
+            "gpa": grade_details["gpa"],
+            "remark": grade_details["remark"],
+            "percentage": grade,
+        }
 
     def get_total_assignments_in_course(self, obj):
-        course = self._get_relevant_course(obj)
-        if course:
-            # len() of the prefetch cache, not .count(), which would issue a
-            # fresh COUNT per student.
-            return len(course.assignments.all())
-        return 0
+        # H-234: over the same enrolments as `grade` and `at_risk`, not the
+        # one "relevant" course. H-235 (the user's rule): published
+        # assignments only, due or not; drafts and unpublished ones are out.
+        # Read from the prefetch cache, not a fresh query per student.
+        return sum(
+            1
+            for enrollment in self._counted_enrollments(obj)
+            for assignment in enrollment.course.assignments.all()
+            if self._is_published(assignment)
+        )
 
     def get_total_assignments_submitted(self, obj):
-        course = self._get_relevant_course(obj)
-        if course:
-            return sum(
-                1
-                for submission in obj.submissions.all()
-                if submission.assignment.course_id == course.id
-            )
-        return 0
+        # H-234: the student's submissions in the counted courses; H-235:
+        # to the published assignments the total counts.
+        course_ids = self._teacher_course_ids(obj)
+        return sum(
+            1
+            for submission in obj.submissions.all()
+            if submission.assignment.course_id in course_ids
+            and self._is_published(submission.assignment)
+        )
 
     def get_percentage_of_submission(self, obj):
         total = self.get_total_assignments_in_course(obj)
@@ -896,3 +1046,78 @@ class StudentListSerializer(serializers.ModelSerializer):
             return 0.0
         submitted = self.get_total_assignments_submitted(obj)
         return round((submitted / total) * 100, 2)
+
+    @staticmethod
+    def _is_published(assignment):
+        """Published, as the counts (H-235) mean it: the shared definition
+        (assignments.models.is_published)."""
+        return is_published(assignment)
+
+    @staticmethod
+    def _is_expected_by_now(assignment):
+        """Published and due: the shared definition
+        (assignments.models.is_expected_by_now), which the dashboards' query
+        form (expected_q) also follows. It filters the prefetched
+        `course.assignments.all()` cache, not a query."""
+        return is_expected_by_now(assignment)
+
+    def _risk_result(self, obj):
+        """StudentRiskEvaluator's verdict across EVERY course this teacher
+        teaches this student, memoised per student (same reasoning as
+        `_get_relevant_course`: `at_risk` and any future risk-derived field
+        must not re-run this per field). `grade` became a cross-course
+        summary, so at_risk follows the same basis rather than judging a
+        student's overall standing off whichever one course happened to be
+        "relevant".
+        """
+        if not hasattr(self, "_risk_result_cache"):
+            self._risk_result_cache = {}
+        if obj.pk in self._risk_result_cache:
+            return self._risk_result_cache[obj.pk]
+
+        submissions = self._cross_course_submissions(obj)
+        graded_scores = [
+            (
+                submission.submission_date,
+                float(submission.score_percentage),
+                submission.score,
+                (
+                    submission.max_points
+                    if submission.max_points is not None
+                    else submission.assignment.total_points
+                ),
+            )
+            for submission in submissions
+            if submission.score_percentage is not None
+        ]
+        expected_count = sum(
+            1
+            for enrollment in self._counted_enrollments(obj)
+            for assignment in enrollment.course.assignments.all()
+            if self._is_expected_by_now(assignment)
+        )
+        result = StudentRiskEvaluator().evaluate(
+            RiskInputs(
+                expected_assignment_count=expected_count,
+                # H-237: only submissions to work that is due count toward
+                # the rate, so an early submission cannot hide a missed one.
+                submitted_count=sum(
+                    1
+                    for submission in submissions
+                    if self._is_expected_by_now(submission.assignment)
+                ),
+                graded_scores=graded_scores,
+            )
+        )
+
+        self._risk_result_cache[obj.pk] = result
+        return result
+
+    def get_at_risk(self, obj) -> bool:
+        return self._risk_result(obj).at_risk
+
+    def get_grade_trend(self, obj) -> str:
+        return self._risk_result(obj).grade_trend
+
+    def get_trend_delta(self, obj) -> float:
+        return self._risk_result(obj).trend_delta

@@ -282,6 +282,27 @@ def reachable_courses(user):
     return Course.objects.filter(teacher_course_access_q(user))
 
 
+def grade_basis_enrollments(enrollments, *, session_id=None):
+    """The enrolments every number of a my-students row is built from (H-234,
+    the user's rule of 2026-10-14): the grade, at_risk and the three counts.
+    `enrollments` are already this teacher's reachable ones, in memory;
+    WITHDRAWN ones are dropped (H-230), and `session_id` (the id's canonical
+    text, str(uuid.UUID(...)), or None) keeps only that session's courses.
+    There is deliberately no course argument: the course filter only
+    narrows which students appear, never their numbers.
+    """
+    basis = [
+        enrollment
+        for enrollment in enrollments
+        if enrollment.enrollment_status != EnrollmentStatusType.WITHDRAWN
+    ]
+    if session_id is not None:
+        basis = [e for e in basis if str(e.course.session_id) == session_id]
+    # With no session: the whole history (every reachable course not
+    # withdrawn from), the user's choice (option 1).
+    return basis
+
+
 # H-196: the one definition of the order enrolments are listed in (a course's
 # roster, a student's courses): the order they were made in, oldest first, with
 # the id as the tie-break so two rows made at the same instant still have a
