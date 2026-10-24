@@ -50,7 +50,7 @@ from ai_processor.models import AICallRecord, CallOutcome
 from ai_processor.services import MAIN_MODEL, AIProcessor
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
-from billing.models import CreditLedger, CreditUsageLog, CreditWallet
+from billing.models import CreditLedger, CreditUsageLog, CreditWallet, PlanType
 from billing.tests.test_execute_graded_task import (
     TEST_PROMPT_VERSION,
     ExecuteGradedTaskTestBase,
@@ -108,8 +108,17 @@ def reply(
 class Base(ExecuteGradedTaskTestBase):
     def setUp(self):
         super().setUp()
-        self.teacher = self._make_teacher_with_credits()
+        # One plan for every teacher a test makes: the plan name is unique.
+        self.plan = self._make_plan(PlanType.PRO)
+        self.teacher = self._make_teacher_with_credits(plan=self.plan)
         call_record.reset_failure_count()
+
+    def classroom(self, tag):
+        """_classroom's teacher has credits but no subscription; AI access
+        needs one, so the teacher is put on the test's plan."""
+        teacher, student, course, assignment = _classroom(tag)
+        self._make_individual_subscription(teacher, self.plan)
+        return teacher, student, course, assignment
 
     def run_call(self, user=None, **kwargs):
         arguments = {
@@ -318,7 +327,7 @@ class TheRowOfACharge(Base):
     @patch.object(AIProcessor, AI_MODEL)
     def test_the_question_count_is_taken_from_the_assignment_when_given(self, ai_model):
         ai_model.return_value = reply()
-        _teacher, student, _course, assignment = _classroom("cr1")
+        _teacher, student, _course, assignment = self.classroom("cr1")
         with patch.object(AIProcessor, "estimate_total_token", return_value=10):
             self.run_call(user=assignment.course.teacher, assignment=assignment)
         row = self.only_row()
@@ -356,7 +365,7 @@ class TheBilledTeacherOnAStudentsUpload(Base):
     @patch.object(AIProcessor, AI_MODEL)
     def test_the_row_carries_the_teacher_and_never_the_student(self, ai_model):
         ai_model.return_value = reply()
-        teacher, student, _course, assignment = _classroom("cr2")
+        teacher, student, _course, assignment = self.classroom("cr2")
         with patch.object(AIProcessor, "estimate_total_token", return_value=10):
             self.run_call(
                 user=student,
@@ -392,7 +401,7 @@ class TheRowOfACallThatWasNotCharged(Base):
     def test_a_refusal_at_the_gate_is_recorded_with_the_estimate_and_no_usage(
         self, ai_model
     ):
-        poor = self._make_teacher_with_credits(credits=10)
+        poor = self._make_teacher_with_credits(plan=self.plan, credits=10)
         with self.assertRaises(InsufficientCreditsError):
             self.run_call(user=poor)
         ai_model.assert_not_called()
@@ -537,9 +546,9 @@ class TheCallIsUnchanged(Base):
 
     @patch.object(AIProcessor, AI_MODEL)
     def test_the_charge_is_the_same_with_recording_on_off_and_failing(self, ai_model):
-        effects, responses = {}, {}
+        effects, responses, replies = {}, {}, {}
         for state in ("on", "off", "failing"):
-            ai_model.return_value = reply(total=500)
+            replies[state] = ai_model.return_value = reply(total=500)
             before = self._state()
             if state == "off":
                 with override_settings(AI_CALL_RECORD_ENABLED=False):
@@ -553,7 +562,7 @@ class TheCallIsUnchanged(Base):
                 responses[state] = self.run_call()
             effects[state] = self._effect_of(before)
         for state in ("off", "failing"):
-            self.assertIs(responses[state], ai_model.return_value)
+            self.assertIs(responses[state], replies[state])
             self.assertEqual(effects[state], effects["on"], state)
         self.assertEqual(effects["on"]["spent"], 500)
         self.assertEqual(AICallRecord.objects.count(), 1)  # only the "on" run
@@ -566,18 +575,24 @@ class TheCallIsUnchanged(Base):
             raise TimeoutError("the original")
 
         ai_model.side_effect = fail
-        with self.assertRaises(TimeoutError) as caught:
+        # Caught by hand: assertRaises keeps the exception without its
+        # traceback (unittest's with_traceback(None)), which this test reads.
+        caught = None
+        try:
             self.run_call()
-        self.assertEqual(caught.exception.args, ("the original",))
+        except TimeoutError as error:
+            caught = error
+        assert caught is not None, "the provider's TimeoutError did not come out"
+        self.assertEqual(caught.args, ("the original",))
         names = []
-        tb = caught.exception.__traceback__
+        tb = caught.__traceback__
         while tb:
             names.append(tb.tb_frame.f_code.co_name)
             tb = tb.tb_next
         self.assertIn("fail", names)
         self.assertIn("execute_graded_task", names)
-        self.assertIsNone(caught.exception.__cause__)
-        self.assertIsNone(caught.exception.__context__)
+        self.assertIsNone(caught.__cause__)
+        self.assertIsNone(caught.__context__)
 
     @patch.object(AIProcessor, AI_MODEL)
     def test_each_exception_class_the_callers_branch_on_comes_out_unchanged(
@@ -603,7 +618,7 @@ class TheCallIsUnchanged(Base):
     def test_the_gate_and_access_refusals_are_the_same_with_recording_off(
         self, ai_model
     ):
-        poor = self._make_teacher_with_credits(credits=10)
+        poor = self._make_teacher_with_credits(plan=self.plan, credits=10)
         nobody = self._make_user(UserTypes.TEACHER, "rec-nosub3@example.com")
         for user in (poor, nobody):
             with self.subTest(user=user.email):
@@ -783,7 +798,12 @@ class TheRecordIsAfterTheChargeAndCheap(Base):
         touching = [s for s in on if "ai_processor_aicallrecord" in s]
         self.assertEqual(len(touching), 1, touching)
         self.assertTrue(touching[0].lstrip().upper().startswith("INSERT"))
-        self.assertFalse(any("FOR UPDATE" in s.upper() for s in on if s not in off))
+        # Counted, not matched by text: the charge's own locking query carries
+        # the time of each call (expires_at > now), so its text never repeats.
+        self.assertEqual(
+            sum(1 for s in on if "FOR UPDATE" in s.upper()),
+            sum(1 for s in off if "FOR UPDATE" in s.upper()),
+        )
         self.assertEqual(
             sum(1 for s in on if s.lstrip().upper().startswith("SAVEPOINT")),
             sum(1 for s in off if s.lstrip().upper().startswith("SAVEPOINT")) + 1,
@@ -894,7 +914,7 @@ class TheRowsOutliveTheirRecords(Base):
     @patch.object(AIProcessor, AI_MODEL)
     def test_deleting_the_teacher_or_the_assignment_leaves_the_rows(self, ai_model):
         ai_model.return_value = reply()
-        teacher, _student, _course, assignment = _classroom("cr3")
+        teacher, _student, _course, assignment = self.classroom("cr3")
         with patch.object(AIProcessor, "estimate_total_token", return_value=10):
             self.run_call(user=teacher, assignment=assignment)
         before = AICallRecord.objects.count()
