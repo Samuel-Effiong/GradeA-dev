@@ -1,0 +1,432 @@
+13:31:18 Creating test database for alias 'default' ('test_epic_a_merge_down_b5_mut')...
+13:31:19 Found 34 test(s).
+13:31:19 Operations to perform:
+13:31:19   Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+13:31:19   Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+13:31:19 Synchronizing apps without migrations:
+13:31:19   Creating tables...
+13:31:19     Running deferred SQL...
+13:31:19 Running migrations:
+13:31:19   Applying contenttypes.0001_initial... OK
+13:31:19   Applying contenttypes.0002_remove_content_type_name... OK
+13:31:19   Applying auth.0001_initial... OK
+13:31:19   Applying auth.0002_alter_permission_name_max_length... OK
+13:31:19   Applying auth.0003_alter_user_email_max_length... OK
+13:31:19   Applying auth.0004_alter_user_username_opts... OK
+13:31:19   Applying auth.0005_alter_user_last_login_null... OK
+13:31:19   Applying auth.0006_require_contenttypes_0002... OK
+13:31:19   Applying auth.0007_alter_validators_add_error_messages... OK
+13:31:19   Applying auth.0008_alter_user_username_max_length... OK
+13:31:19   Applying auth.0009_alter_user_last_name_max_length... OK
+13:31:19   Applying auth.0010_alter_group_name_max_length... OK
+13:31:19   Applying auth.0011_update_proxy_permissions... OK
+13:31:19   Applying auth.0012_alter_user_first_name_max_length... OK
+13:31:19   Applying users.0001_initial... OK
+13:31:20   Applying admin.0001_initial... OK
+13:31:20   Applying admin.0002_logentry_remove_auto_add... OK
+13:31:20   Applying admin.0003_logentry_add_action_flag_choices... OK
+13:31:20   Applying classrooms.0001_initial... OK
+13:31:20   Applying ai_processor.0001_initial... OK
+13:31:20   Applying ai_processor.0002_initial... OK
+13:31:20   Applying ai_processor.0003_chatsession_user... OK
+13:31:20   Applying ai_processor.0004_chatsession_assistant_type... OK
+13:31:20   Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+13:31:20   Applying classrooms.0002_initial... OK
+13:31:20   Applying classrooms.0003_coursecategory_course_categories... OK
+13:31:20   Applying classrooms.0004_course_teacher... OK
+13:31:20   Applying classrooms.0005_rename_studentsection_studentcourse... OK
+13:31:21   Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+13:31:21   Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+13:31:21   Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+13:31:21   Applying classrooms.0009_school... OK
+13:31:21   Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+13:31:21   Applying classrooms.0011_remove_course_categories_topic... OK
+13:31:21   Applying classrooms.0012_studentcourse_auto_added... OK
+13:31:21   Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+13:31:21   Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+13:31:22   Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+13:31:22   Applying classrooms.0016_school_is_active... OK
+13:31:22   Applying assignments.0001_initial... OK
+13:31:22   Applying assignments.0002_initial... OK
+13:31:22   Applying assignments.0003_initial... OK
+13:31:22   Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+13:31:22   Applying assignments.0005_alter_assignment_options... OK
+13:31:22   Applying assignments.0006_assignment_estimated_time... OK
+13:31:23   Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+13:31:23   Applying assignments.0008_alter_assignment_due_date... OK
+13:31:23   Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+13:31:24   Applying assignments.0010_assignment_custom_ai_prompt... OK
+13:31:24   Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+13:31:24   Applying assignments.0012_assignment_was_overridden... OK
+13:31:24   Applying assignments.0013_alter_assignment_ai_generated... OK
+13:31:24   Applying assignments.0014_assignment_self_assessment_and_more... OK
+13:31:24   Applying assignments.0015_alter_assignment_potential_issues... OK
+13:31:25   Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+13:31:25   Applying assignments.0017_assignment_grading_status... OK
+13:31:25   Applying assignments.0018_assignment_topic... OK
+13:31:25   Applying assignments.0019_alter_assignment_title_and_more... OK
+13:31:25   Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+13:31:25   Applying assignments.0021_assignment_overridden_at... OK
+13:31:25   Applying assignments.0022_assignment_raw_input... OK
+13:31:25   Applying assignments.0023_delete_rubric... OK
+13:31:26   Applying assignments.0024_alter_assignment_instructions_and_more... OK
+13:31:26   Applying assignments.0025_alter_assignment_instructions... OK
+13:31:26   Applying assignments.0026_assignment_status... OK
+13:31:26   Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+13:31:26   Applying assignments.0028_alter_assignment_raw_input_hash... OK
+13:31:26   Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+13:31:26   Applying assignments.0030_alter_assignment_status... OK
+13:31:26   Applying assignments.0031_assignment_grading_task_name_and_more... OK
+13:31:27   Applying assignments.0032_assignmentgenerationsession_and_message... OK
+13:31:27   Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+13:31:27   Applying assignments.0034_assignment_admin_grading_notified_at... OK
+13:31:27   Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+13:31:27   Applying assignments.0036_backfill_assignment_rigor... OK
+13:31:27   Applying assignments.0037_assignment_course_title_index... OK
+13:31:28   Applying assignments.0038_assignment_updated_at... OK
+13:31:28   Applying assignments.0039_assignment_upload_fingerprint... OK
+13:31:28   Applying assignments.0040_db_defaults_for_rollback... OK
+13:31:28   Applying audit.0001_initial... OK
+13:31:28   Applying audit.0002_alter_auditevent_actor_role... OK
+13:31:28   Applying authtoken.0001_initial... OK
+13:31:28   Applying authtoken.0002_auto_20160226_1747... OK
+13:31:28   Applying authtoken.0003_tokenproxy... OK
+13:31:28   Applying authtoken.0004_alter_tokenproxy_options... OK
+13:31:28   Applying users.0002_customuser_activation_expires_and_more... OK
+13:31:29   Applying users.0003_passwordresetotp... OK
+13:31:29   Applying users.0004_customuser_email_verified_at... OK
+13:31:29   Applying users.0005_alter_passwordresetotp_code... OK
+13:31:29   Applying users.0006_alter_passwordresetotp_code... OK
+13:31:29   Applying users.0007_passwordchangeotp... OK
+13:31:30   Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+13:31:30   Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+13:31:30   Applying users.0010_customuser_school_alter_customuser_user_type... OK
+13:31:30   Applying billing.0001_initial... OK
+13:31:30   Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+13:31:32   Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+13:31:32   Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+13:31:32   Applying billing.0005_usersubscription_pending_plan... OK
+13:31:32   Applying billing.0006_alter_subscriptionplan_name... OK
+13:31:32   Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+13:31:32   Applying billing.0008_betaprofile... OK
+13:31:32   Applying billing.0009_betaprofile_uuid_and_more... OK
+13:31:32   Applying billing.0010_alter_betaprofile_id... OK
+13:31:32   Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+13:31:33   Applying billing.0012_populate_beta_profile_uuids... OK
+13:31:33   Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+13:31:33   Applying billing.0014_rename_uid_betaprofile_id... OK
+13:31:33   Applying billing.0015_betaprofile_credits_used_feedback... OK
+13:31:34   Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+13:31:34   Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+13:31:34   Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+13:31:34   Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+13:31:34   Applying billing.0020_licensesubscription_contract_months_and_more... OK
+13:31:35   Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+13:31:35   Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+13:31:35   Applying billing.0023_alter_subscriptionplan_name... OK
+13:31:35   Applying billing.0024_licensesubscription_custom_price_cents... OK
+13:31:35   Applying billing.0025_alter_subscriptionplan_name... OK
+13:31:35   Applying billing.0026_licensesubscription_total_credits_consumed... OK
+13:31:36   Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+13:31:36   Applying billing.0028_alter_usersubscription_is_trial... OK
+13:31:36   Applying billing.0029_usersubscription_next_credit_grant_at... OK
+13:31:36   Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+13:31:36   Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+13:31:36   Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+13:31:37   Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+13:31:37   Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+13:31:37   Applying billing.0035_licensesubscription_stripe_customer_id... OK
+13:31:37   Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+13:31:37   Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+13:31:38   Applying billing.0038_licensesubscription_billing_method_and_more... OK
+13:31:38   Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+13:31:38   Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+13:31:38   Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+13:31:38   Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+13:31:38   Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+13:31:38   Applying billing.0044_alter_creditusagelog_feature... OK
+13:31:38   Applying billing.0045_billingtransaction... OK
+13:31:39   Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+13:31:39   Applying billing.0047_subscriptionplan_carry_over_max... OK
+13:31:39   Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+13:31:39   Applying billing.0049_billingtransaction_receipt_url... OK
+13:31:39   Applying billing.0050_creditusagelog_course... OK
+13:31:39   Applying billing.0051_creditusagelog_task_id_index... OK
+13:31:39   Applying billing.0052_creditusagelog_school... OK
+13:31:40   Applying billing.0053_backfill_creditusagelog_school... OK
+13:31:40   Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+13:31:40   Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+13:31:41   Applying billing.0056_liveqarun... OK
+13:31:41   Applying billing.0057_usersubscription_cancelled_at... OK
+13:31:41   Applying billing.0058_alter_licensebillingrecord_record_type... OK
+13:31:42   Applying billing.0059_append_only_audit_tables... OK
+13:31:42   Applying billing.0060_backfill_audit_identity...
+13:31:42   backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+13:31:42  OK
+13:31:43   Applying billing.0061_add_audit_table_time_indexes... OK
+13:31:43   Applying billing.0062_liveqarun_skipped_and_error_status... OK
+13:31:44   Applying billing.0063_payment_disputes... OK
+13:31:44   Applying billing.0064_refund_credit_reversal... OK
+13:31:45   Applying billing.0065_backfill_ledger_payment_intent...
+13:31:45   attributed 0 ledger row(s) to their Stripe payment
+13:31:45  OK
+13:31:45   Applying billing.0066_dispute_deficit_by_wallet... OK
+13:31:45   Applying billing.0067_stripe_event_recovery... OK
+13:31:45   Applying billing.0068_price_reconciliation... OK
+13:31:46   Applying billing.0069_price_sync_audit... OK
+13:31:48   Applying billing.0070_db_defaults_for_rollback... OK
+13:31:48   Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+13:31:48   Applying billing.0072_license_stripe_mutation_intent... OK
+13:31:49   Applying dashboard.0001_initial... OK
+13:31:49   Applying dashboard.0002_schoolatrisksnapshot... OK
+13:31:49   Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+13:31:50   Applying dashboard.0004_db_defaults_for_rollback... OK
+13:31:50   Applying django_celery_beat.0001_initial... OK
+13:31:50   Applying django_celery_beat.0002_auto_20161118_0346... OK
+13:31:50   Applying django_celery_beat.0003_auto_20161209_0049... OK
+13:31:50   Applying django_celery_beat.0004_auto_20170221_0000... OK
+13:31:50   Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+13:31:50   Applying django_celery_beat.0006_auto_20180322_0932... OK
+13:31:50   Applying django_celery_beat.0007_auto_20180521_0826... OK
+13:31:50   Applying django_celery_beat.0008_auto_20180914_1922... OK
+13:31:51   Applying django_celery_beat.0006_auto_20180210_1226... OK
+13:31:51   Applying django_celery_beat.0006_periodictask_priority... OK
+13:31:51   Applying django_celery_beat.0009_periodictask_headers... OK
+13:31:53   Applying django_celery_beat.0010_auto_20190429_0326... OK
+13:31:53   Applying django_celery_beat.0011_auto_20190508_0153... OK
+13:31:53   Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+13:31:53   Applying django_celery_beat.0013_auto_20200609_0727... OK
+13:31:53   Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+13:31:53   Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+13:31:53   Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+13:31:53   Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+13:31:54   Applying django_celery_beat.0018_improve_crontab_helptext... OK
+13:31:54   Applying django_celery_beat.0019_alter_periodictasks_options... OK
+13:31:54   Applying django_celery_results.0001_initial... OK
+13:31:54   Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+13:31:54   Applying django_celery_results.0003_auto_20181106_1101... OK
+13:31:54   Applying django_celery_results.0004_auto_20190516_0412... OK
+13:31:54   Applying django_celery_results.0005_taskresult_worker... OK
+13:31:54   Applying django_celery_results.0006_taskresult_date_created... OK
+13:31:54   Applying django_celery_results.0007_remove_taskresult_hidden... OK
+13:31:54   Applying django_celery_results.0008_chordcounter... OK
+13:31:55   Applying django_celery_results.0009_groupresult... OK
+13:31:55   Applying django_celery_results.0010_remove_duplicate_indices... OK
+13:31:55   Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+13:31:55   Applying django_celery_results.0012_taskresult_date_started... OK
+13:31:55   Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+13:31:55   Applying django_celery_results.0014_alter_taskresult_status... OK
+13:31:55   Applying sessions.0001_initial... OK
+13:31:55   Applying users.0011_concurrentusersnapshot_useractivity... OK
+13:31:55   Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+13:31:56   Applying users.0013_customuser_middle_name... OK
+13:31:56   Applying users.0014_alter_customuser_middle_name... OK
+13:31:57   Applying users.0015_customuser_bio_settings... OK
+13:31:57   Applying users.0016_remove_customuser_bio_delete_settings... OK
+13:31:57   Applying users.0017_settings... OK
+13:31:58   Applying users.0018_customuser_bio... OK
+13:31:58   Applying users.0019_betawhitelist... OK
+13:31:58   Applying users.0020_waitlist_betawhitelist_mode... OK
+13:31:58   Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+13:31:58   Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+13:31:58   Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+13:31:58   Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+13:31:59   Applying users.0025_customuser_profile_image... OK
+13:31:59   Applying students.0001_initial... OK
+13:32:00   Applying students.0002_initial... OK
+13:32:01   Applying students.0003_studentsubmission_graded_at_and_more... OK
+13:32:01   Applying students.0004_alter_studentsubmission_graded_at... OK
+13:32:03   Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+13:32:03   Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+13:32:03   Applying students.0007_studentsubmission_extraction_confidence... OK
+13:32:04   Applying students.0008_studentsubmission_formatted_grade... OK
+13:32:04   Applying students.0009_studentsubmission_raw_input... OK
+13:32:04   Applying students.0010_batchuploadsession... OK
+13:32:05   Applying students.0011_batchuploadsession_course_and_more... OK
+13:32:06   Applying students.0012_alter_batchuploadsession_task_type... OK
+13:32:06   Applying students.0013_studentsubmission_max_points_and_more... OK
+13:32:06   Applying students.0014_alter_studentsubmission_score_percentage... OK
+13:32:07   Applying students.0015_studentsubmission_is_published... OK
+13:32:07   Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+13:32:07   Applying students.0017_backgroundprocessingtask... OK
+13:32:07   Applying students.0018_studentsubmission_attempt_count... OK
+13:32:08   Applying students.0019_alter_studentsubmission_attempt_count... OK
+13:32:09   Applying students.0020_studentsubmission_grading_state... OK
+13:32:10   Applying students.0021_studentsubmission_needs_review... OK
+13:32:11   Applying students.0022_studentsubmission_review_severity... OK
+13:32:12   Applying students.0023_studentsubmission_review_tier_and_more... OK
+13:32:13   Applying students.0024_repair_raw_input_json... OK
+13:32:14   Applying students.0025_student_submission_hot_path_indexes... OK
+13:32:15   Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+13:32:16   Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+13:32:17   Applying students.0028_backfill_ai_grading_completed_at... OK
+13:32:22   Applying students.0029_background_task_item_result... OK
+13:32:22   Applying students.0030_batch_session_credits_exhausted_at... OK
+13:32:23   Applying token_blacklist.0001_initial... OK
+13:32:23   Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+13:32:25   Applying token_blacklist.0003_auto_20171017_2007... OK
+13:32:25   Applying token_blacklist.0004_auto_20171017_2013... OK
+13:32:26   Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+13:32:26   Applying token_blacklist.0006_auto_20171017_2113... OK
+13:32:27   Applying token_blacklist.0007_auto_20171017_2214... OK
+13:32:28   Applying token_blacklist.0008_migrate_to_bigautofield... OK
+13:32:28   Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+13:32:29   Applying token_blacklist.0011_linearizes_history... OK
+13:32:29   Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+13:32:30   Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+13:32:30   Applying users.0026_customuser_registration_method... OK
+13:32:31   Applying users.0027_customuser_profile_image_url... OK
+13:32:31   Applying users.0028_alter_customuser_middle_name... OK
+13:32:32   Applying users.0029_usergooglecredentials... OK
+13:32:33   Applying users.0030_usergooglecredentials_access_token_and_more... OK
+13:32:33   Applying users.0031_settings_notify_new_assignment_posted... OK
+13:32:36   Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+13:32:37   Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+13:32:37   Applying users.0034_passwordresetotp_attempts_and_more... OK
+13:32:37   Applying users.0035_settings_notify_assignment_edited... OK
+13:32:38   Applying users.0036_customuser_failed_login_attempts_and_more... OK
+13:32:39   Applying users.0037_customuser_must_change_password... OK
+13:32:39   Applying users.0038_alter_customuser_must_change_password... OK
+13:32:39   Applying users.0039_customuser_token_epoch... OK
+13:32:54   Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+13:32:54
+13:32:54 WARNINGS:
+13:32:54 ?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+13:32:54
+13:32:54 System check identified 1 issue (0 silenced).
+13:32:54 test_a_healthy_lock_store_adds_nothing (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_a_healthy_lock_store_adds_nothing) ... ok
+13:32:54 test_the_watchdog_reports_a_lock_store_that_is_not_answering (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_the_watchdog_reports_a_lock_store_that_is_not_answering) ... ok
+13:32:54 test_leaves_the_cleanup_tasks_lock_held (AutoGrader.tests_beat_locks.BeatLockIsolation1LeavesALockHeld.test_leaves_the_cleanup_tasks_lock_held) ... ok
+13:32:56 test_the_task_executes_instead_of_skipping (AutoGrader.tests_beat_locks.BeatLockIsolation2TheNextTestStillRuns.test_the_task_executes_instead_of_skipping) ... ok
+13:32:56 test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it) ... ok
+13:32:56 test_the_pii_sweep_is_skipped_and_records_nothing (audit.tests_sweep_beat_lock.AnOverlappingSweepIsSkippedTests.test_the_pii_sweep_is_skipped_and_records_nothing) ... FAIL
+13:32:56 test_the_retention_sweep_is_skipped_and_records_nothing (audit.tests_sweep_beat_lock.AnOverlappingSweepIsSkippedTests.test_the_retention_sweep_is_skipped_and_records_nothing) ... FAIL
+13:32:56 test_the_two_sweeps_do_not_block_each_other (audit.tests_sweep_beat_lock.AnOverlappingSweepIsSkippedTests.test_the_two_sweeps_do_not_block_each_other) ... FAIL
+13:32:56 test_each_sweep_runs_and_releases_its_lock (audit.tests_sweep_beat_lock.AnUncontendedSweepStillRunsTests.test_each_sweep_runs_and_releases_its_lock) ... ok
+13:32:56 test_the_next_run_does_the_skipped_runs_work (audit.tests_sweep_beat_lock.TheLockStoreIsUnavailableTests.test_the_next_run_does_the_skipped_runs_work)
+13:32:56 A skip costs one schedule interval and no more: the sweeps select ... FAIL
+13:32:56 test_the_pii_sweep_is_skipped_with_an_error (audit.tests_sweep_beat_lock.TheLockStoreIsUnavailableTests.test_the_pii_sweep_is_skipped_with_an_error) ... FAIL
+13:32:56 test_the_retention_sweep_is_skipped_with_an_error (audit.tests_sweep_beat_lock.TheLockStoreIsUnavailableTests.test_the_retention_sweep_is_skipped_with_an_error) ... FAIL
+13:32:56 test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run)
+13:32:56 N1 (1a): a run's last heartbeat can land just before max_hold and ... ok
+13:32:56 test_each_lock_is_named_after_its_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_each_lock_is_named_after_its_task) ... ok
+13:32:56 test_every_beat_task_is_locked_or_exempt (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_beat_task_is_locked_or_exempt) ... FAIL
+13:32:56 test_every_exemption_names_a_scheduled_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_exemption_names_a_scheduled_task) ... ok
+13:32:56 test_max_hold_is_below_the_schedule_interval (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_max_hold_is_below_the_schedule_interval)
+13:32:56 So a hung run can never swallow the next scheduled one. ... ok
+13:32:56 test_the_gap_calculation (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_the_gap_calculation) ... ok
+13:32:56 test_it_clears_only_beat_lock_keys (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_it_clears_only_beat_lock_keys) ... ok
+13:32:56 test_the_runner_installed_the_per_test_clearing (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_the_runner_installed_the_per_test_clearing) ... ok
+13:33:01 test_a_hung_run_does_not_swallow_the_next_every_5_minute_run (AutoGrader.tests_beat_locks.EveryFiveMinuteScaledTests.test_a_hung_run_does_not_swallow_the_next_every_5_minute_run) ... ok
+13:33:01 test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl)
+13:33:04 The worst-case lifetime the schedule guard relies on. ... ok
+13:33:07 test_a_live_run_keeps_its_lock_past_the_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_live_run_keeps_its_lock_past_the_ttl) ... ok
+13:33:08 test_a_run_past_max_hold_lets_its_lock_lapse (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_run_past_max_hold_lets_its_lock_lapse) ... ok
+13:33:08 test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds) ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t648928:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run crashed-run; this run direct:ebbb6e4ed9cf).
+13:33:09 ok
+13:33:09 test_a_lapsed_run_cannot_delete_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_delete_a_newer_runs_lock)
+13:33:10 Compare-and-delete: run A's lock lapses mid-run and run B takes ... ok
+13:33:10 test_a_lapsed_run_cannot_extend_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_extend_a_newer_runs_lock)
+13:33:10 Compare-and-extend: the heartbeat of a run whose lock lapsed must ... ok
+13:33:10 test_a_redis_error_fails_closed_with_an_error_log (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_redis_error_fails_closed_with_an_error_log) ... ok
+13:33:10 test_a_run_takes_and_releases_the_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_takes_and_releases_the_lock) ... ok
+13:33:10 test_a_run_while_another_holds_the_lock_skips_without_working (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_while_another_holds_the_lock_skips_without_working) ... ok
+13:33:10 test_a_ttl_above_max_hold_is_capped_at_max_hold (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_ttl_above_max_hold_is_capped_at_max_hold)
+13:33:10 No scheduled task passes ttl > max_hold since 1a's N1, so this is ... ok
+13:33:10 test_every_run_has_its_own_token (AutoGrader.tests_beat_locks.SingleInstanceTests.test_every_run_has_its_own_token) ... ok
+13:33:10 test_the_lock_is_released_when_the_run_raises (AutoGrader.tests_beat_locks.SingleInstanceTests.test_the_lock_is_released_when_the_run_raises) ... ok
+13:33:10 test_two_concurrent_runs_do_the_work_once (AutoGrader.tests_beat_locks.SingleInstanceTests.test_two_concurrent_runs_do_the_work_once)
+13:33:10 Real threads, released together; the one that gets the lock waits ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t648928:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run direct:b25300863886; this run direct:4bc5e68db8e9).
+13:33:10 ok
+13:33:10
+13:33:10 ======================================================================
+13:33:10 FAIL: test_the_pii_sweep_is_skipped_and_records_nothing (audit.tests_sweep_beat_lock.AnOverlappingSweepIsSkippedTests.test_the_pii_sweep_is_skipped_and_records_nothing)
+13:33:10 ----------------------------------------------------------------------
+13:33:10 Traceback (most recent call last):
+13:33:10   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/audit/tests_sweep_beat_lock.py", line 84, in test_the_pii_sweep_is_skipped_and_records_nothing
+13:33:10     with self.assertLogs("AutoGrader.beat_locks", "WARNING"):
+13:33:10          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+13:33:10   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+13:33:10     self._raiseFailure(
+13:33:10 AssertionError: no logs of level WARNING or higher triggered on AutoGrader.beat_locks
+13:33:10
+13:33:10 ======================================================================
+13:33:10 FAIL: test_the_retention_sweep_is_skipped_and_records_nothing (audit.tests_sweep_beat_lock.AnOverlappingSweepIsSkippedTests.test_the_retention_sweep_is_skipped_and_records_nothing)
+13:33:10 ----------------------------------------------------------------------
+13:33:10 Traceback (most recent call last):
+13:33:10   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/audit/tests_sweep_beat_lock.py", line 77, in test_the_retention_sweep_is_skipped_and_records_nothing
+13:33:10     with self.assertLogs("AutoGrader.beat_locks", "WARNING"):
+13:33:10          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+13:33:10   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+13:33:10     self._raiseFailure(
+13:33:10 AssertionError: no logs of level WARNING or higher triggered on AutoGrader.beat_locks
+13:33:10
+13:33:10 ======================================================================
+13:33:10 FAIL: test_the_two_sweeps_do_not_block_each_other (audit.tests_sweep_beat_lock.AnOverlappingSweepIsSkippedTests.test_the_two_sweeps_do_not_block_each_other)
+13:33:10 ----------------------------------------------------------------------
+13:33:10 Traceback (most recent call last):
+13:33:10   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/audit/tests_sweep_beat_lock.py", line 95, in test_the_two_sweeps_do_not_block_each_other
+13:33:10     self.assertEqual(sweep_audit_retention(), f"{RETENTION}: {SKIPPED_HELD}.")
+13:33:10 AssertionError: 'Audit retention sweep: deleted general=1 student_record=0' != 'audit.tasks.sweep_audit_retention: anothe[44 chars]one.'
+13:33:10 - Audit retention sweep: deleted general=1 student_record=0
+13:33:10 + audit.tasks.sweep_audit_retention: another run already holds the lock; skipping this one.
+13:33:10
+13:33:10
+13:33:10 ======================================================================
+13:33:10 FAIL: test_the_next_run_does_the_skipped_runs_work (audit.tests_sweep_beat_lock.TheLockStoreIsUnavailableTests.test_the_next_run_does_the_skipped_runs_work)
+13:33:10 A skip costs one schedule interval and no more: the sweeps select
+13:33:10 ----------------------------------------------------------------------
+13:33:10 Traceback (most recent call last):
+13:33:10   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/audit/tests_sweep_beat_lock.py", line 125, in test_the_next_run_does_the_skipped_runs_work
+13:33:10     with self.unavailable(), self.assertLogs("AutoGrader.beat_locks", "ERROR"):
+13:33:10                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+13:33:10   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+13:33:10     self._raiseFailure(
+13:33:10 AssertionError: no logs of level ERROR or higher triggered on AutoGrader.beat_locks
+13:33:10
+13:33:10 ======================================================================
+13:33:10 FAIL: test_the_pii_sweep_is_skipped_with_an_error (audit.tests_sweep_beat_lock.TheLockStoreIsUnavailableTests.test_the_pii_sweep_is_skipped_with_an_error)
+13:33:10 ----------------------------------------------------------------------
+13:33:10 Traceback (most recent call last):
+13:33:10   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/audit/tests_sweep_beat_lock.py", line 114, in test_the_pii_sweep_is_skipped_with_an_error
+13:33:10     with self.unavailable(), self.assertLogs(
+13:33:10                              ^^^^^^^^^^^^^^^^
+13:33:10   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+13:33:10     self._raiseFailure(
+13:33:10 AssertionError: no logs of level ERROR or higher triggered on AutoGrader.beat_locks
+13:33:10
+13:33:10 ======================================================================
+13:33:10 FAIL: test_the_retention_sweep_is_skipped_with_an_error (audit.tests_sweep_beat_lock.TheLockStoreIsUnavailableTests.test_the_retention_sweep_is_skipped_with_an_error)
+13:33:10 ----------------------------------------------------------------------
+13:33:10 Traceback (most recent call last):
+13:33:10   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/audit/tests_sweep_beat_lock.py", line 105, in test_the_retention_sweep_is_skipped_with_an_error
+13:33:10     with self.unavailable(), self.assertLogs(
+13:33:10                              ^^^^^^^^^^^^^^^^
+13:33:10   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+13:33:10     self._raiseFailure(
+13:33:10 AssertionError: no logs of level ERROR or higher triggered on AutoGrader.beat_locks
+13:33:10
+13:33:10 ======================================================================
+13:33:10 FAIL: test_every_beat_task_is_locked_or_exempt (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_beat_task_is_locked_or_exempt)
+13:33:10 ----------------------------------------------------------------------
+13:33:10 Traceback (most recent call last):
+13:33:10   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b5/AutoGrader/tests_beat_locks.py", line 93, in test_every_beat_task_is_locked_or_exempt
+13:33:10     self.assertEqual(
+13:33:10 AssertionError: Lists differ: ['sweep-audit-retention-daily (audit.tasks[107 chars]on)'] != []
+13:33:10
+13:33:10 First list contains 2 additional elements.
+13:33:10 First extra element 0:
+13:33:10 'sweep-audit-retention-daily (audit.tasks.sweep_audit_retention)'
+13:33:10
+13:33:10 + []
+13:33:10 - ['sweep-audit-retention-daily (audit.tasks.sweep_audit_retention)',
+13:33:10 -  'sweep-audit-pii-short-retention-daily '
+13:33:10 -  '(audit.tasks.sweep_audit_pii_short_retention)'] : add @single_instance(max_hold=...) under @shared_task, or an EXEMPT_BEAT_TASKS entry with its reason
+13:33:10
+13:33:10 ----------------------------------------------------------------------
+13:33:10 Ran 34 tests in 16.006s
+13:33:10
+13:33:10 FAILED (failures=7)
+13:33:10 Destroying test database for alias 'default' ('test_epic_a_merge_down_b5_mut')...
+13:33:14  OK
+13:33:15 systemd-run failed with exit status 1.

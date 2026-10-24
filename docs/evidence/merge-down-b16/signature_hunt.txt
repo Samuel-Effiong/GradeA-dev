@@ -1,0 +1,64 @@
+EPIC-CHANGED ai_processor/services.py::AIProcessor.__ai_model
+   base (('self', 'system_prompt', 'user_prompt', 'messages', 'tool_schemas', 'respond_format', 'response_schema', 'sub_models', 'override_model'), 8, (), False, False)
+   epic (('self', 'system_prompt', 'user_prompt', 'messages', 'tool_schemas', 'respond_format', 'response_schema', 'sub_models', 'override_model', 'prompt_version', 'task_type'), 10, (), False, False)
+EPIC-CHANGED ai_processor/services.py::AIProcessor._grading_response_schema
+   base (('schema',), 0, (), False, False)
+   epic (('schema', 'run'), 1, (), False, False)
+EPIC-CHANGED ai_processor/services.py::AIProcessor._evidence_mode
+   base ((), 0, (), False, False)
+   epic (('run',), 1, (), False, False)
+EPIC-CHANGED ai_processor/services.py::AIProcessor._grade_question_batch
+   base (('self', 'user', 'question_pairs', 'batch_number', 'total_batches', 'assignment_model', 'processing_task_id', 'override_model'), 3, (), False, False)
+   epic (('self', 'user', 'question_pairs', 'batch_number', 'total_batches', 'assignment_model', 'processing_task_id', 'override_model', 'run'), 4, (), False, False)
+EPIC-CHANGED ai_processor/services.py::AIProcessor._build_overall_grading_summary
+   base (('self', 'user', 'all_evaluations', 'rubric_json', 'answer_json', 'assignment_model', 'processing_task_id'), 2, (), False, False)
+   epic (('self', 'user', 'all_evaluations', 'rubric_json', 'answer_json', 'assignment_model', 'processing_task_id', 'run'), 3, (), False, False)
+EPIC-CHANGED ai_processor/services.py::AIProcessor._partition_cached
+   base (('self', 'questions', 'answers', 'assignment_model'), 1, (), False, False)
+   epic (('self', 'questions', 'answers', 'assignment_model', 'run'), 2, (), False, False)
+EPIC-CHANGED ai_processor/services.py::AIProcessor._store_cache_evaluations
+   base (('self', 'fresh_evaluations', 'questions', 'answers', 'result', 'assignment_model'), 1, (), False, False)
+   epic (('self', 'fresh_evaluations', 'questions', 'answers', 'result', 'assignment_model', 'run'), 2, (), False, False)
+EPIC-CHANGED ai_processor/services.py::AIProcessor._custom_instructions_block
+   base (('assignment_model',), 0, (), False, False)
+   epic (('assignment_model', 'run'), 1, (), False, False)
+EPIC-CHANGED ai_processor/services.py::AIProcessor._question_image_content_blocks
+   base (('questions',), 0, (), False, False)
+   epic (('questions', 'run'), 1, (), False, False)
+EPIC-CHANGED ai_processor/services.py::AIProcessor._maybe_run_second_opinion
+   base (('self', 'result', 'llm_questions', 'llm_answers', 'user', 'assignment_model', 'processing_task_id'), 2, (), False, False)
+   epic (('self', 'result', 'llm_questions', 'llm_answers', 'user', 'assignment_model', 'processing_task_id', 'run'), 3, (), False, False)
+EPIC-CHANGED ai_processor/services.py::AIProcessor.grade_student_submission
+   base (('self', 'user', 'rubric_json', 'answer_json', 'assignment_model', 'processing_task_id', 'final_attempt'), 3, (), False, False)
+   epic (('self', 'user', 'rubric_json', 'answer_json', 'assignment_model', 'processing_task_id', 'final_attempt', 'run'), 4, (), False, False)
+EPIC-CHANGED ai_processor/services.py::AIProcessor._grade_student_submission_impl
+   base (('self', 'user', 'rubric_json', 'answer_json', 'assignment_model', 'processing_task_id', 'final_attempt'), 3, (), False, False)
+   epic (('self', 'user', 'rubric_json', 'answer_json', 'assignment_model', 'processing_task_id', 'final_attempt', 'run'), 4, (), False, False)
+EPIC-CHANGED ai_processor/services.py::AIProcessor.extract_grade_with_retry
+   base (('self', 'user', 'rubric_json', 'answer_json', 'assignment_model', 'max_retries', 'processing_task_id'), 3, (), False, False)
+   epic (('self', 'user', 'rubric_json', 'answer_json', 'assignment_model', 'max_retries', 'processing_task_id', 'run'), 4, (), False, False)
+EPIC-CHANGED ai_processor/services.py::AIProcessor.execute_graded_task
+   base (('self', 'user', 'feature', 'task_type', 'system_prompt', 'user_prompt', 'messages', 'tool_schemas', 'respond_format', 'response_schema', 'assignment', 'course', 'processing_task_id', 'override_model'), 10, (), False, False)
+   epic (('self', 'user', 'feature', 'task_type', 'system_prompt', 'user_prompt', 'messages', 'tool_schemas', 'respond_format', 'response_schema', 'assignment', 'course', 'processing_task_id', 'override_model'), 10, ('prompt_version',), False, False)
+BETA-CHANGED assignments/tasks.py::formatted_grade_async
+   base (('submission_id', 'user_prompt', 'processing_task_id'), 1, (), False, False)
+   beta (('submission_id', 'user_prompt', 'processing_task_id', 'result_stamp'), 2, (), False, False)
+EPIC-CHANGED students/services.py::_populate_and_save_grade
+   base (('submission', 'grading', 'processing_task_id'), 0, (), False, False)
+   epic (('submission', 'grading', 'processing_task_id', 'run'), 1, (), False, False)
+EPIC-CHANGED students/services.py::upload_answers_engine
+   base (('assignment', 'content', 'request_user', 'is_proxy_upload', 'processing_task_id'), 2, (), False, False)
+   epic (('assignment', 'content', 'request_user', 'is_proxy_upload', 'processing_task_id', 'file_name', 'upload_outcome'), 4, (), False, False)
+EPIC-CHANGED students/services.py::_match_enrolled_student
+   base (('course', 'identified_name'), 0, (), False, False)
+   epic (('course', 'identified_name', 'file_name', 'teacher'), 2, (), False, False)
+EPIC-CHANGED students/task_tracking.py::create_processing_task
+   base ((), 0, ('requested_by', 'task_type', 'batch_session', 'assignment', 'submission', 'file_name', 'meta'), False, False)
+   epic ((), 0, ('requested_by', 'task_type', 'batch_session', 'assignment', 'submission', 'file_name', 'meta', 'item_index'), False, False)
+EPIC-CHANGED students/task_tracking.py::update_processing_task
+   base (('processing_task_id',), 0, ('status', 'meta', 'error', 'started', 'finished'), False, False)
+   epic (('processing_task_id',), 0, ('status', 'meta', 'error', 'started', 'finished', 'reason_code'), False, False)
+EPIC-CHANGED users/views.py::AuthViewSet.verify.refuse
+   base (('message',), 0, (), False, False)
+   epic (('message', 'account', 'reason_code'), 0, (), False, False)
+TOTAL epic-changed 20 beta-changed 1 files 19

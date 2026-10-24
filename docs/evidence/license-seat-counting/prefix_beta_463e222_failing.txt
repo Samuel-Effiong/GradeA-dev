@@ -1,0 +1,243 @@
+Creating test database for alias 'default'...
+Got an error creating the test database: database "test_license_seat_counting" already exists
+
+Destroying old test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user Mixed.Case@teacherchange.edu (validation): Free trial plan not found. Please create one in the admin panel.
+FFailed to add teachers to license ca881b37-3820-4993-88d0-64d29de4a9d5
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/license_views.py", line 325, in add_teachers
+    results = LicenseSubscriptionService.add_teachers_batch(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/license_service.py", line 1667, in add_teachers_batch
+    raise LicenseRequestError(
+billing.license_service.LicenseRequestError: Your licence has no seats left (2 of 2 in use). Remove a teacher or ask us to add seats.
+FCannot activate automatic trial for user Kept.Case@teacherchange.edu (validation): Free trial plan not found. Please create one in the admin panel.
+.Failed to add teachers to license a1135e88-2e96-4fbf-91f3-738677347882
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/license_views.py", line 325, in add_teachers
+    results = LicenseSubscriptionService.add_teachers_batch(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/license_service.py", line 1667, in add_teachers_batch
+    raise LicenseRequestError(
+billing.license_service.LicenseRequestError: Your licence has 1 seat left, but you're adding 2 teachers (1 of 2 in use). Add fewer teachers, remove a teacher, or ask us to add seats.
+FCannot activate automatic trial for user superadmin@seatcount.example (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/serializers.py", line 2150, in create
+    license_sub = LicenseSubscriptionService.create_license_subscription(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/license_service.py", line 942, in create_license_subscription
+    LicenseSubscriptionService.check_seat_capacity(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/license_service.py", line 345, in check_seat_capacity
+    raise LicenseRequestError(
+billing.license_service.LicenseRequestError: This licence has 2 seats, but 3 teachers were added (1 carried over from the current licence + 2 new). Remove a teacher or increase Max seats.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/license_views.py", line 249, in create
+    license_sub = serializer.save()
+                  ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/serializers.py", line 2163, in create
+    raise serializers.ValidationError({"non_field_errors": [str(exc)]}) from exc
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string='This licence has 2 seats, but 3 teachers were added (1 carried over from the current licence + 2 new). Remove a teacher or increase Max seats.', code='invalid')]}
+FCannot activate automatic trial for user superadmin@seatcount.example (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user superadmin@seatcount.example (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user superadmin@seatcount.example (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user superadmin@seatcount.example (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/serializers.py", line 2150, in create
+    license_sub = LicenseSubscriptionService.create_license_subscription(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/license_service.py", line 942, in create_license_subscription
+    LicenseSubscriptionService.check_seat_capacity(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/license_service.py", line 345, in check_seat_capacity
+    raise LicenseRequestError(
+billing.license_service.LicenseRequestError: This licence has 2 seats, but 4 teachers were added. Remove a teacher or increase Max seats.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/license_views.py", line 249, in create
+    license_sub = serializer.save()
+                  ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/serializers.py", line 2163, in create
+    raise serializers.ValidationError({"non_field_errors": [str(exc)]}) from exc
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string='This licence has 2 seats, but 4 teachers were added. Remove a teacher or increase Max seats.', code='invalid')]}
+FCannot activate automatic trial for user superadmin@seatcount.example (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/serializers.py", line 2150, in create
+    license_sub = LicenseSubscriptionService.create_license_subscription(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/license_service.py", line 942, in create_license_subscription
+    LicenseSubscriptionService.check_seat_capacity(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/license_service.py", line 345, in check_seat_capacity
+    raise LicenseRequestError(
+billing.license_service.LicenseRequestError: This licence has 1 seat, but 2 teachers were added. Remove a teacher or increase Max seats.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/license_views.py", line 249, in create
+    license_sub = serializer.save()
+                  ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/serializers.py", line 2163, in create
+    raise serializers.ValidationError({"non_field_errors": [str(exc)]}) from exc
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string='This licence has 1 seat, but 2 teachers were added. Remove a teacher or increase Max seats.', code='invalid')]}
+FCannot activate automatic trial for user superadmin@seatcount.example (validation): Free trial plan not found. Please create one in the admin panel.
+FF
+======================================================================
+FAIL: test_an_account_stored_with_capitals_is_not_duplicated (billing.tests.test_license_seat_counting.AddTeachersSeatCountingTest.test_an_account_stored_with_capitals_is_not_duplicated)
+Stored 'Mixed.Case@', added as 'mixed.case@': the existing account
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/tests/test_license_seat_counting.py", line 309, in test_an_account_stored_with_capitals_is_not_duplicated
+    self.assertEqual(
+AssertionError: 2 != 1
+
+======================================================================
+FAIL: test_an_active_teacher_in_capitals_takes_no_seat (billing.tests.test_license_seat_counting.AddTeachersSeatCountingTest.test_an_active_teacher_in_capitals_takes_no_seat)
+A full licence: re-adding one of its own teachers in capitals is
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/tests/test_license_seat_counting.py", line 271, in test_an_active_teacher_in_capitals_takes_no_seat
+    self.assertEqual(response.status_code, status.HTTP_200_OK, response.json())
+AssertionError: 400 != 200 : {'success': False, 'message': 'Your licence has no seats left (2 of 2 in use). Remove a teacher or ask us to add seats.', 'error': {'field_errors': {'error': 'Your licence has no seats left (2 of 2 in use). Remove a teacher or ask us to add seats.'}}}
+
+======================================================================
+FAIL: test_the_same_teacher_listed_twice_takes_one_seat (billing.tests.test_license_seat_counting.AddTeachersSeatCountingTest.test_the_same_teacher_listed_twice_takes_one_seat)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/tests/test_license_seat_counting.py", line 258, in test_the_same_teacher_listed_twice_takes_one_seat
+    self.assertEqual(response.status_code, status.HTTP_200_OK, response.json())
+AssertionError: 400 != 200 : {'success': False, 'message': "Your licence has 1 seat left, but you're adding 2 teachers (1 of 2 in use). Add fewer teachers, remove a teacher, or ask us to add seats.", 'error': {'field_errors': {'error': "Your licence has 1 seat left, but you're adding 2 teachers (1 of 2 in use). Add fewer teachers, remove a teacher, or ask us to add seats."}}}
+
+======================================================================
+FAIL: test_a_carried_over_teacher_listed_again_takes_one_seat (billing.tests.test_license_seat_counting.LicenseSeatCountingTest.test_a_carried_over_teacher_listed_again_takes_one_seat)
+Stored 'Kept@', listed 'kept@': one teacher, so 1 carried + 1 new
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/tests/test_license_seat_counting.py", line 156, in test_a_carried_over_teacher_listed_again_takes_one_seat
+    self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.json())
+AssertionError: 400 != 201 : {'success': False, 'message': 'This licence has 2 seats, but 3 teachers were added (1 carried over from the current licence + 2 new). Remove a teacher or increase Max seats.', 'error': {'field_errors': {'non_field_errors': ['This licence has 2 seats, but 3 teachers were added (1 carried over from the current licence + 2 new). Remove a teacher or increase Max seats.']}}}
+
+======================================================================
+FAIL: test_stripe_checkout_counts_a_repeated_teacher_once (billing.tests.test_license_seat_counting.LicenseSeatCountingTest.test_stripe_checkout_counts_a_repeated_teacher_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/tests/test_license_seat_counting.py", line 146, in test_stripe_checkout_counts_a_repeated_teacher_once
+    self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+AssertionError: 400 != 200 : b'{"success":false,"message":"This licence has 1 seat, but 2 teachers were added. Remove a teacher or increase Max seats.","error":{"field_errors":{"error":"This licence has 1 seat, but 2 teachers were added. Remove a teacher or increase Max seats."}}}'
+
+======================================================================
+FAIL: test_stripe_checkout_matches_a_carried_over_teacher_by_any_case (billing.tests.test_license_seat_counting.LicenseSeatCountingTest.test_stripe_checkout_matches_a_carried_over_teacher_by_any_case)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/tests/test_license_seat_counting.py", line 165, in test_stripe_checkout_matches_a_carried_over_teacher_by_any_case
+    self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+AssertionError: 400 != 200 : b'{"success":false,"message":"This licence has 2 seats, but 3 teachers were added (1 carried over from the current licence + 2 new). Remove a teacher or increase Max seats.","error":{"field_errors":{"error":"This licence has 2 seats, but 3 teachers were added (1 carried over from the current licence + 2 new). Remove a teacher or increase Max seats."}}}'
+
+======================================================================
+FAIL: test_stripe_checkout_without_max_seats_is_refused_before_payment (billing.tests.test_license_seat_counting.LicenseSeatCountingTest.test_stripe_checkout_without_max_seats_is_refused_before_payment)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/tests/test_license_seat_counting.py", line 199, in test_stripe_checkout_without_max_seats_is_refused_before_payment
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+AssertionError: 200 != 400
+
+======================================================================
+FAIL: test_the_refusal_counts_distinct_teachers (billing.tests.test_license_seat_counting.LicenseSeatCountingTest.test_the_refusal_counts_distinct_teachers)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/tests/test_license_seat_counting.py", line 174, in test_the_refusal_counts_distinct_teachers
+    self.assertEqual(
+AssertionError: 'This[21 chars] but 4 teachers were added. Remove a teacher o[17 chars]ats.' != 'This[21 chars] but 3 teachers were added. Remove a teacher o[17 chars]ats.'
+- This licence has 2 seats, but 4 teachers were added. Remove a teacher or increase Max seats.
+?                               ^
++ This licence has 2 seats, but 3 teachers were added. Remove a teacher or increase Max seats.
+?                               ^
+
+
+======================================================================
+FAIL: test_the_same_teacher_listed_twice_takes_one_seat (billing.tests.test_license_seat_counting.LicenseSeatCountingTest.test_the_same_teacher_listed_twice_takes_one_seat)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/tests/test_license_seat_counting.py", line 136, in test_the_same_teacher_listed_twice_takes_one_seat
+    self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.json())
+AssertionError: 400 != 201 : {'success': False, 'message': 'This licence has 1 seat, but 2 teachers were added. Remove a teacher or increase Max seats.', 'error': {'field_errors': {'non_field_errors': ['This licence has 1 seat, but 2 teachers were added. Remove a teacher or increase Max seats.']}}}
+
+======================================================================
+FAIL: test_the_shared_seat_check_refuses_no_seats (billing.tests.test_license_seat_counting.LicenseSeatCountingTest.test_the_shared_seat_check_refuses_no_seats) (max_seats=0)
+The check both the checkout and the webhook's create run.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/tests/test_license_seat_counting.py", line 207, in test_the_shared_seat_check_refuses_no_seats
+    with self.assertRaisesMessage(LicenseRequestError, NO_SEATS):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+AssertionError: LicenseRequestError not raised
+
+======================================================================
+FAIL: test_the_shared_seat_check_refuses_no_seats (billing.tests.test_license_seat_counting.LicenseSeatCountingTest.test_the_shared_seat_check_refuses_no_seats) (max_seats=-1)
+The check both the checkout and the webhook's create run.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-license-seat-counting/billing/tests/test_license_seat_counting.py", line 207, in test_the_shared_seat_check_refuses_no_seats
+    with self.assertRaisesMessage(LicenseRequestError, NO_SEATS):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+AssertionError: LicenseRequestError not raised
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.971s
+
+FAILED (failures=11)
+Destroying test database for alias 'default'...
+Found 11 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

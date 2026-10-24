@@ -1,0 +1,310 @@
+"""1a's verification probes for H-80/H-86. Not committed.
+
+Reuses d5's fixture; the inherited d5 tests are switched off.
+
+W1 (after two faults of my own in driving it, see the record): a recorder
+    on the guarded loggers while the licence paths run
+    (creation with every kind of address, batch add, removal, re-adding,
+    both renewals with one teacher failing, a replacement licence). Reports
+    which logger call sites fired, and fails if any fired line's MESSAGE
+    carries an "@". Tracebacks are counted separately (the known limit,
+    H-89): an observation, not a failure.
+W2: creating users through the signals, with and without a free-trial plan.
+W3: the two reason lines for a refused automatic trial (SM's P1 ruling):
+    each fires, at the ruled level, with the user's id and no "@".
+"""
+
+import ast
+import logging
+import os
+from datetime import timedelta
+from unittest.mock import patch
+
+from django.conf import settings
+from django.utils import timezone
+
+from billing.license_service import LicenseSubscriptionService
+from billing.models import LicenseBillingMethod, SchoolCreditAllocation, UserSubscription
+from billing.services import SubscriptionService
+from billing.tests.test_logs_carry_no_email import LicencePathsLogNoAddressTest
+from classrooms.models import School
+from users.models import CustomUser, UserTypes
+
+GUARDED = {
+    "billing.license_service": "billing/license_service.py",
+    "users.signals": "users/signals.py",
+}
+LEVELS = ("debug", "info", "warning", "error", "exception", "critical")
+
+
+def only_own_tests(cls, parent):
+    for name in dir(parent):
+        if name.startswith("test_") and name not in cls.__dict__:
+            setattr(cls, name, None)
+    return cls
+
+
+def call_sites(path):
+    """{first line: (last line, has a traceback)} for each logger call."""
+    with open(os.path.join(settings.BASE_DIR, path), encoding="utf-8") as fh:
+        tree = ast.parse(fh.read())
+    sites = {}
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "logger"
+            and node.func.attr in LEVELS
+        ):
+            traced = node.func.attr == "exception" or any(
+                k.arg == "exc_info" for k in node.keywords
+            )
+            sites[node.lineno] = (node.end_lineno, traced)
+    return sites
+
+
+class Recorder(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.rows = []
+
+    def emit(self, record):
+        trace = ""
+        if record.exc_info:
+            trace = logging.Formatter().formatException(record.exc_info)
+        self.rows.append(
+            (record.name, record.lineno, record.levelname, record.getMessage(), trace)
+        )
+
+
+class H80Probes(LicencePathsLogNoAddressTest):
+    def record(self, *names):
+        recorder = Recorder()
+        for name in names:
+            logger = logging.getLogger(name)
+            logger.addHandler(recorder)
+            old = logger.level
+            logger.setLevel(logging.DEBUG)
+            self.addCleanup(logger.setLevel, old)
+            self.addCleanup(logger.removeHandler, recorder)
+        return recorder
+
+    def report(self, tag, recorder, steps):
+        leaks = [r for r in recorder.rows if r[0] in GUARDED and "@" in r[3]]
+        traced = [r for r in recorder.rows if r[0] in GUARDED and "@" in r[4]]
+        print(f"\nVF1A_H80_{tag} lines={len(recorder.rows)} message_leaks={len(leaks)} "
+              f"tracebacks_with_an_address={len(traced)}")
+        for name, path in GUARDED.items():
+            sites = call_sites(path)
+            fired_lines = {r[1] for r in recorder.rows if r[0] == name}
+            fired = sorted(
+                first for first, (last, _) in sites.items()
+                if any(first <= line <= last for line in fired_lines)
+            )
+            print(f"  {path}: {len(fired)}/{len(sites)} call sites fired: {fired}")
+            print(f"  {path}: traceback sites {sorted(s for s, v in sites.items() if v[1])}")
+        for step, outcome in steps:
+            print(f"  step {step}: {outcome}")
+        for r in traced:
+            print(f"  traceback with an address: {r[0]}:{r[1]} {r[2]}")
+        for r in leaks:
+            print(f"  LEAK {r[0]}:{r[1]} {r[2]} {r[3]!r}")
+        return leaks
+
+    def step(self, steps, label, fn):
+        try:
+            with self.captureOnCommitCallbacks(execute=True):
+                result = fn()
+            steps.append((label, "ran"))
+            return result
+        except Exception as exc:  # a step I drove wrongly must show, not hide
+            words = " ".join(w for w in str(exc).split() if "@" not in w)[:90]
+            steps.append((label, f"RAISED {type(exc).__name__}: {words}"))
+            return None
+
+    # -- W1 ----------------------------------------------------------------
+
+    def test_w1_licence_paths_log_ids_only(self):
+        svc = LicenseSubscriptionService
+        other_school = School.objects.create(name="H80 Probe Other")
+        existing = self.teacher("existing@h80school.edu")
+        outsider = self.teacher("outsider@h80probe.edu")
+        CustomUser.objects.filter(pk=outsider.pk).update(school=other_school)
+        paying = self.teacher("paying@h80school.edu")
+        UserSubscription.objects.create(
+            user=paying,
+            plan=self.individual_plan,
+            is_active=True,
+            billing_cycle_start=timezone.now(),
+            billing_cycle_end=timezone.now() + timedelta(days=30),
+        )
+        recorder = self.record(*GUARDED)
+        steps = []
+
+        licence = self.step(steps, "create a licence with six kinds of address", lambda: svc.create_license_subscription(
+            school=self.school,
+            plan=self.plan,
+            admin_user=self.admin,
+            teacher_emails=[
+                "invited@h80school.edu",
+                existing.email,
+                "someone@gmail.com",
+                outsider.email,
+                self.admin.email,
+                paying.email,
+            ],
+            max_seats=6,
+            billing_method=LicenseBillingMethod.OFFLINE,
+        ))
+        self.assertIsNotNone(licence, steps)
+        self.step(steps, "batch add", lambda: svc.add_teachers_batch(
+            licence, ["batch1@h80school.edu", "batch2@h80school.edu"]
+        ))
+        licence.refresh_from_db()
+        filler = 0
+        while licence.seats_remaining and filler < 10:
+            filler += 1
+            self.step(steps, f"fill a seat ({filler})", lambda n=filler: svc._invite_and_enroll_one_teacher(
+                licence, self.school, self.admin, f"filler{n}@h80school.edu"
+            ))
+            licence.refresh_from_db()
+        self.step(steps, "one more at the seat limit", lambda: svc._invite_and_enroll_one_teacher(
+            licence, self.school, self.admin, "overflow@h80school.edu"
+        ))
+        existing.refresh_from_db()
+        self.step(steps, "remove a teacher", lambda: svc.remove_teacher_from_license(licence, existing))
+        existing.refresh_from_db()
+        CustomUser.objects.filter(pk=existing.pk).update(school=self.school)
+        existing.refresh_from_db()
+        self.step(steps, "re-add the removed teacher", lambda: svc._enroll_teacher_internal(licence, existing))
+
+        victim = SchoolCreditAllocation.objects.filter(
+            license_subscription=licence, is_active=True
+        ).exclude(user=self.admin).first()
+        self.assertIsNotNone(victim)
+        boom = ValueError(f"Key (email)=({victim.user.email}) already exists.")
+
+        real_rollover = svc._rollover_and_grant_monthly_bucket
+
+        def rollover_or_fail(*args, **kwargs):
+            teacher = kwargs.get("teacher") or args[0]
+            if teacher.pk == victim.user_id:
+                raise boom
+            return real_rollover(*args, **kwargs)
+
+        licence.refresh_from_db()
+        with patch.object(svc, "_rollover_and_grant_monthly_bucket", rollover_or_fail):
+            self.step(steps, "offline renewal with one teacher failing", lambda: svc.process_offline_renewal(
+                licence, self.admin, timezone.now() + timedelta(days=365)
+            ))
+            licence.refresh_from_db()
+            type(licence).objects.filter(pk=licence.pk).update(
+                billing_cycle_end=timezone.now() - timedelta(hours=1)
+            )
+            licence.refresh_from_db()
+            self.step(steps, "cycle renewal with one teacher failing", lambda: svc.process_license_renewal(licence))
+        self.step(steps, "a replacement licence (carry forward, one now paying)", lambda: (
+            UserSubscription.objects.create(
+                user=victim.user,
+                plan=self.individual_plan,
+                is_active=True,
+                billing_cycle_start=timezone.now(),
+                billing_cycle_end=timezone.now() + timedelta(days=30),
+            ),
+            self.new_licence(max_seats=10),
+        ))
+
+        leaks = self.report("W1", recorder, steps)
+        messages = "\n".join(r[3] for r in recorder.rows)
+        for must_fire in (
+            "Queued teacher invitation email",
+            "Enrolled teacher",
+            "Removed teacher",
+            "Reactivated teacher",
+            "is at its seat limit",
+            "has an individual subscription",
+            "Not a business email",
+            "Skipped enrolling a teacher",
+            "Failed to renew credits for teacher",
+            "Offline renewal: failed to refresh credits for teacher",
+        ):
+            self.assertIn(must_fire, messages)
+        self.assertEqual(leaks, [])
+
+    # -- W2 ----------------------------------------------------------------
+
+    def test_w2_signals_log_ids_only(self):
+        recorder = self.record(*GUARDED, "billing.services")
+        steps = []
+        for label, email, user_type in (
+            ("a teacher signs up", "w2teacher@h80school.edu", UserTypes.TEACHER),
+            ("a school admin is created", "w2admin@h80school.edu", UserTypes.SCHOOL_ADMIN),
+        ):
+            self.step(steps, label, lambda e=email, t=user_type: CustomUser.objects.create_user(
+                email=e, password="password123", user_type=t  # pragma: allowlist secret
+            ))
+        with self.settings(USE_BETA_PLAN_ON_SIGNUP=True):
+            self.step(steps, "a teacher signs up under the beta switch", lambda: CustomUser.objects.create_user(
+                email="w2beta@h80school.edu", password="password123",  # pragma: allowlist secret
+                user_type=UserTypes.TEACHER,
+            ))
+        leaks = self.report("W2", recorder, steps)
+        signal_lines = [r for r in recorder.rows if r[0] == "users.signals"]
+        self.assertTrue(any("Post-save signal fired" in r[3] for r in signal_lines))
+        for r in recorder.rows:
+            if r[0] == "billing.services":
+                print(f"  billing.services {r[2]}: {r[3]}")
+        self.assertEqual(leaks, [])
+        self.assertEqual([r for r in recorder.rows if "@" in r[3]], [])
+
+    # -- W3 ----------------------------------------------------------------
+
+    def test_w3_refused_trial_reason_lines(self):
+        """The fixture has no free-trial plan, so a signup is the 'not found'
+        refusal. FILLED IN at the final tip for the 'already used' one."""
+        recorder = self.record(*GUARDED, "billing.services")
+        user = CustomUser.objects.create_user(
+            email="w3teacher@h80school.edu", password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+        )
+        rows = [r for r in recorder.rows if r[0] in ("billing.services", "users.signals")
+                and r[2] in ("WARNING", "ERROR")]
+        print("\nVF1A_H80_W3")
+        for r in rows:
+            print(f"  {r[0]}:{r[1]} {r[2]}: {r[3]}")
+        not_found = [r for r in rows if r[0] == "billing.services" and "not found" in r[3].lower()]
+        self.assertEqual(len(not_found), 1, rows)
+        self.assertEqual(not_found[0][2], "ERROR")
+        self.assertIn(str(user.id), not_found[0][3])
+        self.assertEqual([r for r in rows if "@" in r[3]], [])
+        # The signal's own line for the same refusal: the class only.
+        self.assertTrue(
+            any(r[0] == "users.signals" and r[3].endswith("ValueError") for r in rows), rows
+        )
+
+        # The other refusal: a trial already used.
+        UserSubscription.objects.filter(user=user).delete()
+        UserSubscription.objects.create(
+            user=user,
+            plan=self.individual_plan,
+            is_active=False,
+            is_trial=True,
+            billing_cycle_start=timezone.now() - timedelta(days=30),
+            billing_cycle_end=timezone.now() - timedelta(days=16),
+        )
+        before = len(recorder.rows)
+        with self.assertRaises(ValueError) as refusal:
+            SubscriptionService.activate_automatic_free_trial(user)
+        new = recorder.rows[before:]
+        for r in new:
+            print(f"  {r[0]}:{r[1]} {r[2]}: {r[3]}")
+        print(f"  the refusal's own text carries the address: {'@' in str(refusal.exception)}")
+        used = [r for r in new if r[0] == "billing.services" and "already used" in r[3]]
+        self.assertEqual(len(used), 1, new)
+        self.assertEqual(used[0][2], "WARNING")
+        self.assertIn(str(user.id), used[0][3])
+        self.assertEqual([r for r in new if "@" in r[3]], [])
+
+
+only_own_tests(H80Probes, LicencePathsLogNoAddressTest)

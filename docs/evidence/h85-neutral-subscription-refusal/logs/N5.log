@@ -1,0 +1,12 @@
+# N5: the enrolment refusal keeps its exception class
+# file: billing/license_service.py (occurrence 1)
+# old: '            raise IndividualSubscriptionConflictError(\n                TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION\n            )\n'
+# new: '            raise ValueError(TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION)\n'
+# commit: b5911242393122af780f10ef77cf43d1d69961ff
+# exit: 1
+# elapsed_s: 4.4
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_enrolling_a_paying_teacher_is_refused_neutrally (billing.tests.test_neutral_subscription_refusal.NeutralSubscriptionRefusalTest.test_enrolling_a_paying_teacher_is_refused_neutrally)
+
+FAILED (errors=1)

@@ -1,0 +1,167 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ECannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/users/views.py", line 2186, in task_status
+    raise NotFound("Tracked task not found for this user.")
+rest_framework.exceptions.NotFound: Tracked task not found for this user.
+FCannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ECannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+FFFFFCannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user me@sweep.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user stranger@sweep.test (validation): Free trial plan not found. Please create one in the admin panel.
+.FFFFFFF....
+======================================================================
+ERROR: test_a_batch_grading_run_is_refused_after_removal (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_a_batch_grading_run_is_refused_after_removal)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 177, in test_a_batch_grading_run_is_refused_after_removal
+    from assignments.tasks import COURSE_NOT_REACHABLE, grade_batch_async
+ImportError: cannot import name 'COURSE_NOT_REACHABLE' from 'assignments.tasks' (/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/tasks.py)
+
+======================================================================
+ERROR: test_queued_grading_is_refused_and_never_charged_after_removal (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_queued_grading_is_refused_and_never_charged_after_removal)
+The chokepoint: work queued before the removal (a grade-all, a
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 158, in test_queued_grading_is_refused_and_never_charged_after_removal
+    from assignments.tasks import COURSE_NOT_REACHABLE, grade_engine_async
+ImportError: cannot import name 'COURSE_NOT_REACHABLE' from 'assignments.tasks' (/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/tasks.py)
+
+======================================================================
+FAIL: test_an_unreachable_task_answers_exactly_like_a_missing_one (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_an_unreachable_task_answers_exactly_like_a_missing_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 130, in test_an_unreachable_task_answers_exactly_like_a_missing_one
+    self.assertEqual(unreachable.status_code, missing.status_code)
+AssertionError: 200 != 404
+
+======================================================================
+FAIL: test_t1_to_t4_answer_404_after_removal_and_change_nothing (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_t1_to_t4_answer_404_after_removal_and_change_nothing) (route='T1 session-results')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 119, in test_t1_to_t4_answer_404_after_removal_and_change_nothing
+    self.assertEqual(response.status_code, 404, response.content[:200])
+AssertionError: 200 != 404 : b'{"success":true,"message":"Request Successful","data":{"progress":"0 / 1","percent":0,"is_complete":false,"success_count":0,"failure_count":0,"cancelled_count":0,"pending_count":1,"resource_type":"gra'
+
+======================================================================
+FAIL: test_t1_to_t4_answer_404_after_removal_and_change_nothing (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_t1_to_t4_answer_404_after_removal_and_change_nothing) (route='T2 status')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 119, in test_t1_to_t4_answer_404_after_removal_and_change_nothing
+    self.assertEqual(response.status_code, 404, response.content[:200])
+AssertionError: 200 != 404 : b'{"success":true,"message":"Request Successful","data":{"task_id":"952c4521-a880-4ab6-95da-526e893d5fa1","status":"processing","meta":"{\'student_name\': \'Vfsentinelpupil Hthirtyeight\'}","resource_type":'
+
+======================================================================
+FAIL: test_t1_to_t4_answer_404_after_removal_and_change_nothing (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_t1_to_t4_answer_404_after_removal_and_change_nothing) (route='T3 cancel')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 119, in test_t1_to_t4_answer_404_after_removal_and_change_nothing
+    self.assertEqual(response.status_code, 404, response.content[:200])
+AssertionError: 200 != 404 : b'{"success":true,"message":"Background task cancellation requested successfully.","data":{"task_id":"952c4521-a880-4ab6-95da-526e893d5fa1","status":"cancelled","message":"Background task cancellation r'
+
+======================================================================
+FAIL: test_t1_to_t4_answer_404_after_removal_and_change_nothing (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_t1_to_t4_answer_404_after_removal_and_change_nothing) (route='T4 cancel-session')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 119, in test_t1_to_t4_answer_404_after_removal_and_change_nothing
+    self.assertEqual(response.status_code, 404, response.content[:200])
+AssertionError: 200 != 404 : b'{"success":true,"message":"Batch session cancellation requested successfully.","data":{"session_id":"df59db43-0f4c-45f3-a6ea-453241a363ef","cancelled_count":0,"message":"Batch session cancellation req'
+
+======================================================================
+FAIL: test_t1_to_t4_answer_404_after_removal_and_change_nothing (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_t1_to_t4_answer_404_after_removal_and_change_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 123, in test_t1_to_t4_answer_404_after_removal_and_change_nothing
+    self.assertEqual(self.task.status, BackgroundTaskStatus.STARTED)
+AssertionError: 'CANCELLED' != BackgroundTaskStatus.STARTED
+
+======================================================================
+FAIL: test_t5_the_auto_grade_beat_grades_nothing_after_removal (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_t5_the_auto_grade_beat_grades_nothing_after_removal)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/students/tests_h38_tasks_namespace.py", line 140, in test_t5_the_auto_grade_beat_grades_nothing_after_removal
+    delay.assert_not_called()
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to not have been called. Called 1 times.
+Calls: [call('b5a8394a-d36e-44e3-811d-b40f17f306b6', '567f09f4-c8b9-4302-98be-430fbd02b458', batch_id='5a3fc5e7-63dd-430a-b454-c51704df9390')].
+
+======================================================================
+FAIL: test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) (task='grade_engine_async')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/classrooms/tests_teacher_access_sweep.py", line 314, in test_every_grading_dispatch_checks_reachability
+    self.assertIn(rule, tasks[name])
+AssertionError: 'teacher_may_reach' not found in '@shared_task(bind=True, soft_time_limit=GRADING_TASK_TIME_LIMIT_SECONDS - 60, time_limit=GRADING_TASK_TIME_LIMIT_SECONDS)\ndef grade_engine_async(self, user_id, submission_id, batch_id=None, processing_task_id=None):\n    try:\n        ensure_task_not_cancelled(processing_task_id)\n        mark_processing_task_started(processing_task_id, meta={\'step\': \'Retrieving submission\'})\n        self.update_state(state=\'PROGRESS\', meta={\'step\': \'Retrieving submission\'})\n        submission = StudentSubmission.objects.select_related(\'assignment\').get(id=submission_id)\n        if submission.scheduled_grading_at or submission.grading_task_name:\n            submission.scheduled_grading_at = None\n            submission.grading_task_name = None\n            submission.save(update_fields=[\'scheduled_grading_at\', \'grading_task_name\'])\n        user = CustomUser.objects.get(id=user_id)\n        self.update_state(state=\'PROGRESS\', meta={\'step\': \'Grading\'})\n        update_processing_task(processing_task_id, meta={\'step\': \'Grading\'})\n        ensure_task_not_cancelled(processing_task_id)\n        submission = grade_engine(user, submission, processing_task_id=processing_task_id)\n        self.update_state(state=\'PROGRESS\', meta={\'step\': \'Completed\'})\n        mark_processing_task_success(processing_task_id, meta={\'step\': \'Completed\', \'submission_id\': str(submission.id), \'batch_id\': str(batch_id) if batch_id else None})\n        if batch_id:\n            session = BatchUploadSession.objects.get(id=batch_id)\n            session.update_result(f\'Submission for {submission.student.get_full_name()}\', \'SUCCESS\', batch_type=BatchUploadType.GRADE, submission_id=submission.id)\n        return {\'status\': states.SUCCESS, \'submission_id\': submission_id, \'message\': \'Grading completed successfully\'}\n    except TaskCancelledError:\n        mark_processing_task_cancelled(processing_task_id, meta={\'step\': \'Grading cancelled\', \'submission_id\': submission_id})\n        raise\n    except SubmissionGradingInProgressError:\n        tracked = get_processing_task_by_id(processing_task_id)\n        own_delivery = tracked is not None and tracked.celery_task_id in (None, \'\', str(self.request.id))\n        if own_delivery:\n            logger.info(\'Redelivered grading task %s for submission %s skipped: the original delivery still holds the claim; tracked task %s left to it.\', self.request.id, submission_id, processing_task_id)\n        else:\n            mark_processing_task_success(processing_task_id, meta={\'step\': \'Skipped — already being graded\', \'skipped\': True, \'submission_id\': submission_id})\n        return {\'status\': states.SUCCESS, \'submission_id\': submission_id, \'message\': \'This submission is already being graded by another worker — duplicate run skipped.\'}\n    except Exception as exc:\n        fallback_message = "We couldn\'t grade this submission. Please try again, or contact support if this continues."\n        task = mark_processing_task_failure(processing_task_id, exc, meta={\'step\': \'Grading failed\', \'submission_id\': submission_id}, fallback_message=fallback_message)\n        if batch_id:\n            session = BatchUploadSession.objects.get(id=batch_id)\n            submission_obj = locals().get(\'submission\')\n            file_name = f\'Submission for {submission_obj.student.get_full_name()}\' if isinstance(submission_obj, StudentSubmission) else f\'Submission {submission_id}\'\n            session.update_result(file_name, \'FAILED\', error=task.error if task else describe_background_task_error(exc, fallback_message), batch_type=BatchUploadType.GRADE, submission_id=submission_id)\n        raise'
+
+======================================================================
+FAIL: test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) (task='grade_batch_async')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/classrooms/tests_teacher_access_sweep.py", line 314, in test_every_grading_dispatch_checks_reachability
+    self.assertIn(rule, tasks[name])
+AssertionError: 'teacher_may_reach' not found in "@shared_task(bind=True, max_retries=3)\ndef grade_batch_async(self, user_id, assignment_id, batch_id=None, processing_task_id=None):\n    submissions = StudentSubmission.objects.filter(assignment_id=assignment_id, graded_at__isnull=True)\n    try:\n        assignment = Assignment.objects.get(id=assignment_id)\n        if assignment.scheduled_grading_at or assignment.grading_task_name:\n            assignment.scheduled_grading_at = None\n            assignment.grading_task_name = None\n            assignment.save(update_fields=['scheduled_grading_at', 'grading_task_name'])\n        if not batch_id and submissions.exists():\n            user = CustomUser.objects.get(id=user_id)\n            session = BatchUploadSession.objects.create(teacher=user, course=assignment.course, task_type=BatchUploadType.GRADE, total_files=submissions.count())\n            batch_id = str(session.id)\n    except Exception as e:\n        logger.error(f'Failed to clear scheduling info or create session: {e}')\n        pass\n    for submission in submissions:\n        ensure_task_not_cancelled(processing_task_id)\n        grade_engine_async.delay(user_id, str(submission.id), batch_id=batch_id)\n        print(f'Starting grading of Submission {submission.student.get_full_name}')"
+
+======================================================================
+FAIL: test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) (task='auto_grade_due_assignment')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/classrooms/tests_teacher_access_sweep.py", line 314, in test_every_grading_dispatch_checks_reachability
+    self.assertIn(rule, tasks[name])
+AssertionError: 'teacher_can_reach_course' not found in "@shared_task(name='assignments.tasks.auto_grade_due_assignment')\ndef auto_grade_due_assignment(assignment_id):\n    try:\n        assignment = Assignment.objects.get(id=assignment_id)\n        if not assignment.auto_grade_on_due_date:\n            return 'Auto grade disabled.'\n        ungraded_submissions = assignment.submissions.filter(graded_at__isnull=True)\n        if not ungraded_submissions.exists():\n            return 'No ungraded submissions.'\n        session = BatchUploadSession.objects.create(teacher=assignment.course.teacher, course=assignment.course, task_type=BatchUploadType.GRADE, total_files=ungraded_submissions.count())\n        for submission in ungraded_submissions:\n            grade_engine_async.delay(str(assignment.course.teacher.id), str(submission.id), batch_id=str(session.id))\n        return f'Auto-grading started for {ungraded_submissions.count()} submissions.'\n    except Exception as e:\n        import traceback\n        return f'Error: {str(e)} {traceback.format_exc()}'"
+
+======================================================================
+FAIL: test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) (action='task_status')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/classrooms/tests_teacher_access_sweep.py", line 304, in test_every_tasks_route_checks_reachability
+    self.assertIn("teacher_may_reach", ast.unparse(action))
+AssertionError: 'teacher_may_reach' not found in '@extend_schema(tags=[\'Tasks\'], summary=\'Get status of a background task\', description=\'Retrieve the current status and metadata for a Celery background task by its ID.\', responses={200: OpenApiResponse(response=TaskStatusSerializer, examples=[OpenApiExample(\'Task Completed Example\', value={\'task_id\': \'9f7e4a19-b299-41b4-9829-b5490e93c523\', \'status\': \'completed\', \'meta\': "{\'status\': \'Completed\'}", \'resource_type\': \'assignment\', \'resource_id\': \'055eb99a-d9af-4671-ac94-38133376e942\', \'action\': \'grade\', \'additional_ids\': {}}), OpenApiExample(\'Task Processing Example\', value={\'task_id\': \'9f7e4a19-b299-41b4-9829-b5490e93c523\', \'status\': \'processing\', \'meta\': "{\'current\': 0, \'total\': 10, \'percent\': 0, \'step\': \'Initializing\'}", \'resource_type\': \'assignment\', \'resource_id\': \'055eb99a-d9af-4671-ac94-38133376e942\', \'action\': \'grade\', \'additional_ids\': {}})]), 404: OpenApiResponse(description=\'Task not found\')})\n@action(detail=False, methods=[\'get\'], url_path=\'status/(?P<task_id>[^/.]+)\')\ndef task_status(self, request, task_id=None):\n    """\n        Retrieve the status of a background task by its ID, enriched with context.\n\n        Scoped to tasks the caller actually started. This used to fall back\n        to a bare `AsyncResult(task_id)` whenever no tracked task matched -\n        which, because `get_processing_task` filters on `requested_by`, is\n        exactly what happens when the task belongs to somebody else. That\n        made another user\'s task state and return value readable to anyone\n        holding the id (`send_email_task`, for instance, returns a string\n        containing the recipient\'s address). A Celery id has no owner to\n        check, so there is no way to serve that fallback safely; every\n        user-facing async endpoint now creates a tracked task, so nothing\n        legitimate needs it.\n        """\n    processing_task = get_processing_task(task_id, requested_by=request.user)\n    if not processing_task:\n        raise NotFound(\'Tracked task not found for this user.\')\n    normalize_processing_task_status(processing_task)\n    processing_task.refresh_from_db()\n    meta = dict(processing_task.meta or {})\n    if processing_task.error:\n        meta.setdefault(\'error\', processing_task.error)\n    status_value = self._map_status(processing_task.status)\n    context = get_task_context(processing_task)\n    data = {\'task_id\': task_id, \'status\': status_value, \'meta\': str(meta) if meta else None, \'resource_type\': context[\'resource_type\'], \'resource_id\': context[\'resource_id\'], \'action\': context[\'action\'], \'additional_ids\': context[\'additional_ids\']}\n    serializer = TaskStatusSerializer(data)\n    return Response(serializer.data, status=status.HTTP_200_OK)'
+
+======================================================================
+FAIL: test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) (action='cancel')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/classrooms/tests_teacher_access_sweep.py", line 304, in test_every_tasks_route_checks_reachability
+    self.assertIn("teacher_may_reach", ast.unparse(action))
+AssertionError: 'teacher_may_reach' not found in "@extend_schema(tags=['Tasks'], summary='Cancel a background task', description='Cancel a background task by its Celery task id. If the task is already running, the worker is terminated and any remaining pipeline steps will refuse to save results. If the task had already reached a final state (completed, failed, or already cancelled) before this request arrived, the response reports that real final status instead of claiming cancellation succeeded.', responses={200: OpenApiResponse(response=TaskCancelSerializer, examples=[OpenApiExample('Task Cancellation', value={'task_id': '9f7e4a19-b299-41b4-9829-b5490e93c523', 'status': 'cancelled', 'message': 'Background task cancellation requested successfully.'})]), 404: OpenApiResponse(description='Tracked task not found')})\n@action(detail=False, methods=['post'], url_path='cancel/(?P<task_id>[^/.]+)')\ndef cancel(self, request, task_id=None):\n    processing_task = get_processing_task(task_id, requested_by=request.user)\n    if not processing_task:\n        raise NotFound('Tracked task not found for this user.')\n    already_terminal = processing_task.status in TERMINAL_TASK_STATUSES\n    processing_task = cancel_processing_task(processing_task)\n    status_value = self._map_status(processing_task.status)\n    if already_terminal:\n        message = f'This task had already finished before the cancellation request reached it — its final status is {status_value!r}.'\n    else:\n        message = 'Background task cancellation requested successfully.'\n    serializer = TaskCancelSerializer({'task_id': task_id, 'status': status_value, 'message': message})\n    return Response(serializer.data, status=status.HTTP_200_OK)"
+
+======================================================================
+FAIL: test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) (action='cancel_session')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/classrooms/tests_teacher_access_sweep.py", line 304, in test_every_tasks_route_checks_reachability
+    self.assertIn("teacher_may_reach", ast.unparse(action))
+AssertionError: 'teacher_may_reach' not found in "@extend_schema(tags=['Tasks'], summary='Cancel all remaining tasks in a batch session', description='Cancel all pending or running tracked tasks in a batch upload session owned by the authenticated teacher.', responses={200: OpenApiResponse(response=BatchSessionCancelSerializer, examples=[OpenApiExample('Session Cancellation', value={'session_id': '550e8400-e29b-41d4-a716-446655440000', 'cancelled_count': 5, 'message': 'Batch session cancellation requested successfully.'})]), 404: OpenApiResponse(description='Session not found')})\n@action(detail=False, methods=['post'], url_path='cancel-session/(?P<session_id>[^/.]+)')\ndef cancel_session(self, request, session_id=None):\n    session = get_object_or_404(BatchUploadSession, id=session_id, teacher=request.user)\n    cancellable_tasks = list(session.processing_tasks.exclude(status__in=[BackgroundTaskStatus.SUCCESS, BackgroundTaskStatus.FAILURE, BackgroundTaskStatus.CANCELLED]))\n    for processing_task in cancellable_tasks:\n        cancel_processing_task(processing_task)\n    serializer = BatchSessionCancelSerializer({'session_id': session.id, 'cancelled_count': len(cancellable_tasks), 'message': 'Batch session cancellation requested successfully.'})\n    return Response(serializer.data, status=status.HTTP_200_OK)"
+
+======================================================================
+FAIL: test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) (action='session_results')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/classrooms/tests_teacher_access_sweep.py", line 304, in test_every_tasks_route_checks_reachability
+    self.assertIn("teacher_may_reach", ast.unparse(action))
+AssertionError: 'teacher_may_reach' not found in "@extend_schema(tags=['Tasks'], summary='Retrieve batch upload session results', description='\\n            Retrieve the processing status and results of a batch upload session.\\n\\n            This endpoint returns the progress of the background tasks, indicating how many\\n            files have been processed and the overall completion status. It provides lists of\\n            successfully processed submissions, failures, cancellations, and pending tasks.\\n            ', responses={200: OpenApiResponse(description='Session results retrieved successfully.', response=BatchSessionResultSerializer, examples=[OpenApiExample('In Progress', value={'progress': '2 / 4', 'percent': 50, 'is_complete': False, 'success_count': 2, 'failure_count': 0, 'cancelled_count': 0, 'pending_count': 2, 'resource_type': 'assignment', 'resource_id': '055eb99a-d9af-4671-ac94-38133376e942', 'action': 'grade', 'additional_ids': {}, 'success_list': [{'status': 'SUCCESS', 'file_name': 'student_a.pdf', 'task_id': 'b2c3d4e5', 'error': None, 'context': {'resource_type': 'submission', 'resource_id': '4321', 'action': 'grade', 'additional_ids': {}}}], 'failure_list': [], 'cancelled_list': [], 'pending_list': [{'status': 'PENDING', 'file_name': 'student_b.pdf', 'task_id': 'b2c3d4e6', 'error': None, 'context': {'resource_type': 'submission', 'resource_id': '4322', 'action': 'grade', 'additional_ids': {}}}]}), OpenApiExample('Completed with failures', value={'progress': '3 / 3', 'percent': 100, 'is_complete': True, 'success_count': 2, 'failure_count': 1, 'cancelled_count': 0, 'pending_count': 0, 'resource_type': 'assignment', 'resource_id': '055eb99a-d9af-4671-ac94-38133376e942', 'action': 'grade', 'additional_ids': {}, 'success_list': [{'status': 'SUCCESS', 'file_name': 'student_a.pdf', 'task_id': 'b2c3d4e5', 'error': None, 'context': {'resource_type': 'submission', 'resource_id': '4321', 'action': 'grade', 'additional_ids': {}}}], 'failure_list': [{'status': 'FAILURE', 'file_name': 'unknown_file.pdf', 'task_id': 'b2c3d4e7', 'error': 'Could not identify or associate a student with this paper', 'context': {'resource_type': 'submission', 'resource_id': None, 'action': 'grade', 'additional_ids': {}}}], 'cancelled_list': [], 'pending_list': []})]), 404: OpenApiResponse(description='Session not found.')})\n@action(detail=False, methods=['GET'], url_path='session-results/(?P<session_id>[^/.]+)')\ndef session_results(self, request, session_id=None):\n    session = get_object_or_404(BatchUploadSession, id=session_id, teacher=request.user)\n    tracked_tasks = list(session.processing_tasks.select_related('assignment', 'submission', 'submission__assignment', 'assignment__course').all())\n    if tracked_tasks:\n        success = []\n        failures = []\n        cancelled = []\n        pending = []\n        for processing_task in tracked_tasks:\n            normalize_processing_task_status(processing_task)\n            processing_task.refresh_from_db()\n            task_context = get_task_context(processing_task)\n            task_entry = {'status': processing_task.status, 'file_name': processing_task.file_name, 'task_id': processing_task.celery_task_id, 'error': processing_task.error, 'context': task_context}\n            if processing_task.status == 'SUCCESS':\n                success.append(task_entry)\n            elif processing_task.status == 'FAILURE':\n                failures.append(task_entry)\n            elif processing_task.status == 'CANCELLED':\n                cancelled.append(task_entry)\n            else:\n                pending.append(task_entry)\n        completed = len(success) + len(failures) + len(cancelled)\n        total = session.total_files or len(tracked_tasks)\n        percentage = completed / total * 100 if total > 0 else 0\n        session_context = get_session_context(session)\n        data = {'progress': f'{completed} / {total}', 'percent': round(percentage), 'is_complete': completed == total, 'success_count': len(success), 'failure_count': len(failures), 'cancelled_count': len(cancelled), 'pending_count': len(pending), 'resource_type': session_context['resource_type'], 'resource_id': session_context['resource_id'], 'action': session_context['action'], 'additional_ids': session_context['additional_ids'], 'success_list': success, 'failure_list': failures, 'cancelled_list': cancelled, 'pending_list': pending}\n    else:\n        success = [r for r in session.results if r['status'] == 'SUCCESS']\n        failures = [r for r in session.results if r['status'] == 'FAILED']\n        success_entries = [{'status': r['status'], 'file_name': r.get('file_name'), 'task_id': None, 'error': r.get('error'), 'context': None} for r in success]\n        failure_entries = [{'status': r['status'], 'file_name': r.get('file_name'), 'task_id': None, 'error': r.get('error'), 'context': None} for r in failures]\n        completed = len(session.results)\n        total = session.total_files\n        percentage = completed / total * 100 if total > 0 else 0\n        session_context = get_session_context(session)\n        data = {'progress': f'{completed} / {total}', 'percent': round(percentage), 'is_complete': completed == total, 'success_count': len(success), 'failure_count': len(failures), 'cancelled_count': 0, 'pending_count': max(total - completed, 0), 'resource_type': session_context['resource_type'], 'resource_id': session_context['resource_id'], 'action': session_context['action'], 'additional_ids': session_context['additional_ids'], 'success_list': success_entries, 'failure_list': failure_entries, 'cancelled_list': [], 'pending_list': []}\n    serializer = BatchSessionResultSerializer(data)\n    return Response(serializer.data, status=status.HTTP_200_OK)"
+
+----------------------------------------------------------------------
+Ran 14 tests in 5.342s
+
+FAILED (failures=14, errors=2)
+Destroying test database for alias 'default'...
+Found 14 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

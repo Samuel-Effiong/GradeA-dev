@@ -1,0 +1,235 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 742, in finalise
+    return _finalise_with_retry(intent, revalidate, write)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+django.db.utils.OperationalError: server closed the connection
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_views.py", line 886, in cancel
+    updated = LicenseSubscriptionService.cancel_license_subscription(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 156, in run
+    return operation(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_service.py", line 2188, in cancel_license_subscription
+    return license_stripe_mutation.finalise(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 775, in finalise
+    raise LicenceStripeChangeNotRecorded(
+billing.license_stripe_mutation.LicenceStripeChangeNotRecorded: The change was applied at our payment provider but could not be recorded. It has been flagged for manual reconciliation.
+
+
+django.request ERROR 2026-09-30 19:53:55,599 log 4086885 123579415878592 [request_id=-] Internal Server Error: /api/v1/license-subscriptions/68315d08-40ee-4306-9ccf-0d00fbfe9079/cancel
+
+
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 742, in finalise
+    return _finalise_with_retry(intent, revalidate, write)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+django.db.utils.OperationalError: server closed the connection
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_views.py", line 886, in cancel
+    updated = LicenseSubscriptionService.cancel_license_subscription(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 156, in run
+    return operation(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_service.py", line 2188, in cancel_license_subscription
+    return license_stripe_mutation.finalise(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 769, in finalise
+    raise LicenceStripeChangeNotRecorded(
+billing.license_stripe_mutation.LicenceStripeChangeNotRecorded: The change could not be recorded, so it was undone. Nothing was changed; please try again.
+
+
+django.request ERROR 2026-09-30 19:53:55,883 log 4086885 123579415878592 [request_id=-] Internal Server Error: /api/v1/license-subscriptions/d33ecba4-1f0c-4fa3-bf3c-df6f5263479c/cancel
+
+
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 742, in finalise
+    return _finalise_with_retry(intent, revalidate, write)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+django.db.utils.OperationalError: server closed the connection
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_views.py", line 852, in convert_to_offline
+    updated = LicenseSubscriptionService.convert_license_to_offline(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 156, in run
+    return operation(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_service.py", line 3977, in convert_license_to_offline
+    return license_stripe_mutation.finalise(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 775, in finalise
+    raise LicenceStripeChangeNotRecorded(
+billing.license_stripe_mutation.LicenceStripeChangeNotRecorded: The change was applied at our payment provider but could not be recorded. It has been flagged for manual reconciliation.
+
+
+django.request ERROR 2026-09-30 19:53:56,229 log 4086885 123579415878592 [request_id=-] Internal Server Error: /api/v1/license-subscriptions/2f22688f-4ec0-499c-93f2-fa5dc248656f/convert-to-offline
+
+
+F
+
+django.request ERROR 2026-09-30 19:53:56,486 log 4086885 123579415878592 [request_id=-] Internal Server Error: /api/v1/license-subscriptions/a8432621-cd6f-4c6d-81df-085be2e29e42/change_plan
+
+
+F
+
+django.request ERROR 2026-09-30 19:53:56,784 log 4086885 123579415878592 [request_id=-] Internal Server Error: /api/v1/license-subscriptions/55afd6fe-5d1e-453f-bc69-21ab7a0c7d97/change_plan
+
+
+F
+
+django.request ERROR 2026-09-30 19:53:57,061 log 4086885 123579415878592 [request_id=-] Internal Server Error: /api/v1/license-subscriptions/97e29dd6-810d-4030-80b1-6846e3c9bb52/update_seats
+
+
+F
+
+django.request ERROR 2026-09-30 19:53:57,309 log 4086885 123579415878592 [request_id=-] Internal Server Error: /api/v1/license-subscriptions/d4779e3a-27d0-4674-9d3d-8bd0b28e6c7e/update_seats
+
+
+F
+======================================================================
+FAIL: test_cancel_not_recorded_and_not_undone_is_409 (billing.tests.test_h60_licence_stripe_text.NotRecordedRouteTests.test_cancel_not_recorded_and_not_undone_is_409)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 296, in test_cancel_not_recorded_and_not_undone_is_409
+    self.assert_escalated(self.post_with_local_write_failing("cancel"))
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 227, in assert_escalated
+    self.assertEqual(response.status_code, status.HTTP_409_CONFLICT, response.data)
+AssertionError: 500 != 409
+
+======================================================================
+FAIL: test_cancel_not_recorded_is_undone_and_503 (billing.tests.test_h60_licence_stripe_text.NotRecordedRouteTests.test_cancel_not_recorded_is_undone_and_503)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 282, in test_cancel_not_recorded_is_undone_and_503
+    self.assert_compensated(self.post_with_local_write_failing("cancel"))
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 236, in assert_compensated
+    self.assertEqual(
+AssertionError: 500 != 503
+
+======================================================================
+FAIL: test_convert_to_offline_not_recorded_is_409 (billing.tests.test_h60_licence_stripe_text.NotRecordedRouteTests.test_convert_to_offline_not_recorded_is_409)
+A deleted subscription can't be restored, so convert never
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 303, in test_convert_to_offline_not_recorded_is_409
+    self.assert_escalated(self.post_with_local_write_failing("convert-to-offline"))
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 227, in assert_escalated
+    self.assertEqual(response.status_code, status.HTTP_409_CONFLICT, response.data)
+AssertionError: 500 != 409
+
+======================================================================
+FAIL: test_plan_a_downgrade_not_recorded_is_undone_and_503 (billing.tests.test_h60_licence_stripe_text.NotRecordedRouteTests.test_plan_a_downgrade_not_recorded_is_undone_and_503)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 274, in test_plan_a_downgrade_not_recorded_is_undone_and_503
+    self.post_with_local_write_failing(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 214, in post_with_local_write_failing
+    ), self.assertNoLogs("billing.license_views", "ERROR"):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 75, in __exit__
+    self._raiseFailure(
+AssertionError: Unexpected logs found: ['ERROR:billing.license_views:Unexpected error changing license plan: The change could not be recorded, so it was undone. Nothing was changed; please try again.\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 742, in finalise\n    return _finalise_with_retry(intent, revalidate, write)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__\n    return self._mock_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call\n    return self._execute_mock_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call\n    raise effect\ndjango.db.utils.OperationalError: server closed the connection\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_views.py", line 595, in change_plan\n    result = LicenseSubscriptionService.select_plan(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_service.py", line 4125, in select_plan\n    updated_license = LicenseSubscriptionService.change_license_plan(\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 156, in run\n    return operation(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_service.py", line 2467, in change_license_plan\n    updated = license_stripe_mutation.finalise(\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 769, in finalise\n    raise LicenceStripeChangeNotRecorded(\nbilling.license_stripe_mutation.LicenceStripeChangeNotRecorded: The change could not be recorded, so it was undone. Nothing was changed; please try again.']
+
+======================================================================
+FAIL: test_plan_a_paid_upgrade_not_recorded_is_409 (billing.tests.test_h60_licence_stripe_text.NotRecordedRouteTests.test_plan_a_paid_upgrade_not_recorded_is_409)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 267, in test_plan_a_paid_upgrade_not_recorded_is_409
+    self.post_with_local_write_failing(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 214, in post_with_local_write_failing
+    ), self.assertNoLogs("billing.license_views", "ERROR"):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 75, in __exit__
+    self._raiseFailure(
+AssertionError: Unexpected logs found: ['ERROR:billing.license_views:Unexpected error changing license plan: The change was applied at our payment provider but could not be recorded. It has been flagged for manual reconciliation.\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 742, in finalise\n    return _finalise_with_retry(intent, revalidate, write)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__\n    return self._mock_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call\n    return self._execute_mock_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call\n    raise effect\ndjango.db.utils.OperationalError: server closed the connection\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_views.py", line 595, in change_plan\n    result = LicenseSubscriptionService.select_plan(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_service.py", line 4125, in select_plan\n    updated_license = LicenseSubscriptionService.change_license_plan(\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 156, in run\n    return operation(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_service.py", line 2467, in change_license_plan\n    updated = license_stripe_mutation.finalise(\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 775, in finalise\n    raise LicenceStripeChangeNotRecorded(\nbilling.license_stripe_mutation.LicenceStripeChangeNotRecorded: The change was applied at our payment provider but could not be recorded. It has been flagged for manual reconciliation.']
+
+======================================================================
+FAIL: test_seats_a_decrease_not_recorded_is_undone_and_503 (billing.tests.test_h60_licence_stripe_text.NotRecordedRouteTests.test_seats_a_decrease_not_recorded_is_undone_and_503)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 257, in test_seats_a_decrease_not_recorded_is_undone_and_503
+    self.post_with_local_write_failing(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 214, in post_with_local_write_failing
+    ), self.assertNoLogs("billing.license_views", "ERROR"):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 75, in __exit__
+    self._raiseFailure(
+AssertionError: Unexpected logs found: ['ERROR:billing.license_views:Unexpected error updating seats: The change could not be recorded, so it was undone. Nothing was changed; please try again.\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 742, in finalise\n    return _finalise_with_retry(intent, revalidate, write)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__\n    return self._mock_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call\n    return self._execute_mock_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call\n    raise effect\ndjango.db.utils.OperationalError: server closed the connection\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_views.py", line 650, in update_seats\n    updated_license = LicenseSubscriptionService.update_seats(\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 156, in run\n    return operation(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_service.py", line 2705, in update_seats\n    return license_stripe_mutation.finalise(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 769, in finalise\n    raise LicenceStripeChangeNotRecorded(\nbilling.license_stripe_mutation.LicenceStripeChangeNotRecorded: The change could not be recorded, so it was undone. Nothing was changed; please try again.']
+
+======================================================================
+FAIL: test_seats_a_paid_increase_not_recorded_is_409 (billing.tests.test_h60_licence_stripe_text.NotRecordedRouteTests.test_seats_a_paid_increase_not_recorded_is_409)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 250, in test_seats_a_paid_increase_not_recorded_is_409
+    self.post_with_local_write_failing(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/tests/test_h60_licence_stripe_text.py", line 214, in post_with_local_write_failing
+    ), self.assertNoLogs("billing.license_views", "ERROR"):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 75, in __exit__
+    self._raiseFailure(
+AssertionError: Unexpected logs found: ['ERROR:billing.license_views:Unexpected error updating seats: The change was applied at our payment provider but could not be recorded. It has been flagged for manual reconciliation.\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 742, in finalise\n    return _finalise_with_retry(intent, revalidate, write)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__\n    return self._mock_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call\n    return self._execute_mock_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call\n    raise effect\ndjango.db.utils.OperationalError: server closed the connection\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_views.py", line 650, in update_seats\n    updated_license = LicenseSubscriptionService.update_seats(\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 156, in run\n    return operation(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_service.py", line 2705, in update_seats\n    return license_stripe_mutation.finalise(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h60-h57-licence-seats/billing/license_stripe_mutation.py", line 775, in finalise\n    raise LicenceStripeChangeNotRecorded(\nbilling.license_stripe_mutation.LicenceStripeChangeNotRecorded: The change was applied at our payment provider but could not be recorded. It has been flagged for manual reconciliation.']
+
+----------------------------------------------------------------------
+Ran 7 tests in 2.217s
+
+FAILED (failures=7)
+Destroying test database for alias 'default'...
+Found 7 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -1,0 +1,14 @@
+# B3: the failed-creation summary does not log failed_results
+# file: billing/license_service.py (occurrence 1)
+# old: '                "License %s creation: %d/%d teacher invitations FAILED.",\n                license_sub.id,\n                len(failed_results),\n                len(enrollment_results),\n'
+# new: '                "License %s creation: %d/%d teacher invitations FAILED: %s",\n                license_sub.id,\n                len(failed_results),\n                len(enrollment_results),\n                failed_results,\n'
+# commit: af5cee0442448447293933eae2bfd9e122149b38
+# tests: billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest billing.tests.test_logs_carry_no_email.SignalsLogNoAddressTest
+# exit: 1
+# elapsed_s: 3.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_failed_licence_creation_summary_logs_no_address (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_a_failed_licence_creation_summary_logs_no_address)
+FAIL: test_carrying_teachers_to_a_new_licence_logs_no_address (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_carrying_teachers_to_a_new_licence_logs_no_address)
+
+FAILED (failures=2)

@@ -1,0 +1,302 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+EFFFAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/serializers.py", line 487, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+.Cannot activate automatic trial for user lock.login@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/serializers.py", line 484, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+FCannot activate automatic trial for user lock.reset@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user known.locked@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+verify_email address locked after too many attempts
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 844, in verify
+    raise Throttled(
+rest_framework.exceptions.Throttled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1799 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+verify_email address locked after too many attempts
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 844, in verify
+    raise Throttled(
+rest_framework.exceptions.Throttled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1799 seconds.
+.Cannot activate automatic trial for user lock.verify@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+verify_email address locked after too many attempts
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 874, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 870, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/views.py", line 844, in verify
+    raise Throttled(
+rest_framework.exceptions.Throttled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1799 seconds.
+F
+======================================================================
+ERROR: test_the_envelope_is_added_never_replacing_a_key (users.tests_auth_lock_envelope.CatalogueTests.test_the_envelope_is_added_never_replacing_a_key)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/tests_auth_lock_envelope.py", line 218, in test_the_envelope_is_added_never_replacing_a_key
+    from AutoGrader.reason_codes import add_coded_envelope
+ImportError: cannot import name 'add_coded_envelope' from 'AutoGrader.reason_codes' (/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/AutoGrader/reason_codes.py)
+
+======================================================================
+FAIL: test_the_three_locks_are_user_facing_now (users.tests_auth_lock_envelope.CatalogueTests.test_the_three_locks_are_user_facing_now) (code='RESET_LOCKED')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/tests_auth_lock_envelope.py", line 214, in test_the_three_locks_are_user_facing_now
+    self.assertIn(ReasonCode(code), REASON_CODES)
+AssertionError: ReasonCode.RESET_LOCKED not found in {ReasonCode.MISSING_STUDENT_NAME: ReasonSpec(error_class=ErrorClass.USER, http_status=422, message="We couldn't match {file_name} to a student: {name_state}.", remediation='Choose the student this paper belongs to, or add them to the course.', retryable=False, params=frozenset({'file_name', 'name_state'}), defaults={}, retry_after=None), ReasonCode.STUDENT_NOT_ON_ROSTER: ReasonSpec(error_class=ErrorClass.USER, http_status=422, message="{file_name} belongs to {student_display}, who isn't enrolled in this course.", remediation='Add the student to the course roster, then retry this paper.', retryable=False, params=frozenset({'student_display', 'file_name'}), defaults={}, retry_after=None), ReasonCode.FILE_UNREADABLE: ReasonSpec(error_class=ErrorClass.USER, http_status=422, message="We couldn't read {file_name}. It may be damaged, password-protected or incomplete.", remediation='Re-export or re-scan the file and upload it again.', retryable=False, params=frozenset({'file_name'}), defaults={}, retry_after=None), ReasonCode.FILE_TYPE_UNSUPPORTED: ReasonSpec(error_class=ErrorClass.USER, http_status=415, message="{file_name} is a {detected_type} file, which isn't supported. Accepted types: {accepted_types}.", remediation='Save or export the file as a PDF or an image, and upload it again.', retryable=False, params=frozenset({'detected_type', 'accepted_types', 'file_name'}), defaults={'accepted_types': 'PDF, JPEG, PNG, GIF, WebP'}, retry_after=None), ReasonCode.FILE_TOO_LARGE: ReasonSpec(error_class=ErrorClass.USER, http_status=413, message='{file_name} is {actual} and the limit is {limit}.', remediation='Split the file, remove blank pages or scan at a lower resolution, then upload again.', retryable=False, params=frozenset({'dimension', 'actual', 'limit', 'file_name'}), defaults={}, retry_after=None), ReasonCode.SUBMISSION_EMPTY: ReasonSpec(error_class=ErrorClass.USER, http_status=422, message='{file_name} has no student answers to grade.', remediation='Check that the right file was uploaded, then upload it again or mark the submission as missing.', retryable=False, params=frozenset({'file_name'}), defaults={}, retry_after=None), ReasonCode.RUBRIC_MISSING: ReasonSpec(error_class=ErrorClass.VALIDATION, http_status=409, message="This assignment has no rubric to grade against, so grading hasn't started. No credits were used.", remediation='Add questions and a rubric to the assignment, then grade again.', retryable=False, params=frozenset(), defaults={}, retry_after=None), ReasonCode.DUPLICATE_SUBMISSION: ReasonSpec(error_class=ErrorClass.USER, http_status=409, message='{file_name} is a second submission for {student_display}. The existing submission ({existing_ref}) was kept.', remediation='Choose which submission to keep.', retryable=False, params=frozenset({'student_display', 'file_name', 'existing_ref'}), defaults={}, retry_after=None), ReasonCode.PROVIDER_FAILURE: ReasonSpec(error_class=ErrorClass.PROVIDER, http_status=503, message="The grading service couldn't finish this item. {credit_clause}", remediation='Try again in a few minutes. If it keeps happening, contact support and quote the reference.', retryable=True, params=frozenset({'credit_clause'}), defaults={'credit_clause': 'No credits were charged.'}, retry_after=30), ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH: ReasonSpec(error_class=ErrorClass.USER, http_status=402, message='Credits ran out after {completed} of {total} items. The finished items are saved.', remediation='Top up credits, then resume the remaining items. Unfinished uploads need their files uploaded again.', retryable=True, params=frozenset({'total', 'completed'}), defaults={}, retry_after=None), ReasonCode.INSUFFICIENT_CREDITS: ReasonSpec(error_class=ErrorClass.USER, http_status=402, message="There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.", remediation='Top up credits, or ask your school administrator, then try again.', retryable=False, params=frozenset(), defaults={}, retry_after=None), ReasonCode.AI_FEATURE_NOT_AVAILABLE: ReasonSpec(error_class=ErrorClass.USER, http_status=403, message="This feature isn't included in your plan.", remediation='Upgrade your plan, or ask your school administrator to enable it.', retryable=False, params=frozenset(), defaults={}, retry_after=None), ReasonCode.NOT_RETRYABLE: ReasonSpec(error_class=ErrorClass.USER, http_status=409, message="This item can't be retried as it is.", remediation='Fix what its failure message describes first, then try again.', retryable=False, params=frozenset(), defaults={}, retry_after=None)}
+
+======================================================================
+FAIL: test_the_three_locks_are_user_facing_now (users.tests_auth_lock_envelope.CatalogueTests.test_the_three_locks_are_user_facing_now) (code='VERIFY_LOCKED')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/tests_auth_lock_envelope.py", line 214, in test_the_three_locks_are_user_facing_now
+    self.assertIn(ReasonCode(code), REASON_CODES)
+AssertionError: ReasonCode.VERIFY_LOCKED not found in {ReasonCode.MISSING_STUDENT_NAME: ReasonSpec(error_class=ErrorClass.USER, http_status=422, message="We couldn't match {file_name} to a student: {name_state}.", remediation='Choose the student this paper belongs to, or add them to the course.', retryable=False, params=frozenset({'file_name', 'name_state'}), defaults={}, retry_after=None), ReasonCode.STUDENT_NOT_ON_ROSTER: ReasonSpec(error_class=ErrorClass.USER, http_status=422, message="{file_name} belongs to {student_display}, who isn't enrolled in this course.", remediation='Add the student to the course roster, then retry this paper.', retryable=False, params=frozenset({'student_display', 'file_name'}), defaults={}, retry_after=None), ReasonCode.FILE_UNREADABLE: ReasonSpec(error_class=ErrorClass.USER, http_status=422, message="We couldn't read {file_name}. It may be damaged, password-protected or incomplete.", remediation='Re-export or re-scan the file and upload it again.', retryable=False, params=frozenset({'file_name'}), defaults={}, retry_after=None), ReasonCode.FILE_TYPE_UNSUPPORTED: ReasonSpec(error_class=ErrorClass.USER, http_status=415, message="{file_name} is a {detected_type} file, which isn't supported. Accepted types: {accepted_types}.", remediation='Save or export the file as a PDF or an image, and upload it again.', retryable=False, params=frozenset({'detected_type', 'accepted_types', 'file_name'}), defaults={'accepted_types': 'PDF, JPEG, PNG, GIF, WebP'}, retry_after=None), ReasonCode.FILE_TOO_LARGE: ReasonSpec(error_class=ErrorClass.USER, http_status=413, message='{file_name} is {actual} and the limit is {limit}.', remediation='Split the file, remove blank pages or scan at a lower resolution, then upload again.', retryable=False, params=frozenset({'dimension', 'actual', 'limit', 'file_name'}), defaults={}, retry_after=None), ReasonCode.SUBMISSION_EMPTY: ReasonSpec(error_class=ErrorClass.USER, http_status=422, message='{file_name} has no student answers to grade.', remediation='Check that the right file was uploaded, then upload it again or mark the submission as missing.', retryable=False, params=frozenset({'file_name'}), defaults={}, retry_after=None), ReasonCode.RUBRIC_MISSING: ReasonSpec(error_class=ErrorClass.VALIDATION, http_status=409, message="This assignment has no rubric to grade against, so grading hasn't started. No credits were used.", remediation='Add questions and a rubric to the assignment, then grade again.', retryable=False, params=frozenset(), defaults={}, retry_after=None), ReasonCode.DUPLICATE_SUBMISSION: ReasonSpec(error_class=ErrorClass.USER, http_status=409, message='{file_name} is a second submission for {student_display}. The existing submission ({existing_ref}) was kept.', remediation='Choose which submission to keep.', retryable=False, params=frozenset({'student_display', 'file_name', 'existing_ref'}), defaults={}, retry_after=None), ReasonCode.PROVIDER_FAILURE: ReasonSpec(error_class=ErrorClass.PROVIDER, http_status=503, message="The grading service couldn't finish this item. {credit_clause}", remediation='Try again in a few minutes. If it keeps happening, contact support and quote the reference.', retryable=True, params=frozenset({'credit_clause'}), defaults={'credit_clause': 'No credits were charged.'}, retry_after=30), ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH: ReasonSpec(error_class=ErrorClass.USER, http_status=402, message='Credits ran out after {completed} of {total} items. The finished items are saved.', remediation='Top up credits, then resume the remaining items. Unfinished uploads need their files uploaded again.', retryable=True, params=frozenset({'total', 'completed'}), defaults={}, retry_after=None), ReasonCode.INSUFFICIENT_CREDITS: ReasonSpec(error_class=ErrorClass.USER, http_status=402, message="There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.", remediation='Top up credits, or ask your school administrator, then try again.', retryable=False, params=frozenset(), defaults={}, retry_after=None), ReasonCode.AI_FEATURE_NOT_AVAILABLE: ReasonSpec(error_class=ErrorClass.USER, http_status=403, message="This feature isn't included in your plan.", remediation='Upgrade your plan, or ask your school administrator to enable it.', retryable=False, params=frozenset(), defaults={}, retry_after=None), ReasonCode.NOT_RETRYABLE: ReasonSpec(error_class=ErrorClass.USER, http_status=409, message="This item can't be retried as it is.", remediation='Fix what its failure message describes first, then try again.', retryable=False, params=frozenset(), defaults={}, retry_after=None)}
+
+======================================================================
+FAIL: test_the_three_locks_are_user_facing_now (users.tests_auth_lock_envelope.CatalogueTests.test_the_three_locks_are_user_facing_now) (code='ACCOUNT_LOCKED')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/tests_auth_lock_envelope.py", line 214, in test_the_three_locks_are_user_facing_now
+    self.assertIn(ReasonCode(code), REASON_CODES)
+AssertionError: ReasonCode.ACCOUNT_LOCKED not found in {ReasonCode.MISSING_STUDENT_NAME: ReasonSpec(error_class=ErrorClass.USER, http_status=422, message="We couldn't match {file_name} to a student: {name_state}.", remediation='Choose the student this paper belongs to, or add them to the course.', retryable=False, params=frozenset({'file_name', 'name_state'}), defaults={}, retry_after=None), ReasonCode.STUDENT_NOT_ON_ROSTER: ReasonSpec(error_class=ErrorClass.USER, http_status=422, message="{file_name} belongs to {student_display}, who isn't enrolled in this course.", remediation='Add the student to the course roster, then retry this paper.', retryable=False, params=frozenset({'student_display', 'file_name'}), defaults={}, retry_after=None), ReasonCode.FILE_UNREADABLE: ReasonSpec(error_class=ErrorClass.USER, http_status=422, message="We couldn't read {file_name}. It may be damaged, password-protected or incomplete.", remediation='Re-export or re-scan the file and upload it again.', retryable=False, params=frozenset({'file_name'}), defaults={}, retry_after=None), ReasonCode.FILE_TYPE_UNSUPPORTED: ReasonSpec(error_class=ErrorClass.USER, http_status=415, message="{file_name} is a {detected_type} file, which isn't supported. Accepted types: {accepted_types}.", remediation='Save or export the file as a PDF or an image, and upload it again.', retryable=False, params=frozenset({'detected_type', 'accepted_types', 'file_name'}), defaults={'accepted_types': 'PDF, JPEG, PNG, GIF, WebP'}, retry_after=None), ReasonCode.FILE_TOO_LARGE: ReasonSpec(error_class=ErrorClass.USER, http_status=413, message='{file_name} is {actual} and the limit is {limit}.', remediation='Split the file, remove blank pages or scan at a lower resolution, then upload again.', retryable=False, params=frozenset({'dimension', 'actual', 'limit', 'file_name'}), defaults={}, retry_after=None), ReasonCode.SUBMISSION_EMPTY: ReasonSpec(error_class=ErrorClass.USER, http_status=422, message='{file_name} has no student answers to grade.', remediation='Check that the right file was uploaded, then upload it again or mark the submission as missing.', retryable=False, params=frozenset({'file_name'}), defaults={}, retry_after=None), ReasonCode.RUBRIC_MISSING: ReasonSpec(error_class=ErrorClass.VALIDATION, http_status=409, message="This assignment has no rubric to grade against, so grading hasn't started. No credits were used.", remediation='Add questions and a rubric to the assignment, then grade again.', retryable=False, params=frozenset(), defaults={}, retry_after=None), ReasonCode.DUPLICATE_SUBMISSION: ReasonSpec(error_class=ErrorClass.USER, http_status=409, message='{file_name} is a second submission for {student_display}. The existing submission ({existing_ref}) was kept.', remediation='Choose which submission to keep.', retryable=False, params=frozenset({'student_display', 'file_name', 'existing_ref'}), defaults={}, retry_after=None), ReasonCode.PROVIDER_FAILURE: ReasonSpec(error_class=ErrorClass.PROVIDER, http_status=503, message="The grading service couldn't finish this item. {credit_clause}", remediation='Try again in a few minutes. If it keeps happening, contact support and quote the reference.', retryable=True, params=frozenset({'credit_clause'}), defaults={'credit_clause': 'No credits were charged.'}, retry_after=30), ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH: ReasonSpec(error_class=ErrorClass.USER, http_status=402, message='Credits ran out after {completed} of {total} items. The finished items are saved.', remediation='Top up credits, then resume the remaining items. Unfinished uploads need their files uploaded again.', retryable=True, params=frozenset({'total', 'completed'}), defaults={}, retry_after=None), ReasonCode.INSUFFICIENT_CREDITS: ReasonSpec(error_class=ErrorClass.USER, http_status=402, message="There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.", remediation='Top up credits, or ask your school administrator, then try again.', retryable=False, params=frozenset(), defaults={}, retry_after=None), ReasonCode.AI_FEATURE_NOT_AVAILABLE: ReasonSpec(error_class=ErrorClass.USER, http_status=403, message="This feature isn't included in your plan.", remediation='Upgrade your plan, or ask your school administrator to enable it.', retryable=False, params=frozenset(), defaults={}, retry_after=None), ReasonCode.NOT_RETRYABLE: ReasonSpec(error_class=ErrorClass.USER, http_status=409, message="This item can't be retried as it is.", remediation='Fix what its failure message describes first, then try again.', retryable=False, params=frozenset(), defaults={}, retry_after=None)}
+
+======================================================================
+FAIL: test_the_401_message_and_legacy_code_stay_and_the_envelope_is_added (users.tests_auth_lock_envelope.LoginLockedTests.test_the_401_message_and_legacy_code_stay_and_the_envelope_is_added)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/tests_auth_lock_envelope.py", line 191, in test_the_401_message_and_legacy_code_stay_and_the_envelope_is_added
+    fields = self.assert_envelope(response, "ACCOUNT_LOCKED")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/tests_auth_lock_envelope.py", line 65, in assert_envelope
+    self.assertTrue(ADDED <= set(fields), sorted(fields))
+AssertionError: False is not true : ['detail']
+
+======================================================================
+FAIL: test_the_documented_fields_stay_and_the_envelope_is_added (users.tests_auth_lock_envelope.ResetLockedTests.test_the_documented_fields_stay_and_the_envelope_is_added)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/tests_auth_lock_envelope.py", line 94, in test_the_documented_fields_stay_and_the_envelope_is_added
+    fields = self.assert_envelope(response, "RESET_LOCKED")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/tests_auth_lock_envelope.py", line 65, in assert_envelope
+    self.assertTrue(ADDED <= set(fields), sorted(fields))
+AssertionError: False is not true : ['code', 'locked_until', 'message', 'retry_after_seconds']
+
+======================================================================
+FAIL: test_the_lock_is_told_apart_from_the_per_ip_rate_limit (users.tests_auth_lock_envelope.VerifyLockedTests.test_the_lock_is_told_apart_from_the_per_ip_rate_limit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/tests_auth_lock_envelope.py", line 133, in test_the_lock_is_told_apart_from_the_per_ip_rate_limit
+    fields = self.assert_envelope(response, "VERIFY_LOCKED")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-auth429/users/tests_auth_lock_envelope.py", line 65, in assert_envelope
+    self.assertTrue(ADDED <= set(fields), sorted(fields))
+AssertionError: False is not true : ['detail']
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.409s
+
+FAILED (failures=6, errors=1)
+Destroying test database for alias 'default'...
+Found 7 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

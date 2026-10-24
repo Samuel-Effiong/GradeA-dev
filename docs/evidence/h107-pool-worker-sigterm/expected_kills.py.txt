@@ -1,0 +1,55 @@
+"""For every mutant of H-107's battery: the tests that failed must be the
+expected set and nothing else (0b, 2026-10-05: an unrelated second failure
+hides a flaky test, as W3's log showed at f3c7ee13).
+Usage: python expected_kills.py <battery_dir>"""
+import re
+import sys
+from pathlib import Path
+
+FORKED = "test_a_forked_worker_terminated_in_the_middle_of_a_test_dies"
+SPAWNED = "test_the_setup_of_a_spawned_worker_restores_the_default_action_too"
+OURS = "test_our_suite_starts_each_worker_through_our_own"
+ORDER = "test_everything_arrives_once_and_in_order"
+LARGER = "test_one_write_larger_than_the_pipe_arrives_whole"
+HELD = "test_what_the_stream_itself_still_holds_goes_out_first"
+GIVES_UP = "test_it_gives_up_loudly_after_its_patience_not_never"
+SLOW = "test_a_reader_that_is_slow_but_reading_is_waited_for"
+EXPECTED = {
+    "W1": {FORKED},
+    "W2": {FORKED, OURS},
+    "W3": {SPAWNED},
+    "W4": {FORKED, SPAWNED},
+    # P1 removes the wait from write() only. HELD is not in its set: there
+    # the wait happens in flush() (which P4 removes), and once the late
+    # reader has taken its first 4096 bytes the 7-byte write that follows
+    # fits. I first listed HELD here from the battery at f3c7ee13, where it
+    # failed under P1; that battery still had the helper reader that could
+    # read another test's pipe (fixed in c3c10348).
+    "P1": {ORDER, LARGER, GIVES_UP, SLOW},
+    "P2": {LARGER, GIVES_UP, SLOW},
+    "P3": {HELD},
+    "P4": {HELD},
+    "P5": {GIVES_UP},
+    "P6": {"test_the_default_patience"},
+    "P7": {
+        "test_the_runner_reports_on_a_patient_stream_over_stderr",
+        "test_the_stream_is_whatever_stderr_is_when_the_run_is_set_up",
+    },
+    "P8": {"test_a_stream_with_no_file_descriptor_is_written_to_as_it_is"},
+    # 1a's Y10. In an ordinary run sys.stderr IS sys.__stderr__, so only the
+    # test that replaces sys.stderr first can see it.
+    "P9": {"test_the_stream_is_whatever_stderr_is_when_the_run_is_set_up"},
+}
+logs = Path(sys.argv[1]) / "logs"
+bad = 0
+for mutant, expected in EXPECTED.items():
+    text = (logs / f"{mutant}.log").read_text(errors="replace")
+    failed = set(re.findall(r"^(?:FAIL|ERROR): (test_\w+)", text, re.M))
+    extra, missing = failed - expected, expected - failed
+    verdict = "as expected" if failed == expected else "DIFFERS"
+    bad += failed != expected
+    print(f"{mutant}: {len(failed)} failing, {verdict}"
+          + (f"; unexpected: {sorted(extra)}" if extra else "")
+          + (f"; expected but passed: {sorted(missing)}" if missing else ""))
+print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

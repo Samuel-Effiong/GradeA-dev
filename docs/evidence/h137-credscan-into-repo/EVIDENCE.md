@@ -1,0 +1,355 @@
+# H-137: the credential pattern check comes into the repository, with two required fixes
+
+Author: the Release Engineer (0b), 2026-10-07. Branch `task/h137-credscan-into-repo`, off beta
+`3457df56`. Verifier: Verifier 2. Tooling only: nothing the application runs is changed.
+
+## What the row asks
+
+The team's credential pattern check lived outside the repository
+(`~/Documents/Projects/GAP-0b-runs/credscan/credscan.py`, sha256 prefix `bdbd2e3d5b0e4b70`, the
+version that opens `.xz` and `.bz2`, H-136). The row: bring it into the repository under
+`scripts/` with its test, and make two fixes that are REQUIRED, because a silent skip is the
+worst thing a checker can do:
+
+1. a line longer than 4000 characters must be scanned, or at the very least reported as skipped;
+2. an archive nested deeper than the limit is reported as not opened.
+
+Also seen by Verifier 2, the same family, and done here: a file with a NUL byte in its first 4096
+bytes was passed over in silence. Two limits go into the docstring: text after the end of a
+compressed stream is not read; archive types the tool does not claim are not opened.
+
+## Order of work
+
+1. `71b4fab3`: the tool moved as it is (reformatted; the report split into functions so a test
+   can read it), with nine tests of what it already did. No behaviour changed.
+2. This commit: fourteen more tests, TESTS ONLY, for the two fixes and the binary-file count.
+3. Then the fixes.
+
+## Expected at this commit, written 2026-10-07 11:42:16 WAT, before any run
+
+Nothing of this row has been run through a test runner. What follows is from calling the tool's
+own functions directly in plain Python (no test loader) and from reading.
+
+`AutoGrader.tests_credscan`: 23 tests. **11 expected to FAIL, 12 to pass.**
+
+Expected to FAIL on the tool as moved (11):
+
+`LongLineTests` (6 of 7):
+- `test_a_pattern_far_along_a_long_line_is_found`
+- `test_a_pattern_at_the_start_of_a_long_line_is_found`
+- `test_a_pattern_after_one_long_unbroken_run_is_found`
+- `test_one_hit_is_counted_once_however_many_words_surround_it`
+- `test_the_hit_on_a_long_line_carries_its_line_number`
+- `test_a_long_line_is_said_to_be_long_in_the_report`
+
+`NestingTests` (2 of 3):
+- `test_a_fourth_archive_is_reported_as_not_opened`
+- `test_the_archive_not_opened_is_listed_in_the_default_report`
+
+`BinaryFileTests` (3 of 4):
+- `test_a_file_with_an_early_nul_byte_is_counted_as_not_read`
+- `test_the_files_not_read_are_named_when_every_row_is_asked_for`
+- `test_a_report_with_nothing_unread_says_zero`
+
+Expected to PASS already (12): the nine of `71b4fab3` (`ArchiveFormsTests` 3, `MaskingTests` 3,
+`FileClassTests` 3) and three pins of behaviour that must not change:
+`LongLineTests.test_a_line_of_exactly_the_limit_is_not_called_long`,
+`NestingTests.test_three_archives_deep_is_opened`,
+`BinaryFileTests.test_a_nul_byte_after_the_first_4096_bytes_does_not_stop_the_scan`.
+Rule 19: those twelve have never been seen red; each needs a mutant that fails it before it
+counts as evidence.
+
+## The fixes (`5bff2762`)
+
+- **Long lines are scanned.** Running the two patterns over a whole long line is what the 4000
+  limit avoided: on one unbroken run of letters the name pattern can take minutes. So on a long
+  line each "://" and each of the five words (PASS, PWD, SECRET, TOKEN, KEY) is looked at with
+  the text around it: 200 characters before a word and 420 after; 600 after "://". An
+  assignment is taken once, by where its name ends. Every long line is counted in a `longline`
+  row that every form of the report lists.
+- **What this gives up, stated in the docstring:** on a long line a password part longer than
+  about 590 characters, or a name and value that together reach further than the window, is not
+  seen.
+- **A fourth archive inside three** is listed as `NOT-OPENED:nested-too-deep`, in every form of
+  the report. It is then read as text like any other file, so an uncompressed tar that looks
+  binary is also counted under the next point.
+- **A file taken for binary** is counted in a line of the report, and named under `--all`.
+- The two patterns, the masking and the test-file rule are unchanged. The recording of a hit
+  moved into two functions shared by short and long lines.
+
+**Checked by calling the tool's functions directly in plain Python (no test loader), before any
+run:** the same text gives the same counts on a short line and after 4800 characters of
+padding; and, for cost, one line each of 4 MB of base64 (0.23 s), 2 MB of one letter (0.14 s),
+600,000 characters of one word repeated (5.3 s: the cost follows the number of words) and
+100,000 repeats of "://" (0.18 s). These are observations on this laptop, not test results.
+
+**Two checks I wrote and then removed, because no test could ever tell them apart from the code
+without them:** a "this match belongs to another word" test (the take-once rule already covers
+it), and a take-once rule for addresses (each "://" is tried once from its own place, so an
+address cannot be found twice).
+
+## The mutants: 20, with the exact failing set of each, written 2026-10-07 11:47:39 WAT before any run
+
+`mutate.py` (in this folder). A kill needs a non-zero exit, the run's own "Ran" line, no load
+failure, and the failing tests EXACTLY equal to the set named; a different set is BROKEN, not a
+kill. All twenty sets are by READING, none from a run.
+
+| Mutant | The break | Tests that must fail, and no others |
+|---|---|---|
+| L1 | a long line is passed over, as before | the six long-line tests that were red at the tests-only commit |
+| L2 | a long line is not counted | long line said to be long |
+| L3 | the report does not list long lines | long line said to be long |
+| L4 | an assignment on a long line is taken once per word near it | one hit counted once |
+| L5 | a line of exactly the limit is called long | exactly the limit is not called long |
+| L6 | addresses are not looked for on a long line | far along a long line; at the start of a long line |
+| L7 | line numbers start at 0 | hit list names the file and the line; hit on a long line carries its line number |
+| N1 | an archive nested too deep is not reported | fourth archive reported; listed in the default report |
+| N2 | four archives deep are opened | fourth archive reported; listed in the default report |
+| N3 | only two archives deep are opened | three archives deep is opened; fourth archive reported; listed in the default report |
+| N4 | the report does not list archive rows | listed in the default report |
+| B1 | a binary file is not counted | early NUL counted as not read; named when every row is asked for |
+| B2 | the binary probe reads 8192 bytes | early NUL counted; a NUL after 4096 bytes does not stop the scan; nothing unread says zero |
+| B3 | the report has no line for files not read | early NUL counted; nothing unread says zero |
+| M1 | the hit list holds the value, not the name | value never in the rows or the hit list; value never in the report |
+| F1 | no file is taken for a test file | literal assignment in a test file counted but not listed |
+| F2 | the report does not list addresses by default | an address in a test file is listed |
+| F3 | a value is not compared with its other forms | one value written two ways |
+| A1 | an .xz file is not opened | planted patterns found in every form; a broken xz is reported |
+| A2 | an opened .gz is also given an archive row | planted patterns found in every form; a clean body gives nothing |
+
+**Rule 19:** every one of the 23 tests is in at least one set, so each is to be seen red by a
+run: the eleven in the red run, and all 23 under a mutant.
+
+## The gate, as it will be asked for
+
+`run_h137_gate.sh <tip>` (copy here as `run_h137_gate.sh.txt`): 0 the red run (the module
+against the tool as at `840619b4`), 1 the module and 23 repo-wide guard modules, 2 the twenty
+mutants. Serial, 6G cap, sleep inhibited, every run's output to a file. The module uses no
+database. **Expected:** step 0 non-zero, Ran 23, exactly the eleven named above failing; step 1
+OK; step 2 twenty KILLED.
+
+**Not asked for:** a regression of an app. The change is one new script that nothing imports and
+one new test module; the batch's full run covers the rest.
+
+## Results: the gate at `563534a4` (a grant to myself, logged first; 2026-10-07 11:52:57 to 11:57:24 WAT)
+
+One run of `run_h137_gate.sh 563534a4`, serial, 6G cap, beside the Next-stage Builder's serial
+mutant battery (the Senior Manager's standing form for two targeted runs: no full suite running,
+caps 12G together, loads recorded). Load (1 minute) 8.07 at the start, 6.60 at the end. Nothing
+in these runs is timed.
+
+| Step | Result, from the raw log | Written beforehand |
+|---|---|---|
+| 0 the module against the tool as at `840619b4` | exit 1: Ran 23 tests in 0.206s, FAILED (failures=11) | non-zero, Ran 23, eleven failing |
+| 1 the module and 23 guard modules at `563534a4` | exit 0: Ran 309 tests in 135.541s, OK | OK |
+| 2 the twenty mutants | exit 0: 20 KILLED, 0 SURVIVED, 0 BROKEN | 20 KILLED |
+
+- **Step 0:** the eleven failing tests are exactly the eleven named above, compared by class and
+  name; the other twelve passed.
+- **Step 2:** every mutant's run has its own "Ran 23 tests" line and exit 1, and its failing
+  tests are EXACTLY the set written beforehand (the tool judges that; `mutation_results.json`
+  holds both lists for each). After the battery the source was as committed and
+  `scripts/__pycache__` did not exist.
+- **Nothing differed from what was written before the run.**
+- **Rule 19, now from runs:** all 23 tests have been seen red: eleven in step 0, and every one of
+  the 23 under at least one mutant.
+
+**Files:** `console_563534a4.txt` (the script's own output), `red_run_tool_as_moved.txt.gz`,
+`modules_and_guards.txt.gz`, `mutation_log.txt`, `mutation_results.json`, `mutant_logs.tar.gz`
+(each inner run's whole output). `raw_logs_sha256.txt` holds the sha256 of each raw log as
+written, taken before packing.
+
+**The new files scanned with the new tool** (its functions called directly on this folder's
+files, the tool and the test module; masked): no address with a password part, no literal
+assignment, no value in two forms.
+
+## Not done
+
+- **No whole-tree comparison of the new tool against the old one.** That is a whole-tree scan and
+  takes the run slot; it is worth doing once before the tool is relied on, since the report now
+  has `longline` rows and a "not read" line that older outputs lack. Asked of the verifier or
+  done by me on a grant, as the Senior Manager rules.
+- **No timing test.** The cost figures above are observations, not assertions.
+- **The team's copy outside the repository is not removed or changed.** Which one the team runs
+  after the merge is for the Senior Manager to say.
+- **No hook or CI step runs the tool.** The row did not ask for one.
+
+## CORRECTION, 2026-10-07 12:09:29 WAT: the first fix hid a real hit; found by Verifier 2 by reading
+
+Everything above this line describes the tool at `5bff2762` and its gate at `563534a4`. That gate
+was green, and the tool was wrong.
+
+**The fault** (Verifier 2, by reading, before any run of its own; confirmed by me with a direct
+call of the tool's function): on a line over 4000 characters, the first fix ran the assignment
+pattern over the whole stretch around each word (200 characters before, 420 after) and took
+every match in it. A stretch belonging to one word could end inside the UNQUOTED value of an
+assignment belonging to a later word. The pattern is content with a shorter value, so the
+cut-off value was recorded: with one to five characters left it was classed as a code expression
+(no LITERAL row, nothing in the hit list), with six or more it was a LITERAL of the wrong
+length. The whole assignment, met again at its own word, was then passed over as already taken.
+A quoted value could not be cut this way. A short line was never affected.
+Seen by direct call at `46ef23ee`: after 4800 characters of padding, the word "key", 405 dots
+and a ten-character unquoted NAME=value give one assignment of shape code-expression, length 1,
+and an empty hit list; with 397 to 404 dots, a LITERAL of the wrong length.
+
+**Why my gate did not see it:** none of the 23 tests put an unquoted value at such a distance
+after an earlier word, and none compared a long line with the same text on a short one. All
+twenty mutants were mutants of what I had thought of.
+
+**What I wrote above that is wrong:** the paragraph "Two checks I wrote and then removed". The
+first of them (a match must belong to the word whose stretch found it) was NOT covered by the
+take-once rule: it is what would have stopped this. I removed it on reasoning, without a test
+that could tell the difference, and called that a virtue.
+
+**The cure (`8d78a179`; tests first in `c779cc7e`):** each of the five words is followed to the
+start and the end of the name it stands in (up to 200 characters each way); the pattern is tried
+ONCE, at the name's start, reading 420 characters past the name's END; a word inside a name
+already tried is passed over. The pattern is never run over another word's stretch. What a long
+line still does not show is stated in the docstring: a password part over about 590 characters;
+a value ending more than 420 characters after its name; a name with more than 200 characters
+before or after its word. One difference from a short line that errs toward reporting: an
+assignment standing inside another one's value is found by itself.
+
+**Three new tests** (`LongLineSameAsShortTests`): an unquoted value far after an earlier word is
+found whole, over the fifty distances 380 to 429; a long line gives what the same text gives on
+a short line, over the hundred distances 0 to 693 in steps of 7; two assignments close together
+are each found once. 26 tests in all.
+
+**Expected, written before any run of the new tip** (from direct calls of the tool's functions
+on small inputs, no test loader):
+- Step 0, the module against the tool as moved (`840619b4`): Ran 26, 14 failing: the eleven of
+  the first red run and all three new tests.
+- Step 0b, the module against the tool of the first fix (`5bff2762`): Ran 26, exactly TWO
+  failing: `test_a_bare_value_far_after_an_earlier_word_is_found_whole` and
+  `test_a_long_line_gives_what_the_same_text_gives_on_a_short_line`. The third new test passes
+  there; it is seen red under mutants L1, L7 and L8.
+- Step 1, the module and the 23 guard modules: OK (Ran 312).
+- Step 2: 23 mutants KILLED, each by exactly its named set. Changed against the first battery:
+  L4 is now "a second word in a name already tried is not passed over" (the one-hit-once test);
+  L1 and L7 gain the new tests they must fail; three are new: L8 "a name is not followed back to
+  its start" (seven tests), L9 "the pattern is searched for over the stretch before the name
+  too", which is the fault itself (the two new tests and the one-hit-once test), L10 "a name is
+  not followed forward to its end" (the one-hit-once test). The sets of L4, L8, L9 and L10 were
+  checked by direct calls on copies changed in memory; the rest are by reading.
+
+**A slip of mine in doing this:** I ran a cost check of the tool in plain Python (about 23
+seconds of one core, ending 12:02:37) while another row's timed regression was running in a
+quiet window I had ordered. Reported to the Senior Manager and written into that row's evidence.
+The cost figures for the new code are therefore from that one check and one more made after the
+window: see "Results of the second gate".
+
+## Results of the second gate, at `d6a1396c` (a grant to myself, logged first; 2026-10-07 12:09:52 to 12:15:08 WAT)
+
+One run of `run_h137_gate2.sh d6a1396c`, serial, 6G cap, beside the Next-stage Checker's serial
+run (the Senior Manager's standing form for two targeted runs). Load (1 minute) 7.56 at the
+start, 7.45 at the end. Nothing in these runs is timed.
+
+| Step | Result, from the raw log | Written beforehand |
+|---|---|---|
+| 0 the module against the tool as moved (`840619b4`) | exit 1: Ran 26 tests, FAILED (failures=162) | non-zero, Ran 26, 14 tests failing |
+| 0b the module against the tool of the first fix (`5bff2762`) | exit 1: Ran 26 tests, FAILED (failures=10) | non-zero, Ran 26, exactly two tests failing |
+| 1 the module and 23 guard modules | exit 0: Ran 312 tests in 144.258s, OK | OK, Ran 312 |
+| 2 the 23 mutants | exit 0: 23 KILLED, 0 SURVIVED, 0 BROKEN | 23 KILLED |
+
+- **Read the failure counts with care:** two of the new tests check many distances one by one, and
+  each failing distance is its own entry. Step 0: 162 entries are 14 distinct tests (the eleven of
+  the first red run, and the three new ones with 50, 100 and 1 entries). Step 0b: 10 entries are
+  exactly the two tests named beforehand (9 distances of the bare-value test, 397 to 405; 1 of the
+  long-as-short test). Counted by name from the logs.
+- **Step 2:** every mutant's run has its own "Ran 26 tests" line and exit 1, and its failing tests
+  are EXACTLY the set written beforehand, L9 (the fault itself) included.
+- **Nothing differed from what was written before the run.** All 26 tests have been seen red.
+- **Cost, observations only, from the one check named above** (the tool at an intermediate state,
+  before the "word inside a name already tried" rule): 4 MB of base64 0.25 s; 2 MB of one letter
+  0.12 s; 150,000 separate words 0.29 s; 150,000 short assignments 2.0 s; and 600,000 characters
+  of one word repeated without a break 19.9 s, which is what that rule was then added for. The
+  cost of that last case on the committed code has NOT been measured.
+
+**Files:** `console_d6a1396c.txt`, `red_run_tool_as_moved_d6a1396c.txt.gz`,
+`red_run_tool_of_first_fix_d6a1396c.txt.gz`, `modules_and_guards_d6a1396c.txt.gz`,
+`mutation_log_d6a1396c.txt`, `mutation_results_d6a1396c.json`, `mutant_logs_d6a1396c.tar.gz`,
+`raw_logs_sha256_d6a1396c.txt` (taken before packing).
+
+## A second point from Verifier 2, 2026-10-07 12:54:26 WAT: a bare value cut off by the end of what is read
+
+Read by Verifier 2 in the cure itself (`8d78a179`), by arithmetic, before any run; confirmed by me
+with direct calls. The pattern reads 420 characters past a name's end. With hundreds of blanks
+between the name and the sign, a BARE value can begin inside those 420 characters and end
+outside them, and the pattern is content with the part it can see: 410 blanks, the sign and a
+twelve-character value gave a LITERAL row of length 9; 416 blanks gave a "code-expression" of
+length 3 and no hit. My docstring called this "not seen". It was seen, cut short, and passed off
+as the value.
+
+**What I chose** (Verifier 2 offered words only, or a guard; the Senior Manager asked which): the
+GUARD, with the words. Tests first in `6a8c1e60`, the change in `71b9807e`: a bare match that
+reaches the end of what was read, while the line goes on with a character that could continue
+the value, is not recorded as an assignment. It gets a row of its own, `cut` /
+`VALUE-CUT-AT-WINDOW` with the length that was read, listed in every form of the report and in
+the hit list, and it is kept out of the comparison of values. A value that ends exactly where
+the reading ends, followed by a blank, a separator or the end of the line, is whole. A QUOTED
+value that runs past the reading still gives no match at all; the docstring says so.
+
+**Two new tests** (`LongLineCutValueTests`): the cut case at two distances; the "ends exactly
+there" case with three kinds of ending. 28 tests in all.
+
+**Expected for the third gate, written before any run** (from direct calls of the four tool
+versions' functions on small inputs, no test loader; and by reading):
+- Step 0, the tool as moved (`840619b4`): Ran 28, 16 distinct tests failing (the 14 of the second
+  gate and the two new ones).
+- Step 0b, the tool of the first fix (`5bff2762`): Ran 28, FOUR distinct tests failing: the two
+  of the second gate and both new ones (there the reading ended four characters sooner, so even
+  the "ends exactly there" value was cut).
+- Step 0c, the tool of the second fix (`8d78a179`): Ran 28, exactly ONE test failing:
+  `test_a_bare_value_cut_by_the_end_of_the_stretch_is_reported_as_cut`.
+- Step 1: the module and the 23 guard modules, OK (Ran 314).
+- Step 2: 26 mutants KILLED, each by exactly its named set. New: C1 "a cut value is recorded as
+  the part seen" (the cut test), C2 "a value that ends where the reading ends is called cut" (the
+  whole-value test), C3 "the report does not list cut values" (the cut test). Changed sets: L1,
+  L7, L8 and L10 gain the new tests they must fail (L10, a name not followed forward, now fails
+  both, since the reading then ends four characters sooner). The sets of L4, L8, L9, L10, C1, C2
+  and C3 were checked by direct calls on copies changed in memory; the rest are by reading or
+  were seen in the second gate.
+
+## Results of the third gate, at `07c624f8` (a grant to myself, logged first; 2026-10-07 12:54:40 to 13:00:44 WAT)
+
+One run of `run_h137_gate3.sh 07c624f8`, serial, 6G cap; no other test run of ours was going.
+Load (1 minute) 6.74 at the start, 5.61 at the end. Nothing in these runs is timed.
+
+| Step | Result, from the raw log | Written beforehand |
+|---|---|---|
+| 0 the module against the tool as moved (`840619b4`) | exit 1: Ran 28, FAILED (failures=167): 16 distinct tests | 16 distinct tests |
+| 0b against the first fix (`5bff2762`) | exit 1: Ran 28, FAILED (failures=15): 4 distinct tests | four |
+| 0c against the second fix (`8d78a179`) | exit 1: Ran 28, FAILED (failures=2): 1 distinct test | exactly one, the cut test |
+| 1 the module and 23 guard modules at `07c624f8` | exit 0: Ran 314 tests in 158.932s, OK | OK, Ran 314 |
+| 2 the 26 mutants | exit 0: 26 KILLED, 0 SURVIVED, 0 BROKEN | 26 KILLED |
+
+- The failing tests of steps 0, 0b and 0c are, by name, exactly the ones written beforehand
+  (entries are more than tests because three tests check many cases one by one).
+- Every mutant's run has its own "Ran 28 tests" line and exit 1, and its failing tests are
+  EXACTLY the set written beforehand.
+- **Nothing differed from what was written before the run.** All 28 tests have been seen red.
+
+**Files:** `console_07c624f8.txt`, the three red runs and `modules_and_guards_07c624f8.txt` as
+`.gz`, `mutation_log_07c624f8.txt`, `mutation_results_07c624f8.json`,
+`mutant_logs_07c624f8.tar.gz`, `raw_logs_sha256_07c624f8.txt` (taken before packing).
+
+## Where the row stands, for the verifier
+
+- Code tip `71b9807e`; test tip `6a8c1e60`; everything after is evidence.
+- Three gates, the first two green on a tool that was then shown wrong by READING. So a green
+  gate of mine is not the measure here: the verifier's own probe and a whole-tree comparison of
+  the old tool against the new one on a real revision are. Neither has been run.
+- Still not done: the cost of the committed long-line code on hostile lines has not been
+  measured again after the last two changes; no hook or CI step runs the tool; the copy outside
+  the repository stays the tool of record until the batch that carries this row is pushed
+  (the Senior Manager's ruling, 2026-10-07).
+
+## After the base update onto batch 11 (`1d47223b`), written 2026-10-07 14:04:19 WAT
+
+- **One run of the module and the guards on the merged tree** (a grant to myself, logged first; 2026-10-07 13:05:38 to 13:09:03 WAT, serial, 6G): `AutoGrader.tests_credscan`, the 23 guard modules of the gate and `AutoGrader.tests_migration_safety_check` (new on this base). Exit 0, "Ran 334 tests in 169.149s", "OK", no FAIL or ERROR line. Raw log: `modules_and_guards_1d47223b.txt.gz` (the unpacked file's sha256 starts `e8e734abd74ccb04`). No mutants again: the tool and its tests are the same bytes as at `07c624f8`.
+- **Verifier 2: VERIFIED-WITH-NOTES at `1d47223b`.** Its record is `VERIFICATION_h137_credscan_into_repo_1d47223b.md`, committed byte for byte, with its scripts, probes, status files and packed logs in `verifier2_1d47223b/` (its three Python files are gzipped there, because the commit hooks reformat Python and the files must stay as the verifier wrote them; `zcat` gives the bytes back). Its first probe run counted its own planted value as 12 characters where it is 13 (the verifier's miscount, told as such in its record); the short repeat on the corrected probe gave every case as written.
+- **On the verifier's note 4** (my third gate's module-and-guards run was at `07c624f8`, before the base update), the Senior Manager's ruling, 2026-10-07: no repeat. The tool and its tests are the same bytes at the tip, Verifier 2's six scans ran the tip's tool on the merged tree, and batch 12's one full run covers the rest. (The run in the first point above was made before that ruling and is recorded for what it is.)
+- **Seven LITERAL rows outside test files that the old tool passed over**, found by Verifier 2's comparison, judged by me WITHOUT seeing a value (Senior Manager's order): the tip's tool with `--all --lines` on `d7143538` (my own granted scan, 13:50:41 to 13:51:26 WAT, exit 0, error output empty), then the text around each hit with every value the tool's pattern matches on that line replaced by its length before printing. Files in `seven_literal_rows_d7143538/` (the helper script gzipped as it ran, for the same reason). None is a credential by context:
+  - `docs/CODEBASE_AUDIT_SECTIONS.md` line 311, name PASSED: the English word in a section heading about a gate. Line 314, name PASS: "strict gate PASS:" followed by a figure and "OK".
+  - `docs/backend/backend-reference.html` line 1961, name token, eleven hits, and line 2389, one hit: a minified diagram library bundled into the page; "token" is a field of its parser's error objects.
+  The Senior Manager accepted this: none is "cannot tell", nothing goes to the user. The four lines are the same on origin/staging; main has neither file. Teaching the tool to class such hits is row H-156 (LOW), not part of this row.

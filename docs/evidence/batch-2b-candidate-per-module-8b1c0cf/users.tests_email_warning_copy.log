@@ -1,0 +1,10 @@
+users.tests_email_warning_copy.ResetPasswordEmailWarningTests.test_old_remain_secure_line_is_gone ... ok
+users.tests_email_warning_copy.ResetPasswordEmailWarningTests.test_reset_email_carries_the_approved_warning ... ok
+users.tests_email_warning_copy.ResetPasswordEmailWarningTests.test_reset_email_has_no_link ... ok
+users.tests_email_warning_copy.ResetPasswordEmailWarningTests.test_reset_email_still_carries_the_code ... ok
+users.tests_email_warning_copy.VerificationEmailWarningTests.test_no_link_other_than_the_activation_link ... ok
+users.tests_email_warning_copy.VerificationEmailWarningTests.test_old_safely_ignore_line_is_gone ... ok
+users.tests_email_warning_copy.VerificationEmailWarningTests.test_student_email_carries_the_approved_warning ... ok
+users.tests_email_warning_copy.VerificationEmailWarningTests.test_teacher_email_carries_the_approved_warning ... ok
+Ran 8 tests in 0.365s
+OK

@@ -1,0 +1,15 @@
+baseline exit=0
+W1	H-93: the window is over after a month less the snap, not a full month	KILLED	FAILED (failures=6)	True	29.0
+W2	H-93: the window is not over within three weeks	KILLED	FAILED (failures=18)	True	18.9
+W3	H-93: the refresh uses the rule	KILLED	FAILED (failures=1)	True	18.7
+O1	H-81: the licence renewals log the owed refreshes	KILLED	FAILED (failures=3)	True	17.9
+O2	H-81: an early renewal's future refreshes are not owed	KILLED	FAILED (failures=1)	True	17.1
+O3	H-81: a due time within the snap of the end is not owed	KILLED	FAILED (failures=9)	True	17.1
+O4	H-81: every owed grant is counted	KILLED	FAILED (failures=313)	True	21.4
+O5	H-81: the renewal task reports	KILLED	FAILED (failures=1)	True	24.2
+O6	H-81: the offline renewal reports	KILLED	FAILED (failures=2)	True	20.3
+O7	H-81: the individual renewal logs the owed grants	KILLED	FAILED (failures=2)	True	17.8
+O8	H-81: the licence line names the allocation's user by id	KILLED	FAILED (failures=3)	True	12.0
+
+11/11 killed with verified restore
+exit=0 wall_s=237

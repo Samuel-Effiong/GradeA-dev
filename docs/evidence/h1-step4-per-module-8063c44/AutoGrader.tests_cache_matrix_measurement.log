@@ -1,0 +1,3 @@
+AutoGrader.tests_cache_matrix_measurement.InvalidationMeasurementTests.test_every_fixed_write_path_invalidates_only_its_own_viewers ... ok
+Ran 1 test in 32.216s
+OK

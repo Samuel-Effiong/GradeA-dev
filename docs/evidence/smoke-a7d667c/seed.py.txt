@@ -1,0 +1,45 @@
+from unittest import mock
+from django.core.management import call_command
+from django.utils import timezone
+from billing.models import PlanCategory, PlanTier, PlanType, SubscriptionPlan
+from billing.services import SubscriptionService
+from users.models import CustomUser, UserTypes
+from classrooms.models import Course, Session
+from classrooms.services import enroll_student_by_email
+from assignments.models import Assignment, AssignmentStatus
+
+PW = "SmokePass!234"  # pragma: allowlist secret
+call_command("seed_plan_features")
+plan, _ = SubscriptionPlan.objects.get_or_create(
+    name=PlanType.STANDARD,
+    defaults=dict(display_name="Standard Grader", category=PlanCategory.INDIVIDUAL,
+        tier=PlanTier.STANDARD, monthly_credits=10_000_000, carry_over_percent=15,
+        carry_over_max=1_500_000, carry_over_expiry_months=1, overage_block_size=5_000_000,
+        overage_block_price=500, max_overage_blocks=5, is_active=True))
+
+def mk(email, kind, first, last):
+    u = CustomUser.objects.create_user(email=email, password=PW, user_type=kind, is_active=True)
+    u.first_name, u.last_name = first, last; u.save()
+    return u
+
+ta = mk("smoke-ta@smoke.test", UserTypes.TEACHER, "Ada", "Alpha")      # funded teacher
+tb = mk("smoke-tb@smoke.test", UserTypes.TEACHER, "Bea", "Bravo")      # funded, other teacher
+tc = mk("smoke-tc@smoke.test", UserTypes.TEACHER, "Cy", "Empty")       # NO plan, NO credits
+SubscriptionService.activate_free_trial(ta, plan)
+SubscriptionService.activate_free_trial(tb, plan)
+sh = mk("smoke-shared@smoke.test", UserTypes.STUDENT, "Sam", "Shared")  # enrolled with A, B and C
+so = mk("smoke-only-b@smoke.test", UserTypes.STUDENT, "Otto", "OnlyB")  # B's private student
+
+def course(t, name, desc):
+    s = Session.objects.create(name=f"{name} session", teacher=t)
+    return Course.objects.create(name=name, description=desc, teacher=t, session=s)
+ca = course(ta, "Algebra A", "A notes"); cb = course(tb, "Private Tutoring B", "B CONFIDENTIAL notes")
+cc = course(tc, "Empty-wallet C", "C notes")
+with mock.patch("classrooms.services.enrollment.notifications.send_added_to_course_email"), \
+     mock.patch("classrooms.services.enrollment.notifications.send_course_invitation_email"):
+    for c in (cb, ca, cc): enroll_student_by_email(course=c, email=sh.email)
+    enroll_student_by_email(course=cb, email=so.email)
+asg = Assignment.objects.create(course=cc, title="C's quiz", status=AssignmentStatus.PUBLISHED,
+    total_points=10, question_count=1, instructions="x",
+    questions=[{"question_number":1,"question_text":"2+2?","question_type":"SHORT_ANSWER","points":10,"model_answer":"4"}])
+print("SEEDED", {"ta": str(ta.id), "tb": str(tb.id), "tc": str(tc.id), "ca": str(ca.id), "cb": str(cb.id), "cc": str(cc.id), "asg_c": str(asg.id)})

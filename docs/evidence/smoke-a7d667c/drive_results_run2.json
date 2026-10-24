@@ -1,0 +1,146 @@
+[
+ [
+  "L0",
+  "health endpoint",
+  "PASS",
+  "200 {'database': 'ok', 'cache': 'ok'}"
+ ],
+ [
+  "L1",
+  "login TEACHER smoke-ta@smoke.test",
+  "PASS",
+  "HTTP 200, user_type=TEACHER, access+refresh tokens present=True"
+ ],
+ [
+  "L2",
+  "login TEACHER smoke-tc@smoke.test",
+  "PASS",
+  "HTTP 200, user_type=TEACHER, access+refresh tokens present=True"
+ ],
+ [
+  "L3",
+  "login STUDENT smoke-shared@smoke.test",
+  "PASS",
+  "HTTP 200, user_type=STUDENT, access+refresh tokens present=True"
+ ],
+ [
+  "L4",
+  "wrong password is refused, not a 500",
+  "PASS",
+  "HTTP 401: {\"success\": false, \"message\": \"No active account found with the given credentials\", \"error\": {\"field_errors\": {\"detail\": \"No active account found with the given"
+ ],
+ [
+  "L5",
+  "no token -> 401 on a protected route",
+  "PASS",
+  "HTTP 401"
+ ],
+ [
+  "L6",
+  "token works: users/me returns the caller",
+  "PASS",
+  "HTTP 200"
+ ],
+ [
+  "M1",
+  "teacher A sees own student, not B's private student",
+  "PASS",
+  "HTTP 200, students=['smoke-shared@smoke.test']"
+ ],
+ [
+  "M2",
+  "shared student's row leaks nothing of teacher B's course",
+  "PASS",
+  "searched whole payload for B's course name, notes and teacher surname"
+ ],
+ [
+  "M3",
+  "filtering by B's course id looks identical to a made-up id (no oracle)",
+  "PASS",
+  "foreign HTTP 200 vs unknown HTTP 200, bodies equal=True"
+ ],
+ [
+  "M4",
+  "teacher B sees both of their students and nothing of C/A",
+  "PASS",
+  "HTTP 200"
+ ],
+ [
+  "M5",
+  "a student cannot use the teacher-only endpoint",
+  "PASS",
+  "HTTP 403"
+ ],
+ [
+  "U1",
+  "upload accepted asynchronously (202 + task id)",
+  "PASS",
+  "HTTP 202: {\"success\": true, \"message\": \"Batch processing started for 1 files\", \"data\": {\"session_id\": \"b61bd33d-bb22-44eb-8df8-4d63e35881a4\", \"message\": \"Batch processing started for 1 files\", \"tasks\": [{\"file_"
+ ],
+ [
+  "U2",
+  "extraction task finishes successfully in the worker",
+  "PASS",
+  "final=COMPLETED {\"task_id\": \"10a74980-d62a-4dab-8254-6cb9808cdc42\", \"status\": \"completed\", \"meta\": \"{'step': 'Assignment uploaded successfully', 'file_name': 'sample_teacher.pdf', 'assignment_id': '0c43e1fb-f0be-4fd8-ba51-f2604243fc14',"
+ ],
+ [
+  "U3",
+  "the extracted assignment exists in teacher A's course",
+  "PASS",
+  "HTTP 200, title found=True"
+ ],
+ [
+  "U4",
+  "extraction reached ONLY the local fake provider",
+  "PASS",
+  "1 provider request(s) recorded by the fake; real OpenRouter key was replaced by a dummy"
+ ],
+ [
+  "U5",
+  "re-uploading the same file makes no second AI call (dedupe)",
+  "PASS",
+  "provider requests before=1 after=1, HTTP 202"
+ ],
+ [
+  "R1",
+  "no-credit teacher upload -> 402 insufficient_credits (not 400/500)",
+  "PASS",
+  "HTTP 402: {\"success\": false, \"message\": \"There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.\", \"error\": {\"field_errors\": {\"error\": \"There aren't enough "
+ ],
+ [
+  "R2",
+  "the refusal message is plain text, no HTML markup",
+  "PASS",
+  "no '<' in body"
+ ],
+ [
+  "R3",
+  "a refusal costs nothing and calls no AI",
+  "PASS",
+  "provider requests before=1 after=1"
+ ],
+ [
+  "R4",
+  "feature not on plan -> 403 for generate-assignment (no AI call)",
+  "PASS",
+  "HTTP 403: {\"success\": false, \"message\": \"AI access denied: Your current plan does not include this feature. Please upgrade to access it.\", \"error\": {\"field_errors\": {\"error\": \"AI access denied: Your current pla"
+ ],
+ [
+  "R5",
+  "student on an out-of-credit teacher's assignment gets a refusal (402/403), not a 500",
+  "PASS",
+  "HTTP 402: {\"success\": false, \"message\": \"There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.\", \"error\": {\"field_errors\": {\"error\": \"There aren't enough AI credits available"
+ ],
+ [
+  "R6",
+  "that student-facing message reveals nothing about the teacher's billing",
+  "FAIL",
+  "billing words found: ['wallet', 'credit']"
+ ],
+ [
+  "R7",
+  "still no AI call after the student refusal",
+  "PASS",
+  "provider requests before=1 after=1"
+ ]
+]

@@ -1,0 +1,8 @@
+15:41:08 repro exit=1 (red expected)
+15:42:07 (a) exit=0
+15:46:43 (b) part M exit=0
+15:50:50 (b) part WO exit=0
+15:50:50 PAUSED before (c) (PAUSE file present)
+15:53:57 pause file removed; (c) resumed under a new GRANT
+16:00:21 (c) exit=0
+16:00:21 CHAIN END

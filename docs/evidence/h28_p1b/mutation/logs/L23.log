@@ -1,0 +1,12 @@
+# L23: the worker reports its caller's transaction
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '    return getattr(\n        threading.current_thread(), _CALLER_IN_ATOMIC, connection.in_atomic_block\n    )'
+# new: '    return connection.in_atomic_block'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 35.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_under_a_budget_the_call_reports_its_callers_transaction (billing.tests.test_h28_stripe_budget.StripeBudgetTests.test_under_a_budget_the_call_reports_its_callers_transaction)
+
+FAILED (failures=1)

@@ -1,0 +1,46 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user tok@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user tok@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user tok@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user tok@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.
+======================================================================
+FAIL: test_T1_access_token_stops_working_after_logout (users.tests_token_revocation.AccessTokenRevocationTests.test_T1_access_token_stops_working_after_logout)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-authz-token-epoch/users/tests_token_revocation.py", line 85, in test_T1_access_token_stops_working_after_logout
+    self.assertEqual(
+AssertionError: 200 != 401 : stolen access token still works after logout
+
+======================================================================
+FAIL: test_T2_access_token_stops_working_after_password_change (users.tests_token_revocation.AccessTokenRevocationTests.test_T2_access_token_stops_working_after_password_change)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-authz-token-epoch/users/tests_token_revocation.py", line 99, in test_T2_access_token_stops_working_after_password_change
+    self.assertEqual(
+AssertionError: 200 != 401 : stolen access token still works after password change
+
+======================================================================
+FAIL: test_T2_access_token_stops_working_after_password_reset (users.tests_token_revocation.AccessTokenRevocationTests.test_T2_access_token_stops_working_after_password_reset)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-authz-token-epoch/users/tests_token_revocation.py", line 124, in test_T2_access_token_stops_working_after_password_reset
+    self.assertEqual(
+AssertionError: 200 != 401 : stolen access token still works after password reset
+
+----------------------------------------------------------------------
+Ran 4 tests in 1.579s
+
+FAILED (failures=3)
+Preserving test database for alias 'default'...
+Found 4 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

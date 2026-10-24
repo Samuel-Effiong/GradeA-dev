@@ -1,0 +1,56 @@
+#!/bin/bash
+# v2's one slot for H-120. Three steps, each to its own file(s):
+#  1. baseline: d5's test module and v2's probe (SimpleTestCase, no database);
+#  2. the check itself, end to end, as the workflow runs it:
+#     python scripts/check_migration_safety.py --base origin/dev
+#     (reads the migration files from disk, no database), compared with the
+#     FAIL list v2 wrote beforehand (runs/h120_<tip>_e2e_expected.txt);
+#  3. mutants M1 and M2 against d5's module.
+# Rules 12, 13, 16 wrap each step; rule 17 is in the runner; rule 18: every
+# run writes straight to a file, stdin from /dev/null. Nothing is timed.
+# The probe is copied into the scratch checkout and removed at the end.
+# Usage: vf_h120_run.sh <tip-sha8>      (only after the Release Engineer's GRANT)
+set -uo pipefail
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-vf2-s1
+H=$P/GAP-v2-handover
+PROBE=AutoGrader/tests_vf2_h120_probe.py
+PY=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python
+export COMMIT=$TIP MUTANT_LOGS=$H/runs/h120_${TIP}_mutant_logs EXEMPT_EMAIL_DOMAINS= PYTHONDONTWRITEBYTECODE=1
+ST=$H/runs/h120_${TIP}.status
+# Written at 17:39:00 for the check as it stood at 047da1bd; the check does not
+# change after that, so the same file is the expectation at any later tip.
+EXPECTED=$H/runs/h120_047da1bd_e2e_expected.txt
+WRAP="systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800"
+say() { echo "$(date +%H:%M:%S) $*" >> $ST; }
+cd $WT || exit 9
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { echo "NOT FROZEN at $TIP"; exit 9; }
+[ ! -e $MUTANT_LOGS ] && [ ! -e $H/runs/h120_${TIP}_baseline.log ] && [ ! -e $H/runs/h120_${TIP}_e2e.log ] || { echo "logs of $TIP exist already"; exit 9; }
+[ -f $EXPECTED ] || { echo "no expected file"; exit 9; }
+cp $H/tests_vf2_h120_probe.py $WT/$PROBE
+cmp -s $H/tests_vf2_h120_probe.py $WT/$PROBE || { echo "probe copy differs"; exit 9; }
+[ "$(git status --porcelain)" = "?? $PROBE" ] || { echo "unexpected files beside the probe"; rm -f $WT/$PROBE; exit 9; }
+finish() {
+  rm -f $WT/$PROBE
+  rm -rf $WT/AutoGrader/__pycache__/tests_vf2_h120_probe* $WT/scripts/__pycache__
+  if [ -z "$(git -C $WT status --porcelain)" ] && [ "$(git -C $WT rev-parse --short=8 HEAD)" = "$TIP" ]; then say "probe removed; tree is the frozen tip again"; else say "WARNING: tree not the frozen tip at exit"; fi
+}
+trap finish EXIT
+say "baseline start: loadavg $(cat /proc/loadavg)"
+rc=0; $WRAP $PY -B $H/vf_h120_mutants.py baseline > $H/runs/h120_${TIP}_baseline.log 2>&1 < /dev/null || rc=$?
+say "baseline end exit=$rc: loadavg $(cat /proc/loadavg)"
+[ $rc -eq 0 ] || { echo "baseline red (exit $rc): nothing further is run"; exit 1; }
+say "end-to-end start: loadavg $(cat /proc/loadavg)"
+rc=0; $WRAP $PY -B scripts/check_migration_safety.py --base origin/dev > $H/runs/h120_${TIP}_e2e.log 2>&1 < /dev/null || rc=$?
+echo "exit=$rc" >> $H/runs/h120_${TIP}_e2e.log
+say "end-to-end end exit=$rc (1 is the expected one): loadavg $(cat /proc/loadavg)"
+{
+  echo "FAIL lines: $(grep -c '^FAIL ' $H/runs/h120_${TIP}_e2e.log); ACK lines: $(grep -c '^ACK ' $H/runs/h120_${TIP}_e2e.log); OK lines: $(grep -c '^OK ' $H/runs/h120_${TIP}_e2e.log); exit line: $(tail -n 1 $H/runs/h120_${TIP}_e2e.log)"
+  if diff <(grep '^FAIL ' $H/runs/h120_${TIP}_e2e.log | sed -E 's/^FAIL ([^:]+):.*/\1/' | sort) <(grep '^  [a-z]' $EXPECTED | sed 's/^  //' | sort); then echo "the FAIL set is exactly the expected one"; else echo "the FAIL set DIFFERS from the expected one (lines above: < got, > expected)"; fi
+} > $H/runs/h120_${TIP}_e2e_compare.txt 2>&1
+say "end-to-end: $(tail -n 1 $H/runs/h120_${TIP}_e2e_compare.txt)"
+say "mutants start: loadavg $(cat /proc/loadavg)"
+rc=0; $WRAP $PY -B $H/vf_h120_mutants.py > $H/runs/h120_${TIP}_mutants.log 2>&1 < /dev/null || rc=$?
+say "mutants end exit=$rc: loadavg $(cat /proc/loadavg)"
+echo "done: see $ST"

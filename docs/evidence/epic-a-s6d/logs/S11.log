@@ -1,0 +1,12 @@
+# S11: empty text is SUBMISSION_EMPTY at the route
+# file: students/views.py (occurrence 1)
+# old: '        if not str(raw_input).strip():'
+# new: '        if False:'
+# commit: 3c5aa16c4d0ac96214b835d228787f5c9d4b2889
+# exit: 0
+# elapsed_s: 9.9
+# restored_sha256_matches_commit_blob: True
+
+
+
+OK (skipped=1)

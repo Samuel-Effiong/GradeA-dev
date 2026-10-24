@@ -1,0 +1,97 @@
+"""v2 mutants for the score-printing stack at 67390ac8 (code = c8ec622d): H-139/H-140/H-142 bottom
+(aea4854e), H-144, H-145, H-146. Written 2026-10-09 BEFORE any run, from the final code (the
+older runners' anchors Y3/Y9 no longer match; rewritten here as Y3b/Y9b). Run from the vf2-s1
+scratch worktree detached at COMMIT with my five probe modules copied in. Usage:
+  COMMIT=<sha> MUTANT_LOGS=<dir> python vf_stack_mutants.py check | baseline | mutants
+Every mutant is judged by my probes alone (rule 15: d5's gates are not repeated), except Y4,
+which my probes cannot see and which d5's two modules judge (named tests must fail).
+Failing set of a probe-judged mutant must EQUAL the written one (every assertion of all 15 tests
+read against each mutant, controls and setUp included). Rule 17: no bytecode, pycache cleared,
+restore verified by sha256 against the commit blob. Database tests: --keepdb (test_vf2_s1)."""
+import ast, hashlib, os, pathlib, re, shutil, subprocess, sys
+
+COMMIT = os.environ["COMMIT"]; LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])
+SV, VW, SR = "students/services.py", "students/views.py", "students/serializers.py"
+TK = "assignments/tasks.py"
+PROBES = ["students.tests_vf2_score_probe", "students.tests_vf2_h144_probe", "students.tests_vf2_h145_probe",
+          "students.tests_vf2_h146_probe", "students.tests_vf2_g_probe"]
+D5_Y4 = ["students.tests_answer_document_score_printing", "students.tests_answer_document_before_release"]
+S1, S2, S3, S4 = ("test_s1_the_assignment_route_moves_with_a_manual_grade_after_release",
+                  "test_s2_a_manual_grade_to_zero_is_printed_for_a_released_student",
+                  "test_s3_every_hundredth_prints_the_same_from_a_float_and_from_the_database",
+                  "test_s4_a_manual_grade_before_release_then_release")
+T1, T2, T3, T4 = ("test_t1_the_whole_logger_tree_on_a_refused_queue", "test_t2_the_task_record_after_a_refused_queue",
+                  "test_t3_a_manual_grade_before_release_changes_nothing_a_student_reads",
+                  "test_t4_a_manual_grade_to_the_same_score_clears_and_queues_again")
+P1, P2, P3, P4 = ("test_p1_a_message_queued_before_a_second_manual_grade_runs_after_it",
+                  "test_p2_a_manual_grade_lands_while_the_message_is_in_its_ai_call",
+                  "test_p3_the_first_gradings_message_runs_after_a_regrade",
+                  "test_p4_the_teacher_feedback_routes_message_is_overtaken")
+R1, R2 = ("test_r1_a_released_paper_regraded_through_the_pipeline", "test_r2_an_unreleased_paper_regraded_then_released")
+G1 = "test_g1_a_builder_that_raises_cannot_stop_the_grade"
+BUILD = "            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(\n                student_submission_to_html(submission)\n            )\n"
+# name -> (path, edits, labels, written failing set (exact) | None, must-fail list for d5-judged)
+M = {
+ "Y3b_rebuild_only_when_published": (VW, [("        try:\n" + BUILD,
+      "        try:\n            if submission.is_published:\n                submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(\n                    student_submission_to_html(submission)\n                )\n")], PROBES, {S4}, None),
+ "Y9b_the_route_never_rebuilds": (VW, [(BUILD + "        except Exception as exc:  # noqa: BLE001 - see the comment above\n",
+      "            pass\n        except Exception as exc:  # noqa: BLE001 - see the comment above\n")], PROBES, {S1, S2, S4, G1}, None),
+ "Y10_one_decimal_not_two": (SV, [('            score = format(Decimal(str(score)), ".2f")\n', '            score = format(Decimal(str(score)), ".1f")\n')], PROBES, {S1, S2, S3, S4}, None),
+ "Y4_the_ungraded_form_prints_two_decimals": (SV, [('        score = StudentSubmission._meta.get_field("score").get_default()\n',
+      '        score = format(Decimal(str(StudentSubmission._meta.get_field("score").get_default())), ".2f")\n')], D5_Y4, None,
+      ["test_the_form_a_student_reads_before_release_stays_empty", "test_on_the_students_own_submission", "test_on_the_students_view_of_the_assignment"]),
+ "Y5_a_refused_queue_is_swallowed_in_silence": (VW, [("            logger.error(\n                \"Formatted grade not queued after a manual grade: \"\n                \"submission=%s task=%s error=%s\",\n                submission.id,\n                formatted_processing_task.id,\n                # an unreachable broker arrives wrapped; name what it was\n                type(exc.__cause__ or exc).__name__,\n            )\n", "            pass\n")], PROBES, {T1, T2}, None),
+ "Y11_the_student_reads_the_stored_document": (SR, [("    def get_raw_input(self, obj):\n        return answer_document_for_student(obj)\n\n    def get_feedback", "    def get_raw_input(self, obj):\n        return obj.raw_input\n\n    def get_feedback")], PROBES, {S4, T3}, None),
+ "Y12_the_route_does_not_clear": (VW, [("        submission.formatted_grade = None\n\n        submission.save(\n", "\n        submission.save(\n")], PROBES, {T4, P1, P2, P4, G1}, None),
+ "Y14_the_manual_grade_route_sends_no_stamp": (VW, [("                user_prompt,\n                result_stamp=grading_result_stamp(submission),\n            )\n        except Exception", "                user_prompt,\n            )\n        except Exception")], PROBES, {P1, P2}, None),
+ "Y15_the_teacher_feedback_route_sends_no_stamp": (VW, [("                    user_prompt,\n                    result_stamp=grading_result_stamp(submission),\n                )\n                task_id = task.id", "                    user_prompt,\n                )\n                task_id = task.id")], PROBES, {P4}, None),
+ "Y16_grading_sends_no_stamp": (SV, [("                user_prompt,\n                result_stamp=result_stamp,\n            )", "                user_prompt,\n            )")], PROBES, {P3, R1}, None),
+ "Y17_the_task_compares_with_the_copy_it_loaded": (TK, [("                grading_result_stamp(\n                    StudentSubmission.objects.select_for_update()\n                    .only(\"graded_at\", \"regraded_at\")\n                    .get(id=submission_id)\n                )\n", "                grading_result_stamp(submission)\n")], PROBES, {P2}, None),
+ "Y18_the_stamp_leaves_out_the_manual_grade_time": (SV, [("        for moment in (submission.graded_at, submission.regraded_at)\n", "        for moment in (submission.graded_at,)\n")], PROBES, {P1, P2, P4}, None),
+ "Y8_grading_clears_only_a_released_paper": (SV, [("    submission.formatted_grade = None\n\n    # Review queue", "    if submission.is_published:\n        submission.formatted_grade = None\n\n    # Review queue")], PROBES, {R2}, None),
+ "Y13_grading_does_not_clear": (SV, [("    submission.formatted_grade = None\n\n    # Review queue", "\n    # Review queue")], PROBES, {R1, R2}, None),
+ "G1_the_guard_catches_nothing": (VW, [("        except Exception as exc:  # noqa: BLE001 - see the comment above\n", "        except ZeroDivisionError as exc:  # noqa: BLE001 - see the comment above\n")], PROBES, {G1}, None),
+ "G3_the_log_line_carries_the_error_text": (VW, [("                submission.pk,\n                type(exc).__name__,\n", "                submission.pk,\n                str(exc),\n")], PROBES, {G1}, None),
+ "G4_the_guard_logs_a_traceback": (VW, [("            logger.error(\n                \"Manual grade: the answer document could not be rebuilt: \"", "            logger.exception(\n                \"Manual grade: the answer document could not be rebuilt: \"")], PROBES, {G1}, None),
+}
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+def sha(b): return hashlib.sha256(b).hexdigest()
+def clear(p): shutil.rmtree(pathlib.Path(p).parent / "__pycache__", ignore_errors=True)
+def run(labels, name):
+    LOGS.mkdir(parents=True, exist_ok=True); log = LOGS / name
+    with open(log, "wb") as fh:
+        p = subprocess.run([sys.executable, "-B", "manage.py", "test", *labels, "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+                           stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL)
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summ = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={p.returncode}")
+    return p.returncode, ran, summ, failing, o
+if sys.argv[1:] == ["check"]:
+    for n, (path, edits, *_r) in M.items():
+        s = open(path).read(); counts = [s.count(o) for o, _ in edits]
+        for o, nw in edits: s = s.replace(o, nw, 1)
+        ast.parse(s); print(n, path, counts, "parses")
+    sys.exit()
+if sys.argv[1:] == ["baseline"]:
+    for p in (SV, VW, SR, TK): clear(p)
+    rc, ran, summ, failing, o = run(PROBES, "baseline.txt"); print("baseline |", ran, "|", summ, "|", failing, flush=True)
+    if rc: print(o[-8000:])
+    sys.exit(rc)
+for name, (path, edits, labels, exact, must) in M.items():
+    src = open(path).read(); counts = [src.count(o) for o, _ in edits]
+    if counts != [1] * len(edits): print(name, "APPLY_FAILED", path, counts, flush=True); continue
+    for o, nw in edits: src = src.replace(o, nw, 1)
+    ast.parse(src)
+    try:
+        clear(path); open(path, "w").write(src)
+        rc, ran, summ, failing, _ = run(labels, f"{name}.txt")
+        if rc == 0: st = "SURVIVED"
+        elif ran == "Ran ?" or not failing: st = "BROKEN"
+        elif exact is not None: st = "KILLED_AS_WRITTEN" if set(failing) == exact else "KILLED_OTHER"
+        else: st = "KILLED_MUST_HELD" if all(t in failing for t in must) else "KILLED_OTHER"
+        print(name, "|", st, "|", ran, "|", summ, "| written", sorted(exact) if exact is not None else ("must", must), "| failing", failing, flush=True)
+    finally:
+        subprocess.run(["git", "checkout", "--", path], check=True); clear(path)
+        ok = sha(open(path, "rb").read()) == sha(subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout)
+        print("  restore", path, "ok" if ok else "MISMATCH", flush=True)

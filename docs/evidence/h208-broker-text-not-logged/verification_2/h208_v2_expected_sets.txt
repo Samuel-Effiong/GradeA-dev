@@ -1,0 +1,46 @@
+# v2 H-208: expected failing tests per mutant, with the failure fragment written beforehand (written 2026-10-09 17:45, before d5's account was read)
+# Judged by: students.tests_broker_text_not_logged, students.tests_task_tracking, billing.tests.test_refusal_handling.D8TaskFailureLoggingTest. Baseline expected: Ran 40 tests, OK.
+# KILLED_AS_WRITTEN = failing set EQUAL to the list below AND each fragment inside that test's own FAIL block. Anything else prints DIFFERS.
+
+## M1_broker_branch_off  (AutoGrader/safe_logging.py)
+  old: '        if isinstance(link, BROKER_UNAVAILABLE_ERRORS):'
+  new: '        if False and isinstance(link, BROKER_UNAVAILABLE_ERRORS):'
+  expect FAIL TheLauncherLine.test_a_broker_error_logs_no_frames_either  fragment: is not None
+  expect FAIL TheLauncherLine.test_a_wrapped_broker_error_is_still_a_broker_error  fragment: 'ConnectionError' not found in
+  expect FAIL TheGradingFollowUpLine.test_a_refused_follow_up_queue_leaves_the_broker_text_out_of_every_line  fragment: 'ConnectionError' not found in
+  expect FAIL TheOneHelper.test_a_broker_error_is_named_by_its_class_alone  fragment: 'the_call_the_broker_refused' unexpectedly found in
+  expect FAIL TheOneHelper.test_a_wrapper_raised_from_a_broker_error_is_named_by_the_broker_class  fragment: 'error=ConnectionError' not found in
+  expect FAIL D8TaskFailureLoggingTest.test_a_timeout_is_a_broker_outage_named_by_its_class_alone  fragment: 'frames=' unexpectedly found in
+
+## M2_cause_not_followed  (AutoGrader/safe_logging.py)
+  old: '        current = current.__cause__\n'
+  new: '        current = None\n'
+  expect FAIL TheLauncherLine.test_a_wrapped_broker_error_is_still_a_broker_error  fragment: 'ConnectionError' not found in
+  expect FAIL TheGradingFollowUpLine.test_a_refused_follow_up_queue_leaves_the_broker_text_out_of_every_line  fragment: 'ConnectionError' not found in
+  expect FAIL TheOneHelper.test_a_wrapper_raised_from_a_broker_error_is_named_by_the_broker_class  fragment: 'error=ConnectionError' not found in
+
+## M12_context_followed_again  (AutoGrader/safe_logging.py)
+  old: '        current = current.__cause__\n'
+  new: '        current = current.__cause__ if current.__cause__ is not None else current.__context__\n'
+  expect FAIL TheLauncherLine.test_a_fault_raised_while_a_broker_error_is_handled_is_named_as_itself  fragment: 'error=RuntimeError' not found in
+  expect FAIL TheOneHelper.test_a_fault_raised_while_a_broker_error_is_handled_is_named_as_itself  fragment: 'error=RuntimeError' not found in
+
+## V1_followup_line_without_helper  (students/services.py)
+  old: '                describe_error_for_log(exc),\n                extra='
+  new: '                type(exc).__name__,\n                extra='
+  expect FAIL TheGradingFollowUpLine.test_a_refused_follow_up_queue_leaves_the_broker_text_out_of_every_line  fragment: 'ConnectionError' not found in
+
+## V2_safe_delay_prints_str  (AutoGrader/dispatch.py)
+  old: '            describe_error_for_log(exc),\n        )'
+  new: '            str(exc),\n        )'
+  expect FAIL TheSafeDelayLine.test_a_dispatch_the_broker_refused_logs_the_task_and_the_class_only  fragment: 'ConnectionError' not found in
+
+## V3_cancel_prints_str  (students/task_tracking.py)
+  old: '                processing_task.id,\n                describe_error_for_log(exc),\n            )'
+  new: '                processing_task.id,\n                str(exc),\n            )'
+  expect FAIL TheCancelLine.test_an_unreachable_broker_at_revoke_logs_ids_and_the_class_only  fragment: 'ConnectionError' not found in
+
+## V4_status_read_prints_str  (students/task_tracking.py)
+  old: '            describe_error_for_log(exc),\n            processing_task.status,'
+  new: '            str(exc),\n            processing_task.status,'
+  expect FAIL TheStatusLine.test_an_unreadable_result_backend_logs_ids_and_the_class_only  fragment: 'ConnectionError' not found in

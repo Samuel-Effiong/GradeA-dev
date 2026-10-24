@@ -1,0 +1,6 @@
+users.tests.StudentRegistrationTests.test_register_student_rejects_duplicate_name_in_pending_course ... ok
+users.tests.TeacherRegistrationEncodingTests.test_client_cannot_choose_its_own_user_type ... ok
+users.tests.TeacherRegistrationEncodingTests.test_form_encoded_registration_succeeds ... ok
+users.tests.TeacherRegistrationEncodingTests.test_multipart_registration_succeeds ... ok
+Ran 4 tests in 0.495s
+OK

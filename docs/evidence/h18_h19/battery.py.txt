@@ -1,0 +1,590 @@
+"""H-18/H-19 parallel disposable mutation battery (doctrine H3).
+
+Workers are detached worktrees at COMMIT, each with its own test DB. After
+every mutant each touched file is restored from `git show COMMIT:path` and its
+git blob hash is compared to the commit's blob. Workers are removed at the end.
+"""
+
+import hashlib
+import json
+import os
+import queue
+import re
+import subprocess
+import sys
+import threading
+import time
+
+COMMIT = "681152744a65a93deac2ee830fc61ab543cc75f8"
+PRE_FIX = "b744c9f"
+MAIN = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus"
+PARENT = "/home/bond-servant-in-training/Documents/Projects"
+PY = sys.executable
+K = int(os.environ.get("K", "2"))
+OUT = os.path.dirname(os.path.abspath(__file__)) + "/battery_out"
+os.makedirs(OUT, exist_ok=True)
+
+SOURCES = [
+    "ai_processor/services.py",
+    "assignments/serializers.py",
+    "assignments/services.py",
+    "assignments/views.py",
+    "classrooms/serializers.py",
+    "classrooms/views.py",
+    "users/permissions.py",
+    "users/views.py",
+]
+
+IDOR = [
+    "assignments.tests_course_ownership_idor",
+    "assignments.tests_course_ownership_concurrency.ConcurrentForeignCourseWritesTest",
+]
+ALLOW = [
+    "assignments.tests_ai_output_allowlist",
+    "assignments.tests_course_ownership_failure",
+]
+VIEWS19 = ["users.tests_superadmin_both_flags"]
+CREDIT = [
+    "ai_processor.tests_superadmin_unmetered_both_flags",
+    "assignments.tests_course_ownership_concurrency.ConcurrentTypeOnlySuperadminAITest",
+    "assignments.tests_course_ownership_failure.CreditGateDatabaseFailureTest",
+]
+FAILCLOSED = ["classrooms.tests_fail_closed_ownership_validators"]
+ALL = sorted(set(IDOR + ALLOW + VIEWS19 + CREDIT + FAILCLOSED))
+
+SER = "assignments/serializers.py"
+VIEWS = "assignments/views.py"
+VALIDATE_BODY = (
+    '        request = self.context.get("request")\n'
+    '        user = getattr(request, "user", None) if request else None\n'
+    "        if user is None or not user.is_authenticated:\n"
+    '            raise serializers.ValidationError("You do not have access to this course.")\n'
+    "\n"
+    "        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:\n"
+    "            return value\n"
+    "\n"
+    "        if value.teacher_id != user.id:\n"
+    '            raise serializers.ValidationError("You do not have access to this course.")\n'
+    "        return value\n"
+)
+TOKEN_GATE = (
+    "                request.user.is_superuser\n"
+    "                and request.user.user_type == UserTypes.SUPER_ADMIN\n"
+)
+SETTINGS_GATE = "        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:\n            return Settings.objects.all()"
+CREDIT_GATE = (
+    "        if (\n"
+    "            request.user.user_type == UserTypes.SUPER_ADMIN\n"
+    "            and request.user.is_superuser\n"
+    "        ):\n"
+    "            return True"
+)
+TYPE_ONLY_BRANCH_HEAD = (
+    "        elif user.user_type == UserTypes.SUPER_ADMIN and not user.is_superuser:\n"
+)
+
+# name -> (guard, tests, [(file, old, new), ...])  old must occur exactly once
+MUTANTS = {
+    "M00 ORIGINAL b744c9f source (all 8 files)": ("baseline", ALL, "ORIGINAL"),
+    # validate_course
+    "M01 validate_course body removed": (
+        "validate_course",
+        IDOR,
+        [(SER, VALIDATE_BODY, "        return value\n")],
+    ),
+    "M02 owner comparison removed": (
+        "validate_course",
+        IDOR,
+        [
+            (
+                SER,
+                '        if value.teacher_id != user.id:\n            raise serializers.ValidationError("You do not have access to this course.")\n        return value\n',
+                "        return value\n",
+            )
+        ],
+    ),
+    "M03 fail-open without request": (
+        "validate_course fail-closed",
+        IDOR,
+        [
+            (
+                SER,
+                '        if user is None or not user.is_authenticated:\n            raise serializers.ValidationError("You do not have access to this course.")\n\n        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:\n            return value\n\n        if value.teacher_id',
+                "        if user is None or not user.is_authenticated:\n            return value\n\n        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:\n            return value\n\n        if value.teacher_id",
+            )
+        ],
+    ),
+    "M04 fail-open + update_async without context": (
+        "validate_course + update_async context",
+        IDOR,
+        "M03+M07",
+    ),
+    "M05 superadmin bypass loosened to or": (
+        "validate_course superadmin both-flags",
+        IDOR,
+        [
+            (
+                SER,
+                "        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:\n            return value\n\n        if value.teacher_id",
+                "        if user.is_superuser or user.user_type == UserTypes.SUPER_ADMIN:\n            return value\n\n        if value.teacher_id",
+            )
+        ],
+    ),
+    "M06 refuse every course": (
+        "validate_course over-correction",
+        IDOR,
+        [(SER, "        if value.teacher_id != user.id:\n", "        if True:\n")],
+    ),
+    "M07 update_async bare serializer": (
+        "update_async context",
+        IDOR,
+        [
+            (
+                VIEWS,
+                '        serializer = self.get_serializer(\n            instance=instance, data=request.data, partial=True\n        )\n        serializer.is_valid(raise_exception=True)\n\n        raw_input = serializer.validated_data.get("raw_input")\n        topic = serializer.validated_data.get("topic", instance.topic)',
+                '        serializer = AssignmentTextSerializer(\n            instance=instance, data=request.data, partial=True\n        )\n        serializer.is_valid(raise_exception=True)\n\n        raw_input = serializer.validated_data.get("raw_input")\n        topic = serializer.validated_data.get("topic", instance.topic)',
+            )
+        ],
+    ),
+    # topic
+    "M16 text-serializer topic check removed": (
+        "topic in course",
+        IDOR,
+        [
+            (
+                SER,
+                '        if topic and topic.course != course:\n            raise serializers.ValidationError(\n                "Topic must belong to the selected course."\n            )\n        return data',
+                "        return data",
+            )
+        ],
+    ),
+    "M17 partial validate drops instance-course fallback": (
+        "topic in course (partial)",
+        IDOR,
+        [
+            (
+                SER,
+                '            course = data.get("course", self.instance.course)',
+                '            course = data.get("course")',
+            )
+        ],
+    ),
+    "M18 draft-save topic check removed": (
+        "draft topic",
+        IDOR,
+        [
+            (
+                SER,
+                '        if topic and course and topic.course != course:\n            raise serializers.ValidationError(\n                "Topic must belong to the selected course."\n            )\n',
+                "",
+            )
+        ],
+    ),
+    "M19 draft-save topic + AssignmentSerializer topic check removed": (
+        "draft topic (both layers)",
+        IDOR,
+        "M18+M19b",
+    ),
+    "M19b": (
+        None,
+        None,
+        [
+            (
+                SER,
+                '        if topic and topic.course != course:\n            raise serializers.ValidationError(\n                "Topic must belong to the same course as the assignment"\n            )\n',
+                "",
+            )
+        ],
+    ),
+    # H-19 views
+    "M08 settings gate and->or": (
+        "settings both-flags",
+        VIEWS19,
+        [("users/views.py", SETTINGS_GATE, SETTINGS_GATE.replace(" and ", " or "))],
+    ),
+    "M09 settings gate is_superuser only": (
+        "settings both-flags",
+        VIEWS19,
+        [
+            (
+                "users/views.py",
+                SETTINGS_GATE,
+                "        if user.is_superuser:\n            return Settings.objects.all()",
+            )
+        ],
+    ),
+    "M10 settings gate user_type only": (
+        "settings both-flags",
+        VIEWS19,
+        [
+            (
+                "users/views.py",
+                SETTINGS_GATE,
+                "        if user.user_type == UserTypes.SUPER_ADMIN:\n            return Settings.objects.all()",
+            )
+        ],
+    ),
+    "M11 settings gate never true": (
+        "settings over-correction",
+        VIEWS19,
+        [
+            (
+                "users/views.py",
+                SETTINGS_GATE,
+                "        if False:\n            return Settings.objects.all()",
+            )
+        ],
+    ),
+    "M12 token gate and->or": (
+        "token usage both-flags",
+        VIEWS19,
+        [
+            (
+                "classrooms/views.py",
+                TOKEN_GATE,
+                TOKEN_GATE.replace("                and ", "                or "),
+            )
+        ],
+    ),
+    "M13 token gate is_superuser only": (
+        "token usage both-flags",
+        VIEWS19,
+        [
+            (
+                "classrooms/views.py",
+                TOKEN_GATE,
+                "                request.user.is_superuser\n",
+            )
+        ],
+    ),
+    "M14 token gate user_type only": (
+        "token usage both-flags",
+        VIEWS19,
+        [
+            (
+                "classrooms/views.py",
+                TOKEN_GATE,
+                "                request.user.user_type == UserTypes.SUPER_ADMIN\n",
+            )
+        ],
+    ),
+    "M15 token gate never true": (
+        "token usage over-correction",
+        VIEWS19,
+        [("classrooms/views.py", TOKEN_GATE, "                False\n")],
+    ),
+    # credit / AI both flags
+    "M20 HasCreditBalance user_type only": (
+        "credit gate both-flags",
+        CREDIT,
+        [
+            (
+                "users/permissions.py",
+                CREDIT_GATE,
+                "        if request.user.user_type == UserTypes.SUPER_ADMIN:\n            return True",
+            )
+        ],
+    ),
+    "M21 HasCreditBalance is_superuser only": (
+        "credit gate both-flags",
+        CREDIT,
+        [
+            (
+                "users/permissions.py",
+                CREDIT_GATE,
+                "        if request.user.is_superuser:\n            return True",
+            )
+        ],
+    ),
+    "M22 AI type-only refusal branch removed": (
+        "unmetered AI both-flags",
+        CREDIT,
+        "REMOVE_TYPE_ONLY_BRANCH",
+    ),
+    "M23 AI refusal condition inverted": (
+        "unmetered AI both-flags",
+        CREDIT,
+        [
+            (
+                "ai_processor/services.py",
+                TYPE_ONLY_BRANCH_HEAD,
+                "        elif user.user_type == UserTypes.SUPER_ADMIN and user.is_superuser:\n",
+            )
+        ],
+    ),
+    # allow-list
+    "M24 extract_assignment_data filter removed": (
+        "allow-list extraction",
+        ALLOW,
+        [
+            (
+                "assignments/services.py",
+                "        assignment_questions = ai_assignment_content_only(\n            ai_processor.extract_assignment_with_retry(\n                user,\n                content,\n                max_retries=3,\n                upload=upload,\n                processing_task_id=processing_task_id,\n            )\n        )",
+                "        assignment_questions = ai_processor.extract_assignment_with_retry(\n            user,\n            content,\n            max_retries=3,\n            upload=upload,\n            processing_task_id=processing_task_id,\n        )",
+            )
+        ],
+    ),
+    "M25 generate filter removed": (
+        "allow-list generate",
+        ALLOW,
+        [
+            (
+                VIEWS,
+                "            **ai_assignment_content_only(generated_assignment),\n",
+                "            **generated_assignment,\n",
+            )
+        ],
+    ),
+    "M26 draft-save snapshot filter removed": (
+        "allow-list save",
+        ALLOW,
+        [
+            (
+                VIEWS,
+                '            assignment_data = {\n                **ai_assignment_content_only(draft_message.assignment_snapshot),\n                "ai_generated": True,\n            }',
+                "            assignment_data = dict(draft_message.assignment_snapshot)",
+            )
+        ],
+    ),
+    "M27 allow-list widened (status, teacher)": (
+        "allow-list contents",
+        ALLOW,
+        [
+            (
+                "assignments/services.py",
+                '        "extraction_confidence",\n    }\n)',
+                '        "extraction_confidence",\n        "status",\n        "teacher",\n    }\n)',
+            )
+        ],
+    ),
+    "M28 teacher read-only removed": (
+        "teacher read-only",
+        ALLOW,
+        [
+            (
+                SER,
+                '        read_only_fields = ["created_at", "id", "submission_count", "teacher"]',
+                '        read_only_fields = ["created_at", "id", "submission_count"]',
+            )
+        ],
+    ),
+    # fail-closed classrooms
+    "M29 TopicSerializer fail-open": (
+        "topic validator fail-closed",
+        FAILCLOSED,
+        [
+            (
+                "classrooms/serializers.py",
+                '            raise serializers.ValidationError("You do not have access to this course.")\n\n        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:',
+                "            return value\n\n        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:",
+            )
+        ],
+    ),
+    "M30 CourseSerializer fail-open": (
+        "session validator fail-closed",
+        FAILCLOSED,
+        [
+            (
+                "classrooms/serializers.py",
+                '            raise serializers.ValidationError("You do not have access to this session.")\n',
+                "            return value\n",
+            )
+        ],
+    ),
+}
+
+
+def porcelain(cwd):
+    """git status, ignoring ONLY the shared team/ symlink other sessions add."""
+    lines = git(cwd, "status", "--porcelain").splitlines()
+    return "\n".join(l for l in lines if l.strip() != "?? team")
+
+
+def git(cwd, *args, **kw):
+    return subprocess.run(
+        ["git", *args], cwd=cwd, capture_output=True, text=True, check=True, **kw
+    ).stdout
+
+
+def blob_of_commit(path, rev=COMMIT):
+    return git(MAIN, "rev-parse", f"{rev}:{path}").strip()
+
+
+def blob_of_file(worker, path):
+    return git(worker, "hash-object", path).strip()
+
+
+def expand(name):
+    spec = MUTANTS[name][2]
+    if spec == "ORIGINAL":
+        return "ORIGINAL"
+    if spec == "REMOVE_TYPE_ONLY_BRANCH":
+        return "REMOVE_TYPE_ONLY_BRANCH"
+    if isinstance(spec, str):
+        edits = []
+        for part in spec.split("+"):
+            key = next(k for k in MUTANTS if k.split(" ")[0] == part)
+            edits += expand(key)
+        return edits
+    return spec
+
+
+def apply(worker, name):
+    spec = expand(name)
+    touched = set()
+    if spec == "ORIGINAL":
+        for f in SOURCES:
+            with open(os.path.join(worker, f), "w") as fh:
+                fh.write(git(MAIN, "show", f"{PRE_FIX}:{f}"))
+            touched.add(f)
+        return touched
+    if spec == "REMOVE_TYPE_ONLY_BRANCH":
+        f = "ai_processor/services.py"
+        p = os.path.join(worker, f)
+        src = open(p).read()
+        start = src.index(TYPE_ONLY_BRANCH_HEAD)
+        end = src.index(
+            "        elif user.user_type == UserTypes.SUPER_ADMIN:\n", start
+        )
+        assert src.count(TYPE_ONLY_BRANCH_HEAD) == 1
+        open(p, "w").write(src[:start] + src[end:])
+        return {f}
+    for f, old, new in spec:
+        p = os.path.join(worker, f)
+        src = open(p).read()
+        n = src.count(old)
+        assert n == 1, f"{name}: anchor in {f} occurs {n}x"
+        open(p, "w").write(src.replace(old, new))
+        touched.add(f)
+    return touched
+
+
+def restore(worker, files):
+    verdicts = {}
+    for f in files:
+        with open(os.path.join(worker, f), "w") as fh:
+            fh.write(git(MAIN, "show", f"{COMMIT}:{f}"))
+        verdicts[f] = blob_of_file(worker, f) == blob_of_commit(f)
+    return verdicts
+
+
+def make_worker(i):
+    path = f"{PARENT}/Grade-Automator-Plus-h18mut-w{i}"
+    if not os.path.isdir(path):
+        git(MAIN, "worktree", "add", "--detach", path, COMMIT)
+        os.symlink(f"{MAIN}/.env", f"{path}/.env")
+        with open(f"{path}/settings_worktree.py", "w") as fh:
+            fh.write(
+                "from AutoGrader.settings import *  # noqa: F401,F403\n"
+                "from AutoGrader.settings import DATABASES\n\n"
+                'DATABASES["default"].setdefault("TEST", {})\n'
+                f'DATABASES["default"]["TEST"]["NAME"] = "test_h18mut_w{i}"\n'
+            )
+    assert git(path, "rev-parse", "HEAD").strip() == COMMIT
+    assert porcelain(path) == "", f"worker {i} dirty"
+    return path
+
+
+def run_tests(worker, tests, log):
+    r = subprocess.run(
+        [
+            PY,
+            "manage.py",
+            "test",
+            *tests,
+            "--settings=settings_worktree",
+            "--noinput",
+            "--keepdb",
+        ],
+        cwd=worker,
+        capture_output=True,
+        text=True,
+    )
+    out = r.stdout + r.stderr
+    with open(log, "w") as fh:
+        fh.write(out)
+    ran = re.search(r"^Ran (\d+) tests", out, re.M)
+    summ = re.findall(r"^(OK.*|FAILED.*)$", out, re.M)
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\S+) \(([^)]+)\)", out, re.M)))
+    return (
+        r.returncode,
+        (ran.group(1) if ran else "?"),
+        (summ[-1] if summ else "?"),
+        failing,
+    )
+
+
+def main():
+    names = [n for n in MUTANTS if MUTANTS[n][0] is not None]
+    if len(sys.argv) > 1:
+        names = [n for n in names if any(n.startswith(p) for p in sys.argv[1:])]
+    workers = [make_worker(i) for i in range(K)]
+    work = queue.Queue()
+    for n in names:
+        work.put(n)
+    results = {}
+    lock = threading.Lock()
+
+    def loop(worker, idx):
+        # Warm the worker DB once (migration cost) with a clean run of one module.
+        rc, ran, summ, _ = run_tests(worker, FAILCLOSED, f"{OUT}/w{idx}_warm.log")
+        with lock:
+            print(f"[w{idx}] warm clean run: rc={rc} ran={ran} {summ}", flush=True)
+        while True:
+            try:
+                name = work.get_nowait()
+            except queue.Empty:
+                return
+            guard, tests, _ = MUTANTS[name]
+            touched = set()
+            t0 = time.time()
+            try:
+                touched = apply(worker, name)
+                rc, ran, summ, failing = run_tests(
+                    worker, tests, f"{OUT}/{name.split(' ')[0]}.log"
+                )
+            finally:
+                verdicts = restore(worker, touched) if touched else {}
+            clean = porcelain(worker) == ""
+            verdict = "KILLED" if rc != 0 else "SURVIVED"
+            with lock:
+                results[name] = dict(
+                    guard=guard,
+                    verdict=verdict,
+                    ran=ran,
+                    summary=summ,
+                    failing=[f"{c.rsplit('.', 1)[-1]}.{t}" for t, c in failing],
+                    restored=all(verdicts.values()) and clean,
+                    restore_detail=verdicts,
+                    worker=idx,
+                    seconds=round(time.time() - t0),
+                )
+                print(
+                    f"{verdict:8} {name} | guard={guard} ran={ran} {summ} restored={results[name]['restored']} ({results[name]['seconds']}s)",
+                    flush=True,
+                )
+
+    threads = [
+        threading.Thread(target=loop, args=(w, i)) for i, w in enumerate(workers)
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    with open(f"{OUT}/results.json", "w") as fh:
+        json.dump(results, fh, indent=1, sort_keys=True)
+    killed = sum(r["verdict"] == "KILLED" for r in results.values())
+    restored = all(r["restored"] for r in results.values())
+    print(
+        f"\nkilled {killed}/{len(results)}; all restored by blob hash: {restored}",
+        flush=True,
+    )
+    for i, w in enumerate(workers):
+        final_clean = porcelain(w) == ""
+        head = git(w, "rev-parse", "HEAD").strip()
+        print(f"worker {i}: HEAD={head} clean={final_clean}", flush=True)
+
+
+if __name__ == "__main__":
+    main()

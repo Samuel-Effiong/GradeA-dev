@@ -1,0 +1,14 @@
+# W4: H-93: the window reopens on the points, not after a calendar month
+# file: billing/license_service.py (occurrence 1)
+# old: '                consumption_window_start__lt=latest_monthly_point(\n                    license_sub.billing_cycle_start, refresh_due_by(now)\n                )\n'
+# new: '                consumption_window_start__lte=refresh_due_by(now)\n                - relativedelta(months=1)\n'
+# commit: 8ea91e215c58867ee58a2992c464e2b2f4140681
+# exit: 1
+# elapsed_s: 16.6
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_point_within_the_due_tolerance_of_the_run_reopens (billing.tests.test_licence_grant_anchor.ConsumptionWindowOnLicencePointsTests.test_a_point_within_the_due_tolerance_of_the_run_reopens)
+FAIL: test_after_an_outage_the_next_licence_point_reopens_on_time (billing.tests.test_licence_grant_anchor.ConsumptionWindowOnLicencePointsTests.test_after_an_outage_the_next_licence_point_reopens_on_time)
+FAIL: test_the_consumption_window_reopens_at_every_months_refresh (billing.tests.test_licence_grant_anchor.LicenceGrantAnchorTests.test_the_consumption_window_reopens_at_every_months_refresh)
+
+FAILED (failures=3)

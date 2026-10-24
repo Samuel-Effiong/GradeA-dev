@@ -1,0 +1,428 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user owner@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user other.teacher@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user school.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user super.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user pupil@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user owner@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user other.teacher@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user school.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user super.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='This email belongs to a teacher account and cannot be added as a student.', code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='This email belongs to a teacher account and cannot be added as a student.', code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='This email already exists in the system and cannot be added as a school admin.', code='invalid')]}
+Failed to direct-add student to course
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/serializers.py", line 609, in create
+    check_existing_account_may_join(student, course)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/services/enrollment.py", line 133, in check_existing_account_may_join
+    raise EnrollmentError(
+classrooms.services.enrollment.EnrollmentError: This email belongs to a school admin account and cannot be added as a student.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1397, in direct_add_student
+    student = serializer.save()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/serializers.py", line 611, in create
+    raise serializers.ValidationError(str(exc)) from exc
+rest_framework.exceptions.ValidationError: [ErrorDetail(string='This email belongs to a school admin account and cannot be added as a student.', code='invalid')]
+
+
+django.request ERROR 2026-09-30 19:22:09,186 log 4026065 136950494333888 [request_id=-] Internal Server Error: /api/v1/course/a733f04a-5761-48b2-a3fb-81ef4a5db8ca/direct-add-student
+
+
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='This email already exists in the system and cannot be added as a super admin.', code='invalid')]}
+Failed to direct-add student to course
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/serializers.py", line 609, in create
+    check_existing_account_may_join(student, course)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/services/enrollment.py", line 133, in check_existing_account_may_join
+    raise EnrollmentError(
+classrooms.services.enrollment.EnrollmentError: This email belongs to a super admin account and cannot be added as a student.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1397, in direct_add_student
+    student = serializer.save()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/serializers.py", line 611, in create
+    raise serializers.ValidationError(str(exc)) from exc
+rest_framework.exceptions.ValidationError: [ErrorDetail(string='This email belongs to a super admin account and cannot be added as a student.', code='invalid')]
+
+
+django.request ERROR 2026-09-30 19:22:09,229 log 4026065 136950494333888 [request_id=-] Internal Server Error: /api/v1/course/a733f04a-5761-48b2-a3fb-81ef4a5db8ca/direct-add-student
+
+
+FFCannot activate automatic trial for user owner@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user other.teacher@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user school.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user super.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='This email belongs to a teacher account and cannot be added as a student.', code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='This email belongs to a teacher account and cannot be added as a student.', code='invalid')]}
+FFFAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='This email already exists in the system and cannot be added as a school admin.', code='invalid')]}
+Failed to direct-add student to course
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/serializers.py", line 609, in create
+    check_existing_account_may_join(student, course)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/services/enrollment.py", line 133, in check_existing_account_may_join
+    raise EnrollmentError(
+classrooms.services.enrollment.EnrollmentError: This email belongs to a school admin account and cannot be added as a student.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1397, in direct_add_student
+    student = serializer.save()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/serializers.py", line 611, in create
+    raise serializers.ValidationError(str(exc)) from exc
+rest_framework.exceptions.ValidationError: [ErrorDetail(string='This email belongs to a school admin account and cannot be added as a student.', code='invalid')]
+
+
+django.request ERROR 2026-09-30 19:22:09,398 log 4026065 136950494333888 [request_id=-] Internal Server Error: /api/v1/course/0ea1e6e8-2e25-4dcb-aad0-863d8b1735cf/direct-add-student
+
+
+FFAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='This email already exists in the system and cannot be added as a super admin.', code='invalid')]}
+Failed to direct-add student to course
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/serializers.py", line 609, in create
+    check_existing_account_may_join(student, course)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/services/enrollment.py", line 133, in check_existing_account_may_join
+    raise EnrollmentError(
+classrooms.services.enrollment.EnrollmentError: This email belongs to a super admin account and cannot be added as a student.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1397, in direct_add_student
+    student = serializer.save()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/serializers.py", line 611, in create
+    raise serializers.ValidationError(str(exc)) from exc
+rest_framework.exceptions.ValidationError: [ErrorDetail(string='This email belongs to a super admin account and cannot be added as a student.', code='invalid')]
+
+
+django.request ERROR 2026-09-30 19:22:09,443 log 4026065 136950494333888 [request_id=-] Internal Server Error: /api/v1/course/0ea1e6e8-2e25-4dcb-aad0-863d8b1735cf/direct-add-student
+
+
+FFCannot activate automatic trial for user owner@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user other.teacher@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user school.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user super.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='This email belongs to a teacher account and cannot be added as a student.', code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='This email belongs to a teacher account and cannot be added as a student.', code='invalid')]}
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='This email already exists in the system and cannot be added as a school admin.', code='invalid')]}
+Failed to direct-add student to course
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/serializers.py", line 609, in create
+    check_existing_account_may_join(student, course)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/services/enrollment.py", line 133, in check_existing_account_may_join
+    raise EnrollmentError(
+classrooms.services.enrollment.EnrollmentError: This email belongs to a school admin account and cannot be added as a student.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1397, in direct_add_student
+    student = serializer.save()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/serializers.py", line 611, in create
+    raise serializers.ValidationError(str(exc)) from exc
+rest_framework.exceptions.ValidationError: [ErrorDetail(string='This email belongs to a school admin account and cannot be added as a student.', code='invalid')]
+
+
+django.request ERROR 2026-09-30 19:22:09,579 log 4026065 136950494333888 [request_id=-] Internal Server Error: /api/v1/course/46bcda8c-8ea8-4412-b3e8-f8cc275e1607/direct-add-student
+
+
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string='This email already exists in the system and cannot be added as a super admin.', code='invalid')]}
+Failed to direct-add student to course
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/serializers.py", line 609, in create
+    check_existing_account_may_join(student, course)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/services/enrollment.py", line 133, in check_existing_account_may_join
+    raise EnrollmentError(
+classrooms.services.enrollment.EnrollmentError: This email belongs to a super admin account and cannot be added as a student.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1397, in direct_add_student
+    student = serializer.save()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/serializers.py", line 611, in create
+    raise serializers.ValidationError(str(exc)) from exc
+rest_framework.exceptions.ValidationError: [ErrorDetail(string='This email belongs to a super admin account and cannot be added as a student.', code='invalid')]
+
+
+django.request ERROR 2026-09-30 19:22:09,612 log 4026065 136950494333888 [request_id=-] Internal Server Error: /api/v1/course/46bcda8c-8ea8-4412-b3e8-f8cc275e1607/direct-add-student
+
+
+FCannot activate automatic trial for user owner@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user other.teacher@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user school.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user super.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+FFF
+======================================================================
+FAIL: test_every_role_gets_the_same_answer (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_every_role_gets_the_same_answer) (role='school admin')
+The answer must not tell one staff role from another.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 120, in test_every_role_gets_the_same_answer
+    self.assertEqual(answer, first)
+AssertionError: Lists differ: [('si[59 chars]mail already exists in the system and cannot b[747 chars]}}')] != [('si[59 chars]mail belongs to a teacher account and cannot b[657 chars]}}')]
+
+First differing element 0:
+('sin[58 chars]mail already exists in the system and cannot b[143 chars]}}}')
+('sin[58 chars]mail belongs to a teacher account and cannot b[133 chars]}}}')
+
+Diff is 1940 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_every_role_gets_the_same_answer (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_every_role_gets_the_same_answer) (role='super admin')
+The answer must not tell one staff role from another.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 120, in test_every_role_gets_the_same_answer
+    self.assertEqual(answer, first)
+AssertionError: Lists differ: [('si[59 chars]mail already exists in the system and cannot b[744 chars]}}')] != [('si[59 chars]mail belongs to a teacher account and cannot b[657 chars]}}')]
+
+First differing element 0:
+('sin[58 chars]mail already exists in the system and cannot b[141 chars]}}}')
+('sin[58 chars]mail belongs to a teacher account and cannot b[133 chars]}}}')
+
+Diff is 1936 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_no_route_names_the_role_of_a_staff_address (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_no_route_names_the_role_of_a_staff_address) (role='teacher', route='single add')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 92, in test_no_route_names_the_role_of_a_staff_address
+    self.assertIsNone(ROLE_WORDS.search(body), body[:300])
+AssertionError: <re.Match object; span=(59, 66), match='teacher'> is not None : {"success":false,"message":"Email: This email belongs to a teacher account and cannot be added as a student.","error":{"field_errors":{"email":["This email belongs to a teacher account and cannot be added as a student."]}}}
+
+======================================================================
+FAIL: test_no_route_names_the_role_of_a_staff_address (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_no_route_names_the_role_of_a_staff_address) (role='teacher', route='bulk import')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 92, in test_no_route_names_the_role_of_a_staff_address
+    self.assertIsNone(ROLE_WORDS.search(body), body[:300])
+AssertionError: <re.Match object; span=(193, 200), match='teacher'> is not None : {"success":true,"message":"Request Successful","data":{"total_processed":1,"success_count":0,"failure_count":1,"results":[{"name":"Probe Row","status":"failed","error":"This email belongs to a teacher account and cannot be added as a student."}]}}
+
+======================================================================
+FAIL: test_no_route_names_the_role_of_a_staff_address (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_no_route_names_the_role_of_a_staff_address) (role='teacher', route='direct add')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 92, in test_no_route_names_the_role_of_a_staff_address
+    self.assertIsNone(ROLE_WORDS.search(body), body[:300])
+AssertionError: <re.Match object; span=(59, 66), match='teacher'> is not None : {"success":false,"message":"Email: This email belongs to a teacher account and cannot be added as a student.","error":{"field_errors":{"email":["This email belongs to a teacher account and cannot be added as a student."]}}}
+
+======================================================================
+FAIL: test_no_route_names_the_role_of_a_staff_address (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_no_route_names_the_role_of_a_staff_address) (role='school admin', route='single add')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 92, in test_no_route_names_the_role_of_a_staff_address
+    self.assertIsNone(ROLE_WORDS.search(body), body[:300])
+AssertionError: <re.Match object; span=(107, 112), match='admin'> is not None : {"success":false,"message":"Email: This email already exists in the system and cannot be added as a school admin.","error":{"field_errors":{"email":["This email already exists in the system and cannot be added as a school admin."]}}}
+
+======================================================================
+FAIL: test_no_route_names_the_role_of_a_staff_address (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_no_route_names_the_role_of_a_staff_address) (role='school admin', route='bulk import')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 92, in test_no_route_names_the_role_of_a_staff_address
+    self.assertIsNone(ROLE_WORDS.search(body), body[:300])
+AssertionError: <re.Match object; span=(200, 205), match='admin'> is not None : {"success":true,"message":"Request Successful","data":{"total_processed":1,"success_count":0,"failure_count":1,"results":[{"name":"Probe Row","status":"failed","error":"This email belongs to a school admin account and cannot be added as a student."}]}}
+
+======================================================================
+FAIL: test_no_route_names_the_role_of_a_staff_address (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_no_route_names_the_role_of_a_staff_address) (role='super admin', route='single add')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 92, in test_no_route_names_the_role_of_a_staff_address
+    self.assertIsNone(ROLE_WORDS.search(body), body[:300])
+AssertionError: <re.Match object; span=(100, 105), match='super'> is not None : {"success":false,"message":"Email: This email already exists in the system and cannot be added as a super admin.","error":{"field_errors":{"email":["This email already exists in the system and cannot be added as a super admin."]}}}
+
+======================================================================
+FAIL: test_no_route_names_the_role_of_a_staff_address (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_no_route_names_the_role_of_a_staff_address) (role='super admin', route='bulk import')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 92, in test_no_route_names_the_role_of_a_staff_address
+    self.assertIsNone(ROLE_WORDS.search(body), body[:300])
+AssertionError: <re.Match object; span=(193, 198), match='super'> is not None : {"success":true,"message":"Request Successful","data":{"total_processed":1,"success_count":0,"failure_count":1,"results":[{"name":"Probe Row","status":"failed","error":"This email belongs to a super admin account and cannot be added as a student."}]}}
+
+======================================================================
+FAIL: test_single_add_and_bulk_import_give_the_neutral_message (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_single_add_and_bulk_import_give_the_neutral_message) (role='teacher')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 102, in test_single_add_and_bulk_import_give_the_neutral_message
+    self.assertIn(NOT_A_STUDENT_MESSAGE, single[1].content.decode())
+AssertionError: "This email can't be added as a student." not found in '{"success":false,"message":"Email: This email belongs to a teacher account and cannot be added as a student.","error":{"field_errors":{"email":["This email belongs to a teacher account and cannot be added as a student."]}}}'
+
+======================================================================
+FAIL: test_single_add_and_bulk_import_give_the_neutral_message (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_single_add_and_bulk_import_give_the_neutral_message) (role='school admin')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 102, in test_single_add_and_bulk_import_give_the_neutral_message
+    self.assertIn(NOT_A_STUDENT_MESSAGE, single[1].content.decode())
+AssertionError: "This email can't be added as a student." not found in '{"success":false,"message":"Email: This email already exists in the system and cannot be added as a school admin.","error":{"field_errors":{"email":["This email already exists in the system and cannot be added as a school admin."]}}}'
+
+======================================================================
+FAIL: test_single_add_and_bulk_import_give_the_neutral_message (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_single_add_and_bulk_import_give_the_neutral_message) (role='super admin')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 102, in test_single_add_and_bulk_import_give_the_neutral_message
+    self.assertIn(NOT_A_STUDENT_MESSAGE, single[1].content.decode())
+AssertionError: "This email can't be added as a student." not found in '{"success":false,"message":"Email: This email already exists in the system and cannot be added as a super admin.","error":{"field_errors":{"email":["This email already exists in the system and cannot be added as a super admin."]}}}'
+
+======================================================================
+FAIL: test_the_service_rule_raises_the_neutral_message_and_logs_ids_only (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_the_service_rule_raises_the_neutral_message_and_logs_ids_only) (role='teacher')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 134, in test_the_service_rule_raises_the_neutral_message_and_logs_ids_only
+    with self.assertLogs("classrooms.services.enrollment", "INFO") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level INFO or higher triggered on classrooms.services.enrollment
+
+======================================================================
+FAIL: test_the_service_rule_raises_the_neutral_message_and_logs_ids_only (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_the_service_rule_raises_the_neutral_message_and_logs_ids_only) (role='school admin')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 134, in test_the_service_rule_raises_the_neutral_message_and_logs_ids_only
+    with self.assertLogs("classrooms.services.enrollment", "INFO") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level INFO or higher triggered on classrooms.services.enrollment
+
+======================================================================
+FAIL: test_the_service_rule_raises_the_neutral_message_and_logs_ids_only (classrooms.tests_h71_student_add_role.StudentAddNamesNoRoleTests.test_the_service_rule_raises_the_neutral_message_and_logs_ids_only) (role='super admin')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_h71_student_add_role.py", line 134, in test_the_service_rule_raises_the_neutral_message_and_logs_ids_only
+    with self.assertLogs("classrooms.services.enrollment", "INFO") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level INFO or higher triggered on classrooms.services.enrollment
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.944s
+
+FAILED (failures=15)
+Destroying test database for alias 'default'...
+Found 5 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -1,0 +1,12 @@
+# S13: settings pass the switch to the factory
+# file: AutoGrader/settings.py (occurrence 1)
+# old: '_install_log_scrubbing(LOG_SCRUB_ADDRESSES)\n'
+# new: '_install_log_scrubbing(False)\n'
+# commit: 3da28258a6383bb82339fff0dc24ba2da0ba6487
+# exit: 1
+# elapsed_s: 7.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_it_is_on_and_scrubs_from_the_first_record (AutoGrader.tests_log_scrubbing.OutsideTheTestRunnerTests.test_it_is_on_and_scrubs_from_the_first_record)
+
+FAILED (failures=1)

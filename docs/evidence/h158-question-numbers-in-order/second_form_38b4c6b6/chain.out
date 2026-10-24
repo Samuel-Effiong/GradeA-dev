@@ -1,0 +1,21 @@
+07:10:05 (r) assignments/tests_question_numbers_in_order.py taken from 38b4c6b6, the rest is 7be08a58
+07:10:05 (r) start: loadavg 2.92 2.38 1.73 8/1994 28130
+07:10:27 (r) end: loadavg 2.92 2.42 1.75 7/2008 28412
+07:10:27 (r) exit=1 (1 is the expected one)
+07:10:27 (r) the red set is the expected one
+07:10:28 (r2) start: loadavg 2.93 2.43 1.76 3/1992 28430
+07:10:54 (r2) end: loadavg 3.81 2.70 1.87 5/1970 28719
+07:10:54 (r2) exit=1 (1 is the expected one)
+07:10:54 (r2) the red set is the expected one
+07:10:54 (r3) start: loadavg 3.81 2.70 1.87 10/1962 28744
+07:11:22 (r3) end: loadavg 3.74 2.77 1.92 3/1987 29134
+07:11:22 (r3) exit=1 (1 is the expected one)
+07:11:22 (r3) the red set is the expected one
+07:11:22 (a) start: loadavg 3.76 2.79 1.93 4/1987 29148
+07:15:19 (a) end: loadavg 3.90 3.06 2.20 2/1976 33877
+07:15:19 (a) exit=0
+07:15:19 (b) start: loadavg 3.90 3.06 2.20 3/1976 33884
+07:18:39 (b) end: loadavg 2.87 2.92 2.33 6/1975 38525
+07:18:39 (b) exit=0
+07:18:39 expected failing sets: 5 mutant(s) differ
+07:18:39 STOP: a mutant's failing set differs from the expected one

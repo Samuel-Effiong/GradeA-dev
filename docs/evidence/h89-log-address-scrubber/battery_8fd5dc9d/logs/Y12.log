@@ -1,0 +1,12 @@
+# Y12: P3: settings pass before_send_transaction
+# file: AutoGrader/settings.py (occurrence 1)
+# old: '            before_send_transaction=scrub_event,\n'
+# new: ''
+# commit: 8fd5dc9de325d48ff3895e6737570f5c13e8b57a
+# exit: 1
+# elapsed_s: 11.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_settings_pass_the_hooks_to_sentry (AutoGrader.tests_sentry_scrubbing.WiringTests.test_settings_pass_the_hooks_to_sentry)
+
+FAILED (failures=1)

@@ -1,0 +1,20 @@
+mypy: mypy.....................................................................Failed
+makemigrations: ModuleNotFoundError: No module named 'settings_worktree'
+bundle b12b strict full run start 2026-10-07 20:19:01 WAT sha=42a15357 load=3.18 4.11 4.02
+watchdog: stalled=0 (300 s silence rule; 0 = never fired)
+exit=0 end 2026-10-07 20:32:54 WAT wall=833s
+load at end: 6.48 6.79 5.87
+Ran 6133 tests in 461.455s
+OK (skipped=28)
+blocked_outbound=0
+per-app test counts:
+  ai_processor 852
+  assignments 663
+  AutoGrader 692
+  billing 2130
+  classrooms 434
+  dashboard 270
+  students 438
+  users 654
+FAIL/ERROR headers: 0
+suspends during run: 0

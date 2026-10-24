@@ -1,0 +1,16 @@
+users.tests_settings_viewset.SettingsScopingTests.test_anonymous_access_is_rejected ... ok
+users.tests_settings_viewset.SettingsScopingTests.test_cached_my_settings_is_not_shared_between_users ... ok
+users.tests_settings_viewset.SettingsScopingTests.test_create_is_disabled ... ok
+users.tests_settings_viewset.SettingsScopingTests.test_destroy_is_disabled ... ok
+users.tests_settings_viewset.SettingsScopingTests.test_list_is_superadmin_only ... ok
+users.tests_settings_viewset.SettingsScopingTests.test_my_settings_returns_the_callers_own_row ... ok
+users.tests_settings_viewset.SettingsScopingTests.test_my_settings_self_heals_a_missing_row ... ok
+users.tests_settings_viewset.SettingsScopingTests.test_owner_can_retrieve_own_settings ... ok
+users.tests_settings_viewset.SettingsScopingTests.test_owner_can_update_own_settings ... ok
+users.tests_settings_viewset.SettingsScopingTests.test_superadmin_can_list_all_settings ... ok
+users.tests_settings_viewset.SettingsScopingTests.test_superadmin_can_retrieve_another_users_settings ... ok
+users.tests_settings_viewset.SettingsScopingTests.test_user_cannot_reassign_their_settings_to_another_user ... ok
+users.tests_settings_viewset.SettingsScopingTests.test_user_cannot_retrieve_another_users_settings ... ok
+users.tests_settings_viewset.SettingsScopingTests.test_user_cannot_update_another_users_settings ... ok
+Ran 14 tests in 0.859s
+OK

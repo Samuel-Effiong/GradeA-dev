@@ -1,0 +1,13 @@
+# L13: abandon frees the licence (FAILED)
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '    is untouched, so FAILED is the truth, and the licence is free again."""\n    _set_status('
+# new: '    is untouched, so FAILED is the truth, and the licence is free again."""\n    return\n    _set_status('
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 44.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_unreadable_subscription_frees_the_licence (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_an_unreadable_subscription_frees_the_licence)
+FAIL: test_a_failed_price_creation_changes_nothing_and_frees_the_licence (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_a_failed_price_creation_changes_nothing_and_frees_the_licence)
+
+FAILED (failures=2)

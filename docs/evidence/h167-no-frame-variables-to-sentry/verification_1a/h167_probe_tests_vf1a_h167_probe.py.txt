@@ -1,0 +1,242 @@
+"""Verifier 1's probes for H-167 (an error report carries no frame variables
+and no request body).
+
+Not the author's tests. The author tests the settings by laying the init
+call's literal values over the SDK's default options and calling the SDK's
+own functions, and names that as the first thing to attack. These probes
+build a REAL sentry_sdk client from the same values and collect what it
+would send, in memory: the transport below never opens a connection, and
+the made address ends in .invalid. Rule 19: each is evidence only once a
+run has shown it red under the mutant named for it in
+h167_expected_kills.txt.
+
+  sa  a real client made with our init call's privacy values resolves them
+      and sends an event whose frames carry no variables; a client with the
+      SDK's defaults sends them (the control)
+  sb  the same real client refuses every request body; the default client
+      accepts a small one (the control)
+  sc  the hooks scrub the four new parts of an event in shapes the author's
+      tests do not use (tags as a list of pairs, nested contexts, a query
+      string, a header) and leave an absent part absent
+  sd  the pattern beside addresses and beside another name, and on a value
+      that is not text yet
+  se  an event that passes through a real client WITH our before_send hook
+      still arrives, with the value after the name replaced
+
+No line of this file writes a name and a value joined by the sign the
+pattern looks for: they are joined at run time.
+
+Second version. The first (kept as h167_probe_v1_as_run_17h49.py) named its
+helper method `client`; Django's test case sets `self.client` to its own
+test client on every instance, so sa, sb and se errored on the baseline
+("'Client' object is not callable") before reaching the SDK. The helper
+is now `real_client`; nothing else is changed.
+"""
+
+import ast
+import json
+import sys
+
+import sentry_sdk
+from django.test import SimpleTestCase
+from sentry_sdk.integrations._wsgi_common import request_body_within_bounds
+from sentry_sdk.transport import Transport
+from sentry_sdk.utils import event_from_exception
+
+from AutoGrader.log_scrubbing import scrub
+from AutoGrader.sentry_scrubbing import scrub_event
+from AutoGrader.tests_sentry_sends_no_variables import init_keywords
+
+REPLACED = "[secret]"
+MADE = ["mvA7x", "mvB8y", "mvC9z", "mvD1q", "mvE2r", "mvF3s"]
+PRIVACY_NAMES = ("send_default_pii", "include_local_variables", "max_request_body_size")
+
+
+def named(name, value):
+    """`name`, the sign, `value`: joined here and nowhere else."""
+    return name + chr(61) + value
+
+
+class Collect(Transport):
+    """Keeps every envelope in memory. Nothing leaves the process."""
+
+    def __init__(self, options=None):
+        super().__init__(options)
+        self.envelopes = []
+
+    def capture_envelope(self, envelope):
+        self.envelopes.append(envelope)
+
+
+def our_privacy_values():
+    """The three privacy values of the one init call in settings.py, as
+    literals. One that is not passed there is not passed here either, so
+    the SDK's own default applies, as it would in production."""
+    found = init_keywords()
+    return {
+        name: ast.literal_eval(found[name]) for name in PRIVACY_NAMES if name in found
+    }
+
+
+def a_client(**values):
+    return sentry_sdk.Client(
+        dsn="https://" + "probe" + "@" + "errors.invalid/1",
+        transport=Collect,
+        default_integrations=False,
+        auto_enabling_integrations=False,
+        integrations=[],
+        **values,
+    )
+
+
+def sent_for(client, fails):
+    """The events `client` hands to its transport for the exception that
+    `fails()` raises. Built and captured the way the SDK does it: with the
+    client's own resolved options."""
+    try:
+        fails()
+    except RuntimeError:
+        event, hint = event_from_exception(sys.exc_info(), client_options=client.options)
+    client.capture_event(event, hint=hint)
+    client.flush()
+    events = [envelope.get_event() for envelope in client.transport.envelopes]
+    return [event for event in events if event is not None]
+
+
+def frames_of(events):
+    return [
+        frame
+        for event in events
+        for value in event["exception"]["values"]
+        for frame in value["stacktrace"]["frames"]
+    ]
+
+
+def fails_holding_a_value():
+    a_local_variable = MADE[0] + MADE[1]
+    raise RuntimeError("made to fail " + str(len(a_local_variable)))
+
+
+def fails_with_a_named_value_in_its_text():
+    raise RuntimeError(
+        "queue down for someone.private@school-example.edu Pool<host=q,"
+        + named("password", MADE[2] + ", " + MADE[3])
+    )
+
+
+class Vf1aRealClientProbe(SimpleTestCase):
+    def real_client(self, **values):
+        client = a_client(**values)
+        self.addCleanup(client.close)
+        return client
+
+    def test_sa_a_real_client_with_our_values_sends_no_frame_variables(self):
+        held = MADE[0] + MADE[1]
+
+        # The control: the SDK's defaults send the variable.
+        control = sent_for(self.real_client(), fails_holding_a_value)
+        self.assertEqual(len(control), 1)
+        self.assertTrue([frame for frame in frames_of(control) if "vars" in frame])
+        self.assertIn(held, json.dumps(control, default=str))
+
+        ours = self.real_client(**our_privacy_values())
+        self.assertIs(ours.options["include_local_variables"], False)
+        events = sent_for(ours, fails_holding_a_value)
+
+        self.assertEqual(len(events), 1)
+        frames = frames_of(events)
+        self.assertIn("fails_holding_a_value", [frame["function"] for frame in frames])
+        self.assertEqual([frame for frame in frames if "vars" in frame], [])
+        self.assertNotIn(held, json.dumps(events, default=str))
+        self.assertEqual(events[0]["exception"]["values"][0]["type"], "RuntimeError")
+
+    def test_sb_a_real_client_with_our_values_takes_no_request_body(self):
+        self.assertTrue(request_body_within_bounds(self.real_client(), 10))
+
+        ours = self.real_client(**our_privacy_values())
+        self.assertEqual(ours.options["max_request_body_size"], "never")
+        for length in (0, 1, 10, 10**4, 10**6):
+            with self.subTest(length=length):
+                self.assertFalse(request_body_within_bounds(ours, length))
+
+    def test_se_an_event_through_a_real_client_with_our_hook_arrives_scrubbed(self):
+        ours = self.real_client(before_send=scrub_event, **our_privacy_values())
+
+        events = sent_for(ours, fails_with_a_named_value_in_its_text)
+
+        # It arrived: the hook did not drop it and the client accepted it.
+        self.assertEqual(len(events), 1)
+        text = json.dumps(events, default=str)
+        self.assertEqual(events[0]["exception"]["values"][0]["type"], "RuntimeError")
+        self.assertIn("queue down for [email]", text)
+        self.assertIn(named("password", REPLACED), text)
+        for piece in (MADE[2], MADE[3], "someone.private"):
+            self.assertNotIn(piece, text)
+
+
+class Vf1aHookShapesProbe(SimpleTestCase):
+    def test_sc_the_four_new_parts_in_other_shapes(self):
+        event = {
+            "tags": [["mode", named("password", MADE[0])], ["region", "eu"]],
+            "contexts": {
+                "queue": {
+                    "pool": "Pool<host=q," + named("password", MADE[1]) + ">",
+                    "depth": 3,
+                    "nested": [named("token", MADE[2]), None, True],
+                }
+            },
+            "user": {"id": 7, "username": named("secret", MADE[3])},
+            "request": {
+                "url": "https://school.invalid/a",
+                "query_string": "next=1&" + named("token", MADE[4]),
+                "headers": {"X-Note": named("passwd", MADE[5])},
+            },
+            "release": "r1",
+            "level": "error",
+        }
+
+        out = scrub_event(event, {})
+
+        self.assertIs(out, event)
+        text = json.dumps(out)
+        for piece in MADE:
+            self.assertNotIn(piece, text)
+        self.assertEqual(
+            out["tags"], [["mode", named("password", REPLACED)], ["region", "eu"]]
+        )
+        self.assertEqual(out["contexts"]["queue"]["depth"], 3)
+        self.assertEqual(
+            out["contexts"]["queue"]["nested"], [named("token", REPLACED), None, True]
+        )
+        self.assertEqual(out["user"]["id"], 7)
+        self.assertEqual(out["request"]["url"], "https://school.invalid/a")
+        self.assertEqual(
+            out["request"]["query_string"], "next=1&" + named("token", REPLACED)
+        )
+        self.assertEqual(out["release"], "r1")
+
+        # A part that is absent or None stays so, and plain text is kept.
+        plain = {"tags": None, "request": None, "message": "plain words"}
+        self.assertEqual(
+            scrub_event(dict(plain), {}),
+            {"tags": None, "request": None, "message": "plain words"},
+        )
+
+    def test_sd_the_pattern_beside_addresses_another_name_and_an_object(self):
+        line = (
+            "see c@d.test "
+            + named("token", MADE[0])
+            + " mid "
+            + named("password", MADE[1])
+            + " e@f.test\nkept line"
+        )
+        self.assertEqual(
+            scrub(line), "see [email] " + named("token", REPLACED) + "\nkept line"
+        )
+
+        class Holder:
+            def __str__(self):
+                return named("secret", MADE[2])
+
+        out = scrub_event({"extra": {"held": Holder()}}, {})
+        self.assertEqual(out["extra"]["held"], named("secret", REPLACED))

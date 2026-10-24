@@ -1,0 +1,52 @@
+# P09: claim fenced on the attempts seen
+# file: billing/event_replay.py line: None
+# old: '        auto_replay_attempts=event_row.auto_replay_attempts,\n'
+# new: ''
+# modules: billing.tests.test_event_replay.ReplayOneGuardTests
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
+# exit: 1
+# elapsed_s: 3.8
+# restored_sha256_matches_commit_blob: True
+
+Found 4 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_h62_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_exhausted_row_is_not_run_even_when_handed_over (billing.tests.test_event_replay.ReplayOneGuardTests.test_exhausted_row_is_not_run_even_when_handed_over) ... Cannot activate automatic trial for user guards@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_row_already_claimed_by_a_live_worker_is_not_run (billing.tests.test_event_replay.ReplayOneGuardTests.test_row_already_claimed_by_a_live_worker_is_not_run) ... Cannot activate automatic trial for user guards@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_runs_exactly_the_mapped_handler_not_the_dispatcher (billing.tests.test_event_replay.ReplayOneGuardTests.test_runs_exactly_the_mapped_handler_not_the_dispatcher) ... Cannot activate automatic trial for user guards@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+Auto-replayed FAILED Stripe event evt_direct (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+ok
+test_stale_copy_from_a_sweep_that_lost_the_race_is_not_run (billing.tests.test_event_replay.ReplayOneGuardTests.test_stale_copy_from_a_sweep_that_lost_the_race_is_not_run)
+Another sweep replayed it, and it failed again, since we read it. ... Cannot activate automatic trial for user guards@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+Auto-replayed FAILED Stripe event evt_stale (checkout.session.completed, attempt 1 of 3) and it succeeded. A customer who had paid without receiving credits has now been credited.
+FAIL
+
+======================================================================
+FAIL: test_stale_copy_from_a_sweep_that_lost_the_race_is_not_run (billing.tests.test_event_replay.ReplayOneGuardTests.test_stale_copy_from_a_sweep_that_lost_the_race_is_not_run)
+Another sweep replayed it, and it failed again, since we read it.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-P09-p0ambdn1/wt/billing/tests/test_event_replay.py", line 227, in test_stale_copy_from_a_sweep_that_lost_the_race_is_not_run
+    self.assertEqual(outcome, ReplayOutcome.CLAIM_LOST)
+AssertionError: <ReplayOutcome.REPLAYED: 'replayed'> != <ReplayOutcome.CLAIM_LOST: 'claim_lost'>
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.139s
+
+FAILED (failures=1)
+Preserving test database for alias 'default' ('test_h62_mut')...

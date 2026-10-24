@@ -1,0 +1,57 @@
+[INFO] Initializing environment for https://github.com/pre-commit/mirrors-mypy:types-requests,types-redis,types-waitress,types-python-dateutil,types-bleach,django-stubs==5.2.8,djangorestframework-stubs==3.16.6.
+[INFO] Installing environment for https://github.com/pre-commit/mirrors-mypy.
+[INFO] Once installed this environment will be reused.
+[INFO] This may take a few minutes...
+mypy.....................................................................Failed
+- hook id: mypy
+- exit code: 1
+
+Error constructing plugin instance of NewSemanalDjangoPlugin
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.cache/pre-commit/repon9tubrau/py_env-python3.12/bin/mypy", line 6, in <module>
+    sys.exit(console_entry())
+             ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.cache/pre-commit/repon9tubrau/py_env-python3.12/lib/python3.12/site-packages/mypy/__main__.py", line 15, in console_entry
+    main()
+  File "mypy/main.py", line 127, in main
+  File "mypy/main.py", line 211, in run_build
+  File "mypy/build.py", line 191, in build
+  File "mypy/build.py", line 237, in _build
+  File "mypy/build.py", line 502, in load_plugins
+  File "mypy/build.py", line 483, in load_plugins_from_config
+  File "/home/bond-servant-in-training/.cache/pre-commit/repon9tubrau/py_env-python3.12/lib/python3.12/site-packages/mypy_django_plugin/main.py", line 64, in __init__
+    self.django_context = DjangoContext(self.plugin_config.django_settings_module)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.cache/pre-commit/repon9tubrau/py_env-python3.12/lib/python3.12/site-packages/mypy_django_plugin/django/context.py", line 114, in __init__
+    apps, settings = initialize_django(self.django_settings_module)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.cache/pre-commit/repon9tubrau/py_env-python3.12/lib/python3.12/site-packages/mypy_django_plugin/django/context.py", line 68, in initialize_django
+    settings._setup()  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.cache/pre-commit/repon9tubrau/py_env-python3.12/lib/python3.12/site-packages/django/conf/__init__.py", line 109, in _setup
+    self._wrapped = Settings(settings_module)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.cache/pre-commit/repon9tubrau/py_env-python3.12/lib/python3.12/site-packages/django/conf/__init__.py", line 251, in __init__
+    mod = importlib.import_module(self.SETTINGS_MODULE)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1310, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 999, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-mypy-django-stubs/AutoGrader/__init__.py", line 1, in <module>
+    from .celery import app as celery_app
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-mypy-django-stubs/AutoGrader/celery.py", line 3, in <module>
+    from celery import Celery
+ModuleNotFoundError: No module named 'celery'
+
+EXIT:1

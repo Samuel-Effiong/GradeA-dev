@@ -1,0 +1,25 @@
+tree search at 6f6a56ca, 2026-10-07 13:40:22
+pattern: assignment_due_date|course_title|assignment__title|assignment__due_date|assignment__course  over '*test*.py'
+AutoGrader/tests_cache_bespoke_1114.py:369:    # `assignment_title`, `assignment_due_date` and `course_title` were
+AutoGrader/tests_cache_bespoke_1114.py:392:        self.assertEqual(answer["course_title"], "Original Course")
+AutoGrader/tests_cache_bespoke_1114.py:395:        self.assertEqual(answer["assignment_due_date"], standard(self.due(14)))
+AutoGrader/tests_cache_bespoke_1114.py:396:        self.assertEqual(answer["assignment_due_date"], "2026-10-14T09:00:00Z")
+AutoGrader/tests_cache_bespoke_1114.py:411:        self.assertIn("assignment_due_date", answer)
+AutoGrader/tests_cache_bespoke_1114.py:412:        self.assertIsNone(answer["assignment_due_date"])
+AutoGrader/tests_cache_bespoke_1114.py:425:                    "assignment_due_date",
+AutoGrader/tests_cache_bespoke_1114.py:426:                    "course_title",
+AutoGrader/tests_cache_bespoke_1114.py:447:        for key in ("assignment_title", "assignment_due_date", "course_title"):
+AutoGrader/tests_cache_bespoke_1114.py:459:        self.assertEqual(before["assignment_due_date"], "2026-10-14T09:00:00Z")
+AutoGrader/tests_cache_bespoke_1114.py:460:        self.assertEqual(after["assignment_due_date"], "2026-10-21T09:00:00Z")
+AutoGrader/tests_cache_bespoke_1114.py:469:        self.assertEqual(before.pop("course_title"), "Original Course")
+AutoGrader/tests_cache_bespoke_1114.py:470:        self.assertEqual(after.pop("course_title"), "Renamed Course")
+AutoGrader/tests_cache_bespoke_1114.py:488:        for key in ("assignment_title", "assignment_due_date", "course_title"):
+AutoGrader/tests_migration_rollback_defaults.py:71:    "assignments": "0037_assignment_course_title_index",
+classrooms/tests_recalculate_final_grades.py:39:        student=student, assignment__course=course, score_percentage__isnull=False
+classrooms/tests_teacher_access_sweep.py:168:            "Topic.objects.filter(assignment__course__teacher=teacher)",
+dashboard/tests_dashboard_remediation.py:342:        assignment__course_id__in=course_ids, graded_at__isnull=False
+dashboard/tests_h14_at_risk_equivalence.py:74:            assignment__course_id__in=all_course_ids,
+students/tests.py:213:    bypassing get_queryset()'s `assignment__course__teacher=user` scoping
+students/tests_submission_list_queries.py:264:            assignment__course__teacher=self.teacher
+students/tests_submission_list_queries.py:300:            assignment__course__teacher=self.teacher
+students/tests_submission_list_queries.py:340:                assignment__course__teacher=self.teacher

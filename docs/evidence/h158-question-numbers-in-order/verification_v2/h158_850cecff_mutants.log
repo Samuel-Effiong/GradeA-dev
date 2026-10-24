@@ -1,0 +1,11 @@
+M1_extraction_keeps_the_models_numbers | v2's probe | KILLED | Ran 5 tests in 1.497s | FAILED (failures=2) | expected ('test_z2_a_repeat_from_the_model_is_graded_in_full', 'test_z7_a_repeat_in_a_paper_that_does_not_start_at_one') | failing ['test_z2_a_repeat_from_the_model_is_graded_in_full', 'test_z7_a_repeat_in_a_paper_that_does_not_start_at_one']
+  restore assignments/services.py ok | __pycache__ cleared
+M2_the_numberer_leaves_each_entry_as_it_was | v2's probe | KILLED | Ran 5 tests in 1.324s | FAILED (failures=2) | expected ('test_z2_a_repeat_from_the_model_is_graded_in_full', 'test_z7_a_repeat_in_a_paper_that_does_not_start_at_one') | failing ['test_z2_a_repeat_from_the_model_is_graded_in_full', 'test_z7_a_repeat_in_a_paper_that_does_not_start_at_one']
+  restore assignments/services.py ok | __pycache__ cleared
+M3_the_number_field_takes_text | v2's probe | KILLED | Ran 5 tests in 1.365s | FAILED (failures=1) | expected ('test_z1_the_number_field_refuses_what_the_last_defence_never_sees',) | failing ['test_z1_the_number_field_refuses_what_the_last_defence_never_sees']
+  restore assignments/serializers.py ok | __pycache__ cleared
+M4_a_repeat_is_kept_as_the_model_gave_it | v2's probe | KILLED | Ran 5 tests in 1.358s | FAILED (failures=2) | expected ('test_z2_a_repeat_from_the_model_is_graded_in_full', 'test_z7_a_repeat_in_a_paper_that_does_not_start_at_one') | failing ['test_z2_a_repeat_from_the_model_is_graded_in_full', 'test_z7_a_repeat_in_a_paper_that_does_not_start_at_one']
+  restore assignments/services.py ok | __pycache__ cleared
+M5_distinct_numbers_are_numbered_all_the_same | v2's probe | KILLED | Ran 5 tests in 1.306s | FAILED (failures=1) | expected ('test_z6_numbers_that_are_already_distinct_are_kept',) | failing ['test_z6_numbers_that_are_already_distinct_are_kept']
+  restore assignments/services.py ok | __pycache__ cleared
+edge | Ran 1 test in 0.003s | OK | []

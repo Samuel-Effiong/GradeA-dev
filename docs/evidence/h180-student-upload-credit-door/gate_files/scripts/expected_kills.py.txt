@@ -1,0 +1,132 @@
+"""H-180: written on 2026-10-08 BEFORE any run of the row, by reading every
+one of the module's 17 tests against every mutant and against the base
+(beta 035e0a07, no door, no shared estimate method).
+NOT seen by any run: all of it. Nothing here was predicted by calling the
+tests; the route tests need a database.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log: final tests on the BASE 035e0a07>"""
+import re
+import sys
+from pathlib import Path
+
+SU = "StudentUploadDoorTest"
+TB = "TeacherBatchDoorTest"
+AU = "AssignmentUploadDoorTest"
+DF = "TheDoorFunctionTest"
+GA = "TheGateAsksTheSameMethodTest"
+XS = "WhatAStudentReadsWhenTheTaskIsRefusedTest"
+S1 = (SU, "test_a_wallet_below_the_estimate_is_refused_before_anything_is_queued")
+S2 = (SU, "test_the_sentence_a_student_reads_names_no_money")
+S3 = (SU, "test_a_wallet_above_the_estimate_is_queued_as_before")
+S4 = (SU, "test_the_line_is_the_estimate_itself_one_below_refuses_the_estimate_passes")
+S5 = (SU, "test_the_door_asks_the_shared_estimate_method_and_nothing_else")
+S6 = (SU, "test_a_file_the_door_cannot_read_is_left_to_the_task")
+S7 = (SU, "test_a_teacher_without_a_wallet_is_left_to_the_permission")
+B1 = (TB, "test_a_poor_teacher_is_refused_and_nothing_is_queued")
+B2 = (TB, "test_a_funded_teacher_is_queued_as_before")
+A1 = (AU, "test_a_poor_teacher_is_refused_and_nothing_is_queued")
+A2 = (AU, "test_a_funded_teacher_is_queued_as_before")
+D1 = (DF, "test_a_super_admin_is_never_refused_and_a_poor_teacher_is")
+G1 = (GA, "test_the_gate_refuses_what_the_shared_method_says_is_too_dear")
+G2 = (GA, "test_the_gate_lets_through_what_the_shared_method_says_is_cheap")
+G3 = (GA, "test_the_method_counts_the_text_the_images_and_the_flat_part")
+X1 = (XS, "test_a_student_reads_the_fixed_sentence")
+X2 = (XS, "test_a_teacher_keeps_the_generic_text")
+#: Never in a mutant's set by design (controls of the old behaviour, green on
+#: the base too): S3 only fails under M9 (payload), S6 only under M10, S7
+#: only under M11, X2 only under M14.
+
+EXPECTED = {
+    "M1": {S1, S2, S4, S5},
+    "M2": {B1},
+    "M3": {A1},
+    "M4": {S4},
+    "M5": {S4, S5},
+    "M6": {G1, G2},
+    "M7": {S1, S2},
+    "M8": {B1, A1},
+    "M9": {S3, B2, A2},
+    "M10": {S6},
+    "M11": {S7},
+    "M12": {D1},
+    "M13": {X1},
+    "M14": {X2},
+    "M15": {X1},
+    "M16": {S1, S2, S4, S5},
+    "M17": {G3},
+    "M18": {G3},
+}
+#: The BASE 035e0a07 with the FINAL test file. Red: everything that needs the
+#: door, the shared method, the fixed sentence, or the new module. Green there
+#: (they hold the old behaviour or ask nothing new): S3, S6, S7, B2, A2, X2.
+REPRO = {S1, S2, S4, S5, B1, A1, D1, G1, G2, G3, X1}
+#: RULE 22: per test, fragments that must be in ITS OWN failure block at (r),
+#: written before the run, from reading the base (035e0a07: no door, no
+#: shared method, no fixed sentence). The base queues every upload a wallet
+#: above 0 can start, so the two route tests answer 200 (student) or 202
+#: (teacher batch, assignment) where 402 is wanted; the tests that need the
+#: shared method fail on its missing name; the door function's module does not
+#: exist; the status route shows the generic text.
+REASON = {
+    S1: ("200 != 402",),
+    S2: ("KeyError: 'error'",),
+    S4: ("estimate_messages_cost",),
+    S5: ("estimate_messages_cost",),
+    B1: ("202 != 402",),
+    A1: ("202 != 402",),
+    D1: ("assignments.upload_door",),
+    G1: ("estimate_messages_cost",),
+    G2: ("estimate_messages_cost",),
+    G3: ("estimate_messages_cost",),
+    X1: ("self.assertIn(STUDENT_SENTENCE, text)",),
+}
+BLOCK = re.compile(
+    r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)\n(.*?)(?=^(?:FAIL|ERROR): |^Ran \d+ tests)",
+    re.M | re.S,
+)
+
+
+def wrong_reasons(text):
+    blocks = {(p.split(".")[-2], n): body for n, p, body in BLOCK.findall(text)}
+    out = []
+    for test, fragments in REASON.items():
+        if test in blocks:
+            missing = [f for f in fragments if f not in blocks[test]]
+            if missing:
+                out.append(f"{test[1]}: not in its own failure: {missing}")
+    return out
+
+
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] == "--repro":
+    log = Path(sys.argv[2]).read_text(errors="replace")
+    bad = compare("repro", failing(log), REPRO)
+    reasons = wrong_reasons(log)
+    for line in reasons:
+        print("WRONG REASON:", line)
+    bad = bad or bool(reasons)
+    print("the red set is the expected one" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    bad = sum(
+        compare(mutant, failing((logs / f"{mutant}.log").read_text(errors="replace")), expected)
+        for mutant, expected in EXPECTED.items()
+    )
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

@@ -1,0 +1,19 @@
+# S3: the exception text is rendered and scrubbed when the record is made
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '                record.exc_text = _scrubbed_exception_text(record.exc_info)\n'
+# new: '                pass\n'
+# commit: 8fd5dc9de325d48ff3895e6737570f5c13e8b57a
+# exit: 1
+# elapsed_s: 11.7
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_msg_args_and_exc_info_are_left_as_they_were (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_msg_args_and_exc_info_are_left_as_they_were)
+FAIL: test_an_unexpected_failure_keeps_its_traceback_and_loses_the_address (billing.tests.test_log_scrubbing_end_to_end.ScrubberOnEndToEndTests.test_an_unexpected_failure_keeps_its_traceback_and_loses_the_address)
+FAIL: test_a_celery_task_loggers_own_formatter (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_a_celery_task_loggers_own_formatter)
+FAIL: test_a_chained_exception (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_a_chained_exception)
+FAIL: test_a_constraint_error_naming_the_address (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_a_constraint_error_naming_the_address)
+FAIL: test_an_error_built_with_an_address (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_an_error_built_with_an_address)
+FAIL: test_logger_exception (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_logger_exception)
+FAIL: test_exception_text_that_cannot_be_rendered_fails_closed (AutoGrader.tests_log_scrubbing.InstallTests.test_exception_text_that_cannot_be_rendered_fails_closed)
+
+FAILED (failures=7, errors=1)

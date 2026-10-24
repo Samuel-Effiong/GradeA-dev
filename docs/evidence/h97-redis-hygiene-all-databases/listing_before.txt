@@ -1,0 +1,14 @@
+listing before the first run with the fix 2026-10-02 17:03:20
+db0: dead-pid gaplus-t keys=0 (0 prefixes); live-pid gaplus-t keys=31 (1 pids); other families: _kombu.binding.celery=1, _kombu.binding.celery.pi=1, _kombu.binding.celeryev=1, celery=1, gaplus=35
+db1: dead-pid gaplus-t keys=0 (0 prefixes); live-pid gaplus-t keys=0 (0 pids); other families: secreplayNf=2
+db2: dead-pid gaplus-t keys=0 (0 prefixes); live-pid gaplus-t keys=0 (0 pids); other families: gaplus=1
+db7: dead-pid gaplus-t keys=0 (0 prefixes); live-pid gaplus-t keys=0 (0 pids); other families: secreplayN=7, secreplayNp=5
+db8: dead-pid gaplus-t keys=0 (0 prefixes); live-pid gaplus-t keys=0 (0 pids); other families: secreplayN=2, secreplayNp=2
+db9: dead-pid gaplus-t keys=0 (0 prefixes); live-pid gaplus-t keys=0 (0 pids); other families: _kombu.binding.celery=1, celery=1, gaplus=16
+db10: dead-pid gaplus-t keys=0 (0 prefixes); live-pid gaplus-t keys=0 (0 pids); other families: _kombu.binding.celery=1, celery=1, gaplus=22, secreplayN=2, secreplayNm=2
+db11: dead-pid gaplus-t keys=0 (0 prefixes); live-pid gaplus-t keys=0 (0 pids); other families: secreplayN=76
+db12: dead-pid gaplus-t keys=0 (0 prefixes); live-pid gaplus-t keys=0 (0 pids); other families: secreplayN=2
+db13: dead-pid gaplus-t keys=0 (0 prefixes); live-pid gaplus-t keys=0 (0 pids); other families: secbillNa=52, secbillNafix=36, secreplayN=66
+db14: dead-pid gaplus-t keys=1 (1 prefixes); live-pid gaplus-t keys=0 (0 pids); other families: oauthreplaybase=4, oauthreplayfix=4, oauthreplayvbase=4, oauthreplayvfix=4, secreplayN=2, verifyreplaybase=5, verifyreplayfix=6
+db15: dead-pid gaplus-t keys=0 (0 prefixes); live-pid gaplus-t keys=0 (0 pids); other families: secbillNa=3, secbillNafix=2, secreplayNf=20
+TOTAL dead-pid gaplus-t keys: 1

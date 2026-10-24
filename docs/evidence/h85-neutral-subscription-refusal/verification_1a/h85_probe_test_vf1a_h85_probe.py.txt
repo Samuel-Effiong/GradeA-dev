@@ -1,0 +1,208 @@
+"""1a's verification probes for H-85. Not committed.
+
+Reuses d5's fixture; the inherited d5 tests are switched off.
+
+Z1: every path by which the refusal's text reaches a school admin or a
+    super admin: the add-teachers response (an unattached paying teacher,
+    and the school's own), licence creation with teacher_emails, and the
+    race path (the teacher subscribes between the invite check and the
+    enrolment). Each must be the neutral sentence, with no telling word
+    and no address in the message; and the ENROLMENT site's own log line
+    must still give support the reason, by id.
+Z2 (observation): what an admin can still tell apart, from the refusal
+    text alone, for six kinds of address.
+"""
+
+import json
+import logging
+from datetime import timedelta
+from unittest.mock import patch
+
+from django.urls import reverse
+from django.utils import timezone
+
+from billing.license_service import LicenseSubscriptionService
+from billing.models import LicenseBillingMethod, SchoolCreditAllocation, UserSubscription
+from billing.tests.test_neutral_subscription_refusal import (
+    NEUTRAL,
+    TELLING_WORDS,
+    NeutralSubscriptionRefusalTest,
+)
+from classrooms.models import School
+from users.models import CustomUser, UserTypes
+
+
+def only_own_tests(cls, parent):
+    for name in dir(parent):
+        if name.startswith("test_") and name not in cls.__dict__:
+            setattr(cls, name, None)
+    return cls
+
+
+class Recorder(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.rows = []
+
+    def emit(self, record):
+        self.rows.append((record.name, record.levelname, record.getMessage()))
+
+
+class H85Probes(NeutralSubscriptionRefusalTest):
+    def setUp(self):
+        super().setUp()
+        self.recorder = Recorder()
+        logger = logging.getLogger("billing.license_service")
+        logger.addHandler(self.recorder)
+        self.addCleanup(logger.removeHandler, self.recorder)
+
+    def add(self, emails):
+        response = self.client.post(
+            reverse("license-subscription-add-teachers", kwargs={"pk": self.licence.pk}),
+            {"teacher_emails": emails},
+            format="json",
+        )
+        return response.status_code, response.content.decode()
+
+    def assertSaysNothing(self, text, *addresses_not_typed):
+        for word in TELLING_WORDS:
+            self.assertNotIn(word, text.lower())
+        for address in addresses_not_typed:
+            self.assertNotIn(address, text)
+
+    def reasons(self):
+        return [r for r in self.recorder.rows if "individual subscription" in r[2]]
+
+    # -- Z1 --------------------------------------------------------------------
+
+    def test_z1a_add_teachers_for_both_kinds_of_paying_teacher(self):
+        unattached = self.paying_teacher("unattached@h85probe.edu", None)
+        own = self.paying_teacher("own@h85school.edu", self.school)
+
+        status, body = self.add([unattached.email, own.email])
+        print(f"\nVF1A_H85_Z1A add-teachers: {status} {body}")
+
+        data = json.loads(body)
+        errors = (data.get("data") or data).get("errors")
+        self.assertEqual(len(errors), 2, body)
+        for entry in errors:
+            self.assertEqual(entry["error"], NEUTRAL)
+        # The body repeats the addresses the admin typed, and nothing else
+        # about their owners.
+        stripped = body.replace(unattached.email, "").replace(own.email, "")
+        self.assertSaysNothing(stripped)
+        self.assertNotIn("@", stripped)
+        for teacher in (unattached, own):
+            self.assertFalse(
+                SchoolCreditAllocation.objects.filter(
+                    license_subscription=self.licence, user=teacher
+                ).exists()
+            )
+        reasons = self.reasons()
+        self.assertEqual(len(reasons), 2, reasons)
+        self.assertEqual({r[1] for r in reasons}, {"WARNING"})
+        for teacher in (unattached, own):
+            self.assertTrue(any(str(teacher.id) in r[2] for r in reasons))
+        self.assertEqual([r for r in self.recorder.rows if "@" in r[2]], [])
+
+    def test_z1b_licence_creation_with_a_paying_teacher(self):
+        school = School.objects.create(name="H85 Probe School")
+        CustomUser.objects.create_user(
+            email="admin@h85probe.edu",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school=school,
+            is_active=True,
+        )
+        paying = self.paying_teacher("paying@h85probe.edu", None)
+
+        licence = LicenseSubscriptionService.create_license_subscription(
+            school=school,
+            plan=self.plan,
+            teacher_emails=[paying.email],
+            max_seats=5,
+            billing_method=LicenseBillingMethod.OFFLINE,
+        )
+        summary = licence._teacher_enrollment_results
+        print(f"\nVF1A_H85_Z1B licence creation summary: {summary}")
+        [entry] = summary["errors"]
+        self.assertEqual(entry["error"], NEUTRAL)
+        self.assertSaysNothing(json.dumps(summary).replace(paying.email, ""))
+
+    def test_z1c_the_race_path_and_the_enrolment_sites_own_reason(self):
+        teacher = CustomUser.objects.create_user(
+            email="race@h85school.edu",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            school=self.school,
+            is_active=True,
+        )
+        UserSubscription.objects.filter(user=teacher).update(is_active=False)
+
+        def invite_then_subscribe(*args, **kwargs):
+            # The invite check passed; the teacher subscribes before enrolment.
+            UserSubscription.objects.create(
+                user=teacher,
+                plan=self.individual_plan,
+                is_active=True,
+                billing_cycle_start=timezone.now(),
+                billing_cycle_end=timezone.now() + timedelta(days=30),
+            )
+            return teacher
+
+        with patch.object(
+            LicenseSubscriptionService, "_get_or_invite_teacher", side_effect=invite_then_subscribe
+        ):
+            result = LicenseSubscriptionService._invite_and_enroll_one_teacher(
+                self.licence, self.school, self.admin, teacher.email
+            )
+        print(f"\nVF1A_H85_Z1C race path result: {result}")
+        for row in self.recorder.rows:
+            print(f"  {row[1]}: {row[2]}")
+        self.assertFalse(result["successful"])
+        self.assertEqual(result["error"], NEUTRAL)
+        # Only the enrolment site ran, so this reason line is its own.
+        reasons = self.reasons()
+        self.assertEqual(len(reasons), 1, self.recorder.rows)
+        self.assertEqual(reasons[0][1], "WARNING")
+        self.assertIn(str(teacher.id), reasons[0][2])
+        self.assertEqual([r for r in self.recorder.rows if "@" in r[2]], [])
+
+    # -- Z2 (observation) --------------------------------------------------------
+
+    def test_z2_what_an_admin_can_tell_apart(self):
+        other_school = School.objects.create(name="H85 Other School")
+        make = CustomUser.objects.create_user
+        make(email="student@h85probe.edu", password="password123",  # pragma: allowlist secret
+             user_type=UserTypes.STUDENT, is_active=True)
+        make(email="elsewhere@h85other.edu", password="password123",  # pragma: allowlist secret
+             user_type=UserTypes.TEACHER, school=other_school, is_active=True)
+        self.paying_teacher("paying-elsewhere@h85other.edu", other_school)
+        self.paying_teacher("paying-none@h85probe.edu", None)
+        self.paying_teacher("paying-own@h85school.edu", self.school)
+        kinds = [
+            ("no account", "nobody@h85probe.edu"),
+            ("a non-teacher account", "student@h85probe.edu"),
+            ("a teacher of another school", "elsewhere@h85other.edu"),
+            ("a paying teacher of another school", "paying-elsewhere@h85other.edu"),
+            ("a paying teacher with no school", "paying-none@h85probe.edu"),
+            ("a paying teacher of this school", "paying-own@h85school.edu"),
+        ]
+        print("\nVF1A_H85_Z2 what the admin is told, by kind of address")
+        told = {}
+        for kind, email in kinds:
+            result = LicenseSubscriptionService._invite_and_enroll_one_teacher(
+                self.licence, self.school, self.admin, email
+            )
+            told[kind] = "added" if result["successful"] else result["error"]
+            print(f"  {kind}: {told[kind]}")
+        # H-78 still holds: another school's teacher reads the same, paying or not.
+        self.assertEqual(
+            told["a teacher of another school"], told["a paying teacher of another school"]
+        )
+        self.assertEqual(told["a paying teacher with no school"], NEUTRAL)
+        self.assertEqual(told["a paying teacher of this school"], NEUTRAL)
+        print(f"  distinct answers: {len(set(told.values()))}")
+
+
+only_own_tests(H85Probes, NeutralSubscriptionRefusalTest)

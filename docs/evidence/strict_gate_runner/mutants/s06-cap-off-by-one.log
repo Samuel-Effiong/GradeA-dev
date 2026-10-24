@@ -1,0 +1,20 @@
+.....................................F........
+======================================================================
+FAIL: test_cap_breach_refuses_and_boundary_is_allowed (__main__.SlotAccounting.test_cap_breach_refuses_and_boundary_is_allowed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 821, in test_cap_breach_refuses_and_boundary_is_allowed
+    self.assertEqual(gate.prelaunch_problems(5, 1, 6, 50, 3, 9, 2), [])
+AssertionError: Lists differ: ['5 heavy slots in use + 1 > cap 6'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'5 heavy slots in use + 1 > cap 6'
+
+- ['5 heavy slots in use + 1 > cap 6']
++ []
+
+----------------------------------------------------------------------
+Ran 46 tests in 22.293s
+
+FAILED (failures=1)

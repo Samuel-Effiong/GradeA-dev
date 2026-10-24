@@ -1,0 +1,12 @@
+# T4: expiry acts on the locked row
+# file: billing/services.py (occurrence 1)
+# old: '        user_subscription = locked\n'
+# new: ''
+# commit: ae944e9664f7cb27d116f20f49b3230dda9f4f9c
+# exit: 1
+# elapsed_s: 4.0
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_trial_extended_after_the_read_is_not_expired (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_a_trial_extended_after_the_read_is_not_expired)
+
+FAILED (failures=1)

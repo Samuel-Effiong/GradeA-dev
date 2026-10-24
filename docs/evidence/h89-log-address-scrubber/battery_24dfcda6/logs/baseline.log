@@ -1,0 +1,16 @@
+# baseline, commit 24dfcda64373224f8829e585e91fa0bee751184c, exit 0
+
+Found 56 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+........................................................
+----------------------------------------------------------------------
+Ran 56 tests in 8.218s
+
+OK
+Preserving test database for alias 'default'...

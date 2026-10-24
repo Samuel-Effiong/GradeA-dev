@@ -1,0 +1,107 @@
+"""1a's verification probe for H-76 (c46fdbf). Not committed.
+
+E1: the sibling retire site in LicenseSubscriptionService._enroll_teacher_
+internal. A former individual subscriber (subscription no longer active, so
+enrolment is allowed) whose MONTHLY bucket is still live joins a school's
+licence: enrolment rolls the unused credits into CARRY_OVER and retires the
+old bucket with expires_at = now. Does the 05:00 cleanup then expire those
+same credits again (the H-76 double count)?
+"""
+
+from datetime import timedelta
+from unittest.mock import patch
+
+from dateutil.relativedelta import relativedelta
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from django.utils import timezone
+
+from billing.license_service import LicenseSubscriptionService
+from billing.models import (
+    CreditBucket,
+    CreditBucketType,
+    CreditLedger,
+    CreditLedgerType,
+    LicenseSubscription,
+    UserSubscription,
+)
+from billing.tasks import cleanup_expired_credit_buckets
+from billing.tests.test_monthly_rollover_cleanup_race import clear_signal_state
+from billing.tests.tests_free_trial import make_individual_plan, make_license_plan
+from classrooms.models import School
+from users.models import UserTypes
+
+CustomUser = get_user_model()
+
+
+class E1EnrolmentRetiresTheOldBucket(TestCase):
+    def setUp(self):
+        school = School.objects.create(name="Sibling High")
+        admin = CustomUser.objects.create_user(
+            email="h76-admin@example.com",
+            password="testpass123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school=school,
+        )
+        now = timezone.now()
+        self.licence = LicenseSubscription.objects.create(
+            school=school,
+            admin_user=admin,
+            plan=make_license_plan(),
+            contract_months=12,
+            max_seats=0,  # unlimited: no budget cap in the way
+            billing_cycle_start=now - relativedelta(months=1),
+            billing_cycle_end=now + relativedelta(months=11),
+            is_active=True,
+        )
+        self.teacher = CustomUser.objects.create_user(
+            email="h76-teacher@example.com",
+            password="testpass123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            school=school,
+        )
+        self.wallet = clear_signal_state(self.teacher)
+        plan = make_individual_plan()
+        # The individual plan ended (no longer active), but its month's
+        # bucket is still live for another 10 days.
+        UserSubscription.objects.create(
+            user=self.teacher,
+            plan=plan,
+            is_active=False,
+            billing_cycle_start=now - relativedelta(days=20),
+            billing_cycle_end=now + relativedelta(days=10),
+        )
+        self.old = CreditBucket.objects.create(
+            wallet=self.wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=plan.monthly_credits,
+            used_credits=4_000_000,
+            expires_at=now + timedelta(days=10),
+        )
+
+    def test_the_rolled_over_credits_are_not_expired_again(self):
+        with patch("billing.license_service.transaction.on_commit"):
+            LicenseSubscriptionService._enroll_teacher_internal(self.licence, self.teacher)
+        self.old.refresh_from_db()
+        carry = CreditLedger.objects.filter(
+            user_id=self.teacher.id,
+            ledger_type=CreditLedgerType.GRANT,
+            reference__startswith="Rollover from previous subscription",
+        )
+        later = timezone.now() + timedelta(hours=1)
+        with patch("django.utils.timezone.now", return_value=later):
+            cleanup_expired_credit_buckets()
+        expired_again = CreditLedger.objects.filter(
+            bucket=self.old, ledger_type=CreditLedgerType.EXPIRE
+        )
+        print(
+            f"\nVF1A_H76_E1 rolled_over={[r.amount for r in carry]} "
+            f"old_bucket_processed_after_enrolment={self.old.is_processed} "
+            f"expired_again_by_cleanup={[r.amount for r in expired_again]}"
+        )
+        self.assertTrue(carry.exists(), "no rollover at enrolment (fixture)")
+        self.assertEqual(
+            list(expired_again.values_list("amount", flat=True)),
+            [],
+            "the cleanup expired credits the enrolment had already rolled over",
+        )

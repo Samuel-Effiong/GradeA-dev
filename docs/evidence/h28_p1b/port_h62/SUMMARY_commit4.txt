@@ -1,0 +1,3 @@
+started 2026-09-30T16:45:21+01:00 head af43442 worktree-diff-sha256 9ac72d3fb9d2
+commit4_modules         rc=1 46s Ran 74 tests in 16.046s FAILED (failures=11)
+finished 2026-09-30T16:46:07+01:00

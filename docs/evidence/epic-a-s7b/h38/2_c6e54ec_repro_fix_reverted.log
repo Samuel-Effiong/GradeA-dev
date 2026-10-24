@@ -1,0 +1,170 @@
+# Trimmed: test results and the summary/failure blocks only (tests' logged tracebacks removed).
+# Full log: GAP-evidence-logs/epic-a-s7b-h38/2_c6e54ec_repro_fix_reverted.log
+Found 15 test(s).
+Creating test database for alias 'default' ('test_epic_a_s7b')...
+System check identified some issues:
+System check identified 1 issue (0 silenced).
+The claim re-checks access in its conditional UPDATE: the removal ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ERROR
+test_after_the_removal_the_item_is_not_found_and_nothing_runs (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_after_the_removal_the_item_is_not_found_and_nothing_runs) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
+An assignment upload that failed before creating its assignment ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
+test_an_upload_item_is_not_found_either_not_told_to_re_upload (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_an_upload_item_is_not_found_either_not_told_to_re_upload) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
+test_before_the_removal_the_same_retry_is_accepted (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_before_the_removal_the_same_retry_is_accepted) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_retry_failed_skips_every_item_without_saying_why (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_retry_failed_skips_every_item_without_saying_why) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+  test_retry_failed_skips_every_item_without_saying_why (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_retry_failed_skips_every_item_without_saying_why) (body=None) ... FAIL
+  test_retry_failed_skips_every_item_without_saying_why (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_retry_failed_skips_every_item_without_saying_why) (body={'reason_codes': ['PROVIDER_FAILURE']}) ... FAIL
+test_retry_failed_skips_every_item_without_saying_why (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_retry_failed_skips_every_item_without_saying_why) ... FAIL
+test_a_run_for_a_removed_teacher_fails_before_grading (students.tests_item_retry_h38.TheGradingRunChecksAccessWhenItStarts.test_a_run_for_a_removed_teacher_fails_before_grading) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
+test_an_active_teachers_run_still_grades (students.tests_item_retry_h38.TheGradingRunChecksAccessWhenItStarts.test_an_active_teachers_run_still_grades) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_two_helpers_agree_for_every_ownership_and_school_shape (classrooms.tests_teacher_access_sweep.HelperAgreementTests.test_the_two_helpers_agree_for_every_ownership_and_school_shape) ... Cannot activate automatic trial for user me@sweep.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_retry_failed_retries_nothing_for_a_removed_teacher (classrooms.tests_teacher_access_sweep.TasksNamespaceRoutesFollowTheRule.test_retry_failed_retries_nothing_for_a_removed_teacher) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
+test_retry_item_is_not_found_for_a_removed_teacher (classrooms.tests_teacher_access_sweep.TasksNamespaceRoutesFollowTheRule.test_retry_item_is_not_found_for_a_removed_teacher) ... Cannot activate automatic trial for user teacher@h38.test (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
+test_allowlist_has_no_stale_entries (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_allowlist_has_no_stale_entries) ... ok
+test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping) ... ok
+test_scanner_flags_every_shape_it_exists_to_catch (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_flags_every_shape_it_exists_to_catch) ... ok
+test_scanner_ignores_the_shapes_it_must_not_flag (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_ignores_the_shapes_it_must_not_flag) ... ok
+Destroying test database for alias 'default' ('test_epic_a_s7b')...
+
+======================================================================
+ERROR: test_a_removal_between_the_check_and_the_claim_still_refuses (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_a_removal_between_the_check_and_the_claim_still_refuses)
+The claim re-checks access in its conditional UPDATE: the removal
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7b/students/tests_item_retry_h38.py", line 202, in test_a_removal_between_the_check_and_the_claim_still_refuses
+    with patch("students.item_retry.is_reachable", return_value=True):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1467, in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1437, in get_original
+    raise AttributeError(
+AttributeError: <module 'students.item_retry' from '/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7b/students/item_retry.py'> does not have the attribute 'is_reachable'
+
+======================================================================
+FAIL: test_after_the_removal_the_item_is_not_found_and_nothing_runs (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_after_the_removal_the_item_is_not_found_and_nothing_runs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7b/students/tests_item_retry_h38.py", line 146, in test_after_the_removal_the_item_is_not_found_and_nothing_runs
+    self.assertEqual(response.status_code, 404, response.content[:400])
+AssertionError: 202 != 404 : b'{"success":true,"message":"Request Successful","data":{"status":"PENDING","file_name":"item 1","task_id":null,"error":"","context":{"resource_type":"grading","resource_id":"bc26b154-0ee5-430d-9b5c-4aa21b716bb2","action":"batch_graded","additional_ids":{"assignment_id":"f5d0855a-31ea-4ad9-a65b-51552434a52f","course_id":"efb57146-4ad4-4a23-8628-1fefdfb993b1","submission_id":"bc26b154-0ee5-430d-9b5c-'
+
+======================================================================
+FAIL: test_an_item_with_no_assignment_is_judged_by_its_batchs_course (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_an_item_with_no_assignment_is_judged_by_its_batchs_course)
+An assignment upload that failed before creating its assignment
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7b/students/tests_item_retry_h38.py", line 177, in test_an_item_with_no_assignment_is_judged_by_its_batchs_course
+    self.assertEqual(self.retry(orphan).status_code, 404)
+AssertionError: 409 != 404
+
+======================================================================
+FAIL: test_an_upload_item_is_not_found_either_not_told_to_re_upload (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_an_upload_item_is_not_found_either_not_told_to_re_upload)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7b/students/tests_item_retry_h38.py", line 154, in test_an_upload_item_is_not_found_either_not_told_to_re_upload
+    self.assertEqual(response.status_code, 404, response.content[:400])
+AssertionError: 409 != 404 : b'{"success":false,"message":"This upload can\'t be retried as it is, because its file isn\'t kept. Upload the file again.","error":{"field_errors":{"error":"This upload can\'t be retried as it is, because its file isn\'t kept. Upload the file again.","reason_code":"NOT_RETRYABLE","error_class":"USER","remediation":"Fix what its failure message describes first, then try again.","retryable":false,"params'
+
+======================================================================
+FAIL: test_retry_failed_skips_every_item_without_saying_why (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_retry_failed_skips_every_item_without_saying_why) (body=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7b/students/tests_item_retry_h38.py", line 186, in test_retry_failed_skips_every_item_without_saying_why
+    self.assertEqual(data["retried"], [])
+AssertionError: Lists differ: ['68bb0c16-2209-4c1c-b057-d1cfe006b11c'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'68bb0c16-2209-4c1c-b057-d1cfe006b11c'
+
+- ['68bb0c16-2209-4c1c-b057-d1cfe006b11c']
++ []
+
+======================================================================
+FAIL: test_retry_failed_skips_every_item_without_saying_why (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_retry_failed_skips_every_item_without_saying_why) (body={'reason_codes': ['PROVIDER_FAILURE']})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7b/students/tests_item_retry_h38.py", line 188, in test_retry_failed_skips_every_item_without_saying_why
+    self.assertEqual(
+AssertionError: Lists differ: [{'item_id': '26919b1e-a379-400f-af9e-891657d5bf7e', 'r[27 chars]LE'}] != [{'item_id': '68bb0c16-2209-4c1c-b057-d1cfe006b11c', 'r[88 chars]one}]
+
+First differing element 0:
+{'item_id': '26919b1e-a379-400f-af9e-891657d5bf7e', 'r[26 chars]BLE'}
+{'item_id': '68bb0c16-2209-4c1c-b057-d1cfe006b11c', 'r[13 chars]None}
+
+Second list contains 1 additional elements.
+First extra element 1:
+{'item_id': '26919b1e-a379-400f-af9e-891657d5bf7e', 'reason_code': None}
+
++ [{'item_id': '68bb0c16-2209-4c1c-b057-d1cfe006b11c', 'reason_code': None},
+- [{'item_id': '26919b1e-a379-400f-af9e-891657d5bf7e',
+? ^
+
++  {'item_id': '26919b1e-a379-400f-af9e-891657d5bf7e', 'reason_code': None}]
+? ^                                                   ++++++++++++++++++++++
+
+-   'reason_code': 'FILE_UNREADABLE'}]
+
+======================================================================
+FAIL: test_retry_failed_skips_every_item_without_saying_why (students.tests_item_retry_h38.ARemovedTeacherRetrying.test_retry_failed_skips_every_item_without_saying_why)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7b/students/tests_item_retry_h38.py", line 195, in test_retry_failed_skips_every_item_without_saying_why
+    self.assertEqual(self.launched, [])
+AssertionError: Lists differ: [UUID('68bb0c16-2209-4c1c-b057-d1cfe006b11c')] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+UUID('68bb0c16-2209-4c1c-b057-d1cfe006b11c')
+
+- [UUID('68bb0c16-2209-4c1c-b057-d1cfe006b11c')]
++ []
+
+======================================================================
+FAIL: test_a_run_for_a_removed_teacher_fails_before_grading (students.tests_item_retry_h38.TheGradingRunChecksAccessWhenItStarts.test_a_run_for_a_removed_teacher_fails_before_grading)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7b/students/tests_item_retry_h38.py", line 242, in test_a_run_for_a_removed_teacher_fails_before_grading
+    grade_engine.assert_not_called()
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'grade_engine' to not have been called. Called 1 times.
+Calls: [call(<CustomUser: Teacher H38>, <StudentSubmission: StudentSubmission object (d7958b27-6635-4c6d-ad3d-78bc6f8d65d0)>, processing_task_id='f9d17c71-235f-41e2-95b4-04fe954f554f')].
+
+======================================================================
+FAIL: test_retry_failed_retries_nothing_for_a_removed_teacher (classrooms.tests_teacher_access_sweep.TasksNamespaceRoutesFollowTheRule.test_retry_failed_retries_nothing_for_a_removed_teacher)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7b/classrooms/tests_teacher_access_sweep.py", line 275, in test_retry_failed_retries_nothing_for_a_removed_teacher
+    self.assertEqual(response.json()["data"]["retried"], [])
+AssertionError: Lists differ: ['082216e8-48d6-46bc-9269-ee82d3ee2ea2'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'082216e8-48d6-46bc-9269-ee82d3ee2ea2'
+
+- ['082216e8-48d6-46bc-9269-ee82d3ee2ea2']
++ []
+
+======================================================================
+FAIL: test_retry_item_is_not_found_for_a_removed_teacher (classrooms.tests_teacher_access_sweep.TasksNamespaceRoutesFollowTheRule.test_retry_item_is_not_found_for_a_removed_teacher)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7b/classrooms/tests_teacher_access_sweep.py", line 268, in test_retry_item_is_not_found_for_a_removed_teacher
+    self.assertEqual(self.retry(self.grade_item).status_code, 404)
+AssertionError: 202 != 404
+
+----------------------------------------------------------------------
+Ran 15 tests in 3.126s
+
+FAILED (failures=9, errors=1)
+Destroying test database for alias 'default' ('test_epic_a_s7b')...

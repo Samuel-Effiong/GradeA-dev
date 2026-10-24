@@ -1,0 +1,8 @@
+start 2026-10-07 14:38:27 WAT
+load before start: 5.74 6.47 5.87 6/2090 516021
+=== 3. regression: classrooms assignments at 33a7aace 14:38:27
+load at start: 5.74 6.47 5.87 4/2094 516070
+exit=0 14:42:37
+load at end: 3.32 4.86 5.36 3/2069 527255
+Ran 1097 tests in 231.259s
+OK (skipped=13)

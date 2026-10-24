@@ -1,0 +1,66 @@
+# M30: robust on_commit
+# file: billing/receipts.py line: None
+# old: 'transaction.on_commit(enqueue, robust=True)'
+# new: 'transaction.on_commit(enqueue)'
+# modules: billing.tests.test_receipts.ScheduleReceiptUrlFillTests
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
+# exit: 1
+# elapsed_s: 5.3
+# restored_sha256_matches_commit_blob: True
+
+Found 5 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_h62_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_broker_down_after_commit_does_not_fail_the_caller (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_broker_down_after_commit_does_not_fail_the_caller) ... ok
+test_nothing_queued_when_link_already_known_or_no_reference (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_nothing_queued_when_link_already_known_or_no_reference) ... BillingTransactionService.record called with no stripe_invoice_id, stripe_payment_intent_id, or license_billing_record (type=INDIVIDUAL_OVERAGE_PURCHASE) — creating an un-deduplicated row.
+ok
+test_queued_only_after_commit (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_queued_only_after_commit) ... ok
+test_rollback_queues_nothing (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_rollback_queues_nothing) ... ok
+test_unexpected_enqueue_error_after_commit_does_not_fail_the_caller (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_unexpected_enqueue_error_after_commit_does_not_fail_the_caller) ... ERROR
+
+======================================================================
+ERROR: test_unexpected_enqueue_error_after_commit_does_not_fail_the_caller (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_unexpected_enqueue_error_after_commit_does_not_fail_the_caller)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-M30-a33088cr/wt/billing/tests/test_receipts.py", line 336, in test_unexpected_enqueue_error_after_commit_does_not_fail_the_caller
+    with transaction.atomic():
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/transaction.py", line 307, in __exit__
+    connection.set_autocommit(True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/backends/base/base.py", line 491, in set_autocommit
+    self.run_and_clear_commit_hooks()
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/backends/base/base.py", line 769, in run_and_clear_commit_hooks
+    func()
+  File "/tmp/p1mut-M30-a33088cr/wt/billing/receipts.py", line 223, in enqueue
+    safe_delay(fill_billing_transaction_receipt_url, transaction_id)
+  File "/tmp/p1mut-M30-a33088cr/wt/AutoGrader/dispatch.py", line 66, in safe_delay
+    return task.delay(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: bug
+
+----------------------------------------------------------------------
+Ran 5 tests in 1.379s
+
+FAILED (errors=1)
+Preserving test database for alias 'default' ('test_h62_mut')...

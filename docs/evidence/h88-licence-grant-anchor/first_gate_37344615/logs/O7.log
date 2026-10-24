@@ -1,0 +1,13 @@
+# O7: H-81: the individual renewal logs the owed grants
+# file: billing/services.py (occurrence 1)
+# old: '            if owed:\n                logger.error(\n                    "Renewal of subscription %s (user %s): %d monthly "\n'
+# new: '            if False:\n                logger.error(\n                    "Renewal of subscription %s (user %s): %d monthly "\n'
+# commit: 3734461531ad8e353fb262381022b1842e1f6c55
+# exit: 1
+# elapsed_s: 17.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_last_grant_never_made_is_reported (billing.tests.test_owed_grant_detection.IndividualRenewalReportsOwedGrantsTests.test_the_last_grant_never_made_is_reported)
+FAIL: test_three_grants_never_made_are_counted (billing.tests.test_owed_grant_detection.IndividualRenewalReportsOwedGrantsTests.test_three_grants_never_made_are_counted)
+
+FAILED (failures=2)

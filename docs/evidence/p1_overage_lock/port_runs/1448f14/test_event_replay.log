@@ -1,0 +1,31 @@
+billing.tests.test_event_replay.AllowListPinningTests.test_exact_membership ... ok
+billing.tests.test_event_replay.AllowListPinningTests.test_no_refund_or_subscription_mutating_handler_is_listed ... ok
+billing.tests.test_event_replay.AllowListPinningTests.test_the_only_entry_maps_to_the_overage_flow_handler ... ok
+billing.tests.test_event_replay.AllowListPinningTests.test_vetted_handlers_is_exactly_that_handler ... ok
+billing.tests.test_event_replay.DenyByDefaultTests.test_attempts_are_capped ... ok
+billing.tests.test_event_replay.DenyByDefaultTests.test_disallowed_event_type_is_never_even_selected ... ok
+billing.tests.test_event_replay.DenyByDefaultTests.test_missing_flow ... ok
+billing.tests.test_event_replay.DenyByDefaultTests.test_succeeded_events_are_never_replayed ... ok
+billing.tests.test_event_replay.DenyByDefaultTests.test_unknown_flow_on_an_allowed_event_type ... ok
+billing.tests.test_event_replay.ReplayOneGuardTests.test_exhausted_row_is_not_run_even_when_handed_over ... ok
+billing.tests.test_event_replay.ReplayOneGuardTests.test_row_already_claimed_by_a_live_worker_is_not_run ... ok
+billing.tests.test_event_replay.ReplayOneGuardTests.test_runs_exactly_the_mapped_handler_not_the_dispatcher ... ok
+billing.tests.test_event_replay.ReplayOneGuardTests.test_stale_copy_from_a_sweep_that_lost_the_race_is_not_run ... ok
+billing.tests.test_event_replay.ReplayTaskWiringTests.test_beat_schedule_and_health_expectation ... ok
+billing.tests.test_event_replay.ReplayTaskWiringTests.test_task_reports_nothing_eligible ... ok
+billing.tests.test_event_replay.StripeEventAdminLockdownTests.test_every_writable_field_is_read_only ... ok
+billing.tests.test_event_replay.StripeEventAdminLockdownTests.test_superuser_cannot_add_a_ledger_row ... ok
+billing.tests.test_event_replay.StripeEventAdminLockdownTests.test_superuser_cannot_change_status_or_payload ... ok
+billing.tests.test_event_replay.StripeEventAdminLockdownTests.test_superuser_cannot_delete_a_ledger_row ... ok
+billing.tests.test_event_replay.WidenedAllowListTests.test_widened_to_a_refund_handler_the_handler_is_never_called ... ok
+billing.tests.test_event_replay.WidenedAllowListTests.test_widened_to_the_upgrade_flow_no_subscription_is_modified ... ok
+billing.tests.test_event_replay.ReplayConcurrencyTests.test_concurrent_sweeps_replay_once ... ok
+billing.tests.test_event_replay.ReplayConcurrencyTests.test_replays_racing_live_duplicate_events_for_one_session_grant_once ... ok
+billing.tests.test_event_replay.ReplayConcurrencyTests.test_sweep_racing_a_live_redelivery_grants_once ... ok
+billing.tests.test_event_replay.ReplayTheAllowedFlowTests.test_a_replay_that_fails_again_stays_failed ... ok
+billing.tests.test_event_replay.ReplayTheAllowedFlowTests.test_replaying_an_already_granted_purchase_grants_nothing_more ... ok
+billing.tests.test_event_replay.ReplayTheAllowedFlowTests.test_stripe_is_never_re_fetched_to_decide ... ok
+billing.tests.test_event_replay.ReplayTheAllowedFlowTests.test_stuck_paid_purchase_is_credited ... ok
+billing.tests.test_event_replay.StaleReplayClaimTests.test_a_replay_whose_claim_went_stale_mid_handler_grants_once ... ok
+Ran 29 tests in 6.784s
+OK

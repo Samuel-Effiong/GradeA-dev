@@ -1,0 +1,213 @@
+"""v2's probe for H-158 (d5), SECOND FORM for 9f882c18 (the Senior Manager's
+ruling of 2026-10-07 19:32: a paper is renumbered 1..N only when its numbers
+are not already distinct positive integers; the first form, written for
+72cd7ae2 and never run, is kept as tests_vf2_h158_probe_for_72cd7ae2.py).
+An AI reply's question numbers are made 1..N,
+checked through the REAL grading code with only the provider call
+(`AIProcessor.execute_graded_task`) replaced. Copy to
+assignments/tests_vf2_h158_probe.py of the scratch worktree; never
+committed to the branch. Written 2026-10-07 after reading the production
+diff 220f9cd6..7f5d1743 and d5's answers, before any run.
+
+d5's own real-pipeline test (E8) is objective-only: no provider call, and it
+calls `ai_processor.extract_grade_with_retry` with a MagicMock for the
+submission. This probe goes through `grade_engine` on a saved row, with
+ESSAY questions, so the provider call IS reached.
+
+  Z1  the number field refuses what d5 says it refuses BEFORE the last
+      defence runs (list, object, "2a", null, true, 2.5), and turns "3"
+      into 3. Read from the field, plain Python in a test.
+  Z2  a three-essay paper the model numbered 1, 1, 2: extracted (the
+      extraction call replaced), saved as the assignment's questions,
+      a student's three answers labelled 1, 2, 3, graded by `grade_engine`
+      with the provider replaced. The saved questions are numbered 1, 2, 3;
+      the grade is saved out of 30; the third answer reaches the model;
+      no `answer_not_found` reason.
+  Z3  control, the same paper numbered 1, 2, 3 by the model: the same
+      outcome (shows the harness grades, whatever the numbering does).
+  Z6  NEW: a paper numbered 5, 6, 7 keeps 5, 6, 7 through extraction and
+      the saved assignment; the student's answers are labelled 5, 6, 7 and
+      the provider's evaluations carry 5, 6, 7: graded 16 of 30, nothing
+      "answer not found", the stored copy keeps the model's numbers.
+  Z7  NEW: 5, 6, 6 (a repeat inside a paper that does not start at 1) is
+      numbered 1, 2, 3 as a whole; graded as Z2.
+
+Rule 19, every assertion of Z1 to Z3 against each mutant:
+  M1 (extraction keeps the model's numbers: the line that puts the numbered
+     list back is a no-op): Z2 fails at the numbering assertion (1, 1, 2).
+     Z1 does not touch it. Z3's model numbers are already 1, 2, 3.
+  M2 (the numberer returns the entry unchanged): the same lines as M1.
+  M3 (the field accepts text: IntegerField -> CharField): Z1 fails at the
+     "2a" refusal. Z2 and Z3 use integers.
+  M4 (the repeat test of the kept branch removed: a repeat is kept): Z2 and
+     Z7 fail at the numbering assertion. Z6 is distinct, Z3 in order.
+  M5 (the kept branch removed: always 1..N, the 72cd7ae2 behaviour): Z6
+     fails at the numbering assertion (1, 2, 3 instead of 5, 6, 7).
+Expected failing, exact: M1 {Z2, Z7}; M2 {Z2, Z7}; M3 {Z1}; M4 {Z2, Z7};
+M5 {Z6}. (Z7's paper is 5, 6, 6: M1/M2 leave it as the model gave it.)
+The edge module tests_vf2_h158_edge_probe.py (Z4: a question number that is
+a string of 5000 ASCII digits) is predicted RED at 9f882c18 by a plain
+call: `int()` of such a string raises ValueError on this Python (limit 4300
+digits) inside `_positive_integer`. It is run once, apart, after the
+mutants, and is not a gate of the baseline.
+"""
+
+import types
+from decimal import Decimal
+from unittest.mock import patch
+
+from django.core.cache import cache
+from django.test import TransactionTestCase, override_settings
+from rest_framework import serializers as drf
+
+import ai_processor.tests_reply_repeated_evaluation as d5t
+from ai_processor import services as ai_services
+from ai_processor.services import AIProcessor
+from assignments.models import Assignment, AssignmentStatus
+from assignments.serializers import QuestionSerializer
+from assignments.services import AssignmentProcessingService
+from assignments.tests_ai_output_allowlist import EXTRACT
+from assignments.tests_extraction_service import extraction_payload
+from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
+from students.models import GradingState, StudentSubmission
+from students.services import grade_engine
+from users.models import CustomUser, UserTypes
+
+
+class VF2H158FieldProbe(TransactionTestCase):
+    def test_z1_the_number_field_refuses_what_the_last_defence_never_sees(self):
+        field = QuestionSerializer().fields["question_number"]
+
+        self.assertEqual(field.run_validation("3"), 3)
+        for bad in ([1], {"n": 1}, "2a", None, True, 2.5):
+            with self.subTest(bad=repr(bad)):
+                with self.assertRaises(drf.ValidationError):
+                    field.run_validation(bad)
+
+
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False,
+    GRADING_EVIDENCE_ENFORCEMENT=ai_services.MODE_LOG,
+    GRADING_ANSWER_CACHE_ENABLED=True,
+)
+class VF2H158PipelineProbe(TransactionTestCase):
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.teacher = CustomUser.objects.create_user(
+            email="vf2-h158-teacher@example.com", user_type=UserTypes.TEACHER
+        )
+        self.student = CustomUser.objects.create_user(
+            email="vf2-h158-student@example.com", user_type=UserTypes.STUDENT
+        )
+        session = Session.objects.create(name="S", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="C", teacher=self.teacher, session=session
+        )
+        StudentCourse.objects.create(
+            student=self.student,
+            course=self.course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+        self.prompts = []
+
+    def extracted_paper(self, model_numbers, answer_numbers=(1, 2, 3)):
+        """The extraction runs for real (its AI call replaced); the saved
+        assignment carries the questions it returned."""
+        questions = []
+        for position, number in enumerate(model_numbers, start=1):
+            entry = d5t.essay(position)
+            entry["question_number"] = number
+            questions.append(entry)
+        reply = extraction_payload(
+            assignment_type="ESSAY",
+            questions=questions,
+            total_points=30,
+            question_count=3,
+        )
+        with patch(EXTRACT, return_value=reply):
+            data = AssignmentProcessingService.extract_assignment_data(
+                self.teacher,
+                [{"type": "text", "text": "extract this"}],
+                course=self.course,
+            )
+        assignment = Assignment.objects.create(
+            title="A paper",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            total_points=30,
+            questions=data["questions"],
+        )
+        submission = StudentSubmission.objects.create(
+            assignment=assignment,
+            student=self.student,
+            answers=[d5t.answer(n) for n in answer_numbers],
+        )
+        return assignment, submission, data
+
+    def grade(self, submission, evaluated=(1, 2, 3)):
+        def provider(**kwargs):
+            self.prompts.append(str(kwargs.get("user_prompt")))
+            return d5t.reply(
+                {
+                    "question_evaluations": [
+                        d5t.evaluation(number, score)
+                        for number, score in zip(evaluated, (8, 0, 8), strict=True)
+                    ]
+                }
+            )
+
+        with (
+            patch.object(AIProcessor, "execute_graded_task") as execute,
+            patch("students.services._formatted_grade_task") as formatted,
+            patch("students.services.student_summary_async"),
+        ):
+            execute.side_effect = provider
+            formatted.return_value.delay.return_value = types.SimpleNamespace(
+                id="vf2-fake-task-id"
+            )
+            grade_engine(self.teacher, StudentSubmission.objects.get(pk=submission.pk))
+        return execute.call_count
+
+    def assert_graded_in_full(self, model_numbers, expected=(1, 2, 3)):
+        assignment, submission, data = self.extracted_paper(
+            model_numbers, answer_numbers=expected
+        )
+        saved_assignment = Assignment.objects.get(pk=assignment.pk)
+        self.assertEqual(
+            [q["question_number"] for q in saved_assignment.questions],
+            list(expected),
+        )
+
+        calls = self.grade(submission, evaluated=expected)
+
+        self.assertGreaterEqual(calls, 1)
+        saved = StudentSubmission.objects.get(pk=submission.pk)
+        self.assertIsNotNone(saved.graded_at)
+        self.assertEqual(saved.grading_state, GradingState.DONE)
+        self.assertEqual(saved.max_points, 30)
+        self.assertEqual(saved.score, Decimal("16"))
+        self.assertNotIn(
+            "answer_not_found",
+            [reason["type"] for reason in saved.review_reasons or []],
+        )
+        self.assertTrue(self.prompts)
+        self.assertIn(f"Essay {expected[2]} answer.", self.prompts[0])
+        return data
+
+    def test_z2_a_repeat_from_the_model_is_graded_in_full(self):
+        self.assert_graded_in_full([1, 1, 2])
+
+    def test_z3_control_a_paper_numbered_in_order(self):
+        self.assert_graded_in_full([1, 2, 3])
+
+    def test_z6_numbers_that_are_already_distinct_are_kept(self):
+        data = self.assert_graded_in_full([5, 6, 7], expected=(5, 6, 7))
+
+        self.assertEqual(
+            data["ai_raw_payload"]["model_question_numbers"],
+            {"5": "5", "6": "6", "7": "7"},
+        )
+
+    def test_z7_a_repeat_in_a_paper_that_does_not_start_at_one(self):
+        self.assert_graded_in_full([5, 6, 6])

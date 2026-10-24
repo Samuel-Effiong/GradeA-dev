@@ -1,0 +1,8 @@
+=== S7a N1: touched module 19:29:29
+Ran 11 tests in 2.456s
+OK
+=== mutant: the sort removed
+FAIL: test_items_finishing_out_of_order_are_listed_by_item_index (students.tests_batch_item_results.EveryListIsInUploadOrder.test_items_finishing_out_of_order_are_listed_by_item_index)
+Ran 11 tests in 3.044s
+FAILED (failures=1)
+1

@@ -1,0 +1,173 @@
+................FFFFFFFFFF............FFF..........F.......F
+======================================================================
+FAIL: test_a_key_before_an_address_stays_readable (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_key_before_an_address_stays_readable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 560, in test_a_key_before_an_address_stays_readable
+    self.assertEqual(
+AssertionError: "Key (email)=(o'[email]) already exists." != 'Key (email)=([email]) already exists.'
+- Key (email)=(o'[email]) already exists.
+?              --
++ Key (email)=([email]) already exists.
+
+
+======================================================================
+FAIL: test_a_quote_brace_or_bar_just_before_an_address_goes_with_it (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_quote_brace_or_bar_just_before_an_address_goes_with_it) (text="email='pupil@school.edu'")
+They are characters an address may start with, so the scrubber
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 579, in test_a_quote_brace_or_bar_just_before_an_address_goes_with_it
+    self.assertEqual(log_scrubbing.scrub(text), expected)
+AssertionError: "email='[email]'" != "email=[email]'"
+- email='[email]'
+?       -
++ email=[email]'
+
+
+======================================================================
+FAIL: test_a_quote_brace_or_bar_just_before_an_address_goes_with_it (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_quote_brace_or_bar_just_before_an_address_goes_with_it) (text='{pupil@school.edu}')
+They are characters an address may start with, so the scrubber
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 579, in test_a_quote_brace_or_bar_just_before_an_address_goes_with_it
+    self.assertEqual(log_scrubbing.scrub(text), expected)
+AssertionError: '{[email]}' != '[email]}'
+- {[email]}
+? -
++ [email]}
+
+
+======================================================================
+FAIL: test_a_quote_brace_or_bar_just_before_an_address_goes_with_it (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_quote_brace_or_bar_just_before_an_address_goes_with_it) (text='|pupil@school.edu|')
+They are characters an address may start with, so the scrubber
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 579, in test_a_quote_brace_or_bar_just_before_an_address_goes_with_it
+    self.assertEqual(log_scrubbing.scrub(text), expected)
+AssertionError: '|[email]|' != '[email]|'
+- |[email]|
+? -
++ [email]|
+
+
+======================================================================
+FAIL: test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) (address="o'brien@school.edu")
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 554, in test_addresses_of_many_shapes
+    self.assertEqual(
+AssertionError: "<o'[email]>, (o'[email])" != '<[email]>, ([email])'
+- <o'[email]>, (o'[email])
+?  --           --
++ <[email]>, ([email])
+
+
+======================================================================
+FAIL: test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) (address='a!b#c$d%e*f+g^h_i`j{k|l}m~n-o@school.edu')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 554, in test_addresses_of_many_shapes
+    self.assertEqual(
+AssertionError: '<a!b#c$d%e*f+g^h_i`j{k|l}m~[email]>, (a!b#c$d%e*f+g^h_i`j{k|l}m~[email])' != '<[email]>, ([email])'
+- <a!b#c$d%e*f+g^h_i`j{k|l}m~[email]>, (a!b#c$d%e*f+g^h_i`j{k|l}m~[email])
++ <[email]>, ([email])
+
+
+======================================================================
+FAIL: test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) (address='jürgen@school.edu')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 554, in test_addresses_of_many_shapes
+    self.assertEqual(
+AssertionError: '<jü[email]>, (jü[email])' != '<[email]>, ([email])'
+- <jü[email]>, (jü[email])
+?  --           --
++ <[email]>, ([email])
+
+
+======================================================================
+FAIL: test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) (address='pupil@münchen.de')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 554, in test_addresses_of_many_shapes
+    self.assertEqual(
+AssertionError: '<pupil@münchen.de>, (pupil@münchen.de)' != '<[email]>, ([email])'
+- <pupil@münchen.de>, (pupil@münchen.de)
++ <[email]>, ([email])
+
+
+======================================================================
+FAIL: test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) (address='pupil@school.xn--p1ai')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 554, in test_addresses_of_many_shapes
+    self.assertEqual(
+AssertionError: '<[email]--p1ai>, ([email]--p1ai)' != '<[email]>, ([email])'
+- <[email]--p1ai>, ([email]--p1ai)
+?         ------           ------
++ <[email]>, ([email])
+
+
+======================================================================
+FAIL: test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) (address='pupil@школа.рф')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 554, in test_addresses_of_many_shapes
+    self.assertEqual(
+AssertionError: '<pupil@школа.рф>, (pupil@школа.рф)' != '<[email]>, ([email])'
+- <pupil@школа.рф>, (pupil@школа.рф)
++ <[email]>, ([email])
+
+
+======================================================================
+FAIL: test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it) (host='redis:6379/0')
+The userinfo ends at the LAST "@" before the host, not the
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 236, in test_a_password_with_an_at_sign_in_it
+    self.assertNotIn(tail, output)
+AssertionError: '[part of a made-up password removed from this log]' unexpectedly found in 'WARNING Cannot connect to redis://[credentials]@[part of a made-up password removed from this log]@redis:6379/0\n'
+
+======================================================================
+FAIL: test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it) (host='localhost')
+The userinfo ends at the LAST "@" before the host, not the
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 236, in test_a_password_with_an_at_sign_in_it
+    self.assertNotIn(tail, output)
+AssertionError: '[part of a made-up password removed from this log]' unexpectedly found in 'WARNING Cannot connect to redis://[credentials]@[part of a made-up password removed from this log]@localhost\n'
+
+======================================================================
+FAIL: test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it) (host='db.example.com:5432/grader')
+The userinfo ends at the LAST "@" before the host, not the
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_log_scrubbing.py", line 237, in test_a_password_with_an_at_sign_in_it
+    self.assertIn("://[credentials]@" + dsn.rsplit("@", 1)[1], output)
+AssertionError: '://[credentials]@db.example.com:5432/grader' not found in 'WARNING Cannot connect to postgres://[credentials]@[email]:5432/grader\n'
+
+======================================================================
+FAIL: test_the_spans_of_a_transaction (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_the_spans_of_a_transaction)
+A sampled transaction is an event of its own: it does not pass
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_sentry_scrubbing.py", line 238, in test_the_spans_of_a_transaction
+    self.assertNotIn(ADDRESS, repr(event))
+AssertionError: 'someone.private@school-example.edu' unexpectedly found in "{'type': 'transaction', 'transaction': '/api/licenses/{id}/', 'spans': [{'op': 'http.client', 'description': 'GET https://mail.example.com/v1/check?to=someone.private@school-example.edu', 'data': {'url': 'https://mail.example.com/v1/check?to=someone.private@school-example.edu'}, 'span_id': 'a1b2c3d4e5f60718'}, {'op': 'db', 'description': 'SELECT 1 FROM users /* invited by second.person@example.org */', 'span_id': '0918f6e5d4c3b2a1'}]}"
+
+======================================================================
+FAIL: test_settings_pass_the_hooks_to_sentry (AutoGrader.tests_sentry_scrubbing.WiringTests.test_settings_pass_the_hooks_to_sentry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/AutoGrader/tests_sentry_scrubbing.py", line 379, in test_settings_pass_the_hooks_to_sentry
+    self.assertEqual(keywords.get("before_send_transaction"), "scrub_event")
+AssertionError: None != 'scrub_event'
+
+----------------------------------------------------------------------
+Ran 51 tests in 4.034s
+
+FAILED (failures=15)
+Found 51 test(s).
+System check identified no issues (0 silenced).
+systemd-run failed with exit status 1.
+exit=1 wall_s=11

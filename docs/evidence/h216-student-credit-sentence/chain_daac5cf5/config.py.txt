@@ -1,0 +1,132 @@
+# H-216 chain config for ../row_chain.py. Written 2026-10-14 by Builder 58
+# BEFORE any run, by reading the code at daac5cf5 (fix), 064e7bb2 (tests
+# only) and the base 913f248f. Nothing here was seen by a run.
+
+ROW = "h216"
+WT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h216-coded"
+BASE = "913f248f"  # students/views.py without the student switch
+OUT = "/home/bond-servant-in-training/Documents/Projects/GAP-58-runs/h216"
+DB_PREFIX = "test_h216"
+
+EDIT = "TheSynchronousEditReadsTheSentence"
+UPLOAD = "TheSynchronousUploadReadsTheSentence"
+CONTROLS = "EveryOtherAnswerIsUnchanged"
+E1 = (EDIT, "test_e1_a_student_whose_teacher_cannot_pay_reads_the_fixed_sentence")
+E2 = (EDIT, "test_e2_the_students_own_funded_wallet_changes_nothing")
+U1 = (UPLOAD, "test_u1_a_student_whose_teacher_cannot_pay_reads_the_fixed_sentence")
+C1 = (CONTROLS, "test_c1_a_teacher_asking_for_the_same_edit_keeps_the_generic_body")
+C2 = (CONTROLS, "test_c2_a_students_plan_refusal_keeps_its_own_body")
+C3 = (CONTROLS, "test_c3_a_students_coded_non_credit_failure_keeps_its_own_body")
+D9 = ("D9StudentSubmissionRefusalStatusTest", "test_sync_submission_edit_refusal_is_402_or_403")
+GATES = ("RefusalIsolationTest", "test_a_refused_student_learns_nothing_about_the_teachers_wallet")
+PLAN_GATES = ("RefusalIsolationTest", "test_a_student_is_never_told_their_teachers_billing_state")
+ASYNC = ("UpdateAsyncRouteTest", "test_sync_patch_uses_the_same_service_and_answers_4xx_for_user_errors")
+
+ROW_MODULES = [
+    "students.tests_h216_student_credit_sentence",
+    "billing.tests.test_refusal_handling",
+    "billing.tests.test_refusal_handling_gates",
+    "students.tests_async_edit_path",
+]
+
+# The generic sentence a student reads on the base, and the student one.
+GENERIC = "There aren't enough AI credits available for this."
+STUDENT = "Your answers were not submitted."
+# Each student credit test first fails at its error-text assertion; D9 fails
+# in its "credits" subTest only (the "feature" subTest has no text check).
+GENERIC_SHOWN = {t: (GENERIC, STUDENT) for t in (E1, E2, U1, D9, GATES, ASYNC)}
+
+R_LABELS = ROW_MODULES
+R_FROM_TIP = [
+    "students/tests_h216_student_credit_sentence.py",
+    "billing/tests/test_refusal_handling.py",
+    "billing/tests/test_refusal_handling_gates.py",
+    "students/tests_async_edit_path.py",
+]
+REPRO = set(GENERIC_SHOWN)
+R_REASON = GENERIC_SHOWN
+
+# (a): the row's modules, the other readers of the two student routes and of
+# the student sentence, and the guard list. No payload of a cached route
+# changes (a failure answer), so rule 20's cache module is not named.
+A_LABELS = ROW_MODULES + [
+    "students.tests_upload_credit_door",
+    "assignments.tests_edit_refusal_student_sentence",
+    "ai_processor.tests_pdf_type_validation",
+    "ai_processor.tests_superadmin_unmetered_both_flags",
+    "AutoGrader.tests_reason_codes",
+    "AutoGrader.tests_migration_safety_check",
+    "AutoGrader.tests_no_playwright_at_import",
+    "AutoGrader.tests_no_wildcard_invalidation",
+    "AutoGrader.tests_cache_invalidation_coverage",
+    "AutoGrader.tests_migration_rollback_defaults",
+    "AutoGrader.tests_redis_test_isolation",
+    "AutoGrader.tests_management_commands_are_commands",
+    "AutoGrader.tests_no_pii_in_logs",
+    "AutoGrader.tests_log_scrubbing",
+    "AutoGrader.tests_sentry_scrubbing",
+    "billing.tests.test_logs_carry_no_email",
+]
+
+SWITCH = """        if (
+            requester is not None
+            and requester.user_type == UserTypes.STUDENT
+            and isinstance(exc, InsufficientCreditsError)
+        ):
+            coded.data["error"] = STUDENT_UPLOAD_NOT_PROCESSED
+            coded.data["remediation"] = None
+"""
+PATCH_ARG = """e, "We couldn't save your update. Please try again.", request.user"""
+UPLOAD_ARG = """                "and try again.",
+                request.user,
+            )"""
+REMEDIATION = """            coded.data["remediation"] = None
+"""
+NOT_NONE = ("Top up credits, or ask your school administrator, then try again.' is not None",)
+
+MUTANTS = {
+    # K1 the switch removed: the base behaviour on both routes.
+    "K1": ("students/views.py", SWITCH, "", ROW_MODULES, set(GENERIC_SHOWN), GENERIC_SHOWN),
+    # K2 the edit no longer passes the requester: every PATCH test.
+    "K2": (
+        "students/views.py", PATCH_ARG,
+        PATCH_ARG.replace(", request.user", ""),
+        ROW_MODULES, {E1, E2, D9, GATES, ASYNC},
+        {t: GENERIC_SHOWN[t] for t in (E1, E2, D9, GATES, ASYNC)},
+    ),
+    # K3 the sync upload no longer passes the requester: the upload test only.
+    "K3": (
+        "students/views.py", UPLOAD_ARG,
+        UPLOAD_ARG.replace("                request.user,\n", ""),
+        ROW_MODULES, {U1}, {U1: GENERIC_SHOWN[U1]},
+    ),
+    # K4 the remediation is left as the spec's: the student sentence is
+    # right, the null-remediation line fails (D9 does not read it).
+    "K4": (
+        "students/views.py", REMEDIATION, "", ROW_MODULES,
+        {E1, E2, U1, GATES, ASYNC}, {t: NOT_NONE for t in (E1, E2, U1, GATES, ASYNC)},
+    ),
+    # K5 the credit check dropped: every coded refusal a student meets reads
+    # the student sentence: the plan refusal (C2, and the gates module's
+    # student plan test, which pins STUDENT_AI_UNAVAILABLE_MESSAGE: added
+    # after the Verifier's pre-read, F1) and the provider failure (C3).
+    # D9's "feature" subTest has no text check and stays green.
+    "K5": (
+        "students/views.py",
+        """            and isinstance(exc, InsufficientCreditsError)
+""",
+        "", ROW_MODULES, {C2, C3, PLAN_GATES},
+        {C2: (STUDENT,), C3: (STUDENT,), PLAN_GATES: (STUDENT,)},
+    ),
+    # K6 the student check made always true (the requester still has to be
+    # passed, so grade is untouched): the teacher's edit reads the student
+    # sentence.
+    "K6": (
+        "students/views.py",
+        """            and requester.user_type == UserTypes.STUDENT
+""",
+        """            and True
+""",
+        ROW_MODULES, {C1}, {C1: (STUDENT,)},
+    ),
+}

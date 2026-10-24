@@ -1,0 +1,13 @@
+......................F.......................
+======================================================================
+FAIL: test_sandbox_env_keys_are_denied_by_host_and_port (__main__.EndToEnd.test_sandbox_env_keys_are_denied_by_host_and_port) (key='SANDBOX_DATABASE_URI')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 619, in test_sandbox_env_keys_are_denied_by_host_and_port
+    self.assertTrue(any(f"({key})" in p for p in problems), problems)
+AssertionError: False is not true : ['cache target sandbox-db.example:1111 is not local']
+
+----------------------------------------------------------------------
+Ran 46 tests in 22.347s
+
+FAILED (failures=1)

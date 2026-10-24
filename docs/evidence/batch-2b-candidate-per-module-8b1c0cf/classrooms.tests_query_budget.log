@@ -1,0 +1,12 @@
+classrooms.tests_query_budget.ListEndpointQueryBudgets.test_course_list_is_flat ... ok
+classrooms.tests_query_budget.ListEndpointQueryBudgets.test_enrollment_list_is_flat ... ok
+classrooms.tests_query_budget.ListEndpointQueryBudgets.test_my_students_is_flat ... ok
+classrooms.tests_query_budget.ListEndpointQueryBudgets.test_session_list_is_flat ... ok
+classrooms.tests_query_budget.ListEndpointQueryBudgets.test_topic_list_is_flat ... ok
+classrooms.tests_query_budget.SerializerCorrectnessUnderPrefetch.test_course_students_report_their_enrollment_status ... ok
+classrooms.tests_query_budget.SerializerCorrectnessUnderPrefetch.test_my_students_counts_survive_the_prefetch_rewrite ... ok
+classrooms.tests_query_budget.SerializerCorrectnessUnderPrefetch.test_withdrawn_students_are_excluded_from_the_course_payload ... ok
+classrooms.tests_query_budget.StudentFacingQueryBudgets.test_my_courses_is_flat_as_enrollments_grow ... ok
+classrooms.tests_query_budget.StudentFacingQueryBudgets.test_student_course_list_is_flat_for_a_student ... ok
+Ran 10 tests in 3.167s
+OK

@@ -1,0 +1,236 @@
+"""v2's probe for H-145 (d5). Copy to students/tests_vf2_h145_probe.py of
+the scratch worktree; never committed to the branch. Written 2026-10-07
+before any run, after reading 1f76431d (H-145 as built, no setting; tree
+equal to c0538671).
+
+d5's tests give the task a stamp the TEST computed, and run it with no
+background-task record. These take every stamp from the REAL queuer: the
+message is recorded as the route or the grading pipeline sent it and the
+task is then run with exactly those arguments, its tracked record included.
+
+  P1  way 2 through the manual-grade route: grade 9 (message A), grade 4
+      (message B), then A runs. A writes nothing, its record ends as a
+      success that says superseded, a released student reads the score 4
+      and no formatted grade. Then B runs and writes the wording of 4.
+  P2  way 1 through the route: A has loaded the row and is in its AI call
+      when the teacher grades again. A writes nothing.
+  P3  the grading pipeline (students.services.grade_engine): the first
+      grading's message runs after a regrade and leaves the stored text as
+      it was; the regrade's own message writes.
+  P4  the teacher-feedback route's message, overtaken by a manual grade,
+      writes nothing.
+
+Rule 19, which mutant shows which probe red: P1 under Y14 and Y18; P2
+under Y14, Y17 and Y18; P3 under Y16; P4 under Y15 and Y18.
+
+The row lock's behaviour between two database connections is not tested
+here or by d5: it is by reading only.
+"""
+
+import types
+import uuid
+from decimal import Decimal
+from unittest.mock import patch
+
+from django.core.cache import cache
+from django.test import TransactionTestCase
+from django.urls import reverse
+
+from assignments.tasks import formatted_grade_async
+from students.models import (
+    BackgroundProcessingTask,
+    BackgroundTaskStatus,
+    StudentSubmission,
+)
+from students.services import grade_engine, grading_result_stamp
+from students.tests_formatter_input import grading_result as a_grading_result
+from students.tests_formatter_input import make_people_and_submission
+from students.tests_manual_grade_formatted_grade import (
+    FROM_THE_FORMATTER,
+    ManualGradeBase,
+)
+
+FORMATTER = "assignments.tasks.ai_processor.formatted_grade"
+
+
+class Recorder:
+    """Stands where the task's `delay` is: keeps each message as sent."""
+
+    def __init__(self):
+        self.messages = []
+
+    def __call__(self, *args, **kwargs):
+        self.messages.append((args, dict(kwargs)))
+        # one id per message, never repeated across recorders (the database holds the
+        # celery id as a unique key; the first version repeated "vf2-fake-task-1")
+        return types.SimpleNamespace(id=f"vf2-fake-task-{uuid.uuid4().hex}")
+
+
+def run_message(message, meanwhile=None):
+    """The real task with exactly the arguments the queuer sent."""
+    args, kwargs = message
+
+    def the_ai_call(*a, **k):
+        if meanwhile:
+            meanwhile()
+        return dict(FROM_THE_FORMATTER)
+
+    with patch(FORMATTER, side_effect=the_ai_call):
+        return formatted_grade_async(*args, **kwargs)
+
+
+def record_of(message):
+    return BackgroundProcessingTask.objects.get(pk=message[1]["processing_task_id"])
+
+
+class VF2RoutesProbe(ManualGradeBase):
+    """d5's fixture: a released paper graded 7 with that result's wording."""
+
+    def manual_grade(self, score):
+        """Through the real route; returns the message it queued."""
+        recorder = Recorder()
+        with patch("students.views.formatted_grade_async") as task:
+            task.delay.side_effect = recorder
+            response = self.patch_grade(score)
+        self.assertEqual(response.status_code, 200, getattr(response, "data", None))
+        self.assertEqual(len(recorder.messages), 1)
+        message = recorder.messages[0]
+        self.assertEqual(message[0][0], str(self.submission.pk))
+        self.assertTrue(message[1].get("processing_task_id"))
+        return message
+
+    def teacher_feedback(self):
+        recorder = Recorder()
+        self.client.force_authenticate(self.teacher)
+        with patch("students.views.formatted_grade_async") as task:
+            task.delay.side_effect = recorder
+            response = self.client.get(
+                reverse(
+                    "student-submission-teacher-feedback",
+                    kwargs={"pk": self.submission.pk},
+                )
+            )
+        self.assertEqual(response.status_code, 200, getattr(response, "data", None))
+        self.assertIn("task_id", response.data)
+        self.assertEqual(len(recorder.messages), 1)
+        return recorder.messages[0]
+
+    def the_student_reads(self):
+        data = self.student_reads()
+        for key in ("score", "formatted_grade"):
+            self.assertIn(key, data)
+        return data
+
+    def assert_superseded(self, message, result):
+        self.assertIn("uperseded", result["message"])
+        record = record_of(message)
+        self.assertEqual(record.status, BackgroundTaskStatus.SUCCESS)
+        self.assertIn("uperseded", record.meta["step"])
+        self.assertFalse(record.error)
+
+    def test_p1_a_message_queued_before_a_second_manual_grade_runs_after_it(self):
+        cache.clear()
+        self.the_student_reads()  # cached, as a student with the page open
+        a = self.manual_grade(9)
+        b = self.manual_grade(4)
+        self.assertNotEqual(a[1].get("result_stamp"), b[1].get("result_stamp"))
+
+        result = run_message(a)
+
+        self.assertIsNone(self.stored_formatted())
+        self.assert_superseded(a, result)
+        after = self.the_student_reads()
+        self.assertEqual(Decimal(str(after["score"])), Decimal("4"))
+        self.assertIsNone(after["formatted_grade"])
+
+        result = run_message(b)
+
+        self.assertIn("You scored 4 out of 10 points", self.stored_formatted())
+        self.assertNotIn("uperseded", result["message"])
+        self.assertEqual(record_of(b).status, BackgroundTaskStatus.SUCCESS)
+        self.assertNotIn("uperseded", record_of(b).meta["step"])
+
+    def test_p2_a_manual_grade_lands_while_the_message_is_in_its_ai_call(self):
+        a = self.manual_grade(9)
+        later = []
+
+        result = run_message(a, meanwhile=lambda: later.append(self.manual_grade(4)))
+
+        self.assertEqual(len(later), 1)
+        self.assertEqual(
+            StudentSubmission.objects.get(pk=self.submission.pk).score, Decimal("4")
+        )
+        self.assertIsNone(self.stored_formatted())
+        self.assert_superseded(a, result)
+
+        run_message(later[0])
+        self.assertIn("You scored 4 out of 10 points", self.stored_formatted())
+
+    def test_p4_the_teacher_feedback_routes_message_is_overtaken(self):
+        self.manual_grade(9)  # leaves no formatted grade, so the route queues
+        f = self.teacher_feedback()
+        self.manual_grade(4)
+
+        result = run_message(f)
+
+        self.assertIsNone(self.stored_formatted())
+        self.assert_superseded(f, result)
+
+
+def a_result_scoring(score):
+    result = a_grading_result()
+    result["grading_summary"]["total_score"] = score
+    result["grading_summary"]["percentage"] = score * 10.0
+    result["question_evaluations"][0]["score_awarded"] = score
+    return result
+
+
+class VF2PipelineProbe(TransactionTestCase):
+    """TransactionTestCase: the follow-up is queued when the grade commits."""
+
+    def setUp(self):
+        cache.clear()
+        self.teacher, submission = make_people_and_submission()
+        self.pk = submission.pk
+
+    def row(self):
+        return StudentSubmission.objects.select_related("assignment", "student").get(
+            pk=self.pk
+        )
+
+    def grade(self, score):
+        recorder = Recorder()
+        with (
+            patch("students.services._formatted_grade_task") as formatted,
+            patch("students.services.student_summary_async"),
+            patch("students.services.ai_processor") as ai,
+        ):
+            ai.extract_grade_with_retry.return_value = a_result_scoring(score)
+            formatted.return_value.delay.side_effect = recorder
+            grade_engine(self.teacher, self.row())
+        self.assertEqual(len(recorder.messages), 1)
+        self.assertEqual(self.row().score, Decimal(str(score)))
+        return recorder.messages[0]
+
+    def test_p3_the_first_gradings_message_runs_after_a_regrade(self):
+        first = self.grade(8)
+        StudentSubmission.objects.filter(pk=self.pk).update(
+            formatted_grade="vf2: whatever was stored before"
+        )
+        second = self.grade(3)
+        stored_before = self.row().formatted_grade
+        self.assertNotEqual(
+            first[1].get("result_stamp"), second[1].get("result_stamp")
+        )
+        self.assertEqual(second[1].get("result_stamp"), grading_result_stamp(self.row()))
+
+        result = run_message(first)
+
+        self.assertEqual(self.row().formatted_grade, stored_before)
+        self.assertIn("uperseded", result["message"])
+        self.assertIn("uperseded", record_of(first).meta["step"])
+
+        result = run_message(second)
+
+        self.assertIn("You scored 3 ", str(self.row().formatted_grade))
+        self.assertNotIn("uperseded", result["message"])

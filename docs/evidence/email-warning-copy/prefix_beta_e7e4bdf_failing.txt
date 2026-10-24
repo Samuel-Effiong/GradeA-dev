@@ -1,0 +1,65 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user warn.reset@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user warn.reset@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user warn.reset@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user warn.reset@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user warn.links@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user warn.old@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FFCannot activate automatic trial for user warn.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+F
+======================================================================
+FAIL: test_old_remain_secure_line_is_gone (users.tests_email_warning_copy.ResetPasswordEmailWarningTests.test_old_remain_secure_line_is_gone)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-email-warning-copy/users/tests_email_warning_copy.py", line 120, in test_old_remain_secure_line_is_gone
+    self.assertNotIn("your account will remain secure", self.reset_email())
+AssertionError: 'your account will remain secure' unexpectedly found in '\nHello Warn,\n\nWe received a request to reset your Grade A+ password\n\nYour Password reset code is: 082198\n\nEnter this code in the app to continue. If you did not request a password reset,\nyou can ignore this email and your account will remain secure.\n\nThe Grade A+ Team\n\nNeed help? Contact us at support@gradeautomator.com\n            '
+
+======================================================================
+FAIL: test_reset_email_carries_the_approved_warning (users.tests_email_warning_copy.ResetPasswordEmailWarningTests.test_reset_email_carries_the_approved_warning)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-email-warning-copy/users/tests_email_warning_copy.py", line 113, in test_reset_email_carries_the_approved_warning
+    self.assertIn(RESET_WARNING, self.reset_email())
+AssertionError: "Didn't ask for this? Someone may be trying to get into your account. Don't share this code with anyone, including Grade A+ staff. Your password hasn't been changed. If you didn't request this, you can ignore this email." not found in '\nHello Warn,\n\nWe received a request to reset your Grade A+ password\n\nYour Password reset code is: 277784\n\nEnter this code in the app to continue. If you did not request a password reset,\nyou can ignore this email and your account will remain secure.\n\nThe Grade A+ Team\n\nNeed help? Contact us at support@gradeautomator.com\n            '
+
+======================================================================
+FAIL: test_old_safely_ignore_line_is_gone (users.tests_email_warning_copy.VerificationEmailWarningTests.test_old_safely_ignore_line_is_gone)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-email-warning-copy/users/tests_email_warning_copy.py", line 74, in test_old_safely_ignore_line_is_gone
+    self.assertNotIn("If you did not create this account", str(merge_data))
+AssertionError: 'If you did not create this account' unexpectedly found in "{'title': 'Activate your Grade A+ account', 'name': 'Warn', 'activation_url': 'https://teacher.example.test/verify-email?email=warn.old@example.com&token=847767', 'top_content': '\\n        Your account is ready. Confirm your email address to activate your access and start managing grading,\\n        submissions, and course activity with confidence.<br><br>\\n        ', 'bottom_content': '\\n        This link expires in 15 minutes. <br>\\n        If you did not create this account, you can safely ignore this email<br>.\\n        ', 'support_email': 'support@gradeautomator.com', 'current_year': 2026}"
+
+======================================================================
+FAIL: test_student_email_carries_the_approved_warning (users.tests_email_warning_copy.VerificationEmailWarningTests.test_student_email_carries_the_approved_warning)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-email-warning-copy/users/tests_email_warning_copy.py", line 70, in test_student_email_carries_the_approved_warning
+    self.assertIn(VERIFY_WARNING, merge_data["bottom_content"])
+AssertionError: "Didn't sign up? Someone may have used your email address. Don't click the activation link. Just ignore this email and the account won't be activated. Never share this link or code with anyone, including Grade A+ staff." not found in '\n        This link expires in 15 minutes. <br>\n        If you did not create this account, you can safely ignore this email<br>.\n        '
+
+======================================================================
+FAIL: test_teacher_email_carries_the_approved_warning (users.tests_email_warning_copy.VerificationEmailWarningTests.test_teacher_email_carries_the_approved_warning)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-email-warning-copy/users/tests_email_warning_copy.py", line 66, in test_teacher_email_carries_the_approved_warning
+    self.assertIn(VERIFY_WARNING, merge_data["bottom_content"])
+AssertionError: "Didn't sign up? Someone may have used your email address. Don't click the activation link. Just ignore this email and the account won't be activated. Never share this link or code with anyone, including Grade A+ staff." not found in '\n        This link expires in 15 minutes. <br>\n        If you did not create this account, you can safely ignore this email<br>.\n        '
+
+----------------------------------------------------------------------
+Ran 8 tests in 3.447s
+
+FAILED (failures=5)
+Destroying test database for alias 'default'...
+Found 8 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

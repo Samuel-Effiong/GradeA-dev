@@ -1,0 +1,17 @@
+21:50:46 test_every_extra_cache_scopes_override_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_extra_cache_scopes_override_is_listed) ... ok
+21:50:46 test_every_family_embeds_at_least_one_generation (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_family_embeds_at_least_one_generation) ... ok
+21:50:47 test_every_mixin_viewset_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_mixin_viewset_is_listed) ... ok
+21:50:49 test_nothing_is_cached_under_a_raw_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_nothing_is_cached_under_a_raw_key) ... ok
+21:50:51 test_the_key_map_matches_every_versioned_key_call (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_key_map_matches_every_versioned_key_call) ... ok
+21:50:51 test_the_mixin_appends_the_extra_scopes_to_its_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_mixin_appends_the_extra_scopes_to_its_key)
+21:50:51 Otherwise MIXIN_EXTRA_SCOPES would describe keys nobody builds. ... ok
+21:50:51 test_the_status_summary_family_is_versioned_on_the_student (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_status_summary_family_is_versioned_on_the_student)
+21:50:51 H-1 step 4: the one family that was still raw is on generations. ... ok
+21:50:51
+21:50:51 ----------------------------------------------------------------------
+21:50:51 Ran 7 tests in 5.763s
+21:50:51
+21:50:51 OK
+21:50:51 Found 7 test(s).
+21:50:51 Skipping setup of unused database(s): default.
+21:50:51 System check identified no issues (0 silenced).

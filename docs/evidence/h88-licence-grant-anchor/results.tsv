@@ -1,0 +1,31 @@
+8ea91e215c58	M1	an enrolment stores its anchor	KILLED	FAILED (failures=1)	True	25.2
+8ea91e215c58	M2	the renewal task restarts the teacher's month	KILLED	FAILED (failures=1)	True	16.8
+8ea91e215c58	M3	the offline renewal restarts the teacher's month	KILLED	FAILED (failures=1)	True	18.0
+8ea91e215c58	M4	the chain is computed from the anchor, not the served due	KILLED	FAILED (failures=9)	True	18.9
+8ea91e215c58	M5	the helper is fed the served due, not now	KILLED	FAILED (failures=4, errors=1)	True	14.6
+8ea91e215c58	M6	the fallback is the later of creation and the cycle start	KILLED	FAILED (failures=1)	True	13.0
+8ea91e215c58	M7	a due time off the anchor's chain is its own anchor	KILLED	FAILED (failures=38)	True	14.0
+8ea91e215c58	M8	the snap window covers a due time before its point	KILLED	FAILED (failures=1968)	True	17.3
+8ea91e215c58	M9	the refresh stores the anchor it resolved	KILLED	FAILED (failures=4, errors=1)	True	12.4
+8ea91e215c58	M10	a caught-up refresh logs a WARNING	KILLED	FAILED (failures=1)	True	12.6
+8ea91e215c58	M11	a caught-up bucket lives from its grant time	KILLED	FAILED (failures=2)	True	14.0
+8ea91e215c58	M12	a caught-up bucket ends by the contract end	KILLED	FAILED (failures=1)	True	14.5
+8ea91e215c58	M13	a new admin allocation stores its anchor	KILLED	FAILED (failures=1)	True	15.6
+8ea91e215c58	M14	a reactivated admin allocation restarts its month	KILLED	FAILED (failures=1)	True	15.2
+8ea91e215c58	M15	1a's F1: a stored anchor is used only while the due time is on its chain	KILLED	FAILED (failures=5)	True	14.7
+8ea91e215c58	M16	1a's F1: the QA time-travel tool clears the anchor with the due time	KILLED	FAILED (failures=1)	True	18.1
+8ea91e215c58	W1	H-93: a run at a licence point counts that point	KILLED	FAILED (failures=347)	True	20.1
+8ea91e215c58	W2	H-93: a point within the due tolerance of the run reopens	KILLED	FAILED (failures=1)	True	13.5
+8ea91e215c58	W3	H-93: the points are the licence's, not the teacher's	KILLED	FAILED (failures=1)	True	16.2
+8ea91e215c58	W4	H-93: the window reopens on the points, not after a calendar month	KILLED	FAILED (failures=3)	True	16.6
+8ea91e215c58	W5	H-93: a refresh inside a licence month leaves the window alone	KILLED	FAILED (failures=3)	True	15.1
+8ea91e215c58	O1	H-81: the licence renewals log the owed refreshes	KILLED	FAILED (failures=3)	True	12.8
+8ea91e215c58	O2	H-81: an early renewal's future refreshes are not owed	KILLED	FAILED (failures=1)	True	13.0
+8ea91e215c58	O3	H-81: a due time within the snap of the end is not owed	KILLED	FAILED (failures=9)	True	12.7
+8ea91e215c58	O4	H-81: every owed grant is counted	KILLED	FAILED (failures=313)	True	12.7
+8ea91e215c58	O5	H-81: the renewal task reports	KILLED	FAILED (failures=1)	True	12.3
+8ea91e215c58	O6	H-81: the offline renewal reports	KILLED	FAILED (failures=2)	True	12.3
+8ea91e215c58	O7	H-81: the individual renewal logs the owed grants	KILLED	FAILED (failures=2)	True	12.9
+8ea91e215c58	O8	H-81: the licence line names the allocation's user by id	KILLED	FAILED (failures=3)	True	12.8
+8ea91e215c58	O9	H-81 (1a's mutant): a late licence renewal counts to the cycle end	KILLED	FAILED (failures=1)	True	13.9
+8ea91e215c58	O10	H-81: a late individual renewal counts to the cycle end	KILLED	FAILED (failures=1)	True	12.5

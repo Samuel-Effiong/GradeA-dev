@@ -1,0 +1,4 @@
+started 2026-09-30T17:14:48+01:00 head 0cfe219 worktree-diff-sha256 79d793da6a59
+commit9_modules         rc=1 34s Ran 173 tests in 32.374s FAILED (failures=1)
+finished 2026-09-30T17:15:22+01:00
+commit9_budget_rerun     after fixing test_the_worker_thread_leaves_no_database_connection_open (compared the shared connection proxy): Ran 8 tests in 2.593s OK

@@ -1,0 +1,21 @@
+# L03: unknown outcome: a timeout is read back
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '    if isinstance(exc, stripe.error.APIConnectionError):\n        return True'
+# new: '    if isinstance(exc, stripe.error.APIConnectionError):\n        return False'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 45.2
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_a_lost_response_that_landed_is_read_back_and_completed (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_lost_response_that_landed_is_read_back_and_completed)
+ERROR: test_a_lost_response_on_a_decrease_is_read_back (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_a_lost_response_on_a_decrease_is_read_back)
+ERROR: test_a_lost_response_to_a_delete_that_landed_completes (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_a_lost_response_to_a_delete_that_landed_completes)
+FAIL: test_cancel_applied_but_response_lost_leaves_both_sides_agreeing (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_cancel_applied_but_response_lost_leaves_both_sides_agreeing)
+FAIL: test_convert_to_offline_delete_applied_but_response_lost (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_convert_to_offline_delete_applied_but_response_lost)
+FAIL: test_plan_downgrade_applied_but_response_lost_leaves_both_sides_agreeing (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_plan_downgrade_applied_but_response_lost_leaves_both_sides_agreeing)
+FAIL: test_seat_decrease_applied_but_response_lost_leaves_both_sides_agreeing (billing.tests.test_h28_licence_stripe_divergence.LicenceStripeDivergenceTests.test_seat_decrease_applied_but_response_lost_leaves_both_sides_agreeing)
+FAIL: test_a_lost_response_that_did_not_land_is_read_back_and_failed (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_lost_response_that_did_not_land_is_read_back_and_failed)
+FAIL: test_an_unreadable_outcome_leaves_the_intent_pending_and_says_so (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_an_unreadable_outcome_leaves_the_intent_pending_and_says_so)
+FAIL: test_an_unreadable_outcome_stays_pending_and_says_so (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_an_unreadable_outcome_stays_pending_and_says_so)
+
+FAILED (failures=7, errors=3)

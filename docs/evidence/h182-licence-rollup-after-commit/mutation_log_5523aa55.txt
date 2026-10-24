@@ -1,0 +1,18 @@
+12 mutants: anchors unique, all parse, expected tests named
+12 of 12 mutants selected
+N1_the_charge_writes_the_licence_inline KILLED exit 1 ran 24 failed 3 expected-but-passed []
+N2_the_charge_registers_no_roll_up KILLED exit 1 ran 24 failed 10 expected-but-passed []
+N3_the_refund_registers_no_roll_up KILLED exit 1 ran 24 failed 4 expected-but-passed []
+N4_the_refund_writes_the_licence_inline KILLED exit 1 ran 24 failed 1 expected-but-passed []
+N5_the_roll_up_runs_at_once_not_after_commit KILLED exit 1 ran 24 failed 3 expected-but-passed []
+N6_a_failed_roll_up_is_raised KILLED exit 1 ran 24 failed 1 expected-but-passed []
+N7_a_failed_roll_up_is_not_logged_as_an_error KILLED exit 1 ran 24 failed 1 expected-but-passed []
+N8_the_refund_is_not_clamped_at_zero KILLED exit 1 ran 24 failed 2 expected-but-passed []
+N10_the_log_line_carries_the_errors_text KILLED exit 1 ran 24 failed 1 expected-but-passed []
+N11_the_charge_registers_its_roll_up_twice KILLED exit 1 ran 24 failed 10 expected-but-passed []
+N12_the_refund_registers_its_roll_up_twice KILLED exit 1 ran 24 failed 1 expected-but-passed []
+N9_the_roll_up_adds_nothing KILLED exit 1 ran 24 failed 9 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 12 of 12

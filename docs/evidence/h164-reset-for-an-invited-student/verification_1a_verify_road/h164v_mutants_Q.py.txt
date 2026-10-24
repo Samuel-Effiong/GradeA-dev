@@ -1,0 +1,53 @@
+"""1a's mutants for H-164's verify-road delta (rule 19). Usage, in the checkout:
+python -B h164v_mutants_Q.py <Q1..Q7> [--check]. Applied in place to users/views.py.
+Q1: /auth/verify without the admin-power arm.
+Q2: the code request without its admin-power skip (every account gets a code).
+Q3: the verify arm raises ParseError directly instead of refuse() (budget and lock not spent).
+Q5: the verify arm too wide: any never-verified account is refused.
+Q6: the request skip too wide: no never-verified account gets a code.
+Q7: Google sign-in refuses a never-verified staff or superuser account (the other road closed).
+"""
+
+import ast
+import sys
+
+V = "users/views.py"
+VARM = (
+    "        if not user.email_verified_at and _holds_admin_power(user):\n"
+    '            refuse("Invalid email or token.")\n'
+)
+RARM = "            if user.email_verified_at or not _holds_admin_power(user):\n"
+GANCHOR = "                    resurrected_fields = []\n                    if user.email_verified_at is None:\n"
+MUT = {
+    "Q1": (VARM, ""),
+    "Q2": (RARM, "            if True:\n"),
+    "Q3": (VARM, VARM.replace('refuse("Invalid email or token.")', 'raise ParseError("Invalid email or token.")')),
+    "Q5": (VARM, VARM.replace(" and _holds_admin_power(user)", "")),
+    "Q6": (RARM, "            if user.email_verified_at:\n"),
+    "Q7": (
+        GANCHOR,
+        "                    if user.email_verified_at is None and (\n"
+        "                        user.is_staff or user.is_superuser\n"
+        "                    ):\n"
+        '                        raise AuthenticationFailed("Not allowed.", "vf1a")\n\n'
+        + GANCHOR,
+    ),
+}
+code = sys.argv[1]
+if code not in MUT:
+    sys.exit("usage: Q1..Q7 (no Q4)")
+old, new = MUT[code]
+src = open(V, encoding="utf-8").read()
+if src.count(old) != 1:
+    print(f"ABORT {code}: anchor found {src.count(old)} times")
+    sys.exit(7)
+out = src.replace(old, new)
+ast.parse(out)
+if out == src:
+    print(f"ABORT {code}: equals source")
+    sys.exit(7)
+if "--check" in sys.argv:
+    print(f"checked {code}: one anchor, parses, differs")
+    sys.exit(0)
+open(V, "w", encoding="utf-8").write(out)
+print(f"applied {code} to {V}")

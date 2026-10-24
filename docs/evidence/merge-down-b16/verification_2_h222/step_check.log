@@ -1,0 +1,9 @@
+B0_base_code_with_the_tip_tests billing/services.py anchor count 1
+B0_base_code_with_the_tip_tests billing/license_service.py anchor count 1
+M1_clawback_has_no_wallet_lock billing/license_service.py anchor count 1
+M2_expire_bucket_has_no_wallet_lock billing/services.py anchor count 1
+M3_expire_bucket_locks_wallet_after_bucket billing/services.py anchor count 1
+M4_clawback_locks_wallet_after_buckets billing/license_service.py anchor count 1
+M4_clawback_locks_wallet_after_buckets billing/license_service.py anchor count 1
+ExpiryLocksTheWalletFirst.test_x1_expire_bucket_locks_the_wallet_before_the_bucket found
+ExpiryLocksTheWalletFirst.test_x2_the_clawback_locks_the_wallet_before_its_buckets found

@@ -1,0 +1,24 @@
+# Trimmed: test results and the summary/failure blocks only (tests' logged tracebacks removed).
+# Full log: GAP-evidence-logs/epic-a-s7b-h38/5_aba_test_under_M7.log
+Found 1 test(s).
+Creating test database for alias 'default'...
+System check identified some issues:
+System check identified 1 issue (0 silenced).
+Destroying test database for alias 'default'...
+
+======================================================================
+FAIL: test_same_code_new_retry_count_is_not_claimed_again (students.tests_item_retry.AClaimWaitingOnTheLockSeesTheRowItFinallyGets.test_same_code_new_retry_count_is_not_claimed_again)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-s7b/students/tests_item_retry.py", line 453, in test_same_code_new_retry_count_is_not_claimed_again
+    self.assertEqual(outcome.get("b"), "refused")
+AssertionError: 'claimed' != 'refused'
+- claimed
++ refused
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.451s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...

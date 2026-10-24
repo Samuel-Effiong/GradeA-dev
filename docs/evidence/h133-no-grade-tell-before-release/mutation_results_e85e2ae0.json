@@ -1,0 +1,221 @@
+{
+  "C2_the_queued_task_result_has_no_code": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 75,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_a_queued_upload_that_runs_after_the_grade_landed"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_claim_caught_only_by_the_check_under_the_row_lock",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_refused_before_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_a_grade_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_a_grading_claim_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_only_the_check_under_the_row_lock_can_catch_it",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_a_queued_upload_that_runs_after_the_grade_landed"
+    ],
+    "pycache_left": 0
+  },
+  "P1_the_upload_task_does_not_put_the_code_on_the_tracked_row": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 75,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_refused_before_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_a_grade_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_only_the_check_under_the_row_lock_can_catch_it",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_a_grading_claim_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_claim_caught_only_by_the_check_under_the_row_lock"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_claim_caught_only_by_the_check_under_the_row_lock",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_refused_before_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_a_grade_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_a_grading_claim_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_only_the_check_under_the_row_lock_can_catch_it"
+    ],
+    "pycache_left": 0
+  },
+  "P2_the_edit_task_does_not_put_the_code_on_the_tracked_row": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 75,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_refused_before_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_when_a_grade_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_when_a_grading_claim_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_refused_while_the_paper_is_being_graded"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_refused_before_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_refused_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_when_a_grade_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_when_a_grading_claim_lands_during_the_extraction"
+    ],
+    "pycache_left": 0
+  },
+  "S1_a_student_is_told_the_paper_is_graded": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 75,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_upload_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_queued_upload_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_edit_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_refusal_is_the_same_once_the_grade_is_released",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_a_queued_upload_that_runs_after_the_grade_landed"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_refused_before_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_when_a_grade_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_refused_before_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_a_grade_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_only_the_check_under_the_row_lock_can_catch_it",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_a_queued_upload_that_runs_after_the_grade_landed",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_edit_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_queued_upload_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_refusal_is_the_same_once_the_grade_is_released",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_upload_refusal"
+    ],
+    "pycache_left": 0
+  },
+  "S2_a_student_is_told_the_paper_is_being_graded": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 75,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_upload_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_edit_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_the_two_busy_cases_get_one_and_the_same_answer"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_edit_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_upload_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_the_two_busy_cases_get_one_and_the_same_answer",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_refused_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_when_a_grading_claim_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_claim_caught_only_by_the_check_under_the_row_lock",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_a_grading_claim_lands_during_the_extraction"
+    ],
+    "pycache_left": 0
+  },
+  "S3_a_student_is_told_an_upload_is_still_being_processed": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 75,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_the_two_busy_cases_get_one_and_the_same_answer"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_the_two_busy_cases_get_one_and_the_same_answer"
+    ],
+    "pycache_left": 0
+  },
+  "S4_the_teacher_is_given_the_neutral_sentence_for_graded": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 75,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.TheOtherRefusalsTest.test_the_teacher_is_still_told_that_the_paper_is_graded"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.TheOtherRefusalsTest.test_the_teacher_is_still_told_that_the_paper_is_graded"
+    ],
+    "pycache_left": 0
+  },
+  "S5_the_teacher_is_given_the_neutral_sentence_for_being_graded": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 75,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.TheOtherRefusalsTest.test_the_teacher_is_still_told_that_the_paper_is_being_graded"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.TheOtherRefusalsTest.test_the_teacher_is_still_told_that_the_paper_is_being_graded"
+    ],
+    "pycache_left": 0
+  },
+  "S6_the_edit_path_treats_every_caller_as_a_teacher": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 75,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_edit_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_refusal_is_the_same_once_the_grade_is_released",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_edit_while_the_paper_is_being_graded"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_edit_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_refused_before_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_refused_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_when_a_grade_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_when_a_grading_claim_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_edit_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_refusal_is_the_same_once_the_grade_is_released"
+    ],
+    "pycache_left": 0
+  },
+  "P3_the_uploads_checks_before_the_lock_speak_as_to_a_teacher": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 75,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_refused_before_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_a_grade_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_a_grading_claim_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_upload_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_queued_upload_refusal"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_upload_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_the_two_busy_cases_get_one_and_the_same_answer",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_refused_before_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_a_grade_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_a_grading_claim_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_a_queued_upload_that_runs_after_the_grade_landed",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_queued_upload_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_upload_refusal"
+    ],
+    "pycache_left": 0
+  },
+  "P4_the_uploads_check_under_the_lock_speaks_as_to_a_teacher": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 75,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_only_the_check_under_the_row_lock_can_catch_it",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_claim_caught_only_by_the_check_under_the_row_lock"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_claim_caught_only_by_the_check_under_the_row_lock",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_upload_when_only_the_check_under_the_row_lock_can_catch_it"
+    ],
+    "pycache_left": 0
+  },
+  "P5_the_edits_check_under_the_lock_speaks_as_to_a_teacher": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 75,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_when_a_grade_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_when_a_grading_claim_lands_during_the_extraction"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_when_a_grade_lands_during_the_extraction",
+      "students.tests_no_grade_tell_before_release.StudentPollsARefusedTaskTest.test_edit_when_a_grading_claim_lands_during_the_extraction"
+    ],
+    "pycache_left": 0
+  }
+}

@@ -1,0 +1,6 @@
+L04	a CardError is not a refusal (payment_errors)	KILLED	FAILED (failures=1)	True	54.0
+L07	only the change's own invoice (new_invoice_since)	KILLED	FAILED (failures=1)	True	37.5
+L15	stale check alerts once (ESCALATED not re-selected)	KILLED	FAILED (failures=1)	True	37.6
+L20	the retry runs on a fresh connection	KILLED	FAILED (failures=1)	True	37.1
+
+4/4 killed with verified restore

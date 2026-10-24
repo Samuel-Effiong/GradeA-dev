@@ -1,0 +1,12 @@
+# L02: seats phase A durable
+# file: billing/license_service.py (occurrence 3)
+# old: '        # Phase A — or the whole operation, where Stripe is not involved.\n        try:\n            with transaction.atomic(durable=True):'
+# new: '        # Phase A — or the whole operation, where Stripe is not involved.\n        try:\n            with transaction.atomic():'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 37.6
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_refuses_to_run_inside_a_callers_transaction (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_refuses_to_run_inside_a_callers_transaction)
+
+FAILED (errors=1)

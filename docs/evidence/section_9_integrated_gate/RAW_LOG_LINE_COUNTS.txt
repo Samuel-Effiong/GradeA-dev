@@ -1,0 +1,12 @@
+chain1_first_attempt_on_f314569.log.gz  lines=58
+chain2_counted_on_7641ed7.log.gz  lines=116
+chain2_quick_check.log.gz  lines=87
+phaseA_live.log.gz  lines=134
+phaseA_mutations.log.gz  lines=84
+phaseA_targeted.log.gz  lines=7483
+phaseB_check.log.gz  lines=1
+phaseB_makemigrations_check.log.gz  lines=1
+phaseB_migration_safety.log.gz  lines=1
+phaseB_precommit_all_files.log.gz  lines=25
+phaseB_suite_a.log.gz  lines=59480
+phaseB_suite_b.log.gz  lines=59124

@@ -1,0 +1,29 @@
+classrooms.tests.ActivatePendingEnrollmentsOnLoginTest.test_no_pending_enrollments_is_a_no_op ... ok
+classrooms.tests.ActivatePendingEnrollmentsOnLoginTest.test_non_student_login_never_touches_student_course ... ok
+classrooms.tests.ActivatePendingEnrollmentsOnLoginTest.test_two_pending_enrollments_both_flip_on_one_login ... ok
+classrooms.tests.ActivationTokenValidityWindowTest.test_bulk_imported_student_gets_no_activation_code ... ok
+classrooms.tests.CourseModelTest.test_course_creation ... ok
+classrooms.tests.CourseModelTest.test_course_null_teacher_or_session ... ok
+classrooms.tests.CourseModelTest.test_course_ordering ... ok
+classrooms.tests.CourseModelTest.test_course_str_representation ... ok
+classrooms.tests.CourseModelTest.test_course_uniqueness_per_session ... ok
+classrooms.tests.CourseStudentsActionAuthorizationTest.test_owning_teacher_can_still_enroll_a_student ... ok
+classrooms.tests.CourseStudentsActionAuthorizationTest.test_teacher_cannot_enroll_a_student_into_another_teachers_course ... ok
+classrooms.tests.EnrollStudentByEmailActiveImmediatelyTest.test_already_onboarded_student_is_enrolled_immediately_no_password_reset ... ok
+classrooms.tests.EnrollStudentByEmailActiveImmediatelyTest.test_legacy_pending_row_self_heals_instead_of_fast_pathing ... ok
+classrooms.tests.EnrollStudentByEmailActiveImmediatelyTest.test_mid_onboarding_student_invited_to_second_course_gets_fresh_password ... ok
+classrooms.tests.EnrollStudentByEmailActiveImmediatelyTest.test_new_student_is_created_active_with_no_activation_token ... ok
+classrooms.tests.RenewActivationTokenTest.test_renews_token_for_pending_enrollment ... ok
+classrooms.tests.RenewActivationTokenTest.test_token_with_no_pending_enrollment_returns_400_not_500 ... ok
+classrooms.tests.RenewActivationTokenTest.test_unknown_token_returns_400_not_500 ... ok
+classrooms.tests.SchoolModelTest.test_school_creation ... ok
+classrooms.tests.SchoolModelTest.test_school_name_uniqueness ... ok
+classrooms.tests.SchoolModelTest.test_school_optional_fields ... ok
+classrooms.tests.SchoolModelTest.test_school_str_representation ... ok
+classrooms.tests.SessionModelTest.test_session_creation ... ok
+classrooms.tests.SessionModelTest.test_session_name_uniqueness_per_teacher ... ok
+classrooms.tests.SessionModelTest.test_session_ordering ... ok
+classrooms.tests.StudentCourseModelTest.test_blank_pending_student_names_do_not_conflict ... ok
+classrooms.tests.StudentCourseModelTest.test_exact_student_names_still_must_be_unique_per_course ... ok
+Ran 27 tests in 1.630s
+OK

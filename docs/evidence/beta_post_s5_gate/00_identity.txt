@@ -1,0 +1,7 @@
+merge_commit 30b7b95d912c3ed33ee8b0ae8695b3299cd7ad92
+parents 544424a36c73922eed58fc0fc1623f3a7ec2fe83 aedade35d80e8d9f348b60e0d11d3c1c17f43366
+section5_gated_commit eb6f3a06b9b864a462540276f7f5cb403256c4b7
+section5_branch_tip aedade35d80e8d9f348b60e0d11d3c1c17f43366
+previous_beta 544424a36c73922eed58fc0fc1623f3a7ec2fe83
+recorded_utc 2026-09-14T19:22:13Z
+note Raw logs of the first post-merge run (4146 tests OK, 17:08-17:47Z) were lost with the session scratchpad; this directory holds the re-run.

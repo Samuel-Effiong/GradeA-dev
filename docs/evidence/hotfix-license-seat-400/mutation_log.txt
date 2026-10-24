@@ -1,0 +1,19 @@
+H1_catch_removed {'killed': True, 'failing_tests': ['test_a_plan_without_monthly_credits_is_a_400', 'test_a_standard_tier_plan_is_a_400', 'test_carried_over_teachers_are_counted_and_the_old_licence_is_untouched', 'test_offline_create_over_the_seat_cap_is_a_400_with_the_message', 'test_omitted_max_seats_is_a_400']}
+H2_catch_widened_to_bare_value_error {'killed': True, 'failing_tests': ['test_a_bare_value_error_is_still_a_500']}
+H3_seat_refusal_raised_untyped {'killed': True, 'failing_tests': ['test_carried_over_teachers_are_counted_and_the_old_licence_is_untouched', 'test_create_license_carry_forward_seat_overflow_rejected', 'test_offline_create_over_the_seat_cap_is_a_400_with_the_message', 'test_singular_wording']}
+H4_stripe_preflight_removed {'killed': True, 'failing_tests': ['test_stripe_checkout_over_the_seat_cap_is_a_400_before_stripe', 'test_stripe_counts_carried_over_teachers_before_checkout']}
+H5_cap_off_by_one {'killed': True, 'failing_tests': ['test_a_full_licence_says_so', 'test_stripe_checkout_goes_ahead_when_nobody_is_carried_over', 'test_two_teachers_on_two_seats_is_created']}
+H6_carried_over_teachers_not_counted {'killed': True, 'failing_tests': ['test_carried_over_teachers_are_counted_and_the_old_licence_is_untouched', 'test_create_license_carry_forward_seat_overflow_rejected', 'test_stripe_counts_carried_over_teachers_before_checkout']}
+H7_message_loses_the_remedy {'killed': True, 'failing_tests': ['test_carried_over_teachers_are_counted_and_the_old_licence_is_untouched', 'test_offline_create_over_the_seat_cap_is_a_400_with_the_message', 'test_singular_wording', 'test_stripe_checkout_over_the_seat_cap_is_a_400_before_stripe', 'test_stripe_counts_carried_over_teachers_before_checkout']}
+H8_singular_wording_broken {'killed': True, 'failing_tests': ['test_singular_wording']}
+V1_stripe_precheck_ignores_carry_forward {'killed': True, 'failing_tests': ['test_stripe_counts_carried_over_teachers_before_checkout']}
+V2_zero_credit_plan_refusal_untyped {'killed': True, 'failing_tests': ['test_a_plan_without_monthly_credits_is_a_400']}
+V3_standard_tier_refusal_untyped {'killed': True, 'failing_tests': ['test_a_standard_tier_plan_is_a_400']}
+V4_max_seats_guard_untyped {'killed': True, 'failing_tests': ['test_omitted_max_seats_is_a_400']}
+W1_no_seats_refusal_untyped {'killed': True, 'failing_tests': ['test_a_full_licence_says_so', 'test_fewer_seats_than_teachers_says_how_many']}
+W2_inactive_licence_refusal_untyped {'killed': True, 'failing_tests': ['test_an_inactive_licence_says_so']}
+W3_not_listed_as_user_facing {'killed': True, 'failing_tests': ['test_a_full_licence_says_so', 'test_an_inactive_licence_says_so', 'test_fewer_seats_than_teachers_says_how_many', 'test_removing_a_teacher_not_on_the_licence_says_so']}
+W4_remove_refusal_untyped {'killed': True, 'failing_tests': ['test_removing_a_teacher_not_on_the_licence_says_so']}
+W5_no_seats_message_loses_the_counts {'killed': True, 'failing_tests': ['test_a_full_licence_says_so', 'test_fewer_seats_than_teachers_says_how_many']}
+W6_full_licence_message_branch_lost {'killed': True, 'failing_tests': ['test_a_full_licence_says_so']}
+SURVIVORS: []

@@ -1,0 +1,12 @@
+# L14: stale check: only intents older than STALE_AFTER
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '            updated_at__lt=now - STALE_AFTER,'
+# new: '            updated_at__lt=now + STALE_AFTER,'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 41.7
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_recent_and_closed_intents_are_left_alone (billing.tests.test_h28_alerting.StaleIntentCheckTests.test_recent_and_closed_intents_are_left_alone)
+
+FAILED (failures=1)

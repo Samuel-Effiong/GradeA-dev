@@ -1,0 +1,12 @@
+# L29: the worker runs in the caller's context (sees the deadline)
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '        target=context.run, args=(run,), name='
+# new: '        target=run, name='
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 40.2
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_hung_stripe_fails_at_the_socket_inside_the_budget (billing.tests.test_h28_stripe_budget.LicenceStripeAdapterTests.test_a_hung_stripe_fails_at_the_socket_inside_the_budget)
+
+FAILED (failures=1)

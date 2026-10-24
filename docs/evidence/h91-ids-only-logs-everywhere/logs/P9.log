@@ -1,0 +1,14 @@
+# P9: the price-drift line names the user by id (read by a behaviour test)
+# file: billing/tasks.py (occurrence 1)
+# old: '            sub.id,\n            sub.user_id,\n'
+# new: '            sub.id,\n            sub.user.email,\n'
+# commit: 2c336a509a82d61dc35e647160844cee7aab6c0c
+# exit: 1
+# elapsed_s: 14.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_drift_is_detected_and_logged_as_an_error (billing.tests.test_price_drift_reconciliation.PriceDriftDetectionTests.test_drift_is_detected_and_logged_as_an_error)
+FAIL: test_only_the_drifted_subscription_is_reported (billing.tests.test_price_drift_reconciliation.PriceDriftDetectionTests.test_only_the_drifted_subscription_is_reported)
+FAIL: test_no_log_or_print_call_passes_an_address_or_a_name (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_no_log_or_print_call_passes_an_address_or_a_name)
+
+FAILED (failures=3)

@@ -1,0 +1,26 @@
+# H2: which test modules reach the changed entry points (SM condition 2, 2026-10-02)
+# Tree: e782f70e plus the F1 fix. Each grep is the command line, then its output.
+
+$ git grep -ln 'nightly_grading_benchmark_replay\|weekly_grading_benchmark_live\|"grading_benchmark"\|ai_processor\.tasks\b\|from ai_processor import tasks\|_resolve_user' -- '*test*.py'
+ai_processor/tests_benchmark_history.py
+ai_processor/tests_extraction_benchmark_golden.py
+ai_processor/tests_grading_benchmark.py
+ai_processor/tests_h2_grading_benchmark_guard.py
+
+$ git grep -n 'assertLogs\|assertNoLogs' -- '*test*.py' | grep 'ai_processor.tasks\|TASKS_LOGGER'
+ai_processor/tests_h2_grading_benchmark_guard.py:120:        with patch(EXECUTE, new=reached), self.assertLogs(TASKS_LOGGER, "DEBUG") as logs:
+ai_processor/tests_h2_grading_benchmark_guard.py:142:        with patch(EXECUTE, new=reached), self.assertLogs(TASKS_LOGGER, "DEBUG") as logs:
+ai_processor/tests_h2_grading_benchmark_guard.py:155:        with patch(EXECUTE, new=reached), self.assertLogs(TASKS_LOGGER, "DEBUG") as logs:
+billing/tests/test_annual_grant_anchor.py:217:        with self.assertLogs(TASKS_LOGGER, "WARNING") as logs:
+
+$ git grep -n 'TASKS_LOGGER = ' -- '*test*.py'
+ai_processor/tests_h2_grading_benchmark_guard.py:27:TASKS_LOGGER = "ai_processor.tasks"
+billing/tests/test_annual_grant_anchor.py:51:TASKS_LOGGER = "billing.services"
+
+$ git grep -ln 'grading_benchmark' -- 'AutoGrader/tests*.py'
+(no match)
+
+# Result: the gate's module set is the four modules of the first grep plus the guards.
+# tests_extraction_benchmark_golden only names extraction_benchmark._resolve_user in a docstring; it is included anyway.
+# The only assertLogs on the ai_processor.tasks logger are the new ones in tests_h2_grading_benchmark_guard (via TASKS_LOGGER).
+# Note: the command name is matched as the bare string "grading_benchmark", because the F1 fix puts call_command's arguments on separate lines.

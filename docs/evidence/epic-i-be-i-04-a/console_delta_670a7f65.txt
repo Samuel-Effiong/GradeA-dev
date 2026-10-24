@@ -1,0 +1,14 @@
+load at start: 4.02 4.24 4.86 7/2782 1719496
+=== 1 (delta). new modules + near module + guards at 670a7f65 15:42:43
+exit=0 15:45:38
+Ran 401 tests in 153.426s
+OK
+=== 2 (delta). the one new mutant, M4 (own DB, built fresh; rules 17 and 18) 15:45:38
+mutant exit=0 15:45:59
+M4 {'what': 'the migration gives one column another word as its database default', 'file': 'students/migrations/0031_submission_grading_label.py', 'kind': 'fresh', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 1 test in 2.306s', 'expected': 'test_a_row_made_
+KILLED: ['M4']
+SURVIVED: []
+BROKEN: []
+source clean after the mutant
+dropped test_epic_i_be_i_04_a_mut
+load at end: 4.44 4.49 4.85 3/2759 1723241

@@ -1,0 +1,3 @@
+FAIL: test_nothing_is_exempt_by_default (users.tests_email_domain_rules.ExemptDomainTests.test_nothing_is_exempt_by_default)
+Ran 527 tests in 86.393s
+FAILED (failures=1, skipped=4)

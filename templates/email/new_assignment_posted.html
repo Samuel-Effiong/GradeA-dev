@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #2563eb;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px;
+        }
+        .content {
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .details {
+            background-color: #eff6ff;
+            border-left: 4px solid #2563eb;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>New Assignment Posted</h1>
+        </div>
+
+        <div class="content">
+            <p>Dear {{ student.get_full_name }},</p>
+
+            <p>
+                A new assignment has been posted for
+                <strong>{{ course.name }}</strong>.
+            </p>
+
+            <div class="details">
+                <h3>Assignment Details</h3>
+                <ul>
+                    <li><strong>Course:</strong> {{ course.name }}</li>
+                    <li><strong>Assignment:</strong> {{ assignment.title|default:"Untitled Assignment" }}</li>
+                    <li><strong>Due Date:</strong> {{ due_date_display }}</li>
+                    {% if teacher %}
+                        <li><strong>Teacher:</strong> {{ teacher.get_full_name }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <p>Please review the assignment details from your Grade A+ dashboard.</p>
+
+            <p>Best regards,<br>Grade A+ Team</p>
+        </div>
+    </div>
+</body>
+</html>

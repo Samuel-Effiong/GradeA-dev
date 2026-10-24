@@ -1,0 +1,62 @@
+"""1a's mutants Q1 to Q4 for H-174's delta (rule 19: each probe of mine is seen red,
+and the author's never-seen-red test is shown able to fail).
+Usage, in the checkout: python -B h174_mutants_Q.py <Q1|Q2|Q3|Q4> [--check]. Applied in
+place; restore with git checkout. Expected failing tests: h174_expected_kills.txt.
+
+Q1: a cancel date counts only while it is still in the future.
+Q2: neither Stripe date counts (the dated branch can never be taken).
+Q3: the answer's status says "cancellation_scheduled" for a trial too.
+Q4: the correction is saved and reported even when there was nothing to correct.
+"""
+
+import ast
+import sys
+
+SS = "billing/stripe_service.py"
+VW = "billing/views.py"
+MUTANTS = {
+    "Q1": (
+        SS,
+        '            stripe_sub.get("cancel_at") or stripe_sub.get("canceled_at")\n',
+        '            (stripe_sub.get("cancel_at") or 0) > int(now.timestamp())\n'
+        '            or stripe_sub.get("canceled_at")\n',
+    ),
+    "Q2": (
+        SS,
+        '            stripe_sub.get("cancel_at") or stripe_sub.get("canceled_at")\n',
+        "            False\n",
+    ),
+    "Q3": (
+        VW,
+        "                            if result.scheduled_at_provider and not sub.is_trial\n",
+        "                            if result.scheduled_at_provider\n",
+    ),
+    "Q4": (
+        SS,
+        "                    if local_update_fields:\n",
+        "                    if True:\n",
+    ),
+}
+
+
+def main():
+    name = sys.argv[1]
+    path, old, new = MUTANTS[name]
+    with open(path, encoding="utf-8") as handle:
+        source = handle.read()
+    count = source.count(old)
+    if count != 1:
+        print(f"ABORT {name}: anchor found {count} times in {path}")
+        sys.exit(7)
+    mutated = source.replace(old, new, 1)
+    ast.parse(mutated)
+    if "--check" in sys.argv:
+        print(f"checked {name}: anchor once in {path}, mutant parses")
+        return
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(mutated)
+    print(f"applied {name} to {path}")
+
+
+if __name__ == "__main__":
+    main()

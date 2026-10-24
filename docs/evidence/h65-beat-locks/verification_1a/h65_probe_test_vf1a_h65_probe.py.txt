@@ -1,0 +1,214 @@
+"""1a's verification probes for H-65 (51fbb0e). Not committed.
+
+L: the worst-case lifetime of a lock whose run hangs (or whose worker is
+   killed right after a heartbeat), against the schedule interval. Real
+   decorator, real Redis, time scaled 1:60 so the ratios are exact:
+   EVERY_5_MIN's max_hold 240 s -> 4 s, its TTL min(300, 240) = 240 s ->
+   4 s, its interval 300 s -> 5 s.
+
+C: the SM's cycle-end question, on a REAL 12-month grant chain driven day
+   by day through the real tasks (grants 02:00, cleanup 05:00, the renewal
+   an hour after the cycle ends): does a skipped mid-cycle grant survive a
+   skip that reaches the cycle end?
+"""
+
+import threading
+import time
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+from unittest.mock import patch
+
+from dateutil.relativedelta import relativedelta
+from django.core.cache import cache
+from django.test import SimpleTestCase, TestCase
+
+from AutoGrader.beat_locks import BeatLock, single_instance
+from billing.models import (
+    CreditBucket,
+    CreditBucketType,
+    CreditLedger,
+    CreditLedgerType,
+    UserSubscription,
+)
+from billing.services import SubscriptionService
+from billing.tasks import cleanup_expired_credit_buckets, process_annual_plan_credit_grants
+from billing.tests.test_annual_mid_cycle_grants import make_annual_plan
+from billing.tests.test_beat_lock_catch_up import make_clean_user
+
+GRANTS = "billing.tasks.process_annual_plan_credit_grants"
+
+
+# ---------------------------------------------------------------------------
+# L: a hung run's lock vs the next scheduled run
+# ---------------------------------------------------------------------------
+class LHungRunVsNextRun(SimpleTestCase):
+    def setUp(self):
+        cache.clear()
+
+    def tearDown(self):
+        cache.clear()
+
+    def next_run_after_a_hung_one(self, max_hold, ttl, interval):
+        release = threading.Event()
+        ran = []
+
+        @single_instance(max_hold=max_hold, ttl=ttl)
+        def vf1a_scaled_task():
+            ran.append(time.monotonic())
+            if len(ran) == 1:
+                release.wait(interval + 4)  # hung
+            return "ran"
+
+        started = time.monotonic()
+        hung = threading.Thread(target=vf1a_scaled_task)
+        hung.start()
+        time.sleep(max(0.0, started + interval + 0.1 - time.monotonic()))
+        result = vf1a_scaled_task()
+        release.set()
+        hung.join(timeout=15)
+        print(
+            f"\nVF1A_H65_L max_hold={max_hold}s ttl={ttl}s interval={interval}s: "
+            f"next run {'RAN' if len(ran) == 2 else 'SKIPPED'} ({result!r})"
+        )
+        return len(ran) == 2
+
+    def test_every_5_min_scaled_a_hung_run_does_not_swallow_the_next(self):
+        # EVERY_5_MIN at 1:60: max_hold 4 s, TTL capped to 4 s, interval 5 s.
+        self.assertTrue(
+            self.next_run_after_a_hung_one(max_hold=4, ttl=300, interval=5),
+            "the next scheduled run was skipped: the hung run's last heartbeat "
+            "(at 2/3 of max_hold) kept the lock a full TTL past it",
+        )
+
+    def test_every_5_min_as_declared_at_the_tip(self):
+        # N1 re-check (6cfebed): the real task's declared lock, scaled 1:60.
+        from AutoGrader.beat_locks import declared_lock
+        from billing.tasks import escalate_stale_licence_stripe_intents
+
+        lock = declared_lock(escalate_stale_licence_stripe_intents)
+        print(f"\nVF1A_H65_L declared max_hold={lock.max_hold_seconds}s ttl={lock.ttl_seconds}s")
+        self.assertEqual(lock.max_hold_seconds % 60, 0)
+        self.assertEqual(lock.ttl_seconds % 60, 0)
+        self.assertTrue(
+            self.next_run_after_a_hung_one(
+                max_hold=lock.max_hold_seconds // 60, ttl=lock.ttl_seconds // 60, interval=5
+            ),
+            "the next scheduled run was skipped at the tip's declared values",
+        )
+
+    def test_control_the_same_max_hold_with_a_short_ttl(self):
+        self.assertTrue(self.next_run_after_a_hung_one(max_hold=4, ttl=1, interval=5))
+
+
+# ---------------------------------------------------------------------------
+# C: a skipped mid-cycle grant vs the annual cycle end (the SM's probe)
+# ---------------------------------------------------------------------------
+class Clock:
+    def __init__(self, moment):
+        self.moment = moment
+
+    def __call__(self):
+        self.moment += timedelta(milliseconds=3)
+        return self.moment
+
+
+class CSkippedGrantAcrossTheCycleEnd(TestCase):
+    """One annual subscription from `start`, driven through its whole year
+    and its renewal. `skip(run_at, end)` says which 02:00 grant runs find
+    the lock held by another run (as a Redis outage or a stuck run would)."""
+
+    START = datetime(2026, 1, 15, 14, 0, tzinfo=dt_timezone.utc)
+
+    def setUp(self):
+        self.clock = Clock(self.START)
+        patcher = patch("django.utils.timezone.now", self.clock)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.plan = make_annual_plan()
+        self.n = 0
+
+    def simulate(self, skip=lambda run_at, end: False):
+        self.n += 1
+        self.clock.moment = self.START
+        user, wallet = make_clean_user(f"vf1a-h65-c{self.n}@example.com")
+        sub = SubscriptionService.activate_subscription(
+            user,
+            self.plan,
+            period_start=self.START,
+            period_end=self.START + relativedelta(years=1),
+        )
+        end = sub.billing_cycle_end
+        events = []
+        day = self.START.replace(hour=0, minute=0, second=0, microsecond=0)
+        while day < end + timedelta(days=3):
+            events.append((day + timedelta(hours=2), "grant"))
+            events.append((day + timedelta(hours=5), "cleanup"))
+            day += timedelta(days=1)
+        events.append((end + timedelta(hours=1), "renewal"))
+        skipped = 0
+        for at, what in sorted(e for e in events if e[0] > self.START):
+            self.clock.moment = at
+            if what == "grant":
+                if skip(at, end):
+                    lock = BeatLock(GRANTS, 3600, 3600)
+                    self.assertTrue(lock.acquire("another-run"))
+                    try:
+                        self.assertIn("skipping", process_annual_plan_credit_grants())
+                    finally:
+                        lock.release()
+                    skipped += 1
+                else:
+                    process_annual_plan_credit_grants()
+            elif what == "cleanup":
+                cleanup_expired_credit_buckets()
+            else:
+                old = UserSubscription.objects.get(pk=sub.pk)
+                SubscriptionService.process_rollover_and_renewal(
+                    old, period_start=end, period_end=end + relativedelta(years=1)
+                )
+        grants = list(
+            CreditLedger.objects.filter(
+                user_id=user.id,
+                ledger_type=CreditLedgerType.GRANT,
+                metadata__grant_type="ANNUAL_MID_CYCLE",
+            ).order_by("created_at").values_list("created_at", flat=True)
+        )
+        carry = sum(
+            CreditBucket.objects.filter(
+                wallet=wallet, bucket_type=CreditBucketType.CARRY_OVER
+            ).values_list("total_credits", flat=True)
+        )
+        return end, grants, carry, skipped
+
+    def test_where_the_last_grant_falls_and_what_a_skip_to_the_end_costs(self):
+        end, grants, carry, _ = self.simulate()
+        last = grants[-1]
+        _, g_skip_all, carry_skip_all, n_all = self.simulate(
+            skip=lambda at, e: at >= last - timedelta(minutes=10) and at < e
+        )
+        _, g_skip_but_last, carry_skip_but_last, n_but_last = self.simulate(
+            skip=lambda at, e: at >= last - timedelta(minutes=10) and at < e - timedelta(days=1)
+        )
+        print(
+            f"\nVF1A_H65_C start={self.START:%Y-%m-%d %H:%M} end={end:%Y-%m-%d %H:%M}\n"
+            f"  no skip: {len(grants)} mid-cycle grants, last at {last:%Y-%m-%d %H:%M}, "
+            f"carry-over {carry}\n"
+            f"  every run skipped from the last grant's run to the end ({n_all} runs): "
+            f"{len(g_skip_all)} grants, carry-over {carry_skip_all}\n"
+            f"  the same but the last run before the end runs ({n_but_last} skipped): "
+            f"{len(g_skip_but_last)} grants, carry-over {carry_skip_but_last}"
+        )
+        self.assertEqual(len(g_skip_but_last), len(grants), "caught up by the last run")
+        # The SM's requirement: the credits equal the no-skip outcome.
+        self.assertEqual(
+            len(g_skip_all),
+            len(grants),
+            "a grant skipped by every run up to the cycle end is lost: the "
+            "renewal starts a new chain and never grants it",
+        )
+
+
+class CMonthEndStart(CSkippedGrantAcrossTheCycleEnd):
+    """The same from the 31st at 01:00 (relativedelta clamps the chain)."""
+
+    START = datetime(2026, 1, 31, 1, 0, tzinfo=dt_timezone.utc)

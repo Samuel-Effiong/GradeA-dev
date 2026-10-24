@@ -1,0 +1,2 @@
+FAIL lines: 12; ACK lines: 3; OK lines: 92; exit line: exit=1
+the FAIL set is exactly the expected one

@@ -1,0 +1,6 @@
+K1	a keyless session is refused at all	KILLED	FAILED (failures=5)	True	18.5
+K2	an EMPTY payment_intent is refused too	KILLED	FAILED (failures=1)	True	3.4
+K3	the refusal returns before granting	KILLED	FAILED (failures=5)	True	3.4
+
+3/3 killed with verified restore
+exit=0

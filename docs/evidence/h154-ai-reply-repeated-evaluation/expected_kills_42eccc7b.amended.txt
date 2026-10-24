@@ -1,0 +1,22 @@
+R1: 11 failing, as expected
+R2: 5 failing, as expected
+R3: 5 failing, as expected
+R4: 3 failing, as expected
+R5: 9 failing, as expected
+R6: 4 failing, as expected
+R7: 1 failing, as expected
+R8: 2 failing, as expected
+R9: 1 failing, as expected
+R10: 4 failing, as expected
+R11: 1 failing, as expected
+R12: 1 failing, as expected
+R13: 4 failing, as expected
+R14: 4 failing, as expected
+R15: 5 failing, as expected
+R16: 4 failing, as expected
+R17: 1 failing, as expected
+R18: 1 failing, as expected
+R19: 1 failing, as expected
+every mutant's failing set is the expected one
+
+(comparison of the kept logs of the run of 13:40:10-13:50:14 against expected_kills.py as AMENDED AFTER that run; made 2026-10-07 13:52:25; a text check, no test run; the run was not repeated)

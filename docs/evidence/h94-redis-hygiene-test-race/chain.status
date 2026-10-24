@@ -1,0 +1,8 @@
+16:03:07 repro exit=1 (red expected)
+16:03:20 module --parallel 4 run 1 exit=0
+16:03:33 module --parallel 4 run 2 exit=0
+16:03:44 module --parallel 4 run 3 exit=0
+16:03:58 module --parallel 4 run 4 exit=0
+16:04:13 module --parallel 4 run 5 exit=0
+16:05:23 9 guards exit=0
+16:05:23 CHAIN END

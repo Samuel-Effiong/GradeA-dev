@@ -1,0 +1,8 @@
+17:46:24 (m) start: loadavg 2.25 4.69 6.08 9/2921 1897209
+17:46:28 (m) end: loadavg 2.23 4.65 6.06 4/2944 1897293
+17:46:28 (m) exit=0
+17:46:28 (b) start: loadavg 2.23 4.65 6.06 5/2944 1897300
+17:47:30 (b) end: loadavg 4.11 4.67 5.96 7/2925 1898202
+17:47:30 (b) exit=0
+17:47:30 expected failing sets: every mutant's failing set is the expected one
+17:47:30 H-120 CHAIN END (no (c): no application code changes; the SM approved that)

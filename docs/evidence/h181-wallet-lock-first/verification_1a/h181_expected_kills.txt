@@ -1,0 +1,29 @@
+# 1a H-181 (wallet lock first): expected failing test methods per run, written 2026-10-08 13:58:54 WAT 2026-10-08, BEFORE any run of mine.
+# Tip 5b0ddded6fea19c4c3972cca18d0a5e9e3dff116 (code and tests last changed in 711feba0 and a7f81245). Run set for every run: ONE module of mine,
+# billing.tests.test_vf1a_h181_order (10 tests, no threads: it reads the ORDER of the SQL a function sends and asserts that the first
+# SELECT .. FOR UPDATE of the wallet table comes before the first statement that locks or writes a bucket (FOR UPDATE, INSERT, UPDATE),
+# and before any UPDATE of the wallet row; it also asserts the function reached both). Expected Ran 10 in every run.
+#   o1 activate_subscription  o2 apply_immediate_plan_change  o3 process_mid_cycle_credit_grant  o4 process_rollover_and_renewal
+#   o5 finalize_trial_conversion_via_stripe  o6 finalize_trial_to_paid_conversion
+#   o7 process_license_renewal  o8 process_offline_renewal  o9 _refresh_teacher_credits  o10 the helper _rollover_and_grant_monthly_bucket called directly
+# Baseline (tip, unmutated): all 10 green.
+# OLD: the tip's tests and locks.py with billing/services.py and billing/license_service.py put back to the base 035e0a07 (no lock call anywhere):
+#   all 10 red (each function locks a bucket and never takes an explicit wallet lock first).
+# R<n>: the call removed at site n. L<n>: the call moved late, to after the first top-level statement of the function that locks a bucket.
+#   Sites: 1 activate_subscription, 2 apply_immediate_plan_change, 3 process_mid_cycle_credit_grant, 4 process_rollover_and_renewal,
+#   5 finalize_trial_conversion_via_stripe, 6 finalize_trial_to_paid_conversion, 7 the licence helper.
+R1 : o1            L1 : o1
+R2 : o2            L2 : o2
+R3 : o3            L3 : o3
+R4 : o4            L4 : o4
+R5 : o5            L5 : o5
+R6 : o6            L6 : o6
+R7 : o7 o8 o9 o10  L7 : o7 o8 o9 o10
+# Why single sets: each of o1..o6 calls one function; none of the six calls another of the six AFTER its own bucket lock in a way that
+# would rescue it, with ONE exception I read: process_rollover_and_renewal ends by calling activate_subscription (services.py ~989), so under R1/L1
+# o4 still passes (rollover's own lock is first and the nested activate's later lock is a re-lock of a row already held), and under R4/L4 o4 fails
+# because the rollover's bucket lock now precedes any wallet lock (the nested activate comes later). o7, o8, o9 and o10 all go through the one
+# helper, so the helper's mutants fail all four; the callers have no wallet lock of their own (read: no wallet select_for_update in license_service.py
+# outside the helper's call). An R mutant leaves no explicit wallet SELECT .. FOR UPDATE at all, so the test fails on "never locked the wallet".
+# A GUESS to check against the logs, not a certainty: that o1..o10 are green on the unmutated tip in a plain TestCase with the module-level stubs
+# replaced by my setUp patches. If the baseline is red for a fixture reason, I fix my module and re-run the baseline, and say so.

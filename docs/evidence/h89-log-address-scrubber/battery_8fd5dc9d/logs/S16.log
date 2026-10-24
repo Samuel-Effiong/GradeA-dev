@@ -1,0 +1,14 @@
+# S16: settings.py imports nothing from the project
+# file: AutoGrader/settings.py (occurrence 1)
+# old: 'LOG_SCRUB_ADDRESSES = not _TESTS_ARE_RUNNING\n'
+# new: 'LOG_SCRUB_ADDRESSES = not _TESTS_ARE_RUNNING\nfrom AutoGrader.log_scrubbing import install  # noqa: E402,F401\n'
+# commit: 8fd5dc9de325d48ff3895e6737570f5c13e8b57a
+# exit: 1
+# elapsed_s: 11.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_settings_import_nothing_from_the_project_at_the_top_level (AutoGrader.tests_log_scrubbing.SettingsStandAloneTests.test_settings_import_nothing_from_the_project_at_the_top_level)
+FAIL: test_explicit_value_is_used_instead_of_falling_back (AutoGrader.tests_student_frontend_domain.StudentFrontendDomainSettingTests.test_explicit_value_is_used_instead_of_falling_back)
+FAIL: test_falls_back_to_frontend_domain_when_unset (AutoGrader.tests_student_frontend_domain.StudentFrontendDomainSettingTests.test_falls_back_to_frontend_domain_when_unset)
+
+FAILED (failures=3)

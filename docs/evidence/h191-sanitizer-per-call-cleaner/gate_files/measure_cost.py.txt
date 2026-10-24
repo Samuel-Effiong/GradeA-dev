@@ -1,0 +1,40 @@
+"""H-191: what one fresh bleach Cleaner costs per call, against the shared one.
+Single thread, no database. Prints microseconds per call (median of 5 batches
+of 1000) for: the shared Cleaner's clean(), a fresh Cleaner per call (what the
+cure does), and the construction alone. Run from a worktree root:
+    python measure_cost.py            (uses settings AutoGrader.settings)"""
+import os
+import statistics
+import time
+
+import django
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "AutoGrader.settings")
+django.setup()
+
+from assignments import prosemirror_converter as pc  # noqa: E402
+
+TEXT = (
+    "<p>Answer one <b>bold</b> and <em>emphasis</em></p>"
+    "<ul><li>first</li><li>second</li></ul>"
+    "<table><tr><td>a</td><td>b</td></tr></table>" * 4
+)
+
+
+def per_call_us(fn, n=1000, batches=5):
+    runs = []
+    for _ in range(batches):
+        start = time.perf_counter()
+        for _ in range(n):
+            fn()
+        runs.append((time.perf_counter() - start) / n * 1e6)
+    return statistics.median(runs)
+
+
+shared = pc._new_cleaner()
+clean_text = pc.strip_raw_text_elements(pc.strip_control_chars(TEXT))
+print("input characters:", len(TEXT))
+print("shared Cleaner.clean   us/call:", round(per_call_us(lambda: shared.clean(clean_text)), 1))
+print("fresh Cleaner + clean  us/call:", round(per_call_us(lambda: pc._new_cleaner().clean(clean_text)), 1))
+print("Cleaner construction   us/call:", round(per_call_us(pc._new_cleaner), 1))
+print("sanitize_editor_html   us/call:", round(per_call_us(lambda: pc.sanitize_editor_html(TEXT)), 1))

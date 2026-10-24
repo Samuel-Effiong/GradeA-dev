@@ -1,0 +1,115 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Mid-cycle grant for subscription 778c81d5-52d7-49ad-b686-fac543d2bc89 caught up: the grant due at 2026-11-30 01:00:00+00:00 (period 10) is made late.
+Mid-cycle grant for subscription 778c81d5-52d7-49ad-b686-fac543d2bc89 caught up: the grant due at 2026-12-31 01:00:00+00:00 (period 11) is made late.
+.Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user h82-1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Mid-cycle grant for subscription 8f112b15-4048-470b-bd25-94e06554c65e caught up: the grant due at 2026-03-31 01:00:00+00:00 (period 2) is made late.
+Mid-cycle grant for subscription 8f112b15-4048-470b-bd25-94e06554c65e caught up: the grant due at 2026-04-30 01:00:00+00:00 (period 3) is made late.
+Mid-cycle grant for subscription 8f112b15-4048-470b-bd25-94e06554c65e caught up: the grant due at 2026-05-31 01:00:00+00:00 (period 4) is made late.
+.Cannot activate automatic trial for user annual@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user direct@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user direct@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user direct@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user downgrade-after-upgrade@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user simulation@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Invoice in_annual_renewal for subscription 8c78ac62-590f-4e9c-8df1-f6c254914243 carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+.Cannot activate automatic trial for user simulation@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Invoice in_real_1 for subscription 6b89f93e-a71d-409b-b71b-1b0561a7f124 carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+Invoice in_real_2030-03-01T00:00:00+00:00 for subscription ab155a27-cf82-4a00-80fc-183fc4da5111 carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+Invoice in_real_2030-04-01T00:00:00+00:00 for subscription e2091f15-d492-487c-a0bd-5e4562e0b30e carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+Invoice in_real_2030-05-01T00:00:00+00:00 for subscription a6a68f33-e3f4-4022-9b06-3b4ec835a4ff carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+Invoice in_real_2030-06-01T00:00:00+00:00 for subscription 18d5de6d-76c1-4f50-9627-24d9ac25c112 carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+Invoice in_real_2030-07-01T00:00:00+00:00 for subscription ebc64a6c-ef8e-41fe-a485-8743bb6d62e1 carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+Invoice in_real_2030-08-01T00:00:00+00:00 for subscription a5664526-d19e-498e-b49c-bd883c6540a6 carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+Invoice in_real_2030-09-01T00:00:00+00:00 for subscription 40849cc8-649c-4d1d-ae24-27078f87076f carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+Invoice in_real_2030-10-01T00:00:00+00:00 for subscription b55e3629-7cef-4935-9af0-ae7be861ac9a carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+Invoice in_real_2030-11-01T00:00:00+00:00 for subscription 78f97937-3648-4d8b-9654-42197bc8cec6 carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+Invoice in_real_2030-12-01T00:00:00+00:00 for subscription 2437d149-0f97-4c1a-950d-33dfb044089e carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+Invoice in_real_2031-01-01T00:00:00+00:00 for subscription 42ccfbac-e25d-439a-89ea-186cb4562e9a carries no usable billing period; falling back to a wall-clock cycle. The local period will be offset from Stripe's by this webhook's latency.
+.Cannot activate automatic trial for user entrypoints@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user entrypoints@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user entrypoints@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user entrypoints@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Mid-cycle grant for subscription ecaad9ee-881f-46c0-9c65-e235b645cf7c caught up: the grant due at 2026-04-10 00:00:00+00:00 (period 2) is made late.
+.Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Mid-cycle grant for subscription e965b8a2-fa27-46b4-afc3-094e740fcbec caught up: the grant due at 2026-04-10 00:00:00+00:00 (period 2) is made late.
+.Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user first-month@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user first-month@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user first-month@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user convert@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user convert@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user convert@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user convert@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user convert@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user convert@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user annual-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Mid-cycle grant for subscription 4a20be2a-9dcf-44a5-8164-509d23118196 caught up: the grant due at 2026-10-01 08:54:54.413843+00:00 (period 1) is made late.
+.Cannot activate automatic trial for user cleanup-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user replay-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user licence-teacher-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+...Stale licence Stripe intents escalated: 1
+.Recovered abandoned Stripe event evt_catch_up_unstarted (invoice.payment_succeeded): its worker died before the handler started, so no Stripe call was made and it is safe to re-dispatch. Recovery attempt 1 of 3.
+.Cannot activate automatic trial for user renewal-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user trial-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+........
+----------------------------------------------------------------------
+Ran 84 tests in 22.869s
+
+OK
+Destroying test database for alias 'default'...
+Found 84 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+exit=0 wall_s=66

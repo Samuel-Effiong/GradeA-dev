@@ -1,0 +1,71 @@
+"""v2 mutants for H-178 part A at 26e16742, written BEFORE any run. Run from the vf2-s1 scratch worktree
+detached at COMMIT with billing/tests/test_vf2_h178_probe.py copied in. Each mutant judged by my probe alone;
+failing set must EQUAL the written one (KILLED_AS_WRITTEN), else KILLED_OTHER / SURVIVED / BROKEN.
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h178_mutants.py check | baseline | mutants
+Rule 17: no bytecode, pycache cleared, restore verified by sha256 against the commit blob."""
+import ast, hashlib, os, pathlib, re, shutil, subprocess, sys
+
+COMMIT = os.environ["COMMIT"]; LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])
+SS = "billing/stripe_service.py"
+LABEL = "billing.tests.test_vf2_h178_probe"
+P = LABEL + ".SignedSubscriptionUpdated."
+E = {k: "test_" + v for k, v in {
+    "e1": "e1_a_signed_date_message_with_the_flag_off_stops_renewal",
+    "e2": "e2_a_real_period_end_cancel_then_resume_round_trip",
+    "e3": "e3_a_signed_date_message_leaves_a_trial_alone",
+    "e4": "e4_a_repeat_writes_nothing_by_event_id_and_by_content",
+    "e5": "e5_a_signed_message_without_either_key_changes_nothing",
+    "e6": "e6_the_flag_alone_with_no_date_key_still_mirrors"}.items()}
+COND = "            if cancel_at_period_end is not None or cancel_at:\n"
+SCHED = "                    bool(cancel_at_period_end) or bool(cancel_at),\n"
+M = {
+ "Q1_the_old_code_back": ([(COND, "            if cancel_at_period_end is not None:\n"), (SCHED, "                    bool(cancel_at_period_end),\n")], [E["e1"], E["e4"]]),
+ "Q2_a_date_does_not_count": ([(SCHED, "                    bool(cancel_at_period_end),\n")], [E["e1"], E["e4"]]),
+ "Q3_the_flag_does_not_count": ([(SCHED, "                    bool(cancel_at),\n")], [E["e6"]]),
+ "Q4_stripes_own_date_ignored": ([('                        stripe_subscription.get("canceled_at")\n', "                        None\n")], [E["e1"]]),
+ "Q5_a_trial_is_mirrored": ([("        if user_sub.is_trial:\n            # A trial's auto_renew is False by design", "        if False:\n            # A trial's auto_renew is False by design")], [E["e3"]]),
+ "Q6_a_repeat_writes_again": ([("            if not user_sub.auto_renew and user_sub.cancelled_at is not None:\n                return []\n", "")], [E["e4"]]),
+ "Q7_never_back_to_renewing": ([("        if user_sub.auto_renew and user_sub.cancelled_at is None:\n            return []\n", "        return []\n")], [E["e2"]]),
+ "Q8_silence_read_as_not_cancelling": ([(COND, "            if True:\n")], [E["e5"]]),
+}
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+def sha(b): return hashlib.sha256(b).hexdigest()
+def clear(): shutil.rmtree(pathlib.Path("billing") / "__pycache__", ignore_errors=True)
+def run(name):
+    LOGS.mkdir(parents=True, exist_ok=True); log = LOGS / name
+    with open(log, "wb") as fh:
+        p = subprocess.run([sys.executable, "-B", "manage.py", "test", LABEL, "--settings=settings_worktree", "--noinput", "--keepdb", "-v1"],
+                           stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL)
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summ = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={p.returncode}")
+    return p.returncode, ran, summ, failing, o
+if sys.argv[1:] == ["check"]:
+    s0 = open(SS).read()
+    for n, (edits, _m) in M.items():
+        s = s0; counts = [s.count(o) for o, _ in edits]
+        for o, nw in edits: s = s.replace(o, nw, 1)
+        ast.parse(s); print(n, counts, "parses")
+    sys.exit()
+if sys.argv[1:] == ["baseline"]:
+    clear(); rc, ran, summ, failing, o = run("baseline.txt"); print("baseline |", ran, "|", summ, "|", failing, flush=True)
+    if rc: print(o[-6000:])
+    sys.exit(rc)
+for name, (edits, must) in M.items():
+    src = open(SS).read(); counts = [src.count(o) for o, _ in edits]
+    if counts != [1] * len(edits): print(name, "APPLY_FAILED", counts, flush=True); continue
+    for o, nw in edits: src = src.replace(o, nw, 1)
+    ast.parse(src)
+    try:
+        clear(); open(SS, "w").write(src)
+        rc, ran, summ, failing, _ = run(f"{name}.txt")
+        if rc == 0: st = "SURVIVED"
+        elif ran == "Ran ?" or not failing: st = "BROKEN"
+        elif sorted(must) == failing: st = "KILLED_AS_WRITTEN"
+        else: st = "KILLED_OTHER"
+        print(name, "|", st, "|", ran, "|", summ, "| written", sorted(must), "| failing", failing, flush=True)
+    finally:
+        subprocess.run(["git", "checkout", "--", SS], check=True); clear()
+        ok = sha(open(SS, "rb").read()) == sha(subprocess.run(["git", "show", f"{COMMIT}:{SS}"], capture_output=True).stdout)
+        print("  restore", "ok" if ok else "MISMATCH", flush=True)

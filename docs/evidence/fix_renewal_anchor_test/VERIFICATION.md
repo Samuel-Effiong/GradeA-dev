@@ -1,0 +1,8 @@
+# Renewal-anchor test date-independence (3802d64, test-only): VERIFIED
+- The diff is billing/tests/test_billing_period_anchoring.py only. The fake Stripe boundaries are now `anchor + relativedelta(months=n)`, which is how Stripe dates periods from the billing anchor, instead of a cumulative `+1 month` chain that clamps at Feb 28 and stays there. There are explicit anchors: 2025-01-31 (month-end, crosses February) and 2025-03-15 (mid-month control), each under its own `@freeze_time`.
+- As committed, on the real date 2026-09-29 (itself a 29th): **21/21**.
+- **Independence from the run date, checked more broadly than the claim.** In a throwaway detached checkout I ran the WHOLE fixed module with every test class frozen (freezegun class wrapper, never committed) at 2026-01-31, 2027-02-28, 2028-02-29 (leap day), 2026-03-31 and 2026-12-31: **all 105 pass**.
+- **Bug reproduced:** the unchanged 197aa46 module, frozen the same way, fails exactly `test_local_period_matches_stripe_exactly_across_twelve_renewals` at 2026-01-31, and passes at 2026-03-15.
+- **The production pin is intact.** My production-side mutant makes the renewal handler ignore the invoice's period (`period_start, period_end = None, None` at stripe_service.py:3957, forcing the wall-clock fallback). It is KILLED by 4 tests: both twelve-renewals tests, `test_renewal_adopts_stripes_period_not_our_processing_time` and `test_trial_conversion_adopts_stripes_period`. So the fix removed only the test's own calendar bug; it still catches production drifting from Stripe. Restore sha-verified.
+Verdict: VERIFIED.
+Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-29.

@@ -1,0 +1,155 @@
+OK   ai_processor/migrations/0005_benchmarkrun_benchmarkquestionoutcome.py: additive only
+OK   assignments/migrations/0034_assignment_admin_grading_notified_at.py: additive only
+OK   assignments/migrations/0035_assignment_rigor_blooms_coverage_and_more.py: additive only
+OK   assignments/migrations/0036_backfill_assignment_rigor.py: additive only
+OK   assignments/migrations/0037_assignment_course_title_index.py: additive only
+FAIL assignments/migrations/0038_assignment_updated_at.py: non-additive operation without acknowledgement
+       - AddField without null=True or a default - Django would have prompted for a one-off value interactively; that value does not become a reviewable backfill, and a worker on the previous release doesn't know this column exists
+       If this is a deliberate, reviewed step of an expand/migrate/contract rollout, add a comment `# expand-contract-step: expand|migrate|contract` to this file. See docs/MIGRATIONS.md.
+OK   assignments/migrations/0039_assignment_upload_fingerprint.py: additive only
+FAIL assignments/migrations/0040_db_defaults_for_rollback.py: non-additive operation without acknowledgement
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+       If this is a deliberate, reviewed step of an expand/migrate/contract rollout, add a comment `# expand-contract-step: expand|migrate|contract` to this file. See docs/MIGRATIONS.md.
+FAIL billing/migrations/0009_betaprofile_uuid_and_more.py: non-additive operation without acknowledgement
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+       If this is a deliberate, reviewed step of an expand/migrate/contract rollout, add a comment `# expand-contract-step: expand|migrate|contract` to this file. See docs/MIGRATIONS.md.
+OK   billing/migrations/0010_alter_betaprofile_id.py: additive only
+FAIL billing/migrations/0011_remove_betaprofile_uuid_betaprofile_uid_and_more.py: non-additive operation without acknowledgement
+       - RemoveField - drops a column - a worker still running the previous release will error the moment it reads or writes this field
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+       If this is a deliberate, reviewed step of an expand/migrate/contract rollout, add a comment `# expand-contract-step: expand|migrate|contract` to this file. See docs/MIGRATIONS.md.
+OK   billing/migrations/0012_populate_beta_profile_uuids.py: additive only
+FAIL billing/migrations/0013_remove_betaprofile_id_alter_betaprofile_uid.py: non-additive operation without acknowledgement
+       - RemoveField - drops a column - a worker still running the previous release will error the moment it reads or writes this field
+       If this is a deliberate, reviewed step of an expand/migrate/contract rollout, add a comment `# expand-contract-step: expand|migrate|contract` to this file. See docs/MIGRATIONS.md.
+FAIL billing/migrations/0014_rename_uid_betaprofile_id.py: non-additive operation without acknowledgement
+       - RenameField - renamed in a single step - old code referencing the previous name breaks immediately, and Django implements this as a rename at the DB level, not a copy, so it isn't reversible by re-adding a column of the old name
+       If this is a deliberate, reviewed step of an expand/migrate/contract rollout, add a comment `# expand-contract-step: expand|migrate|contract` to this file. See docs/MIGRATIONS.md.
+OK   billing/migrations/0015_betaprofile_credits_used_feedback.py: additive only
+FAIL billing/migrations/0016_planfeature_alter_subscriptionplan_options_and_more.py: non-additive operation without acknowledgement
+       - RemoveField - drops a column - a worker still running the previous release will error the moment it reads or writes this field
+       - AddField without null=True or a default - Django would have prompted for a one-off value interactively; that value does not become a reviewable backfill, and a worker on the previous release doesn't know this column exists
+       - AddField without null=True or a default - Django would have prompted for a one-off value interactively; that value does not become a reviewable backfill, and a worker on the previous release doesn't know this column exists
+       If this is a deliberate, reviewed step of an expand/migrate/contract rollout, add a comment `# expand-contract-step: expand|migrate|contract` to this file. See docs/MIGRATIONS.md.
+FAIL billing/migrations/0017_remove_subscriptionplan_overage_credit_price_cents_and_more.py: non-additive operation without acknowledgement
+       - RemoveField - drops a column - a worker still running the previous release will error the moment it reads or writes this field
+       If this is a deliberate, reviewed step of an expand/migrate/contract rollout, add a comment `# expand-contract-step: expand|migrate|contract` to this file. See docs/MIGRATIONS.md.
+OK   billing/migrations/0018_subscriptionplan_overage_block_price_and_more.py: additive only
+OK   billing/migrations/0019_licensesubscription_schoolcreditallocation.py: additive only
+OK   billing/migrations/0020_licensesubscription_contract_months_and_more.py: additive only
+FAIL billing/migrations/0021_alter_creditbucket_bucket_type_and_more.py: non-additive operation without acknowledgement
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+       If this is a deliberate, reviewed step of an expand/migrate/contract rollout, add a comment `# expand-contract-step: expand|migrate|contract` to this file. See docs/MIGRATIONS.md.
+FAIL billing/migrations/0022_usersubscription_is_trial_usersubscription_trial_end_and_more.py: non-additive operation without acknowledgement
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+       If this is a deliberate, reviewed step of an expand/migrate/contract rollout, add a comment `# expand-contract-step: expand|migrate|contract` to this file. See docs/MIGRATIONS.md.
+FAIL billing/migrations/0023_alter_subscriptionplan_name.py: non-additive operation without acknowledgement
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+       If this is a deliberate, reviewed step of an expand/migrate/contract rollout, add a comment `# expand-contract-step: expand|migrate|contract` to this file. See docs/MIGRATIONS.md.
+OK   billing/migrations/0024_licensesubscription_custom_price_cents.py: additive only
+FAIL billing/migrations/0025_alter_subscriptionplan_name.py: non-additive operation without acknowledgement
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+       If this is a deliberate, reviewed step of an expand/migrate/contract rollout, add a comment `# expand-contract-step: expand|migrate|contract` to this file. See docs/MIGRATIONS.md.
+OK   billing/migrations/0026_licensesubscription_total_credits_consumed.py: additive only
+OK   billing/migrations/0027_stripeevent_creditwallet_stripe_customer_id_and_more.py: additive only
+OK   billing/migrations/0028_alter_usersubscription_is_trial.py: additive only
+OK   billing/migrations/0029_usersubscription_next_credit_grant_at.py: additive only
+ACK  billing/migrations/0030_alter_subscriptionplan_interval_and_more.py: non-additive, marked as a reviewed expand-contract step
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+OK   billing/migrations/0031_alter_licensesubscription_custom_price_cents_and_more.py: additive only
+ACK  billing/migrations/0032_remove_subscriptionplan_price_cents_and_more.py: non-additive, marked as a reviewed expand-contract step
+       - RemoveField - drops a column - a worker still running the previous release will error the moment it reads or writes this field
+ACK  billing/migrations/0033_rename_price_subscriptionplan_price_cents.py: non-additive, marked as a reviewed expand-contract step
+       - RenameField - renamed in a single step - old code referencing the previous name breaks immediately, and Django implements this as a rename at the DB level, not a copy, so it isn't reversible by re-adding a column of the old name
+OK   billing/migrations/0034_alter_licensesubscription_custom_price_cents.py: additive only
+OK   billing/migrations/0035_licensesubscription_stripe_customer_id.py: additive only
+OK   billing/migrations/0036_alter_licensesubscription_contract_months_and_more.py: additive only
+OK   billing/migrations/0037_schoolcreditallocation_next_credit_grant_at.py: additive only
+OK   billing/migrations/0038_licensesubscription_billing_method_and_more.py: additive only
+OK   billing/migrations/0039_alter_subscriptionplan_overage_block_price.py: additive only
+OK   billing/migrations/0040_usersubscription_pending_change_note_and_more.py: additive only
+OK   billing/migrations/0041_alter_usersubscription_pending_change_note_and_more.py: additive only
+OK   billing/migrations/0042_subscriptionplan_stripe_overage_price_id.py: additive only
+OK   billing/migrations/0043_schoolcreditallocation_is_admin_allocation.py: additive only
+OK   billing/migrations/0044_alter_creditusagelog_feature.py: additive only
+OK   billing/migrations/0045_billingtransaction.py: additive only
+ACK  billing/migrations/0046_remove_subscriptionplan_carry_over_max_and_more.py: non-additive, marked as a reviewed expand-contract step
+       - RemoveField - drops a column - a worker still running the previous release will error the moment it reads or writes this field
+OK   billing/migrations/0047_subscriptionplan_carry_over_max.py: additive only
+ACK  billing/migrations/0048_alter_billingtransaction_transaction_type_and_more.py: non-additive, marked as a reviewed expand-contract step
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+OK   billing/migrations/0049_billingtransaction_receipt_url.py: additive only
+OK   billing/migrations/0050_creditusagelog_course.py: additive only
+OK   billing/migrations/0051_creditusagelog_task_id_index.py: additive only
+OK   billing/migrations/0052_creditusagelog_school.py: additive only
+OK   billing/migrations/0053_backfill_creditusagelog_school.py: additive only
+ACK  billing/migrations/0054_stripeevent_attempts_stripeevent_claimed_at_and_more.py: non-additive, marked as a reviewed expand-contract step
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+OK   billing/migrations/0055_licensesubscription_consumption_window_start_and_more.py: additive only
+OK   billing/migrations/0056_liveqarun.py: additive only
+OK   billing/migrations/0057_usersubscription_cancelled_at.py: additive only
+ACK  billing/migrations/0058_alter_licensebillingrecord_record_type.py: non-additive, marked as a reviewed expand-contract step
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+FAIL billing/migrations/0059_append_only_audit_tables.py: non-additive operation without acknowledgement
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+       If this is a deliberate, reviewed step of an expand/migrate/contract rollout, add a comment `# expand-contract-step: expand|migrate|contract` to this file. See docs/MIGRATIONS.md.
+OK   billing/migrations/0060_backfill_audit_identity.py: additive only
+OK   billing/migrations/0061_add_audit_table_time_indexes.py: additive only
+OK   billing/migrations/0062_liveqarun_skipped_and_error_status.py: additive only
+ACK  billing/migrations/0063_payment_disputes.py: non-additive, marked as a reviewed expand-contract step
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+ACK  billing/migrations/0064_refund_credit_reversal.py: non-additive, marked as a reviewed expand-contract step
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+OK   billing/migrations/0065_backfill_ledger_payment_intent.py: additive only
+OK   billing/migrations/0066_dispute_deficit_by_wallet.py: additive only
+OK   billing/migrations/0067_stripe_event_recovery.py: additive only
+OK   billing/migrations/0068_price_reconciliation.py: additive only
+ACK  billing/migrations/0069_price_sync_audit.py: non-additive, marked as a reviewed expand-contract step
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+OK   billing/migrations/0070_db_defaults_for_rollback.py: additive only
+OK   billing/migrations/0071_stripeevent_auto_replay_attempts_and_more.py: additive only
+OK   billing/migrations/0072_license_stripe_mutation_intent.py: additive only
+OK   billing/migrations/0073_schoolcreditallocation_grant_anchor_at.py: additive only
+OK   classrooms/migrations/0014_remove_session_unique_session_name_per_teacher_and_more.py: additive only
+OK   classrooms/migrations/0015_remove_session_unique_session_name_per_teacher_and_more.py: additive only
+OK   classrooms/migrations/0016_school_is_active.py: additive only
+OK   dashboard/migrations/0001_initial.py: additive only
+OK   dashboard/migrations/0002_schoolatrisksnapshot.py: additive only
+OK   dashboard/migrations/0003_studentriskalertstate_alert_pending.py: additive only
+OK   dashboard/migrations/0004_db_defaults_for_rollback.py: additive only
+OK   students/migrations/0017_backgroundprocessingtask.py: additive only
+OK   students/migrations/0018_studentsubmission_attempt_count.py: additive only
+OK   students/migrations/0019_alter_studentsubmission_attempt_count.py: additive only
+OK   students/migrations/0020_studentsubmission_grading_state.py: additive only
+OK   students/migrations/0021_studentsubmission_needs_review.py: additive only
+OK   students/migrations/0022_studentsubmission_review_severity.py: additive only
+OK   students/migrations/0023_studentsubmission_review_tier_and_more.py: additive only
+OK   students/migrations/0024_repair_raw_input_json.py: additive only
+OK   students/migrations/0025_student_submission_hot_path_indexes.py: additive only
+ACK  students/migrations/0026_alter_backgroundprocessingtask_task_type.py: non-additive, marked as a reviewed expand-contract step
+       - AlterField making a column NOT NULL without a default - existing NULL rows will fail the migration outright, or silently need a backfill that isn't this operation
+OK   students/migrations/0027_alter_studentsubmission_ai_grading_completed_at.py: additive only
+OK   students/migrations/0028_backfill_ai_grading_completed_at.py: additive only
+OK   users/migrations/0026_customuser_registration_method.py: additive only
+OK   users/migrations/0027_customuser_profile_image_url.py: additive only
+OK   users/migrations/0028_alter_customuser_middle_name.py: additive only
+OK   users/migrations/0029_usergooglecredentials.py: additive only
+OK   users/migrations/0030_usergooglecredentials_access_token_and_more.py: additive only
+OK   users/migrations/0031_settings_notify_new_assignment_posted.py: additive only
+OK   users/migrations/0032_alter_settings_notify_assignment_due_reminder_and_more.py: additive only
+OK   users/migrations/0033_settings_notify_at_risk_student_alerts_and_more.py: additive only
+OK   users/migrations/0034_passwordresetotp_attempts_and_more.py: additive only
+OK   users/migrations/0035_settings_notify_assignment_edited.py: additive only
+OK   users/migrations/0036_customuser_failed_login_attempts_and_more.py: additive only
+OK   users/migrations/0037_customuser_must_change_password.py: additive only
+OK   users/migrations/0038_alter_customuser_must_change_password.py: additive only
+OK   users/migrations/0039_customuser_token_epoch.py: additive only
+OK   users/migrations/0040_db_defaults_for_rollback.py: additive only
+
+One or more migrations need review before this can merge.
+See docs/MIGRATIONS.md for the house rule this check enforces.
+exit=1

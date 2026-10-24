@@ -1,0 +1,135 @@
+{
+  "M1_lock_ignored": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_resent_code_neither_arrives_nor_unlocks",
+      "test_an_unknown_address_locks_the_same_way",
+      "test_five_wrong_codes_from_five_ips_lock_the_address",
+      "test_the_address_is_matched_case_insensitively"
+    ]
+  },
+  "M2_counted_after_the_answer_not_before": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_simultaneous_burst_gets_no_more_than_the_budget",
+      "test_guesses_under_way_count_before_they_are_answered"
+    ]
+  },
+  "M3_no_budget": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_resent_code_neither_arrives_nor_unlocks",
+      "test_a_simultaneous_burst_gets_no_more_than_the_budget",
+      "test_an_expired_code_spends_the_budget_too",
+      "test_an_unknown_address_locks_the_same_way",
+      "test_both_windows_last_the_whole_lock_period",
+      "test_five_wrong_codes_from_five_ips_lock_the_address",
+      "test_guesses_under_way_count_before_they_are_answered",
+      "test_the_address_is_matched_case_insensitively"
+    ]
+  },
+  "M4_unknown_address_not_budgeted": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_unknown_address_locks_the_same_way"
+    ]
+  },
+  "M5_lock_clears_the_stored_code": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_lock_leaves_the_stored_code_alone"
+    ]
+  },
+  "M6_lock_not_set": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_resent_code_neither_arrives_nor_unlocks",
+      "test_an_expired_code_spends_the_budget_too",
+      "test_both_windows_last_the_whole_lock_period"
+    ]
+  },
+  "M7_expired_code_spends_nothing": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_expired_code_spends_the_budget_too"
+    ]
+  },
+  "M8_success_does_not_refund": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_successful_verify_refunds_the_budget"
+    ]
+  },
+  "M9_resend_while_locked": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_resent_code_neither_arrives_nor_unlocks"
+    ]
+  },
+  "M10_spent_one_attempt_late": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_resent_code_neither_arrives_nor_unlocks",
+      "test_an_expired_code_spends_the_budget_too",
+      "test_both_windows_last_the_whole_lock_period"
+    ]
+  },
+  "M11_refused_one_attempt_early": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_lock_leaves_the_stored_code_alone",
+      "test_a_resent_code_neither_arrives_nor_unlocks",
+      "test_a_simultaneous_burst_gets_no_more_than_the_budget",
+      "test_a_successful_verify_refunds_the_budget",
+      "test_after_the_lock_a_new_code_verifies",
+      "test_an_expired_code_spends_the_budget_too",
+      "test_an_unknown_address_locks_the_same_way",
+      "test_both_windows_last_the_whole_lock_period",
+      "test_five_wrong_codes_from_five_ips_lock_the_address",
+      "test_four_wrong_codes_then_the_right_one_still_verifies",
+      "test_one_address_locking_never_affects_another"
+    ]
+  },
+  "M12_address_case_sensitive": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_address_is_matched_case_insensitively"
+    ]
+  },
+  "M13_one_budget_for_every_address": {
+    "killed": true,
+    "failing_tests": [
+      "test_one_address_locking_never_affects_another"
+    ]
+  },
+  "M14_reserve_fails_closed": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_budget_fails_open_when_the_cache_is_down"
+    ]
+  },
+  "M15_lock_read_fails_closed": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_budget_fails_open_when_the_cache_is_down"
+    ]
+  },
+  "M16_lock_never_ends": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_lock_whose_time_has_passed_is_no_lock"
+    ]
+  },
+  "M17_attempt_window_60s": {
+    "killed": true,
+    "failing_tests": [
+      "test_both_windows_last_the_whole_lock_period"
+    ]
+  },
+  "M18_lock_entry_60s": {
+    "killed": true,
+    "failing_tests": [
+      "test_both_windows_last_the_whole_lock_period"
+    ]
+  }
+}

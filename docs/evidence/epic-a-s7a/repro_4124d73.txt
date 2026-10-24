@@ -1,0 +1,38 @@
+# Trimmed from the full -v2 log: every test id that ran, then the FAIL/ERROR headings and the summary; emails redacted.
+test_batch_upload_runs_the_rest_of_the_batch (students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_batch_upload_runs_the_rest_of_the_batch)
+test_upload_async_is_never_half_queued (students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_upload_async_is_never_half_queued)
+test_a_failure_stores_its_reason_code (students.tests_batch_item_results.TheItemModel.test_a_failure_stores_its_reason_code)
+test_an_item_records_its_position_and_the_requests_trace (students.tests_batch_item_results.TheItemModel.test_an_item_records_its_position_and_the_requests_trace)
+test_a_scheduled_batch_creates_tracked_items (students.tests_batch_item_results.TheLegacyGradingPathsAreTracked.test_a_scheduled_batch_creates_tracked_items)
+test_auto_grade_creates_tracked_items (students.tests_batch_item_results.TheLegacyGradingPathsAreTracked.test_auto_grade_creates_tracked_items)
+test_an_overwrite_is_lifted_into_the_item_result (students.tests_batch_item_results.TheSessionResultsShape.test_an_overwrite_is_lifted_into_the_item_result)
+test_an_unclassified_failure_is_visible_as_system_with_no_code (students.tests_batch_item_results.TheSessionResultsShape.test_an_unclassified_failure_is_visible_as_system_with_no_code)
+test_each_item_answers_for_itself_and_the_old_keys_stay (students.tests_batch_item_results.TheSessionResultsShape.test_each_item_answers_for_itself_and_the_old_keys_stay)
+test_every_failure_is_listed_with_its_own_code (students.tests_batch_item_results.ThirtyFilesTwelveFailures.test_every_failure_is_listed_with_its_own_code)
+ERROR: test_a_failure_stores_its_reason_code (students.tests_batch_item_results.TheItemModel.test_a_failure_stores_its_reason_code) (code='FILE_UNREADABLE')
+ERROR: test_a_failure_stores_its_reason_code (students.tests_batch_item_results.TheItemModel.test_a_failure_stores_its_reason_code) (code='INSUFFICIENT_CREDITS')
+ERROR: test_a_failure_stores_its_reason_code (students.tests_batch_item_results.TheItemModel.test_a_failure_stores_its_reason_code) (code='none')
+ERROR: test_an_item_records_its_position_and_the_requests_trace (students.tests_batch_item_results.TheItemModel.test_an_item_records_its_position_and_the_requests_trace)
+ERROR: test_a_scheduled_batch_creates_tracked_items (students.tests_batch_item_results.TheLegacyGradingPathsAreTracked.test_a_scheduled_batch_creates_tracked_items)
+ERROR: test_auto_grade_creates_tracked_items (students.tests_batch_item_results.TheLegacyGradingPathsAreTracked.test_auto_grade_creates_tracked_items)
+ERROR: test_an_overwrite_is_lifted_into_the_item_result (students.tests_batch_item_results.TheSessionResultsShape.test_an_overwrite_is_lifted_into_the_item_result)
+ERROR: test_an_unclassified_failure_is_visible_as_system_with_no_code (students.tests_batch_item_results.TheSessionResultsShape.test_an_unclassified_failure_is_visible_as_system_with_no_code)
+ERROR: test_each_item_answers_for_itself_and_the_old_keys_stay (students.tests_batch_item_results.TheSessionResultsShape.test_each_item_answers_for_itself_and_the_old_keys_stay)
+FAIL: test_batch_upload_runs_the_rest_of_the_batch (students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_batch_upload_runs_the_rest_of_the_batch)
+FAIL: test_upload_async_is_never_half_queued (students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_upload_async_is_never_half_queued)
+FAIL: test_every_failure_is_listed_with_its_own_code (students.tests_batch_item_results.ThirtyFilesTwelveFailures.test_every_failure_is_listed_with_its_own_code)
+Ran 10 tests in 1.271s
+FAILED (failures=3, errors=9)
+AttributeError: 'PngStream' object has no attribute 'chunk_bage'. Did you mean: 'chunk_PLTE'?
+AttributeError: 'BackgroundProcessingTask' object has no attribute 'reason_code'
+AttributeError: 'BackgroundProcessingTask' object has no attribute 'reason_code'
+AttributeError: 'BackgroundProcessingTask' object has no attribute 'reason_code'
+AttributeError: <module 'students.task_tracking' from '/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8e862e15-e031-4bd4-b8e1-ffe3b15e754c/scratchpad/s7a_repro/students/task_tracking.py'> does not have the attribute 'resolve_trace_id'
+AttributeError: <module 'assignments.tasks' from '/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8e862e15-e031-4bd4-b8e1-ffe3b15e754c/scratchpad/s7a_repro/assignments/tasks.py'> does not have the attribute 'launch_processing_task'
+AttributeError: <module 'assignments.tasks' from '/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8e862e15-e031-4bd4-b8e1-ffe3b15e754c/scratchpad/s7a_repro/assignments/tasks.py'> does not have the attribute 'launch_processing_task'
+KeyError: 'replaced_existing'
+KeyError: 'reason_code'
+KeyError: 'item_index'
+AssertionError: 413 != 202 : b'{"success":false,"message":"big.pdf is 4.0 KB and the limit is 2 KB.","error":{"field_errors":{"error":"big.pdf is 4.0 KB and the limit is 2 KB.","reason_code":"FILE_TOO_LARGE","error_class":"USER","remediation":"Split the file, remove blank pages or scan at a lower resolution, then u
+AssertionError: 413 != 202 : b'{"success":false,"message":"big.pdf is 4.0 KB and the limit is 2 KB.","error":{"field_errors":{"error":"big.pdf is 4.0 KB and the limit is 2 KB.","reason_code":"FILE_TOO_LARGE","error_class":"USER","remediation":"Split the file, remove blank pages or scan at a lower resolution, then u
+AssertionError: 413 != 202 : b'{"success":false,"message":"big1.pdf is 8.8 KB and the limit is 8 KB.","error":{"field_errors":{"error":"big1.pdf is 8.8 KB and the limit is 8 KB.","reason_code":"FILE_TOO_LARGE","error_class":"USER","remediation":"Split the file, remove blank pages or scan at a lower resolution, then

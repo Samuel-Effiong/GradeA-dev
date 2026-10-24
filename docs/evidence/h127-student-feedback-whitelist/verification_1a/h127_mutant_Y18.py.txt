@@ -1,0 +1,16 @@
+"""1a's mutant Y18 for H-127: the ordering refusal no longer strips the
+spaces around a term. Django REST framework does strip them, so
+"student__first_name, -review_severity" is then a valid ordering that is
+not refused: a student orders their own list by the review queue again
+(every row of one student ties on the name, so the second term decides).
+Not in the author's battery. Expected: see h127_expected_kills.txt.
+Applied in place in the current directory; restore with git checkout. Run
+with python -B (rule 17)."""
+
+P = "students/views.py"
+s = open(P, encoding="utf-8").read()
+old = '        ordered_by = {term.strip().lstrip("-") for term in ordering.split(",")}\n'
+new = '        ordered_by = {term.lstrip("-") for term in ordering.split(",")}\n'
+assert s.count(old) == 1, s.count(old)
+open(P, "w", encoding="utf-8").write(s.replace(old, new))
+print("applied Y18")

@@ -1,0 +1,14 @@
+17:43:50 repro 64efdcff exit=1 (red expected)
+17:43:52 repro 6c7d7cac exit=1 (red expected)
+17:43:55 repro c93d594e exit=1 (red expected)
+17:45:48 (a) exit=0
+17:49:47 (b) exit=1
+17:49:47 STOP: (b) not all killed
+17:55:38 (b) on 9a37e092 exit=0
+09:03:54 repro 8f4e9ef8 exit=1 (red expected)
+09:08:25 (a) exit=0
+09:16:36 (b) exit=0
+09:16:36 FOLD CHAIN END: (c) part 2 needs its own GRANT
+12:54:15 15.4 modules at 8fd5dc9d exit=0
+13:01:45 15.4 battery at 8fd5dc9d exit=0
+13:01:45 15.4 END

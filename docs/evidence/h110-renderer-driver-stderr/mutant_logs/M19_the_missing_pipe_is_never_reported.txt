@@ -1,0 +1,16 @@
+..........................E
+======================================================================
+ERROR: test_the_renderer_starts_and_says_so_once_per_process (assignments.tests_pdf_renderer_driver_stderr_reader.PipeNotTakenTest.test_the_renderer_starts_and_says_so_once_per_process)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 131, in test_the_renderer_starts_and_says_so_once_per_process
+    [error] = self.errors_of_a_start()
+    ^^^^^^^
+ValueError: not enough values to unpack (expected 1, got 0)
+
+----------------------------------------------------------------------
+Ran 27 tests in 8.197s
+
+FAILED (errors=1)
+Found 27 test(s).
+System check identified no issues (0 silenced).

@@ -1,0 +1,59 @@
+#!/bin/bash
+# H-120, SECOND SHORT CHAIN after a test-only change (the second table of
+# real files): (m) the one touched test module at the tip (rule 15.4);
+# (b) the whole battery again, because the module changed after the first
+# one (rule 17 addendum). No (r): nothing here is red first; the new test
+# is held by mutants K4 and K13. Original header follows.
+# H-120 gate chain on the frozen tip: (r) the red commit's module in a
+# disposable worktree, expected red; (a) the check's test module with the
+# repo-wide guard list, serial; (b) the battery. There is no (c).
+# Rule 18: every test command writes straight to a file, stdin
+# from /dev/null. No wall-clock assertion is in these runs (the renderer's
+# real-browser modules are not in them); load is recorded all the same.
+# Usage: chain2.sh <tip-sha8>
+set -euo pipefail
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-h120-migration-check-before-state
+RW=$P/Grade-Automator-Plus-h120-repro
+OUT=$P/GAP-d5-runs/h120
+E=docs/evidence/h120-migration-check-before-state
+export EXEMPT_EMAIL_DOMAINS=
+WRAP="systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800"
+say() { echo "$(date +%H:%M:%S) $*" | tee -a $OUT/chain.status; }
+load() { say "$1: loadavg $(cat /proc/loadavg)"; }
+cd $WT
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { say "ABORT: tree not frozen at $TIP"; exit 9; }
+[ ! -e $OUT/m_module_$TIP.log ] && [ ! -e $OUT/battery_$TIP ] || { say "ABORT: logs of $TIP exist already"; exit 9; }
+[ ! -e $RW ] || { say "ABORT: $RW exists already"; exit 9; }
+BATTERY_RAN=0
+tidy() {
+  set +e
+  cd $WT
+  if [ -e $RW ]; then git worktree remove --force $RW; git worktree prune; fi
+  if [ $BATTERY_RAN = 1 ] && { [ -e $E/logs ] || [ -e $E/results.tsv ]; }; then
+    mkdir -p $OUT/battery_$TIP && mv $E/logs $E/results.tsv $OUT/battery_$TIP/ || say "WARNING: could not move the battery's output"
+  fi
+  [ -z "$(git status --porcelain)" ] && [ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] || say "WARNING: tree not the frozen tip $TIP at exit"
+}
+trap tidy EXIT
+
+# (m) the one touched test module
+load "(m) start"; s=$(date +%s); rc=0
+$WRAP python manage.py test AutoGrader.tests_migration_safety_check --settings=settings_worktree --noinput --verbosity 2 > $OUT/m_module_$TIP.log 2>&1 < /dev/null || rc=$?
+echo "exit=$rc wall_s=$(( $(date +%s)-s ))" >> $OUT/m_module_$TIP.log
+load "(m) end"
+say "(m) exit=$rc"; [ $rc -eq 0 ] || { say "STOP: (m) red"; exit 1; }
+
+# (b) the battery
+load "(b) start"; s=$(date +%s); rc=0; BATTERY_RAN=1
+PYTHONDONTWRITEBYTECODE=1 $WRAP python $E/run_mutants.py $TIP > $OUT/b_mutation_battery_$TIP.log 2>&1 < /dev/null || rc=$?
+echo "exit=$rc wall_s=$(( $(date +%s)-s ))" >> $OUT/b_mutation_battery_$TIP.log
+load "(b) end"
+say "(b) exit=$rc"
+tidy; BATTERY_RAN=0
+rc2=0; python3 $OUT/expected_kills_2.py $OUT/battery_$TIP > $OUT/expected_kills_$TIP.txt 2>&1 || rc2=$?
+say "expected failing sets: $(tail -n 1 $OUT/expected_kills_$TIP.txt)"
+[ $rc -eq 0 ] || { say "STOP: (b) not all killed (exit 124 or 137 is a hang or a cap, reported as such)"; exit 1; }
+[ $rc2 -eq 0 ] || { say "STOP: a mutant's failing set differs from the expected one"; exit 1; }
+say "H-120 CHAIN END (no (c): no application code changes; the SM approved that)"

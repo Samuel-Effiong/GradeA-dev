@@ -1,0 +1,23 @@
+import subprocess,sys,collections
+MB,EP,BE,MG=sys.argv[1:5]
+def git(*a):
+    return subprocess.run(["git",*a],capture_output=True,text=True,errors="replace").stdout
+def files(a,b): return set(git("diff","--name-only",a,b).split())
+def added(base,side,f):
+    out=[]
+    for l in git("diff","-U0",base,side,"--",f).splitlines():
+        if l.startswith("+") and not l.startswith("+++"):
+            t=l[1:].strip()
+            if t: out.append(t)
+    return out
+fe,fb=files(MB,EP),files(MB,BE)
+both=sorted(fe&fb)
+print("epic files",len(fe),"beta files",len(fb),"both",len(both))
+for f in sorted(fe|fb):
+    merged=set(x.strip() for x in git("show",f"{MG}:{f}").splitlines())
+    for name,side in (("epic",EP),("beta",BE)):
+        if f not in (fe if name=="epic" else fb): continue
+        miss=[l for l in added(MB,side,f) if l not in merged]
+        if miss:
+            print(f"== {f} [{name}] missing {len(miss)}")
+            for l in miss[:40]: print("   ",l[:150])

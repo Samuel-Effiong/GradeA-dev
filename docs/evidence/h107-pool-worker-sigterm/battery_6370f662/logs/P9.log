@@ -1,0 +1,12 @@
+# P9: the stream wraps sys.stderr as it is when the run is set up (1a's Y10)
+# file: AutoGrader/redis_test_runner.py (occurrence 1)
+# old: '        kwargs["stream"] = PatientStream(sys.stderr)\n'
+# new: '        kwargs["stream"] = PatientStream(sys.__stderr__)\n'
+# commit: 6370f662bae94068ef0e1f8f880bf6127997a711
+# exit: 1
+# elapsed_s: 12.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_stream_is_whatever_stderr_is_when_the_run_is_set_up (AutoGrader.tests_patient_test_stream.WiringTests.test_the_stream_is_whatever_stderr_is_when_the_run_is_set_up)
+
+FAILED (failures=1)

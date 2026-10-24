@@ -1,0 +1,279 @@
+{
+  "S1_a_student_is_told_the_paper_is_graded": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_upload_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_queued_upload_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_edit_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_refusal_is_the_same_once_the_grade_is_released",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_a_queued_upload_that_runs_after_the_grade_landed"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_a_queued_upload_that_runs_after_the_grade_landed",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_edit_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_queued_upload_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_refusal_is_the_same_once_the_grade_is_released",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_upload_refusal"
+    ],
+    "pycache_left": 0
+  },
+  "S2_a_student_is_told_the_paper_is_being_graded": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_upload_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_edit_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_the_two_busy_cases_get_one_and_the_same_answer"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_edit_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_upload_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_the_two_busy_cases_get_one_and_the_same_answer"
+    ],
+    "pycache_left": 0
+  },
+  "S3_a_student_is_told_an_upload_is_still_being_processed": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_the_two_busy_cases_get_one_and_the_same_answer"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_the_two_busy_cases_get_one_and_the_same_answer"
+    ],
+    "pycache_left": 0
+  },
+  "S4_the_teacher_is_given_the_neutral_sentence_for_graded": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.TheOtherRefusalsTest.test_the_teacher_is_still_told_that_the_paper_is_graded"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.TheOtherRefusalsTest.test_the_teacher_is_still_told_that_the_paper_is_graded"
+    ],
+    "pycache_left": 0
+  },
+  "S5_the_teacher_is_given_the_neutral_sentence_for_being_graded": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.TheOtherRefusalsTest.test_the_teacher_is_still_told_that_the_paper_is_being_graded"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.TheOtherRefusalsTest.test_the_teacher_is_still_told_that_the_paper_is_being_graded"
+    ],
+    "pycache_left": 0
+  },
+  "S6_the_edit_path_treats_every_caller_as_a_teacher": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_edit_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_refusal_is_the_same_once_the_grade_is_released",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_edit_while_the_paper_is_being_graded"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_edit_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_edit_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_refusal_is_the_same_once_the_grade_is_released"
+    ],
+    "pycache_left": 0
+  },
+  "C1_the_refusal_response_has_no_code": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_upload_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_queued_upload_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_edit_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_refusal_is_the_same_once_the_grade_is_released",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_upload_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_edit_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_the_two_busy_cases_get_one_and_the_same_answer",
+      "students.tests_no_grade_tell_before_release.TheOtherRefusalsTest.test_attempts_used_keeps_its_sentence_and_gains_a_code",
+      "students.tests_no_grade_tell_before_release.TheOtherRefusalsTest.test_the_teacher_is_still_told_that_the_paper_is_graded",
+      "students.tests_no_grade_tell_before_release.TheOtherRefusalsTest.test_the_teacher_is_still_told_that_the_paper_is_being_graded"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_edit_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_an_upload_while_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_the_two_busy_cases_get_one_and_the_same_answer",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_edit_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_queued_upload_refusal",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_refusal_is_the_same_once_the_grade_is_released",
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_the_upload_refusal",
+      "students.tests_no_grade_tell_before_release.TheOtherRefusalsTest.test_attempts_used_keeps_its_sentence_and_gains_a_code",
+      "students.tests_no_grade_tell_before_release.TheOtherRefusalsTest.test_the_teacher_is_still_told_that_the_paper_is_being_graded",
+      "students.tests_no_grade_tell_before_release.TheOtherRefusalsTest.test_the_teacher_is_still_told_that_the_paper_is_graded"
+    ],
+    "pycache_left": 0
+  },
+  "C2_the_queued_task_result_has_no_code": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_a_queued_upload_that_runs_after_the_grade_landed"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentToldNothingOfAGradeTest.test_a_queued_upload_that_runs_after_the_grade_landed"
+    ],
+    "pycache_left": 0
+  },
+  "C3_the_two_busy_cases_have_different_codes": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_the_two_busy_cases_get_one_and_the_same_answer",
+      "students.tests_no_grade_tell_before_release.TheRefusalCodesAreAClosedListTest.test_each_closing_refusal_has_its_code"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentCannotTellBusyKindsApartTest.test_the_two_busy_cases_get_one_and_the_same_answer",
+      "students.tests_no_grade_tell_before_release.TheRefusalCodesAreAClosedListTest.test_each_closing_refusal_has_its_code"
+    ],
+    "pycache_left": 0
+  },
+  "L1_the_list_shows_the_real_grading_state": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_scheduled_being_graded_and_failed_look_like_submitted",
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_graded_but_unreleased_looks_like_submitted_but_for_the_attempts"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_graded_but_unreleased_looks_like_submitted_but_for_the_attempts",
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_scheduled_being_graded_and_failed_look_like_submitted"
+    ],
+    "pycache_left": 0
+  },
+  "L2_a_released_grade_still_shows_idle": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_a_released_grade_shows_done"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_a_released_grade_shows_done"
+    ],
+    "pycache_left": 0
+  },
+  "L3_the_schedule_fields_are_not_replaced": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_scheduled_being_graded_and_failed_look_like_submitted",
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_graded_but_unreleased_looks_like_submitted_but_for_the_attempts",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_h133_the_list_serializer_hides_the_grading_state_and_schedule"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_h133_the_list_serializer_hides_the_grading_state_and_schedule",
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_graded_but_unreleased_looks_like_submitted_but_for_the_attempts",
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_scheduled_being_graded_and_failed_look_like_submitted"
+    ],
+    "pycache_left": 0
+  },
+  "L4_is_grading_scheduled_is_not_replaced": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_scheduled_being_graded_and_failed_look_like_submitted",
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_graded_but_unreleased_looks_like_submitted_but_for_the_attempts",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_h133_the_list_serializer_hides_the_grading_state_and_schedule"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_h133_the_list_serializer_hides_the_grading_state_and_schedule",
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_graded_but_unreleased_looks_like_submitted_but_for_the_attempts",
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_scheduled_being_graded_and_failed_look_like_submitted"
+    ],
+    "pycache_left": 0
+  },
+  "L5_scheduled_grading_at_is_not_replaced": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_scheduled_being_graded_and_failed_look_like_submitted",
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_graded_but_unreleased_looks_like_submitted_but_for_the_attempts",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_h133_the_list_serializer_hides_the_grading_state_and_schedule"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_h133_the_list_serializer_hides_the_grading_state_and_schedule",
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_graded_but_unreleased_looks_like_submitted_but_for_the_attempts",
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_scheduled_being_graded_and_failed_look_like_submitted"
+    ],
+    "pycache_left": 0
+  },
+  "L6_the_teacher_loses_the_state_and_the_schedule_too": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_the_teacher_still_sees_the_state_and_the_schedule"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_the_teacher_can_still_filter_on_the_grading_state",
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_the_teacher_still_sees_the_state_and_the_schedule",
+      "students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_the_teacher_still_sees_the_review_queue_fields"
+    ],
+    "pycache_left": 0
+  },
+  "F1_a_student_may_filter_on_the_grading_state": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_a_student_cannot_filter_on_the_grading_state",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_3_a_student_is_refused_every_review_queue_filter"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_3_a_student_is_refused_every_review_queue_filter",
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_a_student_cannot_filter_on_the_grading_state"
+    ],
+    "pycache_left": 0
+  },
+  "F2_a_student_is_refused_is_published_too": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 66,
+    "expected": [
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_a_student_can_still_ask_for_released_grades",
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_3_a_student_is_refused_every_review_queue_filter"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_3_a_student_is_refused_every_review_queue_filter",
+      "students.tests_no_grade_tell_before_release.StudentListShowsNoGradingStateTest.test_a_student_can_still_ask_for_released_grades"
+    ],
+    "pycache_left": 0
+  }
+}

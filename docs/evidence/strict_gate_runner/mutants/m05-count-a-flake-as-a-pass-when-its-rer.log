@@ -1,0 +1,105 @@
+.....F.................F..F...................
+======================================================================
+FAIL: test_flake_failure_fails_gate_even_when_rerun_alone_passes (__main__.EndToEnd.test_flake_failure_fails_gate_even_when_rerun_alone_passes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 449, in test_flake_failure_fails_gate_even_when_rerun_alone_passes
+    s = self.assertFailedWith("known flake", {"flake_fails": True})
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 0 != 1 : exit 0
+stdout:
+[2026-09-17T18:33:56+01:00] pre-launch: {"heavy_slots_in_use": 0, "slots_requested": 1, "max_heavy_slots": 100000, "disk_free_gb": 14.78, "min_disk_gb": 0.0, "ram_available_gb": 10.46, "min_ram_gb": 0.0, "test_processes": [], "refused": []}
+[2026-09-17T18:33:56+01:00] run 1: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:33:56+01:00] run 1: pre-commit run --all-files: exit 0
+[2026-09-17T18:33:56+01:00] run 1: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base c8aec75dc391747b29d19f91357335cbad6c21a5
+[2026-09-17T18:33:56+01:00] run 1: check_migration_safety.py: exit 0
+[2026-09-17T18:33:56+01:00] run 1: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:33:56+01:00] run 1: manage.py check: exit 0
+[2026-09-17T18:33:56+01:00] run 1: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:33:56+01:00] run 1: makemigrations --check: exit 0
+[2026-09-17T18:33:56+01:00] run 1: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2
+[2026-09-17T18:33:56+01:00] run 1: full suite: exit 1
+[2026-09-17T18:33:57+01:00] run 1: known flake alone: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2 billing.tests.test_overage_purchase_integrity.ConcurrentOverageDeliveryTests.test_concurrent_purchases_by_different_teachers_stay_separate
+[2026-09-17T18:33:57+01:00] run 1: known flake alone: exit 0
+[2026-09-17T18:33:57+01:00] run 1: CLEAN []
+[2026-09-17T18:33:57+01:00] VERDICT: PASS []
+
+stderr:
+
+
+======================================================================
+FAIL: test_second_run_failure_fails_gate (__main__.EndToEnd.test_second_run_failure_fails_gate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 461, in test_second_run_failure_fails_gate
+    s = self.assertFailedWith("run 2", {"flake_fails": {"2": True}}, runs=2)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 0 != 1 : exit 0
+stdout:
+[2026-09-17T18:34:04+01:00] pre-launch: {"heavy_slots_in_use": 0, "slots_requested": 1, "max_heavy_slots": 100000, "disk_free_gb": 14.78, "min_disk_gb": 0.0, "ram_available_gb": 10.45, "min_ram_gb": 0.0, "test_processes": [], "refused": []}
+[2026-09-17T18:34:04+01:00] run 1: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:34:04+01:00] run 1: pre-commit run --all-files: exit 0
+[2026-09-17T18:34:04+01:00] run 1: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base 4455c62d46abe0d37cb868d193b531b0d955f767
+[2026-09-17T18:34:04+01:00] run 1: check_migration_safety.py: exit 0
+[2026-09-17T18:34:04+01:00] run 1: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:34:04+01:00] run 1: manage.py check: exit 0
+[2026-09-17T18:34:04+01:00] run 1: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:34:04+01:00] run 1: makemigrations --check: exit 0
+[2026-09-17T18:34:04+01:00] run 1: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2
+[2026-09-17T18:34:04+01:00] run 1: full suite: exit 0
+[2026-09-17T18:34:04+01:00] run 1: CLEAN []
+[2026-09-17T18:34:04+01:00] run 2: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:34:04+01:00] run 2: pre-commit run --all-files: exit 0
+[2026-09-17T18:34:04+01:00] run 2: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base 4455c62d46abe0d37cb868d193b531b0d955f767
+[2026-09-17T18:34:04+01:00] run 2: check_migration_safety.py: exit 0
+[2026-09-17T18:34:04+01:00] run 2: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:34:05+01:00] run 2: manage.py check: exit 0
+[2026-09-17T18:34:05+01:00] run 2: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:34:05+01:00] run 2: makemigrations --check: exit 0
+[2026-09-17T18:34:05+01:00] run 2: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2
+[2026-09-17T18:34:05+01:00] run 2: full suite: exit 1
+[2026-09-17T18:34:05+01:00] run 2: known flake alone: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2 billing.tests.test_overage_purchase_integrity.ConcurrentOverageDeliveryTests.test_concurrent_purchases_by_different_teachers_stay_separate
+[2026-09-17T18:34:05+01:00] run 2: known flake alone: exit 0
+[2026-09-17T18:34:05+01:00] run 2: CLEAN []
+[2026-09-17T18:34:05+01:00] VERDICT: PASS []
+
+stderr:
+
+
+======================================================================
+FAIL: test_suite_exit_ok_but_failed_summary_fails (__main__.EndToEnd.test_suite_exit_ok_but_failed_summary_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 441, in test_suite_exit_ok_but_failed_summary_fails
+    self.assertFailedWith(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 0 != 1 : exit 0
+stdout:
+[2026-09-17T18:34:06+01:00] pre-launch: {"heavy_slots_in_use": 0, "slots_requested": 1, "max_heavy_slots": 100000, "disk_free_gb": 14.78, "min_disk_gb": 0.0, "ram_available_gb": 10.43, "min_ram_gb": 0.0, "test_processes": [], "refused": []}
+[2026-09-17T18:34:07+01:00] run 1: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:34:07+01:00] run 1: pre-commit run --all-files: exit 0
+[2026-09-17T18:34:07+01:00] run 1: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base cd4ae21cd0beaa153748834275183af2223b272a
+[2026-09-17T18:34:07+01:00] run 1: check_migration_safety.py: exit 0
+[2026-09-17T18:34:07+01:00] run 1: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:34:07+01:00] run 1: manage.py check: exit 0
+[2026-09-17T18:34:07+01:00] run 1: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:34:07+01:00] run 1: makemigrations --check: exit 0
+[2026-09-17T18:34:07+01:00] run 1: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2
+[2026-09-17T18:34:07+01:00] run 1: full suite: exit 0
+[2026-09-17T18:34:07+01:00] run 1: known flake alone: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2 billing.tests.test_overage_purchase_integrity.ConcurrentOverageDeliveryTests.test_concurrent_purchases_by_different_teachers_stay_separate
+[2026-09-17T18:34:07+01:00] run 1: known flake alone: exit 0
+[2026-09-17T18:34:07+01:00] run 1: CLEAN []
+[2026-09-17T18:34:07+01:00] VERDICT: PASS []
+
+stderr:
+
+
+----------------------------------------------------------------------
+Ran 46 tests in 22.624s
+
+FAILED (failures=3)

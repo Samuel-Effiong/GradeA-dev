@@ -1,0 +1,51 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+........................F.............................FF
+======================================================================
+FAIL: test_settings_import_nothing_from_the_project_at_the_top_level (AutoGrader.tests_log_scrubbing.SettingsStandAloneTests.test_settings_import_nothing_from_the_project_at_the_top_level)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/AutoGrader/tests_log_scrubbing.py", line 390, in test_settings_import_nothing_from_the_project_at_the_top_level
+    self.assertEqual(
+AssertionError: Lists differ: ['AutoGrader.log_scrubbing'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'AutoGrader.log_scrubbing'
+
+- ['AutoGrader.log_scrubbing']
++ []
+
+======================================================================
+FAIL: test_explicit_value_is_used_instead_of_falling_back (AutoGrader.tests_student_frontend_domain.StudentFrontendDomainSettingTests.test_explicit_value_is_used_instead_of_falling_back)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/AutoGrader/tests_student_frontend_domain.py", line 80, in test_explicit_value_is_used_instead_of_falling_back
+    frontend_domain, student_domain = self._resolved_domains(
+                                      ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/AutoGrader/tests_student_frontend_domain.py", line 62, in _resolved_domains
+    self.assertEqual(
+AssertionError: 1 != 0 : stdout='' stderr='Traceback (most recent call last):\n  File "<string>", line 1, in <module>\n  File "<frozen importlib._bootstrap_external>", line 999, in exec_module\n  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/AutoGrader/settings.py", line 109, in <module>\n    from AutoGrader.log_scrubbing import install  # noqa: E402,F401\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nModuleNotFoundError: No module named \'AutoGrader\'\n'
+
+======================================================================
+FAIL: test_falls_back_to_frontend_domain_when_unset (AutoGrader.tests_student_frontend_domain.StudentFrontendDomainSettingTests.test_falls_back_to_frontend_domain_when_unset)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/AutoGrader/tests_student_frontend_domain.py", line 71, in test_falls_back_to_frontend_domain_when_unset
+    frontend_domain, student_domain = self._resolved_domains(
+                                      ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/AutoGrader/tests_student_frontend_domain.py", line 62, in _resolved_domains
+    self.assertEqual(
+AssertionError: 1 != 0 : stdout='' stderr='Traceback (most recent call last):\n  File "<string>", line 1, in <module>\n  File "<frozen importlib._bootstrap_external>", line 999, in exec_module\n  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed\n  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-merge-down-b7/AutoGrader/settings.py", line 109, in <module>\n    from AutoGrader.log_scrubbing import install  # noqa: E402,F401\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nModuleNotFoundError: No module named \'AutoGrader\'\n'
+
+----------------------------------------------------------------------
+Ran 56 tests in 5.437s
+
+FAILED (failures=3)
+Preserving test database for alias 'default'...
+Found 56 test(s).

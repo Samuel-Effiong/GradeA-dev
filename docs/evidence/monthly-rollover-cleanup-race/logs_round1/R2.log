@@ -1,0 +1,12 @@
+# R2: annual service: the run's now, not its own
+# file: billing/services.py (occurrence 1)
+# old: '        now = now or timezone.now()\n        wallet = user.credit_wallet\n'
+# new: '        now = timezone.now()\n        wallet = user.credit_wallet\n'
+# commit: 47bdc73e5fc740f2904d9a339dad0c5b4c870a31
+# exit: 0
+# elapsed_s: 6.6
+# restored_sha256_matches_commit_blob: True
+
+
+
+OK
