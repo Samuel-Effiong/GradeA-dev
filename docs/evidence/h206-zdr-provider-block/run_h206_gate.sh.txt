@@ -1,12 +1,13 @@
 #!/bin/bash
 # H-206 zero retention (beta line). Usage: bash run_h206_gate.sh <tip> 1
-# One grant (6G), inside ONE outer inhibit:
+# One grant, inside ONE outer inhibit (memory cap = available - 2G, min 6G, read at start; rule 13):
 #   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block bash <script> <tip> 1
 # 0 the red run: the module as at the tip against the code as at the base (services.py and settings.py taken back; own DB),
 #   RULE 22: each new red test is red for its WRITTEN reason (a fragment looked for in its own FAIL/ERROR block);
 # 1a makemigrations --check; 1b the seam by program (the diff of ai_processor/services.py removes exactly the old comment
 #   and the one literal provider block; nothing else is removed); 1 the module + near modules (everything that patches
 #   __ai_model or the SDK) + guards; 2 the 14 mutants (rule 17; own DB).
+# The switch is OFF by default (the owner, 24 October 2026); the tests that need it on set it by override_settings.
 # The regression is 0b's one full run on the frozen tip; it is not in this script.
 # A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
 set -u
@@ -14,7 +15,27 @@ TIP=$1; STEP=${2:-1}; BASE=fafed57f
 cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-zdr-provider-block || exit 1
 source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
 E=docs/evidence/h206-zdr-provider-block
-CAP="systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0"
+AVAIL_G=$(awk '/^MemAvailable:/ {print int($2/1048576)}' /proc/meminfo)
+MEMG=$((AVAIL_G - 2))
+echo "available at start: ${AVAIL_G}G; cap ${MEMG}G"
+[ "$MEMG" -ge 6 ] || { echo "STOP (exit 5): cap under 6G; wait and tell the SM"; exit 5; }
+# Each run has its own scope unit, gap-h206-<pid>-<part>; the watchdogs stop only those, by exact name.
+UNITP=gap-h206-$$
+UPART=none
+CAP="systemd-run --user --scope -q --unit=\${UNITP}-\${UPART} -p MemoryMax=${MEMG}G -p MemorySwapMax=0"
+# Memory watchdog (SM 2026-10-14): available under 1.5 GB stops OUR scope, by its unit name, never by pattern.
+( while sleep 10; do
+    A=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
+    if [ "$A" -lt 1572864 ]; then
+        for U in $UNITP-red $UNITP-modules $UNITP-mutants; do
+            if systemctl --user is-active -q "$U.scope"; then
+                echo "MEMORY STOP $(date +%T): available ${A} kB; stopping $U.scope" >> $E/memory_watchdog.txt
+                systemctl --user stop "$U.scope"
+            fi
+        done
+    fi
+  done ) &
+WATCHDOG=$!
 export PYTHONFAULTHANDLER=1
 export EXEMPT_EMAIL_DOMAINS=
 [ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
@@ -22,7 +43,7 @@ git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
 [ "$STEP" = 1 ] || { echo "only step 1 exists"; exit 1; }
 mkdir -p $E
 CHANGED="ai_processor/services.py AutoGrader/settings.py"
-restore_tree() { git checkout HEAD -- $CHANGED 2>/dev/null; find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
+restore_tree() { kill $WATCHDOG 2>/dev/null; git checkout HEAD -- $CHANGED 2>/dev/null; find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
 trap restore_tree EXIT
 summary() { grep -E "^(Ran |OK|FAILED \(|(FAIL|ERROR): )" "$1" | cut -c1-200 | head -${2:-12}; }
 dropmut() { python manage.py shell --settings=settings_worktree_mut -c "
@@ -39,6 +60,7 @@ echo "load at start: $(cat /proc/loadavg)"
 echo "=== 0. the red run: $OWN against the code as at $BASE (own DB) $(date +%T)"
 git checkout $BASE -- $CHANGED
 find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} +
+UPART=red
 eval "PYTHONDONTWRITEBYTECODE=1 $CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree_mut $OWN" < /dev/null > $E/red_run_code_as_at_base.txt 2>&1
 RED_EXIT=$?
 echo "red run exit=$RED_EXIT (non-zero expected)"
@@ -58,8 +80,10 @@ r() { python -I $RC $RF "$1" "$2" || RED_OK=0; }
 r test_the_provider_block_that_reaches_the_sdk_is_exact_on_every_path "'zdr': True"
 r test_zdr_is_the_boolean_true_not_a_string "None is not True"
 r test_zdr_is_inside_the_provider_object_not_the_top_level_body "'zdr' not found in"
-r test_the_default_is_on "AI_PROVIDER_ZDR_ENABLED"
-r test_the_settings_module_reads_the_variable_with_default_true "AI_PROVIDER_ZDR_ENABLED"
+r test_the_default_is_off "AI_PROVIDER_ZDR_ENABLED"
+r test_the_settings_module_reads_the_variable_with_default_false "AI_PROVIDER_ZDR_ENABLED"
+r test_at_the_default_no_request_carries_zdr_anywhere "has no attribute '_provider_block'"
+r test_off_sends_no_zdr_and_on_sends_zdr_true_on_every_path "None is not True"
 r test_with_the_switch_off_the_block_is_exactly_data_collection_deny "has no attribute '_provider_block'"
 r test_the_switch_is_read_at_each_call_not_once_at_import "'zdr': True"
 r test_it_exists_and_returns_the_block "has no attribute '_provider_block'"
@@ -76,7 +100,7 @@ if [ "$RED_OK" != 1 ]; then
     find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} +
     exit 4
 fi
-echo "red run is as written: non-zero exit, no OK line, the module loaded, fifteen tests red for their written reasons"
+echo "red run is as written: non-zero exit, no OK line, the module loaded, seventeen tests red for their written reasons"
 git checkout HEAD -- $CHANGED
 find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} +
 git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
@@ -91,12 +115,24 @@ cat $E/seam_removed_lines.txt
 [ "$(wc -l < $E/seam_removed_lines.txt)" = 4 ] || { echo "STOP: the diff removes other than the old comment (3 lines) and the one literal block (1 line)"; exit 2; }
 [ "$(grep -c 'provider.*data_collection.*deny' $E/seam_removed_lines.txt)" = 1 ] || { echo "STOP: the one literal provider block is not what is removed"; exit 2; }
 echo "=== 1. own module + near modules + guards at $(git rev-parse --short=8 HEAD) $(date +%T)"
+UPART=modules
 eval "$CAP nice -n 10 timeout -k 60 3500 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $OWN $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
 echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
 if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
 echo "=== 2. mutants: 14 (own DB, rules 17 and 18) $(date +%T)"
-eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 3000 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
-echo "mutants exit=$? $(date +%T)"; cut -c1-260 $E/mutation_log.txt
+# Time limit 90 s x 14 + 600 = 1860 s, with a 300 s stall watchdog on the newest mutant log (2026-10-14).
+UPART=mutants
+( sleep 60; while systemctl --user is-active -q "$UNITP-mutants.scope"; do
+    NEWEST=$(ls -t $E/mutant_logs/*.txt 2>/dev/null | head -1)
+    if [ -n "$NEWEST" ] && [ $(( $(date +%s) - $(stat -c %Y "$NEWEST") )) -gt 300 ]; then
+        echo "STALL STOP $(date +%T): $NEWEST silent over 300 s; stopping $UNITP-mutants.scope" >> $E/stall_watchdog.txt
+        systemctl --user stop "$UNITP-mutants.scope"; break
+    fi
+    sleep 15
+  done ) &
+STALL=$!
+eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 1860 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
+echo "mutants exit=$? $(date +%T)"; kill $STALL 2>/dev/null; cut -c1-260 $E/mutation_log.txt
 git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
 dropmut
 echo "load at end: $(cat /proc/loadavg)"
