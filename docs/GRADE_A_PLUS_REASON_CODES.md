@@ -4,7 +4,7 @@ Error and reason code reference for Frontend and QA
 
 When the backend refuses something, it says why with a **reason code**: a short, fixed name such as `FILE_TOO_LARGE`. This document lists every code, what it means in plain words, the exact text the user sees, and what the response looks like, so that the frontend can handle each one and QA can test each one.
 
-There are **63 codes**. **44** are sent to the user in a response. **19** are written only into the activity record and are never sent to the user.
+There are **64 codes**. **45** are sent to the user in a response. **19** are written only into the activity record and are never sent to the user.
 
 **Where this applies.** The contract described here is the one on the **staging** environment, updated on 5 October 2026. All paths are under `/api/v1/`.
 
@@ -385,6 +385,18 @@ HTTP 400 · USER · Not retryable
 | Params | none |
 | Returned by | Whole request: `POST submissions/{id}/publish`. Per item: the `skipped` list of `POST assignments/{id}/publish-all-grades`. |
 
+#### `OVERAGE_CAP_EXCEEDED`
+
+HTTP 400 · USER · Not retryable
+
+| Field | Detail |
+|----|----|
+| Message | This purchase would go over your plan's limit of `{max_blocks}` block(s) per billing cycle. You have `{remaining}` block(s) left this cycle. |
+| What to do | Request fewer blocks, or wait until your next billing cycle, then try again. |
+| Params | `max_blocks`, `remaining` |
+| Returned by | Whole request: `POST subscription/credits/overage/purchase` (an individual teacher buying extra credit blocks beyond their plan). |
+| Notes | The cap is per billing cycle and set per plan (`SubscriptionPlan.max_overage_blocks`), not a single fixed number across plans. Re-checked again when Stripe confirms payment; if a race fills the cap between checkout and payment, the payment is kept and flagged for manual refund rather than granting over the cap — that path has no reason code, since it answers Stripe's webhook, not the teacher. |
+
 ### Sign-in locks
 
 Too many wrong attempts. The user has to wait. These four have a slightly different body, described in section 6.
@@ -436,6 +448,22 @@ HTTP 429 · USER · Retryable
 | Params | none |
 | Returned by | `POST auth/register/student` |
 | Notes | The body also has `detail` and `code`. A `Retry-After` header is sent (1 to 3600 seconds). |
+
+### Too many requests
+
+Any other route that limits how often it may be called.
+
+#### `RATE_LIMITED`
+
+HTTP 429 · USER · Retryable
+
+| Field | Detail |
+|----|----|
+| Message | Too many requests. Please wait `{wait_seconds}` second(s) and try again. |
+| What to do | Wait, then try again. |
+| Params | `wait_seconds` |
+| Returned by | Any rate-limited route that has no lock of its own above: the general per-user and per-visitor limits, the named limits on the sign-in and sign-up routes, and the dashboard AI prompt route. |
+| Notes | The body keeps DRF's `detail` beside the reason code, and a `Retry-After` header carries the same number of seconds as `wait_seconds`. The four sign-in locks above keep their own codes. |
 
 ### Roster import: the whole request
 
@@ -558,6 +586,18 @@ HTTP 422 · USER · Not retryable
 | What to do | None. The response sends `null`. Nothing for the user to do. |
 | Params | `row` |
 | Returned by | Per row: `results[]` of `POST course/{id}/bulk-add-students`, with `status: "failed"`. |
+
+#### `ROW_NAME_MISMATCH`
+
+HTTP 422 · USER · Not retryable
+
+| Field | Detail |
+|----|----|
+| Message | Row `{row}`: this email already belongs to a student with a different name. |
+| What to do | Use the name on the student's account, or check the email address. |
+| Params | `row` |
+| Returned by | Per row: `results[]` of `POST course/{id}/bulk-add-students`, with `status: "failed"`. |
+| Notes | One email is one student with one name, whichever teacher adds it. Neutral on purpose: the stored name is never sent. Upper/lower case and extra spaces don't count as a difference. Nothing is created or sent for the row. The single add and the direct add refuse the same case with a 400 and the same sentence as `detail`. |
 
 #### `ROW_ALREADY_ENROLLED`
 
@@ -867,10 +907,12 @@ Filters: `reason_code` (exact), `outcome`, `action`, `actor_id`, `actor_role`, `
 | `AI_FEATURE_NOT_AVAILABLE` | Grading, credits and plan | 403 | No |
 | `NOT_RETRYABLE` | Grading, credits and plan | 409 | No |
 | `SUBMISSION_NOT_GRADED` | Grading, credits and plan | 400 | No |
+| `OVERAGE_CAP_EXCEEDED` | Grading, credits and plan | 400 | No |
 | `ACCOUNT_LOCKED` | Sign-in locks | 401 | Yes |
 | `RESET_LOCKED` | Sign-in locks | 429 | Yes |
 | `VERIFY_LOCKED` | Sign-in locks | 429 | Yes |
 | `REGISTRATION_PAUSED` | Sign-in locks | 429 | Yes |
+| `RATE_LIMITED` | Too many requests | 429 | Yes |
 | `ROSTER_NO_INPUT` | Roster import: the whole request | 400 | No |
 | `ROSTER_EMPTY` | Roster import: the whole request | 400 | No |
 | `ROSTER_FILE_UNREADABLE` | Roster import: the whole request | 400 | No |
@@ -881,6 +923,7 @@ Filters: `reason_code` (exact), `outcome`, `action`, `actor_id`, `actor_role`, `
 | `ROW_NAME_CLASH` | Roster import: one row | 422 | No |
 | `ROW_STAFF_EMAIL` | Roster import: one row | 422 | No |
 | `ROW_OTHER_SCHOOL` | Roster import: one row | 422 | No |
+| `ROW_NAME_MISMATCH` | Roster import: one row | 422 | No |
 | `ROW_ALREADY_ENROLLED` | Roster import: one row | 422 | No |
 | `ROW_DUPLICATE` | Roster import: one row | 422 | No |
 | `ROW_ACCOUNT_DISABLED` | Roster import: one row | 422 | No |

@@ -377,6 +377,13 @@ APPROVED_ADDITIONS = {
         "this is a mistake, contact your school administrator.",
         "",
     ),
+    # H-247: proposed by the SM 2026-10-16, approved by the owner
+    # 2026-10-17 (neutral: never shows the stored name).
+    "ROW_NAME_MISMATCH": (
+        422,
+        "Row {row}: this email already belongs to a student with a different " "name.",
+        "Use the name on the student's account, or check the email address.",
+    ),
     "ROW_ACCOUNT_DISABLED": (
         422,
         "Row {row}: this student's account is disabled.",

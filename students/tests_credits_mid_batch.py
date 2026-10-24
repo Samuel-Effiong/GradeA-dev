@@ -17,6 +17,7 @@ FR-A-07 S7c: credits running out mid-batch (08a §4.5, §5).
 
 import io
 import uuid
+from datetime import timedelta
 from types import SimpleNamespace
 from typing import Any, Callable
 from unittest.mock import patch
@@ -32,6 +33,7 @@ from rest_framework.test import APIClient
 import assignments.tasks as assignment_tasks
 from assignments.models import Assignment, AssignmentStatus
 from billing.errors import InsufficientCreditsError
+from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from students import task_tracking
 from students.models import (
@@ -394,16 +396,21 @@ class AnyRetryInAStoppedBatchResumesIt(GradingBatchFixture, TestCase):
 class AnUploadBatchThatRunsOutOfCredits(MidBatchFixture, TestCase):
     def setUp(self):
         self.build(students=3)
-        for target in (
-            patch("students.views.launch_processing_task", side_effect=run_inline),
-            # H-180's door asks the wallet before the session exists; this
-            # class is about the balance running out AFTER the batch was
-            # accepted (the extraction is made to raise), and the door has
-            # its own tests (students.tests_upload_credit_door).
-            patch("students.views.upload_refusal_if_unaffordable", return_value=None),
-        ):
-            target.start()
-            self.addCleanup(target.stop)
+        # This class is about the balance running out AFTER the batch was
+        # accepted (the extraction is made to raise). H-180's door (per file
+        # since H-223) is live: the teacher's wallet, created empty by
+        # users.signals, is funded so that every file fits at the door.
+        wallet, _ = CreditWallet.objects.get_or_create(user=self.teacher)
+        CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=1_000_000,
+            used_credits=0,
+            expires_at=timezone.now() + timedelta(days=30),
+        )
+        target = patch("students.views.launch_processing_task", side_effect=run_inline)
+        target.start()
+        self.addCleanup(target.stop)
 
     def test_the_rest_stops_uncharged_and_resumes_by_re_upload(self):
         calls = []

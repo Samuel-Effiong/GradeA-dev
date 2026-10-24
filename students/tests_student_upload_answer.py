@@ -40,6 +40,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from ai_processor.extraction_flags import answers_with_flags
 from assignments.models import Assignment, AssignmentStatus
 from students.models import GradingState, StudentSubmission
 from students.services import (
@@ -89,6 +90,10 @@ KEYS = [
     "scheduled_grading_at",
     "grading_task_name",
     "is_grading_scheduled",
+    # H-242: what the answer reader noticed about the upload. The student's
+    # own facts, not a staff constant: a student is shown them.
+    "upload_mismatch",
+    "flagged_for_review",
 ]
 
 #: What a student is sent in place of every staff field, whatever the row
@@ -190,7 +195,10 @@ class AFirstUploadTest(UploadAnswerBase):
         self.assertEqual(answer["full_name"], self.student.get_full_name())
         self.assertEqual(answer["submission_status"], "SUBMITTED")
         self.assertEqual(answer["remaining_attempts"], 2)
-        self.assertEqual(answer["answers"], EXTRACTED["answers"])
+        # H-253: sent with each answer's flag (none on this paper).
+        self.assertEqual(
+            answer["answers"], answers_with_flags(EXTRACTED["answers"], None)
+        )
         self.assertEqual(answer["is_published"], False)
         self.assertEqual(
             answer["max_points"],

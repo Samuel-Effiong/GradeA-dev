@@ -80,7 +80,7 @@ FAMILIES = {
     "superadmins:user_id__<>:view__teachers:<>:<>": ("SCOPE_ANY_USER",),
     "superadmins:user_id__<>:view__students": ("SCOPE_GLOBAL",),
     # dashboard/views.py - school admin (23-25)
-    "schooladmins:user_id__<>:view__summary:session__<>": (
+    "schooladmins:user_id__<>:view__summary:session__<>:risk1": (
         "SCOPE_USER",
         "SCOPE_SCHOOL",
     ),
@@ -104,11 +104,27 @@ FAMILIES = {
         "SCOPE_SCHOOL",
     ),
     "dashboards:school_id__<>:view__department_overview:session__<>": ("SCOPE_SCHOOL",),
-    # Teacher dashboards, families 26-29.
-    "teacheradmins:user_id__<>:instance__id__<>:view__overview": ("SCOPE_USER",),
-    "teacheradmins:user_id__<>:instance_id__<>:view__courses": ("SCOPE_USER",),
-    "teacheradmins:user_id__<>:instance_id__<>:view__assignments": ("SCOPE_USER",),
-    "teacheradmins:user_id__<>:instance_id__<>:view__students:<>:<>": ("SCOPE_USER",),
+    # Teacher dashboards, families 26-29. ":risk1" (H-237): the keys of the
+    # responses that carry an at_risk answer gained a version token, so an
+    # answer cached under the old at-risk rule is not served after deploy.
+    "teacheradmins:user_id__<>:instance__id__<>:view__overview:risk1": ("SCOPE_USER",),
+    # ":wf1" (H-250): the course workflow counts changed meaning.
+    "teacheradmins:user_id__<>:instance_id__<>:view__courses:wf1": ("SCOPE_USER",),
+    # ":qd6" (H-240 qd1, H-241 qd2, H-243 qd3, H-244 qd4, H-245 qd5,
+    # H-248 qd6): the response gained hardest/easiest questions, then the
+    # breakdown and student names; H-243 sent average_percentage 0 for a
+    # question with no marks and H-244 put null back; H-245 scales the
+    # ranking minimum with the class; H-248 makes the lists 20% of the
+    # paper and adds list_size. The middle value is question_limit.
+    "teacheradmins:user_id__<>:instance_id__<>:view__assignments:<>:qd6": (
+        "SCOPE_USER",
+    ),
+    "teacheradmins:user_id__<>:instance_id__<>:view__students:<>:<>:risk1": (
+        "SCOPE_USER",
+    ),
+    "teacheradmins:user_id__<>:instance_id__<>:view__all_students:<>:<>:<>:<>:<>:risk1": (
+        "SCOPE_USER",
+    ),
     # dashboard/views.py - student (G2, and status-summary: H-1 step 4)
     "studentadmins:user_id__<>:instance_id__<>:view__summary": ("SCOPE_USER",),
     "studentadmins:user_id__<>:view__assignments:<>:<>": ("SCOPE_USER",),

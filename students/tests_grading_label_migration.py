@@ -20,7 +20,6 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 
 from students.grading_label import LABEL_FIELDS, UNLABELLED
-from students.models import StudentSubmission
 from users.models import UserTypes
 
 TABLE = "students_studentsubmission"
@@ -106,10 +105,12 @@ class ARowMadeBeforeTheLabelExistedTest(TransactionTestCase):
             feedback={"grading_model": "x-ai/grok-4.3"},
         )
 
-        self._migrate(AT_0031)
+        apps_0031 = self._migrate(AT_0031)
         self.assertEqual(_label_columns_present(), 6)
         self.assertEqual(_label_row(graded.pk), (UNLABELLED,) * 6)
-        fresh = StudentSubmission.objects.get(pk=graded.pk)
+        fresh = apps_0031.get_model("students", "StudentSubmission").objects.get(
+            pk=graded.pk
+        )
         self.assertEqual(float(fresh.score or 0), 7.0)
         for name in LABEL_FIELDS:
             self.assertEqual(getattr(fresh, name), UNLABELLED)

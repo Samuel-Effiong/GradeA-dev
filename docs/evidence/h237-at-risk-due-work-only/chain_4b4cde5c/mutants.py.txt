@@ -1,0 +1,202 @@
+"""H-237 mutation chain (fixes-coordinator, 2026-10-15).
+
+Run from the frozen worktree
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h237-at-risk-due-work-only,
+tip 4b4cde5c (the evidence commit on top of the rebased H-237 code 7a01d13f;
+the evidence doc itself is inert to every test below).
+
+For each mutant: apply the single textual substitution, run the targeted
+test module(s), capture the log, then restore the file from the commit's own
+git blob and verify its sha256 against the pre-mutation hash (never
+`git checkout` alone - the restore is checked, not assumed).
+"""
+
+import hashlib
+import subprocess
+import sys
+from pathlib import Path
+
+WT = Path("/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h237-at-risk-due-work-only")
+TIP = "4b4cde5c"
+OUT = Path("/home/bond-servant-in-training/Documents/Projects/GAP-5e-runs/h237")
+
+MUTANTS = {
+    "M1_is_expected_drops_due_date_gate": dict(
+        file="assignments/models.py",
+        old=(
+            "    now = now or timezone.now()\n"
+            "    return status == AssignmentStatus.PUBLISHED and (\n"
+            "        due_date is None or due_date <= now\n"
+            "    )\n"
+        ),
+        new=(
+            "    now = now or timezone.now()\n"
+            "    return status == AssignmentStatus.PUBLISHED\n"
+        ),
+        labels=["dashboard.tests_h237_at_risk_counts_due_work"],
+    ),
+    "M2_expected_q_drops_due_date_half": dict(
+        file="assignments/models.py",
+        old=(
+            "def expected_q(prefix=\"\", now=None):\n"
+            "    now = now or timezone.now()\n"
+            "    return published_q(prefix) & (\n"
+            "        Q(**{f\"{prefix}due_date__isnull\": True}) | Q(**{f\"{prefix}due_date__lte\": now})\n"
+            "    )\n"
+        ),
+        new=(
+            "def expected_q(prefix=\"\", now=None):\n"
+            "    now = now or timezone.now()\n"
+            "    return published_q(prefix)\n"
+        ),
+        labels=["dashboard.tests_h237_at_risk_counts_due_work", "dashboard.tests_h14_at_risk_equivalence"],
+    ),
+    "M3_ai_context_counts_every_submission": dict(
+        file="dashboard/services.py",
+        old="                    submitted_count=len(submitted_ids[key] & due_ids),\n",
+        new="                    submitted_count=len(submitted_ids[key]),\n",
+        labels=["dashboard.tests_h237_at_risk_counts_due_work"],
+    ),
+    "M4_weekly_school_counts_every_submission": dict(
+        file="dashboard/services.py",
+        old=(
+            "            submitted_count = len(\n"
+            "                {row[0] for row in student_submissions if row[0] in due_assignment_ids}\n"
+            "            )\n"
+        ),
+        new=(
+            "            submitted_count = len(\n"
+            "                {row[0] for row in student_submissions}\n"
+            "            )\n"
+        ),
+        labels=["dashboard.tests_h237_at_risk_counts_due_work", "dashboard.tests_h14_at_risk_equivalence"],
+    ),
+    "M5_overview_action_reverts_to_unfiltered_count": dict(
+        file="dashboard/views.py",
+        old=(
+            "                        expected_assignment_count=course_total_assigned,\n"
+            "                        submitted_count=enrollment.risk_submitted_val,\n"
+        ),
+        new=(
+            "                        expected_assignment_count=course_total_assigned,\n"
+            "                        submitted_count=enrollment.submitted_count_val,\n"
+        ),
+        labels=["dashboard.tests_h237_at_risk_counts_due_work"],
+    ),
+    "M6_students_action_reverts_to_unfiltered_count": dict(
+        file="dashboard/views.py",
+        old=(
+            "                        expected_assignment_count=expected_assignment_count,\n"
+            "                        submitted_count=enrollment.risk_submitted_val,\n"
+        ),
+        new=(
+            "                        expected_assignment_count=expected_assignment_count,\n"
+            "                        submitted_count=enrollment.submitted_count_val,\n"
+        ),
+        labels=["dashboard.tests_h237_at_risk_counts_due_work"],
+    ),
+    "M7_all_students_action_reverts_to_unfiltered_count": dict(
+        file="dashboard/views.py",
+        old=(
+            "                        expected_assignment_count=expected_by_course.get(course.id, 0),\n"
+            "                        submitted_count=enrollment.risk_submitted_val,\n"
+        ),
+        new=(
+            "                        expected_assignment_count=expected_by_course.get(course.id, 0),\n"
+            "                        submitted_count=enrollment.submitted_count_val,\n"
+        ),
+        labels=["dashboard.tests_h237_at_risk_counts_due_work"],
+    ),
+    "M8_serializer_risk_result_drops_due_filter": dict(
+        file="students/serializers.py",
+        old=(
+            "                submitted_count=sum(\n"
+            "                    1\n"
+            "                    for submission in submissions\n"
+            "                    if self._is_expected_by_now(submission.assignment)\n"
+            "                ),\n"
+        ),
+        new=(
+            "                submitted_count=len(submissions),\n"
+        ),
+        labels=["dashboard.tests_h237_at_risk_counts_due_work"],
+    ),
+}
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def git_show(rel):
+    return subprocess.run(
+        ["git", "show", f"{TIP}:{rel}"], cwd=WT, check=True, capture_output=True, text=True
+    ).stdout
+
+
+def run_tests(labels, log_path):
+    cmd = [
+        "python", "manage.py", "test", *labels,
+        "--settings=settings_worktree", "--noinput", "--verbosity=2",
+    ]
+    with log_path.open("w") as fh:
+        rc = subprocess.run(cmd, cwd=WT, stdout=fh, stderr=subprocess.STDOUT).returncode
+    return rc, log_path.read_text(errors="replace")
+
+
+def preflight():
+    head = subprocess.run(
+        ["git", "rev-parse", "--short=8", "HEAD"], cwd=WT, check=True, capture_output=True, text=True
+    ).stdout.strip()
+    dirty = subprocess.run(
+        ["git", "status", "--porcelain"], cwd=WT, check=True, capture_output=True, text=True
+    ).stdout.strip()
+    if head != TIP or dirty:
+        raise SystemExit(f"tree not frozen at {TIP} (HEAD {head}, dirty={bool(dirty)})")
+
+
+def main():
+    preflight()
+    OUT.mkdir(parents=True, exist_ok=True)
+    baseline_log = OUT / "baseline.log"
+    base_labels = sorted({l for m in MUTANTS.values() for l in m["labels"]})
+    rc, text = run_tests(base_labels, baseline_log)
+    print(f"baseline: exit={rc}")
+    if rc != 0:
+        raise SystemExit("baseline is not green; aborting before mutating anything")
+
+    results = {}
+    for name, spec in MUTANTS.items():
+        rel = spec["file"]
+        path = WT / rel
+        pre_sha = sha(path)
+        source = path.read_text()
+        count = source.count(spec["old"])
+        if count != 1:
+            raise SystemExit(f"{name}: anchor found {count} times in {rel}, expected 1")
+        path.write_text(source.replace(spec["old"], spec["new"]))
+        for cache in (WT / Path(rel).parent).rglob("__pycache__"):
+            pass
+        log_path = OUT / f"{name}.log"
+        try:
+            rc, text = run_tests(spec["labels"], log_path)
+        finally:
+            restored = git_show(rel)
+            path.write_text(restored)
+            post_sha = sha(path)
+            ok = post_sha == pre_sha
+            if not ok:
+                raise SystemExit(f"{name}: RESTORE FAILED sha mismatch on {rel}")
+        ran = "Ran " in text
+        failed = rc != 0
+        results[name] = (rc, ran, failed)
+        print(f"{name}: exit={rc} ran={ran} restore_sha_ok={ok}")
+
+    print("\nSummary:")
+    for name, (rc, ran, failed) in results.items():
+        verdict = "KILLED" if (ran and failed) else "SURVIVED (test suite stayed green!)"
+        print(f"  {name}: {verdict} (exit={rc})")
+
+
+if __name__ == "__main__":
+    sys.exit(main())

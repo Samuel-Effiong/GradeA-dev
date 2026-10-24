@@ -9,6 +9,7 @@ import shutil
 import tempfile
 import time
 import uuid
+from html import escape as escape_html
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -41,19 +42,24 @@ from students.exceptions import TaskCancelledError
 from students.task_tracking import ensure_task_not_cancelled
 from users.models import UserTypes
 
-from . import grading_cache
+from . import call_record, grading_cache
 from .answer_completeness import MODE_LOG as ANSWER_MODE_LOG
 from .answer_completeness import MODE_OFF as ANSWER_MODE_OFF
 from .answer_completeness import MODE_STRICT as ANSWER_MODE_STRICT
 from .answer_completeness import enforce_answer_completeness, infer_answer_status
 from .evidence import MODE_LOG, MODE_STRICT, enforce_evidence
 from .exceptions import provider_failure
+from .extraction_flags import answer_flag, merge_answer_flags, paper_verdict
 from .extraction_schemas import (
     ANSWER_EXTRACTION_RESPONSE_SCHEMA,
     ANSWER_STATUSES,
     ANSWERED,
     BLANK,
     BLANK_VERIFICATION_RESPONSE_SCHEMA,
+    FLAG_NONE,
+    FLAG_OFF_TOPIC,
+    FLAG_READING_PROBLEM,
+    FLAG_TYPE_MISMATCH,
     ILLEGIBLE,
     NOT_FOUND_IN_DOCUMENT,
     REVIEW_REQUIRED_STATUSES,
@@ -70,11 +76,14 @@ from .objective_grading import (
     build_objective_evaluation,
     match_objective_answer,
 )
+from .reading_config import ReadingConfig
+from .reading_run import ReadingRun
 from .second_opinion import (
     compare_evaluations,
     pick_second_model,
     select_second_opinion_targets,
 )
+from .step_run import require_step_scope
 from .tools import safe_sort_key
 
 env = Env()
@@ -174,9 +183,11 @@ _BLANK_VERIFICATION_TEXT = (
     "submission. A first pass reported that the student wrote "
     "nothing for question(s) {numbers}.\n\n"
     "For EACH of those question numbers, look at the pages and say "
-    "whether there is ANY student writing responding to it - any "
-    "mark, working, crossing-out, marginal note or continuation "
-    "elsewhere on the page counts.\n\n"
+    "whether there is ANY student writing in that question's place - "
+    "under its number, or where its answer would go - WHATEVER it is "
+    "about: writing for another subject, another assignment or another "
+    "question still counts. Any mark, working, crossing-out, marginal "
+    "note or continuation elsewhere on the page counts.\n\n"
     "Describe what you can see in `observed` BEFORE you decide "
     "`content_found`. If you do find writing, quote a short "
     "verbatim fragment of it in `verbatim_fragment` and give the "
@@ -191,6 +202,122 @@ _BLANK_VERIFICATION_TEXT = (
 BLANK_VERIFICATION_INSTRUCTION = Prompt(
     _BLANK_VERIFICATION_TEXT,
     prompt_version_of("BLANK_VERIFICATION_INSTRUCTION", _BLANK_VERIFICATION_TEXT),
+)
+
+# H-242: the note sent beside the ordinary answer-reading prompt when the
+# re-check found writing the first reading did not transcribe. Versioned over
+# the template before `{numbers}` and `{evidence}` are filled in.
+#
+# H-253: seen on beta, a second reading allowed to "truly find nothing"
+# returned a biomes report under a calculus paper as not found again. It is
+# now shown what the re-check saw, and not found or blank is ruled out.
+_RETRANSCRIPTION_TEXT = (
+    "A first reading of this submission did not transcribe the student's "
+    "answers to question(s) {numbers}, but there is student writing in each "
+    "of those places. What was seen there:\n{evidence}\n\n"
+    "Read the pages again and transcribe ONLY those question(s), in full, "
+    "under the rules above. Return one entry in `answers` for each of them "
+    "and no other question. Off-topic writing is still the student's work: "
+    "transcribe it and flag it. Do not return NOT_FOUND_IN_DOCUMENT or BLANK "
+    "for these questions: the writing is there. If part of it cannot be "
+    "read, transcribe what you can and mark it ILLEGIBLE."
+)
+RETRANSCRIPTION_INSTRUCTION = Prompt(
+    _RETRANSCRIPTION_TEXT,
+    prompt_version_of("RETRANSCRIPTION_INSTRUCTION", _RETRANSCRIPTION_TEXT),
+)
+
+_HTML_TAG = re.compile(r"<[^>]*>")
+
+
+def _html_text(html):
+    """The visible text of an answer's HTML, whitespace collapsed: empty for
+    an answer that holds only tags such as `<p></p>`."""
+    if not isinstance(html, str):
+        return ""
+    return " ".join(_HTML_TAG.sub(" ", html).replace("&nbsp;", " ").split())
+
+
+def _recheck_found_writing(entry):
+    check = entry.get("blank_verification")
+    return isinstance(check, dict) and bool(check.get("content_found"))
+
+
+def _recheck_fragment(entry):
+    """H-253: the words the re-check quoted from this question's place, or
+    None when it found no writing or quoted nothing."""
+    if not _recheck_found_writing(entry):
+        return None
+    fragment = entry["blank_verification"].get("verbatim_fragment")
+    fragment = " ".join(fragment.split()) if isinstance(fragment, str) else ""
+    return fragment or None
+
+
+def _retranscription_evidence(entry):
+    """One line of the second reading's note: what was seen where."""
+    number = entry.get("question_number")
+    fragment = _recheck_fragment(entry)
+    if fragment is not None:
+        # Quoted as written, not repr()'d: the model reads the words.
+        quoted = '"' + fragment + '"'
+        return f"- Question {number}: {quoted}"
+    if _recheck_found_writing(entry):
+        return f"- Question {number}: a re-check of the page found writing here."
+    return (
+        f"- Question {number}: the first reading flagged the writing here as "
+        "off topic or in the wrong form."
+    )
+
+
+def _joined_detail(*parts):
+    return " ".join(" ".join(str(part or "").split()) for part in parts if part).strip()
+
+
+def _recovered_answer(entry, replacement):
+    """The second reading's answer in place of the empty one, flagged."""
+    updated = dict(replacement)
+    # The assignment's own label, never the reply's spelling of it.
+    updated["question_number"] = entry.get("question_number")
+    if "blank_verification" in entry:
+        updated["blank_verification"] = entry["blank_verification"]
+    updated["retranscribed"] = True
+    flag = answer_flag(replacement)
+    detail = replacement.get("answer_flag_detail")
+    if flag == FLAG_NONE:
+        flag, detail = answer_flag(entry), entry.get("answer_flag_detail")
+    if flag == FLAG_NONE:
+        flag, detail = FLAG_READING_PROBLEM, ""
+    updated["answer_flag"] = flag
+    updated["answer_flag_detail"] = _joined_detail(detail, RECOVERED_ANSWER_NOTE)
+    return updated
+
+
+def _quoted_answer(entry, fragment):
+    """H-253: the last resort, the re-check's quote as the answer's text.
+    Flagged as the first reading flagged it, otherwise a reading problem."""
+    updated = dict(entry)
+    updated["answer_html"] = f"<p>{escape_html(fragment, quote=False)}</p>"
+    updated["answer_status"] = ANSWERED
+    updated["partial_answer"] = True
+    flag = answer_flag(entry)
+    detail = entry.get("answer_flag_detail")
+    if flag == FLAG_NONE:
+        flag, detail = FLAG_READING_PROBLEM, ""
+    updated["answer_flag"] = flag
+    updated["answer_flag_detail"] = _joined_detail(detail, PARTIAL_ANSWER_NOTE)
+    return updated
+
+
+#: Added to the flag detail of an answer the second reading recovered.
+RECOVERED_ANSWER_NOTE = (
+    "The first reading missed this answer and a second reading recovered it: "
+    "check it against the upload."
+)
+# H-253: the last resort, when no reading recovered the answer but the
+# re-check quoted it.
+PARTIAL_ANSWER_NOTE = (
+    "This answer could not be copied out in full: only the part a re-check "
+    "of the upload quoted is shown. Check it against the upload."
 )
 
 logger = logging.getLogger(__name__)
@@ -450,6 +577,10 @@ def _merge_chunk_answer(existing, existing_origin, new, new_origin):
             return existing, existing_origin
         merged = dict(existing)
         merged["answer_html"] = f"{existing_html}\n{new_html}"
+        # H-242: a flag the reader raised on either part stands.
+        merged["answer_flag"], merged["answer_flag_detail"] = merge_answer_flags(
+            existing, new
+        )
         if ILLEGIBLE in (existing.get("answer_status"), new.get("answer_status")):
             merged["answer_status"] = ILLEGIBLE
         notes = " | ".join(
@@ -883,6 +1014,9 @@ class AIProcessor:
         NFR-OBS-04). Every call carries the server trace id as X-Request-ID
         and writes one log line: trace id, model, prompt version, task type,
         attempt, latency and outcome - never prompt or answer text."""
+        # A call for a task type that needs a step run, made with none open,
+        # fails here, before anything leaves (ai_processor/step_run.py).
+        step_run = require_step_scope(task_type)
         main_model = override_model or MAIN_MODEL
         if sub_models is None:
             sub_models = DEFAULT_FALLBACK_MODELS
@@ -926,7 +1060,15 @@ class AIProcessor:
         outcome = "ok"
         served_model = main_model
         try:
+            # The two facts are recorded here, at the one place the call
+            # leaves: "left" immediately before it, "reply received" with the
+            # name the reply carries immediately after it returns. Never
+            # inferred from the kind of exception that comes later.
+            if step_run is not None:
+                step_run.mark_call_left()
             response = self.client.chat.completions.create(**request)
+            if step_run is not None:
+                step_run.mark_reply_received(getattr(response, "model", None))
             served_model = getattr(response, "model", None) or main_model
             return response
         except Exception as exc:
@@ -1691,6 +1833,8 @@ Do not include any explanatory text before or after the JSON
         assignment: str,
         assignment_model=None,
         processing_task_id=None,
+        reading_run=None,
+        config=None,
     ) -> dict:
         """
         Chunked answer extraction pipeline for multi-page student submissions.
@@ -1722,6 +1866,11 @@ Do not include any explanatory text before or after the JSON
 
         system_prompt = ANSWERS_EXTRACTION_PROMPT
         total_pages = len(image_contents)
+        run = reading_run if reading_run is not None else ReadingRun()
+        if config is None:
+            config = run.config or ReadingConfig.read()
+        if run.config is None:
+            run.config = config
 
         # Build slimmed question context once - reused for every chunk
         slim_context = self._slim_assignment_context(assignment)
@@ -1771,6 +1920,8 @@ Do not include any explanatory text before or after the JSON
         student_name_raw = None
         student_id = ""
         all_feedback = []
+        # H-242: each part's verdict on the paper, combined after the loop.
+        chunk_verdicts = []
 
         for chunk_index, chunk in enumerate(chunks):
             ensure_task_not_cancelled(processing_task_id)
@@ -1822,29 +1973,35 @@ Do not include any explanatory text before or after the JSON
 
             last_chunk_error: Optional[Exception] = None
             chunk_result = None
+            chunk_model = None
 
             for attempt in range(3):
                 ensure_task_not_cancelled(processing_task_id)
                 try:
-                    response = self.execute_graded_task(
-                        prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
-                        user=user,
-                        feature="Answer Extraction",
-                        task_type="extract_answer",
-                        messages=messages,
-                        assignment=assignment_model,
-                        processing_task_id=processing_task_id,
-                        # The SAME contract the single-call path uses. Without
-                        # it the model is not required to emit answer_status,
-                        # _stamp_answer_provenance falls back to
-                        # infer_answer_status(), and that returns BLANK and
-                        # never NOT_FOUND_IN_DOCUMENT - so an answer this
-                        # pipeline LOST becomes a legitimate-looking zero that
-                        # no human is ever shown. Chunking starts at
-                        # ANSWERS_EXTRACTION_PAGES_PER_CHUNK pages, i.e. on
-                        # exactly the multi-page handwritten submissions where
-                        # a dropped answer is most likely.
-                        response_schema=self._answer_extraction_schema(),
+                    with run.reading.scope():
+                        run.reading.begin_call()
+                        response = self.execute_graded_task(
+                            prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
+                            user=user,
+                            feature="Answer Extraction",
+                            task_type="extract_answer",
+                            messages=messages,
+                            assignment=assignment_model,
+                            processing_task_id=processing_task_id,
+                            # The SAME contract the single-call path uses. Without
+                            # it the model is not required to emit answer_status,
+                            # _stamp_answer_provenance falls back to
+                            # infer_answer_status(), and that returns BLANK and
+                            # never NOT_FOUND_IN_DOCUMENT - so an answer this
+                            # pipeline LOST becomes a legitimate-looking zero that
+                            # no human is ever shown. Chunking starts at
+                            # ANSWERS_EXTRACTION_PAGES_PER_CHUNK pages, i.e. on
+                            # exactly the multi-page handwritten submissions where
+                            # a dropped answer is most likely.
+                            response_schema=self._answer_extraction_schema(config),
+                        )
+                    chunk_model = (
+                        run.reading.reply_model if run.reading.reply_received else None
                     )
 
                     raw = response.choices[0].message.content
@@ -1916,6 +2073,7 @@ Do not include any explanatory text before or after the JSON
                 if q_num not in found_answers:
                     found_answers[q_num] = answer
                     found_origins[q_num] = origin
+                    run.keep_answers([answer], chunk_model)
                     continue
 
                 existing = found_answers[q_num]
@@ -1930,9 +2088,26 @@ Do not include any explanatory text before or after the JSON
                         kept.get("answer_status"),
                         chunk_index + 1,
                     )
+                    if kept is answer:
+                        # This part's answer won the question.
+                        run.keep_answers([answer], chunk_model)
+                    else:
+                        # Joined from both parts: counts for each part's model.
+                        run.add_origin(kept, chunk_model)
                 found_answers[q_num] = kept
                 found_origins[q_num] = kept_origin
 
+            # The part's reply was read and its answers merged: now it counts.
+            run.keep_reply(chunk_model, ANSWERS_EXTRACTION_PROMPT.version)
+
+            chunk_verdicts.append(
+                {
+                    "submission_matches_assignment": chunk_result.get(
+                        "submission_matches_assignment"
+                    ),
+                    "mismatch_detail": chunk_result.get("mismatch_detail"),
+                }
+            )
             chunk_feedback = chunk_result.get("feedback", "")
             if chunk_feedback:
                 all_feedback.append(
@@ -1969,6 +2144,9 @@ Do not include any explanatory text before or after the JSON
             "extraction_confidence": derived_confidence,
             "feedback": " | ".join(all_feedback) if all_feedback else "",
         }
+        matches, mismatch_detail = paper_verdict(chunk_verdicts)
+        merged_result["submission_matches_assignment"] = matches
+        merged_result["mismatch_detail"] = mismatch_detail
 
         if student_name_raw is not None:
             merged_result["student_name_raw"] = student_name_raw
@@ -1987,8 +2165,15 @@ Do not include any explanatory text before or after the JSON
         assignment,
         assignment_model=None,
         processing_task_id=None,
+        reading_run=None,
+        config=None,
     ):
         system_prompt = ANSWERS_EXTRACTION_PROMPT
+        run = reading_run if reading_run is not None else ReadingRun()
+        if config is None:
+            config = run.config or ReadingConfig.read()
+        if run.config is None:
+            run.config = config
 
         is_large_submission = (
             isinstance(content, list)
@@ -2022,6 +2207,8 @@ Do not include any explanatory text before or after the JSON
                 assignment=assignment,
                 assignment_model=assignment_model,
                 processing_task_id=processing_task_id,
+                reading_run=run,
+                config=config,
             )
 
         # Get all the student in this assignment course
@@ -2053,15 +2240,20 @@ Do not include any explanatory text before or after the JSON
 
         try:
             ensure_task_not_cancelled(processing_task_id)
-            response = self.execute_graded_task(
-                prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
-                user=user,
-                feature="Answer Extraction",
-                task_type="extract_answer",
-                messages=messages,
-                assignment=assignment_model,
-                processing_task_id=processing_task_id,
-                response_schema=self._answer_extraction_schema(),
+            with run.reading.scope():
+                run.reading.begin_call()
+                response = self.execute_graded_task(
+                    prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
+                    user=user,
+                    feature="Answer Extraction",
+                    task_type="extract_answer",
+                    messages=messages,
+                    assignment=assignment_model,
+                    processing_task_id=processing_task_id,
+                    response_schema=self._answer_extraction_schema(config),
+                )
+            reply_model = (
+                run.reading.reply_model if run.reading.reply_received else None
             )
 
             content = response.choices[0].message.content
@@ -2085,10 +2277,15 @@ Do not include any explanatory text before or after the JSON
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding JSON: {str(e)}")
             raise Exception(f"Error decoding JSON: {str(e)}") from e
+        # The reply was read: now it counts, and so do the answers it supplied
+        # (the link lives in the run, never inside the answers).
+        run.keep_reply(reply_model, ANSWERS_EXTRACTION_PROMPT.version)
+        if isinstance(json_data, dict) and isinstance(json_data.get("answers"), list):
+            run.keep_answers(json_data["answers"], reply_model)
         return json_data
 
     @staticmethod
-    def _answer_extraction_schema():
+    def _answer_extraction_schema(config=None):
         """
         The json_schema contract for an answer-extraction call, or None to
         fall back to free-form json_object.
@@ -2098,7 +2295,9 @@ Do not include any explanatory text before or after the JSON
         that can be disabled without leaving a trace is one that stops
         existing the moment somebody sets an env var and forgets.
         """
-        if getattr(settings, "ANSWER_EXTRACTION_SCHEMA_ENABLED", True):
+        if config is None:
+            config = ReadingConfig.read()
+        if config.get("ANSWER_EXTRACTION_SCHEMA_ENABLED"):
             return ANSWER_EXTRACTION_RESPONSE_SCHEMA
         logger.warning(
             "[AnswerExtraction] ANSWER_EXTRACTION_SCHEMA_ENABLED is off - "
@@ -2115,6 +2314,8 @@ Do not include any explanatory text before or after the JSON
         answers,
         assignment_model=None,
         processing_task_id=None,
+        reading_run=None,
+        config=None,
     ):
         """
         Re-read the pages for the questions extraction reported as empty.
@@ -2144,7 +2345,12 @@ Do not include any explanatory text before or after the JSON
         as it was. A verification step that can lose a submission would
         cost more than it saves.
         """
-        if not getattr(settings, "ANSWER_BLANK_VERIFICATION_ENABLED", True):
+        run = reading_run if reading_run is not None else ReadingRun()
+        if config is None:
+            config = run.config or ReadingConfig.read()
+        if run.config is None:
+            run.config = config
+        if not config.get("ANSWER_BLANK_VERIFICATION_ENABLED"):
             return answers
         if not isinstance(answers, list):
             return answers
@@ -2160,7 +2366,7 @@ Do not include any explanatory text before or after the JSON
             # answered submission costs nothing at all.
             return answers
 
-        cap = getattr(settings, "ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS", 12)
+        cap = config.get("ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS")
         if len(blanks) > cap:
             logger.info(
                 "[BlankVerification] %s blank(s) exceeds the cap of %s - "
@@ -2191,7 +2397,7 @@ Do not include any explanatory text before or after the JSON
         # running it can cost a recovery but can never produce a wrong
         # flag. The completeness flags from the extraction still stand
         # either way.
-        page_cap = getattr(settings, "ANSWER_BLANK_VERIFICATION_MAX_PAGES", 10)
+        page_cap = config.get("ANSWER_BLANK_VERIFICATION_MAX_PAGES")
         if len(images) > page_cap:
             logger.info(
                 "[BlankVerification] %s page(s) exceeds the cap of %s - "
@@ -2204,28 +2410,28 @@ Do not include any explanatory text before or after the JSON
         numbers = [entry.get("question_number") for entry in blanks]
         instruction = BLANK_VERIFICATION_INSTRUCTION.format(numbers=numbers)
 
-        override_model = (
-            getattr(settings, "ANSWER_BLANK_VERIFICATION_MODEL", "") or None
-        )
+        override_model = config.get("ANSWER_BLANK_VERIFICATION_MODEL") or None
 
         try:
             ensure_task_not_cancelled(processing_task_id)
-            response = self.execute_graded_task(
-                prompt_version=BLANK_VERIFICATION_INSTRUCTION.version,
-                user=user,
-                feature="Answer Extraction",
-                task_type="extract_answer",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [{"type": "text", "text": instruction}] + images,
-                    }
-                ],
-                assignment=assignment_model,
-                processing_task_id=processing_task_id,
-                response_schema=BLANK_VERIFICATION_RESPONSE_SCHEMA,
-                override_model=override_model,
-            )
+            with run.recheck.scope():
+                run.recheck.begin_call()
+                response = self.execute_graded_task(
+                    prompt_version=BLANK_VERIFICATION_INSTRUCTION.version,
+                    user=user,
+                    feature="Answer Extraction",
+                    task_type="extract_answer",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [{"type": "text", "text": instruction}] + images,
+                        }
+                    ],
+                    assignment=assignment_model,
+                    processing_task_id=processing_task_id,
+                    response_schema=BLANK_VERIFICATION_RESPONSE_SCHEMA,
+                    override_model=override_model,
+                )
             findings = json.loads(response.choices[0].message.content).get(
                 "findings", []
             )
@@ -2253,9 +2459,11 @@ Do not include any explanatory text before or after the JSON
             logger.info(
                 "[BlankVerification] Re-read confirmed %s blank(s).", len(blanks)
             )
+            self._note_recheck_used(run, found_writing=False)
             return answers
 
         verified = []
+        applied = 0
         for entry in answers:
             key = (
                 self._question_number_key(entry.get("question_number"))
@@ -2285,6 +2493,9 @@ Do not include any explanatory text before or after the JSON
                 "not transcribe" + (f": {fragment!r}" if fragment else ".")
             ).strip()
             verified.append(updated)
+            applied += 1
+
+        self._note_recheck_used(run, found_writing=applied > 0)
 
         logger.warning(
             "[BlankVerification] Re-read found writing for %s question(s) "
@@ -2294,9 +2505,209 @@ Do not include any explanatory text before or after the JSON
         )
         return verified
 
+    def _retranscribe_found_answers(
+        self,
+        user,
+        content,
+        assignment,
+        answers,
+        assignment_model=None,
+        processing_task_id=None,
+        reading_run=None,
+        config=None,
+    ):
+        """
+        H-242: transcribe again, in full, the answers the re-check found
+        writing for.
+
+        The re-check (_verify_blank_answers) only proves something is there;
+        its fragment is never the answer. Seen live: on a paper of numbered
+        answers for another subject, the first reading said in its own notes
+        that the student wrote under questions 2-4, still returned them as
+        not found, and the re-check found the writing. Without this the
+        teacher saw an empty answer box and had to go to the upload.
+
+        One more call, made only in that case, with the ordinary reading
+        prompt and schema, asking for those questions alone. An answer it
+        returns with writing replaces the empty one and stays flagged for
+        review: its own flag when it raised one, else the first reading's,
+        otherwise a reading problem, and either way a note that it was
+        recovered.
+
+        H-253 (seen on beta: a biomes report under a calculus paper, every
+        answer flagged off topic AND not found, none recovered):
+          * a not-found answer the first reading flagged off topic or in the
+            wrong form is writing it saw, and is asked about too;
+          * the call is shown what the re-check quoted and told those
+            questions may not come back not found or blank;
+          * an answer still not recovered, by any route (a reply with
+            nothing, a failure, no credits, no page images), takes the
+            re-check's quote as its text: the last resort the owner
+            approved, flagged and marked `partial_answer`. With no quote it
+            stays as it was.
+
+        Non-fatal, like the re-check: a failure costs only the call.
+        """
+        run = reading_run if reading_run is not None else ReadingRun()
+        if config is None:
+            config = run.config or ReadingConfig.read()
+        if run.config is None:
+            run.config = config
+        if not isinstance(answers, list):
+            return answers
+
+        targets = [
+            entry
+            for entry in answers
+            if isinstance(entry, dict)
+            and entry.get("answer_status") == NOT_FOUND_IN_DOCUMENT
+            and (
+                _recheck_fragment(entry) is not None
+                or _recheck_found_writing(entry)
+                or answer_flag(entry) in (FLAG_OFF_TOPIC, FLAG_TYPE_MISMATCH)
+            )
+        ]
+        if not targets:
+            return answers
+
+        found = self._second_reading(
+            user,
+            content,
+            assignment,
+            targets,
+            assignment_model=assignment_model,
+            processing_task_id=processing_task_id,
+            run=run,
+            config=config,
+        )
+        reply_model, found = found if found is not None else (None, {})
+
+        numbers = [entry.get("question_number") for entry in targets]
+        wanted = {_canonical_question_key(n) for n in numbers}
+        target_ids = {id(entry) for entry in targets}
+        recovered = []
+        quoted = 0
+        merged = []
+        for entry in answers:
+            if not isinstance(entry, dict) or id(entry) not in target_ids:
+                merged.append(entry)
+                continue
+            key = _canonical_question_key(entry.get("question_number"))
+            replacement = found.get(key) if key in wanted else None
+            if replacement is not None:
+                updated = _recovered_answer(entry, replacement)
+                recovered.append(updated)
+                merged.append(updated)
+                continue
+            fragment = _recheck_fragment(entry)
+            if fragment is None:
+                merged.append(entry)
+                continue
+            merged.append(_quoted_answer(entry, fragment))
+            quoted += 1
+
+        if recovered:
+            run.keep_reply(reply_model, ANSWERS_EXTRACTION_PROMPT.version)
+            run.keep_answers(recovered, reply_model)
+        logger.warning(
+            "[Retranscription] Second reading recovered %s of %s question(s); "
+            "%s kept as the re-check's quote.",
+            len(recovered),
+            len(targets),
+            quoted,
+        )
+        return merged
+
+    def _second_reading(
+        self,
+        user,
+        content,
+        assignment,
+        targets,
+        *,
+        assignment_model,
+        processing_task_id,
+        run,
+        config,
+    ):
+        """The one call of _retranscribe_found_answers: (reply model,
+        {question key: answer with writing}), or None when no call could be
+        made or it failed."""
+        images = [
+            item
+            for item in (content or [])
+            if isinstance(item, dict) and item.get("type") == "image_url"
+        ]
+        if not images:
+            return None
+
+        numbers = [entry.get("question_number") for entry in targets]
+        note = RETRANSCRIPTION_INSTRUCTION.format(
+            numbers=numbers,
+            evidence="\n".join(_retranscription_evidence(entry) for entry in targets),
+        )
+        messages = [
+            {"role": "system", "content": ANSWERS_EXTRACTION_PROMPT},
+            {"role": "user", "content": assignment},
+            {"role": "user", "content": [{"type": "text", "text": note}] + images},
+        ]
+
+        try:
+            ensure_task_not_cancelled(processing_task_id)
+            with run.reading.scope():
+                run.reading.begin_call()
+                response = self.execute_graded_task(
+                    prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
+                    user=user,
+                    feature="Answer Extraction",
+                    task_type="extract_answer",
+                    messages=messages,
+                    assignment=assignment_model,
+                    processing_task_id=processing_task_id,
+                    response_schema=self._answer_extraction_schema(config),
+                )
+            reply_model = (
+                run.reading.reply_model if run.reading.reply_received else None
+            )
+            reply = json.loads(response.choices[0].message.content)
+        except TaskCancelledError:
+            raise
+        except (AIFeatureNotAvailableError, InsufficientCreditsError):
+            logger.info("[Retranscription] Skipped - feature or credits unavailable.")
+            return None
+        except Exception:
+            logger.exception(
+                "[Retranscription] Second reading failed; the re-check's "
+                "quotes are kept where there are any."
+            )
+            return None
+
+        returned = reply.get("answers") if isinstance(reply, dict) else None
+        found = {}
+        for entry in returned if isinstance(returned, list) else []:
+            if (
+                isinstance(entry, dict)
+                and entry.get("answer_status") in (ANSWERED, ILLEGIBLE)
+                and _html_text(entry.get("answer_html"))
+            ):
+                found.setdefault(
+                    _canonical_question_key(entry.get("question_number")), entry
+                )
+        return reply_model, found
+
     @staticmethod
-    def _answer_completeness_mode():
-        mode = getattr(settings, "ANSWER_COMPLETENESS_ENFORCEMENT", ANSWER_MODE_STRICT)
+    def _note_recheck_used(run, found_writing):
+        """The re-check's reply was read and used. Only when the run saw the
+        reply arrive at the provider call (tests that replace the whole
+        billed call have no such mark)."""
+        if run.recheck.reply_received:
+            run.mark_recheck_used(found_writing=found_writing)
+
+    @staticmethod
+    def _answer_completeness_mode(config=None):
+        if config is None:
+            config = ReadingConfig.read()
+        mode = config.get("ANSWER_COMPLETENESS_ENFORCEMENT")
         if mode not in (ANSWER_MODE_STRICT, ANSWER_MODE_LOG, ANSWER_MODE_OFF):
             logger.warning(
                 "[AnswerExtraction] Unrecognised "
@@ -2315,8 +2726,17 @@ Do not include any explanatory text before or after the JSON
         assignment_model=None,
         max_retries: int = 3,
         processing_task_id=None,
+        reading_run=None,
     ):
         last_error = None
+
+        # The settings that shape this reading are taken ONCE, here, and
+        # every site below uses this reading (ai_processor/reading_config.py).
+        # The run gathers what the label needs (ai_processor/reading_run.py);
+        # a caller that does not label hands none and a throwaway is used.
+        run = reading_run if reading_run is not None else ReadingRun()
+        config = ReadingConfig.read()
+        run.config = config
 
         # The assignment's own questions are the only thing that can say
         # what a COMPLETE extraction looks like. Without them (no
@@ -2324,7 +2744,7 @@ Do not include any explanatory text before or after the JSON
         # produced questions) there is nothing to check against, so the
         # gate stays off rather than guessing.
         questions = getattr(assignment_model, "questions", None) or []
-        mode = self._answer_completeness_mode() if questions else ANSWER_MODE_OFF
+        mode = self._answer_completeness_mode(config) if questions else ANSWER_MODE_OFF
 
         # Nothing to read means nothing to extract. Without this the model was
         # still called - and billed - for an empty submission, and the empty
@@ -2338,6 +2758,8 @@ Do not include any explanatory text before or after the JSON
 
         for attempt in range(max_retries):
             ensure_task_not_cancelled(processing_task_id)
+            # A try that is thrown away leaves nothing behind.
+            run.begin_attempt()
             try:
                 result = self.extract_answer_image(
                     user,
@@ -2345,6 +2767,8 @@ Do not include any explanatory text before or after the JSON
                     assignment,
                     assignment_model=assignment_model,
                     processing_task_id=processing_task_id,
+                    reading_run=run,
+                    config=config,
                 )
 
                 # THE GATE RUNS INSIDE THE LOOP, ON PURPOSE. An incomplete
@@ -2400,6 +2824,18 @@ Do not include any explanatory text before or after the JSON
                         result.get("answers"),
                         assignment_model=assignment_model,
                         processing_task_id=processing_task_id,
+                        reading_run=run,
+                        config=config,
+                    )
+                    result["answers"] = self._retranscribe_found_answers(
+                        user,
+                        content,
+                        assignment,
+                        result.get("answers"),
+                        assignment_model=assignment_model,
+                        processing_task_id=processing_task_id,
+                        reading_run=run,
+                        config=config,
                     )
                 return result
             except (AIFeatureNotAvailableError, InsufficientCreditsError):
@@ -3320,7 +3756,18 @@ Do not include any explanatory text before or after the JSON
             match = match_objective_answer(question, answer_html)
             if match in CLAIMED_OUTCOMES:
                 deterministic_evaluations.append(
-                    build_objective_evaluation(question, answer_html, match)
+                    build_objective_evaluation(
+                        question,
+                        answer_html,
+                        match,
+                        # No entry at all is an answer not found, as
+                        # _stamp_answer_provenance reads it.
+                        answer_status=(
+                            answer.get("answer_status")
+                            if answer
+                            else NOT_FOUND_IN_DOCUMENT
+                        ),
+                    )
                 )
                 claimed_keys.add(key)
             else:
@@ -4797,6 +5244,7 @@ Now, respond to the following teacher's instruction using the rules above
         else:
             raise ValueError("content cannot be empty")
 
+    @call_record.recorded_call
     def execute_graded_task(
         self,
         user,
@@ -4944,10 +5392,12 @@ Now, respond to the following teacher's instruction using the rules above
             # below instead of a clear, actionable error here.
             raise ValueError(f"Unsupported user_type for AI access: {user.user_type!r}")
 
+        call_record.note_billed(target_teacher)
         ensure_task_not_cancelled(processing_task_id)
         estimated_cost = self.estimate_messages_cost(
             user_prompt, system_prompt, messages
         )
+        call_record.note_estimate(estimated_cost)
 
         balance = wallet.total_remaining_credits()
 
@@ -4962,6 +5412,7 @@ Now, respond to the following teacher's instruction using the rules above
 
         ensure_task_not_cancelled(processing_task_id)
         task_id = str(uuid.uuid4())
+        call_record.note_task_id(task_id)
         response = self.__ai_model(
             system_prompt,
             user_prompt,
@@ -4976,6 +5427,7 @@ Now, respond to the following teacher's instruction using the rules above
         )
         note_if_reply_cut_off(response, task_type)
 
+        call_record.note_response(response)
         resolved_course = assignment.course if assignment else course
 
         with transaction.atomic():

@@ -136,7 +136,10 @@ class VerifyLockedTests(LockBase):
         self.assertTrue(response["Retry-After"])
         self.assertEqual(response.json()["message"], fields["detail"])
 
-        # The per-IP limit (5/hour) is still the plain throttle, with no code.
+        # The per-IP limit (5/hour) is a plain DRF throttle, not the named
+        # lock - told apart by WHICH reason_code it carries (RATE_LIMITED,
+        # the generic catch-all added by custom_exception_handler for any
+        # Throttled without its own `.envelope`), not by having none at all.
         for _ in range(6):
             limited = self.client.post(
                 reverse("auth-verify"),
@@ -146,7 +149,7 @@ class VerifyLockedTests(LockBase):
             )
         self.assertEqual(limited.status_code, 429)
         self.assertNotIn("code", self.body(limited))
-        self.assertNotIn("reason_code", self.body(limited))
+        self.assertEqual(self.body(limited)["reason_code"], "RATE_LIMITED")
 
     def test_a_locked_unknown_address_answers_exactly_like_a_known_one(self):
         make_user(

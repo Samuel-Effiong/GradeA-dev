@@ -1,0 +1,458 @@
+{
+ "title": "Grade A+ health (Epic A)",
+ "widgets": [
+  {
+   "title": "Grading failure rate",
+   "description": "Share of gradings that failed (0.05 = 5%). Alert threshold: above 5% over 15 min.",
+   "displayType": "big_number",
+   "widgetType": "tracemetrics",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "avg(value,grading_failure_rate,distribution,none)"
+     ],
+     "aggregates": [
+      "avg(value,grading_failure_rate,distribution,none)"
+     ],
+     "columns": [],
+     "conditions": "",
+     "orderby": ""
+    }
+   ],
+   "layout": {
+    "x": 0,
+    "y": 0,
+    "w": 2,
+    "h": 1,
+    "minH": 1
+   }
+  },
+  {
+   "title": "Credit ledger anomalies",
+   "description": "Credits recorded wrongly. Should always be 0; any value is P0.",
+   "displayType": "big_number",
+   "widgetType": "tracemetrics",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "sum(value,credit_ledger_anomaly,counter,none)"
+     ],
+     "aggregates": [
+      "sum(value,credit_ledger_anomaly,counter,none)"
+     ],
+     "columns": [],
+     "conditions": "",
+     "orderby": ""
+    }
+   ],
+   "layout": {
+    "x": 2,
+    "y": 0,
+    "w": 2,
+    "h": 1,
+    "minH": 1
+   }
+  },
+  {
+   "title": "Audit write failures",
+   "description": "The audit trail failing to save. Should always be 0; any value is P0.",
+   "displayType": "big_number",
+   "widgetType": "tracemetrics",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "sum(value,audit_emit_failures_total,counter,none)"
+     ],
+     "aggregates": [
+      "sum(value,audit_emit_failures_total,counter,none)"
+     ],
+     "columns": [],
+     "conditions": "",
+     "orderby": ""
+    }
+   ],
+   "layout": {
+    "x": 4,
+    "y": 0,
+    "w": 2,
+    "h": 1,
+    "minH": 1
+   }
+  },
+  {
+   "title": "Grading failure rate over time",
+   "description": "0 = every grading succeeded, 1 = every grading failed.",
+   "displayType": "line",
+   "widgetType": "tracemetrics",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "avg(value,grading_failure_rate,distribution,none)"
+     ],
+     "aggregates": [
+      "avg(value,grading_failure_rate,distribution,none)"
+     ],
+     "columns": [],
+     "conditions": "",
+     "orderby": ""
+    }
+   ],
+   "layout": {
+    "x": 0,
+    "y": 1,
+    "w": 3,
+    "h": 2,
+    "minH": 2
+   }
+  },
+  {
+   "title": "Gradings",
+   "description": "Number of gradings finished or failed (one sample each).",
+   "displayType": "line",
+   "widgetType": "tracemetrics",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "count(value,grading_failure_rate,distribution,none)"
+     ],
+     "aggregates": [
+      "count(value,grading_failure_rate,distribution,none)"
+     ],
+     "columns": [],
+     "conditions": "",
+     "orderby": ""
+    }
+   ],
+   "layout": {
+    "x": 3,
+    "y": 1,
+    "w": 3,
+    "h": 2,
+    "minH": 2
+   }
+  },
+  {
+   "title": "Model fallback rate",
+   "description": "Share of gradings answered by a backup model because the main one was unavailable. Alert: above 10% over 15 min.",
+   "displayType": "line",
+   "widgetType": "tracemetrics",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "avg(value,model_fallback_rate,distribution,none)"
+     ],
+     "aggregates": [
+      "avg(value,model_fallback_rate,distribution,none)"
+     ],
+     "columns": [],
+     "conditions": "",
+     "orderby": ""
+    }
+   ],
+   "layout": {
+    "x": 0,
+    "y": 3,
+    "w": 3,
+    "h": 2,
+    "minH": 2
+   }
+  },
+  {
+   "title": "Unknown model rate",
+   "description": "Share of gradings where the answering model could not be told.",
+   "displayType": "line",
+   "widgetType": "tracemetrics",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "avg(value,model_unknown_rate,distribution,none)"
+     ],
+     "aggregates": [
+      "avg(value,model_unknown_rate,distribution,none)"
+     ],
+     "columns": [],
+     "conditions": "",
+     "orderby": ""
+    }
+   ],
+   "layout": {
+    "x": 3,
+    "y": 3,
+    "w": 3,
+    "h": 2,
+    "minH": 2
+   }
+  },
+  {
+   "title": "Credit ledger anomalies by kind",
+   "description": "negative_balance, refund_mismatch, refund_no_bucket, expire_failed, ...",
+   "displayType": "bar",
+   "widgetType": "tracemetrics",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "kind",
+      "sum(value,credit_ledger_anomaly,counter,none)"
+     ],
+     "aggregates": [
+      "sum(value,credit_ledger_anomaly,counter,none)"
+     ],
+     "columns": [
+      "kind"
+     ],
+     "conditions": "",
+     "orderby": ""
+    }
+   ],
+   "layout": {
+    "x": 0,
+    "y": 5,
+    "w": 3,
+    "h": 2,
+    "minH": 2
+   },
+   "limit": 10
+  },
+  {
+   "title": "Audit write failures by action",
+   "description": "",
+   "displayType": "line",
+   "widgetType": "tracemetrics",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "action",
+      "sum(value,audit_emit_failures_total,counter,none)"
+     ],
+     "aggregates": [
+      "sum(value,audit_emit_failures_total,counter,none)"
+     ],
+     "columns": [
+      "action"
+     ],
+     "conditions": "",
+     "orderby": ""
+    }
+   ],
+   "layout": {
+    "x": 3,
+    "y": 5,
+    "w": 3,
+    "h": 2,
+    "minH": 2
+   },
+   "limit": 10
+  },
+  {
+   "title": "Error codes over time",
+   "description": "Each reason code a user hit. A sudden rise in one code is the earliest sign of a regression.",
+   "displayType": "line",
+   "widgetType": "tracemetrics",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "code",
+      "sum(value,reason_code_rate,counter,none)"
+     ],
+     "aggregates": [
+      "sum(value,reason_code_rate,counter,none)"
+     ],
+     "columns": [
+      "code"
+     ],
+     "conditions": "",
+     "orderby": ""
+    }
+   ],
+   "layout": {
+    "x": 0,
+    "y": 7,
+    "w": 4,
+    "h": 2,
+    "minH": 2
+   },
+   "limit": 10
+  },
+  {
+   "title": "Top error codes",
+   "description": "",
+   "displayType": "categorical_bar",
+   "widgetType": "tracemetrics",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "code",
+      "sum(value,reason_code_rate,counter,none)"
+     ],
+     "aggregates": [
+      "sum(value,reason_code_rate,counter,none)"
+     ],
+     "columns": [
+      "code"
+     ],
+     "conditions": "",
+     "orderby": "-sum(value,reason_code_rate,counter,none)"
+    }
+   ],
+   "layout": {
+    "x": 4,
+    "y": 7,
+    "w": 2,
+    "h": 2,
+    "minH": 2
+   },
+   "limit": 10
+  },
+  {
+   "title": "Server errors (SERVER_ERROR)",
+   "description": "Crashes on open routes such as sign-in and register. Alert: 10 or more in 5 min.",
+   "displayType": "line",
+   "widgetType": "tracemetrics",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "sum(value,reason_code_rate,counter,none)"
+     ],
+     "aggregates": [
+      "sum(value,reason_code_rate,counter,none)"
+     ],
+     "columns": [],
+     "conditions": "code:SERVER_ERROR",
+     "orderby": ""
+    }
+   ],
+   "layout": {
+    "x": 0,
+    "y": 9,
+    "w": 3,
+    "h": 2,
+    "minH": 2
+   }
+  },
+  {
+   "title": "Sign-in attempts capped",
+   "description": "Failed sign-ins held back by the audit cap. cap:global means many accounts at once.",
+   "displayType": "line",
+   "widgetType": "tracemetrics",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "cap",
+      "sum(value,audit_failed_auth_suppressed_total,counter,none)"
+     ],
+     "aggregates": [
+      "sum(value,audit_failed_auth_suppressed_total,counter,none)"
+     ],
+     "columns": [
+      "cap"
+     ],
+     "conditions": "",
+     "orderby": ""
+    }
+   ],
+   "layout": {
+    "x": 3,
+    "y": 9,
+    "w": 3,
+    "h": 2,
+    "minH": 2
+   },
+   "limit": 5
+  },
+  {
+   "title": "Application errors",
+   "description": "All error events Sentry received.",
+   "displayType": "line",
+   "widgetType": "error-events",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "count()"
+     ],
+     "aggregates": [
+      "count()"
+     ],
+     "columns": [],
+     "conditions": "",
+     "orderby": ""
+    }
+   ],
+   "layout": {
+    "x": 0,
+    "y": 11,
+    "w": 3,
+    "h": 2,
+    "minH": 2
+   }
+  },
+  {
+   "title": "Top unresolved issues",
+   "description": "",
+   "displayType": "table",
+   "widgetType": "issue",
+   "interval": "1h",
+   "queries": [
+    {
+     "name": "",
+     "fields": [
+      "issue",
+      "assignee",
+      "events",
+      "title"
+     ],
+     "aggregates": [],
+     "columns": [
+      "issue",
+      "assignee",
+      "events",
+      "title"
+     ],
+     "conditions": "is:unresolved",
+     "orderby": "freq"
+    }
+   ],
+   "layout": {
+    "x": 3,
+    "y": 11,
+    "w": 3,
+    "h": 2,
+    "minH": 2
+   },
+   "limit": 10
+  }
+ ],
+ "projects": [
+  4511931569274880
+ ],
+ "period": "24h",
+ "environment": [],
+ "filters": {}
+}

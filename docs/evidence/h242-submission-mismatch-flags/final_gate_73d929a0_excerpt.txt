@@ -1,0 +1,21 @@
+Excerpt of the final gate log for 73d929a0 (full log 8188686 bytes, sha256 6d9d05e4098e5efc7dedb5da3649e3eeb92fa4832617a8a9254ee073b475838b).
+Lines matching the result summary:
+Found 8014 test(s).
+Ran 8014 tests in 572.155s
+OK (skipped=30)
+--- last 15 lines ---
+  attributed 0 ledger row(s) to their Stripe payment
+
+[scale] 30-file batch (24 good, 6 bad) took 3.07s
+
+[scale] 6 concurrent 30-file batches took 2.58s; provider calls=24
+
+----------------------------------------------------------------------
+Ran 8014 tests in 572.155s
+
+OK (skipped=30)
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...

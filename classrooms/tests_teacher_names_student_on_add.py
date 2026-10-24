@@ -18,6 +18,9 @@ Rules held here (Senior Manager, 2026-10-07):
   * an address that already has a student account: the typed name FILLS an
     empty stored name and never replaces a non-empty one; the answer tells
     the teacher which name stands;
+  * H-247 (owner, 2026-10-16): one email is one student with one name, so a
+    typed name that is NOT the stored one refuses the add (case and spaces
+    aside), and nothing is written or sent;
   * the one-exact-name-per-course rule applies to the typed or filled
     name, and its refusal goes to the teacher only;
   * a refusal for a staff, switched-off or already-enrolled address does
@@ -41,7 +44,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
-from classrooms.services import NOT_A_STUDENT_MESSAGE
+from classrooms.services import NAME_MISMATCH_MESSAGE, NOT_A_STUDENT_MESSAGE
 from users.models import UserTypes
 
 User = get_user_model()
@@ -245,22 +248,66 @@ class TheNameClashRuleTest(AddByEmailBase):
 
 
 class AnAddressThatAlreadyHasAnAccountTest(AddByEmailBase):
-    def test_a_stored_name_stands_and_the_teacher_is_shown_it(self):
+    def assert_name_mismatch(self, response, email, stored):
+        """H-247: refused with the neutral sentence, which never prints the
+        stored name; nothing written, enrolled or sent."""
+        self.assertEqual(
+            response.status_code, status.HTTP_400_BAD_REQUEST, response.content
+        )
+        self.assertEqual(response.data["detail"], NAME_MISMATCH_MESSAGE)
+        for part in stored:
+            if part:
+                self.assertNotIn(part, json.dumps(response.json()))
+        self.assertEqual(self.name_of(email), stored)
+        self.assertFalse(self.enrolled(email))
+        self.assertEqual(self.mail.call_args_list, [])
+
+    def test_a_different_typed_name_is_refused(self):
         known = self.existing(
             first_name="Augusta", middle_name="Ada", last_name="Byron"
         )
 
         response = self.add(known.email, **ADA)
 
+        self.assert_name_mismatch(response, known.email, ("Augusta", "Ada", "Byron"))
+
+    def test_the_stored_name_typed_again_is_enrolled(self):
+        known = self.existing(
+            first_name="Augusta", middle_name="Ada", last_name="Byron"
+        )
+
+        response = self.add(
+            known.email, first_name="Augusta", middle_name="Ada", last_name="Byron"
+        )
+
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
         self.assertIs(response.data["is_new_student"], False)
-        self.assertEqual(self.name_of(known.email), ("Augusta", "Ada", "Byron"))
+        self.assertIs(response.data["typed_name_used"], True)
+        self.assertTrue(self.enrolled(known.email, EnrollmentStatusType.ENROLLED))
+
+    def test_case_and_spaces_are_not_a_different_name(self):
+        known = self.existing(first_name="Augusta", last_name="Byron")
+
+        response = self.add(known.email, first_name="  augusta ", last_name="BYRON")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        # The stored spelling stands, and the teacher is shown it.
+        self.assertEqual(self.name_of(known.email), ("Augusta", "", "Byron"))
         self.assertEqual(
             response.data["student_name"],
-            {"first_name": "Augusta", "middle_name": "Ada", "last_name": "Byron"},
+            {"first_name": "Augusta", "middle_name": "", "last_name": "Byron"},
         )
         self.assertIs(response.data["typed_name_used"], False)
-        self.assertTrue(self.enrolled(known.email, EnrollmentStatusType.ENROLLED))
+        self.assertTrue(self.enrolled(known.email))
+
+    def test_a_missing_middle_name_is_a_different_name(self):
+        known = self.existing(
+            first_name="Augusta", middle_name="Ada", last_name="Byron"
+        )
+
+        response = self.add(known.email, first_name="Augusta", last_name="Byron")
+
+        self.assert_name_mismatch(response, known.email, ("Augusta", "Ada", "Byron"))
 
     def test_an_empty_name_is_filled_with_the_typed_one(self):
         nameless = self.existing()
@@ -279,15 +326,14 @@ class AnAddressThatAlreadyHasAnAccountTest(AddByEmailBase):
         self.assertIs(response.data["typed_name_used"], True)
         self.assertTrue(self.enrolled(nameless.email, EnrollmentStatusType.ENROLLED))
 
-    def test_half_a_name_is_a_name_and_stands(self):
-        """Only an account with NO name at all is filled."""
+    def test_half_a_name_is_a_name_and_is_not_replaced(self):
+        """Only an account with NO name at all is filled; half a name is a
+        name, so a different typed one is refused (H-247)."""
         half = self.existing(first_name="Augusta")
 
         response = self.add(half.email, **ADA)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
-        self.assertEqual(self.name_of(half.email), ("Augusta", "", ""))
-        self.assertIs(response.data["typed_name_used"], False)
+        self.assert_name_mismatch(response, half.email, ("Augusta", "", ""))
 
     def test_a_nameless_student_who_never_signed_in_is_filled_and_invited_by_name(self):
         never = self.existing(signed_in=False)
@@ -301,14 +347,23 @@ class AnAddressThatAlreadyHasAnAccountTest(AddByEmailBase):
         self.assertEqual(invitation["merge_data"]["name"], "Ada Lovelace")
         self.assertTrue(self.enrolled(never.email, EnrollmentStatusType.PENDING))
 
-    def test_a_named_student_who_never_signed_in_keeps_the_stored_name(self):
+    def test_a_named_student_who_never_signed_in_is_refused_a_different_name(self):
+        """No fresh password and no invitation go out on a refused add."""
         never = self.existing(signed_in=False, first_name="Augusta", last_name="Byron")
+        password = never.password
 
         response = self.add(never.email, **ADA)
 
+        self.assert_name_mismatch(response, never.email, ("Augusta", "", "Byron"))
+        never.refresh_from_db()
+        self.assertEqual(never.password, password)
+
+    def test_a_named_student_who_never_signed_in_is_invited_under_their_name(self):
+        never = self.existing(signed_in=False, first_name="Augusta", last_name="Byron")
+
+        response = self.add(never.email, first_name="Augusta", last_name="Byron")
+
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
-        self.assertEqual(self.name_of(never.email), ("Augusta", "", "Byron"))
-        self.assertIs(response.data["typed_name_used"], False)
         (invitation,) = self.invitations()
         self.assertEqual(invitation["merge_data"]["name"], "Augusta Byron")
 
@@ -393,10 +448,25 @@ class TheClassListImportFillsAnEmptyNameTooTest(AddByEmailBase):
         (invitation,) = self.invitations()
         self.assertEqual(invitation["merge_data"]["name"], "Ada Lovelace")
 
-    def test_a_stored_name_stands_and_the_row_shows_it(self):
+    def test_a_different_name_fails_the_row_with_its_code(self):
+        """H-247: ROW_NAME_MISMATCH, neutral; the stored name stands and
+        is never shown."""
         known = self.existing(first_name="Augusta", last_name="Byron")
 
         (row,) = self.import_rows(f"Ada,Lovelace,{known.email}")
+
+        self.assertEqual(self.name_of(known.email), ("Augusta", "", "Byron"))
+        self.assertEqual(row["status"], "failed")
+        self.assertEqual(row["reason_code"], "ROW_NAME_MISMATCH")
+        self.assertNotIn("Augusta", json.dumps(row))
+        self.assertNotIn("Byron", json.dumps(row))
+        self.assertFalse(self.enrolled(known.email))
+        self.assertEqual(self.mail.call_args_list, [])
+
+    def test_the_stored_name_in_another_case_is_enrolled(self):
+        known = self.existing(first_name="Augusta", last_name="Byron")
+
+        (row,) = self.import_rows(f"augusta,BYRON,{known.email}")
 
         self.assertEqual(self.name_of(known.email), ("Augusta", "", "Byron"))
         self.assertEqual(row["status"], "enrolled")

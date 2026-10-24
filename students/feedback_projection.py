@@ -21,6 +21,8 @@ No Django imports, so any app can use it without an import cycle.
 
 import ast
 
+from ai_processor.extraction_flags import mismatch_in
+
 #: The fields of one question's evaluation that a student is shown.
 #: Everything else - flag_for_review, graded_by, snapped_from,
 #: evaluation_rationale (a note to the teacher on the level chosen),
@@ -253,3 +255,31 @@ def student_safe_formatted_grade(stored):
         )
 
     return str(safe)
+
+
+def upload_flags(submission) -> list:
+    """H-242: the upload's flags, as stored with its answers
+    (ai_processor/extraction_flags.py). About the reading of the upload,
+    never about a grade, so a student is shown them released or not.
+    H-253: no longer sent as a list; each answer carries its own and the
+    paper's is upload_mismatch."""
+    flags = getattr(submission, "extraction_flags", None)
+    if not isinstance(flags, list):
+        return []
+    return [flag for flag in flags if isinstance(flag, dict)]
+
+
+def flagged_for_review(submission) -> bool:
+    """H-242: the "Needs Review" a teacher and the student both see: the
+    reader flagged the upload and no teacher has reviewed it since. Not
+    `needs_review` itself, which a student is never sent (H-127): that
+    also covers the two AI graders disagreeing."""
+    return bool(upload_flags(submission)) and bool(
+        getattr(submission, "needs_review", False)
+    )
+
+
+def upload_mismatch(submission):
+    """H-253: the flag saying the upload is not for this assignment
+    ({kind, message, detail}), or None."""
+    return mismatch_in(upload_flags(submission))

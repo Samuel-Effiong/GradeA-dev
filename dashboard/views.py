@@ -39,7 +39,7 @@ from rest_framework.response import Response
 
 from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD, ai_processor
-from assignments.models import Assignment, AssignmentStatus
+from assignments.models import Assignment, AssignmentStatus, expected_q, published_q
 from assignments.services import get_student_assignment_status
 from AutoGrader.cache_generation import (
     SCOPE_ANY_SCHOOL,
@@ -51,9 +51,11 @@ from AutoGrader.cache_generation import (
 )
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
+from AutoGrader.query_params import boolean_query_param
 from billing.models import CONVERSION_FACTOR, CreditBucketType, CreditUsageLog
 from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal, refusal_response
 from billing.services import FEATURE_TO_ANALYTICS_FIELD
+from classrooms.final_grade import final_grade_from
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -66,6 +68,11 @@ from classrooms.models import (
 )
 from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
 from dashboard.models import SchoolAtRiskSnapshot
+from dashboard.question_difficulty import (
+    LIST_LIMIT,
+    minimum_for_class,
+    question_difficulty,
+)
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from dashboard.serializers import (
     AssignmentActivityOverTimeChartSerializer,
@@ -77,6 +84,7 @@ from dashboard.serializers import (
     CustomAIPrompt,
     CustomAIReply,
     DashboardChatSessionSerializer,
+    PaginatedTeacherAllStudentsSerializer,
     PaginatedTeacherStudentAnalyticsSerializer,
     PlatformAdoptionSerializer,
     PlatformAIPerformanceSerializer,
@@ -90,6 +98,7 @@ from dashboard.serializers import (
     StudentAssignmentStatusSummarySerializer,
     StudentDashboardOverviewSerializer,
     SuperAdminStudentPerformanceSerializer,
+    TeacherAllStudentsRowSerializer,
     TeacherAssignmentAnalyticsSerializer,
     TeacherCourseAnalyticsSerializer,
     TeacherDashboardOverviewSerializer,
@@ -107,6 +116,7 @@ from dashboard.services import (
     dashboard_context_json,
 )
 from dashboard.throttling import CustomAIPromptThrottle
+from students.confidence import average_confidence_from
 from students.feedback_projection import student_safe_feedback
 from students.models import StudentSubmission
 from students.services import get_grade_details, get_letter_grade_from_gpa
@@ -1257,6 +1267,11 @@ def _percentage_param(request, name, default):
     return value
 
 
+def _prefixed(prefix, lookup):
+    """`lookup`'s keys under `prefix`: {"id": 1} -> {"course__id": 1}."""
+    return {f"{prefix}{key}": value for key, value in lookup.items()}
+
+
 def _expected_assignments_q():
     """Assignments a student can fairly be expected to have submitted by now.
 
@@ -1264,10 +1279,13 @@ def _expected_assignments_q():
     uses, and the one StudentRiskEvaluator's own wording assumes ("no
     submitted work for assignments due so far"). Drafts were never shown to
     students, and published work that is not yet due is not missing.
+
+    students.serializers.StudentListSerializer._is_expected_by_now
+    reimplements this same condition in plain Python (it filters an
+    already-prefetched assignment cache instead of issuing a query) - keep
+    the two in sync.
     """
-    return Q(status=AssignmentStatus.PUBLISHED) & (
-        Q(due_date__isnull=True) | Q(due_date__lte=timezone.now())
-    )
+    return expected_q()
 
 
 def _count_by(queryset, key):
@@ -1409,7 +1427,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
 
         cache_key = versioned_key(
             f"schooladmins:user_id__{user.id}:view__summary"
-            f":session__{session.id if session else 'all'}",
+            f":session__{session.id if session else 'all'}:risk1",
             [(SCOPE_USER, user.id), (SCOPE_SCHOOL, user.school_id)],
         )
         data = cache.get(cache_key)
@@ -3025,7 +3043,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         teacher = request.user
         cache_key = versioned_key(
             f"teacheradmins:user_id__{teacher.id}"
-            f":instance__id__{session_id}:view__overview",
+            f":instance__id__{session_id}:view__overview:risk1",
             [(SCOPE_USER, teacher.id)],
         )
         data = cache.get(cache_key)
@@ -3184,93 +3202,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             )
 
             # At-risk students across all courses in the session
-            course_submissions_qs = (
-                StudentSubmission.objects.filter(assignment__course__session=session)
-                .select_related("assignment", "assignment__course")
-                .order_by("submission_date", "id")
-            )
-
-            enrollments = (
-                StudentCourse.objects.filter(course__session=session)
-                .active()
-                .select_related("student", "course")
-                .annotate(
-                    avg_grade_val=Avg(
-                        "student__submissions__score_percentage",
-                        filter=Q(
-                            student__submissions__assignment__course=F("course_id")
-                        ),
-                    ),
-                    submitted_count_val=Count(
-                        "student__submissions",
-                        filter=Q(
-                            student__submissions__assignment__course=F("course_id")
-                        ),
-                    ),
-                )
-                .prefetch_related(
-                    Prefetch(
-                        "student__submissions",
-                        queryset=course_submissions_qs,
-                        to_attr="course_submissions",
-                    )
-                )
-            )
-
-            at_risk_students = []
-            # Map course to the assignments a student is expected to have
-            # submitted by now. Previously every assignment in the course,
-            # drafts and not-yet-due work included, which flagged strong
-            # students at-risk for "missing" work they could not have done -
-            # measured: a 95% student with one real assignment and two drafts
-            # was reported at_risk=True.
-            course_totals = {
-                c["course_id"]: c["total_assigned"]
-                for c in Assignment.objects.filter(course__session=session)
-                .filter(_expected_assignments_q())
-                .values("course_id")
-                .annotate(total_assigned=Count("id"))
-            }
-
-            for enrollment in enrollments:
-                student = enrollment.student
-                course = enrollment.course
-
-                student_course_subs = [
-                    s
-                    for s in student.course_submissions
-                    if s.assignment.course_id == course.id
-                ]
-
-                submitted_count = enrollment.submitted_count_val
-                course_total_assigned = course_totals.get(course.id, 0)
-
-                graded = [
-                    s for s in student_course_subs if s.score_percentage is not None
-                ]
-                dated_scores = [
-                    (s.submission_date, float(s.score_percentage)) for s in graded
-                ]
-
-                risk_result = self.risk_evaluator.evaluate(
-                    RiskInputs(
-                        expected_assignment_count=course_total_assigned,
-                        submitted_count=submitted_count,
-                        graded_scores=dated_scores,
-                    )
-                )
-
-                if risk_result.at_risk:
-                    at_risk_students.append(
-                        {
-                            "student_id": student.id,
-                            "student_name": student.get_full_name(),
-                            "course_id": course.id,
-                            "course_name": course.name,
-                            "average_grade": risk_result.average_grade,
-                            "grade_trend": risk_result.grade_trend,
-                        }
-                    )
+            at_risk_students = self._at_risk_students(session=session)
 
             data = {
                 "total_assignments_assigned": total_assigned,
@@ -3307,6 +3239,109 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             cache.set(cache_key, data, 60 * 15)
         return Response(data)
 
+    def _at_risk_students(self, **course_lookup):
+        """The at-risk students of the courses `course_lookup` names
+        (`session=...` for the overview, `id=...` for one course, H-250):
+        one rule, so the two pages never disagree. Students whose enrollment
+        counts only; missing work is published work that is due (H-237).
+        """
+        course_submissions_qs = (
+            StudentSubmission.objects.filter(
+                **_prefixed("assignment__course__", course_lookup)
+            )
+            .select_related("assignment", "assignment__course")
+            .order_by("submission_date", "id")
+        )
+
+        enrollments = (
+            StudentCourse.objects.filter(**_prefixed("course__", course_lookup))
+            .active()
+            .select_related("student", "course")
+            .annotate(
+                avg_grade_val=Avg(
+                    "student__submissions__score_percentage",
+                    filter=Q(student__submissions__assignment__course=F("course_id")),
+                ),
+                # H-237: the risk rate counts only submissions to
+                # published work that is due (expected_q).
+                risk_submitted_val=Count(
+                    "student__submissions",
+                    filter=Q(student__submissions__assignment__course=F("course_id"))
+                    & expected_q("student__submissions__assignment__"),
+                ),
+            )
+            .prefetch_related(
+                Prefetch(
+                    "student__submissions",
+                    queryset=course_submissions_qs,
+                    to_attr="course_submissions",
+                )
+            )
+        )
+
+        at_risk_students = []
+        # Map course to the assignments a student is expected to have
+        # submitted by now. Previously every assignment in the course,
+        # drafts and not-yet-due work included, which flagged strong
+        # students at-risk for "missing" work they could not have done -
+        # measured: a 95% student with one real assignment and two drafts
+        # was reported at_risk=True.
+        course_totals = {
+            c["course_id"]: c["total_assigned"]
+            for c in Assignment.objects.filter(**_prefixed("course__", course_lookup))
+            .filter(_expected_assignments_q())
+            .values("course_id")
+            .annotate(total_assigned=Count("id"))
+        }
+
+        for enrollment in enrollments:
+            student = enrollment.student
+            course = enrollment.course
+
+            student_course_subs = [
+                s
+                for s in student.course_submissions
+                if s.assignment.course_id == course.id
+            ]
+
+            course_total_assigned = course_totals.get(course.id, 0)
+
+            graded = [s for s in student_course_subs if s.score_percentage is not None]
+            dated_scores = [
+                (
+                    s.submission_date,
+                    float(s.score_percentage),
+                    s.score,
+                    (
+                        s.max_points
+                        if s.max_points is not None
+                        else s.assignment.total_points
+                    ),
+                )
+                for s in graded
+            ]
+
+            risk_result = self.risk_evaluator.evaluate(
+                RiskInputs(
+                    expected_assignment_count=course_total_assigned,
+                    submitted_count=enrollment.risk_submitted_val,
+                    graded_scores=dated_scores,
+                )
+            )
+
+            if risk_result.at_risk:
+                at_risk_students.append(
+                    {
+                        "student_id": student.id,
+                        "student_name": student.get_full_name(),
+                        "course_id": course.id,
+                        "course_name": course.name,
+                        "average_grade": risk_result.average_grade,
+                        "grade_trend": risk_result.grade_trend,
+                    }
+                )
+        return at_risk_students
+
     @extend_schema(
         tags=["Teacher Admin"],
         summary="Teacher Course Performance Analytics",
@@ -3314,7 +3349,19 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         Retrieve detailed performance, workflow, and AI trust analytics for a specific course.
 
         Analytics include:
-        - Workflow: Counts of assigned, submitted, and graded assignments.
+        - Workflow (H-250), all over students whose enrollment counts
+          (withdrawn students never contribute):
+          - `total_assignments_assigned`: published assignments.
+          - `total_draft_assignments`: saved but not published (draft or
+            unpublished).
+          - `total_enrolled_students`: students enrolled, pending or
+            completed; not withdrawn.
+          - `total_at_risk_students`: of those, the ones at risk, by the
+            same rule as the overview's `at_risk_students`.
+          - `total_assignments_submitted`: every submission to a published
+            assignment (one per student per assignment).
+          - `total_assignments_graded`: of those, every one with a grade,
+            released to the student or not.
         - Performance: Average grades grouped by assignment type,
           the assignment with the lowest student mastery, and overall performance trend.
         - AI Trust: Average confidence scores for AI extraction and grading, and the rate of
@@ -3338,7 +3385,9 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
     def courses(self, request, course_id, *args, **kwargs):
         cache_key = versioned_key(
             f"teacheradmins:user_id__{request.user.id}"
-            f":instance_id__{course_id}:view__courses",
+            # :wf1 (H-250): the workflow counts changed meaning; nothing
+            # cached under the old ones is served.
+            f":instance_id__{course_id}:view__courses:wf1",
             # `usr` alone. A `crs` scope was tried here and removed: every
             # SCOPE_COURSE bump in the project is accompanied by the
             # teacher's SCOPE_USER bump (verified across all three signal
@@ -3353,12 +3402,27 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         if data is None:
             course = get_object_or_404(reachable_courses(request.user), id=course_id)
             assignments = Assignment.objects.filter(course=course)
-            total_assigned = assignments.count()
             submissions = StudentSubmission.objects.filter(assignment__course=course)
-            total_submitted = submissions.values("assignment").distinct().count()
             graded_submissions = submissions.filter(score__isnull=False)
 
-            total_graded = graded_submissions.values("assignment").distinct().count()
+            # H-250, the owner's definitions: published work only, and
+            # only students whose enrollment counts. A student enrolls in a
+            # course once, so the enrollment join cannot double a row.
+            active_enrollments = StudentCourse.objects.filter(course=course).active()
+            counted_submissions = StudentSubmission.objects.filter(
+                assignment__in=assignments.filter(published_q()),
+                student__enrollments__in=active_enrollments,
+            )
+            workflow = {
+                "total_assignments_assigned": assignments.filter(published_q()).count(),
+                "total_draft_assignments": assignments.exclude(published_q()).count(),
+                "total_enrolled_students": active_enrollments.count(),
+                "total_at_risk_students": len(self._at_risk_students(id=course.id)),
+                "total_assignments_submitted": counted_submissions.count(),
+                "total_assignments_graded": counted_submissions.filter(
+                    score__isnull=False, graded_at__isnull=False
+                ).count(),
+            }
 
             # Average grade by Assignment Type
             avg_grade_by_type = graded_submissions.values(
@@ -3401,16 +3465,20 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 extraction_confidence__lt=AI_CONFIDENCE_THRESHOLD
             ).count()
 
-            # Grading Confidence
-            grading_qs = submissions.filter(grading_confidence__isnull=False)
+            # Grading Confidence. `grading_confidence__isnull=False` is a
+            # no-op (the field defaults to 0, never null) - `graded_at` is
+            # the real "was this graded" signal (students/confidence.py).
+            graded_confidence_qs = submissions.filter(graded_at__isnull=False)
             avg_grading_confidence = (
-                grading_qs.aggregate(avg=Avg("grading_confidence"))["avg"] or 0
+                average_confidence_from(submissions, "grading_confidence") or 0
             )
-            low_grading_count = grading_qs.filter(
+            low_grading_count = graded_confidence_qs.filter(
                 grading_confidence__lt=AI_CONFIDENCE_THRESHOLD
             ).count()
 
-            total_confidence_records = assignments.count() + grading_qs.count()
+            total_confidence_records = (
+                assignments.count() + graded_confidence_qs.count()
+            )
 
             low_confidence_rate = (
                 (low_extraction_count + low_grading_count)
@@ -3421,11 +3489,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             )
 
             data = {
-                "workflow": {
-                    "total_assignments_assigned": total_assigned,
-                    "total_assignments_submitted": total_submitted,
-                    "total_assignments_graded": total_graded,
-                },
+                "workflow": workflow,
                 "performance": {
                     "average_assignment_grade_by_type": avg_grade_by_type,
                     "average_assignment_grade_by_topic": avg_grade_by_topic,
@@ -3457,9 +3521,29 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         Retrieve detailed performance metrics and AI trust indicators for a specific assignment.
 
         Analytics include:
-        - Submission overview (total count, due date, type).
-        - Performance metrics (average grade).
-        - AI Trust indicators (extraction and grading confidence scores).
+        - Submission overview (total count, due date, type). Submissions
+          from withdrawn students are excluded.
+        - Performance metrics (average grade, same weighted formula as the
+          course final grade).
+        - `question_extraction_confidence`: how well the AI read the
+          teacher's own question paper (stamped once, per assignment).
+        - AI Trust indicators (`ai_extraction_confidence`/
+          `ai_grading_confidence`): how well the AI read and graded these
+          students' submissions, averaged over graded submissions only.
+        - `hardest_questions`/`easiest_questions` (H-248): the bottom and
+          top 20% of the paper's questions, by the class's average share of
+          each question's marks, over the same graded, non-withdrawn
+          submissions. Each list holds 20% of every question on the paper,
+          rounded up, at most 5 (`question_difficulty.list_size`); a tie at
+          the end of a list is shown whole, even past 5, and the two lists
+          never share a question. A paper of fewer than 3 questions names
+          nothing. Answers the AI could not read, and submissions whose
+          grade was changed by hand, are left out;
+          `question_difficulty.status` says why a list is empty.
+        - `question_breakdown`: every question on the paper, hardest first.
+        - On each question: the students who earned under half its marks
+          (`struggling_students`) and those whose answer the AI could not
+          read (`unread_students`).
         """,
         parameters=[
             OpenApiParameter(
@@ -3467,7 +3551,23 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 type=OpenApiTypes.UUID,
                 location=OpenApiParameter.PATH,
                 description=_("The unique identifier (UUID) of the assignment"),
-            )
+            ),
+            OpenApiParameter(
+                name="question_limit",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=_(
+                    "Optional. Shortens hardest_questions and easiest_questions "
+                    "to at most this many questions each, before ties. It can "
+                    "only shorten: each list is already 20% of the paper's "
+                    "questions, rounded up, at most 5, so a value above that "
+                    "changes nothing. A tie at the end of a list is still "
+                    "shown whole. Must be a whole number of at least 1, or "
+                    "the response is a 400. question_difficulty.list_size "
+                    "reports the length applied."
+                ),
+            ),
         ],
         responses={200: TeacherAssignmentAnalyticsSerializer},
     )
@@ -3477,9 +3577,18 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/assignments/(?P<assignment_id>[-\w]+)",
     )
     def assignments(self, request, assignment_id, *args, **kwargs):
+        try:
+            # Past LIST_LIMIT changes nothing; one cache entry for all of it.
+            question_limit = min(
+                _bounded_int_param(request, "question_limit", LIST_LIMIT), LIST_LIMIT
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
         cache_key = versioned_key(
             f"teacheradmins:user_id__{request.user.id}"
-            f":instance_id__{assignment_id}:view__assignments",
+            f":instance_id__{assignment_id}:view__assignments"
+            f":{question_limit}:qd6",
             [(SCOPE_USER, request.user.id)],
         )
         data = cache.get(cache_key)
@@ -3491,17 +3600,37 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 ),
                 id=assignment_id,
             )
-            submissions = StudentSubmission.objects.filter(assignment=assignment)
+            submissions = StudentSubmission.objects.filter(
+                assignment=assignment,
+                student__enrollments__course=assignment.course,
+                student__enrollments__in=StudentCourse.objects.active(),
+            )
             total_submissions = submissions.count()
+            graded = list(
+                submissions.filter(
+                    score__isnull=False, graded_at__isnull=False
+                ).select_related("student")
+            )
             average_grade = (
-                submissions.filter(score__isnull=False).aggregate(
-                    avg=Avg("score_percentage")
-                )["avg"]
+                final_grade_from(
+                    (
+                        submission.score,
+                        (
+                            submission.max_points
+                            if submission.max_points is not None
+                            else assignment.total_points
+                        ),
+                    )
+                    for submission in graded
+                )
                 or 0
             )
 
             avg_grading_confidence = (
-                submissions.aggregate(avg=Avg("grading_confidence"))["avg"] or 0
+                average_confidence_from(submissions, "grading_confidence") or 0
+            )
+            avg_submission_extraction_confidence = (
+                average_confidence_from(submissions, "extraction_confidence") or 0
             )
 
             assignment_metrics = {
@@ -3512,11 +3641,28 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 "total_submissions": total_submissions,
                 "unit": assignment.topic,
                 "average_grade": round(float(average_grade), 2),
-                "ai_extraction_confidence": assignment.extraction_confidence,
+                "question_extraction_confidence": assignment.extraction_confidence,
+                "ai_extraction_confidence": round(
+                    float(avg_submission_extraction_confidence), 2
+                ),
                 "ai_grading_confidence": round(float(avg_grading_confidence), 2),
             }
 
-            # Not implemented: hardest/easiest questions per assignment.
+            # H-245: the ranking minimum scales with the class: the
+            # students whose enrollment counts, as for every figure here.
+            class_size = (
+                StudentCourse.objects.active().filter(course=assignment.course).count()
+            )
+            difficulty = question_difficulty(
+                assignment,
+                graded,
+                limit=question_limit,
+                minimum=minimum_for_class(class_size),
+            )
+            assignment_metrics["hardest_questions"] = difficulty.pop("hardest")
+            assignment_metrics["easiest_questions"] = difficulty.pop("easiest")
+            assignment_metrics["question_breakdown"] = difficulty.pop("breakdown")
+            assignment_metrics["question_difficulty"] = difficulty
 
             serializer = TeacherAssignmentAnalyticsSerializer(assignment_metrics)
             data = serializer.data
@@ -3581,7 +3727,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         page_size = request.query_params.get(paginator.page_size_query_param, "")
         cache_key = versioned_key(
             f"teacheradmins:user_id__{request.user.id}:instance_id__{course_id}"
-            f":view__students:{page_number}:{page_size}",
+            f":view__students:{page_number}:{page_size}:risk1",
             # `usr` alone - same reasoning as view__courses above.
             [(SCOPE_USER, request.user.id)],
         )
@@ -3618,6 +3764,14 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     submitted_count_val=Count(
                         "student__submissions",
                         filter=Q(student__submissions__assignment__course=course),
+                    ),
+                    # H-237: the risk rate counts only submissions to
+                    # published work that is due (expected_q); the shown
+                    # count above keeps every submission.
+                    risk_submitted_val=Count(
+                        "student__submissions",
+                        filter=Q(student__submissions__assignment__course=course)
+                        & expected_q("student__submissions__assignment__"),
                     ),
                 )
                 .prefetch_related(
@@ -3660,12 +3814,22 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 worst = min(graded, key=lambda s: s.score_percentage or 0, default=None)
 
                 dated_scores = [
-                    (s.submission_date, float(s.score_percentage)) for s in graded
+                    (
+                        s.submission_date,
+                        float(s.score_percentage),
+                        s.score,
+                        (
+                            s.max_points
+                            if s.max_points is not None
+                            else s.assignment.total_points
+                        ),
+                    )
+                    for s in graded
                 ]
                 risk_result = self.risk_evaluator.evaluate(
                     RiskInputs(
                         expected_assignment_count=expected_assignment_count,
-                        submitted_count=submitted_count,
+                        submitted_count=enrollment.risk_submitted_val,
                         graded_scores=dated_scores,
                     )
                 )
@@ -3720,6 +3884,217 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 )
 
             serializer = TeacherStudentAnalyticsSerializer(rows, many=True)
+            data = paginator.get_paginated_response(serializer.data).data
+
+            cache.set(cache_key, data, 60 * 15)
+
+        return Response(data)
+
+    @extend_schema(
+        tags=["Teacher Admin"],
+        summary="Teacher All Students (cross-course, optionally at-risk)",
+        description="""
+        List the teacher's students for a session, across every course they
+        teach in it (or scoped to a single course via `course_id`), with an
+        optional `at_risk` filter.
+
+        Backs an "All Students" view that can show either the full roster or
+        just the at-risk subset, for one course or every course in the
+        session at once.
+        """,
+        parameters=[
+            OpenApiParameter(
+                name="session_id",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.PATH,
+                description=_("The unique identifier (UUID) of the session"),
+            ),
+            OpenApiParameter(
+                name="course_id",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=_(
+                    "Restrict to one course. Omit to list across every "
+                    "course the teacher has in this session."
+                ),
+            ),
+            OpenApiParameter(
+                name="at_risk",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=_("true: only at-risk students."),
+            ),
+            OpenApiParameter(
+                name="student_id",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=_(
+                    "Restrict to one student's row(s) - e.g. to look up "
+                    "their at-risk status/grade directly instead of "
+                    "paginating the full list. Combinable with course_id "
+                    "and at_risk."
+                ),
+            ),
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
+        responses={200: PaginatedTeacherAllStudentsSerializer},
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"dashboard/all-students/(?P<session_id>[-\w]+)",
+    )
+    def all_students(self, request, session_id, *args, **kwargs):
+        teacher = request.user
+        course_id = request.query_params.get("course_id") or ""
+        student_id = request.query_params.get("student_id") or ""
+        # Read (and a bad value refused) before the cache key is built, so a
+        # refused request never reads or stores an entry (H-233).
+        at_risk_filter = boolean_query_param(request, "at_risk")
+
+        paginator = StandardPageNumberPagination()
+        page_number = request.query_params.get(paginator.page_query_param, "1")
+        page_size = request.query_params.get(paginator.page_size_query_param, "")
+        cache_key = versioned_key(
+            f"teacheradmins:user_id__{teacher.id}:instance_id__{session_id}"
+            f":view__all_students:{course_id}:{student_id}:{at_risk_filter}"
+            f":{page_number}:{page_size}:risk1",
+            [(SCOPE_USER, teacher.id)],
+        )
+        data = cache.get(cache_key)
+
+        if data is None:
+            courses = reachable_courses(teacher).filter(session_id=session_id)
+            if course_id:
+                get_object_or_404(courses, id=course_id)
+                courses = courses.filter(id=course_id)
+
+            assignments = Assignment.objects.filter(course__in=courses)
+            total_by_course = dict(
+                assignments.values("course_id")
+                .annotate(n=Count("id"))
+                .values_list("course_id", "n")
+            )
+            # Same "expected by now" definition the risk evaluator assumes -
+            # see _expected_assignments_q.
+            expected_by_course = dict(
+                assignments.filter(_expected_assignments_q())
+                .values("course_id")
+                .annotate(n=Count("id"))
+                .values_list("course_id", "n")
+            )
+
+            course_submissions_qs = (
+                StudentSubmission.objects.filter(assignment__course__in=courses)
+                .select_related("assignment")
+                .order_by("submission_date", "id")
+            )
+
+            enrollments = StudentCourse.objects.filter(course__in=courses).active()
+            if student_id:
+                enrollments = enrollments.filter(student_id=student_id)
+            enrollments = (
+                enrollments.select_related("student", "course")
+                .annotate(
+                    submitted_count_val=Count(
+                        "student__submissions",
+                        filter=Q(
+                            student__submissions__assignment__course=F("course_id")
+                        ),
+                    ),
+                    # H-237: the risk rate counts only submissions to
+                    # published work that is due (expected_q); the shown
+                    # count above keeps every submission.
+                    risk_submitted_val=Count(
+                        "student__submissions",
+                        filter=Q(
+                            student__submissions__assignment__course=F("course_id")
+                        )
+                        & expected_q("student__submissions__assignment__"),
+                    ),
+                )
+                .prefetch_related(
+                    Prefetch(
+                        "student__submissions",
+                        queryset=course_submissions_qs,
+                        to_attr="course_submissions",
+                    )
+                )
+                # Same stable order as the single-course `students` action.
+                .order_by("student__first_name", "student__last_name", "id")
+            )
+
+            def build_row(enrollment):
+                student = enrollment.student
+                course = enrollment.course
+                student_course_subs = [
+                    s
+                    for s in student.course_submissions
+                    if s.assignment.course_id == course.id
+                ]
+                graded = [
+                    s for s in student_course_subs if s.score_percentage is not None
+                ]
+                dated_scores = [
+                    (
+                        s.submission_date,
+                        float(s.score_percentage),
+                        s.score,
+                        (
+                            s.max_points
+                            if s.max_points is not None
+                            else s.assignment.total_points
+                        ),
+                    )
+                    for s in graded
+                ]
+                risk_result = self.risk_evaluator.evaluate(
+                    RiskInputs(
+                        expected_assignment_count=expected_by_course.get(course.id, 0),
+                        submitted_count=enrollment.risk_submitted_val,
+                        graded_scores=dated_scores,
+                    )
+                )
+                return {
+                    "student_id": student.id,
+                    "student_name": student.get_full_name(),
+                    "course_id": course.id,
+                    "course_name": course.name,
+                    "assignment_submitted": enrollment.submitted_count_val,
+                    "assignment_assigned": total_by_course.get(course.id, 0),
+                    "average_grade": risk_result.average_grade,
+                    "grade_trend": risk_result.grade_trend,
+                    "at_risk": risk_result.at_risk,
+                }
+
+            if at_risk_filter is None:
+                # No risk filter: paginate in the database, evaluate risk
+                # only for the one page returned.
+                page = paginator.paginate_queryset(enrollments, request, view=self)
+                rows = [build_row(enrollment) for enrollment in page]
+            else:
+                # Risk is computed in Python, so filtering by it means
+                # evaluating every enrollment in scope before paginating -
+                # the same tradeoff `overview`'s at_risk_students list makes.
+                all_rows = [build_row(enrollment) for enrollment in enrollments]
+                matching = [row for row in all_rows if row["at_risk"] == at_risk_filter]
+                rows = paginator.paginate_queryset(matching, request, view=self)
+
+            serializer = TeacherAllStudentsRowSerializer(rows, many=True)
             data = paginator.get_paginated_response(serializer.data).data
 
             cache.set(cache_key, data, 60 * 15)

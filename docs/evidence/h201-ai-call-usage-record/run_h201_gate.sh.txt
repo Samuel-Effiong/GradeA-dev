@@ -1,0 +1,149 @@
+#!/bin/bash
+# H-201 per-call usage record (beta line). Usage: bash run_h201_gate.sh <tip> 1
+# One grant, inside ONE outer inhibit (memory cap = available - 2G, min 6G, read at start; rule 13):
+#   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block bash <script> <tip> 1
+# 0  the red run: the two new test modules (as at the tip) against the code as at beta $RED, the base this
+#    branch was updated onto (call_record.py and the migration taken away, models.py/services.py/settings.py
+#    taken back to beta's; own DB);
+# 1a makemigrations --check; 1b the seam: execute_graded_task differs from beta $BASE ONLY by the five hook lines, and
+#    neither call to __ai_model changed (by program); 1 the two modules + near modules (billing, refunds, upload
+#    routes, super admin) + guards incl. the cache test; 2 the 34 mutants (rule 17; own DB).
+# The regression is 0b's one full run on the frozen tip; it is not in this script.
+# A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
+set -u
+TIP=$1; STEP=${2:-1}; RED=3d5174b0; BASE=3d5174b0
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-call-usage-record || exit 1
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+E=docs/evidence/h201-ai-call-usage-record
+AVAIL_G=$(awk '/^MemAvailable:/ {print int($2/1048576)}' /proc/meminfo)
+MEMG=$((AVAIL_G - 2))
+echo "available at start: ${AVAIL_G}G; cap ${MEMG}G"
+[ "$MEMG" -ge 6 ] || { echo "STOP (exit 5): cap under 6G; wait and tell the SM"; exit 5; }
+# Each run has its own scope unit, gap-h201-<pid>-<part>; the watchdogs stop only those, by exact name.
+UNITP=gap-h201-$$
+UPART=none
+CAP="systemd-run --user --scope -q --unit=\${UNITP}-\${UPART} -p MemoryMax=${MEMG}G -p MemorySwapMax=0"
+# Memory watchdog (SM 2026-10-14): available under 1.5 GB stops OUR scope, by its unit name, never by pattern.
+( while sleep 10; do
+    A=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
+    if [ "$A" -lt 1572864 ]; then
+        for U in $UNITP-red $UNITP-modules $UNITP-mutants; do
+            if systemctl --user is-active -q "$U.scope"; then
+                echo "MEMORY STOP $(date +%T): available ${A} kB; stopping $U.scope" >> $E/memory_watchdog.txt
+                systemctl --user stop "$U.scope"
+            fi
+        done
+    fi
+  done ) &
+WATCHDOG=$!
+export PYTHONFAULTHANDLER=1
+export EXEMPT_EMAIL_DOMAINS=
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+[ "$STEP" = 1 ] || { echo "only step 1 exists"; exit 1; }
+mkdir -p $E
+NEWFILES="ai_processor/call_record.py ai_processor/migrations/0006_aicallrecord.py"
+CHANGED="ai_processor/models.py ai_processor/services.py AutoGrader/settings.py"
+restore_tree() { kill $WATCHDOG 2>/dev/null; git checkout HEAD -- $CHANGED $NEWFILES 2>/dev/null; find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
+trap restore_tree EXIT
+summary() { grep -E "^(Ran |OK|FAILED \(|(FAIL|ERROR): )" "$1" | cut -c1-200 | head -${2:-12}; }
+dropmut() { python manage.py shell --settings=settings_worktree_mut -c "
+from django.conf import settings
+from django.db import connection
+name = settings.DATABASES['default']['TEST']['NAME']
+with connection._nodb_cursor() as c:
+    c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
+print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
+OWN="ai_processor.tests_call_record ai_processor.tests_call_record_static"
+NEAR="billing.tests.test_execute_graded_task billing.tests.test_refusal_handling billing.tests.test_refusal_handling_gates billing.tests.test_credit_consumption_order billing.tests.test_credit_refund billing.tests.test_concurrent_credit_operations billing.tests.test_billing_transaction_refunds billing.tests.test_custom_ai_prompt_beta ai_processor.tests_superadmin_unmetered_both_flags ai_processor.tests_grading_pipeline ai_processor.tests_blank_verification ai_processor.tests_answer_extraction_gate assignments.tests_upload_batch_billing assignments.tests_upload_task_retry_policy students.tests_app_boundaries ai_processor.tests_h242_retranscription ai_processor.tests_h253_answers_never_empty ai_processor.tests_reading_pipeline ai_processor.tests_ai_call_trace ai_processor.tests_reading_config"
+GUARDS="AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_migration_safety_check AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_student_feedback_guard AutoGrader.tests_submission_audience_guard AutoGrader.tests_student_classmates_guard AutoGrader.tests_network_guard AutoGrader.tests_reason_codes students.tests_reading_label_static"
+echo "load at start: $(cat /proc/loadavg)"
+echo "=== 0. the red run: the two new modules against the code as at $RED (own DB) $(date +%T)"
+git checkout $RED -- $CHANGED
+rm -f $NEWFILES
+find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} +
+UPART=red
+eval "PYTHONDONTWRITEBYTECODE=1 $CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree_mut $OWN" < /dev/null > $E/red_run_code_as_at_red_commit.txt 2>&1
+RED_EXIT=$?
+echo "red run exit=$RED_EXIT (non-zero expected)"
+# Written before the run: both modules import ai_processor.call_record, which did not exist, so BOTH fail to load:
+# non-zero exit, no OK line, a Ran line, exactly two load errors naming tests_call_record and tests_call_record_static.
+RF=$E/red_run_code_as_at_red_commit.txt
+RED_OK=1
+[ "$RED_EXIT" -ne 0 ] || RED_OK=0
+grep -qE "^OK" $RF && RED_OK=0
+grep -qE "^Ran [0-9]+ tests? in" $RF || { echo "red run: no Ran line"; RED_OK=0; }
+for S in tests_call_record tests_call_record_static; do
+    grep -qE "^ERROR: $S \(unittest.loader._FailedTest.$S\)$" $RF || { echo "red run: $S is not named in a load error"; RED_OK=0; }
+done
+LOADERR=$(grep -cE "^ERROR: [A-Za-z0-9_]+ \(unittest.loader._FailedTest" $RF)
+[ "$LOADERR" = 2 ] || { echo "red run: $LOADERR load errors (2 expected)"; RED_OK=0; }
+# RULE 22: each module is red for its WRITTEN reason (the missing import of the code under test, an allowed reason),
+# looked for inside that module's own ERROR block; another reason is a WRONG REASON and fails the step.
+RC=/home/bond-servant-in-training/Documents/Projects/GAP-builder-scripts/reason_check.py
+for S in tests_call_record tests_call_record_static; do
+    python -I $RC $RF $S "cannot import name 'call_record' from 'ai_processor'" || RED_OK=0
+done
+if [ "$RED_OK" != 1 ]; then
+    echo "STOP (exit 4): the red run is not what was written"
+    git checkout HEAD -- $CHANGED $NEWFILES
+    find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} +
+    exit 4
+fi
+echo "red run is as written: non-zero exit, no OK line, both modules failed to load"
+git checkout HEAD -- $CHANGED $NEWFILES
+find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} +
+git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+grep -E "^(Ran |OK|FAILED \\()" $RF | cut -c1-200
+dropmut
+echo "=== 1a. makemigrations --check $(date +%T)"
+python manage.py makemigrations --check --dry-run --settings=settings_worktree < /dev/null > $E/makemigrations_check.txt 2>&1; MM=$?; echo "makemigrations exit=$MM (0 = no changes)"; tail -1 $E/makemigrations_check.txt
+[ "$MM" = 0 ] || { echo "STOP: makemigrations reports changes"; exit 2; }
+echo "=== 1b. the seam: execute_graded_task against the base, by program"
+python - "$BASE" > $E/seam_execute_graded_task.txt 2>&1 <<'PY'
+import ast, subprocess, sys
+def func(src):
+    for cls in ast.parse(src).body:
+        if isinstance(cls, ast.ClassDef) and cls.name == "AIProcessor":
+            for fn in cls.body:
+                if isinstance(fn, ast.FunctionDef) and fn.name == "execute_graded_task":
+                    return fn
+base_src = subprocess.run(["git", "show", f"{sys.argv[1]}:ai_processor/services.py"], capture_output=True, text=True, check=True).stdout
+now_src = open("ai_processor/services.py").read()
+base, now = func(base_src), func(now_src)
+def lines(fn, src):
+    return [l for l in ast.get_source_segment(src, fn).splitlines() if "call_record" not in l]
+keep_now = lines(now, now_src)
+keep_base = lines(base, base_src)
+print("function without its call_record lines identical to base:", keep_now == keep_base)
+hooks = [l.strip() for l in ast.get_source_segment(now_src, now, padded=False).splitlines() if "call_record" in l]
+print("hook lines:", len(hooks))
+for h in hooks: print("  ", h)
+def ai_calls(fn, src):
+    return [ast.get_source_segment(src, n) for n in ast.walk(fn) if isinstance(n, ast.Call) and ast.unparse(n.func).endswith("__ai_model")]
+print("both __ai_model calls identical to base:", ai_calls(now, now_src) == ai_calls(base, base_src), len(ai_calls(now, now_src)))
+PY
+cat $E/seam_execute_graded_task.txt
+grep -q "identical to base: True" $E/seam_execute_graded_task.txt && grep -q "both __ai_model calls identical to base: True 2" $E/seam_execute_graded_task.txt && grep -q "hook lines: 4" $E/seam_execute_graded_task.txt || { echo "STOP: the seam is not as written"; exit 2; }
+echo "=== 1. own modules + near modules + guards at $(git rev-parse --short=8 HEAD) $(date +%T)"
+UPART=modules
+eval "$CAP nice -n 10 timeout -k 60 3500 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $OWN $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
+echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
+if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
+echo "=== 2. mutants: 34 (own DB, rules 17 and 18) $(date +%T)"
+# Time limit 90 s x 34 + 600 = 3660 s, with a 300 s stall watchdog on the newest mutant log (2026-10-14).
+UPART=mutants
+( sleep 60; while systemctl --user is-active -q "$UNITP-mutants.scope"; do
+    NEWEST=$(ls -t $E/mutant_logs/*.txt 2>/dev/null | head -1)
+    if [ -n "$NEWEST" ] && [ $(( $(date +%s) - $(stat -c %Y "$NEWEST") )) -gt 300 ]; then
+        echo "STALL STOP $(date +%T): $NEWEST silent over 300 s; stopping $UNITP-mutants.scope" >> $E/stall_watchdog.txt
+        systemctl --user stop "$UNITP-mutants.scope"; break
+    fi
+    sleep 15
+  done ) &
+STALL=$!
+eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 3660 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
+echo "mutants exit=$? $(date +%T)"; kill $STALL 2>/dev/null; cut -c1-260 $E/mutation_log.txt
+git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
+dropmut
+echo "load at end: $(cat /proc/loadavg)"

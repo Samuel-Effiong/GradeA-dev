@@ -212,9 +212,38 @@ class TeacherDashboardOverviewSerializer(serializers.Serializer):
 class WorkflowStatsSerializer(serializers.Serializer):
     """Serializer for assignment workflow statistics"""
 
-    total_assignments_assigned = serializers.IntegerField(read_only=True)
-    total_assignments_submitted = serializers.IntegerField(read_only=True)
-    total_assignments_graded = serializers.IntegerField(read_only=True)
+    total_assignments_assigned = serializers.IntegerField(
+        read_only=True, help_text="Published assignments."
+    )
+    total_draft_assignments = serializers.IntegerField(
+        read_only=True,
+        help_text="Saved but not published: draft or unpublished assignments.",
+    )
+    total_enrolled_students = serializers.IntegerField(
+        read_only=True,
+        help_text="Students enrolled, pending or completed; not withdrawn.",
+    )
+    total_at_risk_students = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "Of the enrolled students, those at risk, by the same rule as "
+            "the overview's at_risk_students."
+        ),
+    )
+    total_assignments_submitted = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "Every submission to a published assignment by an enrolled "
+            "student: one per student per assignment."
+        ),
+    )
+    total_assignments_graded = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "Of those submissions, every one with a grade, released to the "
+            "student or not."
+        ),
+    )
 
 
 class AssignmentGradeByTypeSerializer(serializers.Serializer):
@@ -262,6 +291,134 @@ class TeacherCourseAnalyticsSerializer(serializers.Serializer):
     ai_trust = AITrustStatsSerializer(read_only=True)
 
 
+class QuestionStudentSerializer(serializers.Serializer):
+    student_id = serializers.UUIDField(read_only=True)
+    full_name = serializers.CharField(read_only=True)
+
+
+class StrugglingStudentSerializer(QuestionStudentSerializer):
+    score_awarded = serializers.FloatField(read_only=True)
+    max_points = serializers.FloatField(read_only=True)
+    percentage = serializers.FloatField(read_only=True)
+    left_blank = serializers.BooleanField(read_only=True)
+
+
+class QuestionDifficultySerializer(serializers.Serializer):
+    """How the class did on one question (dashboard/question_difficulty.py)."""
+
+    question_number = serializers.CharField(read_only=True)
+    question_text = serializers.CharField(read_only=True)
+    question_type = serializers.CharField(read_only=True, allow_null=True)
+    points = serializers.FloatField(read_only=True, allow_null=True)
+    average_percentage = serializers.FloatField(
+        read_only=True,
+        allow_null=True,
+        help_text=(
+            "The class's average share of this question's marks, 0-100; "
+            "null when no student has a mark on it."
+        ),
+    )
+    average_score = serializers.FloatField(
+        read_only=True,
+        allow_null=True,
+        help_text=(
+            "The same class average in marks, out of `points`: e.g. 6.0 of "
+            "10 for an average_percentage of 60. Null when no student has a "
+            "mark on it or the question has no points."
+        ),
+    )
+    students_counted = serializers.IntegerField(
+        read_only=True, help_text="Students whose marks make up the average."
+    )
+    passed_count = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "Of students_counted, those who earned at least half this "
+            "question's marks. The rest are struggling_students."
+        ),
+    )
+    pass_rate = serializers.FloatField(
+        read_only=True,
+        allow_null=True,
+        help_text=(
+            "passed_count as a percentage of students_counted, 0-100; null "
+            "when no student was counted. Shown beside the average; the "
+            "hardest/easiest ranking is by average_percentage."
+        ),
+    )
+    enough_data = serializers.BooleanField(
+        read_only=True,
+        help_text=(
+            "Whether enough students were counted (minimum_students) for the "
+            "average to be trusted."
+        ),
+    )
+    not_attempted = serializers.IntegerField(
+        read_only=True,
+        help_text="Of those, students who left it blank (scored 0, counted).",
+    )
+    not_read = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "Students whose answer the AI could not read or find; left out "
+            "of the average and sent to the review queue."
+        ),
+    )
+    struggling_students = StrugglingStudentSerializer(
+        many=True,
+        read_only=True,
+        help_text=(
+            "Students who earned under half this question's marks, blanks "
+            "included, lowest first."
+        ),
+    )
+    unread_students = QuestionStudentSerializer(
+        many=True,
+        read_only=True,
+        help_text="Students whose answer the AI could not read: papers to check.",
+    )
+
+
+class QuestionDifficultySummarySerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=["ready", "too_few_questions", "not_enough_data", "no_difference"],
+        read_only=True,
+        help_text=(
+            "ready: lists are filled. too_few_questions: the paper has "
+            "fewer than 3 questions, so nothing is named. not_enough_data: "
+            "fewer than two questions have minimum_students counted. "
+            "no_difference: every question has the same average."
+        ),
+    )
+    students_analysed = serializers.IntegerField(read_only=True)
+    excluded_manual_grade_change = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "Submissions left out because their grade was changed by hand, "
+            "so their per-question marks no longer match it."
+        ),
+    )
+    minimum_students = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "How many students a question must be counted on to be ranked: "
+            "half the students enrolled in the course, rounded up, never "
+            "fewer than 3 nor more than 10."
+        ),
+    )
+    list_size = serializers.IntegerField(
+        read_only=True,
+        help_text=(
+            "How many questions each of hardest_questions and "
+            "easiest_questions holds before ties: 20% of the questions on "
+            "the paper, rounded up, at most 5, or question_limit if lower; "
+            "0 for a paper of fewer than 3 questions. A tie at the end of a "
+            "list is shown whole, so a list can be longer than this. A list "
+            "can also be shorter when fewer questions are ranked."
+        ),
+    )
+
+
 class TeacherAssignmentAnalyticsSerializer(serializers.Serializer):
     """Serializer for the teacher assignment analytics dashboard"""
 
@@ -272,8 +429,20 @@ class TeacherAssignmentAnalyticsSerializer(serializers.Serializer):
     total_submissions = serializers.IntegerField(read_only=True)
     unit = serializers.CharField(read_only=True, allow_null=True)
     average_grade = serializers.FloatField(read_only=True)
+    question_extraction_confidence = serializers.IntegerField(read_only=True)
     ai_extraction_confidence = serializers.FloatField(read_only=True)
     ai_grading_confidence = serializers.FloatField(read_only=True)
+    hardest_questions = QuestionDifficultySerializer(many=True, read_only=True)
+    easiest_questions = QuestionDifficultySerializer(many=True, read_only=True)
+    question_breakdown = QuestionDifficultySerializer(
+        many=True,
+        read_only=True,
+        help_text=(
+            "Every question on the paper, hardest first; questions short of "
+            "minimum_students after the trusted ones, unmarked ones last."
+        ),
+    )
+    question_difficulty = QuestionDifficultySummarySerializer(read_only=True)
 
 
 class StudentAssignmentHistorySerializer(serializers.Serializer):
@@ -322,6 +491,32 @@ class PaginatedTeacherStudentAnalyticsSerializer(serializers.Serializer):
     next = serializers.URLField(allow_null=True)
     previous = serializers.URLField(allow_null=True)
     results = TeacherStudentAnalyticsSerializer(many=True)
+
+
+class TeacherAllStudentsRowSerializer(serializers.Serializer):
+    """Serializer for one row of the cross-course "All Students" list, with
+    its optional "at risk only" filter."""
+
+    student_id = serializers.UUIDField(read_only=True)
+    student_name = serializers.CharField(read_only=True)
+    course_id = serializers.UUIDField(read_only=True)
+    course_name = serializers.CharField(read_only=True)
+    assignment_submitted = serializers.IntegerField(read_only=True)
+    assignment_assigned = serializers.IntegerField(read_only=True)
+    average_grade = serializers.FloatField(read_only=True, allow_null=True)
+    grade_trend = serializers.CharField(read_only=True)
+    at_risk = serializers.BooleanField(read_only=True)
+
+
+class PaginatedTeacherAllStudentsSerializer(serializers.Serializer):
+    """Schema-only: the StandardPageNumberPagination envelope the teacher
+    `all_students` endpoint returns. Declared by hand for the same reason as
+    PaginatedTeacherStudentAnalyticsSerializer above."""
+
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = TeacherAllStudentsRowSerializer(many=True)
 
 
 class SignupTotalsSerializer(serializers.Serializer):

@@ -215,9 +215,9 @@ class AGeneratedAddressNeverAttachesTests(PlaceholderTestCase):
                 {"raw_data": "Ada,Lovelace"},
             )
         self.assertEqual(generator.call_count, 2 * PLACEHOLDER_EMAIL_ATTEMPTS)
-        # The direct-add view answers a refusal raised while saving with its
-        # generic failure; what matters here is that nothing was attached.
-        self.assertGreaterEqual(direct.status_code, 400, direct.content)
+        # H-214: the direct-add view answers the serializer's refusal with a
+        # 400 (it used to be swallowed into a 500); nothing was attached.
+        self.assertEqual(direct.status_code, 400, direct.content)
         self.assertEqual(bulk.data["success_count"], 0, bulk.content)
         self.assertEqual(bulk.data["failure_count"], 1, bulk.content)
         self.assertEqual(self.adas().count(), 1)
