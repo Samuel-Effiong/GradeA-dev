@@ -577,12 +577,12 @@ class TheCallIsUnchanged(Base):
         ai_model.side_effect = fail
         # Caught by hand: assertRaises keeps the exception without its
         # traceback (unittest's with_traceback(None)), which this test reads.
-        caught = None
         try:
             self.run_call()
         except TimeoutError as error:
             caught = error
-        assert caught is not None, "the provider's TimeoutError did not come out"
+        else:
+            self.fail("the provider's TimeoutError did not come out")
         self.assertEqual(caught.args, ("the original",))
         names = []
         tb = caught.__traceback__
