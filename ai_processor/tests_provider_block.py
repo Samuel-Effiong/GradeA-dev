@@ -1,4 +1,6 @@
-"""H-206: every request to the AI provider asks for zero-retention endpoints.
+"""H-206: with the switch on, every request to the AI provider asks for
+zero-retention endpoints. The switch is OFF by default (the owner, 24 October
+2026).
 
 `provider: {"data_collection": "deny"}` filters suppliers that TRAIN on data;
 none of ours do, so by itself it excludes nobody. Several of our suppliers
@@ -7,16 +9,18 @@ object (the provider's routing page, "Zero Data Retention Enforcement").
 
 What these tests hold:
 
-  * the provider block that reaches the SDK's `create` call (patched; the
-    arguments are read) is `{"data_collection": "deny", "zdr": True}` on EVERY
+  * with the switch on, the provider block that reaches the SDK's `create`
+    call (patched; the arguments are read) is
+    `{"data_collection": "deny", "zdr": True}` on EVERY
     path of `AIProcessor.__ai_model`: without and with tools, with an
     override model, with and without a given fallback list, with a response
     schema, with ready-made messages; `zdr` is the boolean True (a string
     "true" may be ignored by the provider), and it sits INSIDE the provider
     object, not in the top-level body;
-  * the setting `AI_PROVIDER_ZDR_ENABLED` (default ON) switches it, is read at
-    each call (not once at import), and with it off the block is exactly
-    `{"data_collection": "deny"}`;
+  * the setting `AI_PROVIDER_ZDR_ENABLED` (default OFF) switches it, is read
+    at each call (not once at import), and with it off (or left at its
+    default) the block is exactly `{"data_collection": "deny"}` and no `zdr`
+    is sent anywhere in the request;
   * the helper returns a NEW dict each call;
   * static: the only `chat.completions.create` call in the repository's code
     is the one in `__ai_model`; every other file that builds a provider
@@ -58,7 +62,7 @@ SKIP_DIRS = {
 NAMED = {
     "ai_processor/services.py": (
         "sends the provider block",
-        "__ai_model builds both of its requests with _provider_block()",
+        "__ai_model builds its one request with _provider_block()",
     ),
     "ai_processor/benchmark/isolation_run8/isolation_harness.py": (
         "sends the provider block",
@@ -109,6 +113,7 @@ TOOLS = [
 ]
 SCHEMA = {"name": "s", "strict": True, "schema": {"type": "object"}}
 EXPECTED = {"data_collection": "deny", "zdr": True}
+OFF = {"data_collection": "deny"}
 
 PATHS: dict[str, dict[str, Any]] = {
     "plain": {"system_prompt": "s", "user_prompt": "u"},
@@ -143,6 +148,7 @@ PATHS: dict[str, dict[str, Any]] = {
 }
 
 
+@override_settings(AI_PROVIDER_ZDR_ENABLED=True)
 class TheRequestAsksForZeroRetentionOnEveryPath(SimpleTestCase):
     def test_the_provider_block_that_reaches_the_sdk_is_exact_on_every_path(self):
         for name, arguments in PATHS.items():
@@ -182,10 +188,10 @@ class TheRequestAsksForZeroRetentionOnEveryPath(SimpleTestCase):
 
 
 class TheSwitch(SimpleTestCase):
-    def test_the_default_is_on(self):
-        self.assertIs(settings.AI_PROVIDER_ZDR_ENABLED, True)
+    def test_the_default_is_off(self):
+        self.assertIs(settings.AI_PROVIDER_ZDR_ENABLED, False)
 
-    def test_the_settings_module_reads_the_variable_with_default_true(self):
+    def test_the_settings_module_reads_the_variable_with_default_false(self):
         tree = ast.parse((BASE / "AutoGrader/settings.py").read_text(encoding="utf-8"))
         found = []
         for node in ast.walk(tree):
@@ -194,28 +200,46 @@ class TheSwitch(SimpleTestCase):
                 for t in node.targets
             ):
                 found.append(ast.unparse(node.value))
-        self.assertEqual(found, ['env.bool("AI_PROVIDER_ZDR_ENABLED", default=True)'])
+        self.assertEqual(found, ['env.bool("AI_PROVIDER_ZDR_ENABLED", default=False)'])
 
-    @override_settings(AI_PROVIDER_ZDR_ENABLED=False)
-    def test_with_the_switch_off_the_block_is_exactly_data_collection_deny(self):
-        self.assertEqual(services._provider_block(), {"data_collection": "deny"})
+    def test_at_the_default_no_request_carries_zdr_anywhere(self):
+        self.assertEqual(services._provider_block(), OFF)
         for name, arguments in PATHS.items():
             with self.subTest(path=name):
                 sent = call(**arguments)
-                self.assertEqual(
-                    sent["extra_body"]["provider"], {"data_collection": "deny"}
-                )
+                self.assertEqual(sent["extra_body"]["provider"], OFF)
+                self.assertNotIn("zdr", sent["extra_body"])
+                self.assertNotIn("zdr", sent)
+
+    def test_off_sends_no_zdr_and_on_sends_zdr_true_on_every_path(self):
+        for name, arguments in PATHS.items():
+            with self.subTest(path=name):
+                with override_settings(AI_PROVIDER_ZDR_ENABLED=False):
+                    off = call(**arguments)["extra_body"]["provider"]
+                with override_settings(AI_PROVIDER_ZDR_ENABLED=True):
+                    on = call(**arguments)["extra_body"]["provider"]
+                self.assertNotIn("zdr", off)
+                self.assertEqual(off, OFF)
+                self.assertIs(on.get("zdr"), True)
+                self.assertEqual(on, EXPECTED)
+
+    @override_settings(AI_PROVIDER_ZDR_ENABLED=False)
+    def test_with_the_switch_off_the_block_is_exactly_data_collection_deny(self):
+        self.assertEqual(services._provider_block(), OFF)
+        for name, arguments in PATHS.items():
+            with self.subTest(path=name):
+                sent = call(**arguments)
+                self.assertEqual(sent["extra_body"]["provider"], OFF)
 
     def test_the_switch_is_read_at_each_call_not_once_at_import(self):
-        on = call(system_prompt="s", user_prompt="u")["extra_body"]["provider"]
-        with override_settings(AI_PROVIDER_ZDR_ENABLED=False):
-            off = call(system_prompt="s", user_prompt="u")["extra_body"]["provider"]
+        off = call(system_prompt="s", user_prompt="u")["extra_body"]["provider"]
+        with override_settings(AI_PROVIDER_ZDR_ENABLED=True):
+            on = call(system_prompt="s", user_prompt="u")["extra_body"]["provider"]
         again = call(system_prompt="s", user_prompt="u")["extra_body"]["provider"]
-        self.assertEqual(
-            (on, off, again), (EXPECTED, {"data_collection": "deny"}, EXPECTED)
-        )
+        self.assertEqual((off, on, again), (OFF, EXPECTED, OFF))
 
 
+@override_settings(AI_PROVIDER_ZDR_ENABLED=True)
 class TheHelper(SimpleTestCase):
     def test_it_exists_and_returns_the_block(self):
         self.assertEqual(services._provider_block(), EXPECTED)
