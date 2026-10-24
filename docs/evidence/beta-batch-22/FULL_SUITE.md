@@ -62,8 +62,9 @@ lines (the same 24 as batch 21).
 - The load was 2.42 4.16 3.87 at the suite's start, measured after the pre-checks, and 3.98 4.88 4.49 at the end.
 - Available memory was 8,615 MB at the start, giving a 6G cap (the minimum). The lowest available memory during the
   run was 6,627 MB.
-- Beside the run: the Senior Manager's H-205 provider test (network calls only, no database, no test runner) may
-  have been running; no other GAP test run. Every test passed, so no result depends on it.
+- Beside the run: the Senior Manager's H-205 provider test (network calls only, no database, no test runner) WAS
+  running, 11:17:30 to 11:50:35 WAT (its own start and end lines), so it covered the whole suite; no other GAP test
+  run. Every test passed, so no result depends on it.
 
 **The log:** `strict_b22.log.xz` (packed with `xz -9e` to stay under the 500 KB hook limit), 9,461,365 bytes unpacked, sha256
 `d8191aad277d764f4f6c4e8aae77934f32d219766336817c571a7de4c7688843`. Unpacking it was checked to give the identical
