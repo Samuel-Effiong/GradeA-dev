@@ -80,6 +80,7 @@ CALL_SITES = {
     ("_extract_answers_chunked", "extract_answer"): False,
     ("extract_answer_image", "extract_answer"): False,
     ("_verify_blank_answers", "extract_answer"): False,
+    ("_second_reading", "extract_answer"): False,
     ("_grade_question_batch", "grade_assignment"): False,
     ("_build_overall_grading_summary", "grade_assignment"): False,
     ("_grade_student_submission_impl", "grade_assignment"): False,
@@ -334,7 +335,8 @@ class TheCallSites(SimpleTestCase):
             self.assertIn(task_type, by_type)
         # grade_assignment (a single call, a batch of a larger paper, the
         # summary) and extract_answer (single, part of a long paper, the
-        # blank re-check) cannot be told apart by task type: no kind.
+        # blank re-check, the second reading) cannot be told apart by
+        # their task type: no kind.
         self.assertNotIn("grade_assignment", call_record.KIND_BY_TASK_TYPE)
         self.assertNotIn("extract_answer", call_record.KIND_BY_TASK_TYPE)
         self.assertNotIn(None, call_record.KIND_BY_TASK_TYPE)

@@ -59,8 +59,8 @@ logger = logging.getLogger(__name__)
 
 #: task type -> kind, only where EVERY call site of that task type agrees.
 #: grade_assignment (single call, batch of a larger paper, summary) and
-#: extract_answer (single, part of a long paper, blank re-check) are not here:
-#: their kind is NULL. A static test lists every call site.
+#: extract_answer (single, part of a long paper, blank re-check, second reading)
+#: are not here: their kind is NULL. A static test lists every call site.
 KIND_BY_TASK_TYPE = {
     "extract_assignment": CallKind.ASSIGNMENT_EXTRACTION.value,
     "generate_assignment": CallKind.ASSIGNMENT_GENERATION.value,
