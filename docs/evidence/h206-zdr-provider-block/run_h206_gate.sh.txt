@@ -11,7 +11,8 @@
 # The regression is 0b's one full run on the frozen tip; it is not in this script.
 # A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
 set -u
-TIP=$1; STEP=${2:-1}; BASE=fafed57f
+# BASE = H-201's frozen tip (batch 22 builds H-201 then H-206); the red run takes services.py and settings.py back to it.
+TIP=$1; STEP=${2:-1}; BASE=c7f3895f
 cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-zdr-provider-block || exit 1
 source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
 E=docs/evidence/h206-zdr-provider-block
@@ -54,7 +55,7 @@ with connection._nodb_cursor() as c:
     c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
 print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
 OWN="ai_processor.tests_provider_block"
-NEAR="billing.tests.test_execute_graded_task billing.tests.test_refusal_handling billing.tests.test_refusal_handling_gates billing.tests.test_h38_part2_removed_teacher_routes ai_processor.tests_grading_pipeline ai_processor.tests_grading_completeness ai_processor.tests_grading_hardening ai_processor.tests_superadmin_unmetered_both_flags assignments.tests_upload_batch_billing assignments.tests_upload_task_retry_policy dashboard.tests_custom_ai_prompt ai_processor.tests_second_opinion_pipeline ai_processor.tests_second_opinion_selection"
+NEAR="billing.tests.test_execute_graded_task billing.tests.test_refusal_handling billing.tests.test_refusal_handling_gates billing.tests.test_h38_part2_removed_teacher_routes ai_processor.tests_grading_pipeline ai_processor.tests_grading_completeness ai_processor.tests_grading_hardening ai_processor.tests_superadmin_unmetered_both_flags assignments.tests_upload_batch_billing assignments.tests_upload_task_retry_policy dashboard.tests_custom_ai_prompt ai_processor.tests_second_opinion_pipeline ai_processor.tests_second_opinion_selection ai_processor.tests_call_record ai_processor.tests_call_record_static"
 GUARDS="AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_migration_safety_check AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_student_feedback_guard AutoGrader.tests_submission_audience_guard AutoGrader.tests_student_classmates_guard AutoGrader.tests_network_guard"
 echo "load at start: $(cat /proc/loadavg)"
 echo "=== 0. the red run: $OWN against the code as at $BASE (own DB) $(date +%T)"
