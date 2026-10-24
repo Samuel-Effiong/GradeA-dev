@@ -66,9 +66,10 @@ from .metadata import sanitise_before_after_for_action, sanitise_metadata_for_ac
 from .models import AuditEvent
 
 # BE-A-09 #2: grading never falls back to a nano-tier model (see
-# ai_processor/services.py's execute_graded_task), only to this short list -
-# so "did grading use the fallback model" is "is the model actually used one
-# of these". Imported here, not at ai_processor.services import time, to
+# ai_processor/services.py's execute_graded_task), only to these short lists
+# (GRADING_FALLBACK_MODELS, and IMAGE_FALLBACK_MODELS for a call that carried
+# an image, H-205) - so "did grading use the fallback model" is "is the model
+# actually used one of these". Imported here, not at ai_processor.services import time, to
 # keep this chokepoint's own import surface small (mirrors _client_ip's
 # local import below).
 _GRADING_ACTIONS = frozenset(
@@ -480,11 +481,16 @@ def _emit_alertable_metrics(action, outcome, fields):
                 # Local import: ai_processor.services pulls in the OpenAI
                 # client and a large module surface this chokepoint has no
                 # other reason to import at module load time.
-                from ai_processor.services import GRADING_FALLBACK_MODELS
+                from ai_processor.services import (
+                    GRADING_FALLBACK_MODELS,
+                    IMAGE_FALLBACK_MODELS,
+                )
 
+                backup = model in GRADING_FALLBACK_MODELS or (
+                    model in IMAGE_FALLBACK_MODELS
+                )
                 audit_metrics.distribution(
-                    "model_fallback_rate",
-                    1.0 if model in GRADING_FALLBACK_MODELS else 0.0,
+                    "model_fallback_rate", 1.0 if backup else 0.0
                 )
 
     reason_code = fields.get("reason_code")

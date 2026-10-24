@@ -5,7 +5,7 @@ Two students who submit byte-identical answers to the same question are,
 today, two fully independent model calls. Temperature is pinned to 0, but
 that only makes matching answers *usually* consistent — OpenRouter
 fallback routing means it is not a guarantee (see MAIN_MODEL /
-GRADING_FALLBACK_MODELS in services.py), and even a genuinely
+GRADING_FALLBACK_MODELS / IMAGE_FALLBACK_MODELS in services.py), and even a genuinely
 deterministic model gives you no defence against the two calls landing
 on different rubric levels for reasons that have nothing to do with the
 student.

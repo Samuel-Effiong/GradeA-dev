@@ -705,6 +705,30 @@ DEFAULT_FALLBACK_MODELS = ["deepseek/deepseek-v4-pro", "openai/gpt-5.4-nano"]
 # comparable capability - never a nano-tier model.
 GRADING_FALLBACK_MODELS = ["deepseek/deepseek-v4-pro"]
 
+# H-205: deepseek cannot read images (it refused one with a 404), so a
+# grading or extraction request that carries an image falls back here
+# instead: a model that reads pages, of comparable capability, served by a
+# zero-retention endpoint (H-205 run1: 238/240 handwritten multiple-choice
+# letters, the cheapest model tested). Never a mixed list: the provider is
+# not relied on to skip a text-only model for an image request.
+IMAGE_FALLBACK_MODELS = ["anthropic/claude-haiku-5.5"]
+
+
+def _carries_image(user_prompt, system_prompt, messages):
+    """True when the request holds an image part: in a list user_prompt or
+    system_prompt, or in the list content of any message."""
+    parts = []
+    for prompt in (user_prompt, system_prompt):
+        if isinstance(prompt, list):
+            parts.extend(prompt)
+    for message in messages or []:
+        content = message.get("content") if isinstance(message, dict) else None
+        if isinstance(content, list):
+            parts.extend(content)
+    return any(
+        isinstance(part, dict) and part.get("type") == "image_url" for part in parts
+    )
+
 
 def _provider_block():
     """The `provider` object of every request to the AI provider (H-206).
@@ -5282,12 +5306,17 @@ Now, respond to the following teacher's instruction using the rules above
         # models of visibly different capability depending on transient
         # routing. Nano-tier vision models are especially prone to
         # misreading or paraphrasing handwritten answers/questions instead
-        # of transcribing them verbatim (see GRADING_FALLBACK_MODELS).
-        sub_models = (
-            GRADING_FALLBACK_MODELS
-            if task_type in ("grade_assignment", "extract_answer", "extract_assignment")
-            else None
-        )
+        # of transcribing them verbatim (see GRADING_FALLBACK_MODELS). A
+        # request of these three that carries an image falls back to
+        # IMAGE_FALLBACK_MODELS instead, since the text backup cannot read
+        # images (H-205).
+        sub_models = None
+        if task_type in ("grade_assignment", "extract_answer", "extract_assignment"):
+            sub_models = (
+                IMAGE_FALLBACK_MODELS
+                if _carries_image(user_prompt, system_prompt, messages)
+                else GRADING_FALLBACK_MODELS
+            )
 
         # A caller that pins the model (the blind second grader) pins the
         # fallbacks too: silently falling back to grader A's model would

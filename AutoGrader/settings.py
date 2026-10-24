@@ -698,16 +698,18 @@ GRADING_SECOND_OPINION_ENABLED = env.bool(
 # ai_processor/services.py) can itself fall back to deepseek-v4-pro. If
 # deepseek were the only second-opinion candidate, that fallback would
 # silently disable the second opinion at exactly the moment grader A is
-# already struggling. gemini-2.5-flash is the third, independent option
-# for that case — different vendor family from both x-ai (grader A) and
-# deepseek (grader A's fallback), comparable reasoning-tier positioning,
-# structured-output support, and (at the time this was set) priced at or
-# below both of the others. On the normal path (grader A = grok-4.3) this
-# resolves to deepseek exactly as before — gemini is only reached in the
-# previously-broken fallback case, so everyday spend is unchanged.
+# already struggling. claude-haiku-5.5 is the second, independent option for
+# that case (H-205, owner-approved 24 October 2026): a different model
+# family from both x-ai (grader A) and deepseek (grader A's text fallback),
+# served by a zero-retention endpoint, and the cheapest model tested. H-205
+# run1 (12 scanned papers): 238/240 handwritten multiple-choice letters
+# read, grading mean absolute error 0.556 against the teacher (grok-4.3:
+# 0.626), no errors, about $0.27 for reading and grading all 12. It
+# replaces the earlier third option, which had no zero-retention endpoint.
+# On the normal path (grader A = grok-4.3) this still resolves to deepseek.
 GRADING_SECOND_OPINION_MODELS = env.list(
     "GRADING_SECOND_OPINION_MODELS",
-    default=["deepseek/deepseek-v4-pro", "google/gemini-2.5-flash"],
+    default=["deepseek/deepseek-v4-pro", "anthropic/claude-haiku-5.5"],
 )
 # Trigger thresholds. A run below this confidence gets a full second
 # read; individual questions trigger on a model-emitted flag_for_review

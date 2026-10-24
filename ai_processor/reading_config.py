@@ -68,6 +68,7 @@ CODE_CONSTANTS = (
     "AI_TEMPERATURE",
     "ANSWERS_EXTRACTION_PAGES_PER_CHUNK",
     "GRADING_FALLBACK_MODELS",
+    "IMAGE_FALLBACK_MODELS",
     "MAIN_MODEL",
 )
 #: The re-check's instruction is versioned like a prompt; its version joins.

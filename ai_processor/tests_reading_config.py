@@ -112,6 +112,7 @@ class TheVersionTest(SimpleTestCase):
         constants = {
             "MAIN_MODEL": "other/main",
             "GRADING_FALLBACK_MODELS": ["other/backup"],
+            "IMAGE_FALLBACK_MODELS": ["other/image-backup"],
             "ANSWERS_EXTRACTION_PAGES_PER_CHUNK": 7,
             "AI_TEMPERATURE": 0.9,
         }

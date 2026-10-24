@@ -528,7 +528,8 @@ def emit_grading_completed(submission, *, actor, before, task_id=None):
     `grade_engine` ran; the after is read back from the saved row."""
     # BE-A-09 #2: the model that actually served THIS grading run - not
     # necessarily MAIN_MODEL, since OpenRouter may have routed to one of
-    # GRADING_FALLBACK_MODELS - is already captured on the graded result as
+    # GRADING_FALLBACK_MODELS or, for a call with an image,
+    # IMAGE_FALLBACK_MODELS (H-205) - is already captured on the graded result as
     # `grading_model` (ai_processor/services.py) and threaded onto the
     # submission via `submission.feedback = grading`. Reading it back here is
     # the only way this emit, which only sees the persisted submission,

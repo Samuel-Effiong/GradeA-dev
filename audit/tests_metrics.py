@@ -133,6 +133,25 @@ class GradingFailureAndFallbackRateMetricTests(TestCase):
         )
 
     @patch("audit.emitter.audit_metrics.distribution")
+    def test_a_completed_grading_on_the_image_backup_emits_fallback_rate_one(
+        self, mock_dist
+    ):
+        # H-205: anthropic/claude-haiku-5.5 is the backup of page reading
+        # and grading calls that carry an image.
+        emit(
+            AuditAction.GRADING_COMPLETED,
+            actor=self.user,
+            target_type="StudentSubmission",
+            target_id=self.user.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={"model": "anthropic/claude-haiku-5.5"},
+        )
+        self.assertEqual(
+            mock_dist.call_args_list,
+            [call("grading_failure_rate", 0.0), call("model_fallback_rate", 1.0)],
+        )
+
+    @patch("audit.emitter.audit_metrics.distribution")
     def test_a_completed_grading_with_no_model_recorded_emits_no_fallback_signal(
         self, mock_dist
     ):
