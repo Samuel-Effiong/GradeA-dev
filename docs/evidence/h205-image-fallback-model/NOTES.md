@@ -83,3 +83,17 @@ GREEN at dac16545 and after (controls):
   Unchanged on purpose: tests_vote_helper and tests_grading_run_label patch services constants and read the
   config live, so they need no edit (my proposal said they did; that was wrong).
 ```
+
+## Gate on 662edddf: GREEN
+
+`gate_662edddf/` (gzipped), 12:20:55 to 12:29:09 WAT 24 October 2026, base dac16545, load 2.11 to 3.94, cap 6G.
+
+| Step | Result |
+| --- | --- |
+| 0 red run (the five modules against dac16545's nine production files) | exit 1, "Ran 102 tests", "FAILED (failures=14, errors=6)"; all 17 named tests red for their written fragments |
+| 1a makemigrations --check | exit 0, "No changes detected" |
+| 1b the seam | the diff of services.py removes exactly the old six-line selection (with its comment line) |
+| 1 own + near modules + guards | "Ran 942 tests in 241.690s", "OK"; no blocked outbound call (the question image URL is passed along, not fetched) |
+| 2 mutants | 14/14 KILLED (I1-I14), none survived or broken; each with its own Ran line; no mutant failed a test outside its expected set |
+
+The credential-pattern scan of the 23 gzipped logs found nothing.
