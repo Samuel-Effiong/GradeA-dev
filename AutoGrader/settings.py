@@ -694,22 +694,28 @@ GRADING_SECOND_OPINION_ENABLED = env.bool(
 # is used; if none differs, the second opinion is skipped — a same-model
 # "second opinion" shares every blind spot of the first.
 #
-# Two entries deliberately: grader A (GRADING_FALLBACK_MODELS in
-# ai_processor/services.py) can itself fall back to deepseek-v4-pro. If
-# deepseek were the only second-opinion candidate, that fallback would
-# silently disable the second opinion at exactly the moment grader A is
-# already struggling. claude-haiku-5.5 is the second, independent option for
-# that case (H-205, owner-approved 24 October 2026): a different model
-# family from both x-ai (grader A) and deepseek (grader A's text fallback),
-# served by a zero-retention endpoint, and the cheapest model tested. H-205
-# run1 (12 scanned papers): 238/240 handwritten multiple-choice letters
-# read, grading mean absolute error 0.556 against the teacher (grok-4.3:
-# 0.626), no errors, about $0.27 for reading and grading all 12. It
-# replaces the earlier third option, which had no zero-retention endpoint.
-# On the normal path (grader A = grok-4.3) this still resolves to deepseek.
+# claude-haiku-5.5 first (H-254, the owner's decision of 24 October 2026). A
+# second-opinion request carries the images of the questions it re-grades,
+# and deepseek-v4-pro cannot read images: with deepseek first, grader B
+# failed on every such paper and grader A's grade stood with no second
+# opinion and no review flag. Haiku reads images, is cheaper than deepseek
+# in list price, is a different model family from x-ai (grader A), is served
+# by a zero-retention endpoint, and was the cheapest model tested (H-205
+# run1, 12 scanned papers: 238/240 handwritten multiple-choice letters read,
+# grading mean absolute error 0.556 against the teacher, grok-4.3: 0.626, no
+# errors). On the normal path (grader A = grok-4.3) grader B is haiku, with
+# images or without.
+#
+# Two entries deliberately: grader A can itself fall back to haiku (a call
+# with an image, IMAGE_FALLBACK_MODELS in ai_processor/services.py) or to
+# deepseek (a text call, GRADING_FALLBACK_MODELS). Grader B is then the
+# other one, so a fallback never silently disables the second opinion.
+# STATED LIMIT: when grader A fell back to haiku (an image call while grok
+# is down), grader B is deepseek, which still fails on the images; that
+# paper keeps grader A's grade without a second opinion, as before H-254.
 GRADING_SECOND_OPINION_MODELS = env.list(
     "GRADING_SECOND_OPINION_MODELS",
-    default=["deepseek/deepseek-v4-pro", "anthropic/claude-haiku-5.5"],
+    default=["anthropic/claude-haiku-5.5", "deepseek/deepseek-v4-pro"],
 )
 # Trigger thresholds. A run below this confidence gets a full second
 # read; individual questions trigger on a model-emitted flag_for_review
