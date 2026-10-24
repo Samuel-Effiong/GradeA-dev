@@ -200,7 +200,8 @@ class TheSwitch(SimpleTestCase):
                 for t in node.targets
             ):
                 found.append(ast.unparse(node.value))
-        self.assertEqual(found, ['env.bool("AI_PROVIDER_ZDR_ENABLED", default=False)'])
+        # ast.unparse writes strings with single quotes.
+        self.assertEqual(found, ["env.bool('AI_PROVIDER_ZDR_ENABLED', default=False)"])
 
     def test_at_the_default_no_request_carries_zdr_anywhere(self):
         self.assertEqual(services._provider_block(), OFF)
