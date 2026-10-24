@@ -193,6 +193,9 @@ _T13 = "test_the_grading_version_changes_with_the_image_list"
 _T14 = "test_the_reading_version_changes_with_the_image_list"
 _T15 = "test_the_default_candidates_are_deepseek_then_haiku"
 _T16 = "test_no_production_file_names_gemini_2_5_flash"
+_REAL_PAGE = "test_an_uploaded_page_read_for_answers_falls_back_to_haiku"
+_REAL_IMAGE_Q = "test_grading_a_question_with_an_image_falls_back_to_haiku"
+_REAL_TEXT_Q = "test_grading_a_question_without_an_image_keeps_deepseek"
 _HARD_GRADING = "test_grading_calls_use_restricted_fallbacks"
 _HARD_EXTRACT = "test_extraction_calls_use_restricted_fallbacks"
 _HARD_DEFAULT = "test_non_grading_calls_keep_default_fallbacks"
@@ -204,11 +207,11 @@ _READING_EACH = "test_each_constant_that_shapes_a_reading_changes_the_version"
 
 #: Written before any run: every test reckoned to fail under each mutant.
 EXPECTED = {
-    "I1": [_T1, _T2, _T3, _T9],
-    "I2": [_T1, _T2, _T3, _T9],
-    "I3": [_T4, _T5, _T8, _HARD_GRADING, _HARD_EXTRACT],
+    "I1": [_T1, _T2, _T3, _T9, _REAL_PAGE, _REAL_IMAGE_Q],
+    "I2": [_T1, _T2, _T3, _T9, _REAL_PAGE, _REAL_IMAGE_Q],
+    "I3": [_T4, _T5, _T8, _HARD_GRADING, _HARD_EXTRACT, _REAL_TEXT_Q],
     "I4": [_T6],
-    "I5": [_T2],
+    "I5": [_T2, _REAL_PAGE],
     "I6": [_T3],
     "I7": [_T7, _HARD_DEFAULT],
     "I8": [_T8],
@@ -217,7 +220,18 @@ EXPECTED = {
     "I11": [_T13, _T11, _COVER, _PINNED],
     "I12": [_T14, _READING_EACH],
     "I13": [_T15, _T16],
-    "I14": [_T10, _HARD_NANO, _T1, _T2, _T3, _T9, _METRIC, _T11],
+    "I14": [
+        _T10,
+        _HARD_NANO,
+        _T1,
+        _T2,
+        _T3,
+        _T9,
+        _METRIC,
+        _T11,
+        _REAL_PAGE,
+        _REAL_IMAGE_Q,
+    ],
 }
 
 #: A test module that could not be loaded.

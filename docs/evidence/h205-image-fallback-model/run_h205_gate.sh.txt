@@ -94,13 +94,15 @@ r test_the_version_for_a_fixed_reading_is_pinned "does not have the attribute 'I
 r test_each_constant_that_shapes_a_reading_changes_the_version "does not have the attribute 'IMAGE_FALLBACK_MODELS'"
 r test_image_fallbacks_never_include_a_nano_model "has no attribute 'IMAGE_FALLBACK_MODELS'"
 r test_a_completed_grading_on_the_image_backup_emits_fallback_rate_one "call('model_fallback_rate', 0.0)"
+r test_an_uploaded_page_read_for_answers_falls_back_to_haiku "[['deepseek/deepseek-v4-pro']] != [['anthropic/claude-haiku-5.5']]"
+r test_grading_a_question_with_an_image_falls_back_to_haiku "[['deepseek/deepseek-v4-pro']] != [['anthropic/claude-haiku-5.5']]"
 if [ "$RED_OK" != 1 ]; then
     echo "STOP (exit 4): the red run is not what was written"
     git checkout HEAD -- $CHANGED
     find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} +
     exit 4
 fi
-echo "red run is as written: non-zero exit, no OK line, the module loaded, fifteen tests red for their written reasons"
+echo "red run is as written: non-zero exit, no OK line, the module loaded, seventeen tests red for their written reasons"
 git checkout HEAD -- $CHANGED
 find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} +
 git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }

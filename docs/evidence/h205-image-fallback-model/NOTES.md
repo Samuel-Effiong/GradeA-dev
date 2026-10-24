@@ -21,6 +21,10 @@
 - **Not in this row:** H-254. A second-opinion request can carry question images, and with deepseek as grader B
   that pass fails and the paper stands unflagged (`services.py`, the broad `except` after the second opinion).
   The owner decides; no change here.
+- **Real-caller tests (the Senior Manager's pre-read gap):** an uploaded PNG goes through `prepare_ai_content` and
+  `extract_answer_image`, and a question with an http(s) `question_image` goes through `_grade_question_batch`. Only
+  `__ai_model` is replaced: it records the fallback list, then stops the call with `InsufficientCreditsError`, which
+  both callers pass on unchanged. The text-only twin keeps deepseek.
 - **Correction to the proposal:** `tests_vote_helper` and `tests_grading_run_label` needed no edit. They patch the
   `services` constants and the grading run reads its config live.
 
@@ -48,6 +52,10 @@ ai_processor.tests_h205_image_fallback
       "does not have the attribute 'IMAGE_FALLBACK_MODELS'"
   TheConfigVersionsNameTheListTest.test_the_reading_version_changes_with_the_image_list
       "does not have the attribute 'IMAGE_FALLBACK_MODELS'"
+  TheRealCallersTest.test_an_uploaded_page_read_for_answers_falls_back_to_haiku   (added after the pre-read)
+      "[['deepseek/deepseek-v4-pro']] != [['anthropic/claude-haiku-5.5']]"   (a list of lists: one call)
+  TheRealCallersTest.test_grading_a_question_with_an_image_falls_back_to_haiku   (added after the pre-read)
+      "[['deepseek/deepseek-v4-pro']] != [['anthropic/claude-haiku-5.5']]"
   TheSecondGraderTest.test_the_default_candidates_are_deepseek_then_haiku
       "'google/gemini-2.5-flash'"
   TheSecondGraderTest.test_no_production_file_names_gemini_2_5_flash
@@ -68,6 +76,7 @@ audit.tests_metrics
       "call('model_fallback_rate', 0.0)"
 
 GREEN at dac16545 and after (controls):
+  TheRealCallersTest.test_grading_a_question_without_an_image_keeps_deepseek (added after the pre-read).
   EverythingElseIsAsBeforeTest: text call of each page task -> deepseek; list prompt with only text ->
   deepseek; pinned model wins over an image; generate_assignment with an image -> None; pdf_url alone -> deepseek.
   tests_grading_config.test_each_code_constant_changes_the_version (it iterates the code's CODE_CONSTANTS).
