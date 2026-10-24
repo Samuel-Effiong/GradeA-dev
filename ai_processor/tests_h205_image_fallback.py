@@ -16,19 +16,24 @@ Run with:
 """
 
 import ast
+import io
 import re
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, TestCase
+from PIL import Image
 
 from ai_processor import services
 from ai_processor.grading_config import GradingConfig
 from ai_processor.grading_run import GradingRun
 from ai_processor.reading_config import ReadingConfig
 from ai_processor.services import AIProcessor
+from assignments.services import AssignmentProcessingService
+from billing.errors import InsufficientCreditsError
 from users.models import CustomUser, UserTypes
 
 TEST_PROMPT_VERSION = "TEST_PROMPT:00000000"
@@ -185,6 +190,64 @@ class TheRequestThatLeavesTest(_Caller):
                 )
                 self.assertEqual(len(sent), 1)
                 self.assertEqual(sent[0]["extra_body"]["models"], [HAIKU])
+
+
+class TheRealCallersTest(_Caller):
+    """The production callers build the parts themselves: an uploaded page
+    through prepare_ai_content and extract_answer_image, and a question with
+    an image through _grade_question_batch. Only __ai_model is replaced: it
+    keeps the fallback list it was handed, then stops the call with an
+    InsufficientCreditsError, which both callers pass on unchanged."""
+
+    def capture(self):
+        captured = []
+
+        def fake_model(*args, **kwargs):
+            captured.append(kwargs.get("sub_models"))
+            raise InsufficientCreditsError("stopped after the call left")
+
+        return captured, patch.object(
+            AIProcessor, "_AIProcessor__ai_model", side_effect=fake_model
+        )
+
+    def test_an_uploaded_page_read_for_answers_falls_back_to_haiku(self):
+        buffer = io.BytesIO()
+        Image.new("RGB", (24, 24), "white").save(buffer, format="PNG")
+        upload = SimpleUploadedFile(
+            "page.png", buffer.getvalue(), content_type="image/png"
+        )
+        content = AssignmentProcessingService.prepare_ai_content(upload, "read")
+        self.assertIn("image_url", [part.get("type") for part in content])
+        captured, model = self.capture()
+        with model, self.assertRaises(InsufficientCreditsError):
+            self.processor.extract_answer_image(
+                self.super_admin, content, "assignment context"
+            )
+        self.assertEqual(captured, [[HAIKU]])
+
+    def _grade(self, question):
+        pairs = [
+            {"question": question, "answer": {"question_number": 1, "answer": "4"}}
+        ]
+        captured, model = self.capture()
+        with model, self.assertRaises(InsufficientCreditsError):
+            self.processor._grade_question_batch(
+                self.super_admin, pairs, batch_number=1, total_batches=1
+            )
+        return captured
+
+    def test_grading_a_question_with_an_image_falls_back_to_haiku(self):
+        question = {
+            "question_number": 1,
+            "question_text": "What does the diagram show?",
+            "points": 2,
+            "question_image": "https://example.com/q1.png",
+        }
+        self.assertEqual(self._grade(question), [[HAIKU]])
+
+    def test_grading_a_question_without_an_image_keeps_deepseek(self):
+        question = {"question_number": 1, "question_text": "2 + 2?", "points": 2}
+        self.assertEqual(self._grade(question), [[DEEPSEEK]])
 
 
 class TheListTest(SimpleTestCase):
