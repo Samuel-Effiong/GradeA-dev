@@ -38,3 +38,23 @@ GREEN both before and after the fix (set the switch by override_settings, so the
 at "Ran 642 tests, FAILED (failures=1)": `test_the_settings_module_reads_the_variable_with_default_false`
 expected the settings line with double quotes, but `ast.unparse` always writes single quotes, so the
 test could not pass (the flaw predates the default-off change). Fixed in `97364d3b`, test only.
+
+## Gate on e717a0ee: GREEN
+
+`gate_e717a0ee/` (gzipped), 11:28:19 to 11:33:07 WAT 24 October 2026, base c7f3895f (H-201's
+frozen tip), load 2.73 to 1.33, cap 6G.
+
+| Step | Result |
+| --- | --- |
+| 0 red run (the module against c7f3895f's code) | exit 1, "Ran 24 tests", "FAILED (failures=40, errors=5)"; all 17 named tests red for their written fragments |
+| 1a makemigrations --check | exit 0, "No changes detected" |
+| 1b the seam | the diff of services.py removes exactly the old 3-line comment and the one literal provider block |
+| 1 own + near modules (incl. H-201's two) + guards | "Ran 642 tests in 171.483s", "OK" |
+| 2 mutants | 14/14 KILLED (Z1, Z3-Z15), none survived or broken; each with its own Ran line |
+
+Recorded, not hidden: Z5 (a shared dict) also failed 7 tests outside its expected set (the
+order-dependent ones left out on purpose, and the literal test, since the mutant's module-level
+`_SHARED = {"data_collection": "deny"}` sits outside the helper).
+
+The credential-pattern scan of the logs finds only services.py's own source quoted in assertion
+messages (`openrouter_api_key = env.str(...)`, `api_key=openrouter_api_key`): names, no values.
