@@ -386,7 +386,7 @@ All are environment variables read in `AutoGrader/settings.py`.
 | Setting | Default | Effect |
 |---|---|---|
 | `GRADING_SECOND_OPINION_ENABLED` | `True` | Master switch |
-| `GRADING_SECOND_OPINION_MODELS` | `deepseek/deepseek-v4-pro,anthropic/claude-haiku-5.5` | Tried in order; must differ from grader A |
+| `GRADING_SECOND_OPINION_MODELS` | `anthropic/claude-haiku-5.5,deepseek/deepseek-v4-pro` | Tried in order; must differ from grader A. Haiku first: it reads question images (H-254) |
 | `GRADING_SECOND_OPINION_MIN_CONFIDENCE` | `80` | Below this, re-read everything |
 | `GRADING_SECOND_OPINION_HIGH_POINTS` | `15` | Points at which a question always qualifies |
 | `GRADING_SECOND_OPINION_SAMPLE_RATE` | `0.05` | Random QA sampling |
