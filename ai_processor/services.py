@@ -706,6 +706,29 @@ DEFAULT_FALLBACK_MODELS = ["deepseek/deepseek-v4-pro", "openai/gpt-5.4-nano"]
 GRADING_FALLBACK_MODELS = ["deepseek/deepseek-v4-pro"]
 
 
+def _provider_block():
+    """The `provider` object of every request to the AI provider (H-206).
+
+    What each field really does (the provider's routing documentation):
+    `data_collection: "deny"` filters suppliers that train on data; none of
+    our suppliers does, so by itself it excludes nobody. `zdr: True` is the
+    field that restricts routing to endpoints that do not retain prompts
+    (zero-retention endpoints); without it several of our suppliers retain
+    prompts (a supplier states this about itself; we did not audit it). `zdr`
+    is sent only while AI_PROVIDER_ZDR_ENABLED is on; it is OFF by default
+    (the owner, 24 October 2026). A NEW dict each call, so a caller changing
+    one request's block cannot change the next. The setting comes from the
+    environment when the process starts (AutoGrader/settings.py) and is read
+    at each call here; changing the variable on the host needs a RESTART of
+    the web, worker and Beat processes. Student names and submission content
+    pass through these requests.
+    """
+    block = {"data_collection": "deny"}
+    if getattr(settings, "AI_PROVIDER_ZDR_ENABLED", False):
+        block["zdr"] = True
+    return block
+
+
 MAX_TOOL_CALL_ROUNDS = 3
 
 
@@ -1015,10 +1038,12 @@ class AIProcessor:
             "model": main_model,
             "extra_body": {
                 "models": sub_models,
-                # Refuse any upstream provider (e.g. DeepSeek) that may
-                # retain or train on this request. Student names and
-                # submission content pass through this call.
-                "provider": {"data_collection": "deny"},
+                # data_collection "deny" filters suppliers that train on
+                # data; zdr filters suppliers that retain prompts and is in
+                # the block only while AI_PROVIDER_ZDR_ENABLED is on (off by
+                # default). Student names and submission content
+                # pass through this call.
+                "provider": _provider_block(),
             },
             "messages": messages
             or [

@@ -672,6 +672,16 @@ ANSWER_BLANK_VERIFICATION_MODEL = env.str("ANSWER_BLANK_VERIFICATION_MODEL", def
 # ids only. Switch off without a deploy by setting this to false.
 AI_CALL_RECORD_ENABLED = env.bool("AI_CALL_RECORD_ENABLED", default=True)
 
+# H-206: set to true and every request to the AI provider asks for
+# zero-retention endpoints only (`zdr: true` in the provider block,
+# ai_processor/services.py _provider_block). OFF by default (the owner, 24
+# October 2026): while off, prompts may go to suppliers that retain them. When
+# on, a model with no zero-retention endpoint cannot be reached, and its calls
+# fail. The variable is read from the environment when a process starts:
+# changing it on the host needs a restart of the web, worker and Beat
+# processes. The account's own privacy settings are separate.
+AI_PROVIDER_ZDR_ENABLED = env.bool("AI_PROVIDER_ZDR_ENABLED", default=False)
+
 # Selective blind second opinion (ai_processor/second_opinion.py): a
 # DIFFERENT model re-grades triggered questions without seeing the first
 # grade; disagreement flags the submission needs_review for the teacher.
