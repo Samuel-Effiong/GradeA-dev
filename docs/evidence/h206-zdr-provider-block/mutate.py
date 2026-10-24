@@ -41,8 +41,9 @@ K = "keepdb"
 
 COMMENT_NEW = (
     '                # data_collection "deny" filters suppliers that train on\n'
-    "                # data; zdr filters suppliers that retain prompts. Both\n"
-    "                # are in the block. Student names and submission content\n"
+    "                # data; zdr filters suppliers that retain prompts and is in\n"
+    "                # the block only while AI_PROVIDER_ZDR_ENABLED is on (off by\n"
+    "                # default). Student names and submission content\n"
     "                # pass through this call.\n"
 )
 COMMENT_OLD = (
@@ -66,7 +67,7 @@ MUTANTS = [
         "Z3",
         "zdr is hard-coded and the setting is ignored",
         SV,
-        '    if getattr(settings, "AI_PROVIDER_ZDR_ENABLED", True):\n        block["zdr"] = True\n',
+        '    if getattr(settings, "AI_PROVIDER_ZDR_ENABLED", False):\n        block["zdr"] = True\n',
         '    block["zdr"] = True\n',
         TESTS,
         K,
@@ -75,8 +76,8 @@ MUTANTS = [
         "Z4",
         "the setting is inverted",
         SV,
-        '    if getattr(settings, "AI_PROVIDER_ZDR_ENABLED", True):\n',
-        '    if not getattr(settings, "AI_PROVIDER_ZDR_ENABLED", True):\n',
+        '    if getattr(settings, "AI_PROVIDER_ZDR_ENABLED", False):\n',
+        '    if not getattr(settings, "AI_PROVIDER_ZDR_ENABLED", False):\n',
         TESTS,
         K,
     ),
@@ -134,10 +135,10 @@ MUTANTS = [
         SV,
         [
             "def _provider_block():\n",
-            '    if getattr(settings, "AI_PROVIDER_ZDR_ENABLED", True):\n        block["zdr"] = True\n',
+            '    if getattr(settings, "AI_PROVIDER_ZDR_ENABLED", False):\n        block["zdr"] = True\n',
         ],
         [
-            '_ZDR_AT_IMPORT = getattr(settings, "AI_PROVIDER_ZDR_ENABLED", True)\n\n\ndef _provider_block():\n',
+            '_ZDR_AT_IMPORT = getattr(settings, "AI_PROVIDER_ZDR_ENABLED", False)\n\n\ndef _provider_block():\n',
             '    if _ZDR_AT_IMPORT:\n        block["zdr"] = True\n',
         ],
         TESTS,
@@ -154,10 +155,10 @@ MUTANTS = [
     ),
     (
         "Z12",
-        "the setting's default is off",
+        "the setting's default is on (the owner ruled it off, 24 October 2026)",
         ST,
-        'AI_PROVIDER_ZDR_ENABLED = env.bool("AI_PROVIDER_ZDR_ENABLED", default=True)',
         'AI_PROVIDER_ZDR_ENABLED = env.bool("AI_PROVIDER_ZDR_ENABLED", default=False)',
+        'AI_PROVIDER_ZDR_ENABLED = env.bool("AI_PROVIDER_ZDR_ENABLED", default=True)',
         TESTS,
         K,
     ),
@@ -200,38 +201,34 @@ _FRESH = "test_it_returns_a_new_dict_each_call"
 _CHANGE = "test_a_change_to_a_sent_block_cannot_reach_the_next_request"
 _BOTH = "test_the_request_takes_the_block_from_the_helper"
 _LIT = "test_the_data_collection_literal_exists_only_inside_the_helper"
+_DEF = "test_at_the_default_no_request_carries_zdr_anywhere"
+_PAIR = "test_off_sends_no_zdr_and_on_sends_zdr_true_on_every_path"
+_OVR = "test_the_override_and_the_fallback_list_do_not_change_the_block"
 
 #: Written before any run: every test reckoned to fail under each mutant.
+#: Rewritten 24 October 2026 for the switch OFF by default: the request,
+#: helper and on/off tests run with the switch set on by override_settings;
+#: the default and import tests see it off. Z5 names only the two tests that
+#: fail whatever order the tests run in.
 EXPECTED = {
-    "Z1": [_EXACT, _BOOL, _INSIDE, _BOTH, _LIT, _READ, _CHANGE],
-    "Z3": [_OFF, _READ],
-    "Z4": [_EXACT, _BOOL, _INSIDE, _OFF, _READ, _EXIST, _FRESH, _CHANGE],
-    "Z5": [_FRESH, _CHANGE, _OFF, _READ],
-    "Z6": [_EXACT, _OFF, _READ, _EXIST, _FRESH, _CHANGE],
-    "Z7": [_EXACT, _BOOL, _EXIST, _FRESH, _READ, _CHANGE],
-    "Z8": [_EXACT, _BOOL, _INSIDE, _BOTH, _LIT, _READ, _CHANGE],
-    "Z9": [
-        _EXACT,
-        _BOOL,
-        _INSIDE,
-        _LIT,
-        "test_the_override_and_the_fallback_list_do_not_change_the_block",
-    ],
-    "Z10": [_OFF, _READ],
+    "Z1": [_EXACT, _BOOL, _INSIDE, _CHANGE, _PAIR, _READ, _BOTH, _LIT],
+    "Z3": [_DEF, _PAIR, _OFF, _READ],
+    "Z4": [_EXACT, _BOOL, _INSIDE, _EXIST, _FRESH, _CHANGE, _DEF, _PAIR, _OFF, _READ],
+    "Z5": [_FRESH, _CHANGE],
+    "Z6": [_EXACT, _EXIST, _FRESH, _CHANGE, _DEF, _PAIR, _OFF, _READ],
+    "Z7": [_EXACT, _BOOL, _EXIST, _FRESH, _CHANGE, _PAIR, _READ],
+    "Z8": [_EXACT, _BOOL, _INSIDE, _CHANGE, _DEF, _PAIR, _READ, _BOTH, _LIT],
+    "Z9": [_EXACT, _BOOL, _INSIDE, _OVR, _LIT, _PAIR],
+    "Z10": [_EXACT, _BOOL, _INSIDE, _EXIST, _FRESH, _CHANGE, _PAIR, _READ],
     "Z11": [
         "test_the_old_claim_that_deny_refuses_providers_that_retain_is_gone",
         "test_the_comment_says_deny_filters_suppliers_that_train_and_zdr_those_that_retain",
     ],
     "Z12": [
-        "test_the_default_is_on",
-        "test_the_settings_module_reads_the_variable_with_default_true",
-        _EXACT,
-        _BOOL,
-        _INSIDE,
+        "test_the_default_is_off",
+        "test_the_settings_module_reads_the_variable_with_default_false",
+        _DEF,
         _READ,
-        _EXIST,
-        _FRESH,
-        _CHANGE,
     ],
     "Z13": ["test_the_only_create_call_is_the_one_in_ai_model"],
     "Z14": ["test_every_file_that_builds_a_client_or_a_request_is_on_the_named_list"],

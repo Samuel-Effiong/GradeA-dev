@@ -583,16 +583,17 @@ def _provider_block():
     our suppliers does, so by itself it excludes nobody. `zdr: True` is the
     field that restricts routing to endpoints that do not retain prompts
     (zero-retention endpoints); without it several of our suppliers retain
-    prompts (a supplier states this about itself; we did not audit it). A NEW
-    dict each call, so a caller changing one request's block cannot change the
-    next. The setting comes from the environment when the process starts
-    (AutoGrader/settings.py) and is read at each call here; changing the
-    variable on the host needs a RESTART of the web, worker and Beat
-    processes. Student names and submission content pass through these
-    requests.
+    prompts (a supplier states this about itself; we did not audit it). `zdr`
+    is sent only while AI_PROVIDER_ZDR_ENABLED is on; it is OFF by default
+    (the owner, 24 October 2026). A NEW dict each call, so a caller changing
+    one request's block cannot change the next. The setting comes from the
+    environment when the process starts (AutoGrader/settings.py) and is read
+    at each call here; changing the variable on the host needs a RESTART of
+    the web, worker and Beat processes. Student names and submission content
+    pass through these requests.
     """
     block = {"data_collection": "deny"}
-    if getattr(settings, "AI_PROVIDER_ZDR_ENABLED", True):
+    if getattr(settings, "AI_PROVIDER_ZDR_ENABLED", False):
         block["zdr"] = True
     return block
 
@@ -904,8 +905,9 @@ class AIProcessor:
             "extra_body": {
                 "models": sub_models,
                 # data_collection "deny" filters suppliers that train on
-                # data; zdr filters suppliers that retain prompts. Both
-                # are in the block. Student names and submission content
+                # data; zdr filters suppliers that retain prompts and is in
+                # the block only while AI_PROVIDER_ZDR_ENABLED is on (off by
+                # default). Student names and submission content
                 # pass through this call.
                 "provider": _provider_block(),
             },
