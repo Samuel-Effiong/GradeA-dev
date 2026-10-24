@@ -1279,7 +1279,8 @@ Key rules:
 * **Model fallbacks are restricted** for `grade_assignment` / `extract_answer` /
   `extract_assignment` to `GRADING_FALLBACK_MODELS` — never a nano-tier model, so two students in
   the same class are never graded by models of visibly different capability because of transient
-  routing.
+  routing. A call of those three that carries an image falls back to `IMAGE_FALLBACK_MODELS`
+  (`anthropic/claude-haiku-5.5`) instead, since deepseek cannot read images (H-205).
 
 ---
 
@@ -2020,7 +2021,7 @@ the status.
 | Client | `openai.OpenAI(base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_API_KEY)` |
 | Auth | bearer API key from env; `HTTP-Referer` and `X-Title: GradeA+` headers sent |
 | Primary model | `MAIN_MODEL = "x-ai/grok-4.3"` |
-| Fallbacks | `DEFAULT_FALLBACK_MODELS = ["deepseek/deepseek-v4-pro", "openai/gpt-5.4-nano"]`; **grading/extraction restricted to `GRADING_FALLBACK_MODELS = ["deepseek/deepseek-v4-pro"]`** |
+| Fallbacks | `DEFAULT_FALLBACK_MODELS = ["deepseek/deepseek-v4-pro", "openai/gpt-5.4-nano"]`; **grading/extraction restricted to `GRADING_FALLBACK_MODELS = ["deepseek/deepseek-v4-pro"]`**, or `IMAGE_FALLBACK_MODELS = ["anthropic/claude-haiku-5.5"]` for a call with an image (H-205) |
 | Determinism | `temperature=0.0` everywhere |
 | Output contract | `response_format` is a strict `json_schema` where a schema exists (`grading_schemas.py`, `extraction_schemas.py`), else `json_object` |
 | Sent | prompt text from `ai_processor/*.txt`, base64 images, PDF bytes, question/answer JSON |

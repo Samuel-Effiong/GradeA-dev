@@ -39,6 +39,7 @@ api_key  = OPENROUTER_API_KEY     (required; read with no default)
 | Primary model | `x-ai/grok-4.3` |
 | Default fallbacks | `deepseek/deepseek-v4-pro`, `openai/gpt-5.4-nano` |
 | **Grading fallbacks** | `deepseek/deepseek-v4-pro` **only** — never a nano-tier model |
+| **Grading/extraction fallback for a call with an image** | `anthropic/claude-haiku-5.5` **only** (H-205; deepseek cannot read images) |
 | Temperature | `0.0` on every call |
 | Attribution headers | `HTTP-Referer: FRONTEND_DOMAIN`, `X-Title: GradeA+` |
 | Fallback mechanism | `extra_body={"models": [...]}` — OpenRouter routes silently |
