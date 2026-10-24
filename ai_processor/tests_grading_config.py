@@ -54,6 +54,7 @@ OTHER_CONSTANT = {
     "AI_CONFIDENCE_THRESHOLD": 123456,
     "AI_TEMPERATURE": 0.7,
     "GRADING_FALLBACK_MODELS": ["be-i-04/other-backup"],
+    "IMAGE_FALLBACK_MODELS": ["be-i-04/other-image-backup"],
     "GRADING_QUESTIONS_PER_CHUNK": 123456,
     "MAIN_MODEL": "be-i-04/other-main",
 }
@@ -81,10 +82,12 @@ PINNED_CONSTANTS = {
     "AI_CONFIDENCE_THRESHOLD": 80,
     "AI_TEMPERATURE": 0.0,
     "GRADING_FALLBACK_MODELS": ["pinned/backup"],
+    "IMAGE_FALLBACK_MODELS": ["pinned/image"],
     "GRADING_QUESTIONS_PER_CHUNK": 10,
     "MAIN_MODEL": "pinned/main",
 }
-PINNED_VERSION = "cfg:d09ab0c0d559"
+# H-205: IMAGE_FALLBACK_MODELS joined CODE_CONSTANTS (was cfg:d09ab0c0d559).
+PINNED_VERSION = "cfg:49188dfc9eb4"
 
 
 def _grading_names_in_settings_file():

@@ -28,6 +28,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase, TestCase, override_settings
 
+from ai_processor import services
 from ai_processor.services import (
     DEFAULT_FALLBACK_MODELS,
     GRADING_FALLBACK_MODELS,
@@ -38,6 +39,8 @@ from users.models import CustomUser, UserTypes
 
 # S5: execute_graded_task requires one; any non-empty label will do here.
 TEST_PROMPT_VERSION = "TEST_PROMPT:00000000"
+#: Read by name: the list is new in H-205 (tests first).
+IMAGE_LIST = "IMAGE_FALLBACK_MODELS"
 
 
 @override_settings(
@@ -190,6 +193,14 @@ class GradingFallbackModelRestrictionTest(TestCase):
             self.assertNotIn("nano", model)
         # And the restriction is real — it's a strict subset of the default.
         self.assertTrue(set(GRADING_FALLBACK_MODELS) < set(DEFAULT_FALLBACK_MODELS))
+
+    def test_image_fallbacks_never_include_a_nano_model(self):
+        # H-205: the image-capable backup of page reading is held to the
+        # same rule as the text backup.
+        image_backups = getattr(services, IMAGE_LIST)
+        for model in image_backups:
+            self.assertNotIn("nano", model)
+        self.assertTrue(image_backups)
 
     def test_non_grading_calls_keep_default_fallbacks(self):
         # None means __ai_model falls through to DEFAULT_FALLBACK_MODELS.
