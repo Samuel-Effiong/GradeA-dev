@@ -31,3 +31,10 @@ GREEN both before and after the fix (set the switch by override_settings, so the
   every test in TheRequestAsksForZeroRetentionOnEveryPath and TheHelper (class-level override on)
   all static tests (NAMED reason text reworded only)
 ```
+
+## Gate on a4161b4d: STOPPED RED (kept on the record)
+
+`stopped_a4161b4d/` (gzipped). Step 0 (17 written reds), 1a and 1b were as written; step 1 stopped
+at "Ran 642 tests, FAILED (failures=1)": `test_the_settings_module_reads_the_variable_with_default_false`
+expected the settings line with double quotes, but `ast.unparse` always writes single quotes, so the
+test could not pass (the flaw predates the default-off change). Fixed in `97364d3b`, test only.
