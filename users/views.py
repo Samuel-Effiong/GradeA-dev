@@ -1445,18 +1445,26 @@ the plain rate limit (10 requests/hour per IP) does not.
         # reset or stamped, whatever code exists (one issued while it was
         # active), and neither is a never-verified account with admin power.
         # The same generic refusal as an unknown address; nothing is
-        # written, so the code is left to expire by itself.
+        # written to the account or the code, so the code is left to expire
+        # by itself. H-221: audited as the wrong code, as verify and the
+        # school-admin registration record the same rule.
         if not user.email_verified_at and (
             not user.is_active or _holds_admin_power(user)
         ):
+            sign_in_failed(request, user, "password_reset", "INVALID_CODE")
             raise ParseError("Invalid email, OTP code, or new password.")
 
         # H-202: what is left inactive here is verified. A switched-off person
         # sets no password and is not told it worked: the generic refusal,
         # the attempt spent like a wrong guess (unless already locked).
+        # H-221: audited as refused for a deactivated account, as Google
+        # sign-in records the same state.
         if not user.is_active:
             if not otp_obj.is_locked():
                 otp_obj.register_failure()
+            sign_in_failed(
+                request, user, "password_reset", "ACCOUNT_DEACTIVATED", denied=True
+            )
             raise ParseError("Invalid email, OTP code, or new password.")
 
         if otp_obj.is_locked():
