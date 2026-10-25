@@ -309,6 +309,70 @@ class TheOperationsOfOneMigration(SimpleTestCase):
         )
 
 
+class AConstraintChangedInOneStep(SimpleTestCase):
+    """H-217. AddConstraint and RemoveConstraint fell through to the
+    "additive" answer in silence. A constraint added in one step locks the
+    table and checks every existing row inside the deploy; the house way is
+    RunSQL ... NOT VALID and then VALIDATE (students/0033 and 0034), which
+    the check does not judge (RunSQL, as documented) and must keep passing.
+    """
+
+    positive = models.CheckConstraint(
+        condition=models.Q(qty__gt=0), name="item_qty_positive"
+    )
+
+    def test_a_check_constraint_added_in_one_step_is_reported(self):
+        self.assertEqual(
+            judged(
+                [migrations.AddConstraint("Item", self.positive)],
+                qty=models.IntegerField(),
+            ),
+            ["AddConstraint"],
+        )
+
+    def test_a_unique_constraint_added_in_one_step_is_reported(self):
+        unique = models.UniqueConstraint(fields=["sku"], name="item_sku_unique")
+        self.assertEqual(
+            judged(
+                [migrations.AddConstraint("Item", unique)],
+                sku=models.CharField(max_length=20),
+            ),
+            ["AddConstraint"],
+        )
+
+    def test_a_constraint_dropped_in_one_step_is_reported(self):
+        self.assertEqual(
+            judged(
+                [migrations.RemoveConstraint("Item", "item_qty_positive")],
+                qty=models.IntegerField(),
+            ),
+            ["RemoveConstraint"],
+        )
+
+    def test_the_finding_names_the_constraint_and_the_two_step_way(self):
+        findings = check.findings_for(
+            [migrations.AddConstraint("Item", self.positive)],
+            a_shop(qty=models.IntegerField()),
+            "shop",
+        )
+        self.assertEqual(len(findings), 1, findings)
+        self.assertIn("'item_qty_positive'", findings[0])
+        self.assertIn("NOT VALID", findings[0])
+
+    def test_the_two_step_way_itself_is_not_reported(self):
+        """students/0033's shape: the database gets a RunSQL (unjudged, as
+        documented); the constraint rides along as a state operation only."""
+        two_step = migrations.RunSQL(
+            sql=(
+                "ALTER TABLE shop_item ADD CONSTRAINT item_qty_positive "
+                "CHECK (qty > 0) NOT VALID"
+            ),
+            reverse_sql="ALTER TABLE shop_item DROP CONSTRAINT item_qty_positive",
+            state_operations=[migrations.AddConstraint("Item", self.positive)],
+        )
+        self.assertEqual(judged([two_step], qty=models.IntegerField()), [])
+
+
 # The real migrations the check fails on today (pull request 2), and one
 # that carries a marker only because of this defect. For each: what the
 # file does, in plain words, and what the check says of it now.
