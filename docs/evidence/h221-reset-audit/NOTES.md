@@ -136,3 +136,38 @@ Before the pack (by parsing source only, no test run), it passes on the tip and 
   - the 21 guards.
 - **The mutants:** 9, with a 1410 s limit and the 300 s stall watchdog.
 - **Base:** `7286717e`.
+
+## The gate on da069c2b (granted by the Senior Manager, 25 October 2026, 12:18 WAT)
+
+Run 12:19:0x to 12:22:30 WAT inside one `systemd-inhibit`, gate exit 0. Logs are in `gate_da069c2b/` (gzipped).
+- Available memory at the start was 10G, so the cap was 8G.
+- Load was 1.95 2.97 3.55 at the start and 2.64 2.71 3.32 at the end.
+
+- **Red run** (`users/views.py` as at 7286717e, the new module as at the tip):
+  - 4 FAIL blocks, each holding its written fragment, no ERROR, no OK line.
+  - "Ran 6 tests in 0.410s", "FAILED (failures=4)".
+  - The two controls were green. The source was restored.
+- **makemigrations --check:** exit 0, no changes.
+- **Seam:** "SEAM OK: only reset_password changed, by the two sign_in_failed calls". The changed-file check passed.
+- **Step 1** (own, 12 users and 7 audit near modules, `tests_reason_codes`, the 21 guards), 12:19:32 to 12:21:38:
+  - "Ran 772 tests in 109.210s", "OK (skipped=3)".
+  - 772 test lines were counted in the log.
+- **Step 2, mutants** (own database, rules 17, 18 and 22), 12:21:38 to 12:22:28:
+  - All 9 KILLED, each with "Ran 32 tests".
+  - Every mutant's failing tests are exactly its expected set, with nothing missing and nothing extra.
+  - Every block of every expected test held the written fragment (`wrong_reason` empty for all nine).
+
+| Id | Failing / expected |
+|---|---|
+| M1 | 2 / 2 |
+| M2 | 2 / 2 |
+| M3 | 2 / 2 |
+| M4 | 2 / 2 |
+| M5 | 2 / 2 |
+| M6 | 2 / 2 |
+| M7 | 2 / 2 |
+| M8 | 1 / 1 |
+| M9 | 1 / 1 (2 blocks, one per H-164 subtest) |
+
+- The source was clean after the mutants, and the mutant database was dropped. No watchdog fired.
+- The Senior Manager read the logs and ruled the gate GREEN.
