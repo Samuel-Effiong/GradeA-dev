@@ -200,3 +200,47 @@ three bad inputs:
   `users.tests_activation_email_domain`, `AutoGrader.tests_reason_codes`, and the 21 guards.
 - **The mutants:** 8, with a 1320 s limit and the 300 s stall watchdog.
 - **Base:** `7286717e`.
+
+## The gate on 039c6135: red at step 1
+
+Kept as the record in `red_gate_039c6135/` (see its `RED_GATE.md`). The red run, makemigrations and the seam were as
+written. Step 1 failed on the two `users.tests_auth_endpoints` tests that still pinned C and G ("202 != 400"). The fix
+is the tests commit after 039c6135 and this revised pack.
+
+## The gate on e5de4d07 (granted by the Senior Manager, 25 October 2026)
+
+Run 14:54:02 to 14:59:35 WAT inside one `systemd-inhibit`. Logs are in `gate_e5de4d07/` (gzipped), including the
+gate's own output, `gate_e5de4d07.out.gz`.
+- **Exit code:** not captured. The script was started in the background and nothing recorded its exit status. This
+  run's output has no "gate exit=" line, unlike the H-221 and H-210 gates. Its output has no STOP line and no watchdog
+  line, and ends with "source clean after mutants", "dropped test_h198_otp_neutral_mut" and the end load line.
+- Available memory at the start was 11G, so the cap was 9G. Load was 1.08 1.82 2.21 at the start and 4.10 3.69 2.96 at
+  the end.
+
+- **Red run** (`users/views.py` as at 7286717e, the five modules as at the tip):
+  - 17 FAIL blocks, each holding its written fragment, no ERROR, no OK line.
+  - "Ran 131 tests in 7.130s", "FAILED (failures=17)".
+  - The controls were green. The source was restored.
+- **makemigrations --check:** exit 0, no changes.
+- **Seam:** "SEAM OK: only otp changed, in the two ruled branches (and its OpenAPI text)". The changed-file check passed.
+- **Step 1** (own five modules, near modules, the 21 guards), 14:54:35 to 14:57:51:
+  - "Ran 733 tests in 173.174s", "OK (skipped=3)".
+  - 733 test lines were counted in the log.
+- **Step 2, mutants** (own database, rules 17, 18 and 22), 14:57:51 to about 14:59:30:
+  - All 8 KILLED, each with "Ran 122 tests".
+  - Every mutant's failing tests are exactly its expected set, with nothing missing and nothing extra.
+  - Every block of every expected test held the fragment written for that test.
+
+| Id | Failing / expected |
+|---|---|
+| M1 | 4 / 4 (with EP-C) |
+| M2 | 10 / 10 (with EP-G) |
+| M3 | 2 / 2 (R1, EP-C) |
+| M4 | 9 / 9 (with EP-G) |
+| M5 | 3 / 3 (K1, the active-verified test, EP-C) |
+| M6 | 1 / 1 (R5) |
+| M7 | 1 / 1 (R4) |
+| M8 | 2 / 2 (R3, EP-G) |
+
+- The source was clean after the mutants, and the mutant database was dropped. No watchdog fired.
+- The Senior Manager read the logs and ruled the gate GREEN.
