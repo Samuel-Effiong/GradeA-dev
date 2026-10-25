@@ -124,7 +124,24 @@ Before the pack (by parsing source only, no test run), it passes on the tip. It 
 - **Near:** `assignments.tests_prerender`, `assignments.tests_task_results_carry_no_text`,
   `assignments.tests_upload_task_retry_policy`, `assignments.tests_upload_pipeline`, `assignments.tests` (the
   due-reminder tests), `students.tests_h38_n3_refusal_audit`, `students.tests_h38_tasks_namespace`,
-  `students.tests_broker_text_not_logged`, `students.tests_broker_outage`.
+  `students.tests_broker_text_not_logged`, `students.tests_broker_outage`, and the Senior Manager's nine (below).
+- **The Senior Manager's nine (added 25 October 2026, from a search for every test module that names a changed
+  function).** Each was read against the five changed functions. None depends on the old text, so none was changed:
+
+  | Module | What it reaches | Depends on the old text? |
+  |---|---|---|
+  | `assignments.tests_security` | `upload_assignment_async` is patched out in the view (399, 415, 535); the task body never runs | No |
+  | `billing.tests.test_h38_part2_removed_teacher_routes` | a view test (294) that expects the H-38 guard's 404 before the task is queued | No |
+  | `billing.tests.test_refusal_handling` | D6 (465-495) reads `grade_engine_async`'s tracked entries, not a changed site | No |
+  | `classrooms.tests_teacher_access_sweep` | a source check (359) that `grade_batch_async` still calls `teacher_may_reach`; it still does (`tasks.py:1453`, outside the changed line) | No |
+  | `students.tests_batch_item_results` | `grade_batch_async`'s normal path (449); its unclassified failure (289) is `upload_answers_engine_async`'s | No |
+  | `students.tests_h215a_auto_grade_resilience` | `grade_batch_async`'s normal path (260, 302); the raising `Assignment` stand-in (310-345, 491) is used only with `auto_grade_due_assignment` | No |
+  | `students.tests_s6d_rubric_gate` | the rubric refusal's entry (274-299), written by `_refuse_batch_without_rubric`, which is unchanged | No |
+  | `assignments.tests_upload_batch_scale` | posts to the plain `upload` route (`views.py:865`), which does not queue `upload_assignment_async`; its errors come from that route | No |
+  | `assignments.tests_upload_batch_billing` | the same route; `UNREADABLE_PDF_ERROR` and `IN_PROGRESS_MESSAGE` come from it, not from the task | No |
+
+  - So the nine are regression cover around the changed functions, not tests of the changed lines. The new module is
+    what covers those.
 - **Guards:** the 21.
 - **The mutants:** 7, with a 1230 s limit and the 300 s stall watchdog.
 - **Base:** `b4af529f`.
