@@ -436,7 +436,7 @@ All three scope to ungraded submissions. The comment on the dead `grade_all_subm
 
 H-215a: the filter is read when the papers are queued, and a paper can be graded by hand (or by a second delivery of the same message) before its queued run starts. The scheduled and automatic paths therefore send `only_if_ungraded=True`, and the grading claim then also requires `graded_at IS NULL` in the same atomic UPDATE. A paper graded meanwhile is skipped: no AI call, no charge, its tracked item `SUCCESS` with `skipped: true`, and its batch row `"SUCCESS"` with `"note": "already graded"`. `grade-all` and a teacher's own grading are unchanged; grading a graded paper there is a deliberate re-grade.
 
-`auto_grade_due_assignment` retries a database or broker outage (`AUTO_GRADE_TRANSIENT_ERRORS`). The retry carries the batch row's id, reuses it, and sends only the papers whose dispatch never reached the broker (no celery id on their item in that row). New items are numbered after the row's highest. Every other error is not retried.
+`auto_grade_due_assignment` retries a database or broker outage (`AUTO_GRADE_TRANSIENT_ERRORS`). The retry carries the batch row's id, reuses it, and sends only the papers whose dispatch never reached the broker (no celery id on their item in that row). A paper whose dispatch failed gets that same item back, reset to `PENDING` with `retry_count + 1`, so the row keeps one item per paper and reads complete once they finish; a paper with no item gets a new one, numbered after the row's highest. Every other error is not retried.
 
 Two gaps worth flagging:
 
