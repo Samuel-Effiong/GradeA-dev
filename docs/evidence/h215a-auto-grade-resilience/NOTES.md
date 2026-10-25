@@ -84,6 +84,13 @@
   query as well is just as invisible, for the same reason.
 - **Paperless items** are left out of the resend's "already queued" set, because `NOT IN` over a NULL
   `submission_id` would match no paper.
+- **A reset item keeps its old `meta`** (checked by reading after the gate, at the Senior Manager's request). A
+  failed dispatch writes no meta, so the item still says `{"step": "Queued for batch grading"}`, which stays true
+  until the relaunch writes a new step. No reader shows that step for a PENDING item with no celery id:
+  `item_result` (`students/item_results.py:34-45`) reads only `submission_id` and `replaced_existing`;
+  `get_task_context` reads `meta` only for student summaries; `task_status` (`users/views.py:2527-2545`) does
+  show `str(meta)`, but it finds the item by `celery_task_id` (`get_processing_task`,
+  `students/task_tracking.py:113`), so it cannot reach the item until the relaunch gives it an id.
 
 ## Expected reds against b02de3fb (written before any run)
 
@@ -158,3 +165,18 @@ The battery is `students.tests_h215a_auto_grade_resilience` plus `assignments.te
 | G10 | the scheduled batch dispatches without the flag | the scheduled-batch skip, the batch flag test |
 | G11 | the retry gives kwargs only (e8d537e6's retry) | the beat, two-outage and route tests (TypeError, the task fails), the database and broker tests (`args` missing from the retry call: KeyError) |
 | G12 | a retry makes a new item instead of reusing the failed one (69699386) | the broker, beat, two-outage and route tests, each with its written red against 69699386 |
+
+## The gate on f92afb2c (granted by the Senior Manager; accepted)
+
+- Started 2026-10-25 09:24:06 after the pre-start check (load 1.42; 16,447 MB available), so a cap of 14G. Exit 0
+  at 09:30:45.
+- **Step 0:** exit 1, Ran 18 tests, FAILED (failures=18, errors=1): all 19 blocks red for their written
+  fragments, and no other failure.
+- **1a:** makemigrations, no changes. **1b:** the seam passed.
+- **Step 1:** the new module, 37 nearby modules and 21 guards: Ran 866 tests in 236 s, OK (skipped=1).
+- **Step 2:** G1-G12 KILLED, each with its Ran line (26 tests), every expected test failing and nothing else.
+  The reason checks matched: G11's beat test failed with "got multiple values for argument 'assignment_id'".
+  G12 gave '[1, 2, 3, 4] != [1, 2, 3]' (broker and beat tests), '[1, 2, 3, 4, 5] != [1, 2, 3]' (two outages)
+  and "'4 / 3' != '3 / 3'" (route).
+- No memory or stall watchdog action. Load at the end: 4.04 3.64 3.14.
+- Logs: `gate_f92afb2c/` (gzipped).
