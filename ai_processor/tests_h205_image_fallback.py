@@ -295,8 +295,9 @@ def _settings_default(name):
 
 
 class TheSecondGraderTest(SimpleTestCase):
-    def test_the_default_candidates_are_deepseek_then_haiku(self):
-        self.assertEqual(
+    def test_the_default_candidates_are_deepseek_and_haiku(self):
+        # H-254 owns the order (haiku first); this test keeps the two names.
+        self.assertCountEqual(
             _settings_default("GRADING_SECOND_OPINION_MODELS"), [DEEPSEEK, HAIKU]
         )
 
