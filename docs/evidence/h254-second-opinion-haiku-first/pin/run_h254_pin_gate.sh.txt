@@ -76,8 +76,12 @@ UPART=modules
 eval "$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $OWN $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
 echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
 if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
-# The golden test must have RUN, not been skipped for missing recordings.
-grep -E "^test_replay_report_matches_committed_snapshot .*\.\.\. ok$" $E/modules_and_guards.txt > /dev/null && echo "golden test ran and passed" || { echo "STOP: the golden test did not run and pass"; exit 2; }
+# The golden test must have RUN, not been skipped for missing recordings. Its own log lines come between its name
+# and its result (the stopped 09dac130 gate: "ok" alone on a later line), so its status is the first result word
+# after its name line and before the next test's name line.
+golden_status() { awk '/^test_replay_report_matches_committed_snapshot \(/{f=1; sub(/.*\.\.\. /,""); if ($0 ~ /(^| )(ok|FAIL|ERROR)$|skipped/) {print; exit}; next} f && /^test_[A-Za-z0-9_]+ \(/{exit} f && /(^| )(ok|FAIL|ERROR)$|^skipped/{print; exit}' "$1"; }
+GS=$(golden_status $E/modules_and_guards.txt); echo "golden test status: [$GS]"
+[ "$GS" = ok ] && echo "golden test ran and passed" || { echo "STOP: the golden test did not run and pass"; exit 2; }
 echo "=== 2. mutant: 1 (own DB, rules 17 and 18) $(date +%T)"
 # Time limit 90 s x 1 + 600 = 690 s, with a 300 s stall watchdog on the mutant log (2026-10-14).
 UPART=mutants
