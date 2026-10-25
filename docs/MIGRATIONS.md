@@ -92,6 +92,7 @@ make sure nothing breaks during it.
 | Add a new column *with a real default* | Change a column's type |
 | Add a new index (concurrently, for large tables) | Make an existing column `NOT NULL` without a default |
 | Add a new, unused foreign key (nullable) | Any operation that removes something old code might still read or write |
+| Add a constraint in two steps: `RunSQL ... NOT VALID`, then `VALIDATE CONSTRAINT` in the next migration (`students/0033`, `0034`) | Add or drop a constraint in one step (`AddConstraint`, `RemoveConstraint`): adding one locks the table and checks every existing row inside the deploy; dropping one loosens a rule the rows were kept to (H-217) |
 
 The intuition: additive changes are things old code simply doesn't know
 about yet, and doesn't need to. Non-additive changes take something away
@@ -206,6 +207,12 @@ classifies each operation using the table in section 2.
 - **Non-additive migration, with a marker:** passes, and prints a reminder
   of what was acknowledged — so a reviewer scanning the PR log can see
   exactly what was allowed through and why.
+- **A constraint added or dropped in one step** (`AddConstraint`,
+  `RemoveConstraint`) is reported like any non-additive operation (H-217,
+  2026-10-25). The two-step form is not reported: `RunSQL` is not judged
+  (raw SQL is for a reviewer to read), and the constraint it carries as a
+  `state_operations` entry never reaches the database through the check's
+  eyes. `students/0033` and `0034` are the worked example.
 
 To acknowledge a deliberate non-additive step, add this comment anywhere in
 the migration file:
