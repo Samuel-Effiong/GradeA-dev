@@ -1,8 +1,12 @@
 import logging
+import random
 from datetime import timedelta
 
 from celery import shared_task, states
 from django.conf import settings
+from django.db import InterfaceError
+from django.db import OperationalError as DatabaseOperationalError
+from django.db.models import Max
 from django.template.loader import render_to_string
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
@@ -11,6 +15,10 @@ from ai_processor.services import GRADING_ASSIGNMENT_PROMPT, ai_processor
 from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ErrorClass, ReasonCode
+from AutoGrader.dispatch import (
+    BROKER_UNAVAILABLE_ERRORS,
+    ProcessingTemporarilyUnavailable,
+)
 from AutoGrader.error_messages import (
     classify_infra_error,
     describe_background_task_error,
@@ -35,12 +43,14 @@ from students.exceptions import (
     StudentUploadNotProcessedError,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
+    SubmissionGradedMeanwhileError,
     SubmissionGradingInProgressError,
     SubmissionLimitReachedError,
     TaskCancelledError,
 )
 from students.grading_gates import rubric_missing
 from students.models import (
+    BackgroundProcessingTask,
     BackgroundTaskType,
     BatchUploadSession,
     BatchUploadType,
@@ -633,7 +643,12 @@ def _audit_unreachable_course_refusal(teacher_id, assignment, processing_task_id
     time_limit=GRADING_TASK_TIME_LIMIT_SECONDS,
 )
 def grade_engine_async(
-    self, user_id, submission_id, batch_id=None, processing_task_id=None
+    self,
+    user_id,
+    submission_id,
+    batch_id=None,
+    processing_task_id=None,
+    only_if_ungraded=False,
 ):
     try:
         ensure_task_not_cancelled(processing_task_id)
@@ -684,8 +699,13 @@ def grade_engine_async(
         # grade_engine performs the final (cancellation-guarded) save
         # itself; a second full save here would race formatted_grade_async's
         # write to the same row and clobber formatted_grade (H4).
+        # H-215a: the flag is passed only when set, so the teacher's own
+        # grading calls grade_engine exactly as before.
         submission = grade_engine(
-            user, submission, processing_task_id=processing_task_id
+            user,
+            submission,
+            processing_task_id=processing_task_id,
+            **({"only_if_ungraded": True} if only_if_ungraded else {}),
         )
 
         self.update_state(state="PROGRESS", meta={"step": "Completed"})
@@ -723,6 +743,36 @@ def grade_engine_async(
             meta={"step": "Grading cancelled", "submission_id": submission_id},
         )
         raise
+    except SubmissionGradedMeanwhileError:
+        # H-215a: an automatic run (the due-date auto grading or the
+        # teacher's scheduled batch) found the paper graded since it was
+        # queued, or a second delivery of the same message found it graded
+        # by the first. The grade already given stands: no AI call, no
+        # charge. A clean skip, so SUCCESS.
+        mark_processing_task_success(
+            processing_task_id,
+            meta={
+                "step": "Skipped - already graded",
+                "skipped": True,
+                "submission_id": submission_id,
+            },
+        )
+        if batch_id:
+            skipped = StudentSubmission.objects.select_related("student").get(
+                id=submission_id
+            )
+            BatchUploadSession.objects.get(id=batch_id).update_result(
+                f"Submission for {skipped.student.get_full_name()}",
+                "SUCCESS",
+                batch_type=BatchUploadType.GRADE,
+                submission_id=submission_id,
+                note="already graded",
+            )
+        return {
+            "status": states.SUCCESS,
+            "submission_id": submission_id,
+            "message": "This submission was already graded - run skipped.",
+        }
     except SubmissionGradingInProgressError:
         # C3: this is a redelivered/duplicate task racing a still-running
         # original - a clean skip, not a failure. Return SUCCESS so Celery
@@ -1457,15 +1507,24 @@ def grade_batch_async(
                 if batch_id
                 else None
             ),
+            only_if_ungraded=True,
         )
 
 
-def _dispatch_tracked_grading(teacher, assignment, submissions, session):
+def _dispatch_tracked_grading(
+    teacher, assignment, submissions, session, only_if_ungraded=False, first_index=1
+):
     """Grade each submission as a tracked batch item, as grade-all does
     (FR-A-07 S7a): the session then answers in session-results' per-item
     shape, with codes, instead of the legacy results list. Items are
-    numbered 1..n in dispatch order."""
-    for item_index, submission in enumerate(submissions, start=1):
+    numbered from first_index (1 unless a retry continues a session) in
+    dispatch order.
+
+    H-215a: the automatic paths pass only_if_ungraded=True, so a paper
+    graded after it was queued is skipped when its run starts. It is sent
+    only when set, so the other callers' messages are unchanged."""
+    flag = {"only_if_ungraded": True} if only_if_ungraded else {}
+    for item_index, submission in enumerate(submissions, start=first_index):
         processing_task = create_processing_task(
             requested_by=teacher,
             task_type=BackgroundTaskType.BATCH_SUBMISSION_GRADING,
@@ -1482,6 +1541,7 @@ def _dispatch_tracked_grading(teacher, assignment, submissions, session):
             str(teacher.id),
             str(submission.id),
             batch_id=str(session.id) if session else None,
+            **flag,
         )
         emit(
             AuditAction.GRADING_REQUESTED,
@@ -1499,8 +1559,42 @@ def _dispatch_tracked_grading(teacher, assignment, submissions, session):
         logger.info("Grading queued: submission=%s", submission.id)
 
 
-@shared_task(name="assignments.tasks.auto_grade_due_assignment")
-def auto_grade_due_assignment(assignment_id):
+#: H-215a: the outages auto_grade_due_assignment retries: the database,
+#: and the broker (the launcher's wrapper and the raw classes it wraps).
+AUTO_GRADE_TRANSIENT_ERRORS = (
+    DatabaseOperationalError,
+    InterfaceError,
+    ProcessingTemporarilyUnavailable,
+    *BROKER_UNAVAILABLE_ERRORS,
+)
+AUTO_GRADE_MAX_RETRIES = 5
+
+
+def _auto_grade_retry_countdown(retries):
+    """60 s doubling to 15 min, plus up to 30 s so retries spread out."""
+    return min(60 * 2**retries, 900) + random.randint(0, 30)  # nosec B311
+
+
+def _papers_not_yet_sent(ungraded_submissions, session):
+    """H-215a: on a retry, the papers whose dispatch never reached the
+    broker. A tracked item with a celery id was queued and is left alone
+    (queued, running, finished, or failed in the pipeline, which is not
+    this task's to retry); a paper whose dispatch failed has none. Items
+    with no paper are left out: NOT IN over a NULL would match nothing."""
+    reached = (
+        BackgroundProcessingTask.objects.filter(
+            batch_session=session, submission_id__isnull=False
+        )
+        .exclude(celery_task_id__isnull=True)
+        .exclude(celery_task_id="")
+        .values("submission_id")
+    )
+    return ungraded_submissions.exclude(id__in=reached)
+
+
+@shared_task(bind=True, name="assignments.tasks.auto_grade_due_assignment")
+def auto_grade_due_assignment(self, assignment_id, session_id=None):
+    session = None
     try:
         assignment = Assignment.objects.get(id=assignment_id)
 
@@ -1526,12 +1620,16 @@ def auto_grade_due_assignment(assignment_id):
             _audit_unreachable_course_refusal(assignment.course.teacher_id, assignment)
             return COURSE_NOT_FOUND
 
-        session = BatchUploadSession.objects.create(
-            teacher=assignment.course.teacher,
-            course=assignment.course,
-            task_type=BatchUploadType.GRADE,
-            total_files=ungraded_submissions.count(),
-        )
+        # H-215a: a retry carries the batch row it made before the outage.
+        if session_id:
+            session = BatchUploadSession.objects.get(id=session_id)
+        else:
+            session = BatchUploadSession.objects.create(
+                teacher=assignment.course.teacher,
+                course=assignment.course,
+                task_type=BatchUploadType.GRADE,
+                total_files=ungraded_submissions.count(),
+            )
 
         # S6d x S7a: the run-time re-check, before any item is dispatched
         # (see grade_batch_async).
@@ -1544,11 +1642,36 @@ def auto_grade_due_assignment(assignment_id):
             )
             return "Refused: RUBRIC_MISSING"
 
+        to_send = ungraded_submissions
+        first_index = 1
+        if session_id:
+            to_send = _papers_not_yet_sent(ungraded_submissions, session)
+            last = session.processing_tasks.aggregate(last=Max("item_index"))["last"]
+            first_index = (last or 0) + 1
+        count = to_send.count()
         _dispatch_tracked_grading(
-            assignment.course.teacher, assignment, ungraded_submissions, session
+            assignment.course.teacher,
+            assignment,
+            to_send,
+            session,
+            only_if_ungraded=True,
+            first_index=first_index,
         )
 
-        return f"Auto-grading started for {ungraded_submissions.count()} submissions."
+        return f"Auto-grading started for {count} submissions."
+    except AUTO_GRADE_TRANSIENT_ERRORS as exc:
+        # H-215a: a short database or broker outage is retried, carrying
+        # the batch row (if made) so the retry sends only the missed
+        # papers. After the last retry Celery raises exc: the task fails.
+        raise self.retry(
+            exc=exc,
+            countdown=_auto_grade_retry_countdown(self.request.retries),
+            max_retries=AUTO_GRADE_MAX_RETRIES,
+            kwargs={
+                "assignment_id": assignment_id,
+                "session_id": str(session.id) if session else session_id,
+            },
+        ) from exc
     except Exception as e:
         # H-209: swallowed here, so this line is the only report of it: class
         # and frames, never the text; the stored result names the class only.

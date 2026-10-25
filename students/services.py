@@ -48,6 +48,7 @@ from .exceptions import (
     SubmissionAlreadyGradedError,
     SubmissionAnswersUnreadableError,
     SubmissionBeingGradedError,
+    SubmissionGradedMeanwhileError,
     SubmissionGradingInProgressError,
     SubmissionLimitReachedError,
     SubmissionProcessingInProgressError,
@@ -305,7 +306,7 @@ GRADING_TASK_TIME_LIMIT_SECONDS = 25 * 60
 GRADING_CLAIM_STALE_AFTER = timedelta(seconds=GRADING_TASK_TIME_LIMIT_SECONDS + 5 * 60)
 
 
-def _claim_submission_for_grading(submission_id):
+def _claim_submission_for_grading(submission_id, only_if_ungraded=False):
     """
     Atomically claim a submission for grading (C3). Returns True if the
     claim was acquired.
@@ -319,17 +320,21 @@ def _claim_submission_for_grading(submission_id):
     Claimable states: anything that is not a *fresh* RUNNING claim - IDLE,
     DONE (legitimate re-grade), FAILED, and a RUNNING claim older than
     GRADING_CLAIM_STALE_AFTER (left behind by a crashed/killed worker).
+
+    H-215a: with only_if_ungraded the same UPDATE also requires graded_at
+    to be empty, so an automatic run never grades a paper graded since it
+    was queued. The check and the claim are one statement, so a grade
+    committed before the claim is always seen.
     """
     now = timezone.now()
     stale_cutoff = now - GRADING_CLAIM_STALE_AFTER
-    claimed = (
-        StudentSubmission.objects.filter(pk=submission_id)
-        .exclude(
-            grading_state=GradingState.RUNNING,
-            grading_started_at__gt=stale_cutoff,
-        )
-        .update(grading_state=GradingState.RUNNING, grading_started_at=now)
-    )
+    candidates = StudentSubmission.objects.filter(pk=submission_id)
+    if only_if_ungraded:
+        candidates = candidates.filter(graded_at__isnull=True)
+    claimed = candidates.exclude(
+        grading_state=GradingState.RUNNING,
+        grading_started_at__gt=stale_cutoff,
+    ).update(grading_state=GradingState.RUNNING, grading_started_at=now)
     if claimed:
         # H-1 Stage 3 (pre-existing staleness P1): .update() bypasses
         # post_save, and only the FAILED release path below invalidated -
@@ -616,7 +621,7 @@ def _refuse_unreadable_answers(submission):
     raise SubmissionAnswersUnreadableError(ANSWERS_UNREADABLE_FOR_TEACHER)
 
 
-def grade_engine(user, submission, processing_task_id=None):
+def grade_engine(user, submission, processing_task_id=None, only_if_ungraded=False):
     # FR-A-06 #7 (S6d): nothing to grade against -> 409 RUBRIC_MISSING,
     # before the claim, the AI call and any charge. Every grading path
     # comes through here, including scheduled and automatic runs, which
@@ -626,7 +631,20 @@ def grade_engine(user, submission, processing_task_id=None):
     if printable_answers(submission.answers)[1] == ALL_LEFT_OUT:
         _refuse_unreadable_answers(submission)
 
-    if not _claim_submission_for_grading(submission.id):
+    if not _claim_submission_for_grading(
+        submission.id, only_if_ungraded=only_if_ungraded
+    ):
+        # H-215a: an automatic run that lost the claim because the paper
+        # was graded meanwhile skips it; otherwise another run holds it.
+        if (
+            only_if_ungraded
+            and StudentSubmission.objects.filter(
+                pk=submission.id, graded_at__isnull=False
+            ).exists()
+        ):
+            raise SubmissionGradedMeanwhileError(
+                f"Submission {submission.id} was graded after it was queued."
+            )
         raise SubmissionGradingInProgressError(
             f"Submission {submission.id} is already being graded."
         )
