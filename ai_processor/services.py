@@ -730,7 +730,18 @@ def _carries_image(user_prompt, system_prompt, messages):
     )
 
 
-def _provider_block():
+#: H-204: the provider tries the cheapest supplier of the asked model first,
+#: then the next cheapest on an outage, so no availability is lost.
+PROVIDER_SORT = "price"
+#: H-204: no fp4 endpoint is used (two of deepseek-v4-pro's are fp4).
+#: "unknown" must stay: every endpoint of grok-4.3, claude-haiku-5.5 and
+#: gpt-5.4-nano publishes its quantization as unknown (the provider's
+#: endpoints list, read 25 October 2026), so without it those models would
+#: have no endpoint at all.
+PROVIDER_QUANTIZATIONS = ("fp8", "fp16", "bf16", "fp32", "unknown")
+
+
+def _provider_block() -> Dict[str, Any]:
     """The `provider` object of every request to the AI provider (H-206).
 
     What each field really does (the provider's routing documentation):
@@ -746,8 +757,22 @@ def _provider_block():
     at each call here; changing the variable on the host needs a RESTART of
     the web, worker and Beat processes. Student names and submission content
     pass through these requests.
+
+    H-204: `sort: "price"` makes the provider try the cheapest supplier first
+    and the next cheapest on an outage. It turns off the provider's load
+    balancing, so a cheap supplier that is slower is still tried first; the
+    timeouts and fallbacks are unchanged, and grading runs in the background.
+    With zdr on, the sort applies only among zero-retention endpoints.
+    `quantizations` leaves out the fp4 endpoints (PROVIDER_QUANTIZATIONS says
+    why "unknown" stays). Both keys are sent with zdr on and off. The list is
+    a new one each call too. Neither key is part of the grading or reading
+    config version (the same as zdr), so saved answers are still reused.
     """
-    block = {"data_collection": "deny"}
+    block: Dict[str, Any] = {
+        "data_collection": "deny",
+        "sort": PROVIDER_SORT,
+        "quantizations": list(PROVIDER_QUANTIZATIONS),
+    }
     if getattr(settings, "AI_PROVIDER_ZDR_ENABLED", False):
         block["zdr"] = True
     return block
@@ -1065,7 +1090,9 @@ class AIProcessor:
                 # data_collection "deny" filters suppliers that train on
                 # data; zdr filters suppliers that retain prompts and is in
                 # the block only while AI_PROVIDER_ZDR_ENABLED is on (off by
-                # default). Student names and submission content
+                # default). sort "price" tries the cheapest supplier first and
+                # quantizations leaves out fp4 endpoints (H-204), with zdr on
+                # or off. Student names and submission content
                 # pass through this call.
                 "provider": _provider_block(),
             },
