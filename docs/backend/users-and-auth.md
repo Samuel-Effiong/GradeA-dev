@@ -387,6 +387,7 @@ Three deliberate choices ([users/views.py:839-896](../../users/views.py#L839-L89
 
 - The lookup uses `select_for_update()` and requires `user_type=SCHOOL_ADMIN, is_active=False` — the row lock prevents two concurrent submissions of the same invite link from both racing past the `is_active` check ([users/views.py:1321-1332](../../users/views.py#L1321-L1332)).
 - An expired invite says "contact your superadmin", with no self-service renewal.
+- H-210: each attempt spends from the same per-address budget as `auth/verify` (H-53; the invitation token is the same `activation_token`). After 5 attempts that do not succeed, the address is locked for 30 minutes and every attempt, the right token included, gets verify's 429 `VERIFY_LOCKED`, whether or not the address has an account. A success refunds the attempts.
 - Returns a JWT pair — the admin is logged in immediately.
 
 The invite itself is created by `SchoolWithAdminSerializer` ([classrooms/serializers.py:624+](../../classrooms/serializers.py#L624)), which creates the account with **no usable password** and a **high-entropy token** (not the 6-digit OTP), so no secret ever travels through an email template ([classrooms/serializers.py:687-701](../../classrooms/serializers.py#L687-L701)).
