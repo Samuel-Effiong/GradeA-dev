@@ -85,6 +85,29 @@ Response format is chosen in three tiers ([services.py:504-510](../../ai_process
 
 Every request sends `HTTP-Referer: FRONTEND_DOMAIN` and `X-Title: GradeA+` for OpenRouter attribution.
 
+**Which supplier serves a request** (the `provider` object, `_provider_block()` in services.py). Every request
+carries it, on every path:
+
+| Key | Value | What it does |
+|---|---|---|
+| `data_collection` | `"deny"` | leaves out suppliers that train on data (H-206) |
+| `zdr` | `True`, only while `AI_PROVIDER_ZDR_ENABLED` is on (off by default) | only zero-retention endpoints (H-206) |
+| `sort` | `"price"` | the cheapest supplier of the asked model first, then the next cheapest on an outage (H-204) |
+| `quantizations` | `["fp8", "fp16", "bf16", "fp32", "unknown"]` | no fp4 endpoint (H-204) |
+
+- **"unknown" stays in the list on purpose.** Every endpoint of grok-4.3, claude-haiku-5.5 and gpt-5.4-nano
+  publishes its quantization as unknown (the provider's endpoints list, read 25 October 2026). Without it those
+  models would have no endpoint. Only deepseek-v4-pro publishes quantizations: two of its fifteen endpoints are
+  fp4.
+- **The price sort matters mainly for deepseek-v4-pro.** Its output price runs from $0.416 to $3.83 per million
+  tokens across suppliers. Grok has one supplier, and haiku's price is nearly flat.
+- **Stated risk, accepted by the Senior Manager:** the sort turns off the provider's load balancing, so a cheap
+  supplier that is slower is still tried first. Grading runs in the background, and the timeouts and fallbacks are
+  unchanged. If grading time on beta grows noticeably, the sort is dropped and the default order comes back.
+- With zdr on, the sort applies only among zero-retention endpoints.
+- None of the four keys is part of the grading or reading config version, so changing them does not stop saved
+  answers being reused.
+
 **Model pinning and independence:** when a caller pins `override_model` (the blind second grader), the fallback list is pinned to that same model — *"silently falling back to grader A's model would fake the independence the second opinion exists to provide"* ([services.py:4070-4073](../../ai_processor/services.py#L4070-L4073)).
 
 ---
