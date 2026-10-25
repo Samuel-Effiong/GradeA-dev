@@ -95,3 +95,12 @@ GREEN at b02de3fb and after (controls): test_grader_a_on_haiku_gives_deepseek,
 - **Lesson:** H-254's gate did not run `tests_benchmark_golden`. Any change to a model list or to the second
   opinion's settings puts `ai_processor.tests_benchmark_golden` and `ai_processor.tests_grading_benchmark` in its
   near modules.
+- **The follow-up gate** (granted by the Senior Manager): the first try on 09dac130 stopped after a green step 1
+  (Ran 361, OK). The fault was in my script's check, not in the code: the golden test's own log lines come
+  between its name and its "ok", and the check looked for "... ok" on the name line. The stopped run's files are
+  kept in `pin/stopped_09dac130/`. With the check fixed (pack 2, e10bc08a; script sha256 f1ec0384), the gate on
+  e10bc08a ran 10:14:50-10:18:06: makemigrations clean, seam passed, step 1 Ran 361 tests in 129 s, OK (golden
+  test status "ok"). B1 (pin dropped) was KILLED (Ran 30) with exactly
+  `test_replay_report_matches_committed_snapshot` failing, red for its written reason
+  ("second_opinion.coverage.error: snapshot=1 now=21"). No memory or stall watchdog action. Load at the end 2.75
+  4.10 5.43. Logs: `pin/gate_e10bc08a/` (gzipped).
