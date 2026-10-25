@@ -53,17 +53,46 @@
     `test_an_active_verified_account_gets_the_neutral_answer`, and it now also checks no activation token is made.
   - `classrooms.tests_school_admin_active_invite`: `test_otp_verify_email_short_circuits_instead_of_resending` (C for
     an active school admin). The status is now 202; nothing re-sent and the token unchanged, as before.
-  - How they were found: every test function that calls `/auth/otp` and mentions 400 was listed by a syntax-tree
-    scan (7 functions). The 400s in `audit.tests_route_coverage` (a synthetic refusal), `users.tests_verify_email_budget`
-    (`/auth/verify`) and `users.tests_patch_email` (`/auth/reset-password`) are not C or G. `users.tests_otp_no_oracle`
-    covers only states that already answered 202.
+  - `users.tests_auth_endpoints.OTPEndpointBranchTests` (added after the red gate on 039c6135, see
+    `red_gate_039c6135/RED_GATE.md`). Each now compares the body with an unknown address's:
+    - `test_verify_email_on_an_already_verified_account_is_refused` (C), renamed
+      `test_verify_email_on_an_already_verified_account_gets_the_neutral_answer`; it also checks no activation token
+      is made;
+    - `test_reset_password_on_an_unverified_account_is_refused` (G, switched off, no admin power), renamed
+      `test_reset_password_on_an_unverified_account_gets_the_neutral_answer`; it checks the activation email is sent
+      and no reset code is made.
+- **How they were found.** The first search looked for the route only inside each test function. It found 7, and
+  missed the two above, whose class holds the route in `setUp` (`self.url`). The second search, after the red gate,
+  is by syntax tree over every test file that names `auth-otp` or `/auth/otp` anywhere. For each test that asserts a
+  400, directly or through a helper, it marks whether the test reaches the route: directly, through a module constant,
+  through a class or `self.` attribute set to it, or through a helper method that does. A grep then checked the other
+  refusal forms (`is_client_error`, `HTTP_4xx`, `!= 202`, `status_code in`): none is asserted on this route. No test
+  file imports a helper or base class that carries the route.
+
+  | Test file (names the route) | Tests asserting a 400 | Of those, reaching `/auth/otp` | C or G? |
+  |---|---|---|---|
+  | `users.tests_auth_endpoints` | 17 | `test_an_invalid_otp_type_is_rejected` | No: a bad `otp_type`, the serializer's 400 (bad input, kept) |
+  | | | the two tests above | **Yes, C and G** (changed) |
+  | | | (the other 14: logout, request-change-password, register-school-admin, reset-password) | No: other routes |
+  | `audit.tests_route_coverage` | 4 | `test_a_route_that_is_not_a_door_records_nothing` | No: a unit test of the audit middleware; the 400 is fed into a fake request, the view never runs |
+  | `users.tests_patch_email` | 8 (5 through `assertRefused`) | `test_the_stolen_token_takeover_chain_is_closed` | No: its code request is for an unknown address and is not asserted; the 400 is `/auth/reset-password`'s |
+  | `users.tests_reset_otp_budget` | 1 | `test_an_ordinary_wrong_guess_is_still_the_generic_400` | No: `request_code()` asks for a code for an active account; the 400 is the wrong guess at `/auth/reset-password` |
+  | `users.tests_verify_email_budget` | 9 (6 through `spend_budget`) | `test_a_resent_code_neither_arrives_nor_unlocks` | No: the 400s are `/auth/verify`'s; its code request asserts 202 |
+  | | | `test_an_expired_code_spends_the_budget_too` | No: names `/auth/otp` only in its docstring; the 400 is `/auth/verify`'s |
+  | `users.tests_reset_for_an_invited_student` | 15 (11 through helpers) | none | No: every 400 is `/auth/reset-password`'s or `/auth/verify`'s; its code-request tests were changed by this row and assert 202 |
+  | `users.tests_switched_off_means_out` | 3 | none | No: `/auth/verify` and `/auth/reset-password`; its C test was changed by this row |
+  | `classrooms.tests_school_admin_active_invite` | 1 | none | No: the old registration-completion route; its C test was changed by this row |
+  | `users.tests_google_auth` | 11 | none | No: `/auth/google` |
+  | `users.tests_throttling` | 1 | none | No: `/auth/reset-password` |
+  | `classrooms.test_school_admin_otp_deadend`, `users.tests_email_warning_copy`, `users.tests_final_branches`, `users.tests_h198_otp_neutral`, `users.tests_otp_no_oracle`, `users.tests_rate_limited_envelope`, `users.tests_token_revocation` | 0 | none | No 400 asserted |
 - **Not shown by the tests:** what the frontend does with the 202 for C and G (not read, the user's ruling); real mail
   delivery (the mail task is replaced, as the existing tests do).
 
 ## Expected reds against 7286717e (written before any run)
 
-The red run takes `users/views.py` back to the base and runs the new module and the three changed modules as at the
-tip.
+The red run takes `users/views.py` back to the base and runs the new module and the four changed modules as at the
+tip. (The first pack wrote 15 blocks over four modules; `users.tests_auth_endpoints` and its two reds were added after
+the red gate on 039c6135.)
 
 ```
 users.tests_h198_otp_neutral (5 tests red, 7 blocks; 3 green)
@@ -79,7 +108,10 @@ users.tests_reset_for_an_invited_student (6 red)                                
   test_a_verified_admin_asking_for_verification_gets_the_neutral_answer
 users.tests_switched_off_means_out (1 red): test_an_active_verified_account_gets_the_neutral_answer  "400 != 202"
 classrooms.tests_school_admin_active_invite (1 red): test_otp_verify_email_short_circuits_instead_of_resending  "400 != 202"
-Total: 15 FAIL blocks, no ERROR. Every other test of the four modules is green. The script counts them.
+users.tests_auth_endpoints (2 red)                                                   "400 != 202" each
+  test_verify_email_on_an_already_verified_account_gets_the_neutral_answer,
+  test_reset_password_on_an_unverified_account_gets_the_neutral_answer
+Total: 17 FAIL blocks, no ERROR. Every other test of the five modules is green. The script counts them.
 ```
 
 - R3's fragment is the end of mock's message, "Expected 'delay' to have been called once. Called 0 times.". At the
@@ -101,23 +133,37 @@ Total: 15 FAIL blocks, no ERROR. Every other test of the four modules is green. 
 
 ## Mutants (expected sets and fragments traced against every assertion of the four battery modules)
 
-The battery is the new module, `users.tests_reset_for_an_invited_student`, `users.tests_switched_off_means_out` and
-`users.tests_otp_no_oracle`. No mutant reaches `tests_otp_no_oracle`, whose states already answered 202; it is in
-the battery to show none of them changes.
+The battery is the new module, `users.tests_reset_for_an_invited_student`, `users.tests_switched_off_means_out`,
+`users.tests_otp_no_oracle` and `users.tests_auth_endpoints` (added after the red gate). No mutant reaches
+`tests_otp_no_oracle`, whose states already answered 202; it is in the battery to show none of them changes. In
+`tests_auth_endpoints` only `OTPEndpointBranchTests` calls the route. Its other four tests (an unknown address, a bad
+`otp_type`, F, I) are not C or G, so only the two changed tests are reached. They are `EP-C` and `EP-G` below.
 
 A mutant is KILLED only if each expected test fails AND every one of its blocks holds the fragment written for that
 test (rule 22, in `mutate.py`).
 
 | Id | Break | Expected to fail (fragment) |
 |---|---|---|
-| M1 | C's 400 put back | R1, the verified-admin test, the active-verified test (`400 != 202`) |
-| M2 | G's 400 put back | R2, R4, R5, the inactive test, the four request-refuses tests (`400 != 202`); R3 (`Called 0 times`) |
-| M3 | C answers 202 with other bytes | R1 (`' != b'`) |
-| M4 | G issues a reset code | R3, R4, R5, the inactive test, the four request-refuses tests (`True is not false`) |
-| M5 | C re-sends the activation email | K1 (`to not have been called`); the active-verified test (`is not None`) |
+| M1 | C's 400 put back | R1, the verified-admin test, the active-verified test, EP-C (`400 != 202`) |
+| M2 | G's 400 put back | R2, R4, R5, the inactive test, the four request-refuses tests, EP-G (`400 != 202`); R3 (`Called 0 times`) |
+| M3 | C answers 202 with other bytes | R1, EP-C (`' != b'`) |
+| M4 | G issues a reset code | R3, R4, R5, the inactive test, the four request-refuses tests, EP-G (`True is not false`) |
+| M5 | C re-sends the activation email | K1 (`to not have been called`); the active-verified test, EP-C (`is not None`) |
 | M6 | G with admin power is sent the activation email too | R5 (`to not have been called`) |
 | M7 | G ignores H-53's lock | R4 (`to not have been called`) |
-| M8 | G without admin power is sent nothing | R3 (`Called 0 times`) |
+| M8 | G without admin power is sent nothing | R3, EP-G (`Called 0 times`) |
+
+- **EP-C, in assert order:** status, then the body against the unknown address's, then no activation token.
+  - M1 fails the status.
+  - M3 passes the status and fails the body.
+  - M5 answers the same 202 bytes. The real activation road runs (only its mail task is replaced) and sets a token, so
+    the third check fails: "'…' is not None", the token in the quotes.
+- **EP-G, in assert order:** status, then the body, then the activation send called once (replaced at
+  `users.views.send_user_activation_email`), then no reset code.
+  - M2 fails the status.
+  - M8 passes the status and body and fails the send: "… Called 0 times.".
+  - M4 passes the first three checks and fails the last: "True is not false".
+  - M6 and M7 do not change this account's road: it has no admin power, and the address is not locked.
 
 - **M2:** H-164's "same words" test compares two G answers, which are both 400 again and equal, so it passes.
 - **M3:** the status checks still pass; only R1 compares C's bytes.
@@ -140,12 +186,12 @@ three bad inputs:
 
 ## Gate
 
-- **Script:** `run_h198_gate.sh.txt`, the H-210 gate's form. The red run covers four modules and expects 15 blocks.
+- **Script:** `run_h198_gate.sh.txt`, the H-210 gate's form. The red run covers five modules and expects 17 blocks.
 - **Before the test runs:** makemigrations, then the changed-file list (only `users/views.py` outside `docs/` and the
-  four test files), then the seam check.
-- **Own:** the four modules.
+  five test files), then the seam check.
+- **Own:** the five modules (`users.tests_auth_endpoints` moved here from near).
 - **Near:** every other module that calls `/auth/otp`:
-  - `users`: `tests_otp_no_oracle`, `tests_auth_endpoints`, `tests_throttling`, `tests_throttle_client_identity`,
+  - `users`: `tests_otp_no_oracle`, `tests_throttling`, `tests_throttle_client_identity`,
     `tests_rate_limited_envelope`, `tests_patch_email`, `tests_verify_email_budget`, `tests_final_branches`,
     `tests_token_revocation`, `tests_email_warning_copy`, `tests_reset_otp_budget`, `tests_google_auth`;
   - `classrooms.test_school_admin_otp_deadend`;

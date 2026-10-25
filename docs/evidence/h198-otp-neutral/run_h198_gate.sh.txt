@@ -2,9 +2,9 @@
 # H-198 neutral /auth/otp answers (beta line). Usage: bash run_h198_gate.sh <tip> 1
 # One grant, inside ONE outer inhibit (memory cap = available - 2G, min 6G, read at start; rule 13):
 #   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block bash <script> <tip> 1
-# 0 the red run: the new test module and the three modules this row changed, as at the tip, against the code as at
+# 0 the red run: the new test module and the four modules this row changed, as at the tip, against the code as at
 #   the base (the one production file, users/views.py, taken back; own DB). RULE 22: each red test is red for its
-#   WRITTEN reason (a fragment looked for in every one of its own FAIL/ERROR blocks), and exactly 15 blocks appear;
+#   WRITTEN reason (a fragment looked for in every one of its own FAIL/ERROR blocks), and exactly 17 blocks appear;
 # 1a makemigrations --check; 1b the seam by program (views.py is the only production file changed; by its syntax
 #   tree only otp changed, in the two ruled branches); 1 the own modules + near modules (every module that calls
 #   /auth/otp, the sign-in doors and their neighbours, the audit and catalogue tests) + guards; 2 the 8 mutants
@@ -56,8 +56,8 @@ name = settings.DATABASES['default']['TEST']['NAME']
 with connection._nodb_cursor() as c:
     c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
 print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
-OWN="users.tests_h198_otp_neutral users.tests_reset_for_an_invited_student users.tests_switched_off_means_out classrooms.tests_school_admin_active_invite"
-NEAR="users.tests_otp_no_oracle users.tests_auth_endpoints users.tests_throttling users.tests_throttle_client_identity users.tests_rate_limited_envelope users.tests_patch_email users.tests_verify_email_budget users.tests_final_branches users.tests_token_revocation users.tests_email_warning_copy users.tests_reset_otp_budget users.tests_google_auth users.tests_auth_audit_doors users.tests_admin_power_principle users.tests_activation_email_domain classrooms.test_school_admin_otp_deadend audit.tests_route_coverage AutoGrader.tests_reason_codes"
+OWN="users.tests_h198_otp_neutral users.tests_reset_for_an_invited_student users.tests_switched_off_means_out classrooms.tests_school_admin_active_invite users.tests_auth_endpoints"
+NEAR="users.tests_otp_no_oracle users.tests_throttling users.tests_throttle_client_identity users.tests_rate_limited_envelope users.tests_patch_email users.tests_verify_email_budget users.tests_final_branches users.tests_token_revocation users.tests_email_warning_copy users.tests_reset_otp_budget users.tests_google_auth users.tests_auth_audit_doors users.tests_admin_power_principle users.tests_activation_email_domain classrooms.test_school_admin_otp_deadend audit.tests_route_coverage AutoGrader.tests_reason_codes"
 GUARDS="AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_migration_safety_check AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_student_feedback_guard AutoGrader.tests_submission_audience_guard AutoGrader.tests_student_classmates_guard AutoGrader.tests_network_guard"
 echo "load at start: $(cat /proc/loadavg)"
 echo "=== 0. the red run: $OWN against the code as at $BASE (own DB) $(date +%T)"
@@ -75,15 +75,15 @@ grep -qE "^OK" $RF && RED_OK=0
 grep -qE "^Ran [0-9]+ tests? in" $RF || { echo "red run: no Ran line"; RED_OK=0; }
 grep -qE "unittest.loader._FailedTest" $RF && { echo "red run: a module failed to load"; RED_OK=0; }
 # RULE 22: each test below is red for its WRITTEN reason, in every one of its blocks. At the base C and G answer 400,
-# and G sends nothing. Green at the base by design: K1-K3, and every other test of the three changed modules.
+# and G sends nothing. Green at the base by design: K1-K3, and every other test of the four changed modules.
 r() { python -I $RC $RF "$1" "$2" || RED_OK=0; }
-for t in test_a_verified_active_account_asking_for_verification_is_told_nothing test_a_never_verified_switched_off_account_asking_for_a_reset_is_told_nothing test_while_the_address_is_locked_that_account_is_sent_nothing test_a_never_verified_account_with_admin_power_is_told_and_sent_nothing test_an_inactive_never_verified_row_is_still_refused test_the_request_refuses_a_never_verified_staff_account test_the_request_refuses_a_never_verified_superuser_flag test_the_request_refuses_a_never_verified_super_admin_type test_the_request_refuses_a_command_line_superuser test_a_verified_admin_asking_for_verification_gets_the_neutral_answer test_an_active_verified_account_gets_the_neutral_answer test_otp_verify_email_short_circuits_instead_of_resending; do
+for t in test_a_verified_active_account_asking_for_verification_is_told_nothing test_a_never_verified_switched_off_account_asking_for_a_reset_is_told_nothing test_while_the_address_is_locked_that_account_is_sent_nothing test_a_never_verified_account_with_admin_power_is_told_and_sent_nothing test_an_inactive_never_verified_row_is_still_refused test_the_request_refuses_a_never_verified_staff_account test_the_request_refuses_a_never_verified_superuser_flag test_the_request_refuses_a_never_verified_super_admin_type test_the_request_refuses_a_command_line_superuser test_a_verified_admin_asking_for_verification_gets_the_neutral_answer test_an_active_verified_account_gets_the_neutral_answer test_otp_verify_email_short_circuits_instead_of_resending test_verify_email_on_an_already_verified_account_gets_the_neutral_answer test_reset_password_on_an_unverified_account_gets_the_neutral_answer; do
     r $t "400 != 202"
 done
 r test_that_account_is_sent_the_activation_email_and_no_reset_code "Called 0 times"
-# 12 + 1, and the admin-power test once per subtest (3): 15 blocks, and no other.
+# 14 + 1, and the admin-power test once per subtest (3): 17 blocks, and no other.
 [ "$(grep -cE '^FAIL: test_a_never_verified_account_with_admin_power_is_told_and_sent_nothing ' $RF)" = 3 ] || { echo "red run: the admin-power test is not red on all 3 shapes"; RED_OK=0; }
-[ "$(grep -cE '^(FAIL|ERROR): ' $RF)" = 15 ] || { echo "red run: not exactly 15 FAIL/ERROR blocks ($(grep -cE '^(FAIL|ERROR): ' $RF))"; RED_OK=0; }
+[ "$(grep -cE '^(FAIL|ERROR): ' $RF)" = 17 ] || { echo "red run: not exactly 17 FAIL/ERROR blocks ($(grep -cE '^(FAIL|ERROR): ' $RF))"; RED_OK=0; }
 grep -qE "^ERROR: " $RF && { echo "red run: an ERROR block"; RED_OK=0; }
 if [ "$RED_OK" != 1 ]; then
     echo "STOP (exit 4): the red run is not what was written"
@@ -91,7 +91,7 @@ if [ "$RED_OK" != 1 ]; then
     find users classrooms -name __pycache__ -type d -prune -exec rm -rf {} +
     exit 4
 fi
-echo "red run is as written: non-zero exit, no OK line, the module loaded, 15 blocks red for their written reasons and no other"
+echo "red run is as written: non-zero exit, no OK line, the module loaded, 17 blocks red for their written reasons and no other"
 git checkout HEAD -- $CHANGED
 find users -name __pycache__ -type d -prune -exec rm -rf {} +
 git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
@@ -103,7 +103,7 @@ python manage.py makemigrations --check --dry-run --settings=settings_worktree <
 echo "=== 1b. the seam, by program: views.py is the only production file; by its syntax tree only otp changes, in the two ruled branches"
 git diff --name-only $BASE HEAD > $E/seam_changed_files.txt
 cat $E/seam_changed_files.txt
-[ "$(grep -vE '^(docs/|users/tests_(h198_otp_neutral|reset_for_an_invited_student|switched_off_means_out)\.py$|classrooms/tests_school_admin_active_invite\.py$)' $E/seam_changed_files.txt)" = "users/views.py" ] || { echo "STOP: a production file other than views.py changed"; exit 2; }
+[ "$(grep -vE '^(docs/|users/tests_(h198_otp_neutral|reset_for_an_invited_student|switched_off_means_out|auth_endpoints)\.py$|classrooms/tests_school_admin_active_invite\.py$)' $E/seam_changed_files.txt)" = "users/views.py" ] || { echo "STOP: a production file other than views.py changed"; exit 2; }
 git show $BASE:users/views.py > $E/.views_base.py
 python -I $E/seam_check.py $E/.views_base.py users/views.py > $E/seam_code.txt 2>&1; SEAM=$?; rm -f $E/.views_base.py
 cat $E/seam_code.txt

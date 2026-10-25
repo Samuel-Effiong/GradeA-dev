@@ -8,7 +8,7 @@ load, EVERY test named in EXPECTED among the failing tests, and (rule 22)
 every FAIL/ERROR block of each expected test holding the fragment written for
 it in EXPECTED. Any other failing test is recorded as
 also_failed_not_expected, never hidden; BROKEN = anything else. EXPECTED was
-written before any run, traced against every assertion of the four modules
+written before any run, traced against every assertion of the five modules
 (controls too).
 
 Rule 17: PYTHONDONTWRITEBYTECODE=1 on every inner run; the mutated file's
@@ -40,6 +40,7 @@ TESTS = [
     "users.tests_reset_for_an_invited_student",
     "users.tests_switched_off_means_out",
     "users.tests_otp_no_oracle",
+    "users.tests_auth_endpoints",
 ]
 K = "keepdb"
 
@@ -154,6 +155,9 @@ _CMDLINE = "test_the_request_refuses_a_command_line_superuser"
 _V_ADMIN = "test_a_verified_admin_asking_for_verification_gets_the_neutral_answer"
 # tests_switched_off_means_out (changed by this row)
 _ACTIVE = "test_an_active_verified_account_gets_the_neutral_answer"
+# tests_auth_endpoints (changed by this row after the red gate on 039c6135)
+_EP_C = "test_verify_email_on_an_already_verified_account_gets_the_neutral_answer"
+_EP_G = "test_reset_password_on_an_unverified_account_gets_the_neutral_answer"
 
 S400 = "400 != 202"
 NOT_SENT = "Called 0 times"
@@ -163,10 +167,10 @@ BYTES = "' != b'"
 
 #: Written before any run: {mutant: {test: the fragment its every block holds}},
 #: every test reckoned to fail under it, traced against every assertion of the
-#: four modules. tests_otp_no_oracle covers only states that already answered
+#: five modules. tests_otp_no_oracle covers only states that already answered
 #: 202 (unknown, F, I, a locked reset), so no mutant reaches it.
 EXPECTED = {
-    "M1": {_R1: S400, _V_ADMIN: S400, _ACTIVE: S400},
+    "M1": {_R1: S400, _V_ADMIN: S400, _ACTIVE: S400, _EP_C: S400},
     # H-164's "same words" test compares two G answers: both 400 again, equal.
     "M2": {
         _R2: S400,
@@ -178,9 +182,10 @@ EXPECTED = {
         _FLAG: S400,
         _SA_TYPE: S400,
         _CMDLINE: S400,
+        _EP_G: S400,
     },
-    # The status checks still pass; only R1 compares C's bytes.
-    "M3": {_R1: BYTES},
+    # The status checks still pass; R1 and _EP_C compare C's bytes.
+    "M3": {_R1: BYTES, _EP_C: BYTES},
     "M4": {
         _R3: CODE_MADE,
         _R4: CODE_MADE,
@@ -190,14 +195,15 @@ EXPECTED = {
         _FLAG: CODE_MADE,
         _SA_TYPE: CODE_MADE,
         _CMDLINE: CODE_MADE,
+        _EP_G: CODE_MADE,
     },
     # The active account's token is set ("'NNNNNN' is not None").
-    "M5": {_K1: SENT, _ACTIVE: "is not None"},
+    "M5": {_K1: SENT, _ACTIVE: "is not None", _EP_C: "is not None"},
     # In the invited-student module the activation send is replaced by a
     # mock, so only R5 sees it.
     "M6": {_R5: SENT},
     "M7": {_R4: SENT},
-    "M8": {_R3: NOT_SENT},
+    "M8": {_R3: NOT_SENT, _EP_G: NOT_SENT},
 }
 
 #: A test module that could not be loaded.
