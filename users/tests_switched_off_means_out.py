@@ -322,8 +322,9 @@ class SwitchedOffRoadsTests(APITestCase):
         student.refresh_from_db()
         self.assertTrue(student.is_active)
 
-    def test_an_active_verified_account_is_still_told_it_is_verified(self):
-        """Green on the old code too."""
+    def test_an_active_verified_account_gets_the_neutral_answer(self):
+        """H-198 (the user's ruling): the unknown address's 202 (it was 400
+        "Email already verified. Please login."), and no code is made."""
         user = User.objects.create_user(
             email="active.h202@x.example",
             password="Active-pass-h202",  # pragma: allowlist secret
@@ -334,7 +335,9 @@ class SwitchedOffRoadsTests(APITestCase):
 
         response = self.ask(user.email, "VERIFY_EMAIL")
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        user.refresh_from_db()
+        self.assertIsNone(user.activation_token)
 
     def test_an_active_verified_account_can_still_reset(self):
         """Green on the old code too."""
