@@ -19,6 +19,10 @@ call replaced and count CreditUsageLog rows. The dispatch is captured at
 Task.apply_async, so the real launcher still makes each tracked item. New
 names are read with getattr, so this module loads against the old code.
 
+4. A retry reuses the item of a paper whose dispatch failed (the Senior
+   Manager's ruling): one item per paper, so the teacher's batch reads
+   "3 / 3", complete, with no failure line for a paper graded later.
+
 Run with:
     python manage.py test students.tests_h215a_auto_grade_resilience
 """
@@ -32,9 +36,11 @@ from celery.exceptions import Retry
 from django.db.utils import InterfaceError
 from django.db.utils import OperationalError as DatabaseOperationalError
 from django.test import override_settings
+from django.urls import reverse
 from kombu.exceptions import OperationalError as BrokerOperationalError
 from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
+from rest_framework.test import APIClient
 
 from ai_processor.services import AIProcessor
 from assignments import tasks
@@ -152,14 +158,16 @@ class Classroom(ExecuteGradedTaskTestBase):
             answers=[{"question_number": 1, "answer_html": f"<p>{ANSWER}</p>"}],
         )
 
-    def capture_dispatch(self, fail_at=None):
+    def capture_dispatch(self, fail_at=()):
         """Task.apply_async replaced: each grading message is kept, and the
-        `fail_at`-th one (1-based) raises a broker outage instead."""
+        `fail_at`-th one (1-based; one number or several) raises a broker
+        outage instead."""
         sent = []
+        failing = {fail_at} if isinstance(fail_at, int) else set(fail_at)
 
         def apply_async(task, args=None, kwargs=None, **options):
             if task.name == GRADE_TASK:
-                if fail_at is not None and len(sent) + 1 == fail_at:
+                if len(sent) + 1 in failing:
                     sent.append(None)
                     raise RedisConnectionError("broker down")
                 sent.append((tuple(args or ()), dict(kwargs or {})))
@@ -380,10 +388,19 @@ class AnOutageIsRetriedTest(Classroom):
         self.assertEqual(
             BatchUploadSession.objects.filter(course=self.course).count(), 1
         )
-        new_items = BackgroundProcessingTask.objects.filter(
-            batch_session=session, item_index__gt=2
+        self.assertOneItemPerPaper(session, retry_counts=[0, 1, 0])
+
+    def assertOneItemPerPaper(self, session, retry_counts):
+        """The failed paper's item (2) was reused, not doubled; every item
+        reached the broker."""
+        items = list(
+            BackgroundProcessingTask.objects.filter(batch_session=session).order_by(
+                "item_index"
+            )
         )
-        self.assertEqual(sorted(i.item_index for i in new_items), [3, 4])
+        self.assertEqual([i.item_index for i in items], [1, 2, 3])
+        self.assertEqual([i.retry_count for i in items], retry_counts)
+        self.assertTrue(all(i.celery_task_id for i in items), items)
 
     def test_a_beat_start_retried_for_real_completes_and_sends_the_missed_papers(
         self,
@@ -402,9 +419,61 @@ class AnOutageIsRetriedTest(Classroom):
         first = sent[0][0][1]
         resent = {args[1] for args, _kwargs in sent[2:]}
         self.assertEqual(resent, {str(p.id) for p in papers} - {first})
-        self.assertEqual(
-            BatchUploadSession.objects.filter(course=self.course).count(), 1
+        [session] = BatchUploadSession.objects.filter(course=self.course)
+        self.assertOneItemPerPaper(session, retry_counts=[0, 1, 0])
+
+    def test_two_outages_on_one_paper_reuse_its_item_twice(self):
+        """The relaunch goes through the real launcher, so a second outage
+        leaves the item failed with no celery id, ready for the next retry."""
+        for _ in range(3):
+            self.paper()
+        sent, dispatch = self.capture_dispatch(fail_at={2, 3})
+        with dispatch:
+            outcome = auto_grade_due_assignment.apply(args=(str(self.assignment.id),))
+
+        self.assertTrue(outcome.successful(), outcome.result)
+        self.assertEqual(outcome.result, "Auto-grading started for 2 submissions.")
+        [session] = BatchUploadSession.objects.filter(course=self.course)
+        self.assertOneItemPerPaper(session, retry_counts=[0, 2, 0])
+
+
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False,
+    GRADING_ANSWER_CACHE_ENABLED=False,
+)
+class TheTeacherSeesOneLinePerPaperTest(Classroom):
+    def test_after_a_retry_the_batch_reads_complete_with_no_failure(self):
+        provider = patch.object(
+            AIProcessor, "_AIProcessor__ai_model", side_effect=_reply
         )
+        provider.start()
+        self.addCleanup(provider.stop)
+        for _ in range(3):
+            self.paper()
+        sent, dispatch = self.capture_dispatch(fail_at=2)
+        with dispatch:
+            outcome = auto_grade_due_assignment.apply(args=(str(self.assignment.id),))
+        self.assertTrue(outcome.successful(), outcome.result)
+        _more, dispatch = self.capture_dispatch()
+        with dispatch:
+            for args, kwargs in [m for m in sent if m is not None]:
+                ran = grade_engine_async.apply(args=args, kwargs=kwargs)
+                self.assertTrue(ran.successful(), ran.result)
+        [session] = BatchUploadSession.objects.filter(course=self.course)
+        api = APIClient()
+        api.force_authenticate(user=self.teacher)
+
+        response = api.get(
+            reverse("task-session-results", kwargs={"session_id": str(session.id)})
+        )
+
+        self.assertEqual(response.status_code, 200, response.content[:400])
+        for key in ("progress", "is_complete", "failure_count", "success_count"):
+            self.assertIn(key, response.data)
+        self.assertEqual(response.data["progress"], "3 / 3")
+        self.assertIs(response.data["is_complete"], True)
+        self.assertEqual(response.data["failure_count"], 0)
+        self.assertEqual(response.data["success_count"], 3)
 
 
 class NothingElseIsRetriedTest(Classroom):
