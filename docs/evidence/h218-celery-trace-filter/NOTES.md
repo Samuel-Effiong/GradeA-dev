@@ -202,3 +202,53 @@ Before the pack (by parsing source only, no test run), it passes on the tip. It 
 - **Base:** `b4af529f`.
 - **The batch:** H-227, H-219 and this row each add a backlog row after H-221's. The batch build resolves that by
   keeping all three rows.
+
+## The gate on c9e07439 (granted by the Senior Manager, 25 October 2026)
+
+The first start (18:10) was refused by the start command itself: load1 read 8.44, against 7.32 at the pre-start check
+ten seconds before. Nothing ran, and the run was put on HOLD. Three minutes later a fresh pre-start check (18:13:55:
+load 5.39, 15G available, at `c9e07439`, tree clean, runner sha256 `272b091d…`, Postgres accepting, Redis PONG, no other
+test run) and the start command's own re-read (5.20) allowed the run.
+
+Run 18:14:03 to 18:20:16 WAT inside one `systemd-inhibit`. Logs are in `gate_c9e07439/` (gzipped), including the
+gate's own output.
+- **Exit code: 0**, captured by the start command (`; echo "gate exit=$?"`), whose line ends the output.
+- Available memory at the start was 15G, so the cap was 13G. Load was 5.20 6.14 6.11 at the start and 6.13 7.59 6.87 at
+  the end.
+
+- **Red run** (`AutoGrader/safe_logging.py` and `AutoGrader/celery.py` as at b4af529f, the new module as at the tip):
+  - 5 FAIL blocks (T1-T5), each holding its written fragment, no ERROR, no OK line.
+  - "Ran 7 tests in 1.129s", "FAILED (failures=5)".
+  - The controls K1 and K2 were green. The source was restored.
+- **makemigrations --check:** exit 0, no changes.
+- **Seam:** "SEAM OK: only the filter, its two constants, the imports and its install on celery.app.trace were added;
+  the filter returns only True and guards describe". The changed-file list has the 10 expected paths, and
+  `AutoGrader/celery.py` and `AutoGrader/safe_logging.py` are the only production files.
+- **Step 1** (own, the 16 near modules, the 21 guards), 18:14:31 to 18:18:27:
+  - "Ran 522 tests in 212.471s", "OK (skipped=1)".
+  - 522 test lines were counted in the log.
+  - The one skip is `students.tests_async_edit_path` `RealProviderEditTest` ("Real AI call is opt-in and billed: set
+    RUN_REAL_AI=1").
+  - All four tests of `students.tests_grading_redelivery_live` ran and passed.
+- **Seen in the step-1 log, not only read:**
+  - In the live redelivery test 2, Celery's in-process worker wrote "Task assignments.tasks.grade_engine_async[…]
+    raised unexpected: error=TimeoutError" with no traceback after it.
+  - Every "raised unexpected" line in the log names only the error's class, and its frames where it has any.
+- **Step 2, mutants** (own database, rules 17, 18 and 22), 18:18:27 to 18:20:16:
+  - All 9 KILLED, each with "Ran 28 tests".
+  - Every mutant's failing tests are exactly its expected set, with nothing missing, nothing extra and no wrong reason.
+
+| Id | Failing / expected |
+|---|---|
+| X1 | 5 / 5 |
+| X2 | 4 / 4 |
+| X3 | 3 / 3 |
+| X4 | 1 / 1 |
+| X5 | 1 / 1 |
+| X6 | 5 / 5 |
+| X7 | 1 / 1 |
+| X8 | 5 / 5 |
+| X9 | 1 / 1 |
+
+- The source was clean after the mutants, and the mutant database was dropped. No watchdog fired.
+- The Senior Manager read the logs and ruled the gate GREEN (18:24).
