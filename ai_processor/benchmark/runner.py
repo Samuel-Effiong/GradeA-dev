@@ -270,8 +270,19 @@ def _benchmark_settings():
     check would trivially pass by cache mechanics rather than by anything
     the model actually did. That would hide exactly the signal this
     benchmark exists to surface.
+
+    The second grader's candidates are pinned to the order the recordings
+    were made under (deepseek, then haiku; H-254 later put haiku first in
+    production). The second grader's model is part of the replay key
+    (request_key's override_model), so with any other order every second
+    opinion misses its recording. The replay grades in the recorded order;
+    re-recording is the way to change it.
     """
     return {
+        "GRADING_SECOND_OPINION_MODELS": [
+            "deepseek/deepseek-v4-pro",
+            "anthropic/claude-haiku-5.5",
+        ],
         "GRADING_SECOND_OPINION_SAMPLE_RATE": 0,
         "GRADING_DETERMINISTIC_OBJECTIVE": True,
         "GRADING_RESPONSE_SCHEMA_ENABLED": True,
