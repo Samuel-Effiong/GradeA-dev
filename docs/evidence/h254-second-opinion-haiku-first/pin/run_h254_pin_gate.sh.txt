@@ -1,0 +1,100 @@
+#!/bin/bash
+# H-254 follow-up: the benchmark replay pins the second grader's recorded order (beta line).
+# Usage: bash run_h254_pin_gate.sh <tip> 1
+# One grant, inside ONE outer inhibit (memory cap = available - 2G, min 6G, read at start; rule 13):
+#   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block bash <script> <tip> 1
+# No red run here: batch 24's full run on c666408a is the red (tests_benchmark_golden, quoted in NOTES).
+# 1a makemigrations --check; 1b the seam by program (benchmark/runner.py is the only production file changed since
+#   6bbdce5f, and its code change is the four added pin lines); 1 the two benchmark modules + the H-254 modules +
+#   the 21 guards; 2 the one mutant B1 (pin dropped; rule 17; own DB), with the written reason looked for in its log.
+# The regression is the batch's one new full run; it is not in this script.
+# A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
+set -u
+# FROZEN = H-254's tip before this follow-up.
+TIP=$1; STEP=${2:-1}; FROZEN=6bbdce5f
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-second-opinion-haiku-first || exit 1
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+E=docs/evidence/h254-second-opinion-haiku-first/pin
+AVAIL_G=$(awk '/^MemAvailable:/ {print int($2/1048576)}' /proc/meminfo)
+MEMG=$((AVAIL_G - 2))
+echo "available at start: ${AVAIL_G}G; cap ${MEMG}G"
+[ "$MEMG" -ge 6 ] || { echo "STOP (exit 5): cap under 6G; wait and tell the SM"; exit 5; }
+# Each run has its own scope unit, gap-h254pin-<pid>-<part>; the watchdogs stop only those, by exact name.
+UNITP=gap-h254pin-$$
+UPART=none
+CAP="systemd-run --user --scope -q --unit=\${UNITP}-\${UPART} -p MemoryMax=${MEMG}G -p MemorySwapMax=0"
+# Memory watchdog (SM 2026-10-14): available under 1.5 GB stops OUR scope, by its unit name, never by pattern.
+( while sleep 10; do
+    A=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
+    if [ "$A" -lt 1572864 ]; then
+        for U in $UNITP-modules $UNITP-mutants; do
+            if systemctl --user is-active -q "$U.scope"; then
+                echo "MEMORY STOP $(date +%T): available ${A} kB; stopping $U.scope" >> $E/memory_watchdog.txt
+                systemctl --user stop "$U.scope"
+            fi
+        done
+    fi
+  done ) &
+WATCHDOG=$!
+export PYTHONFAULTHANDLER=1
+export EXEMPT_EMAIL_DOMAINS=
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+[ "$STEP" = 1 ] || { echo "only step 1 exists"; exit 1; }
+mkdir -p $E
+RESTORE="ai_processor/benchmark/runner.py"
+restore_tree() { kill $WATCHDOG 2>/dev/null; git checkout HEAD -- $RESTORE 2>/dev/null; find ai_processor -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
+trap restore_tree EXIT
+summary() { grep -E "^(Ran |OK|FAILED \(|(FAIL|ERROR): )" "$1" | cut -c1-200 | head -${2:-12}; }
+dropmut() { python manage.py shell --settings=settings_worktree_mut -c "
+from django.conf import settings
+from django.db import connection
+name = settings.DATABASES['default']['TEST']['NAME']
+with connection._nodb_cursor() as c:
+    c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
+print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
+OWN="ai_processor.tests_benchmark_golden ai_processor.tests_grading_benchmark ai_processor.tests_h254_second_opinion_haiku_first ai_processor.tests_h205_image_fallback"
+GUARDS="AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_migration_safety_check AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_student_feedback_guard AutoGrader.tests_submission_audience_guard AutoGrader.tests_student_classmates_guard AutoGrader.tests_network_guard"
+echo "load at start: $(cat /proc/loadavg)"
+echo "=== 1a. makemigrations --check $(date +%T)"
+python manage.py makemigrations --check --dry-run --settings=settings_worktree < /dev/null > $E/makemigrations_check.txt 2>&1; MM=$?; echo "makemigrations exit=$MM (0 = no changes)"; tail -1 $E/makemigrations_check.txt
+[ "$MM" = 0 ] || { echo "STOP: makemigrations reports changes"; exit 2; }
+echo "=== 1b. the seam, by program: benchmark/runner.py is the only production file; its code change is the pin"
+git diff --name-only $FROZEN HEAD > $E/seam_changed_files.txt
+cat $E/seam_changed_files.txt
+[ "$(grep -vE '^docs/' $E/seam_changed_files.txt)" = "ai_processor/benchmark/runner.py" ] || { echo "STOP: a file other than benchmark/runner.py and docs changed"; exit 2; }
+# The docstring lines are left out by program: only lines inside the returned dict are code here.
+git diff $FROZEN HEAD -U0 -- ai_processor/benchmark/runner.py | grep -E '^[-+][^-+]' | grep -E '^[-+]        ' > $E/seam_code_lines.txt
+cat $E/seam_code_lines.txt
+[ "$(cat $E/seam_code_lines.txt)" = '+        "GRADING_SECOND_OPINION_MODELS": [
++            "deepseek/deepseek-v4-pro",
++            "anthropic/claude-haiku-5.5",
++        ],' ] || { echo "STOP: runner.py changes code other than the pin"; exit 2; }
+[ -z "$(git diff $FROZEN HEAD -U0 -- ai_processor/benchmark/runner.py | grep -E '^-[^-]')" ] || { echo "STOP: runner.py removes a line"; exit 2; }
+echo "=== 1. the benchmark modules + the H-254 modules + guards at $(git rev-parse --short=8 HEAD) $(date +%T)"
+UPART=modules
+eval "$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $OWN $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
+echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
+if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
+# The golden test must have RUN, not been skipped for missing recordings.
+grep -E "^test_replay_report_matches_committed_snapshot .*\.\.\. ok$" $E/modules_and_guards.txt > /dev/null && echo "golden test ran and passed" || { echo "STOP: the golden test did not run and pass"; exit 2; }
+echo "=== 2. mutant: 1 (own DB, rules 17 and 18) $(date +%T)"
+# Time limit 90 s x 1 + 600 = 690 s, with a 300 s stall watchdog on the mutant log (2026-10-14).
+UPART=mutants
+( sleep 60; while systemctl --user is-active -q "$UNITP-mutants.scope"; do
+    NEWEST=$(ls -t $E/mutant_logs/*.txt 2>/dev/null | head -1)
+    if [ -n "$NEWEST" ] && [ $(( $(date +%s) - $(stat -c %Y "$NEWEST") )) -gt 300 ]; then
+        echo "STALL STOP $(date +%T): $NEWEST silent over 300 s; stopping $UNITP-mutants.scope" >> $E/stall_watchdog.txt
+        systemctl --user stop "$UNITP-mutants.scope"; break
+    fi
+    sleep 15
+  done ) &
+STALL=$!
+eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 690 python $E/mutate_pin.py" < /dev/null > $E/mutation_log.txt 2>&1
+echo "mutants exit=$? $(date +%T)"; kill $STALL 2>/dev/null; cut -c1-260 $E/mutation_log.txt
+git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
+# RULE 22 for the mutant: the golden test fails for the written reason, the same as batch 24's red.
+RC=/home/bond-servant-in-training/Documents/Projects/GAP-builder-scripts/reason_check.py
+[ -f $E/mutant_logs/B1.txt ] && python -I $RC $E/mutant_logs/B1.txt test_replay_report_matches_committed_snapshot "second_opinion.coverage.error: snapshot=1 now=21"
+dropmut
+echo "load at end: $(cat /proc/loadavg)"
