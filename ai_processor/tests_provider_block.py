@@ -112,8 +112,11 @@ TOOLS = [
     {"type": "function", "function": {"name": "t", "parameters": {"type": "object"}}}
 ]
 SCHEMA = {"name": "s", "strict": True, "schema": {"type": "object"}}
-EXPECTED = {"data_collection": "deny", "zdr": True}
-OFF = {"data_collection": "deny"}
+#: H-204: every request asks for the cheapest supplier first and never an fp4 endpoint,
+#: with zdr on or off (ai_processor/tests_h204_provider_price_sort.py owns these keys).
+ROUTING = {"sort": "price", "quantizations": ["fp8", "fp16", "bf16", "fp32", "unknown"]}
+EXPECTED = {"data_collection": "deny", "zdr": True, **ROUTING}
+OFF = {"data_collection": "deny", **ROUTING}
 
 PATHS: dict[str, dict[str, Any]] = {
     "plain": {"system_prompt": "s", "user_prompt": "u"},
