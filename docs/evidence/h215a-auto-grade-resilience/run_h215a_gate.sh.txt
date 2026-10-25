@@ -8,7 +8,7 @@
 # 1a makemigrations --check; 1b the seam by program (exactly the four production files, the new test module and
 #   docs changed); 1 the new module + near modules (every module that calls the auto task, the scheduled batch,
 #   grade_engine_async or the claim, or reads a batch row) + guards;
-#   2 the 10 mutants (rule 17; own DB).
+#   2 the 11 mutants (rule 17; own DB); G11's log must show the TypeError (e8d537e6's retry) in the beat test's block.
 # The regression is the batch's one full run on the frozen tip; it is not in this script.
 # A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
 set -u
@@ -88,9 +88,10 @@ r test_a_database_outage_is_retried_once_with_the_first_countdown "0 != 1 : a da
 r test_each_transient_class_is_retried "0 != 1 : an outage was not retried"
 r test_the_countdown_doubles_to_fifteen_minutes_plus_up_to_thirty_seconds "module 'assignments.tasks' has no attribute '_auto_grade_retry_countdown'"
 r test_a_broker_outage_mid_dispatch_resends_only_the_missed_papers "0 != 1 : a broker outage was not retried"
-# Exactly these blocks: one each for the 8 tests above other than the transient one, plus the transient
-# test's 8 sub-case blocks = 16. Nothing else fails.
-[ "$(grep -cE '^(FAIL|ERROR): ' $RF)" = 16 ] || { echo "red run: not exactly 16 FAIL/ERROR blocks"; RED_OK=0; }
+r test_a_beat_start_retried_for_real_completes_and_sends_the_missed_papers "'Error: ProcessingTemporarilyUnavailable' != 'Auto-grading started for 2 submissions.'"
+# Exactly these blocks: one each for the 9 tests above other than the transient one, plus the transient
+# test's 8 sub-case blocks = 17. Nothing else fails.
+[ "$(grep -cE '^(FAIL|ERROR): ' $RF)" = 17 ] || { echo "red run: not exactly 17 FAIL/ERROR blocks"; RED_OK=0; }
 [ "$(grep -cE '^(FAIL|ERROR): test_each_transient_class_is_retried ' $RF)" = 8 ] || { echo "red run: not 8 sub-case blocks"; RED_OK=0; }
 if [ "$RED_OK" != 1 ]; then
     echo "STOP (exit 4): the red run is not what was written"
@@ -98,7 +99,7 @@ if [ "$RED_OK" != 1 ]; then
     find assignments students -name __pycache__ -type d -prune -exec rm -rf {} +
     exit 4
 fi
-echo "red run is as written: non-zero exit, no OK line, the module loaded, 16 blocks red for their written reasons and no other"
+echo "red run is as written: non-zero exit, no OK line, the module loaded, 17 blocks red for their written reasons and no other"
 git checkout HEAD -- $CHANGED
 find assignments students -name __pycache__ -type d -prune -exec rm -rf {} +
 git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
@@ -116,8 +117,8 @@ UPART=modules
 eval "$CAP nice -n 10 timeout -k 60 3500 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $OWN $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
 echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
 if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
-echo "=== 2. mutants: 10 (own DB, rules 17 and 18) $(date +%T)"
-# Time limit 90 s x 10 + 600 = 1500 s, with a 300 s stall watchdog on the newest mutant log (2026-10-14).
+echo "=== 2. mutants: 11 (own DB, rules 17 and 18) $(date +%T)"
+# Time limit 90 s x 11 + 600 = 1590 s, with a 300 s stall watchdog on the newest mutant log (2026-10-14).
 UPART=mutants
 ( sleep 60; while systemctl --user is-active -q "$UNITP-mutants.scope"; do
     NEWEST=$(ls -t $E/mutant_logs/*.txt 2>/dev/null | head -1)
@@ -128,8 +129,10 @@ UPART=mutants
     sleep 15
   done ) &
 STALL=$!
-eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 1500 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
+eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 1590 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
 echo "mutants exit=$? $(date +%T)"; kill $STALL 2>/dev/null; cut -c1-260 $E/mutation_log.txt
 git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
+# The Senior Manager's bug, shown: under G11 (e8d537e6's kwargs-only retry) the beat test fails with the TypeError.
+python -I $RC $E/mutant_logs/G11.txt test_a_beat_start_retried_for_real_completes_and_sends_the_missed_papers "got multiple values for argument 'assignment_id'" || echo "G11: NOT the written TypeError"
 dropmut
 echo "load at end: $(cat /proc/loadavg)"

@@ -112,8 +112,8 @@ MUTANTS = [
         "G8",
         "the retry drops the batch row's id",
         TK,
-        '                "session_id": str(session.id) if session else session_id,\n',
-        '                "session_id": None,\n',
+        '            kwargs={"session_id": str(session.id) if session else session_id},\n',
+        '            kwargs={"session_id": None},\n',
         TESTS,
         K,
     ),
@@ -135,6 +135,15 @@ MUTANTS = [
         TESTS,
         K,
     ),
+    (
+        "G11",
+        "the retry gives kwargs only (e8d537e6's retry): a beat start gets the id twice",
+        TK,
+        '            args=(assignment_id,),\n            kwargs={"session_id": str(session.id) if session else session_id},\n',
+        '            kwargs={\n                "assignment_id": assignment_id,\n                "session_id": str(session.id) if session else session_id,\n            },\n',
+        TESTS,
+        K,
+    ),
 ]
 
 _A1 = "test_an_auto_paper_graded_by_the_teacher_meanwhile_is_skipped"
@@ -146,6 +155,7 @@ _DB = "test_a_database_outage_is_retried_once_with_the_first_countdown"
 _TR = "test_each_transient_class_is_retried"
 _CD = "test_the_countdown_doubles_to_fifteen_minutes_plus_up_to_thirty_seconds"
 _BR = "test_a_broker_outage_mid_dispatch_resends_only_the_missed_papers"
+_BEAT = "test_a_beat_start_retried_for_real_completes_and_sends_the_missed_papers"
 _OTHER = "test_any_other_error_keeps_todays_answer"
 _MISSING = "test_a_missing_assignment_is_not_retried"
 _T1 = "test_t1_auto_grade_due_assignment"
@@ -156,12 +166,13 @@ EXPECTED = {
     "G2": [_A1, _A2, _FA],
     "G3": [_A1],
     "G4": [_OTHER, _MISSING, _T1],
-    "G5": [_TR, _BR],
+    "G5": [_TR, _BR, _BEAT],
     "G6": [_CD],
     "G7": [_DB],
-    "G8": [_BR],
-    "G9": [_BR],
+    "G8": [_BR, _BEAT],
+    "G9": [_BR, _BEAT],
     "G10": [_AB, _FB],
+    "G11": [_BEAT, _DB, _BR],
 }
 
 #: A test module that could not be loaded.

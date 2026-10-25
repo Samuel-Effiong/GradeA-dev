@@ -30,6 +30,19 @@
 - **The retry is a manual `self.retry`, not `autoretry_for`**, because it must carry `session_id`.
   `bind=True` keeps the registered name and the beat row's positional `args` working, and direct calls in
   tests still work.
+- **The retry gives `args=(assignment_id,)` and `kwargs={"session_id": ...}`** (fix 69699386, found by the
+  Senior Manager's pre-read of 33b01646). Beat sends the id positionally (`assignments/signals.py`, `"args":
+  json.dumps([str(instance.id)])`). Celery 5.5.3's `signature_from_request` keeps the request's args when
+  `retry` is given none, so e8d537e6's kwargs-only retry sent the id twice. Every real retry would have
+  failed with `TypeError: ... got multiple values for argument 'assignment_id'`, before the task body ran.
+  The tests patched `retry` out, so they missed it. The new test
+  `test_a_beat_start_retried_for_real_completes_and_sends_the_missed_papers` starts the task positionally,
+  as beat does, with Celery's own retry. `apply()` runs the retried message eagerly
+  (`Task.apply`: `retval.sig.apply(retries=retries + 1)`). Mutant G11 restores the kwargs-only retry.
+- **A paper whose run failed in the pipeline is not resent** (checked at the Senior Manager's request). Its
+  item in the row has a celery id, so `_papers_not_yet_sent` leaves it out, by design: a pipeline failure is
+  the sweep's (part B) to retry, or the teacher's through the item retry route. A paper sent before the
+  outage and graded since then has a grade, so it is not in the ungraded set at all.
 - **After the fifth retry** Celery raises the outage itself, so the task ends `FAILURE`. That last failure is
   not written by the H-209 log line, which covers only the swallowed errors. Celery's own task-failure log
   records it. This is the hand-over point for the design's parts B and C, which are not in this row.
@@ -54,6 +67,10 @@
 ## Expected reds against b02de3fb (written before any run)
 
 The red run takes the four production files back to `b02de3fb` and runs the new module as at the tip.
+The beat test's red against e8d537e6 (before fix 69699386), written beforehand:
+`False is not true : auto_grade_due_assignment() got multiple values for argument 'assignment_id'`. The gate
+shows it through mutant G11, which is e8d537e6's retry, and the script looks for
+"got multiple values for argument 'assignment_id'" in that test's block of the G11 log.
 
 ```
 students.tests_h215a_auto_grade_resilience
@@ -76,8 +93,11 @@ students.tests_h215a_auto_grade_resilience
         "module 'assignments.tasks' has no attribute '_auto_grade_retry_countdown'"
     test_a_broker_outage_mid_dispatch_resends_only_the_missed_papers
         "0 != 1 : a broker outage was not retried"
+    test_a_beat_start_retried_for_real_completes_and_sends_the_missed_papers
+        "'Error: ProcessingTemporarilyUnavailable' != 'Auto-grading started for 2 submissions.'"
+        (the base swallows the outage; the task succeeds with that string)
 GREEN at b02de3fb and after (controls): test_the_teachers_own_regrade_still_grades_and_charges and the five
-  tests of NothingElseIsRetriedTest. The script checks exactly 16 FAIL/ERROR blocks, 8 of them the sub-cases.
+  tests of NothingElseIsRetriedTest. The script checks exactly 17 FAIL/ERROR blocks, 8 of them the sub-cases.
 ```
 
 **One test traced by hand at the base (rule 22):** for `test_an_auto_paper_graded_by_the_teacher_meanwhile_is_skipped`:
@@ -97,9 +117,10 @@ The battery is `students.tests_h215a_auto_grade_resilience` plus `assignments.te
 | G2 | the automatic grading dispatches without the flag | A1, A2, the auto flag test |
 | G3 | the graded-meanwhile check is dropped (`SubmissionGradingInProgressError` instead) | A1 only. The in-progress skip marks the item, but writes no batch row, so `session.results[-1]` raises IndexError. A2 and the scheduled-batch skip pass, because neither charges nor calls the provider |
 | G4 | every exception is retried | any-other-error and missing-assignment (retry called once), and `tests_task_results_carry_no_text` T1 (a direct call: `retry` re-raises the RuntimeError) |
-| G5 | the tuple loses `ProcessingTemporarilyUnavailable` | the transient test (that sub-case) and the broker test (the launcher raises the wrapper) |
+| G5 | the tuple loses `ProcessingTemporarilyUnavailable` | the transient test (that sub-case), the broker test (the launcher raises the wrapper), the beat test (not retried: "Error: ..." returned) |
 | G6 | the countdown does not double | the countdown test (the database test's retries=0 still gives 60-90) |
 | G7 | `max_retries=50` | the database test |
-| G8 | the retry drops the row's id | the broker test (the database test expects None anyway) |
-| G9 | the resend ignores the celery id | the broker test (all three papers resent) |
+| G8 | the retry drops the row's id | the broker test, the beat test (the retried run makes a second row and sends all three papers). The database test expects None anyway |
+| G9 | the resend ignores the celery id | the broker test, the beat test (all three papers resent) |
 | G10 | the scheduled batch dispatches without the flag | the scheduled-batch skip, the batch flag test |
+| G11 | the retry gives kwargs only (e8d537e6's retry) | the beat test (TypeError, the task fails), the database and broker tests (`args` missing from the retry call: KeyError) |
