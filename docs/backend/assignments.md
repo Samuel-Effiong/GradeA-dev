@@ -50,7 +50,7 @@ GET/DELETE only (`http_method_names = ["get", "head", "delete", "options"]`, [as
 | `formatted_grade_async` | **none** | none | students app |
 | `upload_assignment_async` | `max_retries=3` | soft 1800s / hard 2100s | `upload-async` |
 | `grade_batch_async` | `max_retries=3` | none | one-off `PeriodicTask` |
-| `auto_grade_due_assignment` | **none** | none | one-off `PeriodicTask` at due date |
+| `auto_grade_due_assignment` | database and broker outages only: `max_retries=5`, 60 s doubling to 900 s plus 0-30 s (H-215a) | none | one-off `PeriodicTask` at due date |
 | `send_assignment_due_reminder` | **none** | none | one-off `PeriodicTask`, 24h and 1h before due |
 | `send_new_assignment_posted_notification` | **none** | none | publish signal |
 | `prerender_assignment_pdfs` | `max_retries=5`, `default_retry_delay=60` | none | publish signal |
@@ -434,6 +434,10 @@ sequenceDiagram
 
 All three scope to ungraded submissions. The comment on the dead `grade_all_submissions` records why: the old unfiltered query re-ran the full **billed** AI pipeline over already-graded work ([tasks.py:58-60](../../assignments/tasks.py#L58-L60)).
 
+H-215a: the filter is read when the papers are queued, and a paper can be graded by hand (or by a second delivery of the same message) before its queued run starts. The scheduled and automatic paths therefore send `only_if_ungraded=True`, and the grading claim then also requires `graded_at IS NULL` in the same atomic UPDATE. A paper graded meanwhile is skipped: no AI call, no charge, its tracked item `SUCCESS` with `skipped: true`, and its batch row `"SUCCESS"` with `"note": "already graded"`. `grade-all` and a teacher's own grading are unchanged; grading a graded paper there is a deliberate re-grade.
+
+`auto_grade_due_assignment` retries a database or broker outage (`AUTO_GRADE_TRANSIENT_ERRORS`). The retry carries the batch row's id, reuses it, and sends only the papers whose dispatch never reached the broker (no celery id on their item in that row). New items are numbered after the row's highest. Every other error is not retried.
+
 Two gaps worth flagging:
 
 - The scheduled and auto-grade paths run **hours or days after** the credit check. A teacher whose balance has since emptied still triggers billed grading; whatever enforcement exists happens deeper in `grade_engine`.
@@ -552,7 +556,8 @@ The student serializers omit rubrics and model answers. `PolymorphicAssignmentEx
 | `grade_engine_async` exceeds the hard limit | SIGKILL; the claim is reclaimed after `GRADING_CLAIM_STALE_AFTER` | automatic |
 | Broker down at dispatch | 503 `ProcessingTemporarilyUnavailable` (via `launch_processing_task`) | retry |
 | Broker down at publish | assignment publishes; notification **and** pre-render silently dropped (`safe_delay`) | students never told; re-save to re-trigger |
-| `auto_grade_due_assignment` fails | task reports **SUCCESS** with a traceback string as its result | read the task result manually |
+| `auto_grade_due_assignment` hits a database or broker outage | retried up to 5 times, sending only the papers not yet queued; after that the task ends `FAILURE` | automatic, then re-run by hand |
+| `auto_grade_due_assignment` fails any other way | task reports **SUCCESS** with `"Error: <class>"` as its result (H-209: class only, logged with frames) | read the task result or the error log |
 | Reminder fires after the assignment is unpublished | task returns "not eligible", no email | by design |
 | `blooms_level` lost by the serializer bug | rigor silently `None`, assignment vanishes from the dashboard metric | `repair_question_blooms_levels` |
 | `rigor_*` drifted (bulk_update / raw SQL) | dashboard numbers wrong, no error | `backfill_assignment_rigor --dry-run` then apply |
