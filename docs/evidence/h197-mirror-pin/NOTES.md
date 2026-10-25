@@ -76,3 +76,23 @@ Rule 19 (a new test must be shown able to fail) is met by one mutant, written be
 - **The exit code** is captured by the start command (`; echo "gate exit=$?"` into the output file).
 - **The regression** is the later batch's one full run.
 - **Base:** `7286717e`.
+
+## The gate on 9e38391d (granted by the Senior Manager, 25 October 2026)
+
+Run 15:38:06 to about 15:41 WAT inside one `systemd-inhibit`. Logs are in `gate_9e38391d/` (gzipped), including the
+gate's own output, `gate_9e38391d.out.gz`.
+- **Exit code: 0**, captured by the start command (`; echo "gate exit=$?"`), whose line ends the output.
+- Available memory at the start was 9G, so the cap was 7G. Load was 2.83 5.50 7.66 at the start and 4.37 4.72 6.97 at
+  the end.
+
+- **makemigrations --check:** exit 0, no changes.
+- **Changed files:** "changed files as packed: the test module and docs/ only".
+- **Step 1** (own, the four near modules, the 21 guards), 15:38:11 to 15:40:25:
+  - "Ran 422 tests in 115.479s", "OK".
+  - 422 test lines were counted in the log, the pin test's among them.
+- **Step 2, mutant T1** (own database, rules 17, 18 and 22), 15:40:25 to 15:40:55: **KILLED**, "Ran 96 tests in
+  10.865s".
+  - It failed exactly the pin test, whose block holds "False is not True".
+  - Nothing was missing, nothing extra failed, and there was no wrong reason.
+- The source was clean after the mutant, and the mutant database was dropped. No watchdog fired.
+- The Senior Manager read the logs and ruled the gate GREEN.
