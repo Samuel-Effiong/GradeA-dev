@@ -59,14 +59,42 @@
   that has a due date and auto-grade on. So a save after the due date re-arms the spent one-off, and the task
   can fire again. With H-215a such a re-fire grades only papers still ungraded, and a paper graded while its
   message waits is skipped. The re-arming itself is left for a later row.
-- **Item numbers:** `item_index` has no unique constraint, so continuing after the row's highest is safe. The
-  paper whose dispatch failed keeps its FAILURE item (no celery id). Its new item is the resend.
+- **One item per paper (the Senior Manager's ruling, 16f358d7).** Before it, a retry made a new item for the
+  failed paper. `users/views.py` `session_results` then read "4 / 3" (:2923-2924), `is_complete` False forever
+  (:2933), and one FAILED line of class SYSTEM, unclassified and not retryable, for a paper graded later
+  (:2916, :2935; `item_results.py:61`). Now `_relaunch_failed_dispatches` takes the paper's item in this row
+  that is FAILURE with no celery id. It resets that item in place with one conditional UPDATE on
+  `pk, status FAILURE, celery_task_id null`: `PENDING`, `retry_count + 1`, `reason_code` and `error` cleared,
+  `started_at` and `finished_at` None. It then launches the item again through the real launcher, so a second
+  outage leaves it FAILURE with no celery id, ready for the next retry. Reused items are launched first;
+  papers with no item get new ones after the row's highest index.
+- **Two failed items for one paper cannot exist today** in a row that a retry reads:
+  - a paper gets a new item only when it has no item in the row (`_papers_not_yet_sent` drops papers with a
+    queued item, and `_relaunch_failed_dispatches` takes the rest that have a failed one);
+  - the run-time RUBRIC_MISSING refusal (`_refuse_batch_without_rubric`) is the one other writer of items. It
+    records refused items for every ungraded paper, numbered from 1, and the task then returns
+    "Refused: RUBRIC_MISSING" with no retry, so no later run reads that row.
+  The highest index is taken all the same. The refused items' numbers can repeat the row's earlier ones; that
+  is the existing S6d numbering, not changed.
+- **No G13 (the reset UPDATE without the celery-id-null filter).** No test can tell. The item is chosen by a
+  query that already requires a null celery id, and `_papers_not_yet_sent` has already dropped every paper
+  with a queued item, so the UPDATE never meets an item with a celery id in a single run. The filter guards a
+  race between two runs of the same retry (one launches the item and sets its id between the other's read and
+  its UPDATE), and a test cannot produce that race without concurrency. Dropping the filter from the choosing
+  query as well is just as invisible, for the same reason.
 - **Paperless items** are left out of the resend's "already queued" set, because `NOT IN` over a NULL
   `submission_id` would match no paper.
 
 ## Expected reds against b02de3fb (written before any run)
 
 The red run takes the four production files back to `b02de3fb` and runs the new module as at the tip.
+The written reds against 69699386 (a new item for the failed paper), each the first assertion to fail in the
+test's own block. The gate shows them under mutant G12, which restores that path:
+- broker test and beat test: "Lists differ: [1, 2, 3, 4] != [1, 2, 3]";
+- `test_two_outages_on_one_paper_reuse_its_item_twice`: "Lists differ: [1, 2, 3, 4, 5] != [1, 2, 3]"
+  (the second outage hits a new item, then two more are made);
+- `test_after_a_retry_the_batch_reads_complete_with_no_failure`: "'4 / 3' != '3 / 3'".
+
 The beat test's red against e8d537e6 (before fix 69699386), written beforehand:
 `False is not true : auto_grade_due_assignment() got multiple values for argument 'assignment_id'`. The gate
 shows it through mutant G11, which is e8d537e6's retry, and the script looks for
@@ -96,8 +124,13 @@ students.tests_h215a_auto_grade_resilience
     test_a_beat_start_retried_for_real_completes_and_sends_the_missed_papers
         "'Error: ProcessingTemporarilyUnavailable' != 'Auto-grading started for 2 submissions.'"
         (the base swallows the outage; the task succeeds with that string)
+    test_two_outages_on_one_paper_reuse_its_item_twice
+        "'Error: ProcessingTemporarilyUnavailable' != 'Auto-grading started for 2 submissions.'"
+  TheTeacherSeesOneLinePerPaperTest
+    test_after_a_retry_the_batch_reads_complete_with_no_failure
+        "'2 / 3' != '3 / 3'"   (item 1 graded, item 2 FAILURE, paper 3 never got an item)
 GREEN at b02de3fb and after (controls): test_the_teachers_own_regrade_still_grades_and_charges and the five
-  tests of NothingElseIsRetriedTest. The script checks exactly 17 FAIL/ERROR blocks, 8 of them the sub-cases.
+  tests of NothingElseIsRetriedTest. The script checks exactly 19 FAIL/ERROR blocks, 8 of them the sub-cases.
 ```
 
 **One test traced by hand at the base (rule 22):** for `test_an_auto_paper_graded_by_the_teacher_meanwhile_is_skipped`:
@@ -117,10 +150,11 @@ The battery is `students.tests_h215a_auto_grade_resilience` plus `assignments.te
 | G2 | the automatic grading dispatches without the flag | A1, A2, the auto flag test |
 | G3 | the graded-meanwhile check is dropped (`SubmissionGradingInProgressError` instead) | A1 only. The in-progress skip marks the item, but writes no batch row, so `session.results[-1]` raises IndexError. A2 and the scheduled-batch skip pass, because neither charges nor calls the provider |
 | G4 | every exception is retried | any-other-error and missing-assignment (retry called once), and `tests_task_results_carry_no_text` T1 (a direct call: `retry` re-raises the RuntimeError) |
-| G5 | the tuple loses `ProcessingTemporarilyUnavailable` | the transient test (that sub-case), the broker test (the launcher raises the wrapper), the beat test (not retried: "Error: ..." returned) |
+| G5 | the tuple loses `ProcessingTemporarilyUnavailable` | the transient test (that sub-case), the broker test (the launcher raises the wrapper), the beat and two-outage tests (not retried: "Error: ..." returned), the route test ("2 / 3") |
 | G6 | the countdown does not double | the countdown test (the database test's retries=0 still gives 60-90) |
 | G7 | `max_retries=50` | the database test |
-| G8 | the retry drops the row's id | the broker test, the beat test (the retried run makes a second row and sends all three papers). The database test expects None anyway |
-| G9 | the resend ignores the celery id | the broker test, the beat test (all three papers resent) |
+| G8 | the retry drops the row's id | the broker test; the beat and two-outage tests (the retried run makes a second row and sends all three papers); the route test (two rows: the unpacking raises). The database test expects None anyway |
+| G9 | the resend ignores the celery id | the broker test; the beat and two-outage tests (three papers counted); the route test (paper 1 gets a second item, which is skipped as already graded: "4 / 3") |
 | G10 | the scheduled batch dispatches without the flag | the scheduled-batch skip, the batch flag test |
-| G11 | the retry gives kwargs only (e8d537e6's retry) | the beat test (TypeError, the task fails), the database and broker tests (`args` missing from the retry call: KeyError) |
+| G11 | the retry gives kwargs only (e8d537e6's retry) | the beat, two-outage and route tests (TypeError, the task fails), the database and broker tests (`args` missing from the retry call: KeyError) |
+| G12 | a retry makes a new item instead of reusing the failed one (69699386) | the broker, beat, two-outage and route tests, each with its written red against 69699386 |
