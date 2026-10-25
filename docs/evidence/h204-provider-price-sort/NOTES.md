@@ -107,3 +107,30 @@ second opinion and reading. "H-206's eight" stands for the eight whole-block tes
 
 P6 and P8 keep the one `_provider_block()` call inside `__ai_model` (in a dict comprehension), so H-206's static
 guard ("exactly one call") stays green, and only the behaviour tests can catch them.
+
+## The gate on 1100954f (granted by the Senior Manager, 25 October 2026, 11:22 WAT)
+
+Run 11:21:49 to 11:27:39 WAT inside one `systemd-inhibit`, gate exit 0. Logs are in `gate_1100954f/` (gzipped).
+Load at the end was 5.52 6.10 5.25.
+
+- **Red run** (`services.py` as at 0e3028a8, both modules as at the tip): 33 FAIL blocks, each holding its written
+  fragment, no ERROR, no OK line. "Ran 36 tests in 3.664s", "FAILED (failures=33)". Source restored.
+- **makemigrations --check:** exit 0, no changes.
+- **Seam:** "SEAM OK: only _provider_block and the two constants changed as code".
+- **Step 1** (the 2 own modules, 22 near modules, 21 guards), 11:22:19 to 11:25:57: "Ran 772 tests in 197.996s", "OK".
+- **Step 2, mutants** (own database, rules 17 and 18), 11:25:57 to 11:27:37: all 8 KILLED, each with "Ran 36 tests".
+  Every mutant's failing tests are exactly its expected set, with nothing missing and nothing extra:
+
+| Id | Failing / expected |
+|---|---|
+| P1 | 15 / 15 |
+| P2 | 18 / 18 |
+| P3 | 15 / 15 |
+| P4 | 17 / 17 |
+| P5 | 17 / 17 |
+| P6 | 6 / 6 |
+| P7 | 8 / 8 |
+| P8 | 1 / 1 |
+
+  The source was clean after the mutants, and the mutant database was dropped.
+- The Senior Manager read the logs and ruled the gate GREEN.
