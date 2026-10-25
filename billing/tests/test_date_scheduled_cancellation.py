@@ -202,6 +202,29 @@ class DateScheduledCancellationMirrorTests(PaidSubscriptionFixture, TestCase):
         self.assertIs(sub.auto_renew, True)
         self.assertIsNone(sub.cancelled_at)
 
+    def test_a_recorded_cancel_time_alone_is_not_scheduled(self):
+        """H-197: the flag false, `cancel_at` empty, only `canceled_at` set
+        reads as NOT scheduled, and the record goes back to renewing.
+        `canceled_at` is only the time a cancellation was asked for.
+
+        Stripe is not expected to send this for an active subscription. A
+        test-mode probe on API 2026-02-25.clover (25 October 2026) showed
+        that undoing a cancellation, by the flag or by the date, clears
+        `canceled_at` too. This test only pins the mirror's reading, so a
+        later change cannot flip it silently ("Keep subscription" reads the
+        same payload the other way: H-174)."""
+        self.build(auto_renew=False, cancelled_at=timezone.now())
+
+        self.deliver(
+            cancel_at_period_end=False,
+            cancel_at=None,
+            canceled_at=stamp(timedelta(minutes=-5)),
+        )
+
+        sub = self.reloaded()
+        self.assertIs(sub.auto_renew, True)
+        self.assertIsNone(sub.cancelled_at)
+
     def test_a_message_that_says_nothing_about_it_changes_nothing(self):
         """Neither key: nothing is said, so nothing is un-cancelled. Green on
         the old code too."""
