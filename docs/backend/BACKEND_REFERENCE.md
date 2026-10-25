@@ -1942,6 +1942,12 @@ outage" cannot drift between the silent and the loud path.
 | `CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP` | `True` | worker/beat surviving a Redis restart |
 | scheduler | `django_celery_beat.schedulers:DatabaseScheduler` | one-off `ClockedSchedule` tasks are created at runtime |
 
+**Celery's own task lines (H-218).** `AutoGrader/celery.py` puts `CeleryTraceFilter`
+(`AutoGrader/safe_logging.py`) on the `celery.app.trace` logger. A failed task's line reads
+"Task <name>[<id>] raised unexpected: error=<Class> frames=<file:line:fn <- ...>", still at ERROR, with
+no traceback; a retry line reads "... retry: error text omitted"; neither carries the task's arguments.
+The result backend still stores the exception for `CELERY_RESULT_EXPIRES` (not served).
+
 ### 13.3 Scheduled (Beat) jobs
 
 | Schedule | Task | What it does | Failure handling |
