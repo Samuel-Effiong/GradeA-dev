@@ -326,10 +326,8 @@ class AnOutageIsRetriedTest(Classroom):
         self.assertEqual(call["max_retries"], 5)
         self.assertGreaterEqual(call["countdown"], 60)
         self.assertLessEqual(call["countdown"], 90)
-        self.assertEqual(
-            call["kwargs"],
-            {"assignment_id": str(self.assignment.id), "session_id": None},
-        )
+        self.assertEqual(call["args"], (str(self.assignment.id),))
+        self.assertEqual(call["kwargs"], {"session_id": None})
 
     def test_each_transient_class_is_retried(self):
         for error_class in TRANSIENT:
@@ -361,9 +359,9 @@ class AnOutageIsRetriedTest(Classroom):
             )
         self.assertEqual(retry.call_count, 1, "a broker outage was not retried")
         [session] = BatchUploadSession.objects.filter(course=self.course)
+        self.assertEqual(retry.call_args.kwargs["args"], (str(self.assignment.id),))
         self.assertEqual(
-            retry.call_args.kwargs["kwargs"],
-            {"assignment_id": str(self.assignment.id), "session_id": str(session.id)},
+            retry.call_args.kwargs["kwargs"], {"session_id": str(session.id)}
         )
         reached = {args[1] for args, _kwargs in [m for m in sent if m is not None]}
         self.assertEqual(len(reached), 1)
@@ -386,6 +384,27 @@ class AnOutageIsRetriedTest(Classroom):
             batch_session=session, item_index__gt=2
         )
         self.assertEqual(sorted(i.item_index for i in new_items), [3, 4])
+
+    def test_a_beat_start_retried_for_real_completes_and_sends_the_missed_papers(
+        self,
+    ):
+        """Beat starts the task with the id positionally
+        (assignments/signals.py). Here the retry is Celery's own, not
+        patched: apply() runs the retried message eagerly, so the id must
+        not arrive twice."""
+        papers = [self.paper(), self.paper(), self.paper()]
+        sent, dispatch = self.capture_dispatch(fail_at=2)
+        with dispatch:
+            outcome = auto_grade_due_assignment.apply(args=(str(self.assignment.id),))
+
+        self.assertTrue(outcome.successful(), outcome.result)
+        self.assertEqual(outcome.result, "Auto-grading started for 2 submissions.")
+        first = sent[0][0][1]
+        resent = {args[1] for args, _kwargs in sent[2:]}
+        self.assertEqual(resent, {str(p.id) for p in papers} - {first})
+        self.assertEqual(
+            BatchUploadSession.objects.filter(course=self.course).count(), 1
+        )
 
 
 class NothingElseIsRetriedTest(Classroom):
