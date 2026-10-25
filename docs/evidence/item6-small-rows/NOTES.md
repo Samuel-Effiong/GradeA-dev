@@ -130,7 +130,7 @@ exit 0. Both outputs are in `mypy/`. The folder hid before only through mypy's o
   both pass `--base`, so the change judges nothing today).
 - No run of any kind has happened for this pack; every count above is from reading.
 
-## Correction after the first gate run (2026-10-25 18:5x)
+## The first gate stopped at 0c (2026-10-25 18:51:54); the stopped run is kept as `red_gate_5dd35903/`
 The first gate on 5dd35903 stopped at step 0c: test A was red with the right set (exit 1, Ran 6,
 A and C), but my written fragment used `['test_split` where Python reprs a string that itself
 holds single quotes with DOUBLE quotes: `["test_split: not together in ONE failure block: ...`.
@@ -139,3 +139,35 @@ the runner change are untouched. Steps 0a and 0b of that run were as written (0a
 reds for their reasons, the address named 8 times; 0b: Ran 20, OK). The whole gate is re-run from
 0a on the corrected pack after a new GRANT. Lesson: reproduce each list-compare message in plain
 Python before writing its fragment.
+
+## Every written fragment rebuilt in plain Python (the Senior Manager's condition 2)
+`fragment_check.py <worktree>` (a plain-Python script, no test loader, no Django test run) rebuilds each
+assertion's message with `unittest.TestCase()` on the written values and says whether the fragment is
+inside it. The assertNoLogs row is checked against the whole failure text (its log entry is multi-line
+because the record carries exc_info). The five H-225 route rows (M228-1, s1–s5) are not rebuilt from an
+assertion: they are checked against H-225's own committed P1 log
+(`docs/evidence/h225-student-empty-wallet/chain_4d3780cb/b_P1.log.gz`), the run that produced them;
+unittest shortens the long sentences on the message's first line (`[64 chars]`), but the diff lines of
+the same block print both in full, and "found" there means both sentences are in that test's block.
+Output `fragment_check.out`, copied below.
+
+| where | written fragment | rebuilt message (first line) | found |
+|---|---|---|---|
+| 0a test_google_auth_throttle | `'Google sign-in failed. Please try again.' != 'Google did not return an ID token'` | `'Google sign-in failed. Please try again.' != 'Google did not return an ID token'` | yes |
+| 0a test_the_google_throttle_probe_never_calls_google (and M226-1) | `Unexpected logs found: ['ERROR:users.views:Google OAuth token exchange failed` | `AssertionError: Unexpected logs found: ['ERROR:users.views:Google OAuth token exchange failed\nTraceback ... (multi-line entry)` | yes |
+| 0c + R1 test_A | `Lists differ: [] != ["test_split: not together in ONE failure block` | `Lists differ: [] != ["test_split: not together in ONE failure block: ['alpha here', 'beta here']"]` | yes |
+| 0c + R2 test_C | `not in its own failure block: ['[two]']` | `Lists differ: ["test_split: not in its own failure block: ['[two]']"] != []` | yes |
+| 0d + M217-1 T1/T2 (added) | `Lists differ: [] != ['AddConstraint']` | `Lists differ: [] != ['AddConstraint']` | yes |
+| 0d + M217-2 T3 (dropped) | `Lists differ: [] != ['RemoveConstraint']` | `Lists differ: [] != ['RemoveConstraint']` | yes |
+| 0d + M217-1 T4 (names) | `0 != 1` | `0 != 1 : []` | yes |
+| M217-3 T5 (control) | `Lists differ: ['AddConstraint'] != []` | `Lists differ: ['AddConstraint'] != []` | yes |
+| M217-4 T4 | `'NOT VALID' not found in` | `'NOT VALID' not found in "AddConstraint - adds the CheckConstraint 'item_qty_positive' in one step: ... steps: add it, then validate it in the next mi` | yes |
+| M226-1 test_google_auth_throttle | `Expected 'put' to have been called once. Called 0 times.` | `Expected 'put' to have been called once. Called 0 times.` | yes |
+| M228-1 test_student_is_refused_when_their_teacher_has_none | `is not an instance of <class 'billing.errors.StudentEmptyWalletError'>` | `EmptyWalletError('Credit wallet is empty') is not an instance of <class 'billing.errors.StudentEmptyWalletError'>` | yes |
+| M228-1 test_s1_the_synchronous_upload (H-225's real P1 log) | `both sentences in the block` | `======================================================================` | yes |
+| M228-1 test_s2_the_asynchronous_upload (H-225's real P1 log) | `both sentences in the block` | `======================================================================` | yes |
+| M228-1 test_s3_the_edit (H-225's real P1 log) | `both sentences in the block` | `======================================================================` | yes |
+| M228-1 test_s4_the_asynchronous_edit (H-225's real P1 log) | `both sentences in the block` | `======================================================================` | yes |
+| M228-1 test_s5_the_students_own_funded_wallet_changes_nothing (H-225's real P1 log) | `both sentences in the block` | `======================================================================` | yes |
+
+16 fragments checked, 16 found, 0 NOT found
