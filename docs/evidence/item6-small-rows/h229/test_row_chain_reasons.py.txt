@@ -81,7 +81,7 @@ AssertionError: cut off here
 class TheWrittenReasonsOfOneTest(unittest.TestCase):
     def test_A_fragments_from_two_different_subtest_blocks_are_refused(self):
         """Old file: [] (each fragment is in SOME block of the test).
-        Red reason: Lists differ: [] != ['test_split: not together in ONE failure block"""
+        Red reason: Lists differ: [] != ["test_split: not together in ONE failure block"""
         self.assertEqual(
             row_chain.wrong_reasons(LOG, {SPLIT: ["alpha here", "beta here"]}),
             [

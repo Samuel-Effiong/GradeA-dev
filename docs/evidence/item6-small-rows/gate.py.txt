@@ -98,7 +98,7 @@ RED_226 = {
 }
 RED_229 = {
     "test_A_fragments_from_two_different_subtest_blocks_are_refused": [
-        "Lists differ: [] != ['test_split: not together in ONE failure block"
+        "Lists differ: [] != ["test_split: not together in ONE failure block"
     ],
     "test_C_the_subtest_label_can_be_a_fragment": [
         "not in its own failure block: ['[two]']"

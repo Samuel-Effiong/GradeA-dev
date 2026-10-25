@@ -46,7 +46,7 @@ is mutant M228-1 (below), which runs the tightened test against the same P1.
 
 **0c H-229, the stdlib test against the OLD runner** (`row_chain_f3fe0bdd.py`): exit 1,
 `Ran 6 tests`, exactly two FAIL blocks:
-- `test_A_fragments_from_two_different_subtest_blocks_are_refused`: `Lists differ: [] != ['test_split: not together in ONE failure block`
+- `test_A_fragments_from_two_different_subtest_blocks_are_refused`: `Lists differ: [] != ["test_split: not together in ONE failure block`
 - `test_C_the_subtest_label_can_be_a_fragment`: `not in its own failure block: ['[two]']`
 B, D, E, F green (controls).
 
@@ -129,3 +129,13 @@ exit 0. Both outputs are in `mypy/`. The folder hid before only through mypy's o
   the final batch; `scripts/strict_gate.py:875–885` and `.github/workflows/migration-safety.yml:66`
   both pass `--base`, so the change judges nothing today).
 - No run of any kind has happened for this pack; every count above is from reading.
+
+## Correction after the first gate run (2026-10-25 18:5x)
+The first gate on 5dd35903 stopped at step 0c: test A was red with the right set (exit 1, Ran 6,
+A and C), but my written fragment used `['test_split` where Python reprs a string that itself
+holds single quotes with DOUBLE quotes: `["test_split: not together in ONE failure block: ...`.
+Corrected here, in `gate.py` (RED_229, used by R1 too) and in the test's docstring; the test and
+the runner change are untouched. Steps 0a and 0b of that run were as written (0a: Ran 12, both
+reds for their reasons, the address named 8 times; 0b: Ran 20, OK). The whole gate is re-run from
+0a on the corrected pack after a new GRANT. Lesson: reproduce each list-compare message in plain
+Python before writing its fragment.
