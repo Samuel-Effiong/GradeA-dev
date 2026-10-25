@@ -473,12 +473,17 @@ class BatchUploadSession(models.Model):
         batch_type=None,
         submission_id=None,
         assignment_id=None,
+        note=None,
     ):
         new_entry = {
             "file_name": file_name,
             "status": status,
             "error": error,
         }
+        # H-215a: why a SUCCESS needed no work ("already graded"). The
+        # status stays a word every reader of results already knows.
+        if note:
+            new_entry["note"] = note
         if batch_type == BatchUploadType.SUBMISSION:
             new_entry.update(
                 {

@@ -142,6 +142,18 @@ class SubmissionGradingInProgressError(Exception):
     pass
 
 
+class SubmissionGradedMeanwhileError(Exception):
+    """
+    Raised by grade_engine(only_if_ungraded=True) when the paper was
+    graded after an automatic run queued it (H-215a): the automatic
+    grading at the due date and the teacher's scheduled batch skip it. Not
+    a failure, and no charge. Not SubmissionAlreadyGradedError, which is
+    the upload rule for a closed submission.
+    """
+
+    pass
+
+
 class AssignmentNotOpenError(Exception):
     """The assignment is not PUBLISHED, so it does not accept submissions
     or submission edits. User-facing."""
