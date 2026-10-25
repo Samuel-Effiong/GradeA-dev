@@ -176,7 +176,8 @@ Every response is wrapped by `users/renderers.py::APIJSONRenderer`:
 ```
 
 `flatten_errors()` collapses nested DRF error dicts into one human-readable sentence (numbered
-when there are several). `users/exceptions.py::custom_exception_handler` logs every API exception
+when there are several). `users/exceptions.py::custom_exception_handler` logs a refusal DRF answers
+at WARNING with its class and status only (H-227), a crash at ERROR with its traceback,
 and marks DRF-handled responses so the renderer can distinguish a validation error from an
 unhandled 500 (whose message is replaced by `AutoGrader/error_messages.py::describe_user_error`).
 
@@ -2205,8 +2206,10 @@ otherwise recalculating course final grades and flushing deployment-wide caches 
 
 Three layers, in order:
 
-1. **DRF exception handler** (`users/exceptions.py::custom_exception_handler`) — logs every API
-   exception with view/path/method/user, lets DRF translate known exceptions, and marks the
+1. **DRF exception handler** (`users/exceptions.py::custom_exception_handler`) — lets DRF translate
+   known exceptions and logs each with view/path/method/user: a refusal DRF answers at WARNING,
+   class and status only, no traceback or text (H-227); a crash DRF cannot answer at ERROR with
+   its traceback, and marks the
    response `_drf_handled`. Anything DRF cannot handle becomes a bare `500` carrying `_raw_exc`.
 2. **Renderer** (`users/renderers.py::APIJSONRenderer`) — wraps the payload in the envelope. For
    handled errors it flattens field errors into one sentence and preserves the structured dict

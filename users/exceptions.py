@@ -63,12 +63,19 @@ def custom_exception_handler(exc, context):
         response._drf_handled = True  # marker for renderer
         return response
 
-    logger.error("API Exception", exc_info=exc, extra=extra)
-
     # ---- Let DRF try to handle it (validation, 404, etc.) ----
     drf_response = exception_handler(exc, context)
 
     if drf_response is not None:
+        # H-227: a refusal DRF answers is an expected outcome, not a fault:
+        # WARNING, no traceback and none of its text (a field message can
+        # quote what the user typed). It is also below Sentry's event level.
+        logger.warning(
+            "API request refused: %s (%s)",
+            type(exc).__name__,
+            drf_response.status_code,
+            extra=extra,
+        )
         envelope = getattr(exc, "envelope", None)
         if envelope is not None and isinstance(drf_response.data, dict):
             reason_code, code_value = envelope
@@ -98,6 +105,9 @@ def custom_exception_handler(exc, context):
         return drf_response
 
     # ---- Unhandled 500 ----
+    # The only record of a real crash (the renderer does not log): ERROR,
+    # with the traceback.
+    logger.error("API Exception", exc_info=exc, extra=extra)
     response = Response(status=500)
     response.exception = True
     response._raw_exc = exc  # for traceback in renderer

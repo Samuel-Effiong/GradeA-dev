@@ -27,20 +27,27 @@ class CustomExceptionHandlerTests(TestCase):
         view = Mock()
         return {"view": view, "request": request}
 
-    def handle(self, exc, **kwargs):
+    def handle_refusal(self, exc, **kwargs):
+        """H-227: a refusal DRF answers is logged at WARNING."""
+        with self.assertLogs("users.exceptions", level="WARNING"):
+            return custom_exception_handler(exc, self.context(**kwargs))
+
+    def handle_crash(self, exc, **kwargs):
         with self.assertLogs("users.exceptions", level="ERROR"):
             return custom_exception_handler(exc, self.context(**kwargs))
 
     # --- exceptions DRF knows how to format -----------------------------------
 
     def test_a_drf_exception_keeps_its_status_and_is_marked_handled(self):
-        response = self.handle(NotFound("No such thing."))
+        response = self.handle_refusal(NotFound("No such thing."))
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(getattr(response, "_drf_handled", False))
 
     def test_validation_errors_keep_their_field_payload(self):
-        response = self.handle(ValidationError({"email": ["This field is required."]}))
+        response = self.handle_refusal(
+            ValidationError({"email": ["This field is required."]})
+        )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["email"], ["This field is required."])
@@ -58,7 +65,7 @@ class CustomExceptionHandlerTests(TestCase):
         """
         exc = KeyError("grading_summary")
 
-        response = self.handle(exc)
+        response = self.handle_crash(exc)
 
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
         self.assertTrue(response.exception)
@@ -67,7 +74,7 @@ class CustomExceptionHandlerTests(TestCase):
 
     def test_the_unhandled_response_body_carries_no_exception_text(self):
         """The renderer sanitises the message; the handler must not pre-leak it."""
-        response = self.handle(KeyError("internal_detail_abc"))
+        response = self.handle_crash(KeyError("internal_detail_abc"))
 
         self.assertNotIn("internal_detail_abc", str(response.data))
 
@@ -90,6 +97,12 @@ class CustomExceptionHandlerTests(TestCase):
         self.assertEqual(record.user, 42)
         self.assertIsNotNone(record.exc_info)
 
-    def test_a_handled_exception_is_logged_too(self):
-        with self.assertLogs("users.exceptions", level="ERROR"):
+    def test_a_handled_exception_is_logged_at_warning_without_a_traceback(self):
+        """H-227: a refusal is an expected outcome, not a fault (it was
+        logged at ERROR with its traceback, and so sent to Sentry)."""
+        with self.assertLogs("users.exceptions", level="WARNING") as logs:
             custom_exception_handler(NotFound("nope"), self.context())
+
+        [record] = logs.records
+        self.assertEqual(record.levelname, "WARNING")
+        self.assertIsNone(record.exc_info)
