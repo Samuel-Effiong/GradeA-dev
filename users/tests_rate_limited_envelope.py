@@ -247,11 +247,28 @@ class NamedThrottleEnvelopeTests(APITestCase):
     # lookup offline), while this test only read the second answer.
     GOOGLE_CODE = {"code": "a-code-no-stand-in-ever-exchanges"}
 
+    def _google_stood_in(self):
+        """A stand-in for the token exchange: `raise_for_status` passes and
+        the body is an EMPTY dict, both set explicitly so no MagicMock reaches
+        the view's `token_data.get("id_token")` or Google's own verifier. The
+        view then answers 400 "Google did not return an ID token" before any
+        network call."""
+        stand_in = patch("requests.post")
+        mocked_post = stand_in.start()
+        self.addCleanup(stand_in.stop)
+        mocked_post.return_value.raise_for_status.return_value = None
+        mocked_post.return_value.json.return_value = {}
+        return mocked_post
+
     def test_google_auth_throttle(self):
+        mocked_post = self._google_stood_in()
         first, response = self._exhaust(
             reverse("auth-google-auth"), self.GOOGLE_CODE, "google_auth"
         )
         assert_rate_limited_envelope(self, response)
+        # The first post reached the view and the stand-in answered it; the
+        # throttled second post never got that far.
+        mocked_post.assert_called_once()
         # The deciding value for the first answer: the view reached the token
         # exchange and the exchange handed back no id_token, so nothing a real
         # network answer (or its failure) produced shaped this response.
@@ -262,6 +279,7 @@ class NamedThrottleEnvelopeTests(APITestCase):
         """users/views.py logs "Google OAuth token exchange failed" at ERROR
         on the users.views logger whenever the real exchange is attempted and
         fails; a probe that never calls Google never gets there."""
+        self._google_stood_in()
         with self.assertNoLogs("users.views", level="ERROR"):
             self._exhaust(reverse("auth-google-auth"), self.GOOGLE_CODE, "google_auth")
 
