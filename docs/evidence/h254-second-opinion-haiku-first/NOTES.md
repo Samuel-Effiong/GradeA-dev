@@ -53,3 +53,45 @@ GREEN at b02de3fb and after (controls): test_grader_a_on_haiku_gives_deepseek,
 - **Step 2:** S1-S4 KILLED, each with its Ran line, every expected test failing and nothing else.
 - No memory or stall watchdog action, no blocked outbound. Load at the end: 3.80 7.26 7.25.
 - Logs: `gate_92854ca9/` (gzipped).
+
+## Follow-up after the red batch 24 full run (the Senior Manager's ruling (a), 25 October 2026)
+
+- **What the full run found:** batch 24 (c666408a = b02de3fb + H-254 + H-215a) ran 09:47:51-09:59:40: Ran 8311,
+  FAILED (failures=1, skipped=30). The one failure is `ai_processor.tests_benchmark_golden`
+  `test_replay_report_matches_committed_snapshot`. This is the written red, quoted from that run's log:
+
+  ```
+  AssertionError: Lists differ: ['  cost.total_tokens: snapshot=920349 now[349 chars]one'] != []
+  -  '  cost.total_tokens: snapshot=920349 now=463926',
+  -  '  second_opinion.coverage.error: snapshot=1 now=21',
+  -  '  second_opinion.coverage.ran: snapshot=20 now=0',
+  -  '  second_opinion.disagreement_rate: snapshot=0.1441 now=None',
+  -  '  second_opinion.questions_compared: snapshot=111 now=0',
+  -  '  second_opinion.questions_disagreed: snapshot=16 now=0',
+  -  '  second_opinion.tiers.moderate: snapshot=16 now=None'] : The benchmark's replay results changed.
+  ```
+
+- **Cause:** the replay key is the system prompt, the user prompt and `override_model` (`request_key`,
+  `benchmark/runner.py:122-128`). The recordings (`benchmark/recordings/responses.json.gz`) hold 203 calls with no
+  override and 127 with `deepseek/deepseek-v4-pro`, and none with haiku. `_benchmark_settings` did not pin
+  `GRADING_SECOND_OPINION_MODELS`, so after H-254 grader B was haiku. Every second opinion raised
+  `MissingRecordingError`, which the second opinion's broad `except` catches. The token drop is the DeepSeek
+  grader B answers no longer replayed.
+- **The fix:** `_benchmark_settings` pins `GRADING_SECOND_OPINION_MODELS` to `[deepseek, haiku]`, the order the
+  recordings were made under. Its docstring says so, and says re-recording is the way to change it. Production
+  keeps haiku first. The pin also covers the nightly replay task (`ai_processor/tasks.py`
+  `nightly_grading_benchmark_replay`), which runs the same `execute_benchmark`. Re-recording with haiku as
+  grader B (live, paid) is a later option for the owner, put to them by the Senior Manager.
+- **Every other model list a replay could read** (grep of the benchmark and its tests):
+  - `MAIN_MODEL`, `GRADING_FALLBACK_MODELS`, `IMAGE_FALLBACK_MODELS`, `DEFAULT_FALLBACK_MODELS`: not in the replay
+    key (they are the request's `model` and `models`, not `override_model`), so a change cannot miss a recording.
+    They are module constants, which `override_settings` could not pin anyway. Not pinned, and need not be.
+  - `ANSWER_BLANK_VERIFICATION_MODEL`: does reach `override_model` (`services.py:2437`), but only when answers are
+    read. The grading benchmark grades `submission_answers_json` directly, and the extraction benchmark reads
+    assignments, not answers, so neither reaches it. Not pinned; green today for that reason.
+  - The extraction benchmark (`extraction_runner.py`) pins nothing (`_extraction_settings` is `{}`) and makes no
+    override call. `benchmark/answers/live.py` and `isolation_run8` run live only, with no replay key.
+  - The only list that needed a pin is the second opinion's.
+- **Lesson:** H-254's gate did not run `tests_benchmark_golden`. Any change to a model list or to the second
+  opinion's settings puts `ai_processor.tests_benchmark_golden` and `ai_processor.tests_grading_benchmark` in its
+  near modules.
