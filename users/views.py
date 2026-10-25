@@ -1115,21 +1115,20 @@ Sends one of two emails, chosen by `otp_type`:
 | `VERIFY_EMAIL` | a new activation link, valid 15 min (replaces the old code) | `POST /auth/verify` |
 | `RESET_PASSWORD` | a 6-digit password-reset code (valid 15 min) | `POST /auth/reset-password` |
 
-**An unknown address always gets 202.** Show the same neutral confirmation (e.g.
-"If an account exists for that address, we've sent an email") for every 202 and
-never branch on `message`: its wording can differ between cases. The two 400s
-below only happen for existing accounts in the wrong state.
+**Every valid request gets the same 202, whatever the state of the address**
+(H-198): unknown, verified, never verified, switched off. Show one neutral
+confirmation (e.g. "If an account exists for that address, we've sent an email")
+for every 202 and never branch on `message`. The answer does not say whether
+anything was sent, or which email: an already-verified active account is sent
+nothing, and an account that never verified its email is sent its verification
+email instead of a reset code.
 
 **Values**
 - `email`: string, required, must be a valid email address.
 - `otp_type`: exactly `"VERIFY_EMAIL"` or `"RESET_PASSWORD"` (upper case).
 
-**400 cases** (show `message`):
-- invalid `otp_type` or email → "Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`"
-- `VERIFY_EMAIL` for an account that is already active → "Email already verified. Please login."
-  (send the user to sign in)
-- `RESET_PASSWORD` for an account that never verified its email → "Email not verified."
-  (offer `VERIFY_EMAIL` instead)
+**400** (show `message`): only for bad input. An invalid `otp_type` or email →
+"Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`"
 
 While a password reset is locked after 5 wrong codes, this endpoint still answers
 202 but sends no code; the lock is reported by `POST /auth/reset-password` (429
@@ -1168,16 +1167,12 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             ),
             400: OpenApiResponse(
                 response=OpenApiTypes.OBJECT,
-                description="Bad input, or the account is in the wrong state for this otp_type.",
+                description="Bad input only (never the state of the address).",
                 examples=[
                     _auth_error_example(
                         "Invalid otp_type or email",
                         "Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`",
                     ),
-                    _auth_error_example(
-                        "Already verified", "Email already verified. Please login."
-                    ),
-                    _auth_error_example("Email not verified", "Email not verified."),
                 ],
             ),
             429: OpenApiResponse(
@@ -1216,8 +1211,13 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
 
         if otp_type == "VERIFY_EMAIL":
 
+            # H-198 (the user's ruling): an active, verified account is told
+            # nothing either - the neutral reply of an unknown address, and
+            # nothing is made or sent.
             if user.email_verified_at and user.is_active:
-                raise ParseError("Email already verified. Please login.")
+                return Response(
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
+                )
 
             # H-202: a verified account that was switched off is not mailed a
             # code (verify would switch it back on): the neutral reply of an
@@ -1247,10 +1247,19 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             # reset_password).
             # An account with admin power that never verified its email gets no
             # new first road by a mailbox code: refused as the inactive case is.
+            # H-198 (the user's ruling, superseding H-164's 400 "Email not
+            # verified." for this answer only): such an account still gets no
+            # reset code, but the reply is the neutral one of an unknown
+            # address. Without admin power it is sent what VERIFY_EMAIL would
+            # send, under the same H-53 lock; with admin power, nothing.
             if not user.email_verified_at and (
                 not user.is_active or _holds_admin_power(user)
             ):
-                raise ParseError("Email not verified.")
+                if not _holds_admin_power(user) and not verify_lock_until(user.email):
+                    send_user_activation_email(user)
+                return Response(
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
+                )
 
             # H-202: a switched-off (verified) account makes and gets no reset
             # code: the neutral reply of an unknown address.
