@@ -143,3 +143,39 @@ and stops on two bad inputs:
   - the 21 guards.
 - **The mutants:** 9, with a 1410 s limit and the 300 s stall watchdog.
 - **Base:** `7286717e`.
+
+## The gate on 1021f147 (granted by the Senior Manager, 25 October 2026, 13:56 WAT)
+
+Run 14:06 to 14:11:36 WAT inside one `systemd-inhibit`, gate exit 0. Logs are in `gate_1021f147/` (gzipped).
+- Available memory at the start was 10G, so the cap was 8G.
+- Load was 1.07 0.99 1.41 at the start and 9.56 5.58 3.18 at the end: other work on the laptop began as the mutants
+  finished.
+
+- **Red run** (`users/views.py` as at 7286717e, the new module as at the tip):
+  - 8 FAIL blocks, each holding its written fragment, no ERROR, no OK line.
+  - "Ran 11 tests in 1.053s", "FAILED (failures=8)".
+  - The three controls were green. The source was restored.
+- **makemigrations --check:** exit 0, no changes.
+- **Seam:** "SEAM OK: only register_school_admin and the Throttled import changed". The changed-file check passed.
+- **Step 1** (own, the door's modules, H-53's users, the neighbours, the 21 guards), 14:06:49 to 14:09:39:
+  - "Ran 664 tests in 144.687s", "OK".
+  - 664 test lines were counted in the log.
+- **Step 2, mutants** (own database, rules 17, 18 and 22), 14:09:39 to 14:11:32:
+  - All 9 KILLED, each with "Ran 38 tests".
+  - Every mutant's failing tests are exactly its expected set, with nothing missing and nothing extra.
+  - Every block of every expected test held the fragment written for that test.
+
+| Id | Failing / expected |
+|---|---|
+| N1 | 1 / 1 (B8) |
+| N2 | 6 / 6 |
+| N3 | 3 / 3 |
+| N4 | 1 / 1 (B6) |
+| N5 | 1 / 1 (B5) |
+| N6 | 1 / 1 (B4) |
+| N7 | 1 / 1 (K2) |
+| N8 | 6 / 6 (B1 is the 429-not-500 test) |
+| N9 | 2 / 2 |
+
+- The source was clean after the mutants, and the mutant database was dropped. No watchdog fired.
+- The Senior Manager read the logs and ruled the gate GREEN.
