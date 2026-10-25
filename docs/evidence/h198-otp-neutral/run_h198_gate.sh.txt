@@ -1,0 +1,132 @@
+#!/bin/bash
+# H-198 neutral /auth/otp answers (beta line). Usage: bash run_h198_gate.sh <tip> 1
+# One grant, inside ONE outer inhibit (memory cap = available - 2G, min 6G, read at start; rule 13):
+#   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block bash <script> <tip> 1
+# 0 the red run: the new test module and the three modules this row changed, as at the tip, against the code as at
+#   the base (the one production file, users/views.py, taken back; own DB). RULE 22: each red test is red for its
+#   WRITTEN reason (a fragment looked for in every one of its own FAIL/ERROR blocks), and exactly 15 blocks appear;
+# 1a makemigrations --check; 1b the seam by program (views.py is the only production file changed; by its syntax
+#   tree only otp changed, in the two ruled branches); 1 the own modules + near modules (every module that calls
+#   /auth/otp, the sign-in doors and their neighbours, the audit and catalogue tests) + guards; 2 the 8 mutants
+#   (rule 17; own DB), each judged by its expected tests AND their written fragments.
+# The regression is the batch's one full run on the frozen tip; it is not in this script.
+# A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
+set -u
+# BASE = origin/beta after batch 25; the red run takes the one production file back to it.
+TIP=$1; STEP=${2:-1}; BASE=7286717e
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h198-otp-neutral || exit 1
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+E=docs/evidence/h198-otp-neutral
+AVAIL_G=$(awk '/^MemAvailable:/ {print int($2/1048576)}' /proc/meminfo)
+MEMG=$((AVAIL_G - 2))
+echo "available at start: ${AVAIL_G}G; cap ${MEMG}G"
+[ "$MEMG" -ge 6 ] || { echo "STOP (exit 5): cap under 6G; wait and tell the SM"; exit 5; }
+# Each run has its own scope unit, gap-h198-<pid>-<part>; the watchdogs stop only those, by exact name.
+UNITP=gap-h198-$$
+UPART=none
+CAP="systemd-run --user --scope -q --unit=\${UNITP}-\${UPART} -p MemoryMax=${MEMG}G -p MemorySwapMax=0"
+# Memory watchdog (SM 2026-10-14): available under 1.5 GB stops OUR scope, by its unit name, never by pattern.
+( while sleep 10; do
+    A=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
+    if [ "$A" -lt 1572864 ]; then
+        for U in $UNITP-red $UNITP-modules $UNITP-mutants; do
+            if systemctl --user is-active -q "$U.scope"; then
+                echo "MEMORY STOP $(date +%T): available ${A} kB; stopping $U.scope" >> $E/memory_watchdog.txt
+                systemctl --user stop "$U.scope"
+            fi
+        done
+    fi
+  done ) &
+WATCHDOG=$!
+export PYTHONFAULTHANDLER=1
+export EXEMPT_EMAIL_DOMAINS=
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+[ "$STEP" = 1 ] || { echo "only step 1 exists"; exit 1; }
+mkdir -p $E
+CHANGED="users/views.py"
+RESTORE="users/views.py"
+restore_tree() { kill $WATCHDOG 2>/dev/null; git checkout HEAD -- $RESTORE 2>/dev/null; find users classrooms -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
+trap restore_tree EXIT
+summary() { grep -E "^(Ran |OK|FAILED \(|(FAIL|ERROR): )" "$1" | cut -c1-200 | head -${2:-12}; }
+dropmut() { python manage.py shell --settings=settings_worktree_mut -c "
+from django.conf import settings
+from django.db import connection
+name = settings.DATABASES['default']['TEST']['NAME']
+with connection._nodb_cursor() as c:
+    c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
+print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
+OWN="users.tests_h198_otp_neutral users.tests_reset_for_an_invited_student users.tests_switched_off_means_out classrooms.tests_school_admin_active_invite"
+NEAR="users.tests_otp_no_oracle users.tests_auth_endpoints users.tests_throttling users.tests_throttle_client_identity users.tests_rate_limited_envelope users.tests_patch_email users.tests_verify_email_budget users.tests_final_branches users.tests_token_revocation users.tests_email_warning_copy users.tests_reset_otp_budget users.tests_google_auth users.tests_auth_audit_doors users.tests_admin_power_principle users.tests_activation_email_domain classrooms.test_school_admin_otp_deadend audit.tests_route_coverage AutoGrader.tests_reason_codes"
+GUARDS="AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_migration_safety_check AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_student_feedback_guard AutoGrader.tests_submission_audience_guard AutoGrader.tests_student_classmates_guard AutoGrader.tests_network_guard"
+echo "load at start: $(cat /proc/loadavg)"
+echo "=== 0. the red run: $OWN against the code as at $BASE (own DB) $(date +%T)"
+git checkout $BASE -- $CHANGED
+find users -name __pycache__ -type d -prune -exec rm -rf {} +
+UPART=red
+eval "PYTHONDONTWRITEBYTECODE=1 $CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree_mut $OWN" < /dev/null > $E/red_run_code_as_at_base.txt 2>&1
+RED_EXIT=$?
+echo "red run exit=$RED_EXIT (non-zero expected)"
+RF=$E/red_run_code_as_at_base.txt
+RC=/home/bond-servant-in-training/Documents/Projects/GAP-builder-scripts/reason_check.py
+RED_OK=1
+[ "$RED_EXIT" -ne 0 ] || RED_OK=0
+grep -qE "^OK" $RF && RED_OK=0
+grep -qE "^Ran [0-9]+ tests? in" $RF || { echo "red run: no Ran line"; RED_OK=0; }
+grep -qE "unittest.loader._FailedTest" $RF && { echo "red run: a module failed to load"; RED_OK=0; }
+# RULE 22: each test below is red for its WRITTEN reason, in every one of its blocks. At the base C and G answer 400,
+# and G sends nothing. Green at the base by design: K1-K3, and every other test of the three changed modules.
+r() { python -I $RC $RF "$1" "$2" || RED_OK=0; }
+for t in test_a_verified_active_account_asking_for_verification_is_told_nothing test_a_never_verified_switched_off_account_asking_for_a_reset_is_told_nothing test_while_the_address_is_locked_that_account_is_sent_nothing test_a_never_verified_account_with_admin_power_is_told_and_sent_nothing test_an_inactive_never_verified_row_is_still_refused test_the_request_refuses_a_never_verified_staff_account test_the_request_refuses_a_never_verified_superuser_flag test_the_request_refuses_a_never_verified_super_admin_type test_the_request_refuses_a_command_line_superuser test_a_verified_admin_asking_for_verification_gets_the_neutral_answer test_an_active_verified_account_gets_the_neutral_answer test_otp_verify_email_short_circuits_instead_of_resending; do
+    r $t "400 != 202"
+done
+r test_that_account_is_sent_the_activation_email_and_no_reset_code "Called 0 times"
+# 12 + 1, and the admin-power test once per subtest (3): 15 blocks, and no other.
+[ "$(grep -cE '^FAIL: test_a_never_verified_account_with_admin_power_is_told_and_sent_nothing ' $RF)" = 3 ] || { echo "red run: the admin-power test is not red on all 3 shapes"; RED_OK=0; }
+[ "$(grep -cE '^(FAIL|ERROR): ' $RF)" = 15 ] || { echo "red run: not exactly 15 FAIL/ERROR blocks ($(grep -cE '^(FAIL|ERROR): ' $RF))"; RED_OK=0; }
+grep -qE "^ERROR: " $RF && { echo "red run: an ERROR block"; RED_OK=0; }
+if [ "$RED_OK" != 1 ]; then
+    echo "STOP (exit 4): the red run is not what was written"
+    git checkout HEAD -- $CHANGED
+    find users classrooms -name __pycache__ -type d -prune -exec rm -rf {} +
+    exit 4
+fi
+echo "red run is as written: non-zero exit, no OK line, the module loaded, 15 blocks red for their written reasons and no other"
+git checkout HEAD -- $CHANGED
+find users -name __pycache__ -type d -prune -exec rm -rf {} +
+git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+grep -E "^(Ran |OK|FAILED \\()" $RF | cut -c1-200
+dropmut
+echo "=== 1a. makemigrations --check $(date +%T)"
+python manage.py makemigrations --check --dry-run --settings=settings_worktree < /dev/null > $E/makemigrations_check.txt 2>&1; MM=$?; echo "makemigrations exit=$MM (0 = no changes)"; tail -1 $E/makemigrations_check.txt
+[ "$MM" = 0 ] || { echo "STOP: makemigrations reports changes"; exit 2; }
+echo "=== 1b. the seam, by program: views.py is the only production file; by its syntax tree only otp changes, in the two ruled branches"
+git diff --name-only $BASE HEAD > $E/seam_changed_files.txt
+cat $E/seam_changed_files.txt
+[ "$(grep -vE '^(docs/|users/tests_(h198_otp_neutral|reset_for_an_invited_student|switched_off_means_out)\.py$|classrooms/tests_school_admin_active_invite\.py$)' $E/seam_changed_files.txt)" = "users/views.py" ] || { echo "STOP: a production file other than views.py changed"; exit 2; }
+git show $BASE:users/views.py > $E/.views_base.py
+python -I $E/seam_check.py $E/.views_base.py users/views.py > $E/seam_code.txt 2>&1; SEAM=$?; rm -f $E/.views_base.py
+cat $E/seam_code.txt
+[ "$SEAM" = 0 ] || { echo "STOP: the seam check failed"; exit 2; }
+echo "=== 1. own module + near modules + guards at $(git rev-parse --short=8 HEAD) $(date +%T)"
+UPART=modules
+eval "$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $OWN $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
+echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
+if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
+echo "=== 2. mutants: 8 (own DB, rules 17, 18 and 22) $(date +%T)"
+# Time limit 90 s x 8 + 600 = 1320 s, with a 300 s stall watchdog on the newest mutant log (2026-10-14).
+UPART=mutants
+( sleep 60; while systemctl --user is-active -q "$UNITP-mutants.scope"; do
+    NEWEST=$(ls -t $E/mutant_logs/*.txt 2>/dev/null | head -1)
+    if [ -n "$NEWEST" ] && [ $(( $(date +%s) - $(stat -c %Y "$NEWEST") )) -gt 300 ]; then
+        echo "STALL STOP $(date +%T): $NEWEST silent over 300 s; stopping $UNITP-mutants.scope" >> $E/stall_watchdog.txt
+        systemctl --user stop "$UNITP-mutants.scope"; break
+    fi
+    sleep 15
+  done ) &
+STALL=$!
+eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 1320 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
+echo "mutants exit=$? $(date +%T)"; kill $STALL 2>/dev/null; cut -c1-300 $E/mutation_log.txt
+git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
+dropmut
+echo "load at end: $(cat /proc/loadavg)"
