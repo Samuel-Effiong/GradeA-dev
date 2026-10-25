@@ -835,8 +835,8 @@ These 19 codes are written into the permanent activity record so that support st
 |----|----|----|
 | `WRONG_PASSWORD` | Sign-in with a wrong password; change-password with a wrong current password | 401 on sign-in; 400 "Incorrect current password. Please try again." on change-password |
 | `INVALID_CREDENTIALS` | Sign-in refused for a reason other than a wrong password, such as an unknown address | 401, the same answer as a wrong password |
-| `ACCOUNT_DEACTIVATED` | Google sign-in to a deactivated account | 401 "This account has been deactivated. Please contact support." |
-| `INVALID_CODE` | A wrong code on verify, reset-password, change-password, student registration or school-admin registration | 400 with that screen's own text, for example "Invalid email or token." |
+| `ACCOUNT_DEACTIVATED` | Google sign-in to a deactivated account; a password reset on a deactivated account (H-221), recorded as refused | 401 "This account has been deactivated. Please contact support." on Google sign-in. On reset-password, 400 "Invalid email, OTP code, or new password.", the same answer as an unknown address |
+| `INVALID_CODE` | A wrong code on verify, reset-password, change-password, student registration or school-admin registration. Also, whether or not the code was right: a reset on an account that has never verified its email and is switched off or holds admin power (H-221), and a code on verify or school-admin registration for a never-verified account with admin power | 400 with that screen's own text, for example "Invalid email or token." |
 | `CODE_EXPIRED` | An expired code on the same five screens | 400 with that screen's own text. Student registration answers 200 with a renewal link |
 | `CODE_MISSING` | Verify called without an email or code | 400 "Email and Token are required." |
 | `CODE_NOT_REQUESTED` | Change-password with a code when none was requested | 400 "No password change code has been requested for this account. Request one and try again." |
