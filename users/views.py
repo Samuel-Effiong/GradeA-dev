@@ -1114,21 +1114,20 @@ Sends one of two emails, chosen by `otp_type`:
 | `VERIFY_EMAIL` | a new activation link, valid 15 min (replaces the old code) | `POST /auth/verify` |
 | `RESET_PASSWORD` | a 6-digit password-reset code (valid 15 min) | `POST /auth/reset-password` |
 
-**An unknown address always gets 202.** Show the same neutral confirmation (e.g.
-"If an account exists for that address, we've sent an email") for every 202 and
-never branch on `message`: its wording can differ between cases. The two 400s
-below only happen for existing accounts in the wrong state.
+**Every valid request gets the same 202, whatever the state of the address**
+(H-198): unknown, verified, never verified, switched off. Show one neutral
+confirmation (e.g. "If an account exists for that address, we've sent an email")
+for every 202 and never branch on `message`. The answer does not say whether
+anything was sent, or which email: an already-verified active account is sent
+nothing, and an account that never verified its email is sent its verification
+email instead of a reset code.
 
 **Values**
 - `email`: string, required, must be a valid email address.
 - `otp_type`: exactly `"VERIFY_EMAIL"` or `"RESET_PASSWORD"` (upper case).
 
-**400 cases** (show `message`):
-- invalid `otp_type` or email → "Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`"
-- `VERIFY_EMAIL` for an account that is already active → "Email already verified. Please login."
-  (send the user to sign in)
-- `RESET_PASSWORD` for an account that never verified its email → "Email not verified."
-  (offer `VERIFY_EMAIL` instead)
+**400** (show `message`): only for bad input. An invalid `otp_type` or email →
+"Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`"
 
 While a password reset is locked after 5 wrong codes, this endpoint still answers
 202 but sends no code; the lock is reported by `POST /auth/reset-password` (429
@@ -1167,16 +1166,12 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             ),
             400: OpenApiResponse(
                 response=OpenApiTypes.OBJECT,
-                description="Bad input, or the account is in the wrong state for this otp_type.",
+                description="Bad input only (never the state of the address).",
                 examples=[
                     _auth_error_example(
                         "Invalid otp_type or email",
                         "Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`",
                     ),
-                    _auth_error_example(
-                        "Already verified", "Email already verified. Please login."
-                    ),
-                    _auth_error_example("Email not verified", "Email not verified."),
                 ],
             ),
             429: OpenApiResponse(
