@@ -161,3 +161,41 @@ three bad inputs:
 - **The mutants:** 6, with a 1140 s limit and the 300 s stall watchdog.
 - Because the line runs on every route's refusal, the batch's full run is the real regression.
 - **Base:** `b4af529f`.
+
+## The gate on b4567a16 (granted by the Senior Manager, 25 October 2026)
+
+The first start (17:12) was refused by the start command itself: load1 read 8.32 a minute after a reboot. Nothing ran.
+After load settled, a fresh pre-start check (17:14:20: load 5.51, Postgres accepting, Redis PONG, no stale
+`test_h227` database) and the start command's own re-read (6.48) allowed the run.
+
+Run 17:14:29 to 17:20:08 WAT inside one `systemd-inhibit`. Logs are in `gate_b4567a16/` (gzipped), including the
+gate's own output.
+- **Exit code: 0**, captured by the start command (`; echo "gate exit=$?"`), whose line ends the output.
+- Available memory at the start was 17G, so the cap was 15G. Load was 6.48 5.77 3.12 at the start and 8.49 7.67 4.79 at
+  the end.
+
+- **Red run** (`users/exceptions.py` as at b4af529f, the two modules as at the tip):
+  - 6 FAIL blocks, each holding its written fragment, no ERROR, no OK line.
+  - "Ran 13 tests in 0.234s", "FAILED (failures=6)".
+  - The controls were green. The source was restored.
+- **makemigrations --check:** exit 0, no changes.
+- **Seam:** "SEAM OK: only custom_exception_handler's logging changed". The changed-file check passed.
+- **Step 1** (own, the 14 near modules including the eight from the wider search, the 21 guards), 17:15:00 to
+  17:18:59:
+  - "Ran 522 tests in 212.392s", "OK".
+  - 522 test lines were counted in the log.
+- **Step 2, mutants** (own database, rules 17, 18 and 22), 17:18:59 to 17:19:59:
+  - All 6 KILLED, each with "Ran 13 tests".
+  - Every mutant's failing tests are exactly its expected set, with nothing missing, nothing extra and no wrong reason.
+
+| Id | Failing / expected |
+|---|---|
+| P1 | 5 / 5 |
+| P2 | 3 / 3 |
+| P3 | 2 / 2 |
+| P4 | 4 / 4 |
+| P5 | 2 / 2 |
+| P6 | 6 / 6 |
+
+- The source was clean after the mutants, and the mutant database was dropped. No watchdog fired.
+- The Senior Manager read the logs and ruled the gate GREEN (17:21).
