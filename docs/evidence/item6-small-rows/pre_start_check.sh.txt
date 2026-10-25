@@ -1,0 +1,13 @@
+#!/bin/sh
+# Item 6 gate, pre-start check (Builder 2 · 4d). Run ALONE and read it; the gate
+# starts in a SECOND command only if every line below is acceptable.
+echo "clock:    $(date '+%F %T %Z')"
+echo "loadavg:  $(cat /proc/loadavg)   (load1 must be < 8)"
+awk '/^MemAvailable:/ {a=int($2/1048576); c=a-2; if (c<6) c=6; printf "memory:   available %d G -> cap %d G (available - 2 G, minimum 6 G; STOP if available < 6 G)\n", a, c}' /proc/meminfo
+echo "pytest (Vezi or others) running: $(pgrep -afc pytest) process(es)"
+pgrep -af "manage.py test" | grep -v pgrep | sed 's/^/our or other test run: /' || true
+echo "GAP scopes: $(systemctl --user list-units --type=scope --no-legend 2>/dev/null | grep -c gap-) active"
+echo "fullsuite lock: $(flock -n ~/.machine-fullsuite.lock true 2>/dev/null && echo free || echo HELD)"
+echo "worktrees named item6-*: $(git -C ~/Documents/Projects/Grade-Automator-Plus-item6-small-rows worktree list | grep -c 'item6-\(redt\|gap\|redc\|mut\)')  (must be 0)"
+echo "tip: $(git -C ~/Documents/Projects/Grade-Automator-Plus-item6-small-rows rev-parse --short=8 HEAD); clean: $(git -C ~/Documents/Projects/Grade-Automator-Plus-item6-small-rows status --porcelain | grep -vc settings_worktree || true) dirty lines"
+echo "messages: read the Senior Manager's latest GRANT before starting (by hand)"
