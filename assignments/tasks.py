@@ -6,7 +6,7 @@ from celery import shared_task, states
 from django.conf import settings
 from django.db import InterfaceError
 from django.db import OperationalError as DatabaseOperationalError
-from django.db.models import Max
+from django.db.models import F, Max
 from django.template.loader import render_to_string
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
@@ -51,6 +51,7 @@ from students.exceptions import (
 from students.grading_gates import rubric_missing
 from students.models import (
     BackgroundProcessingTask,
+    BackgroundTaskStatus,
     BackgroundTaskType,
     BatchUploadSession,
     BatchUploadType,
@@ -1523,7 +1524,6 @@ def _dispatch_tracked_grading(
     H-215a: the automatic paths pass only_if_ungraded=True, so a paper
     graded after it was queued is skipped when its run starts. It is sent
     only when set, so the other callers' messages are unchanged."""
-    flag = {"only_if_ungraded": True} if only_if_ungraded else {}
     for item_index, submission in enumerate(submissions, start=first_index):
         processing_task = create_processing_task(
             requested_by=teacher,
@@ -1535,28 +1535,39 @@ def _dispatch_tracked_grading(
             meta={"step": "Queued for batch grading"},
             item_index=item_index,
         )
-        launch_processing_task(
-            grade_engine_async,
-            processing_task,
-            str(teacher.id),
-            str(submission.id),
-            batch_id=str(session.id) if session else None,
-            **flag,
+        _launch_tracked_grading(
+            teacher, assignment, submission, session, processing_task, only_if_ungraded
         )
-        emit(
-            AuditAction.GRADING_REQUESTED,
-            actor=teacher,
-            target_type="StudentSubmission",
-            target_id=submission.id,
-            outcome=AuditOutcome.SUCCESS,
-            metadata={
-                "assignment_id": str(assignment.id),
-                "submission_id": str(submission.id),
-                "task_id": str(processing_task.id),
-                "task_type": BackgroundTaskType.BATCH_SUBMISSION_GRADING,
-            },
-        )
-        logger.info("Grading queued: submission=%s", submission.id)
+
+
+def _launch_tracked_grading(
+    teacher, assignment, submission, session, processing_task, only_if_ungraded
+):
+    """Launch one tracked item's grading and audit the request. A broker
+    outage leaves the item FAILURE with no celery id (the launcher)."""
+    flag = {"only_if_ungraded": True} if only_if_ungraded else {}
+    launch_processing_task(
+        grade_engine_async,
+        processing_task,
+        str(teacher.id),
+        str(submission.id),
+        batch_id=str(session.id) if session else None,
+        **flag,
+    )
+    emit(
+        AuditAction.GRADING_REQUESTED,
+        actor=teacher,
+        target_type="StudentSubmission",
+        target_id=submission.id,
+        outcome=AuditOutcome.SUCCESS,
+        metadata={
+            "assignment_id": str(assignment.id),
+            "submission_id": str(submission.id),
+            "task_id": str(processing_task.id),
+            "task_type": BackgroundTaskType.BATCH_SUBMISSION_GRADING,
+        },
+    )
+    logger.info("Grading queued: submission=%s", submission.id)
 
 
 #: H-215a: the outages auto_grade_due_assignment retries: the database,
@@ -1590,6 +1601,57 @@ def _papers_not_yet_sent(ungraded_submissions, session):
         .values("submission_id")
     )
     return ungraded_submissions.exclude(id__in=reached)
+
+
+def _relaunch_failed_dispatches(teacher, assignment, papers, session):
+    """H-215a, on a retry: a paper whose dispatch failed gets its own item
+    back, reset in place and launched again, so the row keeps one item per
+    paper (the teacher reads "3 / 3", with no failure line for a paper
+    graded later). Returns the papers that have no such item and need a
+    new one.
+
+    The reset is one conditional UPDATE on the item still FAILURE with no
+    celery id, so a run that lost a race to another (a duplicate delivery
+    of this retry) launches nothing. Only one such item can exist per
+    paper in a row a retry reads: a paper gets a new item only when it has
+    none, and the run-time RUBRIC_MISSING refusal, which records refused
+    items for every ungraded paper, ends the task without a retry. The
+    highest index is taken all the same."""
+    reused = []
+    for submission in papers:
+        item = (
+            BackgroundProcessingTask.objects.filter(
+                batch_session=session,
+                submission=submission,
+                status=BackgroundTaskStatus.FAILURE,
+                celery_task_id__isnull=True,
+            )
+            .order_by("-item_index")
+            .first()
+        )
+        if item is None:
+            continue
+        reused.append(submission.id)
+        reset = BackgroundProcessingTask.objects.filter(
+            pk=item.pk,
+            status=BackgroundTaskStatus.FAILURE,
+            celery_task_id__isnull=True,
+        ).update(
+            status=BackgroundTaskStatus.PENDING,
+            retry_count=F("retry_count") + 1,
+            reason_code="",
+            error="",
+            started_at=None,
+            finished_at=None,
+            updated_at=timezone.now(),
+        )
+        if not reset:
+            continue
+        item.refresh_from_db()
+        _launch_tracked_grading(
+            teacher, assignment, submission, session, item, only_if_ungraded=True
+        )
+    return papers.exclude(id__in=reused)
 
 
 @shared_task(bind=True, name="assignments.tasks.auto_grade_due_assignment")
@@ -1646,9 +1708,13 @@ def auto_grade_due_assignment(self, assignment_id, session_id=None):
         first_index = 1
         if session_id:
             to_send = _papers_not_yet_sent(ungraded_submissions, session)
+        count = to_send.count()
+        if session_id:
+            to_send = _relaunch_failed_dispatches(
+                assignment.course.teacher, assignment, to_send, session
+            )
             last = session.processing_tasks.aggregate(last=Max("item_index"))["last"]
             first_index = (last or 0) + 1
-        count = to_send.count()
         _dispatch_tracked_grading(
             assignment.course.teacher,
             assignment,
