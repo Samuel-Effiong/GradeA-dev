@@ -1215,8 +1215,13 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
 
         if otp_type == "VERIFY_EMAIL":
 
+            # H-198 (the user's ruling): an active, verified account is told
+            # nothing either - the neutral reply of an unknown address, and
+            # nothing is made or sent.
             if user.email_verified_at and user.is_active:
-                raise ParseError("Email already verified. Please login.")
+                return Response(
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
+                )
 
             # H-202: a verified account that was switched off is not mailed a
             # code (verify would switch it back on): the neutral reply of an
@@ -1246,10 +1251,19 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             # reset_password).
             # An account with admin power that never verified its email gets no
             # new first road by a mailbox code: refused as the inactive case is.
+            # H-198 (the user's ruling, superseding H-164's 400 "Email not
+            # verified." for this answer only): such an account still gets no
+            # reset code, but the reply is the neutral one of an unknown
+            # address. Without admin power it is sent what VERIFY_EMAIL would
+            # send, under the same H-53 lock; with admin power, nothing.
             if not user.email_verified_at and (
                 not user.is_active or _holds_admin_power(user)
             ):
-                raise ParseError("Email not verified.")
+                if not _holds_admin_power(user) and not verify_lock_until(user.email):
+                    send_user_activation_email(user)
+                return Response(
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
+                )
 
             # H-202: a switched-off (verified) account makes and gets no reset
             # code: the neutral reply of an unknown address.
