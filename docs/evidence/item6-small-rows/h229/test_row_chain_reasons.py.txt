@@ -1,0 +1,126 @@
+"""H-229: the row runner's written-reason check (GAP-58-runs/row_chain.py).
+
+Stdlib only; no Django, no database, no network. It is still a test RUN:
+it waits for the Senior Manager's GRANT like any other (rule 18: output to
+a file).
+
+    cd ~/Documents/Projects/GAP-4d-runs/item6/h229
+    ROW_CHAIN=<path to the runner under test> python3 -I test_row_chain_reasons.py
+
+ROW_CHAIN defaults to the shared runner itself. Mutants are COPIES of the
+new runner in a scratch folder, pointed at with ROW_CHAIN; the shared file
+is never edited for a mutant.
+
+Expected before the change (the old file, sha f3fe0bdd...): A and C red for
+the written reasons in their docstrings; B, D, E, F green.
+Expected after the change: all six green.
+"""
+
+import importlib.util
+import os
+import pathlib
+import unittest
+
+DEFAULT = pathlib.Path.home() / "Documents/Projects/GAP-58-runs/row_chain.py"
+TARGET = pathlib.Path(os.environ.get("ROW_CHAIN", DEFAULT))
+spec = importlib.util.spec_from_file_location("row_chain", TARGET)
+assert spec is not None and spec.loader is not None, TARGET
+row_chain = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(row_chain)
+
+SPLIT = ("Klass", "test_split")
+OTHER = ("Klass", "test_other")
+
+# A made-up unittest log: one test red in two subTests, one block each, and
+# a second test red once. Shaped as Django's runner prints it.
+LOG = """\
+test_split (app.mod.Klass.test_split) ... FAIL
+test_other (app.mod.Klass.test_other) ... FAIL
+
+======================================================================
+FAIL: test_split (app.mod.Klass.test_split) [one]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "app/mod.py", line 10, in test_split
+    self.assertEqual(a, b)
+AssertionError: alpha here
+
+======================================================================
+FAIL: test_split (app.mod.Klass.test_split) [two]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "app/mod.py", line 10, in test_split
+    self.assertEqual(a, b)
+AssertionError: beta here
+
+======================================================================
+FAIL: test_other (app.mod.Klass.test_other)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "app/mod.py", line 20, in test_other
+    self.assertTrue(c)
+AssertionError: gamma here
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.010s
+
+FAILED (failures=3)
+"""
+
+# A log cut before its Ran line: the header is there, the block cannot be
+# parsed (the block pattern needs the next header or the Ran line after it).
+TAIL = """\
+======================================================================
+FAIL: test_tail (app.mod.Klass.test_tail)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+AssertionError: cut off here
+"""
+
+
+class TheWrittenReasonsOfOneTest(unittest.TestCase):
+    def test_A_fragments_from_two_different_subtest_blocks_are_refused(self):
+        """Old file: [] (each fragment is in SOME block of the test).
+        Red reason: Lists differ: [] != ['test_split: not together in ONE failure block"""
+        self.assertEqual(
+            row_chain.wrong_reasons(LOG, {SPLIT: ["alpha here", "beta here"]}),
+            [
+                "test_split: not together in ONE failure block: "
+                "['alpha here', 'beta here']"
+            ],
+        )
+
+    def test_B_fragments_that_share_one_block_pass(self):
+        """Control: green before and after."""
+        self.assertEqual(
+            row_chain.wrong_reasons(LOG, {SPLIT: ["alpha here", "Traceback"]}), []
+        )
+
+    def test_C_the_subtest_label_can_be_a_fragment(self):
+        """Old file: the label is on the header line, outside the captured
+        body. Red reason: test_split: not in its own failure block: ['[two]']"""
+        self.assertEqual(
+            row_chain.wrong_reasons(LOG, {SPLIT: ["[two]", "beta here"]}), []
+        )
+
+    def test_D_a_failing_test_with_no_parsed_block_is_still_reported(self):
+        """Control (the existing rule): green before and after."""
+        self.assertEqual(
+            row_chain.wrong_reasons(TAIL, {("Klass", "test_tail"): ["cut off"]}),
+            ["test_tail: failed, but no failure block was parsed"],
+        )
+
+    def test_E_a_fragment_found_nowhere_keeps_its_old_message(self):
+        """Control: green before and after."""
+        self.assertEqual(
+            row_chain.wrong_reasons(LOG, {SPLIT: ["delta"]}),
+            ["test_split: not in its own failure block: ['delta']"],
+        )
+
+    def test_F_the_failing_set_is_unchanged(self):
+        """Control: the header pattern is not touched."""
+        self.assertEqual(row_chain.failing(LOG), {SPLIT, OTHER})
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
