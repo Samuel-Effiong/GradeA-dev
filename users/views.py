@@ -45,6 +45,7 @@ from rest_framework.exceptions import (
     NotFound,
     ParseError,
     PermissionDenied,
+    Throttled,
     ValidationError,
 )
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -1941,6 +1942,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         # A refused code is recorded after the atomic block has rolled back,
         # never inside it (the event would roll back too).
         audit_failure = None
+        audit_options: dict = {}
         try:
             with transaction.atomic():
                 serializer = SchoolAdminRegistrationCompletionSerializer(
@@ -1952,6 +1954,40 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
                 email = serializer.validated_data["email"].strip().lower()
                 token = serializer.validated_data["token"].strip()
+
+                # H-210: the invitation token is the same activation_token
+                # /auth/verify accepts, so this door spends from verify's
+                # per-address budget (H-53), shared, not a second one. The
+                # attempt is spent before the token is checked; while the
+                # address is locked every attempt gets verify's 429, whether
+                # or not the address has an account.
+                lock_until = verify_lock_until(email)
+                attempt = None if lock_until else reserve_verify_attempt(email)
+                if lock_until or verify_attempt_over_budget(attempt):
+                    wait = (
+                        lock_until - time.time()
+                        if lock_until
+                        else settings.VERIFY_EMAIL_LOCK_SECONDS
+                    )
+                    audit_failure = (account_for_email(email), "VERIFY_LOCKED")
+                    audit_options = {"denied": True}
+                    raise EnvelopedThrottled(
+                        wait=max(1, int(wait)),
+                        detail=(
+                            "Too many incorrect codes for this email address. "
+                            "Please wait, then request a new verification email."
+                        ),
+                        reason_code="VERIFY_LOCKED",
+                        code_value="VERIFY_LOCKED",
+                    )
+
+                def spent():
+                    """The guess that spends the budget locks the address,
+                    and its event says so (as verify's refuse does)."""
+                    if verify_budget_spent(attempt):
+                        lock_verify_address(email)
+                        return {"extra_metadata": {"lock_triggered": True}}
+                    return {}
 
                 # select_for_update prevents two concurrent submissions of the
                 # same invite link from both racing past the is_active check.
@@ -1973,10 +2009,12 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 # same audit event as one (Epic A's failed-sign-in record).
                 if not user or _holds_admin_power(user):
                     audit_failure = (account_for_email(email), "INVALID_CODE")
+                    audit_options = spent()
                     raise ParseError("Invalid or expired activation token.")
 
                 if user.activation_expires and timezone.now() > user.activation_expires:
                     audit_failure = (user, "CODE_EXPIRED")
+                    audit_options = spent()
                     raise ParseError(
                         "This invitation link has expired. Please contact your "
                         "superadmin for a new invitation."
@@ -1992,6 +2030,8 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 with history.acting_as(user):
                     user.save()
 
+            # H-210: a success refunds the address's attempts, as verify's does.
+            clear_verify_failures(email)
             safe_delay(sync_user_to_mailerlite, str(user.id))
 
             refresh = EpochRefreshToken.for_user(user)
@@ -2008,13 +2048,15 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 },
                 status=status.HTTP_200_OK,
             )
-        except (ParseError, ValidationError):
+        # H-210: Throttled too, or the lock's 429 would become the 500 below.
+        except (ParseError, ValidationError, Throttled):
             if audit_failure is not None:
                 sign_in_failed(
                     request,
                     audit_failure[0],
                     "school_admin_invitation",
                     audit_failure[1],
+                    **audit_options,
                 )
             raise
         except Exception as e:
