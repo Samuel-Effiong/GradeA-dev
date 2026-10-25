@@ -164,11 +164,17 @@ class NamedThrottleEnvelopeTests(APITestCase):
             email_verified_at=timezone.now(),
         )
 
-    def _exhaust_and_get_throttled(self, url, payload, scope, rate="1/min"):
+    def _exhaust(self, url, payload, scope, rate="1/min"):
+        """Two posts under a tightened bucket: the first is let through (it
+        reaches the view), the second is throttled. Both answers, for the
+        tests that must look at the first one too (H-226)."""
         with tightened_rate(scope, rate):
             first = self.client.post(url, payload)
             self.assertNotEqual(first.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
-            return self.client.post(url, payload)
+            return first, self.client.post(url, payload)
+
+    def _exhaust_and_get_throttled(self, url, payload, scope, rate="1/min"):
+        return self._exhaust(url, payload, scope, rate)[1]
 
     def test_login_throttle(self):
         response = self._exhaust_and_get_throttled(
@@ -233,13 +239,31 @@ class NamedThrottleEnvelopeTests(APITestCase):
         )
         assert_rate_limited_envelope(self, response)
 
+    # H-226. The FIRST post of the pair is let through the throttle and
+    # reaches the view, so the code below is handed to the token exchange: it
+    # is not true that the throttle fires first. Without a stand-in for
+    # Google, that first post made a real call to oauth2.googleapis.com in
+    # every full run (blocked by the H-39 network guard online; a real DNS
+    # lookup offline), while this test only read the second answer.
+    GOOGLE_CODE = {"code": "a-code-no-stand-in-ever-exchanges"}
+
     def test_google_auth_throttle(self):
-        response = self._exhaust_and_get_throttled(
-            reverse("auth-google-auth"),
-            {"code": "does-not-matter-throttle-fires-first"},
-            "google_auth",
+        first, response = self._exhaust(
+            reverse("auth-google-auth"), self.GOOGLE_CODE, "google_auth"
         )
         assert_rate_limited_envelope(self, response)
+        # The deciding value for the first answer: the view reached the token
+        # exchange and the exchange handed back no id_token, so nothing a real
+        # network answer (or its failure) produced shaped this response.
+        self.assertEqual(first.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(str(first.data["detail"]), "Google did not return an ID token")
+
+    def test_the_google_throttle_probe_never_calls_google(self):
+        """users/views.py logs "Google OAuth token exchange failed" at ERROR
+        on the users.views logger whenever the real exchange is attempted and
+        fails; a probe that never calls Google never gets there."""
+        with self.assertNoLogs("users.views", level="ERROR"):
+            self._exhaust(reverse("auth-google-auth"), self.GOOGLE_CODE, "google_auth")
 
 
 @override_settings(CACHES=LOCMEM_CACHE)
