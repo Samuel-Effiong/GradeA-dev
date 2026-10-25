@@ -1663,14 +1663,15 @@ def auto_grade_due_assignment(self, assignment_id, session_id=None):
         # H-215a: a short database or broker outage is retried, carrying
         # the batch row (if made) so the retry sends only the missed
         # papers. After the last retry Celery raises exc: the task fails.
+        # args is given too: beat starts the task positionally, and a
+        # retry without args keeps the first message's args, so the id
+        # would arrive twice.
         raise self.retry(
             exc=exc,
             countdown=_auto_grade_retry_countdown(self.request.retries),
             max_retries=AUTO_GRADE_MAX_RETRIES,
-            kwargs={
-                "assignment_id": assignment_id,
-                "session_id": str(session.id) if session else session_id,
-            },
+            args=(assignment_id,),
+            kwargs={"session_id": str(session.id) if session else session_id},
         ) from exc
     except Exception as e:
         # H-209: swallowed here, so this line is the only report of it: class
