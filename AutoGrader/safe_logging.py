@@ -18,6 +18,7 @@ is about the error:
 
 from __future__ import annotations
 
+import logging
 import os
 import traceback
 from collections.abc import Iterator
@@ -56,3 +57,44 @@ def describe_error_for_log(error: BaseException) -> str:
     if frames:
         return f"error={type(error).__name__} frames={frames}"
     return f"error={type(error).__name__}"
+
+
+# H-218: the keys of Celery's trace context that are kept; `exc` is rewritten,
+# and `traceback`, `args` and `kwargs` (the task's arguments) are left out.
+_CELERY_TRACE_KEPT = ("hostname", "id", "name", "description", "internal")
+RETRY_TEXT_OMITTED = "error text omitted"
+
+
+class CeleryTraceFilter(logging.Filter):
+    """H-218. Celery's own task lines (logger `celery.app.trace`, Celery 5.5.3)
+    log the error's repr, its traceback and the task's arguments: a failure as
+    "Task <name>[<id>] raised unexpected: <repr>" with `exc_info`, and the
+    traceback text and arguments again in the argument dict (also
+    `record.data`); a retry as "Task <name>[<id>] retry: <text>".
+
+    For a record whose argument dict has `exc`, this keeps the line, its level,
+    the task's name and id, names the error by `describe_error_for_log` (or
+    says RETRY_TEXT_OMITTED when only the text is there, as on a retry line),
+    and drops the traceback and the arguments. Any other record passes
+    untouched. It never raises: a filter's exception would come out of
+    Celery's tracer."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        context = record.args
+        if not (isinstance(context, dict) and "exc" in context):
+            return True
+        error = record.exc_info[1] if record.exc_info else None
+        if error is None:
+            exc = RETRY_TEXT_OMITTED
+        else:
+            try:
+                exc = describe_error_for_log(error)
+            except Exception:
+                exc = f"error={type(error).__name__}"
+        kept = {key: context[key] for key in _CELERY_TRACE_KEPT if key in context}
+        kept["exc"] = exc
+        record.args = kept
+        record.__dict__["data"] = kept
+        record.exc_info = None
+        record.exc_text = None
+        return True
