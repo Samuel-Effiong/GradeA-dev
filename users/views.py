@@ -1920,6 +1920,12 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         - email: The invited admin's email address
         - token: The activation token from the invitation email
         - password: The password the admin wants to set for their account
+
+        Attempts share `POST /auth/verify`'s per-address budget (H-210):
+        after 5 that do not succeed, the address is locked for 30 minutes
+        and every attempt, the right token included, gets 429
+        `VERIFY_LOCKED` with a `Retry-After` header, whether or not the
+        address has an account.
         """,
         request=SchoolAdminRegistrationCompletionSerializer,
         responses={
@@ -1927,6 +1933,10 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 description="School admin registration completed successfully",
             ),
             400: OpenApiResponse(description="Invalid or expired token"),
+            429: OpenApiResponse(
+                description="VERIFY_LOCKED: too many attempts for this address, "
+                "or the per-network rate limit"
+            ),
             500: OpenApiResponse(description="Internal Server Error"),
         },
     )

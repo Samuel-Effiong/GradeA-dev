@@ -434,7 +434,7 @@ HTTP 429 · USER · Retryable
 | Message | Too many incorrect codes for this email address. |
 | What to do | Wait, then request a new verification email. |
 | Params | none |
-| Returned by | `POST auth/verify` |
+| Returned by | `POST auth/verify`; `POST auth/register/school-admin` (H-210), which shares verify's per-address count |
 | Notes | The body also has `detail` and `code`. A `Retry-After` header is sent, and the text ends with "Expected available in N seconds." |
 
 #### `REGISTRATION_PAUSED`
@@ -811,7 +811,7 @@ HTTP 429   Retry-After: 1740
 |----|----|----|----|----|
 | `ACCOUNT_LOCKED` | `POST auth/login` | 401 | `detail`, `code: "account_locked"` | 15 minutes. No `Retry-After` header. |
 | `RESET_LOCKED` | `POST auth/reset-password` | 429 | `code`, `message`, `locked_until`, `retry_after_seconds` | `retry_after_seconds`, also in the `Retry-After` header. |
-| `VERIFY_LOCKED` | `POST auth/verify` | 429 | `detail`, `code` | The `Retry-After` header. |
+| `VERIFY_LOCKED` | `POST auth/verify`, `POST auth/register/school-admin` | 429 | `detail`, `code` | The `Retry-After` header. |
 | `REGISTRATION_PAUSED` | `POST auth/register/student` | 429 | `detail`, `code` | The `Retry-After` header. |
 
 ## 7. Errors That Have No Reason Code
@@ -876,7 +876,7 @@ Filters: `reason_code` (exact), `outcome`, `action`, `actor_id`, `actor_role`, `
 | Rows in one class list | 2,000 | `ROSTER_TOO_MANY_ROWS` |
 | Wrong passwords before a lock | 5, then 15 minutes | `ACCOUNT_LOCKED` |
 | Wrong reset codes before a lock | 5, then 30 minutes | `RESET_LOCKED` |
-| Wrong verification codes before a lock | 5, then 30 minutes | `VERIFY_LOCKED` |
+| Wrong verification codes or school-admin invitation tokens before a lock (one count per address, shared by both screens) | 5, then 30 minutes | `VERIFY_LOCKED` |
 
 ### A short checklist for each code
 
