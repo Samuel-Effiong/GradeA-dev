@@ -145,3 +145,42 @@ Before the pack (by parsing source only, no test run), it passes on the tip. It 
 - **Guards:** the 21.
 - **The mutants:** 7, with a 1230 s limit and the 300 s stall watchdog.
 - **Base:** `b4af529f`.
+
+## The gate on 5f3bf64a (granted by the Senior Manager, 25 October 2026)
+
+The pre-start check was read on its own before the start (17:44:15: load 2.67, 16G available, at `5f3bf64a`, tree
+clean, runner sha256 `0da5282d…`, Postgres accepting, Redis PONG, no other test run). The start command re-read load1
+(2.26) and allowed the run.
+
+Run 17:44:25 to 17:51:42 WAT inside one `systemd-inhibit`. Logs are in `gate_5f3bf64a/` (gzipped), including the
+gate's own output.
+- **Exit code: 0**, captured by the start command (`; echo "gate exit=$?"`), whose line ends the output.
+- Available memory at the start was 16G, so the cap was 14G. Load was 2.26 4.26 5.71 at the start and 5.01 6.58 6.44 at
+  the end.
+
+- **Red run** (`assignments/tasks.py` as at b4af529f, the new module as at the tip):
+  - 6 FAIL blocks (S1-S6), each holding its written fragment, no ERROR, no OK line.
+  - "Ran 7 tests in 0.666s", "FAILED (failures=6)".
+  - The control K1 was green. The source was restored.
+- **makemigrations --check:** exit 0, "No changes detected".
+- **Seam:** "SEAM OK: only the five task functions changed, and none keeps text or a traceback". The changed-file list
+  has the 8 expected paths, and `assignments/tasks.py` is the only production file.
+- **Step 1** (own, the 18 near modules including the Senior Manager's nine, the 21 guards), 17:44:55 to 17:50:33:
+  - "Ran 632 tests in 315.158s", "OK".
+  - 632 test lines were counted in the log.
+- **Step 2, mutants** (own database, rules 17, 18 and 22), 17:50:33 to 17:51:42:
+  - All 7 KILLED, each with "Ran 34 tests".
+  - Every mutant's failing tests are exactly its expected set, with nothing missing, nothing extra and no wrong reason.
+
+| Id | Failing / expected |
+|---|---|
+| W1 | 1 / 1 |
+| W2 | 1 / 1 |
+| W3 | 1 / 1 |
+| W4 | 1 / 1 |
+| W5 | 1 / 1 |
+| W6 | 1 / 1 |
+| W7 | 1 / 1 |
+
+- The source was clean after the mutants, and the mutant database was dropped. No watchdog fired.
+- The Senior Manager read the logs and ruled the gate GREEN (17:53).
