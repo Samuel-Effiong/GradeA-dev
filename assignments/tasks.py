@@ -1353,19 +1353,25 @@ def upload_assignment_async(
         session.update_result(file_name, "CANCELLED", error=str(exc))
         raise
     except Exception as e:
+        fallback_message = (
+            "We couldn't upload and save this assignment. Please check "
+            "the file and try again, or contact support if this "
+            "continues."
+        )
         mark_processing_task_failure(
             processing_task_id,
             e,
             meta={"step": "Assignment upload failed", "file_name": file_name},
-            fallback_message=(
-                "We couldn't upload and save this assignment. Please check "
-                "the file and try again, or contact support if this "
-                "continues."
-            ),
+            fallback_message=fallback_message,
         )
 
+        # H-219: the tracked row's own sentence, never the error's text.
         session = BatchUploadSession.objects.get(id=session_id)
-        session.update_result(file_name, "FAILED", error=str(e))
+        session.update_result(
+            file_name,
+            "FAILED",
+            error=describe_background_task_error(e, fallback_message),
+        )
         raise
 
 
@@ -1474,8 +1480,12 @@ def grade_batch_async(
             )
             batch_id = str(session.id)
     except Exception as e:
-        logger.error(f"Failed to clear scheduling info or create session: {e}")
-        pass
+        # H-219: class and frames, never the text (H-209's form).
+        logger.error(
+            "Failed to clear scheduling info or create session: assignment=%s %s",
+            assignment_id,
+            describe_error_for_log(e),
+        )
 
     # S6d x S7a (the SM's ruling): the run-time RUBRIC_MISSING re-check
     # (the rubric was removed after scheduling) comes before any item is
@@ -1805,9 +1815,12 @@ def send_assignment_due_reminder(assignment_id, hours_before):
                     html_message=teacher_html,
                 )
                 notifications_sent += 1
-            except Exception:
-                logger.exception(
-                    "Failed to queue due reminder email for teacher",
+            except Exception as exc:
+                # H-219: class and frames, never the text or the traceback
+                # (a broker error's text can carry its address: H-208).
+                logger.error(
+                    "Failed to queue due reminder email for teacher: %s",
+                    describe_error_for_log(exc),
                     extra={
                         "assignment_id": str(assignment.id),
                         "teacher_id": str(teacher.id),
@@ -1854,9 +1867,10 @@ def send_assignment_due_reminder(assignment_id, hours_before):
                     html_message=student_html,
                 )
                 notifications_sent += 1
-            except Exception:
-                logger.exception(
-                    "Failed to queue due reminder email for student",
+            except Exception as exc:
+                logger.error(
+                    "Failed to queue due reminder email for student: %s",
+                    describe_error_for_log(exc),
                     extra={
                         "assignment_id": str(assignment.id),
                         "student_id": str(student.id),
@@ -1935,9 +1949,11 @@ def send_new_assignment_posted_notification(assignment_id):
                     html_message=html_message,
                 )
                 notifications_sent += 1
-            except Exception:
-                logger.exception(
-                    "Failed to queue new assignment notification for student",
+            except Exception as exc:
+                # H-219: class and frames, never the text or the traceback.
+                logger.error(
+                    "Failed to queue new assignment notification for student: %s",
+                    describe_error_for_log(exc),
                     extra={
                         "assignment_id": str(assignment.id),
                         "student_id": str(student.id),
@@ -2028,14 +2044,16 @@ def prerender_assignment_pdfs(self, assignment_id):
                 exc,
             )
             raise self.retry(exc=exc) from Exception
-        except Exception:
+        except Exception as exc:
             # A broken document should not keep a Celery worker busy
             # retrying; the download path will surface the real error to
-            # the teacher who can act on it.
-            logger.exception(
-                "[PDF] pre-render failed for assignment %s (%s view)",
+            # the teacher who can act on it. H-219: logged by class and
+            # frames, never the text or the traceback.
+            logger.error(
+                "[PDF] pre-render failed for assignment %s (%s view): %s",
                 assignment_id,
                 view_type,
+                describe_error_for_log(exc),
             )
 
     return f"Pre-rendered: {', '.join(warmed) or 'nothing (already cached)'}"

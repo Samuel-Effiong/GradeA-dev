@@ -2162,8 +2162,10 @@ All are opt-in via the corresponding `Settings` flag, **all of which default to 
 | Offline overage: pending / approved / rejected | super admins / school admin | — | offline overage lifecycle |
 | Manual credit grant | recipient | — | `POST /admin/credits/grant` |
 
-Every notification send is individually wrapped in `try/except` + `logger.exception` — a mail
-failure never fails the operation that triggered it.
+Every notification send is individually wrapped in `try/except` and logged — a mail
+failure never fails the operation that triggered it. The assignment notices (the due reminders and the
+new-assignment notice in `assignments/tasks.py`) log the error by class and code location only, with no text
+or traceback (H-219).
 
 ### 15.2 Cache invalidation as a side effect
 
