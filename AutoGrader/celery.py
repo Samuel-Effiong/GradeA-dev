@@ -1,11 +1,22 @@
+import logging
 import os
 
 from celery import Celery
+
+from AutoGrader.safe_logging import CeleryTraceFilter
 
 # Set the default Django settings module for the 'celery' program.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "AutoGrader.settings")
 
 app = Celery("AutoGrader")
+
+# H-218: Celery's own task lines (celery.app.trace) name the error by class and
+# code location only, with no traceback and no task arguments
+# (AutoGrader/safe_logging.py). Every process imports this module through
+# AutoGrader/__init__.py, and a prefork worker's children inherit the filter.
+_trace_logger = logging.getLogger("celery.app.trace")
+if not any(isinstance(f, CeleryTraceFilter) for f in _trace_logger.filters):
+    _trace_logger.addFilter(CeleryTraceFilter())
 
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
