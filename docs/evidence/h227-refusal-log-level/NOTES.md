@@ -42,6 +42,30 @@
   - How they were found: `git grep` for `assertLogs("users.exceptions"` and "API Exception" outside the handler: one
     file. The three root-logger `assertLogs(level="ERROR")` in `billing/tests/test_h28_*` call tasks directly, not the
     API, so they are unaffected.
+- **The wider search (the Senior Manager's second condition).** A test that captures the ROOT logger, or a parent of
+  `users.exceptions`, could have caught the handler's old ERROR record whenever a refused API request ran inside it.
+  - A syntax-tree scan of every test file found each `assertLogs`/`assertNoLogs` whose logger is none, "root",
+    "users", "django" or "django.request", at any level. A grep found every test that attaches its own handler (to root
+    or to every logger), and `caplog` (none).
+  - Each one was traced. The question for each: is its ERROR (or its asserted text) from its own logger, or could it
+    come only from the handler's refusal record?
+
+  | Test (file:line) | What it captures, and how | Does a refused API request run inside? | Verdict |
+  |---|---|---|---|
+  | `billing/tests/test_h28_alerting.py:186` | `assertLogs(level="ERROR")`, root | No: calls `escalate_stale_licence_stripe_intents.run()` directly | Its ERROR is the task's own (`billing/tasks.py:1713`, `logger.error(summary)` when anything escalated). Unaffected |
+  | `billing/tests/test_h28_intent_audit.py:72` | the same | No: the same task, called directly | The same. Unaffected |
+  | `billing/tests/test_h28_intent_audit.py:184` | `assertLogs(level="ERROR")`, root; asserts "MANUAL RECONCILIATION NEEDED" | No: calls `license_stripe_mutation.escalate()` directly | Its ERROR is `_reconciliation_needed`'s own (`billing/license_stripe_mutation.py:532`). Unaffected |
+  | `billing/tests/test_logs_carry_no_email.py:234, 241, 255, 307` | `assertLogs(level="DEBUG")`, root; assert no address (and 241: a "FAILED" line; 255: two service lines) | No: service and model calls, no request | The asserted lines are the services' own. A refusal line could only lose text. Unaffected |
+  | `billing/tests/test_other_school_before_subscription.py:232` | `assertLogs(level="DEBUG")`, root, around `POST add-teachers`; asserts the ids appear, no "@" | A request, but the view answers everything itself (200 with per-email results; its `except` branches return responses, `billing/license_views.py:362-368`), so nothing reaches the handler | The ids come from the service's own refusal and "Skipped enrolling" lines. Unaffected |
+  | `billing/tests/test_other_school_before_subscription.py:259` | `assertLogs(level="DEBUG")`, root | No: calls the service directly | Unaffected |
+  | `classrooms/tests_s7d_roster_codes.py:232` (helper at 64) | a DEBUG handler on root; asserts the address is NOT in any line | A roster request answered 200 with rows | An absence check: H-227 only removes text. Unaffected |
+  | `billing/tests/test_s7d_licence_teacher_codes.py:364` (helper at 78) | the same; asserts three addresses are NOT in any line | `add-teachers`, answered by the view itself | The same. Unaffected |
+  | `assignments/tests_task_results_carry_no_text.py` (helper at 64) | a handler on every logger | No: tasks called directly, no client call in the file | Unaffected |
+  | `students/tests_broker_text_not_logged.py` (helper at 83) | the same; asserts every record has no `exc_info` | No: no client call in the file | Unaffected |
+
+  - No `assertNoLogs` on root or a parent logger exists. No test relied only on the handler's record, so no further
+    test changes.
+  - All eight modules are added to the gate's near list (runner sha `c748ba98`), so the gate runs them.
 - **R4 traced by hand (the Senior Manager's condition).**
   1. `POST /auth/otp` with `otp_type` `NOT_A_TYPE`: `OTPSerializer.is_valid(raise_exception=False)` is false.
   2. `otp` raises `ParseError("Invalid OTP type. …")` with no try around it (`users/views.py:1197-1200`).
@@ -127,7 +151,11 @@ three bad inputs:
   two test files), then the seam check.
 - **Own:** the two modules.
 - **Near:** `users.tests_renderers`, `users.tests_rate_limited_envelope`, `users.tests_auth_lock_envelope`,
-  `users.tests_throttling`, `users.tests_auth_endpoints`, `audit.tests_route_coverage`.
+  `users.tests_throttling`, `users.tests_auth_endpoints`, `audit.tests_route_coverage`;
+  and the eight modules of the wider search: `billing.tests.test_h28_alerting`, `billing.tests.test_h28_intent_audit`,
+  `billing.tests.test_logs_carry_no_email`, `billing.tests.test_other_school_before_subscription`,
+  `classrooms.tests_s7d_roster_codes`, `billing.tests.test_s7d_licence_teacher_codes`,
+  `assignments.tests_task_results_carry_no_text`, `students.tests_broker_text_not_logged`.
 - **Guards:** the 21, `AutoGrader.tests_error_messages`, `tests_no_pii_in_logs`, `tests_log_scrubbing` and
   `tests_sentry_scrubbing` among them.
 - **The mutants:** 6, with a 1140 s limit and the 300 s stall watchdog.

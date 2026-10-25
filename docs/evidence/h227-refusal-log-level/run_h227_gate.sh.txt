@@ -8,7 +8,8 @@
 #   reason (a fragment looked for in every one of its own FAIL/ERROR blocks), and exactly 6 blocks appear;
 # 1a makemigrations --check; 1b the seam by program (exceptions.py is the only production file changed; by its syntax
 #   tree only custom_exception_handler's logging changed); 1 the own modules + near modules (the renderer, the
-#   envelopes, the throttles, the two routes R4 and R5 use, the audit route coverage, the error messages) + guards;
+#   envelopes, the throttles, the two routes R4 and R5 use, the audit route coverage, and every module that captures
+#   the root logger or attaches its own handlers: the Senior Manager's search) + guards;
 #   2 the 6 mutants (rule 17; own DB), each judged by its expected tests AND their written fragments.
 # The regression is the batch's one full run on the frozen tip; it is not in this script.
 # A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
@@ -58,7 +59,7 @@ with connection._nodb_cursor() as c:
     c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
 print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
 OWN="users.tests_h227_refusal_logging users.tests_exception_handler"
-NEAR="users.tests_renderers users.tests_rate_limited_envelope users.tests_auth_lock_envelope users.tests_throttling users.tests_auth_endpoints audit.tests_route_coverage"
+NEAR="users.tests_renderers users.tests_rate_limited_envelope users.tests_auth_lock_envelope users.tests_throttling users.tests_auth_endpoints audit.tests_route_coverage billing.tests.test_h28_alerting billing.tests.test_h28_intent_audit billing.tests.test_logs_carry_no_email billing.tests.test_other_school_before_subscription classrooms.tests_s7d_roster_codes billing.tests.test_s7d_licence_teacher_codes assignments.tests_task_results_carry_no_text students.tests_broker_text_not_logged"
 GUARDS="AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_migration_safety_check AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_student_feedback_guard AutoGrader.tests_submission_audience_guard AutoGrader.tests_student_classmates_guard AutoGrader.tests_network_guard"
 echo "load at start: $(cat /proc/loadavg)"
 echo "=== 0. the red run: $OWN against the code as at $BASE (own DB) $(date +%T)"
