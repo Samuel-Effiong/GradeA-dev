@@ -394,10 +394,54 @@ We use a small number of well-known companies. Each receives only what it needs 
 
 ## 15. How We Check Our Own Work
 
-- **More than 8,000 automatic tests** run against the whole backend before a release (8,376 at the time of writing).
-- **Every change is checked twice.** The person who writes a change is never the person who approves it.
-- **We test the tests.** We deliberately break the code to confirm that a test notices.
-- **We look for our own weaknesses.** We run regular security reviews, keep a written list of what we find, and fix the items in order of seriousness. The list currently runs to more than 250 items, most of them closed.
+Security claims are only as good as the checking behind them. This section says how the backend is tested, in enough detail that a school's IT staff can judge it.
+
+### The automatic tests
+
+- **More than 8,000 automatic tests** cover the whole backend (8,376 at the time of writing). Each one sets up a small situation, asks the backend to act, and checks the answer.
+- **They run on every change.** Each change pushed to the code repository is tested automatically by GitHub before it can be merged, together with a check that any database change is safe to apply.
+- **They run in full before every release**, on the team's own machine, under a strict runner that records the whole log, stops a run that stalls or runs out of memory, and keeps a checksummed copy of the log as evidence.
+- **No test touches the outside world.** During tests, a guard refuses any real connection to the internet: the AI, Stripe, Google and the email services are all stood in for. A test that tried to reach a real service would fail.
+
+What the tests prove, by kind:
+
+| Kind of test | What it proves |
+|---|---|
+| Boundary tests | A teacher cannot see another teacher's class; a school administrator cannot see another school; a student cannot see a grade before it is released; a signed-out visitor gets nothing |
+| Sign-in tests | Lockouts, code expiry, the rate limits in section 6, "sign out everywhere", and the checks on Google's signed proof of identity all behave as stated |
+| Payment tests | A message without Stripe's signature is refused; a message delivered twice is acted on once; credits are counted correctly and refunded when AI work fails |
+| AI pipeline tests | Papers are matched to the right student, scores are clamped to the marking guide, a student's text is treated as data, and the "do not keep" instruction is on every request |
+| Upload tests | Oversized files, files that are not really PDFs, and image bombs are refused |
+| Privacy tests | No email address reaches a log; a student's entry in the activity record carries no email or network address; error reports are scrubbed |
+| Rendering tests | The printable PDF of an assignment is produced by a real browser engine, under its capacity limit |
+| Database-change tests | A proposed change to the database layout that could lose data or lock a table is caught before it is applied |
+
+### How a fix is made
+
+Every security fix follows the same written procedure, and the record of each one is kept.
+
+1. **The test comes first, and it must fail.** Before anything is changed, a test is written that shows the problem. It is run and its failure is written down, word for word, before the fix. If it does not fail as predicted, the problem was not understood.
+2. **The fix is made, and the test passes.**
+3. **We test the test.** The fixed code is deliberately broken in several ways (each a "mutant"), and the tests must catch every one. A mutant that survives means a test is too weak. There are 94 such exercises on record.
+4. **The change is checked for spread.** An automatic check confirms the change touched only the files it was meant to and nothing else.
+5. **A second person checks.** An independent reviewer re-reads and re-runs the work and records a verdict; 219 such verification records are on file. The person who writes a change is never the person who approves it.
+6. **The evidence is kept.** The logs, the mutants and the verdicts for each fix are stored in the code repository (266 evidence folders at the time of writing), so any claim in this document can be traced back to the run that proved it.
+
+### Checks before every save
+
+Twenty-six automatic checks run on the engineer's machine before any change can be saved: code formatting, type checking, a scan for unsafe code patterns, a scan for anything that looks like a password or key, a check for private-key files, a check that no personal detail is passed to a log, a limit on file size, and a rule that a timeout in one place stays in step with its partner in another.
+
+### Checks against the real world
+
+Ordinary tests check what the team believes the outside services do. Two harnesses check the belief against the service itself:
+
+- **AI accuracy.** A set of papers marked by hand is kept as a benchmark. Every night the AI's past answers are replayed against it (at no cost), and every week the live AI marks the set again. The scores are tracked over time, so a quiet drop in accuracy — whether from our change or the AI company's — is noticed.
+- **Payments.** A separate harness exercises Stripe's test environment with real Stripe messages, including "time travel" to simulate a renewal months ahead. It refuses to run against anything but a test key, so it can never touch a real payment.
+
+### Looking for our own weaknesses
+
+- **We run regular security reviews** and keep a written list of what we find, fixing the items in order of seriousness. The list currently runs to more than 250 items, most of them closed.
+- **We attack ourselves.** Red-team exercises have tried to take over an account through the Google sign-in, to reuse a cancelled sign-in token, to change another user's password, and to read another school's students. Each exercise's method and result is on file, and the fixes it led to are in the list above.
 - **Changes are rehearsed first.** Every release is proven on a practice copy of the service before it reaches users.
 - **Nothing reaches users without the founder's sign-off.**
 
@@ -424,6 +468,7 @@ We use a small number of well-known companies. Each receives only what it needs 
 | Account deletion | Permanent, on request |
 | Laws we work to | FERPA, COPPA, state student-privacy laws |
 | Standards we are aligned with | PCI DSS (SAQ A), NIST 800-63B, NIST CSF 2.0, OWASP Top 10 / ASVS |
+| Testing | 8,376 automatic tests on every change; test-first fixes; mutation-tested; independently verified; evidence kept |
 | Certifications held by Grade A Plus | None yet; suppliers' certifications are listed in section 13 |
 
 ## 17. Reporting a Security Concern
@@ -473,6 +518,11 @@ This appendix is for a school's IT or legal staff who want to check a statement.
 | Dependencies pinned | `requirements.txt` (every line `==`) |
 | Database-change checker | `scripts/check_migration_safety.py`; `.github/workflows/migration-safety.yml` |
 | Tests on every change | `.github/workflows/tests.yml` and `pre-commit.yml`; 8,376 tests on 26 October 2026 (`docs/evidence/beta-batch-28/`) |
+| No real outside connection during tests | `AutoGrader/network_guard.py` |
+| Test-first fixes, mutants, verification, evidence | `docs/evidence/` (266 folders; 94 mutation harnesses; 219 verification records); the procedure in `docs/CODE_REVIEW_STANDARDS.md` |
+| Twenty-six checks before every save | `.pre-commit-config.yaml`; the table of a run at `docs/evidence/beta-batch-28/hook_table_6db6c4b6.txt` |
+| AI accuracy benchmark; payments harness | `docs/backend/ai-quality-harness.md`; `docs/backend/billing-qa-harness.md` |
+| Red-team exercises | `docs/evidence/authz-oauth-takeover/`, `authz-token-epoch/`, `authz-patch-password/`, `my_students_tenancy/` |
 
 ### Suppliers and regulators
 
