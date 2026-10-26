@@ -171,3 +171,81 @@ Output `fragment_check.out`, copied below.
 | M228-1 test_s5_the_students_own_funded_wallet_changes_nothing (H-225's real P1 log) | `both sentences in the block` | `======================================================================` | yes |
 
 16 fragments checked, 16 found, 0 NOT found
+
+## The gate on 73bf9bbb (granted by the Senior Manager, 26 October 2026)
+
+Builder 4d ran the pack as committed. The live `GAP-4d-runs/item6/` copies of `gate.py`, `mutate.py`, the wrapper, the
+pre-start check, `fragment_check.py` and the H-229 test were checked byte-identical to the `.txt` copies here before
+the run. `fragment_check.py` was re-run on the tip: exit 0, output byte-identical to `fragment_check.out.txt`.
+`mutate.py --check`: all 6 anchors found once. The Senior Manager ruled `--h120` on (H-229 tightens the runner, so
+H-120's 13 mutants are re-read under it).
+
+The gate waited for batch 27's strict run 2 to end (15:52). Pre-start check at 15:53:38: load 2.97, available 11G (so
+the cap was 9G), no pytest, no `manage.py test`, 0 GAP scopes, the fullsuite lock free, 0 `item6-*` worktrees, tip
+73bf9bbb clean.
+
+Run 15:53:45 to 15:58:32 WAT inside one `systemd-inhibit`:
+`bash run_item6_gate.sh 73bf9bbb --h120; echo "gate exit=$?" >> gate_73bf9bbb/gate.out`. Logs are in `gate_73bf9bbb/`
+(gzipped, each round-trip checked), including the gate's own output.
+- **Exit code: 0**, captured by the start command, whose line ends `gate.out`.
+- The sha256 values logged were gate.py `2c4a5145…` (equal to `gate.py.txt` here), mutate.py `15307fc9…` and
+  row_chain.py `a92519b9…` (the H-229 pin).
+- Load was 3.86 5.52 5.46 at the start and 2.34 3.75 4.72 at the end. Neither watchdog fired (no
+  `memory_watchdog.txt` or `stall_watchdog.txt` was written).
+
+- **Reds, each as written** (the failing set exactly as written; each fragment inside its test's own block):
+  | Step | Where | Result |
+  |---|---|---|
+  | 0a H-226 | `users.tests_rate_limited_envelope` at 58cdfdb6 | exit 1, "Ran 12 tests", FAILED (failures=2); `oauth2.googleapis.com` named 8 times (expected here only) |
+  | 0b H-228 | P1 with the base's test, at the tip | exit 0, "Ran 20 tests", OK (the gap, seen) |
+  | 0c H-229 | the test against `row_chain_f3fe0bdd.py` | exit 1, "Ran 6 tests", FAILED (failures=2): A and C |
+  | 0d H-217 | `AutoGrader.tests_migration_safety_check` at a375d7bf | exit 1, "Ran 24 tests", FAILED (failures=4), no ERROR |
+- **1a makemigrations --check:** exit 0, "No changes detected".
+- **1b seam:** production `.gitignore`, `scripts/check_migration_safety.py`; tests
+  `AutoGrader/tests_migration_safety_check.py`, `users/tests_credit_balance_permission.py`,
+  `users/tests_rate_limited_envelope.py`; the rest under `docs/`. As written.
+- **Step 1** (24 labels: 4 own and near, 21 guards, 1 shared), 15:54:35 to 15:56:33:
+  - "Ran 350 tests in 100.023s", "OK" (no skips).
+  - 350 test header lines were counted in the log.
+  - The log names `oauth2.googleapis.com` **0** times (H-226's acceptance; batches 17–26 held two attempts each).
+- **1c `scripts/test_strict_gate.py`:** "Ran 47 tests in 18.386s", OK.
+- **1d H-229 against the new runner:** "Ran 6 tests", OK.
+- **Step 2, mutants** in `item6-mut` (its own database, dropped afterwards; the tree was clean after the battery and
+  was removed without `--force`), 15:56:52 to 15:57:41. The baseline was "Ran 63 tests", OK. All 8 were KILLED as
+  written: the failing set is exactly the expected one, with nothing missing, nothing extra and no wrong reason.
+  | Id | Ran | Failing / expected |
+  |---|---|---|
+  | M228-1 | 27 | 6 / 6 (the unit test and H-225's s1–s5; c1, c2 and the other 19 unit tests green) |
+  | M226-1 | 12 | 2 / 2 |
+  | M217-1 | 24 | 3 / 3 |
+  | M217-2 | 24 | 1 / 1 |
+  | M217-3 | 24 | 1 / 1 |
+  | M217-4 | 24 | 1 / 1 |
+  | H-229 R1 | 6 | 1 / 1 (test A) |
+  | H-229 R2 | 6 | 1 / 1 (test C) |
+- After the gate: no `item6-*` or `h120-mut` worktree is left, and the tip is clean.
+
+### 2b: H-120's harness under the tightened runner (`--h120`)
+
+`docs/evidence/h120-migration-check-before-state/run_mutants.py 73bf9bbb`, 15:57:41 to 15:58:32: exit 0. The baseline
+was "Ran 24 tests", OK. "13/13 killed with verified restore":
+
+| Mutant | Result |
+|---|---|
+| K1 | FAILED (failures=18) |
+| K2 | FAILED (failures=4) |
+| K3 | FAILED (failures=3) |
+| K4 | FAILED (failures=11) |
+| K5 | FAILED (failures=3) |
+| K6 | FAILED (failures=4) |
+| K7 | FAILED (failures=1) |
+| K8 | FAILED (failures=2) |
+| K9 | FAILED (failures=2) |
+| K10 | FAILED (failures=2) |
+| K11 | FAILED (failures=1) |
+| K12 | FAILED (failures=4) |
+| K13 | FAILED (failures=7, errors=5) |
+
+The harness writes `logs/` and `results.tsv` beside itself. Those files were left untracked in
+`docs/evidence/h120-migration-check-before-state/` and have been moved here (`gate_73bf9bbb/h120/logs.tar.gz`,
+`results.tsv.gz`), so H-120's committed folder is unchanged.
