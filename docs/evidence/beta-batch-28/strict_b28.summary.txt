@@ -1,0 +1,23 @@
+mypy: mypy.....................................................................Passed
+makemigrations: No changes detected
+memory: available 13497 MB at start; cap 11G (available - 2 GB); scope gap-strict-b28-511450; guard stops it under 1500 MB available
+bundle b28 strict full run start 2026-10-26 16:09:28 WAT sha=6db6c4b6 load=2.35 3.31 3.85
+watchdog: stalled=0 (300 s silence rule; 0 = never fired)
+memory guard: memstop=0 (1 = this run was STOPPED for memory, not a red); min available 9930 MB
+exit=0 end 2026-10-26 16:19:31 WAT wall=603s
+load at end: 6.67 8.14 6.23
+Ran 8376 tests in 564.088s
+OK (skipped=30)
+blocked_outbound=0
+per-app test counts:
+  ai_processor 1420
+  assignments 774
+  audit 377
+  AutoGrader 774
+  billing 2217
+  classrooms 640
+  dashboard 430
+  students 867
+  users 877
+FAIL/ERROR headers: 0
+suspends during run: 0
