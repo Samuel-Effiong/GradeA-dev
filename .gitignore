@@ -1,6 +1,9 @@
 # 🐍 Python
 __pycache__/
 *.py[cod]
+# mypy's cache. mypy writes its own ignore file inside the folder; this
+# line keeps the folder out of the tree without relying on that.
+.mypy_cache/
 *.so
 *.egg
 *.egg-info/

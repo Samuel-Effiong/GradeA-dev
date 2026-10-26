@@ -1,0 +1,3 @@
+Sun Oct 25 06:21:37 PM WAT 2026
+BEFORE: .gitignore as at b4af529fcc70b6fe5a9a9bc4d1bb23b7e9240553 (no mypy line: 0 matches); path given with a trailing slash so git treats it as a directory (the folder does not exist in this worktree)
+exit=1

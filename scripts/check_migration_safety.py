@@ -11,6 +11,13 @@ nothing to fill the rows that are NULL, when its type changes, or when it
 gets shorter. A change of choices, help text or a wider length on a column
 is additive and passes (H-120).
 
+A constraint added or dropped in ONE step (AddConstraint, RemoveConstraint)
+is reported (H-217): adding one makes PostgreSQL lock the table and check
+every existing row inside the deploy, and one row that breaks it fails the
+deploy; the house way is two steps, RunSQL ... NOT VALID and then VALIDATE
+CONSTRAINT in the next migration (students/0033 and 0034). Dropping one is
+a loosening a person acknowledges.
+
 Not judged: RunSQL and RunPython. Raw SQL and data migrations are for a
 reviewer to read.
 
@@ -197,6 +204,32 @@ def operation_findings(op, state, app_label):
         # worker on the previous release. Each database operation is judged
         # against the state as the ones before it left it.
         return findings_for(op.database_operations, state.clone(), app_label)
+
+    elif op_name == "AddConstraint":
+        # H-217. In one step PostgreSQL takes an ACCESS EXCLUSIVE lock and
+        # checks every existing row inside the deploy. (A RunSQL that adds
+        # the constraint NOT VALID is not judged here, as documented; the
+        # constraint it carries as a state operation never reaches the
+        # database through this operation.)
+        constraint = op.constraint
+        return [
+            f"AddConstraint - adds the {type(constraint).__name__} "
+            f"{constraint.name!r} in one step: PostgreSQL locks the table and "
+            "checks every existing row inside the deploy, one row that breaks "
+            "it fails the deploy, and a worker on the previous release can "
+            "still write rows the new rule refuses. The house way is two "
+            "steps: RunSQL ... NOT VALID, then VALIDATE CONSTRAINT in the next "
+            "migration (students/0033 and 0034)"
+        ]
+
+    elif op_name == "RemoveConstraint":
+        # H-217. Loosening: additive to the schema, but rows the old rule
+        # refused can appear from then on, so a person acknowledges it.
+        return [
+            f"RemoveConstraint - drops the constraint {op.name!r} in one step: "
+            "the rows lose a rule they were kept to; a loosening a person "
+            "acknowledges"
+        ]
 
     return []
 

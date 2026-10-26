@@ -1,0 +1,10 @@
+#!/bin/bash
+# Item 6 gate wrapper (Builder 2 · 4d). ONE grant, ONE outer inhibit around the whole gate (rule 16):
+#   bash run_item6_gate.sh <tip> [--h120] ; echo "gate exit=$?" >> <out>/gate.out
+# The pre-start check is a SEPARATE command, read before this starts: sh pre_start_check.sh
+# Everything else (memory cap, scopes, watchdogs, throwaway worktrees, judging, logs to files) is in gate.py.
+set -u
+TIP=${1:?tip}; shift
+HERE=$(cd "$(dirname "$0")" && pwd)
+exec systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP-item6 --why=GAP-test-run --mode=block \
+    /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python -I "$HERE/gate.py" "$TIP" "$@"

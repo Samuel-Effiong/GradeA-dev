@@ -1,0 +1,498 @@
+#!/usr/bin/env python3
+"""Item 6 gate (Builder 2 · 4d): the five small rows + the ignore line, one battery.
+
+    python -I gate.py <tip> [--h120]        (run through run_item6_gate.sh: ONE inhibit)
+
+Every test command: its own systemd scope (MemoryMax = available - 2G at start,
+min 6G, else STOP exit 5; MemorySwapMax=0), nice 10, timeout 1800 (-k 60),
+stdout+stderr straight to a FILE under <out>, stdin from /dev/null (rule 18),
+--settings=settings_worktree on an item6-only test database (rules 12, 13).
+Throwaway worktrees carry fixed names (item6-redt, item6-gap, item6-redc,
+item6-mut) and are removed WITHOUT --force once their own files are deleted;
+if git refuses, the gate says so and leaves the tree for the Senior Manager.
+Mutants (step 2, mutate.py) run with PYTHONDONTWRITEBYTECODE=1 and the mutated
+module's __pycache__ removed (rule 17). A memory watchdog stops OUR scope (by
+unit name) when available memory falls under 1.5 GB; a stall watchdog stops
+the mutant scope when its newest log is silent for 300 s.
+
+Judging (rules 19, 22, H-229): a red step needs a non-zero exit, the run's
+own "Ran N tests" line with the written N, no OK line, no load failure, the
+failing set EXACTLY as written, and each written fragment inside that test's
+OWN failure block, all of a test's fragments in ONE block. A green step needs
+exit 0, the Ran line and the OK line.
+
+Steps
+  0a  H-226 red: users.tests_rate_limited_envelope at the TESTS commit (58cdfdb6) in item6-redt.
+      (This run makes the real outbound attempt that the H-39 guard blocks: expected.)
+  0b  H-228 the gap seen: mutant P1 + the OLD test (b4af529f's file) at the tip in item6-gap: GREEN.
+  0c  H-229 red: the stdlib test against the OLD runner copy (sha f3fe0bdd...).
+  0d  H-217 red: AutoGrader.tests_migration_safety_check at the TESTS commit (a375d7bf) in item6-redc.
+  1a  makemigrations --check --dry-run on the tip.
+  1b  the seam: the files changed between the base and the tip are exactly the written ones.
+  1   own + near modules + the 21 guards on the tip, once; the log holds no oauth2.googleapis.com line.
+  1c  python scripts/test_strict_gate.py (self-tests; it names the check script).
+  1d  H-229 green: the stdlib test against the NEW runner.
+  2   mutants: mutate.py in item6-mut (6 in-repo mutants), then H-229 M1/M2 on copies of the runner.
+  2b  --h120: docs/evidence/h120-migration-check-before-state/run_mutants.py <tip> (H-120's 13, still live).
+"""
+
+import hashlib
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+import threading
+import time
+
+P = pathlib.Path("/home/bond-servant-in-training/Documents/Projects")
+WT = P / "Grade-Automator-Plus-item6-small-rows"
+PY = pathlib.Path("/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python")
+HERE = pathlib.Path(__file__).resolve().parent
+H229 = HERE / "h229"
+BASE = "b4af529f"
+T226 = "58cdfdb6"
+T217 = "a375d7bf"
+TIMEOUT = 1800
+
+OWN_NEAR = [
+    "users.tests_credit_balance_permission",
+    "students.tests_h225_student_empty_wallet",
+    "users.tests_rate_limited_envelope",
+    "AutoGrader.tests_migration_safety_check",
+]
+GUARDS = [
+    "AutoGrader.tests_cache_bespoke_1114",
+    "AutoGrader.tests_no_wildcard_invalidation",
+    "AutoGrader.tests_cache_invalidation_coverage",
+    "AutoGrader.tests_migration_rollback_defaults",
+    "AutoGrader.tests_migration_safety_check",
+    "AutoGrader.tests_redis_test_isolation",
+    "AutoGrader.tests_beat_health",
+    "AutoGrader.tests_beat_locks",
+    "AutoGrader.tests_management_commands_are_commands",
+    "AutoGrader.tests_error_messages",
+    "AutoGrader.tests_no_pii_in_logs",
+    "AutoGrader.tests_log_scrubbing",
+    "AutoGrader.tests_sentry_scrubbing",
+    "AutoGrader.tests_redis_hygiene_databases",
+    "AutoGrader.tests_redis_hygiene",
+    "AutoGrader.tests_patient_test_stream",
+    "AutoGrader.tests_pool_worker_sigterm",
+    "AutoGrader.tests_student_feedback_guard",
+    "AutoGrader.tests_submission_audience_guard",
+    "AutoGrader.tests_student_classmates_guard",
+    "AutoGrader.tests_network_guard",
+]
+
+# Written before any run. Keys are test names; values the fragments each
+# test's own failure block must hold (all of them in ONE block).
+RED_226 = {
+    "test_google_auth_throttle": [
+        "'Google sign-in failed. Please try again.' != 'Google did not return an ID token'"
+    ],
+    "test_the_google_throttle_probe_never_calls_google": [
+        "Unexpected logs found: ['ERROR:users.views:Google OAuth token exchange failed"
+    ],
+}
+RED_229 = {
+    "test_A_fragments_from_two_different_subtest_blocks_are_refused": [
+        'Lists differ: [] != ["test_split: not together in ONE failure block'
+    ],
+    "test_C_the_subtest_label_can_be_a_fragment": [
+        "not in its own failure block: ['[two]']"
+    ],
+}
+RED_217 = {
+    "test_a_check_constraint_added_in_one_step_is_reported": [
+        "Lists differ: [] != ['AddConstraint']"
+    ],
+    "test_a_unique_constraint_added_in_one_step_is_reported": [
+        "Lists differ: [] != ['AddConstraint']"
+    ],
+    "test_a_constraint_dropped_in_one_step_is_reported": [
+        "Lists differ: [] != ['RemoveConstraint']"
+    ],
+    "test_the_finding_names_the_constraint_and_the_two_step_way": ["0 != 1"],
+}
+H229_MUTANTS = {
+    "R1": (
+        "the any-block rule put back (each fragment in SOME block passes)",
+        "        elif not any(all(f in body for f in fragments) for body in bodies):\n",
+        "        elif not any(any(f in body for f in fragments) for body in bodies):\n",
+        {"test_A_fragments_from_two_different_subtest_blocks_are_refused": RED_229[
+            "test_A_fragments_from_two_different_subtest_blocks_are_refused"
+        ]},
+    ),
+    "R2": (
+        "the header tail left out of the block again",
+        r"\)([^\n]*\n.*?)(?=",
+        r"\)[^\n]*\n(.*?)(?=",
+        {"test_C_the_subtest_label_can_be_a_fragment": RED_229[
+            "test_C_the_subtest_label_can_be_a_fragment"
+        ]},
+    ),
+}
+P1_OLD = '                raise StudentEmptyWalletError("Credit wallet is empty")\n'
+P1_NEW = '                raise EmptyWalletError("Credit wallet is empty")\n'
+
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+BLOCK = re.compile(
+    r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)([^\n]*\n.*?)(?=^(?:FAIL|ERROR): |^Ran \d+ tests)",
+    re.M | re.S,
+)
+RAN = re.compile(r"^Ran (\d+) tests? in ", re.M)
+LOAD_FAILURE = ("unittest.loader._FailedTest", "ModuleNotFoundError", "ImportError:")
+
+
+class Stop(Exception):
+    pass
+
+
+def now():
+    return time.strftime("%H:%M:%S")
+
+
+def avail_kb():
+    for line in open("/proc/meminfo"):
+        if line.startswith("MemAvailable:"):
+            return int(line.split()[1])
+    raise Stop("MemAvailable not found")
+
+
+class Gate:
+    def __init__(self, tip, h120):
+        self.tip = subprocess.run(
+            ["git", "rev-parse", "--short=8", tip], cwd=WT, check=True, capture_output=True, text=True
+        ).stdout.strip()
+        self.h120 = h120
+        self.out = HERE / f"gate_{self.tip}"
+        self.out.mkdir(parents=True, exist_ok=True)
+        self.report = open(self.out / "gate.out", "a")
+        self.unit_prefix = f"gap-item6-{os.getpid()}"
+        self.part = "none"
+        self.stop_watchdogs = False
+        avail_g = avail_kb() // 1048576
+        self.cap = max(avail_g - 2, 0)
+        self.say(f"item 6 gate on {self.tip}, base {BASE}: {time.strftime('%F %T')}; loadavg {open('/proc/loadavg').read().strip()}")
+        self.say(f"available at start: {avail_g}G; cap {self.cap}G")
+        if self.cap < 6:
+            raise Stop("cap under 6G (exit 5): wait and tell the Senior Manager")
+
+    def say(self, text):
+        line = f"[{now()}] {text}"
+        print(line, flush=True)
+        self.report.write(line + "\n")
+        self.report.flush()
+
+    # ---- running things -------------------------------------------------
+    def unit(self):
+        return f"{self.unit_prefix}-{self.part}"
+
+    def wrap(self, timeout=TIMEOUT):
+        return [
+            "systemd-run", "--user", "--scope", "-q", f"--unit={self.unit()}",
+            "-p", f"MemoryMax={self.cap}G", "-p", "MemorySwapMax=0",
+            "nice", "-n", "10", "timeout", "-k", "60", str(timeout),
+        ]
+
+    def run(self, cmd, log, part, cwd, env=None, timeout=TIMEOUT):
+        self.part = part
+        full_env = {**os.environ, "PYTHONFAULTHANDLER": "1", "EXEMPT_EMAIL_DOMAINS": "", **(env or {})}
+        self.say(f"{part}: {' '.join(str(c) for c in cmd)} -> {log.name}")
+        with open(log, "w") as fh, open(os.devnull) as nothing:
+            rc = subprocess.run(
+                self.wrap(timeout) + [str(c) for c in cmd], cwd=cwd, stdin=nothing,
+                stdout=fh, stderr=subprocess.STDOUT, env=full_env,
+            ).returncode
+        text = open(log, errors="replace").read()
+        ran = RAN.search(text)
+        self.say(f"{part}: exit={rc} {ran.group(0).strip() if ran else 'NO Ran LINE'}")
+        self.part = "none"
+        return rc, text
+
+    def django_test(self, tree, labels, log, part, settings="settings_worktree", keepdb=False):
+        cmd = [PY, "manage.py", "test", "--noinput", "--verbosity", "2", f"--settings={settings}", *labels]
+        if keepdb:
+            cmd.append("--keepdb")
+        return self.run(cmd, log, part, cwd=tree, env={"PYTHONDONTWRITEBYTECODE": "1"})
+
+    # ---- watchdogs -------------------------------------------------------
+    def memory_watchdog(self):
+        while not self.stop_watchdogs:
+            time.sleep(10)
+            if avail_kb() < 1572864 and self.part != "none":
+                unit = self.unit() + ".scope"
+                with open(self.out / "memory_watchdog.txt", "a") as fh:
+                    fh.write(f"MEMORY STOP {now()}: available {avail_kb()} kB; stopping {unit}\n")
+                subprocess.run(["systemctl", "--user", "stop", unit])
+
+    def stall_watchdog(self, logs_dir):
+        time.sleep(60)
+        while self.part == "mutants":
+            newest = max(logs_dir.glob("*.log"), key=lambda p: p.stat().st_mtime, default=None)
+            if newest and time.time() - newest.stat().st_mtime > 300:
+                unit = self.unit() + ".scope"
+                with open(self.out / "stall_watchdog.txt", "a") as fh:
+                    fh.write(f"STALL STOP {now()}: {newest.name} silent over 300 s; stopping {unit}\n")
+                subprocess.run(["systemctl", "--user", "stop", unit])
+                break
+            time.sleep(15)
+
+    # ---- worktrees -------------------------------------------------------
+    def add_tree(self, name, commit, db):
+        path = P / f"Grade-Automator-Plus-{name}"
+        if path.exists():
+            raise Stop(f"{path} exists already: not mine to remove")
+        subprocess.run(["git", "worktree", "add", "--detach", str(path), commit], cwd=WT, check=True, capture_output=True)
+        if not (path / ".env").exists():
+            os.symlink(P / "Grade-Automator-Plus" / ".env", path / ".env")
+        self.settings(path, db)
+        return path
+
+    def settings(self, tree, db):
+        (tree / "settings_worktree.py").write_text(
+            '"""Item 6 gate: a unique test database for this throwaway tree."""\n'
+            "from AutoGrader.settings import *  # noqa: F401,F403\n"
+            "from AutoGrader.settings import DATABASES\n\n"
+            'DATABASES["default"].setdefault("TEST", {})\n'
+            f'DATABASES["default"]["TEST"]["NAME"] = "{db}"\n'
+        )
+
+    def remove_tree(self, path, written=()):
+        for rel in ("settings_worktree.py", ".env", *written):
+            f = path / rel
+            if f.is_symlink() or f.exists():
+                f.unlink()
+        for cache in path.rglob("__pycache__"):
+            shutil.rmtree(cache, ignore_errors=True)
+        r = subprocess.run(["git", "worktree", "remove", str(path)], cwd=WT, capture_output=True, text=True)
+        if r.returncode:
+            self.say(f"NOTE: git refused to remove {path} (no --force): {r.stderr.strip()[:200]}; left for the Senior Manager")
+        else:
+            self.say(f"removed {path.name}")
+
+    def drop_db(self, tree, settings, db):
+        code = (
+            "from django.db import connection\n"
+            "with connection._nodb_cursor() as c:\n"
+            f"    c.execute('DROP DATABASE IF EXISTS \"{db}\"')\n"
+            f"print('dropped {db}')\n"
+        )
+        with open(self.out / f"drop_{db}.txt", "w") as fh, open(os.devnull) as nothing:
+            subprocess.run([PY, "manage.py", "shell", f"--settings={settings}", "-c", code], cwd=tree, stdin=nothing, stdout=fh, stderr=subprocess.STDOUT)
+
+    # ---- judging ---------------------------------------------------------
+    @staticmethod
+    def failing(text):
+        return {name for name, _ in LINE.findall(text)}
+
+    @staticmethod
+    def blocks(text):
+        out = {}
+        for name, _, body in BLOCK.findall(text):
+            out.setdefault(name, []).append(body)
+        return out
+
+    def judge_red(self, label, rc, text, expected, ran):
+        bad = []
+        if rc == 0:
+            bad.append("exit 0")
+        m = RAN.search(text)
+        if not m:
+            bad.append("no Ran line")
+        elif int(m.group(1)) != ran:
+            bad.append(f"Ran {m.group(1)}, written {ran}")
+        if re.search(r"^OK", text, re.M):
+            bad.append("an OK line")
+        if any(s in text for s in LOAD_FAILURE):
+            bad.append("a load failure")
+        got = self.failing(text)
+        if got != set(expected):
+            bad.append(f"failing set {sorted(got)} != written {sorted(expected)}")
+        blocks = self.blocks(text)
+        for test, fragments in expected.items():
+            bodies = blocks.get(test, [])
+            if not bodies:
+                bad.append(f"{test}: no failure block parsed")
+            elif not any(all(f in body for f in fragments) for body in bodies):
+                bad.append(f"{test}: WRONG REASON, written {fragments} not together in one of its blocks")
+        if bad:
+            raise Stop(f"{label}: not red as written: {'; '.join(bad)}")
+        self.say(f"{label}: red as written ({len(expected)} tests, each for its written reason)")
+
+    def judge_green(self, label, rc, text, ran=None):
+        m = RAN.search(text)
+        ok = rc == 0 and m and re.search(r"^OK", text, re.M) and not any(s in text for s in LOAD_FAILURE)
+        if ok and ran is not None and int(m.group(1)) != ran:
+            ok = False
+        if not ok:
+            raise Stop(f"{label}: not green (exit {rc}, {m.group(0).strip() if m else 'no Ran line'})")
+        self.say(f"{label}: green ({m.group(0).strip()})")
+
+    # ---- the steps -------------------------------------------------------
+    def preflight(self):
+        head = subprocess.run(["git", "rev-parse", "--short=8", "HEAD"], cwd=WT, capture_output=True, text=True).stdout.strip()
+        if head != self.tip:
+            raise Stop(f"the worktree is at {head}, not {self.tip}")
+        dirty = [l for l in subprocess.run(["git", "status", "--porcelain"], cwd=WT, capture_output=True, text=True).stdout.splitlines() if "settings_worktree" not in l]
+        if dirty:
+            raise Stop(f"the worktree is not clean: {dirty[:5]}")
+        for name in ("item6-redt", "item6-gap", "item6-redc", "item6-mut"):
+            if (P / f"Grade-Automator-Plus-{name}").exists():
+                raise Stop(f"Grade-Automator-Plus-{name} exists already")
+        self.settings(WT, "test_item6_small_rows")
+        for f, sha in (("gate.py", None), ("mutate.py", None)):
+            digest = hashlib.sha256((HERE / f).read_bytes()).hexdigest()
+            self.say(f"{f} sha256 {digest}")
+        self.say(f"row_chain.py sha256 {hashlib.sha256((P / 'GAP-58-runs' / 'row_chain.py').read_bytes()).hexdigest()}")
+
+    def step_0a(self):
+        tree = self.add_tree("item6-redt", T226, "test_item6_redt")
+        try:
+            rc, text = self.django_test(tree, ["users.tests_rate_limited_envelope"], self.out / "r0a_h226_at_58cdfdb6.log", "red226")
+        finally:
+            self.remove_tree(tree)
+        self.judge_red("0a H-226 at the tests commit", rc, text, RED_226, ran=12)
+        n = text.count("oauth2.googleapis.com")
+        self.say(f"0a: the log names oauth2.googleapis.com {n} time(s) (the real attempt the guard blocks: expected here, and only here)")
+
+    def step_0b(self):
+        tree = self.add_tree("item6-gap", self.tip, "test_item6_gap")
+        try:
+            perm = tree / "users/permissions.py"
+            src = perm.read_text()
+            if src.count(P1_OLD) != 1:
+                raise Stop("0b: P1 anchor not found once")
+            perm.write_text(src.replace(P1_OLD, P1_NEW))
+            old_test = subprocess.run(["git", "show", f"{BASE}:users/tests_credit_balance_permission.py"], cwd=WT, check=True, capture_output=True, text=True).stdout
+            (tree / "users/tests_credit_balance_permission.py").write_text(old_test)
+            rc, text = self.django_test(tree, ["users.tests_credit_balance_permission"], self.out / "r0b_h228_P1_with_the_old_test.log", "gap228")
+            subprocess.run(["git", "checkout", "--", "users/permissions.py", "users/tests_credit_balance_permission.py"], cwd=tree, check=True)
+        finally:
+            self.remove_tree(tree)
+        self.judge_green("0b H-228: P1 with the OLD test (the gap, seen)", rc, text, ran=20)
+
+    def step_0c(self):
+        rc, text = self.run([PY, "-I", "test_row_chain_reasons.py"], self.out / "r0c_h229_old_runner.log", "red229", cwd=H229, env={"ROW_CHAIN": str(H229 / "row_chain_f3fe0bdd.py")}, timeout=300)
+        self.judge_red("0c H-229 against the old runner", rc, text, RED_229, ran=6)
+
+    def step_0d(self):
+        tree = self.add_tree("item6-redc", T217, "test_item6_redc")
+        try:
+            rc, text = self.django_test(tree, ["AutoGrader.tests_migration_safety_check"], self.out / "r0d_h217_at_a375d7bf.log", "red217")
+        finally:
+            self.remove_tree(tree)
+        self.judge_red("0d H-217 at the tests commit", rc, text, RED_217, ran=24)
+
+    def step_1a(self):
+        rc, text = self.run([PY, "manage.py", "makemigrations", "--check", "--dry-run", "--settings=settings_worktree"], self.out / "makemigrations_check.log", "mm", cwd=WT, timeout=600)
+        if rc != 0:
+            raise Stop("1a: makemigrations reports changes")
+        self.say("1a: makemigrations --check: no changes")
+
+    def step_1b(self):
+        files = subprocess.run(["git", "diff", "--name-only", BASE, self.tip], cwd=WT, check=True, capture_output=True, text=True).stdout.split()
+        (self.out / "seam_changed_files.txt").write_text("\n".join(files) + "\n")
+        production = sorted(f for f in files if not f.startswith("docs/") and "/tests_" not in f)
+        tests = sorted(f for f in files if "/tests_" in f)
+        want_prod = [".gitignore", "scripts/check_migration_safety.py"]
+        want_tests = ["AutoGrader/tests_migration_safety_check.py", "users/tests_credit_balance_permission.py", "users/tests_rate_limited_envelope.py"]
+        if production != want_prod or tests != want_tests:
+            raise Stop(f"1b: seam differs: production {production}, tests {tests}")
+        self.say(f"1b: seam as written: production {production}; tests {tests}; the rest under docs/")
+
+    def step_1(self):
+        labels = list(dict.fromkeys(OWN_NEAR + GUARDS))
+        rc, text = self.django_test(WT, labels, self.out / "modules_and_guards.log", "modules")
+        self.judge_green(f"1 modules + guards ({len(labels)} labels)", rc, text)
+        n = text.count("oauth2.googleapis.com")
+        self.say(f"1: the log names oauth2.googleapis.com {n} time(s) (H-226 wants 0)")
+        if n:
+            raise Stop("1: a Google address is still in the log")
+
+    def step_1c(self):
+        rc, text = self.run([PY, "scripts/test_strict_gate.py"], self.out / "strict_gate_selftests.log", "strictgate", cwd=WT)
+        self.judge_green("1c scripts/test_strict_gate.py self-tests", rc, text)
+
+    def step_1d(self):
+        rc, text = self.run([PY, "-I", "test_row_chain_reasons.py"], self.out / "a1d_h229_new_runner.log", "green229", cwd=H229, timeout=300)
+        self.judge_green("1d H-229 against the new runner", rc, text, ran=6)
+
+    def step_2(self):
+        tree = self.add_tree("item6-mut", self.tip, "test_item6_mut")
+        logs = self.out / "mutants"
+        logs.mkdir(exist_ok=True)
+        shutil.copy(HERE / "mutate.py", tree / "item6_mutate.py")
+        try:
+            self.part = "mutants"
+            threading.Thread(target=self.stall_watchdog, args=(logs,), daemon=True).start()
+            rc, text = self.run([PY, "-I", "item6_mutate.py"], self.out / "mutation_log.txt", "mutants", cwd=tree, env={"MUT_LOGS": str(logs), "MUT_RESULTS": str(self.out / "mutation_results.json"), "PYTHONDONTWRITEBYTECODE": "1"}, timeout=90 * 6 + 600)
+            dirty = subprocess.run(["git", "status", "--porcelain"], cwd=tree, capture_output=True, text=True).stdout
+            dirty = [l for l in dirty.splitlines() if "item6_mutate.py" not in l and "settings_worktree" not in l]
+            if dirty:
+                raise Stop(f"2: the mutant tree is not clean after the battery: {dirty[:5]}")
+            self.drop_db(tree, "settings_worktree", "test_item6_mut")
+        finally:
+            self.remove_tree(tree, written=("item6_mutate.py",))
+        for line in text.splitlines():
+            if line.startswith(("M2", "BATTERY", "baseline")):
+                self.say("2: " + line[:300])
+        if rc != 0 or "BATTERY: every mutant killed as written" not in text:
+            raise Stop("2: the in-repo battery is not green as written")
+        # H-229's two mutants: copies of the NEW runner, never the shared file.
+        new = (P / "GAP-58-runs" / "row_chain.py").read_text()
+        mdir = self.out / "h229_mutants"
+        mdir.mkdir(exist_ok=True)
+        for mid, (what, old, newtext, expected) in H229_MUTANTS.items():
+            if new.count(old) != 1:
+                raise Stop(f"2 {mid}: anchor found {new.count(old)} times")
+            copy = mdir / f"row_chain_{mid}.py"
+            copy.write_text(new.replace(old, newtext))
+            rc, text = self.run([PY, "-I", "test_row_chain_reasons.py"], logs / f"h229_{mid}.log", "mutants", cwd=H229, env={"ROW_CHAIN": str(copy)}, timeout=300)
+            self.judge_red(f"2 H-229 {mid} ({what})", rc, text, expected, ran=6)
+        self.say("2: H-229 R1 and R2 killed as written")
+
+    def step_2b(self):
+        if not self.h120:
+            self.say("2b: H-120's harness not asked for (--h120 absent)")
+            return
+        rc, text = self.run([PY, "docs/evidence/h120-migration-check-before-state/run_mutants.py", self.tip], self.out / "h120_run_mutants.log", "h120", cwd=WT, timeout=3600)
+        tail = "\n".join(text.strip().splitlines()[-6:])
+        self.say(f"2b: H-120 harness exit={rc}; tail:\n{tail}")
+        if rc != 0:
+            raise Stop("2b: H-120's harness did not end green")
+
+
+def main():
+    args = sys.argv[1:]
+    h120 = "--h120" in args
+    tip = [a for a in args if not a.startswith("--")][0]
+    gate = Gate(tip, h120)
+    threading.Thread(target=gate.memory_watchdog, daemon=True).start()
+    try:
+        gate.preflight()
+        gate.step_0a()
+        gate.step_0b()
+        gate.step_0c()
+        gate.step_0d()
+        gate.step_1a()
+        gate.step_1b()
+        gate.step_1()
+        gate.step_1c()
+        gate.step_1d()
+        gate.step_2()
+        gate.step_2b()
+    except Stop as stop:
+        gate.say(f"STOP: {stop}")
+        gate.say(f"GATE END (stopped) {time.strftime('%F %T')}; loadavg {open('/proc/loadavg').read().strip()}")
+        return 4
+    finally:
+        gate.stop_watchdogs = True
+    gate.say(f"GATE END: green as written {time.strftime('%F %T')}; loadavg {open('/proc/loadavg').read().strip()}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

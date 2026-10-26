@@ -1,0 +1,124 @@
+"""Rebuild every written fragment's assertion message in plain Python (no test
+loader, no Django test run) and say whether the fragment is inside it.
+
+    python -I fragment_check.py <worktree>      (Builder 2 · 4d, item 6, SM's condition 2)
+
+Prints a markdown table: where | fragment | rebuilt message (first line) | found.
+The two H-225 route fragments (M228-1, s1-s5) are not rebuilt from an
+assertion here: they are checked against H-225's own committed P1 log
+(docs/evidence/h225-student-empty-wallet/chain_4d3780cb/b_P1.log.gz), the
+run that produced them.
+"""
+
+import gzip
+import logging
+import pathlib
+import sys
+import unittest
+from unittest.mock import patch
+
+WT = pathlib.Path(sys.argv[1])
+sys.path.insert(0, str(WT))
+
+tc = unittest.TestCase()
+rows = []
+
+
+def first_line(fn):
+    try:
+        fn()
+    except AssertionError as e:
+        return str(e).splitlines()[0]
+    return "<no AssertionError raised>"
+
+
+def add(where, fragment, message):
+    rows.append((where, fragment, message, fragment in message))
+
+
+# 0a H-226 at the tests commit
+add("0a test_google_auth_throttle",
+    "'Google sign-in failed. Please try again.' != 'Google did not return an ID token'",
+    first_line(lambda: tc.assertEqual("Google sign-in failed. Please try again.", "Google did not return an ID token")))
+
+
+class _NoLogs(unittest.TestCase):
+    def test(self):
+        with self.assertNoLogs("users.views", level="ERROR"):
+            try:
+                raise RuntimeError("the blocked call")
+            except RuntimeError as e:
+                logging.getLogger("users.views").error("Google OAuth token exchange failed", exc_info=e)
+
+
+r = unittest.TestResult()
+_NoLogs("test").run(r)
+nologs_msg = r.failures[0][1].strip().splitlines()[-1] if r.failures else "<green>"
+# the entry is multi-line (exc_info): only its first line reaches the message's first line
+nologs_full = r.failures[0][1] if r.failures else ""
+add("0a test_the_google_throttle_probe_never_calls_google (and M226-1)",
+    "Unexpected logs found: ['ERROR:users.views:Google OAuth token exchange failed",
+    nologs_full.splitlines()[-1] if "Traceback" not in nologs_full.splitlines()[-1] else nologs_msg)
+# the fragment must be checked against the WHOLE failure text, as the gate does
+rows[-1] = (rows[-1][0], rows[-1][1], "AssertionError: Unexpected logs found: ['ERROR:users.views:Google OAuth token exchange failed\\nTraceback ... (multi-line entry)",
+            rows[-1][1] in nologs_full)
+
+# 0c / R1 / R2 H-229 against the old runner
+add("0c + R1 test_A", 'Lists differ: [] != ["test_split: not together in ONE failure block',
+    first_line(lambda: tc.assertEqual([], ["test_split: not together in ONE failure block: ['alpha here', 'beta here']"])))
+add("0c + R2 test_C", "not in its own failure block: ['[two]']",
+    first_line(lambda: tc.assertEqual(["test_split: not in its own failure block: ['[two]']"], [])))
+
+# 0d H-217 at the tests commit, and M217-1 / M217-2 / M217-4
+add("0d + M217-1 T1/T2 (added)", "Lists differ: [] != ['AddConstraint']",
+    first_line(lambda: tc.assertEqual([], ["AddConstraint"])))
+add("0d + M217-2 T3 (dropped)", "Lists differ: [] != ['RemoveConstraint']",
+    first_line(lambda: tc.assertEqual([], ["RemoveConstraint"])))
+add("0d + M217-1 T4 (names)", "0 != 1", first_line(lambda: tc.assertEqual(len([]), 1, [])))
+add("M217-3 T5 (control)", "Lists differ: ['AddConstraint'] != []",
+    first_line(lambda: tc.assertEqual(["AddConstraint"], [])))
+add("M217-4 T4", "'NOT VALID' not found in",
+    first_line(lambda: tc.assertIn("NOT VALID", "AddConstraint - adds the CheckConstraint 'item_qty_positive' in one step: ... steps: add it, then validate it in the next migration (students/0033 and 0034)")))
+
+# M226-1: the stand-in on requests.put, never called
+p = patch("requests.put")
+m = p.start()
+try:
+    add("M226-1 test_google_auth_throttle", "Expected 'put' to have been called once. Called 0 times.",
+        first_line(m.assert_called_once))
+finally:
+    p.stop()
+
+# M228-1: the unit test's assertIsInstance, with the real classes
+import django  # noqa: E402
+from django.conf import settings  # noqa: E402
+
+if not settings.configured:
+    settings.configure(USE_I18N=False)
+    django.setup()
+from billing.errors import EmptyWalletError, StudentEmptyWalletError  # noqa: E402
+
+add("M228-1 test_student_is_refused_when_their_teacher_has_none",
+    "is not an instance of <class 'billing.errors.StudentEmptyWalletError'>",
+    first_line(lambda: tc.assertIsInstance(EmptyWalletError("Credit wallet is empty"), StudentEmptyWalletError)))
+
+# M228-1: H-225's five route tests, against H-225's own committed P1 log
+log = gzip.open(WT / "docs/evidence/h225-student-empty-wallet/chain_4d3780cb/b_P1.log.gz", "rt", errors="replace").read()
+import re  # noqa: E402
+
+for t in ("test_s1_the_synchronous_upload", "test_s2_the_asynchronous_upload", "test_s3_the_edit",
+          "test_s4_the_asynchronous_edit", "test_s5_the_students_own_funded_wallet_changes_nothing"):
+    mm = re.search(r"^FAIL: " + t + r" \([\w.]+\)[^\n]*\n(.*?)(?=^(?:FAIL|ERROR): |^Ran \d+ tests)", log, re.M | re.S)
+    body = mm.group(1) if mm else ""
+    both = "There aren't enough AI credits available for this." in body and "Your answers were not submitted." in body
+    rows.append((f"M228-1 {t} (H-225's real P1 log)", "both sentences in the block",
+                 (body.strip().splitlines()[-1][:110] if body else "<no block in the P1 log>"), both))
+
+print("| where | written fragment | rebuilt message (first line) | found |")
+print("|---|---|---|---|")
+bad = 0
+for where, frag, msg, found in rows:
+    bad += not found
+    print(f"| {where} | `{frag}` | `{msg[:150]}` | {'yes' if found else 'NO'} |")
+print(f"\n{len(rows)} fragments checked, {len(rows) - bad} found, {bad} NOT found")
+sys.exit(1 if bad else 0)
