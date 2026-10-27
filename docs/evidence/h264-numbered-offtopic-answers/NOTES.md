@@ -1,7 +1,19 @@
 # H-264 notes
 
-Release Builder (a0), on `task/h264-numbered-offtopic-answers` from beta `b199eed6`. This first commit is the
-tests and these notes; no production code yet.
+Release Builder (a0), on `task/h264-numbered-offtopic-answers` from beta `b199eed6`. The first commit (5801f1a7)
+was the tests and these notes; the second is the code.
+
+## The Senior Manager's rulings (2026-10-27, on 5801f1a7)
+
+1. A pile counts only when its entry is flagged OFF_TOPIC or TYPE_MISMATCH (change 1): accepted.
+2. The pile is replaced only when the reply returns its own question and every named number; otherwise it is kept
+   and the named numbers that came back land under their own questions (change 2): accepted, with
+   `SPLIT_ANSWER_NOTE`.
+3. A new file, `ANSWERS_EXTRACTION_PROMPT_HTML_5.txt`, with `_4` archived, per `CODE_REVIEW_STANDARDS.md` §8
+   (change 3). The in-place edits of the three earlier commits are not the standard.
+4. The open question: H-242's rule is left as it is. Not changed: the paper flag is still the reading's own
+   judgement.
+5. No benchmark scenario; the step-level test is the record, like H-253's.
 
 ## The case (Senior Manager, 2026-10-27; the user's beta submission 452f823f)
 
@@ -125,7 +137,7 @@ holds live-run records, not replays. So this row follows H-253: the beta reply i
 benchmark scenario is added. The grading and extraction recordings hold no answer-reading call (searched for the
 prompt's title: 0 in both), so the prompt change cannot break a replay.
 
-## Open question (not built)
+## Open question (not built; ruled: not changed)
 
 If the beta reply said `submission_matches_assignment: true`, `upload_mismatch` stays null after this row. The
 reader's verdict is trusted and only ever suppressed (`submission_flags`: a "not for this assignment" verdict is

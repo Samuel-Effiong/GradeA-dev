@@ -10,6 +10,7 @@ import tempfile
 import time
 import uuid
 from html import escape as escape_html
+from html import unescape as unescape_html
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -155,7 +156,7 @@ ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS = _load_prompt(
 
 RUBRIC_EXTRACTION_PROMPT = _load_prompt("RUBRIC_EXTRACTION_PROMPT.txt")
 
-ANSWERS_EXTRACTION_PROMPT = _load_prompt("ANSWERS_EXTRACTION_PROMPT_HTML_4.txt")
+ANSWERS_EXTRACTION_PROMPT = _load_prompt("ANSWERS_EXTRACTION_PROMPT_HTML_5.txt")
 
 # v5 is the live grading prompt. It replaced v3's open-ended "leniency"/"Holistic Uplift" system (which
 # invited scores above and between rubric levels, making grades both
@@ -253,14 +254,17 @@ def _recheck_fragment(entry):
     return fragment or None
 
 
-def _retranscription_evidence(entry):
-    """One line of the second reading's note: what was seen where."""
+def _retranscription_evidence(entry, pile_line=None):
+    """One line of the second reading's note: what was seen where. A line
+    about a pile (H-264) comes second to the re-check's own quote."""
     number = entry.get("question_number")
     fragment = _recheck_fragment(entry)
     if fragment is not None:
         # Quoted as written, not repr()'d: the model reads the words.
         quoted = '"' + fragment + '"'
         return f"- Question {number}: {quoted}"
+    if pile_line is not None:
+        return pile_line
     if _recheck_found_writing(entry):
         return f"- Question {number}: a re-check of the page found writing here."
     return (
@@ -269,12 +273,133 @@ def _retranscription_evidence(entry):
     )
 
 
+# H-264: where a transcribed answer breaks into paragraphs, lines and list
+# items, and the student's own numbering at the start of one.
+_BLOCK_BREAK = re.compile(
+    r"<br\s*/?>|</?(?:p|div|li|ul|ol|table|tr|td|th)\b[^>]*>|\n", re.IGNORECASE
+)
+_LABELLED_SECTION = re.compile(
+    r"^(?:question|q)\s*\.?\s*(\d{1,3})(?=[\s:.)\-]|$)", re.IGNORECASE
+)
+_BARE_SECTION = re.compile(r"^(\d{1,3})[.)](?!\d)")
+#: How much of a section the second reading's note quotes.
+PILE_QUOTE_LENGTH = 80
+
+
+def _in_order(markers):
+    """The markers kept in increasing number, each above the one before."""
+    kept = []
+    for index, number in markers:
+        if not kept or number > kept[-1][1]:
+            kept.append((index, number))
+    return kept
+
+
+def _numbered_sections(html, numbers):
+    """H-264: [(number, text)] for the student's own numbered sections in an
+    answer's HTML, or [] when it holds fewer than two.
+
+    A section starts a paragraph, line or list item with "Question N",
+    "Q N" or a bare "N." / "N)", N one of `numbers` (the assignment's), and
+    each is numbered above the one before. When two or more are labelled
+    "Question"/"Q", only those count: a bare "1." inside one is a list."""
+    if not isinstance(html, str):
+        return []
+    lines = []
+    for piece in _BLOCK_BREAK.split(html):
+        line = " ".join(unescape_html(_HTML_TAG.sub(" ", piece)).split())
+        if line:
+            lines.append(line)
+    labelled, bare = [], []
+    for index, line in enumerate(lines):
+        match = _LABELLED_SECTION.match(line)
+        found = labelled if match is not None else bare
+        match = match or _BARE_SECTION.match(line)
+        if match is not None and int(match.group(1)) in numbers:
+            found.append((index, int(match.group(1))))
+    markers = _in_order(labelled)
+    if len(markers) < 2:
+        markers = _in_order(sorted(labelled + bare))
+    if len(markers) < 2:
+        return []
+    ends = [index for index, _ in markers[1:]] + [len(lines)]
+    return [
+        (number, " ".join(lines[index:end]))
+        for (index, number), end in zip(markers, ends, strict=True)
+    ]
+
+
+def _quoted_start(text):
+    if len(text) <= PILE_QUOTE_LENGTH:
+        return text
+    return text[:PILE_QUOTE_LENGTH].rstrip() + "..."
+
+
+def _piled_answers(answers):
+    """H-264: the answers the first reading piled into one entry.
+
+    Seen on beta: six numbered answers for another assignment came back as
+    one ANSWERED, OFF_TOPIC entry under question 1 and the other questions
+    as NOT_FOUND with no flag, so nothing re-read them. A pile is an
+    ANSWERED entry flagged OFF_TOPIC or TYPE_MISMATCH (the one-piece rule
+    that makes one applies only to work that does not fit; an on-topic
+    numbered list is the answer itself) that holds two or more of the
+    student's numbered sections. It NAMES each section's question that is
+    NOT_FOUND with no flag; a pile that names none is not one.
+
+    Returns {id(entry): evidence line} for the piles and the questions they
+    name, and {id(pile): [id of each named entry]}."""
+    entries = [entry for entry in answers if isinstance(entry, dict)]
+    by_key = {}
+    for entry in entries:
+        by_key.setdefault(_canonical_question_key(entry.get("question_number")), entry)
+    numbers = {key for key in by_key if isinstance(key, int)}
+    lines, named_by_pile = {}, {}
+    for entry in entries:
+        if entry.get("answer_status") != ANSWERED or answer_flag(entry) not in (
+            FLAG_OFF_TOPIC,
+            FLAG_TYPE_MISMATCH,
+        ):
+            continue
+        own = _canonical_question_key(entry.get("question_number"))
+        sections = _numbered_sections(entry.get("answer_html"), numbers)
+        label = entry.get("question_number")
+        named = {}
+        for number, text in sections:
+            other = by_key.get(number)
+            if (
+                number == own
+                or other is None
+                or other.get("answer_status") != NOT_FOUND_IN_DOCUMENT
+                or answer_flag(other) != FLAG_NONE
+            ):
+                continue
+            named[id(other)] = (
+                f"- Question {other.get('question_number')}: the first reading "
+                f"put this answer under question {label}. The student's answer "
+                f'numbered {number} begins: "{_quoted_start(text)}"'  # noqa: B907
+            )
+        if not named:
+            continue
+        listed = ", ".join(str(number) for number, _ in sections)
+        lines[id(entry)] = (
+            f"- Question {label}: the first reading put the student's answers "
+            f"numbered {listed} all under this question. Transcribe here only "
+            f"the answer to question {label}; the others go under their own "
+            "numbers."
+        )
+        lines.update(named)
+        named_by_pile[id(entry)] = list(named)
+    return lines, named_by_pile
+
+
 def _joined_detail(*parts):
     return " ".join(" ".join(str(part or "").split()) for part in parts if part).strip()
 
 
-def _recovered_answer(entry, replacement):
-    """The second reading's answer in place of the empty one, flagged."""
+def _recovered_answer(entry, replacement, note=None):
+    """The second reading's answer in place of the empty one (or of a pile,
+    H-264), flagged."""
     updated = dict(replacement)
     # The assignment's own label, never the reply's spelling of it.
     updated["question_number"] = entry.get("question_number")
@@ -288,7 +413,9 @@ def _recovered_answer(entry, replacement):
     if flag == FLAG_NONE:
         flag, detail = FLAG_READING_PROBLEM, ""
     updated["answer_flag"] = flag
-    updated["answer_flag_detail"] = _joined_detail(detail, RECOVERED_ANSWER_NOTE)
+    updated["answer_flag_detail"] = _joined_detail(
+        detail, note if note is not None else RECOVERED_ANSWER_NOTE
+    )
     return updated
 
 
@@ -312,6 +439,12 @@ def _quoted_answer(entry, fragment):
 RECOVERED_ANSWER_NOTE = (
     "The first reading missed this answer and a second reading recovered it: "
     "check it against the upload."
+)
+#: H-264: added to the flag detail of a pile the second reading split.
+SPLIT_ANSWER_NOTE = (
+    "The first reading put several of the student's numbered answers under "
+    "this question; a second reading kept only this one's: check it against "
+    "the upload."
 )
 # H-253: the last resort, when no reading recovered the answer but the
 # re-check quoted it.
@@ -2417,16 +2550,30 @@ Do not include any explanatory text before or after the JSON
             # answered submission costs nothing at all.
             return answers
 
+        # H-264: above the cap, the lowest-numbered `cap` blanks are re-read
+        # rather than none. Seen on beta: a numbered paper for another
+        # assignment read as one answer under question 1 left 74 blanks, and
+        # skipping the re-read left every one of them unchecked.
         cap = config.get("ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS")
+        if cap <= 0:
+            return answers
         if len(blanks) > cap:
+            blanks = sorted(
+                blanks, key=lambda entry: safe_sort_key(entry.get("question_number"))
+            )
+            unchecked = len(blanks) - cap
+            blanks = blanks[:cap]
             logger.info(
                 "[BlankVerification] %s blank(s) exceeds the cap of %s - "
-                "skipping the re-read; the completeness flags already route "
-                "this submission for review.",
-                len(blanks),
+                "re-checking the lowest-numbered %s (questions %s); %s not "
+                "checked, and the completeness flags still route them for "
+                "review.",
+                cap + unchecked,
                 cap,
+                cap,
+                [entry.get("question_number") for entry in blanks],
+                unchecked,
             )
-            return answers
 
         images = [
             item
@@ -2498,13 +2645,15 @@ Do not include any explanatory text before or after the JSON
             )
             return answers
 
+        # Only the questions asked about: past the cap that is not every blank.
+        asked = {self._question_number_key(number) for number in numbers}
         found_by_key = {}
         for finding in findings:
             if not isinstance(finding, dict) or not finding.get("content_found"):
                 continue
-            found_by_key[self._question_number_key(finding.get("question_number"))] = (
-                finding
-            )
+            key = self._question_number_key(finding.get("question_number"))
+            if key in asked:
+                found_by_key[key] = finding
 
         if not found_by_key:
             logger.info(
@@ -2607,15 +2756,20 @@ Do not include any explanatory text before or after the JSON
         if not isinstance(answers, list):
             return answers
 
+        # H-264: a pile and the questions it names are asked about too.
+        pile_lines, named_by_pile = _piled_answers(answers)
         targets = [
             entry
             for entry in answers
             if isinstance(entry, dict)
-            and entry.get("answer_status") == NOT_FOUND_IN_DOCUMENT
             and (
-                _recheck_fragment(entry) is not None
-                or _recheck_found_writing(entry)
-                or answer_flag(entry) in (FLAG_OFF_TOPIC, FLAG_TYPE_MISMATCH)
+                id(entry) in pile_lines
+                or entry.get("answer_status") == NOT_FOUND_IN_DOCUMENT
+                and (
+                    _recheck_fragment(entry) is not None
+                    or _recheck_found_writing(entry)
+                    or answer_flag(entry) in (FLAG_OFF_TOPIC, FLAG_TYPE_MISMATCH)
+                )
             )
         ]
         if not targets:
@@ -2626,6 +2780,7 @@ Do not include any explanatory text before or after the JSON
             content,
             assignment,
             targets,
+            pile_lines,
             assignment_model=assignment_model,
             processing_task_id=processing_task_id,
             run=run,
@@ -2636,6 +2791,11 @@ Do not include any explanatory text before or after the JSON
         numbers = [entry.get("question_number") for entry in targets]
         wanted = {_canonical_question_key(n) for n in numbers}
         target_ids = {id(entry) for entry in targets}
+        returned_ids = {
+            id(entry)
+            for entry in targets
+            if _canonical_question_key(entry.get("question_number")) in found
+        }
         recovered = []
         quoted = 0
         merged = []
@@ -2645,6 +2805,18 @@ Do not include any explanatory text before or after the JSON
                 continue
             key = _canonical_question_key(entry.get("question_number"))
             replacement = found.get(key) if key in wanted else None
+            if id(entry) in named_by_pile:
+                # Never drop text: the pile is replaced only when its own
+                # answer and every one it named came back.
+                if replacement is not None and returned_ids.issuperset(
+                    named_by_pile[id(entry)]
+                ):
+                    updated = _recovered_answer(entry, replacement, SPLIT_ANSWER_NOTE)
+                    recovered.append(updated)
+                    merged.append(updated)
+                else:
+                    merged.append(entry)
+                continue
             if replacement is not None:
                 updated = _recovered_answer(entry, replacement)
                 recovered.append(updated)
@@ -2675,6 +2847,7 @@ Do not include any explanatory text before or after the JSON
         content,
         assignment,
         targets,
+        pile_lines,
         *,
         assignment_model,
         processing_task_id,
@@ -2683,7 +2856,8 @@ Do not include any explanatory text before or after the JSON
     ):
         """The one call of _retranscribe_found_answers: (reply model,
         {question key: answer with writing}), or None when no call could be
-        made or it failed."""
+        made or it failed. `pile_lines` holds the note's line for each pile
+        and each question a pile named (H-264), by id of the entry."""
         images = [
             item
             for item in (content or [])
@@ -2695,7 +2869,10 @@ Do not include any explanatory text before or after the JSON
         numbers = [entry.get("question_number") for entry in targets]
         note = RETRANSCRIPTION_INSTRUCTION.format(
             numbers=numbers,
-            evidence="\n".join(_retranscription_evidence(entry) for entry in targets),
+            evidence="\n".join(
+                _retranscription_evidence(entry, pile_lines.get(id(entry)))
+                for entry in targets
+            ),
         )
         messages = [
             {"role": "system", "content": ANSWERS_EXTRACTION_PROMPT},
