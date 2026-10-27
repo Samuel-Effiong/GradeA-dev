@@ -206,7 +206,7 @@ def new_customer_test_clock_kwargs(email, label=None) -> dict:
     except stripe.error.StripeError as exc:
         # This runs inside get_or_create_customer, so the message can reach
         # any checkout route's body: Stripe's text only through the
-        # classifier (H-254).
+        # classifier (H-255).
         raise ValueError(
             "Could not create a Stripe Test Clock for this QA customer. "
             "Refusing to create a clockless customer, since a Test Clock "

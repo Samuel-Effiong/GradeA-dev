@@ -2088,7 +2088,7 @@ class StripeSubscriptionScheduleService:
                 stripe.SubscriptionSchedule.release(stale_schedule_id)
             except stripe.error.StripeError as release_exc:
                 # The schedule's id is in the warning above, not the
-                # client's message (H-254).
+                # client's message (H-255).
                 raise ValueError(
                     "Could not schedule the plan change on Stripe: a "
                     "stale schedule is attached "

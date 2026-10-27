@@ -1,7 +1,7 @@
 """
-billing/tests/test_h254_stripe_error_text.py
+billing/tests/test_h255_stripe_error_text.py
 ============================================
-H-254: Stripe's own text never reaches a client unless it is a card error.
+H-255: Stripe's own text never reaches a client unless it is a card error.
 
 Seen on the beta test site (27 October 2026): the subscription page's toast
 read "Could not verify your subscription with our payment provider: Expired
@@ -62,10 +62,10 @@ from users.models import UserTypes
 
 CustomUser = get_user_model()
 
-PROBE = "Expired API Key provided: sk_test_h254xxxxxxxxxxxxclSJ"
-REQUEST_ID = "req_h254"
-STALE_SCHEDULE_ID = "sub_sched_H254stale"
-OVERAGE_PRICE_ID = "price_overage_h254"
+PROBE = "Expired API Key provided: sk_test_h255xxxxxxxxxxxxclSJ"
+REQUEST_ID = "req_h255"
+STALE_SCHEDULE_ID = "sub_sched_H255stale"
+OVERAGE_PRICE_ID = "price_overage_h255"
 
 
 def expired_key():
@@ -100,13 +100,13 @@ class SubscriptionRouteTests(APITestCase):
     def setUp(self):
         cache.clear()
         self.user = CustomUser.objects.create_user(
-            email="h254-routes@example.com",
+            email="h255-routes@example.com",
             password="testpass123",  # pragma: allowlist secret
             user_type=UserTypes.TEACHER,
         )
-        self.plan = make_plan(PlanType.PRO, PlanTier.PRO, 2999, "price_h254_pro")
+        self.plan = make_plan(PlanType.PRO, PlanTier.PRO, 2999, "price_h255_pro")
         CreditWallet.objects.get_or_create(
-            user=self.user, defaults={"stripe_customer_id": "cus_h254"}
+            user=self.user, defaults={"stripe_customer_id": "cus_h255"}
         )
         self.client.force_authenticate(user=self.user)
 
@@ -120,7 +120,7 @@ class SubscriptionRouteTests(APITestCase):
             "is_trial": False,
             "billing_cycle_start": now,
             "billing_cycle_end": now + relativedelta(months=1),
-            "stripe_subscription_id": "sub_h254",
+            "stripe_subscription_id": "sub_h255",
             "stripe_status": StripeSubscriptionStatus.ACTIVE,
         }
         defaults.update(overrides)
@@ -230,14 +230,14 @@ class OverageRouteTests(APITestCase):
             PlanType.PRO,
             PlanTier.PRO,
             2999,
-            "price_h254_overage_plan",
+            "price_h255_overage_plan",
             overage_block_size=500,
             overage_block_price=400,
             max_overage_blocks=10,
             stripe_overage_price_id=OVERAGE_PRICE_ID,
         )
         self.user = CustomUser.objects.create_user(
-            email="h254-overage@example.com",
+            email="h255-overage@example.com",
             password="testpass123",  # pragma: allowlist secret
             user_type=UserTypes.TEACHER,
         )
@@ -314,11 +314,11 @@ class OverageRouteTests(APITestCase):
 class PaymentMethodRouteTests(APITestCase):
     def setUp(self):
         self.user = CustomUser.objects.create_user(
-            email="h254-cards@example.com",
+            email="h255-cards@example.com",
             password="testpass123",  # pragma: allowlist secret
             user_type=UserTypes.TEACHER,
         )
-        plan = make_plan(PlanType.STANDARD, PlanTier.STANDARD, 999, "price_h254_std")
+        plan = make_plan(PlanType.STANDARD, PlanTier.STANDARD, 999, "price_h255_std")
         UserSubscription.objects.create(
             user=self.user,
             plan=plan,
@@ -327,7 +327,7 @@ class PaymentMethodRouteTests(APITestCase):
             billing_cycle_end=timezone.now() + relativedelta(months=1),
         )
         wallet, _ = CreditWallet.objects.get_or_create(user=self.user)
-        wallet.stripe_customer_id = "cus_h254_cards"
+        wallet.stripe_customer_id = "cus_h255_cards"
         wallet.save(update_fields=["stripe_customer_id"])
         self.client.force_authenticate(user=self.user)
 
@@ -370,7 +370,7 @@ class CustomPriceTextTests(SimpleTestCase):
         mock_price.create.side_effect = expired_key()
 
         with self.assertRaises(ValueError) as ctx:
-            StripePriceService.create_custom_price("prod_h254", 1000, 9)
+            StripePriceService.create_custom_price("prod_h255", 1000, 9)
 
         assert_no_stripe_text(self, str(ctx.exception))
 
@@ -381,13 +381,13 @@ class StaleScheduleTextTests(TestCase):
 
     def setUp(self):
         user = CustomUser.objects.create_user(
-            email="h254-schedule@example.com",
+            email="h255-schedule@example.com",
             password="testpass123",  # pragma: allowlist secret
             user_type=UserTypes.TEACHER,
         )
-        self.pro = make_plan(PlanType.PRO, PlanTier.PRO, 2999, "price_h254_sched_pro")
+        self.pro = make_plan(PlanType.PRO, PlanTier.PRO, 2999, "price_h255_sched_pro")
         self.standard = make_plan(
-            PlanType.STANDARD, PlanTier.STANDARD, 999, "price_h254_sched_std"
+            PlanType.STANDARD, PlanTier.STANDARD, 999, "price_h255_sched_std"
         )
         now = timezone.now()
         self.sub = UserSubscription.objects.create(
@@ -397,7 +397,7 @@ class StaleScheduleTextTests(TestCase):
             auto_renew=True,
             billing_cycle_start=now,
             billing_cycle_end=now + relativedelta(months=1),
-            stripe_subscription_id="sub_h254_sched",
+            stripe_subscription_id="sub_h255_sched",
             stripe_status=StripeSubscriptionStatus.ACTIVE,
         )
 

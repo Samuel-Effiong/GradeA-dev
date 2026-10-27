@@ -103,7 +103,7 @@ OVERAGE_PRICE_UNAVAILABLE_MESSAGE = (
 class OveragePriceUnavailable(ValueError):
     """Stripe could not tell us what this plan charges.
 
-    H-254: the views answer a ValueError with its text, so str() is the
+    H-255: the views answer a ValueError with its text, so str() is the
     sentence a customer may be shown. What went wrong, for operators (the
     drift report and its task), is `detail`."""
 
@@ -123,7 +123,7 @@ class OveragePriceMismatch(ValueError):
     The plan quotes one price and Stripe charges another.
 
     Raised instead of quoting, so the customer is never shown a number we
-    will not honour. H-254: str() is the sentence a customer may be shown;
+    will not honour. H-255: str() is the sentence a customer may be shown;
     the amounts and the Stripe price id are `detail`, for operators (and in
     assert_overage_price_in_sync's ERROR log).
     """
@@ -169,7 +169,7 @@ def stripe_overage_unit_price(plan, *, use_cache: bool = True):
         price = stripe.Price.retrieve(price_id)
     except Exception as exc:  # noqa: BLE001 - reported as a domain error
         # The class and Stripe's request id, never the message: an
-        # AuthenticationError's names the API key (H-254).
+        # AuthenticationError's names the API key (H-255).
         raise OveragePriceUnavailable(
             f"Could not read Stripe price {price_id} for plan {plan.name}: "
             f"{type(exc).__name__} (request {getattr(exc, 'request_id', None)})"

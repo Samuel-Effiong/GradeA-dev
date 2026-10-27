@@ -1,4 +1,4 @@
-"""H-254 seam, by program: between the base and the tip, the four production files
+"""H-255 seam, by program: between the base and the tip, the four production files
 differ only in the named units, and inside most of those only in what is raised.
 
 Comments do not reach the syntax tree. Each file's top-level statements are keyed
@@ -32,6 +32,9 @@ ALLOWED = {
         "OVERAGE_PRICE_UNAVAILABLE_MESSAGE",
         "OveragePriceUnavailable",
         "OveragePriceUnavailable.__init__",
+        "OVERAGE_PRICE_CHANGED_MESSAGE",
+        "OveragePriceMismatch",
+        "OveragePriceMismatch.__init__",
         "stripe_overage_unit_price",
         "overage_price_drift",
     },

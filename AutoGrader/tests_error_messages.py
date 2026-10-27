@@ -159,7 +159,7 @@ class DescribeBackgroundTaskErrorTest(SimpleTestCase):
 
 class DescribeStripeErrorTest(SimpleTestCase):
     def test_uses_a_card_errors_user_message(self):
-        # H-254: only a card error's text is written for the cardholder;
+        # H-255: only a card error's text is written for the cardholder;
         # every other StripeError's user_message is its raw message.
         exc = stripe.error.CardError(
             "Your card was declined.", param=None, code="card_declined"

@@ -1,5 +1,5 @@
 # flake8: noqa: E501,B950
-"""H-254 Stripe's text reaches a client only for a card error: deliberate breaks, and the tests that must catch each.
+"""H-255 Stripe's text reaches a client only for a card error: deliberate breaks, and the tests that must catch each.
 
 Each mutant is applied, its test modules run, the failing tests are recorded,
 the file is restored. Judged (rule 18): SURVIVED = the inner run exits 0;
@@ -29,7 +29,7 @@ import signal
 import subprocess
 import sys
 
-HERE = pathlib.Path("docs/evidence/h254-stripe-error-text")
+HERE = pathlib.Path("docs/evidence/h255-stripe-error-text")
 SETTINGS = os.environ.get("MUT_SETTINGS", "settings_worktree_mut")
 OUT = pathlib.Path(os.environ.get("MUT_RESULTS", HERE / "mutation_results.json"))
 LOGS = pathlib.Path(os.environ.get("MUT_LOGS", HERE / "mutant_logs"))
@@ -39,7 +39,7 @@ OP = "billing/overage_pricing.py"
 QA = "billing/qa_time_travel.py"
 SS = "billing/stripe_service.py"
 TESTS = [
-    "billing.tests.test_h254_stripe_error_text",
+    "billing.tests.test_h255_stripe_error_text",
     "AutoGrader.tests_error_messages",
 ]
 K = "keepdb"
@@ -129,6 +129,15 @@ MUTANTS = [
         K,
     ),
     (
+        "S13",
+        "OveragePriceMismatch's text names the price id and amounts again",
+        OP,
+        "        super().__init__(OVERAGE_PRICE_CHANGED_MESSAGE)\n",
+        "        super().__init__(self.detail)\n",
+        TESTS,
+        K,
+    ),
+    (
         "S8",
         "the drift detail carries Stripe's repr again",
         OP,
@@ -178,7 +187,7 @@ MUTANTS = [
     ),
 ]
 
-# billing.tests.test_h254_stripe_error_text
+# billing.tests.test_h255_stripe_error_text
 _R1 = "test_an_expired_key_on_resume_answers_without_the_key_text"
 _R2 = "test_the_resume_failure_is_logged_with_class_and_request_id_only"
 _R3 = "test_an_expired_key_on_cancel_answers_without_the_key_text"
@@ -186,6 +195,7 @@ _K1 = "test_a_card_errors_text_still_reaches_the_body"
 _R4 = "test_no_non_card_stripe_error_passes_its_text"
 _R5 = "test_an_expired_key_on_overage_purchase_answers_without_the_key_text"
 _R6 = "test_the_drift_report_names_the_failure_without_its_text"
+_R12 = "test_a_price_mismatch_on_overage_purchase_answers_without_the_price_id"
 _R7 = "test_an_expired_key_on_payment_methods_answers_without_the_key_text"
 _R8 = "test_a_test_clock_failure_carries_no_stripe_text"
 _R9 = "test_create_custom_price_carries_no_stripe_text"
@@ -227,6 +237,7 @@ EXPECTED = {
     "S6": {_K1: CARD, _EM_CARD: CARD},
     # The detail holds no Stripe text, so R5 fails on the price id.
     "S7": {_R5: LEAK},
+    "S13": {_R12: LEAK},
     "S8": {_R6: LEAK},
     "S9": {_R8: LEAK},
     "S10": {_R9: LEAK},

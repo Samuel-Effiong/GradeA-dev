@@ -262,7 +262,7 @@ def describe_stripe_error(error, fallback_message=None):
     """
     A card error's `.user_message` is written for the cardholder (declined
     card, insufficient funds, etc.) and is shown as-is. Nothing else from
-    Stripe is (H-254): Stripe fills `user_message` from the error's own
+    Stripe is (H-255): Stripe fills `user_message` from the error's own
     message for EVERY error type, so an AuthenticationError's reads
     "Expired API Key provided: sk_test_..." and an InvalidRequestError's
     names ids and parameters. Those get the caller's fallback, and the
