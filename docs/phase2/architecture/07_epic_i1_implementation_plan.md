@@ -523,7 +523,7 @@ Counts recorded in the evidence doc (`docs/evidence/epic-i1/`).
 | # | Item | I-1 answer |
 |---|---|---|
 | 1 | Audit actions added | **None.** Three already-allow-listed metadata keys are populated on `GRADING_COMPLETED` (§5.4). No enum or `retention_class_for` change |
-| 2 | Student deletion/export walk (NFR-CMP-04) | Adds `SubmissionGrading` (cascade from `StudentSubmission`; it carries `score`, `feedback`, `graded_by_id`). No export or deletion walk exists on beta (`docs/DATA_PRIVACY_AND_SECURITY_COMPLIANCE.md` §6; roadmap Q4 has no owner), so I-1 delivers the cascade edge, a test that deleting a submission or student removes its runs, and this line for whoever owns the walk. It does not build the walk |
+| 2 | Student deletion/export walk (NFR-CMP-04) | Adds `SubmissionGrading` (cascade from `StudentSubmission`; it carries `score`, `feedback`, `graded_by_id`). No export or deletion walk exists on beta (`docs/GRADE_A_PLUS_BACKEND_DATA_PRIVACY_SECURITY_COMPLIANCE.md (second edition; the September write-up it cited is retired)` §6; roadmap Q4 has no owner), so I-1 delivers the cascade edge, a test that deleting a submission or student removes its runs, and this line for whoever owns the walk. It does not build the walk |
 | 3 | Gates | §8.3 below |
 | 4 | Migration class and three-deploy schedule | One migration, **additive** (create table). Deploy 1 is I-1a/b/c (§2); deploy 2 (readers) and 3 (contract, `# expand-contract-step: contract`) belong to I-2 |
 | 5 | Ships dark | `GRADING_RECORD_DUAL_WRITE_ENABLED`, default False (§5.5) |
