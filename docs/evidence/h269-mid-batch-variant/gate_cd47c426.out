@@ -1,0 +1,70 @@
+available at start: 12G; cap 10G
+load at start: 1.51 1.78 2.88 4/2428 1182966
+=== 0. the red run: new tests against the code as at 3cc85098 (own DB) 13:40:52
+red run exit=1 (non-zero expected)
+red run blocks: 4 (expected 4)
+red run is as written: non-zero exit, no OK line, modules loaded, 4 blocks red for their written reasons
+source restored
+ERROR: test_every_spec_with_variant_from_params_survives_pickle (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_every_spec_with_variant_from_params_survives_pickle) (code='OVERAGE_C
+FAIL: test_args_keep_the_4_tuple (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_args_keep_the_4_tuple)
+FAIL: test_the_spec_picks_none_finished_from_completed (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_the_spec_picks_none_finished_from_completed)
+FAIL: test_with_items_finished_the_spec_picks_the_default (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_with_items_finished_the_spec_picks_the_default)
+Ran 6 tests in 0.007s
+FAILED (failures=3, errors=1)
+dropped test_h269_mid_batch_variant_mut
+=== 1a. makemigrations --check 13:40:57
+makemigrations exit=0 (0 = no changes)
+No changes detected
+=== 1b. the seam, by program 13:41:00
+AutoGrader/reason_codes.py
+AutoGrader/tests_reason_codes.py
+docs/HARDENING_BACKLOG.md
+docs/evidence/h268-overage-cap-wording/NOTES.md
+docs/evidence/h268-overage-cap-wording/gate_ea35ebd2.out
+docs/evidence/h268-overage-cap-wording/mutant_logs/M1.txt
+docs/evidence/h268-overage-cap-wording/mutant_logs/M2.txt
+docs/evidence/h268-overage-cap-wording/mutant_logs/M3.txt
+docs/evidence/h268-overage-cap-wording/mutant_logs/M4.txt
+docs/evidence/h268-overage-cap-wording/mutant_logs/M5.txt
+docs/evidence/h268-overage-cap-wording/mutate.py
+docs/evidence/h268-overage-cap-wording/regate_modules_and_guards.txt
+docs/evidence/h268-overage-cap-wording/regate_mutation_log.txt
+docs/evidence/h268-overage-cap-wording/regate_mutation_results.json
+docs/evidence/h268-overage-cap-wording/regate_red_run.txt
+docs/evidence/h268-overage-cap-wording/regate_seam_changed_files.txt
+docs/evidence/h268-overage-cap-wording/regate_seam_code.txt
+docs/evidence/h268-overage-cap-wording/run_h268_regate.sh.txt
+docs/evidence/h268-overage-cap-wording/seam_check.py
+docs/evidence/h268-overage-cap-wording/seam_check_regate.py
+docs/evidence/h269-mid-batch-variant/NOTES.md
+docs/evidence/h269-mid-batch-variant/gate_24161502.out
+docs/evidence/h269-mid-batch-variant/gate_53216208.out
+docs/evidence/h269-mid-batch-variant/gate_69d3452f.out
+docs/evidence/h269-mid-batch-variant/gate_71067c35.out
+docs/evidence/h269-mid-batch-variant/mutate.py
+docs/evidence/h269-mid-batch-variant/run_h269_gate.sh.txt
+docs/evidence/h269-mid-batch-variant/seam_check.py
+students/task_tracking.py
+production files changed: 'AutoGrader/reason_codes.py students/task_tracking.py '
+reason_codes.py changed top-level names: ['REASON_CODES', '_mid_batch_variant', '_overage_cap_variant']
+reason_codes.py: SEAM OK (only REASON_CODES, _mid_batch_variant and _overage_cap_variant changed)
+task_tracking.py changed top-level names: ['_mid_batch_error']
+task_tracking.py: SEAM OK (only _mid_batch_error changed)
+SEAM OK
+=== 1. own modules + near modules + guards at cd47c426 13:41:00
+exit=0 13:43:34
+Ran 690 tests in 136.409s
+OK
+=== 2. mutants: 3 (own DB, rules 17, 18 and 22) 13:43:34
+mutants exit=0 13:43:43
+M1 {'what': 'drop variant_from_params (no spec selection)', 'file': 'AutoGrader/reason_codes.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 6 tests in 0.006s', 'expected': {'test_the_spec_picks_none_finished_from_completed': 'unexpectedly None', 'test_with_items_finished_the_
+M2 {'what': 'always return none_finished (ignore completed)', 'file': 'AutoGrader/reason_codes.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 6 tests in 0.008s', 'expected': {'test_with_items_finished_the_spec_picks_the_default': '!=', 'test_boundary_one_finished_is_the_defau
+M3 {'what': 'boundary: completed <= 1 picks none_finished', 'file': 'AutoGrader/reason_codes.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 6 tests in 0.007s', 'expected': {'test_boundary_one_finished_is_the_default': '!='}, 'failing_tests': ['test_boundary_one_finished_is_th
+KILLED: ['M1', 'M2', 'M3']
+SURVIVED: []
+BROKEN: []
+source clean after mutants
+dropped test_h269_mid_batch_variant_mut
+load at end: 2.08 1.88 2.73 4/2439 1185341
+mutants: 3 results; not killed: none
+gate exit=0

@@ -130,4 +130,32 @@ Expected: 3/3 KILLED, 0 SURVIVED, 0 BROKEN.
 | M2 | always return "none_finished" | KILLED | default ("!="), boundary ("!=") |
 | M3 | boundary: completed <= 1 | KILLED | boundary ("!=") |
 
+## Gate on `cd47c426`
+
+Run 13:40:52–13:43:43, load1 1.51→2.08, 10G cap.
+
+### 0. Red run (own DB)
+4 blocks (3 FAIL, 1 ERROR), Ran 6 tests in 0.007s. Each block holds its written fragment.
+Modules loaded. As written.
+
+### 1a. makemigrations --check
+Exit 0, no changes.
+
+### 1b. Seam by program
+`AutoGrader/reason_codes.py` changed only: `REASON_CODES`, `_mid_batch_variant`,
+`_overage_cap_variant`. `students/task_tracking.py` changed only: `_mid_batch_error`. SEAM OK.
+
+### 1. Own + near + guards
+Ran 690 in 136.409s, OK.
+
+### 2. Mutants (3, own DB)
+
+| ID | What | Status | Expected | Also failed |
+|----|------|--------|----------|-------------|
+| M1 | drop variant_from_params (None) | KILLED | 3 tests | — |
+| M2 | always return "none_finished" | KILLED | 2 tests | — |
+| M3 | boundary: completed <= 1 | KILLED | 1 test | — |
+
+3/3 KILLED, 0 SURVIVED, 0 BROKEN. Exit 0.
+
 Security Engineer (db)
