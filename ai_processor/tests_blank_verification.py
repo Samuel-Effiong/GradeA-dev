@@ -107,9 +107,12 @@ class BlankVerificationTest(SimpleTestCase):
         mocked.assert_not_called()
 
     @override_settings(ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS=2)
-    def test_too_many_blanks_skips_the_re_read(self):
+    def test_too_many_blanks_re_reads_the_lowest_numbered_cap(self):
+        # H-264: above the cap the first `cap` blanks are re-read, not none.
         result, mocked = self.verify([entry(n) for n in (1, 2, 3)])
-        mocked.assert_not_called()
+        self.assertEqual(mocked.call_count, 1)
+        sent = mocked.call_args.kwargs["messages"][0]["content"][0]["text"]
+        self.assertIn("question(s) [1, 2]", sent)
         self.assertEqual(len(result), 3)
 
     def test_no_images_skips_the_re_read(self):
