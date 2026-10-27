@@ -29,7 +29,7 @@ STRICT MODE CONSEQUENCES
 Strict structured output requires every declared key to be present, so
 two fields the prose contract described as "omit when not applicable"
 become NULLABLE here instead — `student_name_raw` (documented in
-ANSWERS_EXTRACTION_PROMPT_HTML_4 as "ONLY included when a roster match
+ANSWERS_EXTRACTION_PROMPT_HTML_5 as "ONLY included when a roster match
 was made") and `source_page`. This is the same accommodation
 grading_schemas.py made for `flag_for_review`, for the same reason.
 """

@@ -1,0 +1,228 @@
+test_a_reply_question_not_asked_about_is_ignored (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_a_reply_question_not_asked_about_is_ignored) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:12,450 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 6 of 6 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_each_answer_goes_under_its_own_number (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_each_answer_goes_under_its_own_number) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:12,461 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 6 of 6 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_only_the_pile_and_the_numbers_it_names_are_asked_about (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_only_the_pile_and_the_numbers_it_names_are_asked_about) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:12,471 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 6 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_the_flags_are_six_off_topic_and_the_upload_mismatch (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_the_flags_are_six_off_topic_and_the_upload_mismatch) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:12,481 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 6 of 6 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_the_note_says_where_each_answer_was_put (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_the_note_says_where_each_answer_was_put) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:12,492 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 6 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_a_failed_or_empty_second_reading_changes_nothing (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_a_failed_or_empty_second_reading_changes_nothing) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:12,502 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 6 question(s); 0 kept as the re-check's quote.
+
+
+
+
+ai_processor.services ERROR 2026-10-27 11:54:12,503 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading failed; the re-check's quotes are kept where there are any.
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/services.py", line 2887, in _second_reading
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+
+
+ai_processor.services WARNING 2026-10-27 11:54:12,505 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 6 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_question_1_missing_from_the_reply (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_question_1_missing_from_the_reply) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:12,517 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 5 of 6 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_some_sections_missing_from_the_reply (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_some_sections_missing_from_the_reply) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:12,529 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 6 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_the_one_piece_rule_and_the_flag_rule_are_kept (ai_processor.tests_h264_numbered_offtopic_answers.ThePromptTest.test_the_one_piece_rule_and_the_flag_rule_are_kept) ... ok
+test_the_prompt_has_the_numbered_paper_example (ai_processor.tests_h264_numbered_offtopic_answers.ThePromptTest.test_the_prompt_has_the_numbered_paper_example) ... ok
+test_the_prompt_is_version_5_and_version_4_is_archived (ai_processor.tests_h264_numbered_offtopic_answers.ThePromptTest.test_the_prompt_is_version_5_and_version_4_is_archived) ... ok
+test_a_cap_of_0_checks_nothing (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_a_cap_of_0_checks_nothing) ... ok
+test_a_finding_for_a_question_not_asked_about_is_not_applied (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_a_finding_for_a_question_not_asked_about_is_not_applied) ...
+
+ai_processor.services INFO 2026-10-27 11:54:12,550 services 1107112 123889389861824 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
+
+
+
+
+ai_processor.services WARNING 2026-10-27 11:54:12,550 services 1107112 123889389861824 [request_id=- client_request_id=-] [BlankVerification] Re-read found writing for 1 question(s) reported empty (2). Flagged for review.
+
+
+ok
+test_at_or_under_the_cap_every_blank_is_re_checked (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_at_or_under_the_cap_every_blank_is_re_checked) ...
+
+ai_processor.services INFO 2026-10-27 11:54:12,561 services 1107112 123889389861824 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
+
+
+ok
+test_the_beta_paper_has_its_first_12_blanks_re_checked (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_the_beta_paper_has_its_first_12_blanks_re_checked) ...
+
+ai_processor.services INFO 2026-10-27 11:54:12,570 services 1107112 123889389861824 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
+
+
+
+
+ai_processor.services INFO 2026-10-27 11:54:12,571 services 1107112 123889389861824 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
+
+
+ok
+test_the_lowest_numbered_whatever_the_order (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_the_lowest_numbered_whatever_the_order) ...
+
+ai_processor.services INFO 2026-10-27 11:54:12,581 services 1107112 123889389861824 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
+
+
+
+
+ai_processor.services INFO 2026-10-27 11:54:12,581 services 1107112 123889389861824 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
+
+
+ok
+test_the_rest_are_logged_as_not_checked (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_the_rest_are_logged_as_not_checked) ... ok
+test_the_beta_reply_ends_with_six_answers_and_the_upload_flag (ai_processor.tests_h264_numbered_offtopic_answers.TheWholeReadingTest.test_the_beta_reply_ends_with_six_answers_and_the_upload_flag) ...
+
+ai_processor.services INFO 2026-10-27 11:54:12,602 services 1107112 123889389861824 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
+
+
+
+
+ai_processor.services INFO 2026-10-27 11:54:12,602 services 1107112 123889389861824 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
+
+
+
+
+ai_processor.services WARNING 2026-10-27 11:54:12,602 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 6 of 6 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_a_named_question_with_a_flag_is_left_to_h253 (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_a_named_question_with_a_flag_is_left_to_h253) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:12,613 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 2 question(s); 0 kept as the re-check's quote.
+
+
+FAIL
+test_a_named_question_with_its_own_answer_is_not_touched (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_a_named_question_with_its_own_answer_is_not_touched) ... ok
+test_a_pile_in_the_wrong_form_counts (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_a_pile_in_the_wrong_form_counts) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:12,632 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 2 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_a_pile_under_a_later_question (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_a_pile_under_a_later_question) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:12,642 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 3 of 3 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_an_answer_on_topic_is_not_a_pile (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_an_answer_on_topic_is_not_a_pile) ... ok
+test_an_outside_number_does_not_split_a_section (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_an_outside_number_does_not_split_a_section) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:12,661 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:12,672 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+
+
+ai_processor.services WARNING 2026-10-27 11:54:12,673 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+
+
+ai_processor.services WARNING 2026-10-27 11:54:12,675 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+
+
+ai_processor.services WARNING 2026-10-27 11:54:12,678 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+
+
+ai_processor.services WARNING 2026-10-27 11:54:12,679 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+
+
+ai_processor.services WARNING 2026-10-27 11:54:12,680 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+
+
+ai_processor.services WARNING 2026-10-27 11:54:12,681 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+
+
+ai_processor.services WARNING 2026-10-27 11:54:12,682 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+
+
+ai_processor.services WARNING 2026-10-27 11:54:12,684 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_numbers_out_of_order_are_not_a_pile (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_numbers_out_of_order_are_not_a_pile) ... ok
+test_numbers_outside_the_assignment_are_not_counted (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_numbers_outside_the_assignment_are_not_counted) ... ok
+test_one_numbered_section_is_not_a_pile (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_one_numbered_section_is_not_a_pile) ... ok
+test_the_numbers_need_not_start_at_1 (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_the_numbers_need_not_start_at_1) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:12,723 services 1107112 123889389861824 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 3 of 3 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_writing_with_no_numbered_sections_changes_nothing (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_writing_with_no_numbered_sections_changes_nothing) ... ok
+
+======================================================================
+FAIL: test_a_named_question_with_a_flag_is_left_to_h253 (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_a_named_question_with_a_flag_is_left_to_h253)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 329, in test_a_named_question_with_a_flag_is_left_to_h253
+    self.assertIn("question(s) [2]", self.note(mocked))
+AssertionError: 'question(s) [2]' not found in 'A first reading of this submission did not transcribe the student\'s answers to question(s) [1, 2], but there is student writing in each of those places. What was seen there:\n- Question 1: the first reading put the student\'s answers numbered 1, 2 all under this question. Transcribe here only the answer to question 1; the others go under their own numbers.\n- Question 2: the first reading put this answer under question 1. The student\'s answer numbered 2 begins: "2. b"\n\nRead the pages again and transcribe ONLY those question(s), in full, under the rules above. Return one entry in `answers` for each of them and no other question. Off-topic writing is still the student\'s work: transcribe it and flag it. Do not return NOT_FOUND_IN_DOCUMENT or BLANK for these questions: the writing is there. If part of it cannot be read, transcribe what you can and mark it ILLEGIBLE.'
+
+----------------------------------------------------------------------
+Ran 30 tests in 0.306s
+
+FAILED (failures=1)
+Found 30 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).

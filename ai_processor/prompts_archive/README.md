@@ -39,7 +39,7 @@ Archived only when that returns nothing.
 | Assignment extraction (prose) | `ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt` |
 | Assignment extraction (uploads) | `ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS_HTML_2.txt` |
 | Rubric extraction | `RUBRIC_EXTRACTION_PROMPT.txt` |
-| Answer extraction | `ANSWERS_EXTRACTION_PROMPT_HTML_4.txt` |
+| Answer extraction | `ANSWERS_EXTRACTION_PROMPT_HTML_5.txt` |
 | Grading | `GRADING_ASSIGNMENT_PROMPT_5.txt` |
 | Assignment generation | `ASSIGNMENT_GENERATION_PROMPT_6.txt` |
 | Grade formatting | `GRADE_FORMATTER_2.txt` |

@@ -642,10 +642,14 @@ ANSWER_BLANK_VERIFICATION_ENABLED = env.bool(
     "ANSWER_BLANK_VERIFICATION_ENABLED", default=True
 )
 
-# Above this many blanks, skip the re-read. A submission where almost
-# nothing was answered is either a genuinely near-empty paper or a wholesale
-# extraction failure; in both cases a per-question re-read is the wrong
-# instrument, and the completeness flags already route it to a human.
+# At most this many blanks are re-read in the one call. Above it, the
+# lowest-numbered this-many are re-read and the rest are not (logged), and
+# the completeness flags still route them to a human. 0 re-reads none.
+# H-264: this used to skip the re-read entirely above the cap, on the view
+# that a paper with almost nothing answered is a wholesale failure the
+# re-read cannot help. Seen on beta, that is exactly the case where recovery
+# matters: a numbered paper for another assignment read as one answer under
+# question 1 left 74 blanks, and none of them was checked.
 ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS = env.int(
     "ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS", default=12
 )

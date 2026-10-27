@@ -47,7 +47,7 @@ The three pure modules (`objective_grading`, `evidence`, `answer_completeness`) 
 
 Nine prompt files are read **at import time** ([services.py:99-134](../../ai_processor/services.py#L99-L134)) with bare `open()` and **relative paths** — so the process must be started from the repo root or import fails:
 
-`ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt`, `ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS_HTML_2.txt`, `RUBRIC_EXTRACTION_PROMPT.txt`, `ANSWERS_EXTRACTION_PROMPT_HTML_4.txt`, `GRADING_ASSIGNMENT_PROMPT_5.txt`, `ASSIGNMENT_GENERATION_PROMPT_6.txt`, `GRADE_FORMATTER_2.txt`, `STUDENT_SUMMARY_PROMPT.txt`, `WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT.txt`, `WEEKLY_COURSE_SUMMARY_PROMPT.txt`.
+`ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt`, `ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS_HTML_2.txt`, `RUBRIC_EXTRACTION_PROMPT.txt`, `ANSWERS_EXTRACTION_PROMPT_HTML_5.txt`, `GRADING_ASSIGNMENT_PROMPT_5.txt`, `ASSIGNMENT_GENERATION_PROMPT_6.txt`, `GRADE_FORMATTER_2.txt`, `STUDENT_SUMMARY_PROMPT.txt`, `WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT.txt`, `WEEKLY_COURSE_SUMMARY_PROMPT.txt`.
 
 The version numbers are load-bearing history. `GRADING_ASSIGNMENT_PROMPT_5` replaced v3's open-ended "leniency"/"Holistic Uplift" system, **which invited scores above and between rubric levels, making grades both inflated and non-reproducible** ([services.py:113-118](../../ai_processor/services.py#L113-L118)). v4 also fixed the input contract to match what the pipeline actually sends (`answer_html`, not `answer_text`).
 
