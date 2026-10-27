@@ -50,6 +50,8 @@ def changed_top_level(base_src, tip_src):
                 for target in node.targets:
                     if isinstance(target, ast.Name):
                         store[target.id] = ast.dump(node)
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                store[node.target.id] = ast.dump(node)
             elif isinstance(
                 node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
             ):
