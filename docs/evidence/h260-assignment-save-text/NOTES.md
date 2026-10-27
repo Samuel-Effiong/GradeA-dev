@@ -166,3 +166,29 @@ A changed file other than the one is the gate script's changed-file check, not t
   - The stopped run's logs, with its own output, are in `gate_e52dca6e_stopped/`.
 - The batch's full run is the real regression.
 - **Base:** `2658ca13`.
+
+### The gate on `f7aee65b` (started once load1 was under 8 and the batch 29 full run had finished, 27 October 2026)
+
+Django 5.2.17 in the shared environment (the batch 29 pins install is done; nobody installs while this runs).
+
+- **Run:** 11:47:38 to 11:54:01, load1 4.58 at start, 4.17 at end, 11 G memory cap, systemd-inhibit.
+- **Red run (step 0):** 3 FAIL blocks, "Ran 4 tests in 0.952s", each red for its written reason (rule 22). The
+  control is green.
+- **Makemigrations:** "No changes detected" (exit 0).
+- **Seam (step 1b):** "SEAM OK: only the named units changed, and create only in its except clause".
+- **Step 1:** "Ran 823 tests in 270.540s", "OK (skipped=1)"; 823 test lines.
+- **No key-shaped text** in the step 1 log. "password" appears only in migration names.
+- **Mutants (step 2):** 8/8 KILLED; no SURVIVED, no BROKEN, no unexpected failures; source clean after mutants.
+
+  | Id | Failing test | Expected fragment | Status |
+  |---|---|---|---|
+  | A1 | test_the_400_carries_none_of_the_errors_text | unexpectedly found in | KILLED |
+  | A2 | test_the_400_reads_the_fixed_sentence | not found in | KILLED |
+  | L1 | test_the_server_log_names_the_class_at_warning | not found in | KILLED |
+  | L2 | test_the_server_log_names_the_class_at_warning | unexpectedly found in | KILLED |
+  | L3 | test_the_server_log_names_the_class_at_warning | is not None | KILLED |
+  | L4 | test_the_server_log_names_the_class_at_warning | 'ERROR' != 'WARNING' | KILLED |
+  | L5 | test_the_server_log_names_the_class_at_warning | no logs of level WARNING … | KILLED |
+  | L6 | test_the_server_log_names_the_class_at_warning | no logs of level WARNING … | KILLED |
+
+- **Exit:** 0 (8 results, all KILLED, source clean — the checks added in `f7aee65b`).
