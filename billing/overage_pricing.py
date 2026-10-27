@@ -94,8 +94,22 @@ STRIPE_PRICE_CACHE_TTL = 300
 _CACHE_PREFIX = "billing:stripe-overage-price:"
 
 
+OVERAGE_PRICE_UNAVAILABLE_MESSAGE = (
+    "We couldn't confirm the overage price with our payment provider. "
+    "Please try again in a moment."
+)
+
+
 class OveragePriceUnavailable(ValueError):
-    """Stripe could not tell us what this plan charges."""
+    """Stripe could not tell us what this plan charges.
+
+    H-254: the views answer a ValueError with its text, so str() is the
+    sentence a customer may be shown. What went wrong, for operators (the
+    drift report and its task), is `detail`."""
+
+    def __init__(self, detail):
+        super().__init__(OVERAGE_PRICE_UNAVAILABLE_MESSAGE)
+        self.detail = detail
 
 
 class OveragePriceMismatch(ValueError):
@@ -145,8 +159,11 @@ def stripe_overage_unit_price(plan, *, use_cache: bool = True):
     try:
         price = stripe.Price.retrieve(price_id)
     except Exception as exc:  # noqa: BLE001 - reported as a domain error
+        # The class and Stripe's request id, never the message: an
+        # AuthenticationError's names the API key (H-254).
         raise OveragePriceUnavailable(
-            f"Could not read Stripe price {price_id} for plan {plan.name}: {exc!r}"
+            f"Could not read Stripe price {price_id} for plan {plan.name}: "
+            f"{type(exc).__name__} (request {getattr(exc, 'request_id', None)})"
         ) from exc
 
     unit_amount = price.get("unit_amount")
@@ -228,7 +245,7 @@ def overage_price_drift(plans=None) -> list:
         try:
             entry["stripe_cents"] = stripe_overage_unit_price(plan, use_cache=False)
         except OveragePriceUnavailable as exc:
-            entry["error"] = str(exc)
+            entry["error"] = exc.detail
             report.append(entry)
             continue
         entry["in_sync"] = entry["stripe_cents"] == entry["local_cents"]
