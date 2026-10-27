@@ -83,7 +83,8 @@
   imports `jwt` directly (`users.tests_token_revocation`).
 - **Changes that could touch us:**
   - 2.11.0 warns (`InsecureKeyLengthWarning`) on an HMAC key under 32 bytes. The local `.env` key is 67
-    bytes; **production's key length was not checked** (it is in Railway's settings);
+    bytes, and the owner confirmed on 2026-10-27 that production's is over 32 characters (`SIMPLE_JWT` names no
+    `SIGNING_KEY`, so `SECRET_KEY` is the signing key);
   - 2.13.0 refuses an empty HMAC key outright;
   - 2.11.0 requires `iss` to be a string (we set none);
   - stricter compact-JWS decoding (2.14.0): tokens simplejwt itself issued are compact JWS.
@@ -141,7 +142,7 @@
 - **Other changes:** `FloatField` refuses nan and inf (3.18.1); `set_rollback` only rolls back initialized
   connections (3.18.0); `UniqueTogetherValidator` and unique-constraint fixes.
 
-## Proposed for the gate (by ruling)
+## The gate (granted in form by the Senior Manager, 27 October 2026)
 
 - **The private venv** `~/Documents/Virtualenvs/AutoGrader_env_h263`, a copy of the shared one with the six pins
   installed, removed after the gate. The shared venv is not touched.
@@ -156,6 +157,32 @@
   - PyJWT: the 19 auth and token modules (`users.tests_token_revocation`, `users.tests_auth_endpoints`, and
     others);
   - lxml: the 11 sanitizer, ProseMirror and PDF modules;
-  - urllib3: `ai_processor.tests_ssrf_guard`, with the live peer test by ruling;
+  - urllib3: `ai_processor.tests_ssrf_guard`, with `CI_REQUIRE_NETWORK=1` so the live peer test runs (SM
+    ruling 3). It makes one GET to `https://example.com/` through `tools._fetch_validated` and reads the
+    peer address off the real response. That is the only outbound request the gate makes, and it is
+    recorded here because the network guard otherwise refuses outbound calls in tests;
   - DRF: it reaches every view, so the full suite at the tip.
 - **The full suite at the tip** with `--parallel 4`, in the private venv.
+
+## The rulings (Senior Manager, 27 October 2026)
+
+1. **DRF's list error shape is kept.** `REST_FRAMEWORK["LIST_SERIALIZER_ERRORS_AS_DICT"] = False`
+   (`AutoGrader/settings.py`, commit `711dd5af`), pinned by `assignments.tests_h263_list_error_shape` on a
+   question's `rubric` (2 tests, commit `001dbcd6`): a valid item keeps its empty place, and a failing item is
+   reported at its own position. DRF warns `RemovedInDRF320Warning` on every failing list input, and 3.20
+   removes the switch. **Row H-266** (Low, Open, not scheduled) moves the frontend, naming the four inputs.
+2. **The body-size limit is accepted as is.** A JSON or form body over `DATA_UPLOAD_MAX_MEMORY_SIZE` (we do not
+   set it, so Django's 2.5 MB) is now refused, where before any size was parsed. The limit is named in the row.
+3. **The live SSRF peer test runs once in the gate**, with its one GET to example.com recorded above.
+4. **gunicorn is checked by the boot in the gate.** What Railway's edge forwards stays unchecked, and the row
+   says so.
+5. **Pillow's `formats=` limit is row H-267** (Medium, mine, batch 30 after H-263), built on H-263's tip once
+   this row is gated. The list is to be read from `IMAGE_FORMATS` (`assignments/services.py:514`:
+   `image/jpeg`, `image/png`, `image/gif`, `image/webp`, so `["JPEG", "PNG", "GIF", "WEBP"]`), with a test that
+   a PSD labelled `image/png` is refused with the existing friendly error rather than a 500.
+6. **Production's signing key** was confirmed by the owner on 2026-10-27 to be over 32 characters.
+
+## Timing
+
+- Nothing ran from this row while the batch 29 strict run was going. The H-260 re-run takes the slot after it,
+  and this gate follows on the Senior Manager's word.
