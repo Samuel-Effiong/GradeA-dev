@@ -1,0 +1,79 @@
+available at start: 13G; cap 11G
+=== 0. red run: ai_processor.tests_h264_numbered_offtopic_answers ai_processor.tests_blank_verification against code at b199eed6 (own DB) 12:53:39
+red run exit=1
+test_each_answer_goes_under_its_own_number: red for its written reason ('0 != 1')
+test_the_flags_are_six_off_topic_and_the_upload_mismatch: red for its written reason ('ANSWER_NOT_FOUND')
+test_only_the_pile_and_the_numbers_it_names_are_asked_about: red for its written reason ("'NoneType'")
+test_the_note_says_where_each_answer_was_put: red for its written reason ("'NoneType'")
+test_question_1_missing_from_the_reply: red for its written reason ('I studied the desert')
+test_some_sections_missing_from_the_reply: red for its written reason ('I studied the desert')
+test_a_failed_or_empty_second_reading_changes_nothing: red for its written reason ('0 != 1')
+test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line: red for its written reason ('0 != 1')
+test_the_numbers_need_not_start_at_1: red for its written reason ('0 != 1')
+test_a_pile_in_the_wrong_form_counts: red for its written reason ('0 != 1')
+test_an_outside_number_does_not_split_a_section: red for its written reason ("'NoneType'")
+test_a_pile_under_a_later_question: red for its written reason ("'NoneType'")
+test_the_beta_paper_has_its_first_12_blanks_re_checked: red for its written reason ('0 != 1')
+test_the_rest_are_logged_as_not_checked: red for its written reason ('skipping the re-read')
+test_the_lowest_numbered_whatever_the_order: red for its written reason ("'NoneType'")
+test_a_finding_for_a_question_not_asked_about_is_not_applied: red for its written reason ('blank_verification')
+test_the_beta_reply_ends_with_six_answers_and_the_upload_flag: red for its written reason ('0 != 2')
+test_the_prompt_has_the_numbered_paper_example: red for its written reason ('not found')
+test_the_prompt_is_version_5_and_version_4_is_archived: red for its written reason ('False is not true')
+test_too_many_blanks_re_reads_the_lowest_numbered_cap: red for its written reason ('0 != 1')
+red run OK: 29 blocks, 20 reason checks, all confirmed
+Unstaged changes after reset:
+M	docs/evidence/h264-numbered-offtopic-answers/red_run_code_as_at_base.txt
+source restored
+Ran 61 tests in 0.614s
+FAILED (failures=23, errors=6)
+dropped test_h264_numbered_offtopic_answers_mut
+=== 1. own battery at 527c9d1e 12:53:47
+exit=0 12:53:50
+Ran 61 tests in 0.702s
+OK
+=== 2. mutants: 16 (own DB) 12:53:50
+mutants exit=0 12:55:04
+N1 {'what': '_LABELLED_SECTION loses case insensitivity (QUESTION 2 is not matched)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.281s', 'expected': {'test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line': '0 != 1'}, '
+N2 {'what': '_BARE_SECTION matches decimals (3.5 looks like section 3)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.346s', 'expected': {'test_writing_with_no_numbered_sections_changes_nothing': 'to not have been called'}, 'fail
+N2b {'what': '_numbered_sections counts numbers outside the assignment', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.371s', 'expected': {'test_an_outside_number_does_not_split_a_section': 'not found in'}, 'failing_tests': ['test
+N3 {'what': '_in_order keeps all markers (out-of-order numbers are piles)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.294s', 'expected': {'test_numbers_out_of_order_are_not_a_pile': 'to not have been called'}, 'failing_tests':
+P1 {'what': 'FLAG_TYPE_MISMATCH is no longer a pile flag', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.335s', 'expected': {'test_a_pile_in_the_wrong_form_counts': '0 != 1'}, 'failing_tests': ['test_a_pile_in_the_wrong_form_count
+P2 {'what': 'a named question with a flag is named by the pile (bypasses H-253)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.306s', 'expected': {'test_a_named_question_with_a_flag_is_left_to_h253': 'not found in'}, 'failing_tes
+P3 {'what': 'PILE_QUOTE_LENGTH is 0 (the note quotes nothing)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.378s', 'expected': {'test_the_note_says_where_each_answer_was_put': 'not found in'}, 'failing_tests': ['test_an_outside_
+P4 {'what': 'the listed join uses spaces instead of commas', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.372s', 'expected': {'test_the_note_says_where_each_answer_was_put': 'not found in'}, 'failing_tests': ['test_the_note_says_
+T1 {'what': 'piles are not targets (only H-253 route remains)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.301s', 'expected': {'test_each_answer_goes_under_its_own_number': '0 != 1'}, 'failing_tests': ['test_a_failed_or_empty_s
+T2 {'what': 'issuperset becomes issubset (the pile is replaced even when not all sections came back)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.306s', 'expected': {'test_the_beta_reply_ends_with_six_answers_and_the_upload_fla
+T3 {'what': "SPLIT_ANSWER_NOTE says 'second' instead of 'first'", 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.363s', 'expected': {'test_each_answer_goes_under_its_own_number': 'not found in'}, 'failing_tests': ['test_each_answer
+T4 {'what': '_recovered_answer ignores the note argument (always RECOVERED_ANSWER_NOTE)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.427s', 'expected': {'test_each_answer_goes_under_its_own_number': 'not found in'}, 'failing_te
+C1 {'what': 'cap <= 0 does not return early (cap=0 still runs the verification)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.432s', 'expected': {'test_a_cap_of_0_checks_nothing': 'to not have been called'}, 'failing_tests': ['t
+C2 {'what': 'blanks[:cap] becomes blanks[cap:] (the highest-numbered are re-checked)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 1.011s', 'expected': {'test_the_beta_paper_has_its_first_12_blanks_re_checked': 'not found in'}, 'f
+C3 {'what': 'the log says cap instead of cap + unchecked (total count is wrong)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.927s', 'expected': {'test_the_rest_are_logged_as_not_checked': '12 blank(s) exceeds'}, 'failing_tests'
+C4 {'what': 'findings for questions not asked about are applied anyway', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 30 tests in 0.951s', 'expected': {'test_a_finding_for_a_question_not_asked_about_is_not_applied': 'unexpectedly found in'}, '
+KILLED: ['N1', 'N2', 'N2b', 'N3', 'P1', 'P2', 'P3', 'P4', 'T1', 'T2', 'T3', 'T4', 'C1', 'C2', 'C3', 'C4']
+SURVIVED: []
+BROKEN: []
+source clean after mutants
+dropped test_h264_numbered_offtopic_answers_mut
+load at end: 9.25 5.24 4.47 9/2442 1107891
+Unstaged changes after reset:
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/C1.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/C2.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/C3.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/C4.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/N1.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/N2.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/N2b.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/N3.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/P1.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/P2.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/P3.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/P4.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/T1.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/T2.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/T3.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutant_logs/T4.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutation_log.txt
+M	docs/evidence/h264-numbered-offtopic-answers/mutation_results.json
+M	docs/evidence/h264-numbered-offtopic-answers/red_run_code_as_at_base.txt
+gate exit=0

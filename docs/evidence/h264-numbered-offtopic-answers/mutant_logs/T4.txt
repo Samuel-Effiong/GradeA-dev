@@ -1,41 +1,41 @@
 test_a_reply_question_not_asked_about_is_ignored (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_a_reply_question_not_asked_about_is_ignored) ...
 
-ai_processor.services WARNING 2026-10-27 11:46:12,806 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 6 of 6 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,138 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 6 of 6 question(s); 0 kept as the re-check's quote.
 
 
 ok
 test_each_answer_goes_under_its_own_number (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_each_answer_goes_under_its_own_number) ...
 
-ai_processor.services WARNING 2026-10-27 11:46:12,816 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 6 of 6 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,155 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 6 of 6 question(s); 0 kept as the re-check's quote.
 
 
 FAIL
 test_only_the_pile_and_the_numbers_it_names_are_asked_about (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_only_the_pile_and_the_numbers_it_names_are_asked_about) ...
 
-ai_processor.services WARNING 2026-10-27 11:46:12,826 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 6 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,165 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 6 question(s); 0 kept as the re-check's quote.
 
 
 ok
 test_the_flags_are_six_off_topic_and_the_upload_mismatch (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_the_flags_are_six_off_topic_and_the_upload_mismatch) ...
 
-ai_processor.services WARNING 2026-10-27 11:46:12,835 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 6 of 6 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,179 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 6 of 6 question(s); 0 kept as the re-check's quote.
 
 
 ok
 test_the_note_says_where_each_answer_was_put (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_the_note_says_where_each_answer_was_put) ...
 
-ai_processor.services WARNING 2026-10-27 11:46:12,845 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 6 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,197 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 6 question(s); 0 kept as the re-check's quote.
 
 
 ok
 test_a_failed_or_empty_second_reading_changes_nothing (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_a_failed_or_empty_second_reading_changes_nothing) ...
 
-ai_processor.services WARNING 2026-10-27 11:46:12,854 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 6 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,214 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 6 question(s); 0 kept as the re-check's quote.
 
 
 
 
-ai_processor.services ERROR 2026-10-27 11:46:12,855 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading failed; the re-check's quotes are kept where there are any.
+ai_processor.services ERROR 2026-10-27 11:54:34,215 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading failed; the re-check's quotes are kept where there are any.
 
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/services.py", line 2888, in _second_reading
@@ -52,19 +52,19 @@ Traceback (most recent call last):
 RuntimeError: boom
 
 
-ai_processor.services WARNING 2026-10-27 11:46:12,857 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 6 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,218 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 6 question(s); 0 kept as the re-check's quote.
 
 
 ok
 test_question_1_missing_from_the_reply (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_question_1_missing_from_the_reply) ...
 
-ai_processor.services WARNING 2026-10-27 11:46:12,866 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 5 of 6 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,236 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 5 of 6 question(s); 0 kept as the re-check's quote.
 
 
 ok
 test_some_sections_missing_from_the_reply (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_some_sections_missing_from_the_reply) ...
 
-ai_processor.services WARNING 2026-10-27 11:46:12,876 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 6 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,252 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 6 question(s); 0 kept as the re-check's quote.
 
 
 ok
@@ -74,123 +74,129 @@ test_the_prompt_is_version_5_and_version_4_is_archived (ai_processor.tests_h264_
 test_a_cap_of_0_checks_nothing (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_a_cap_of_0_checks_nothing) ... ok
 test_a_finding_for_a_question_not_asked_about_is_not_applied (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_a_finding_for_a_question_not_asked_about_is_not_applied) ...
 
-ai_processor.services INFO 2026-10-27 11:46:12,902 services 1097404 126042861657024 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
+ai_processor.services INFO 2026-10-27 11:54:34,285 services 1107389 129294322768832 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
 
 
 
 
-ai_processor.services WARNING 2026-10-27 11:46:12,902 services 1097404 126042861657024 [request_id=- client_request_id=-] [BlankVerification] Re-read found writing for 1 question(s) reported empty (2). Flagged for review.
+ai_processor.services WARNING 2026-10-27 11:54:34,286 services 1107389 129294322768832 [request_id=- client_request_id=-] [BlankVerification] Re-read found writing for 1 question(s) reported empty (2). Flagged for review.
 
 
 ok
 test_at_or_under_the_cap_every_blank_is_re_checked (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_at_or_under_the_cap_every_blank_is_re_checked) ...
 
-ai_processor.services INFO 2026-10-27 11:46:12,911 services 1097404 126042861657024 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
+ai_processor.services INFO 2026-10-27 11:54:34,301 services 1107389 129294322768832 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
 
 
 ok
 test_the_beta_paper_has_its_first_12_blanks_re_checked (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_the_beta_paper_has_its_first_12_blanks_re_checked) ...
 
-ai_processor.services INFO 2026-10-27 11:46:12,920 services 1097404 126042861657024 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
+ai_processor.services INFO 2026-10-27 11:54:34,319 services 1107389 129294322768832 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
 
 
 
 
-ai_processor.services INFO 2026-10-27 11:46:12,921 services 1097404 126042861657024 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
+ai_processor.services INFO 2026-10-27 11:54:34,319 services 1107389 129294322768832 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
 
 
 ok
 test_the_lowest_numbered_whatever_the_order (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_the_lowest_numbered_whatever_the_order) ...
 
-ai_processor.services INFO 2026-10-27 11:46:12,929 services 1097404 126042861657024 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
+ai_processor.services INFO 2026-10-27 11:54:34,336 services 1107389 129294322768832 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
 
 
 
 
-ai_processor.services INFO 2026-10-27 11:46:12,930 services 1097404 126042861657024 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
+ai_processor.services INFO 2026-10-27 11:54:34,336 services 1107389 129294322768832 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
 
 
 ok
 test_the_rest_are_logged_as_not_checked (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_the_rest_are_logged_as_not_checked) ... ok
 test_the_beta_reply_ends_with_six_answers_and_the_upload_flag (ai_processor.tests_h264_numbered_offtopic_answers.TheWholeReadingTest.test_the_beta_reply_ends_with_six_answers_and_the_upload_flag) ...
 
-ai_processor.services INFO 2026-10-27 11:46:12,950 services 1097404 126042861657024 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
+ai_processor.services INFO 2026-10-27 11:54:34,362 services 1107389 129294322768832 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
 
 
 
 
-ai_processor.services INFO 2026-10-27 11:46:12,950 services 1097404 126042861657024 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
+ai_processor.services INFO 2026-10-27 11:54:34,362 services 1107389 129294322768832 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
 
 
 
 
-ai_processor.services WARNING 2026-10-27 11:46:12,951 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 6 of 6 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,363 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 6 of 6 question(s); 0 kept as the re-check's quote.
 
 
 ok
 test_a_named_question_with_a_flag_is_left_to_h253 (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_a_named_question_with_a_flag_is_left_to_h253) ...
 
-ai_processor.services WARNING 2026-10-27 11:46:12,961 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 1 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,377 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 1 question(s); 0 kept as the re-check's quote.
 
 
 ok
 test_a_named_question_with_its_own_answer_is_not_touched (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_a_named_question_with_its_own_answer_is_not_touched) ... ok
 test_a_pile_in_the_wrong_form_counts (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_a_pile_in_the_wrong_form_counts) ...
 
-ai_processor.services WARNING 2026-10-27 11:46:12,982 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 2 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,402 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 2 question(s); 0 kept as the re-check's quote.
 
 
 ok
 test_a_pile_under_a_later_question (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_a_pile_under_a_later_question) ...
 
-ai_processor.services WARNING 2026-10-27 11:46:12,998 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 3 of 3 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,414 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 3 of 3 question(s); 0 kept as the re-check's quote.
 
 
 ok
 test_an_answer_on_topic_is_not_a_pile (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_an_answer_on_topic_is_not_a_pile) ... ok
+test_an_outside_number_does_not_split_a_section (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_an_outside_number_does_not_split_a_section) ...
+
+ai_processor.services WARNING 2026-10-27 11:54:34,437 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+ok
 test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line) ...
 
-ai_processor.services WARNING 2026-10-27 11:46:13,023 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,454 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
 
 
 
 
-ai_processor.services WARNING 2026-10-27 11:46:13,025 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,457 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
 
 
 
 
-ai_processor.services WARNING 2026-10-27 11:46:13,027 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,459 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
 
 
 
 
-ai_processor.services WARNING 2026-10-27 11:46:13,028 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,462 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
 
 
 
 
-ai_processor.services WARNING 2026-10-27 11:46:13,029 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,463 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
 
 
 
 
-ai_processor.services WARNING 2026-10-27 11:46:13,031 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,464 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
 
 
 
 
-ai_processor.services WARNING 2026-10-27 11:46:13,033 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,466 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
 
 
 
 
-ai_processor.services WARNING 2026-10-27 11:46:13,035 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,467 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
 
 
 
 
-ai_processor.services WARNING 2026-10-27 11:46:13,036 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,469 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
 
 
 ok
@@ -199,7 +205,7 @@ test_numbers_outside_the_assignment_are_not_counted (ai_processor.tests_h264_num
 test_one_numbered_section_is_not_a_pile (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_one_numbered_section_is_not_a_pile) ... ok
 test_the_numbers_need_not_start_at_1 (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_the_numbers_need_not_start_at_1) ...
 
-ai_processor.services WARNING 2026-10-27 11:46:13,078 services 1097404 126042861657024 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 3 of 3 question(s); 0 kept as the re-check's quote.
+ai_processor.services WARNING 2026-10-27 11:54:34,523 services 1107389 129294322768832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 3 of 3 question(s); 0 kept as the re-check's quote.
 
 
 ok
@@ -214,9 +220,9 @@ Traceback (most recent call last):
 AssertionError: "The first reading put several of the student's numbered answers" not found in 'About biomes, not this question. The first reading missed this answer and a second reading recovered it: check it against the upload.'
 
 ----------------------------------------------------------------------
-Ran 29 tests in 0.298s
+Ran 30 tests in 0.427s
 
 FAILED (failures=1)
-Found 29 test(s).
+Found 30 test(s).
 Skipping setup of unused database(s): default.
 System check identified no issues (0 silenced).
