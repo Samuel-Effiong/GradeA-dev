@@ -1,0 +1,141 @@
+#!/bin/bash
+# H-266 LIST_SERIALIZER_ERRORS_AS_DICT: False → True. Usage: bash run_h266_gate.sh <tip> 1
+# One grant, inside ONE outer inhibit (memory cap = available - 2G, min 6G, read at start; rule 13):
+#   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block bash <script> <tip> 1 > out; echo "gate exit=$?" >> out
+# 0 the red run: the new tests as at the tip against the code as at the base (one production file
+#   taken back; own DB). RULE 22: each red test is red for its WRITTEN reason.
+# 1a makemigrations --check; 1b the seam by program; 1 the own + near + guards;
+# 2 the 1 mutant (rule 17; own DB), judged by its expected tests AND their written fragments.
+set -u
+TIP=$1; STEP=${2:-1}; BASE=aede70b4
+VENV=/home/bond-servant-in-training/Documents/Virtualenvs/h266_list_errors_dict_env
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h266-list-errors-dict || exit 1
+source $VENV/bin/activate
+E=docs/evidence/h266-list-errors-dict
+AVAIL_G=$(awk '/^MemAvailable:/ {print int($2/1048576)}' /proc/meminfo)
+MEMG=$((AVAIL_G - 2))
+echo "available at start: ${AVAIL_G}G; cap ${MEMG}G"
+[ "$MEMG" -ge 6 ] || { echo "STOP (exit 5): cap under 6G; wait and tell the SM"; exit 5; }
+UNITP=gap-h266-$$
+UPART=none
+CAP="systemd-run --user --scope -q --unit=\${UNITP}-\${UPART} -p MemoryMax=${MEMG}G -p MemorySwapMax=0"
+( while sleep 10; do
+    A=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
+    if [ "$A" -lt 1572864 ]; then
+        for U in $UNITP-red $UNITP-modules $UNITP-mutants; do
+            if systemctl --user is-active -q "$U.scope"; then
+                echo "MEMORY STOP $(date +%T): available ${A} kB; stopping $U.scope" >> $E/memory_watchdog.txt
+                systemctl --user stop "$U.scope"
+            fi
+        done
+    fi
+  done ) &
+WATCHDOG=$!
+export PYTHONFAULTHANDLER=1
+export EXEMPT_EMAIL_DOMAINS=
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+[ "$STEP" = 1 ] || { echo "only step 1 exists"; exit 1; }
+mkdir -p $E
+CHANGED="AutoGrader/settings.py"
+RESTORE="$CHANGED"
+restore_tree() { kill $WATCHDOG 2>/dev/null; git checkout HEAD -- $RESTORE 2>/dev/null; find AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
+trap restore_tree EXIT
+summary() { grep -E "^(Ran |OK|FAILED \(|(FAIL|ERROR): )" "$1" | cut -c1-200 | head -${2:-12}; }
+dropmut() { python manage.py shell --settings=settings_worktree_mut -c "
+from django.conf import settings
+from django.db import connection
+name = settings.DATABASES['default']['TEST']['NAME']
+with connection._nodb_cursor() as c:
+    c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
+print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
+OWN="assignments.tests_h263_list_error_shape.RubricErrorShapeTests"
+NEAR="assignments.tests_h263_list_error_shape users.tests_renderers"
+GUARDS="AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_migration_safety_check AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_student_feedback_guard AutoGrader.tests_submission_audience_guard AutoGrader.tests_student_classmates_guard AutoGrader.tests_network_guard"
+echo "load at start: $(cat /proc/loadavg)"
+echo "=== 0. the red run: new tests against the code as at $BASE (own DB) $(date +%T)"
+git checkout $BASE -- $CHANGED
+find AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} +
+UPART=red
+eval "PYTHONDONTWRITEBYTECODE=1 $CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree_mut $OWN" < /dev/null > $E/red_run_code_as_at_base.txt 2>&1
+RED_EXIT=$?
+echo "red run exit=$RED_EXIT (non-zero expected)"
+RF=$E/red_run_code_as_at_base.txt
+RED_OK=1
+[ "$RED_EXIT" -ne 0 ] || RED_OK=0
+grep -qE "^OK" $RF && RED_OK=0
+grep -qE "unittest.loader._FailedTest" $RF && { echo "red run: a module failed to load"; RED_OK=0; }
+# Expected: 3 FAIL blocks, "Ran 4 tests"
+RED_BLOCK_COUNT=$(grep -cE '^(FAIL|ERROR): ' $RF)
+echo "red run blocks: $RED_BLOCK_COUNT (expected 3)"
+[ "$RED_BLOCK_COUNT" = 3 ] || { echo "STOP: not exactly 3 FAIL/ERROR blocks"; RED_OK=0; }
+# Fragment checks
+for t in test_only_the_failing_item_appears_keyed_by_index test_the_failing_item_is_reported_at_its_own_index; do
+    if ! python -I -c "
+import re, sys
+text = open(sys.argv[1]).read()
+blocks = re.split(r'^={70}$', text, flags=re.MULTILINE)
+found = [b for b in blocks if re.match(r'\s*(FAIL|ERROR): ' + re.escape(sys.argv[2]) + r'[ (]', b)]
+if not found:
+    print('no block for', sys.argv[2]); sys.exit(1)
+if not all('!=' in b for b in found):
+    print('!= not in block for', sys.argv[2]); sys.exit(1)
+" $RF "$t"; then RED_OK=0; fi
+done
+for t in test_the_dict_shape_is_a_mapping; do
+    if ! python -I -c "
+import re, sys
+text = open(sys.argv[1]).read()
+blocks = re.split(r'^={70}$', text, flags=re.MULTILINE)
+found = [b for b in blocks if re.match(r'\s*(FAIL|ERROR): ' + re.escape(sys.argv[2]) + r'[ (]', b)]
+if not found:
+    print('no block for', sys.argv[2]); sys.exit(1)
+if not all('is not an instance of' in b for b in found):
+    print('is not an instance of not in block for', sys.argv[2]); sys.exit(1)
+" $RF "$t"; then RED_OK=0; fi
+done
+if [ "$RED_OK" != 1 ]; then
+    echo "STOP (exit 4): the red run is not what was written"
+    git checkout HEAD -- $CHANGED
+    find AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} +
+    exit 4
+fi
+echo "red run is as written: non-zero exit, no OK line, modules loaded, 3 blocks red for their written reasons"
+git checkout HEAD -- $CHANGED
+find AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} +
+git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+summary $RF
+dropmut
+echo "=== 1a. makemigrations --check $(date +%T)"
+python manage.py makemigrations --check --dry-run --settings=settings_worktree < /dev/null > $E/makemigrations_check.txt 2>&1; MM=$?; echo "makemigrations exit=$MM (0 = no changes)"; tail -1 $E/makemigrations_check.txt
+[ "$MM" = 0 ] || { echo "STOP: makemigrations reports changes"; exit 2; }
+echo "=== 1b. the seam, by program $(date +%T)"
+git diff --name-only $BASE HEAD > $E/seam_changed_files.txt
+cat $E/seam_changed_files.txt
+PROD_CHANGED=$(grep -vE '^(docs/|assignments/tests_h263_list_error_shape\.py$|settings_worktree_mut\.py$|\.secrets\.baseline$)' $E/seam_changed_files.txt | sort | tr '\n' ' ')
+echo "production files changed: '$PROD_CHANGED'"
+[ "$PROD_CHANGED" = "AutoGrader/settings.py " ] || { echo "STOP: unexpected production files changed"; exit 2; }
+rm -rf $E/.base && mkdir -p $E/.base && git archive $BASE AutoGrader/settings.py | tar -x -C $E/.base
+python -I $E/seam_check.py $E/.base . > $E/seam_code.txt 2>&1; SEAM=$?; rm -rf $E/.base
+cat $E/seam_code.txt
+[ "$SEAM" = 0 ] || { echo "STOP: the seam check failed"; exit 2; }
+echo "=== 1. own + near + guards at $(git rev-parse --short=8 HEAD) $(date +%T)"
+UPART=modules
+eval "$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
+echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
+if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
+echo "=== 2. mutants: 1 (own DB, rules 17, 18 and 22) $(date +%T)"
+UPART=mutants
+eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 1320 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
+echo "mutants exit=$? $(date +%T)"; cut -c1-300 $E/mutation_log.txt
+CLEAN=0; git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || { echo "STOP: source not clean after mutants"; CLEAN=3; }
+dropmut
+echo "load at end: $(cat /proc/loadavg)"
+[ "$CLEAN" = 0 ] || exit 3
+python -I -c '
+import json, sys
+results = json.load(open(sys.argv[1]))
+not_killed = sorted(k for k, v in results.items() if v["status"] != "KILLED")
+print("mutants:", len(results), "results;", "not killed:", not_killed or "none")
+sys.exit(1 if not_killed or len(results) != 1 else 0)
+' $E/mutation_results.json || { echo "STOP (exit 6): not every mutant was KILLED"; exit 6; }
