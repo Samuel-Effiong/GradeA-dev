@@ -163,13 +163,15 @@ REASON = {
     "M1": {G1: "None != (5, 10)"},
     "M2": {G1: "None != (5, 10)"},
     "M3": {G3: ") is not None"},
-    "M4": {G3: "not found in 'Google OAuth token exchange failed: HTTPSConnectionPool"},
+    # The message holds single quotes, so unittest shows it in double quotes.
+    "M4": {G3: 'not found in "Google OAuth token exchange failed: HTTPSConnectionPool'},
     "M5": {P1: SDK_DEFAULT, P2: SDK_DEFAULT},
     "M6": {P1: "{'connect': None, 'read': None", P2: "{'connect': None, 'read': None"},
     "M7": {P1: "{'connect': 0, 'read': 0", P2: "{'connect': 0, 'read': 0"},
     "M8": {
         P1: "{'connect': 300.0, 'read': 300.0",
-        P2: "{'connect': 42.0, 'read': 42.0",
+        # override_settings gives the int 42, which httpx keeps as an int.
+        P2: "{'connect': 42, 'read': 42,",
     },
     "M9": {P2: "{'connect': 10.0, 'read': 300.0"},
     "M10": {P1: "{'connect': 10.0, 'read': 30.0"},

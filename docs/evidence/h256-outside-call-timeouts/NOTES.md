@@ -126,11 +126,11 @@ every block of each expected test holds that test's fragment.
 | M1 | the Google post's timeout removed | G1 | `None != (5, 10)` |
 | M2 | `GOOGLE_TOKEN_EXCHANGE_TIMEOUT = None` | G1 | `None != (5, 10)` |
 | M3 | the failure logged with `exc_info=e` again | G3 (2 blocks) | `) is not None` |
-| M4 | the failure logged by its text (`%s`, e) | G3 (2 blocks) | `not found in 'Google OAuth token exchange failed: HTTPSConnectionPool` |
+| M4 | the failure logged by its text (`%s`, e) | G3 (2 blocks) | `not found in "Google OAuth token exchange failed: HTTPSConnectionPool` (corrected after the gate on 01e7cdcc; see below) |
 | M5 | the AI client's timeout removed (the SDK's 600 s) | P1, P2 | `{'connect': 5.0, 'read': 600` |
 | M6 | `timeout=None` (no limit) | P1, P2 | `{'connect': None, 'read': None` |
 | M7 | `timeout=0` | P1, P2 | `{'connect': 0, 'read': 0` |
-| M8 | the 10 s connect wait dropped | P1, P2 | `{'connect': 300.0, 'read': 300.0` / `{'connect': 42.0, 'read': 42.0` |
+| M8 | the 10 s connect wait dropped | P1, P2 | `{'connect': 300.0, 'read': 300.0` / `{'connect': 42, 'read': 42,` (P2's corrected after the gate on 01e7cdcc; see below) |
 | M9 | the setting ignored (a fixed 300 s) | P2 | `{'connect': 10.0, 'read': 300.0` |
 | M10 | the setting's default 30 s | P1 | `{'connect': 10.0, 'read': 30.0` |
 | M11 | `max_retries=0` | P3 | `0 != 2` |
@@ -193,3 +193,27 @@ Checked before the pack by parsing only:
 - **Fix:** `LC_ALL=C sort`. The fixed check, run on the stopped run's own file list, passes.
 - **The stopped run's output** is kept in `stop_d2fadd97/` (gzipped).
 - **The gate runs again from step 0** on the corrected pack, after a new grant.
+
+## The gate on 01e7cdcc (granted again by the Senior Manager, 27 October 2026): RED, two fragments written wrong
+
+Run 10:23:56 to 10:28:16 inside one `systemd-inhibit`. Available memory was 14G, so the cap was 12G. Logs are in
+`gate_01e7cdcc/` (gzipped), with the script's own output in `gate_01e7cdcc.out.gz`.
+
+- **Step 0, red run:** as written. 6 FAIL blocks, each red for its written reason, "Ran 10 tests in 0.819s",
+  source restored.
+- **Step 1a, makemigrations:** no changes.
+- **Step 1b, changed files and seam:** "SEAM OK: four production files, each changed only as written".
+- **Step 1, own + near + guards:** "Ran 804 tests in 141.616s", "OK (skipped=3)". No provider host in the log.
+- **Step 2, mutants:** 12 KILLED as written. **M4 and M8 were WRONG REASON**, so the gate exits 6.
+  - In both, the failing set was exactly the written one. The fragments were written wrong; the tests were not.
+  - **M4** (G3, both subtests): unittest shows the logged message in double quotes because it holds single quotes,
+    so the written `not found in 'Google ...` never appears. The block reads
+    `'error=ReadTimeout' not found in "Google OAuth token exchange failed: HTTPSConnectionPool(...)"`.
+  - **M8** (P2): `override_settings(AI_PROVIDER_TIMEOUT_SECONDS=42)` passes the int 42, and httpx keeps it as an
+    int. The block reads `{'connect': 42, 'read': 42, 'write': 42, 'pool': 42} != ...`, not `42.0`. P1's
+    fragment for M8 held.
+- **Corrected:** the two fragments in `mutate.py` and the table above, each with a comment saying why.
+  - Re-judged offline against this run's own logs, the corrected battery gives 14 of 14 KILLED. That is not a
+    gate: by rule 22 a fragment is written before its run.
+  - The gate runs again from step 0 on the corrected pack, after a new grant.
+- Source was clean after the mutants; the mutant database was dropped; no watchdog fired.
