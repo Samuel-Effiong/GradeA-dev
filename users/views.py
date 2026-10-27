@@ -70,6 +70,7 @@ from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.reason_codes import add_coded_envelope
+from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.tasks import send_email_task
 from billing.services import AnalyticsService
 from classrooms.models import (
@@ -165,6 +166,8 @@ NAME_HELD_ELSEWHERE_MESSAGE = "This name cannot be used for this student."
 # whether an account exists.
 OTP_SENT_DETAIL = "An OTP has been sent if an account with that email exists."
 GOOGLE_SIGN_IN_FAILED = "Google sign-in failed. Please try again."
+#: H-256: (connect, read) seconds for the Google token exchange.
+GOOGLE_TOKEN_EXCHANGE_TIMEOUT = (5, 10)
 
 # Founder-approved wording (2026-09-28) for the password-reset email.
 # Wording only: no link.
@@ -2197,11 +2200,19 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             }
 
             try:
-                response = http_requests.post(token_url, data=payload)
+                # H-256: 5 s to connect, 10 s for Google's answer; without a
+                # timeout a Google that never answered held this thread.
+                response = http_requests.post(
+                    token_url, data=payload, timeout=GOOGLE_TOKEN_EXCHANGE_TIMEOUT
+                )
                 response.raise_for_status()
                 token_data = response.json()
             except http_requests.exceptions.RequestException as e:
-                logger.error("Google OAuth token exchange failed", exc_info=e)
+                # By class and frames only: requests writes the host, the
+                # port and the timeout into its messages (H-256).
+                logger.error(
+                    "Google OAuth token exchange failed: %s", describe_error_for_log(e)
+                )
                 self._audit_reason = "GOOGLE_EXCHANGE_FAILED"
                 raise ParseError(
                     describe_user_error(

@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import fitz
+import httpx
 import tiktoken
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
@@ -1044,6 +1045,10 @@ class AIProcessor:
         self.client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=OPENROUTER_API_KEY,
+            # H-256: 10 s to connect, AI_PROVIDER_TIMEOUT_SECONDS for each
+            # read, three tries in all; was the SDK's 600 s per read.
+            timeout=httpx.Timeout(settings.AI_PROVIDER_TIMEOUT_SECONDS, connect=10.0),
+            max_retries=2,
         )
 
     def __ai_model(
