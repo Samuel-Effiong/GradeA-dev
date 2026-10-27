@@ -116,7 +116,15 @@ python manage.py makemigrations --check --dry-run --settings=settings_worktree <
 echo "=== 1b. the seam, by program: the eight production files are the only ones changed; by their syntax trees only the named units"
 git diff --name-only $BASE HEAD > $E/seam_changed_files.txt
 cat $E/seam_changed_files.txt
-[ "$(grep -vE '^(docs/|billing/tests/test_h259_stripe_log_text\.py$)' $E/seam_changed_files.txt | tr '\n' ' ')" = "AutoGrader/error_messages.py AutoGrader/log_scrubbing.py billing/license_stripe_mutation.py billing/license_views.py billing/payment_method_views.py billing/receipts.py billing/stripe_service.py billing/tasks.py " ] || { echo "STOP: the production files changed are not the eight"; exit 2; }
+# The secrets baseline moves with the line numbers it records (detect-secrets rewrites it at commit time): allowed
+# only when every changed line is a line_number or generated_at.
+if grep -qx '.secrets.baseline' $E/seam_changed_files.txt; then
+    git diff $BASE HEAD -- .secrets.baseline | grep -E '^[+-] ' | grep -vE '^[+-] +"(line_number|generated_at)": ' > $E/.baseline_other
+    [ -s $E/.baseline_other ] && { echo "STOP: .secrets.baseline changed beyond line numbers"; cat $E/.baseline_other; rm -f $E/.baseline_other; exit 2; }
+    rm -f $E/.baseline_other
+    echo ".secrets.baseline: line numbers and generated_at only"
+fi
+[ "$(grep -vE '^(docs/|billing/tests/test_h259_stripe_log_text\.py$|\.secrets\.baseline$)' $E/seam_changed_files.txt | tr '\n' ' ')" = "AutoGrader/error_messages.py AutoGrader/log_scrubbing.py billing/license_stripe_mutation.py billing/license_views.py billing/payment_method_views.py billing/receipts.py billing/stripe_service.py billing/tasks.py " ] || { echo "STOP: the production files changed are not the eight"; exit 2; }
 rm -rf $E/.base && mkdir -p $E/.base && git archive $BASE AutoGrader/error_messages.py AutoGrader/log_scrubbing.py billing | tar -x -C $E/.base
 python -I $E/seam_check.py $E/.base . > $E/seam_code.txt 2>&1; SEAM=$?; rm -rf $E/.base
 cat $E/seam_code.txt

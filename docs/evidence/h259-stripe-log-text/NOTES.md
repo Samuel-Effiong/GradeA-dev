@@ -165,8 +165,15 @@ A changed file outside the eight is the gate script's changed-file check, not th
 
 - **Script:** `run_h259_gate.sh.txt`, H-255's form. The red run expects 22 blocks and "Ran 23 tests". The exit code is
   captured by the start command.
-- **Before the test runs:** makemigrations, the changed-file list (only the eight production files outside `docs/`
-  and the one test file), then the seam check.
+- **Before the test runs:** makemigrations, the changed-file list (only the eight production files outside `docs/`,
+  the one test file, and `.secrets.baseline` when every changed line in it is a `line_number` or `generated_at`),
+  then the seam check.
+- **The first start stopped there (ac4e8a86, 10:46).** The red run was as written (22 blocks, "Ran 23 tests") and
+  makemigrations passed. The changed-file check then stopped the gate: detect-secrets had rewritten
+  `.secrets.baseline` at the code commit (two known `payment_method_views.py` entries moved from 307 and 420 to
+  309 and 424, and `generated_at`), and the pack's list did not allow that file. A defect in the pack, not the code:
+  the script now allows the baseline with that check, and the gate was started again on the commit that carries
+  the fix. The stopped run's logs are in `gate_ac4e8a86_stopped/`.
 - **Own:** the one module.
 - **Near (49 modules):** every billing test module that reaches a changed function or route, all ten H-28 modules,
   `test_h255_stripe_error_text`, `test_overage_cap`, `test_license_overage_offline`, `test_logs_carry_no_email`
