@@ -1,4 +1,20 @@
-# Use an official Python runtime based on Debian 12 "bookworm" as a parent image.
+# --- Build stage: compile C extensions, then discard compilers and headers ---
+FROM python:3.12-slim-bookworm AS build
+
+RUN apt-get update --yes --quiet && \
+    apt-get install --yes --quiet --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        libjpeg62-turbo-dev \
+        zlib1g-dev \
+        libwebp-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install the application server and project requirements.
+COPY requirements.txt /
+RUN pip install --no-cache-dir "gunicorn==22.0.0" -r /requirements.txt
+
+# --- Runtime stage: only what the app needs to serve requests ---
 FROM python:3.12-slim-bookworm
 
 # Add user that will be used in the container.
@@ -17,15 +33,9 @@ ENV PYTHONUNBUFFERED=1 \
     TMPDIR=/tmp \
     PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/ms-playwright
 
-# Install system packages required by Django and the PDF/image pipeline.
+# Runtime system libraries (not headers or compilers).
 RUN apt-get update --yes --quiet && \
     apt-get install --yes --quiet --no-install-recommends \
-        build-essential \
-        libpq-dev \
-        libmariadb-dev \
-        libjpeg62-turbo-dev \
-        zlib1g-dev \
-        libwebp-dev \
         libgl1 \
         libglib2.0-0 \
         poppler-utils \
@@ -33,12 +43,9 @@ RUN apt-get update --yes --quiet && \
         libpangoft2-1.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the application server.
-RUN pip install "gunicorn==22.0.0"
-
-# Install the project requirements.
-COPY requirements.txt /
-RUN pip install -r /requirements.txt
+# Copy the installed Python environment from the build stage.
+COPY --from=build /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
+COPY --from=build /usr/local/bin/ /usr/local/bin/
 
 # Install headless Chromium (used by assignments/pdf_renderer.py to typeset
 # math in downloaded assignment PDFs) plus its OS-level dependencies.
