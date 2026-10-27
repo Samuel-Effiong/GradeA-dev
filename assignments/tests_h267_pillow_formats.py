@@ -25,6 +25,7 @@ from PIL import Image
 
 from assignments.exceptions import FileUnreadableError
 from assignments.services import AssignmentProcessingService
+from AutoGrader.image_formats import PILLOW_FORMATS
 
 
 def _make_image(fmt, content_type, filename="test_img"):
@@ -132,17 +133,33 @@ class FormatMappingTests(TestCase):
 
     def test_allowed_formats_match_image_formats(self):
         self.assertEqual(
-            set(AssignmentProcessingService.PILLOW_FORMATS.keys()),
+            set(PILLOW_FORMATS.keys()),
             set(AssignmentProcessingService.IMAGE_FORMATS),
         )
 
     def test_pillow_formats_values_are_uppercase_strings(self):
-        for mime, pillow_name in AssignmentProcessingService.PILLOW_FORMATS.items():
+        for mime, pillow_name in PILLOW_FORMATS.items():
             self.assertEqual(
                 pillow_name,
                 pillow_name.upper(),
                 f"{mime} maps to {pillow_name!r}, expected uppercase",
             )
+
+    def test_validator_accepts_exactly_the_four_allowed_formats(self):
+        from AutoGrader.image_formats import validate_image_format
+
+        for fmt in ("JPEG", "PNG", "GIF", "WEBP"):
+            img = _make_image(fmt, f"image/{fmt.lower()}")
+            validate_image_format(img)  # should not raise
+
+    def test_validator_rejects_bmp(self):
+        from django.core.exceptions import ValidationError
+
+        from AutoGrader.image_formats import validate_image_format
+
+        bmp = _make_image("BMP", "image/bmp")
+        with self.assertRaises(ValidationError):
+            validate_image_format(bmp)
 
 
 class ProfileImageFormatTests(TestCase):

@@ -16,7 +16,7 @@ from assignments.serializers import (
     AssignmentListStudentSerializer,
 )
 from assignments.services import get_student_assignment_status
-from assignments.validators import validate_image_format
+from AutoGrader.image_formats import validate_image_format
 from AutoGrader.tasks import send_email_task
 from billing.context import (
     clear_license_invitation_context,

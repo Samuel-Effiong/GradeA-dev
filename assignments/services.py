@@ -43,6 +43,7 @@ from assignments.prosemirror_converter import (
     strip_control_chars,
     strip_raw_text_elements,
 )
+from AutoGrader.image_formats import _ALLOWED_PILLOW_NAMES
 from AutoGrader.uploads import file_name_of, human_size
 from students.task_tracking import (
     ensure_task_not_cancelled,
@@ -512,12 +513,6 @@ def number_questions_in_order(questions) -> tuple:
 
 class AssignmentProcessingService:
     IMAGE_FORMATS = ["image/jpeg", "image/png", "image/gif", "image/webp"]
-    PILLOW_FORMATS = {
-        "image/jpeg": "JPEG",
-        "image/png": "PNG",
-        "image/gif": "GIF",
-        "image/webp": "WEBP",
-    }
     PDF_FORMAT = "application/pdf"
 
     @classmethod
@@ -551,7 +546,7 @@ class AssignmentProcessingService:
         try:
             image = Image.open(
                 BytesIO(uploaded_file.read()),
-                formats=list(cls.PILLOW_FORMATS.values()),
+                formats=_ALLOWED_PILLOW_NAMES,
             )
         except DecompressionBombError as exc:
             raise _too_many_pixels(file_name) from exc

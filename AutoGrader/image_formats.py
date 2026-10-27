@@ -3,14 +3,21 @@ from io import BytesIO
 from django.core.exceptions import ValidationError
 from PIL import Image
 
-ALLOWED_IMAGE_FORMATS = {"JPEG", "PNG", "GIF", "WEBP"}
+PILLOW_FORMATS = {
+    "image/jpeg": "JPEG",
+    "image/png": "PNG",
+    "image/gif": "GIF",
+    "image/webp": "WEBP",
+}
+
+_ALLOWED_PILLOW_NAMES = tuple(sorted(PILLOW_FORMATS.values()))
 
 
 def validate_image_format(value):
     """Reject uploaded images whose Pillow format is not in the allowed set."""
     pos = value.tell()
     try:
-        img = Image.open(BytesIO(value.read()), formats=list(ALLOWED_IMAGE_FORMATS))
+        img = Image.open(BytesIO(value.read()), formats=_ALLOWED_PILLOW_NAMES)
         img.verify()
     except Exception as exc:
         raise ValidationError(

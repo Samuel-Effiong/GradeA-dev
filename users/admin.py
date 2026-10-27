@@ -4,8 +4,8 @@ from django.contrib.auth.admin import UserAdmin
 from django.db.models import Case, F, IntegerField, When
 from django.utils.translation import gettext_lazy as _
 
-from assignments.validators import validate_image_format
 from audit import history
+from AutoGrader.image_formats import validate_image_format
 
 from .models import (
     BetaWhitelist,
