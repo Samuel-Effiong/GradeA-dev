@@ -92,9 +92,14 @@ At the base, MID_BATCH has `variant_from_params=None` and the raiser passes
 3 blocks (3 FAIL, 0 ERROR), "Ran 5 tests". Two tests are green at the base.
 
 1. `test_the_spec_picks_none_finished_from_completed`: FAIL — `assertIsNotNone(None)` because
-   `spec.variant_from_params` is None at the base. Fragment: "is not None".
+   `spec.variant_from_params` is None at the base. ~~Fragment: "is not None".~~
+   Corrected per SM ruling on gate stop at 69d3452f: the assertIsNotNone failure message is
+   "unexpectedly None", not "is not None". Fragment: both "assertIsNotNone(spec.variant_from_params)"
+   AND "unexpectedly None" in the block.
 2. `test_with_items_finished_the_spec_picks_the_default`: FAIL — `assertIsNotNone(None)` for
-   the same reason. Fragment: "is not None".
+   the same reason. ~~Fragment: "is not None".~~
+   Corrected per same ruling. Fragment: both "assertIsNotNone(spec.variant_from_params)"
+   AND "unexpectedly None" in the block.
 3. `test_args_keep_the_4_tuple`: FAIL — at the base, `CodedError(MID_BATCH, completed=0)` without
    `variant=` renders the default sentence ("after 0 of 4"), not the none_finished sentence.
    `assertEqual` mismatch. Fragment: "!=".

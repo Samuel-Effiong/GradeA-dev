@@ -95,7 +95,7 @@ _RAISER_WINS = "test_a_raiser_that_names_the_variant_still_wins"
 _ARGS = "test_args_keep_the_4_tuple"
 
 NE = "!="  # assertEqual mismatch fragment
-NOT_NONE = "is not None"  # assertIsNotNone failure fragment
+NOT_NONE = "unexpectedly None"  # assertIsNotNone failure message
 
 #: Written before any run: {mutant: {test: the fragment its every block holds}}.
 EXPECTED = {

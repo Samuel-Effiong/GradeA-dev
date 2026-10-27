@@ -79,8 +79,8 @@ blocks = re.split(r'^={70}$', text, flags=re.MULTILINE)
 found = [b for b in blocks if re.match(r'\s*(FAIL|ERROR): ' + re.escape(sys.argv[2]) + r'[ (]', b)]
 if not found:
     print('no block for', sys.argv[2]); sys.exit(1)
-if not all('is not None' in b for b in found):
-    print('is not None not in block for', sys.argv[2]); sys.exit(1)
+if not all('assertIsNotNone(spec.variant_from_params)' in b and 'unexpectedly None' in b for b in found):
+    print('fragment missing in block for', sys.argv[2]); sys.exit(1)
 " $RF "$t"; then RED_OK=0; fi
 done
 for t in test_args_keep_the_4_tuple; do
