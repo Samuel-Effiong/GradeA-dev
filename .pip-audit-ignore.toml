@@ -6,7 +6,9 @@
 #
 # Source: pip-audit 2.9.0 on requirements.txt at beta 31a86456 (2026-10-27).
 # Rulings: Senior Manager, 2026-10-27 (the minor and major upgrades await the
-# owner; gunicorn included).
+# owner; gunicorn included). The owner, 2026-10-27: gunicorn, pillow, pyjwt,
+# lxml and urllib3 are upgraded in H-263 (batch 30); the rest stay to the
+# review date.
 
 [[ignore]]
 package = "anyio"  # 4.10.0
@@ -84,7 +86,7 @@ ids = [
     "PYSEC-2026-1433",
     "PYSEC-2026-1434",
 ]
-reason = "upgrade awaiting the owner's ruling (H-258 report)"
+reason = "approved for upgrade in H-263 (batch 30)"
 review_by = 2026-11-30
 
 [[ignore]]
@@ -100,7 +102,7 @@ package = "lxml"  # 6.0.2
 ids = [
     "PYSEC-2026-87",
 ]
-reason = "upgrade awaiting the owner's ruling (H-258 report)"
+reason = "approved for upgrade in H-263 (batch 30)"
 review_by = 2026-11-30
 
 [[ignore]]
@@ -228,7 +230,7 @@ ids = [
     "PYSEC-2026-3495",
     "PYSEC-2026-3496",
 ]
-reason = "upgrade awaiting the owner's ruling (H-258 report)"
+reason = "approved for upgrade in H-263 (batch 30)"
 review_by = 2026-11-30
 
 [[ignore]]
@@ -276,7 +278,7 @@ ids = [
     "PYSEC-2026-4152",
     "PYSEC-2026-4183",
 ]
-reason = "upgrade awaiting the owner's ruling (H-258 report)"
+reason = "approved for upgrade in H-263 (batch 30)"
 review_by = 2026-11-30
 
 [[ignore]]
@@ -354,7 +356,7 @@ ids = [
     "PYSEC-2026-4175",
     "PYSEC-2026-4177",
 ]
-reason = "upgrade awaiting the owner's ruling (H-258 report)"
+reason = "approved for upgrade in H-263 (batch 30)"
 review_by = 2026-11-30
 
 [[ignore]]
