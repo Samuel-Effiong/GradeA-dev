@@ -1,0 +1,43 @@
+available at start: 12G; cap 10G
+load at start: 3.00 2.60 4.00 4/2440 1172017
+=== 0. the red run: pickle test against the code as at 3cc85098 (own DB) 13:30:35
+red run exit=1 (non-zero expected)
+red run blocks: 1 (expected 1)
+red run ERROR blocks: 1 (expected 1)
+ran: Ran 1 test in 0.005s (expected 'Ran 1 test')
+fragment ok
+red run is as written: 1 ERROR, PicklingError, Ran 1 test
+source restored
+ERROR: test_every_spec_with_variant_from_params_survives_pickle (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_every_spec_with_variant_from_params_survives_pickle) (code='OVERAGE_CAP_EXCEE
+Ran 1 test in 0.005s
+FAILED (errors=1)
+dropped test_h268_overage_cap_wording_mut
+=== 1b. the seam (re-gate), by program 13:30:40
+AutoGrader/reason_codes.py
+AutoGrader/tests_reason_codes.py
+docs/evidence/h268-overage-cap-wording/NOTES.md
+docs/evidence/h268-overage-cap-wording/mutate.py
+docs/evidence/h268-overage-cap-wording/run_h268_regate.sh.txt
+docs/evidence/h268-overage-cap-wording/seam_check.py
+docs/evidence/h268-overage-cap-wording/seam_check_regate.py
+AutoGrader/reason_codes.py: ['REASON_CODES', '_overage_cap_variant']
+SEAM OK: only the lambda-to-function units changed
+=== 1. own modules + near modules + serialization + guards at ea35ebd2 13:30:41
+exit=0 13:33:15
+Ran 683 tests in 136.244s
+OK
+=== 2. mutants: 5 (own DB, rules 17, 18 and 22) 13:33:15
+mutants exit=0 13:33:44
+M1 {'what': 'swap the two sentences', 'file': 'AutoGrader/reason_codes.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 16 tests in 0.651s', 'expected': {'test_with_blocks_left_the_sentence_names_what_is_left': '!=', 'test_with_none_left_the_sentence_sends_them_to_the_next_cycl
+M2 {'what': 'drop the zero branch', 'file': 'AutoGrader/reason_codes.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 16 tests in 0.646s', 'expected': {'test_with_none_left_the_sentence_sends_them_to_the_next_cycle': '!=', 'test_the_spec_chose_it_so_the_args_keep_their_shape':
+M3 {'what': 'boundary: remaining <= 1 picks cap_reached', 'file': 'AutoGrader/reason_codes.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 16 tests in 0.608s', 'expected': {'test_with_blocks_left_the_sentence_names_what_is_left': '!=', 'test_quantity_exceeding_remaining_cap_is
+M4 {'what': "the spec overrides the raiser's variant", 'file': 'AutoGrader/reason_codes.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 7 tests in 0.006s', 'expected': {'test_a_raiser_that_names_the_variant_still_wins': '!='}, 'failing_tests': ['test_a_raiser_that_names_the_va
+M5 {'what': 'put the spec-chosen variant in args', 'file': 'AutoGrader/reason_codes.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 7 tests in 0.005s', 'expected': {'test_the_spec_chose_it_so_the_args_keep_their_shape': '!='}, 'failing_tests': ['test_the_spec_chose_it_so_the_a
+KILLED: ['M1', 'M2', 'M3', 'M4', 'M5']
+SURVIVED: []
+BROKEN: []
+source clean after mutants
+dropped test_h268_overage_cap_wording_mut
+load at end: 1.57 2.25 3.61 1/2435 1174729
+mutants: 5 results; not killed: none
+gate exit=0

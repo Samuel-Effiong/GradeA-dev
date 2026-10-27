@@ -159,4 +159,30 @@ and the function body. All 5 expected KILLED as before.
 | M4 | spec overrides raiser | KILLED | CodedError.__init__ unchanged |
 | M5 | spec-chosen in args | KILLED | CodedError.__init__ unchanged |
 
+### Re-gate on `ea35ebd2`
+
+Run 13:30:35–13:33:44, load1 3.00→1.57, 10G cap.
+
+#### 0. Red run (own DB)
+1 block (0 FAIL, 1 ERROR), Ran 1 test in 0.005s. OVERAGE_CAP_EXCEEDED: PicklingError (lambda).
+Fragment "PicklingError" confirmed. Modules loaded. As written.
+
+#### 1b. Seam by program (re-gate)
+`AutoGrader/reason_codes.py` changed only: `_overage_cap_variant`, `REASON_CODES`. SEAM OK.
+
+#### 1. Own + near + serialization + guards
+Ran 683 in 136.244s, OK.
+
+#### 2. Mutants (5, own DB)
+
+| ID | What | Status | Expected | Also failed |
+|----|------|--------|----------|-------------|
+| M1 | swap the two sentences | KILLED | 8 tests | — |
+| M2 | drop the zero branch | KILLED | 4 tests | — |
+| M3 | boundary remaining ≤ 1 | KILLED | 4 tests | — |
+| M4 | spec overrides raiser | KILLED | 1 test | — |
+| M5 | spec-chosen in args | KILLED | 1 test | — |
+
+5/5 KILLED, 0 SURVIVED, 0 BROKEN. Exit 0.
+
 Security Engineer (db)
