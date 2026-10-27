@@ -24,9 +24,10 @@ Both follow billing/tasks.py's live-QA conventions: max_retries=0
 (a failure here is a signal to investigate, not a transient to paper
 over) and ERROR-level logging naming the reproduction command.
 
-There is no CI in this repo, so Celery Beat is the only scheduler
-available. If CI is ever added, the nightly replay belongs there
-instead — it needs no credentials and no database of its own.
+The GitHub workflows (.github/workflows/: the tests, pre-commit, migration
+safety and the dependency audit) do not run either benchmark, so Celery
+Beat is where they are scheduled. The nightly replay could move to a
+workflow: it needs no credentials and no database of its own.
 """
 
 import json

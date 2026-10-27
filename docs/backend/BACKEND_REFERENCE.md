@@ -1958,7 +1958,7 @@ The result backend still stores the exception for `CELERY_RESULT_EXPIRES` (not s
 | hourly (`:15`) | `billing.tasks.sweep_stale_stripe_events` | settles `PROCESSING` claims abandoned by killed workers; raises ERROR for `FAILED` rows nearing the end of Stripe's ~3-day retry window. **Never re-runs handlers** | `max_retries=0` |
 | 00:00 | `billing.tasks.process_license_renewals` | for `auto_renew=False`: deactivate + cancel at period end. For `auto_renew=True`: verify a **paid invoice covering a new period** before renewing; locks the row and skips if already renewed | per-license try/except; counters in the summary |
 | 01:00 | `billing.tasks.nightly_stripe_live_qa` | real-Stripe QA suite; **no-op unless `ENABLE_STRIPE_LIVE_QA` and `sk_test_` keys** | `max_retries=0` |
-| 01:30 | `ai_processor.tasks.nightly_grading_benchmark_replay` | replays **recorded** model responses through the real pipeline and diffs against the committed baseline — free, deterministic, and the only scheduled check that catches a regression in *our* grading code (there is no CI in this repo) | stale recordings → WARNING + skip, not a regression |
+| 01:30 | `ai_processor.tasks.nightly_grading_benchmark_replay` | replays **recorded** model responses through the real pipeline and diffs against the committed baseline — free, deterministic, and the only scheduled check that catches a regression in *our* grading code (the GitHub workflows do not run it) | stale recordings → WARNING + skip, not a regression |
 | 02:00 | `billing.tasks.process_annual_plan_credit_grants` | monthly credit refresh for ANNUAL-interval plans (billed yearly, credited monthly) | per-row |
 | 03:00 | `billing.tasks.process_license_monthly_credit_refreshes` | per-teacher monthly refresh under a license; resets `total_credits_consumed` idempotently via `consumption_window_start` | per-row |
 | 03:00 weekly (`GRADING_BENCHMARK_DAY_OF_WEEK`) | `ai_processor.tasks.weekly_grading_benchmark_live` | grades the fixed dataset against the **live** model — the only check that can detect the provider changing behaviour. Off unless `ENABLE_AI_LIVE_QA` | `max_retries=0` |
@@ -2568,10 +2568,12 @@ the comments suggest this was learned the hard way.
 share `_EVENT_HANDLERS` and `_record_and_dispatch`. The comment: the table used to be duplicated
 inline in both, so a new event type had to be wired twice or silently no-op'd on one.
 
-### D13 — Beat as the CI substitute
+### D13 — Beat schedules the benchmarks
 
-**Observed.** `ai_processor/tasks.py` states plainly: *"There is no CI in this repo, so Celery Beat
-is the only scheduler available. If CI is ever added, the nightly replay belongs there instead."*
+**Observed.** CI exists: the GitHub workflows (`.github/workflows/`) run the tests, pre-commit, the
+migration-safety check and the dependency audit (H-258). None of them runs the grading benchmarks;
+`ai_processor/tasks.py` says so and notes that the nightly replay could move to a workflow, since it
+needs no credentials and no database of its own.
 
 **Interpretation.** An explicit, documented compromise rather than an accident.
 
@@ -2584,7 +2586,7 @@ is the only scheduler available. If CI is ever added, the nightly replay belongs
 1. **The codebase is unusually well commented at decision points.** Most non-obvious lines carry a
    comment explaining the bug that motivated them. That is what made a documentation pass of this
    depth possible without running the system. It is also the codebase's main defence against
-   regression, given there is no CI.
+   regression, beside the CI test suite (`.github/workflows/tests.yml`).
 
 2. **Correctness effort is concentrated where money and grades are.** Grading and billing carry
    claims, fencing tokens, refund scoping, arithmetic re-derivation and idempotency ledgers. The
