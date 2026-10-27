@@ -7,8 +7,8 @@
 # Source: pip-audit 2.9.0 on requirements.txt at beta 31a86456 (2026-10-27).
 # Rulings: Senior Manager, 2026-10-27 (the minor and major upgrades await the
 # owner; gunicorn included). The owner, 2026-10-27: gunicorn, pillow, pyjwt,
-# lxml, urllib3 and djangorestframework are upgraded in H-263 (batch 30); the
-# rest stay to the review date.
+# lxml, urllib3 and djangorestframework are upgraded in H-263 (batch 30), and
+# their entries are gone; the rest stay to the review date.
 
 [[ignore]]
 package = "anyio"  # 4.10.0
