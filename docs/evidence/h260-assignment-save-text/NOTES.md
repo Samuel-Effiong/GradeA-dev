@@ -146,6 +146,23 @@ A changed file other than the one is the gate script's changed-file check, not t
   script), H-209's `tests_task_results_carry_no_text` and H-218's `tests_h218_celery_trace_filter`.
 - **Guards:** the 20 of the H-259 gate, `tests_no_pii_in_logs`, `tests_log_scrubbing` and `tests_sentry_scrubbing`
   among them.
-- **The mutants:** 8, with a 1320 s limit and the 300 s stall watchdog.
+- **The mutants:** 8, with a 1320 s limit and the 300 s stall watchdog. The gate is green only when all 8 are
+  KILLED: a SURVIVED or BROKEN mutant, or no results file, stops it with exit 6.
+- **The first start stopped (e52dca6e, 11:14:03 to 11:19:19): an environment stop, not a code result.**
+  - Everything before the mutants was as written: the red run (3 blocks, "Ran 4 tests"), makemigrations, the seam,
+    and step 1, "Ran 823 tests in 213.963s", "OK (skipped=1)" (11:14:29 to 11:18:26).
+  - At 11:18:29 to 11:18:32 the shared environment (`AutoGrader_env`) was reinstalled with batch 29's pins: Django
+    5.2.6 to 5.2.17, and authlib 1.6.12, pyasn1 0.6.4, tornado 6.5.9 and brotli 1.2.1. That was the Release
+    Builder's install, on the Senior Manager's instruction, while this gate ran; a pins install now waits for every
+    running gate to end.
+  - A1 had started at 11:18:26. Django's system check failed while loading the admin's template tags ("cannot
+    import name 'lazy_annotations' from 'django.utils.inspect'"), so A1 ran no test and was BROKEN. The other seven
+    were KILLED, each for its written reason, on 5.2.17.
+  - The script then exited 0: it reported a BROKEN mutant without failing (H-259's form had the same gap; H-259's
+    30 were all KILLED). The exit-6 check above was added before the second start.
+  - The Senior Manager's ruling: run the whole gate again on the current environment. Batch 30 lands on beta after
+    batch 29 (`2d424a48`), so Django 5.2.17 is what H-260 ships with. The branch's own `requirements.txt` still pins
+    5.2.6 and is not touched here; the bundle's comes from beta.
+  - The stopped run's logs, with its own output, are in `gate_e52dca6e_stopped/`.
 - The batch's full run is the real regression.
 - **Base:** `2658ca13`.

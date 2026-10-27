@@ -135,6 +135,16 @@ UPART=mutants
 STALL=$!
 eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 1320 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
 echo "mutants exit=$? $(date +%T)"; kill $STALL 2>/dev/null; cut -c1-300 $E/mutation_log.txt
-git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
+CLEAN=0; git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || { echo "STOP: source not clean after mutants"; CLEAN=3; }
 dropmut
 echo "load at end: $(cat /proc/loadavg)"
+[ "$CLEAN" = 0 ] || exit 3
+# The gate is green only when every one of the 8 mutants is KILLED: a SURVIVED or BROKEN mutant (or no results file)
+# stops it with exit 6 (added after the first start on e52dca6e, whose A1 was BROKEN while the script exited 0).
+python -I -c '
+import json, sys
+results = json.load(open(sys.argv[1]))
+not_killed = sorted(k for k, v in results.items() if v["status"] != "KILLED")
+print("mutants:", len(results), "results;", "not killed:", not_killed or "none")
+sys.exit(1 if not_killed or len(results) != 8 else 0)
+' $E/mutation_results.json || { echo "STOP (exit 6): not every mutant was KILLED"; exit 6; }
