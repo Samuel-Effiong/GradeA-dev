@@ -97,3 +97,35 @@
   3. the hook at the tip (Passed, 0 issues);
   4. own + three cache modules + the 21 guards;
   5. the 7 plants.
+
+## The gate on d3513974 (granted by the Senior Manager, 27 October 2026): GREEN
+
+Run 11:09:26 to 11:13:12 WAT inside one `systemd-inhibit`, gate exit 0 ("GATE STEPS ALL AS WRITTEN"). Logs are in
+`gate_d3513974/` (gzipped).
+- Available memory at the start was 14G, so the cap was 12G.
+- Load was 2.14 2.39 3.84 at the start and 4.02 4.10 4.29 at the end.
+- **Run beside another:** the Security Engineer's `manage.py test assignments AutoGrader.tests_no_pii_in_logs`
+  (H-259/H-260 worktree) was running. The Senior Manager ruled that this gate (Bandit and about 25 modules, not a
+  full suite) start alongside it.
+
+- **Red run** (the tree as at 2a6e3eb7, pyproject's `tests` limit alone removed):
+  - the hook exited 1 with exactly 56 issues: B105=3 B106=19 B110=5 B112=3 B311=1 B324=1 B404=6 B603=11 B606=1
+    B607=6, as written;
+  - source restored.
+- **Seam:** 19 changed Python files with the base's syntax tree (comments only), `users/mixins.py` apart from
+  `usedforsecurity=False`, and the two config files only as written. "SEAM OK".
+- **The hook at the tip** on every file: exit 0, "Passed", no issue.
+- **Step 1** (own, 3 cache modules, the 21 guards), 11:10:04 to 11:13:07: "Ran 358 tests in 154.743s", "OK".
+- **Step 2, the 7 plants,** 11:13:07 to 11:13:12: all 7 CAUGHT as written, each hook exit 1 with exactly the
+  written issues (P1 B324 x1, P2 B113 x1, P3 B105 x1, P4 B106 x11, P5 B105 x1, P6 B404 x1, P7 B603 x1).
+- The source was clean after the plants, and the scratch file was gone. No watchdog fired.
+
+## Known wart (left as it is, SM ruling)
+
+- `scripts/credscan.py:416` keeps the repository's older nosec form, `# nosec B603 B607 - git, with a fixed
+  argument list`.
+- Bandit still honours both ids (0 issues, "2 skipped" on that file). But it reads each following word as a test
+  name and prints six warnings on every run, `Test in comment: <word> is not a test name or id, ignoring`, one for
+  each word of the reason: `git`, `with`, `a`, `fixed`, `argument`, `list`.
+- They are warnings only and do not fail the hook. Rewriting the line as `# nosec B603 B607  # ...` would remove
+  them.
