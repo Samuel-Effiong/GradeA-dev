@@ -238,14 +238,16 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         retryable=True,
         params=frozenset({"completed", "total"}),
         # Approved by QA (the founder), 2026-10-01: when not one item had
-        # finished, "after 0 of N" read wrong. Picked by
-        # students.task_tracking._mid_batch_error, the one place both S7c
-        # raise sites build this error.
+        # finished, "after 0 of N" read wrong. H-269: the spec picks the
+        # variant from completed, not the raiser.
         alternative_messages={
             "none_finished": (
                 "Credits ran out before any of the {total} items were finished."
             )
         },
+        variant_from_params=lambda params: (
+            "none_finished" if params.get("completed") == 0 else None
+        ),
     ),
     ReasonCode.INSUFFICIENT_CREDITS: ReasonSpec(
         ErrorClass.USER,
