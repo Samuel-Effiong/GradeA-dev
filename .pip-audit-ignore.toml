@@ -52,18 +52,6 @@ reason = "upgrade awaiting the owner's ruling (H-258 report)"
 review_by = 2026-11-30
 
 [[ignore]]
-package = "djangorestframework"  # 3.16.1
-ids = [
-    "GHSA-33wh-fxxf-88vv",
-    "GHSA-3547-9m27-7rxg",
-    "GHSA-xw6w-gcfp-cf8m",
-    "PYSEC-2026-3827",
-    "PYSEC-2026-3828",
-]
-reason = "approved for upgrade in H-263 (batch 30)"
-review_by = 2026-11-30
-
-[[ignore]]
 package = "filelock"  # 3.19.1
 ids = [
     "PYSEC-2026-1374",
