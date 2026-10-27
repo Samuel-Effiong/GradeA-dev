@@ -1,0 +1,176 @@
+#!/bin/bash
+# H-263 the six approved upgrades (beta line, from H-258's tip 9263e9f8). Usage: bash run_h263_gate.sh <tip> 1
+# One grant, inside ONE outer inhibit (memory cap = available - 2G, min 6G, read at start; rule 13):
+#   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block bash <script> <tip> 1
+# Every Django run uses the PRIVATE venv AutoGrader_env_h263 (the shared venv keeps the old pins; SM 2026-10-27),
+# removed after the gate.
+# 0 the red run: the new test module at the tip with LIST_SERIALIZER_ERRORS_AS_DICT removed (the DRF 3.18 default).
+#   RULE 22: both tests red for their WRITTEN reason, exactly 2 blocks;
+# 0b the audit on the base pins with the six entries still out of the ignore file: exactly the 87 ids;
+# 1a makemigrations --check; 1b the seam (seam_check.py: the six pins, gunicorn's Dockerfile line, the six ignore
+#   blocks out, settings.py's syntax tree as at the base apart from the one setting); 1c the audit at the tip: clean,
+#   105 ignored; 1d gunicorn --check-config and a boot with the Dockerfile's flags, one GET /health, then stop;
+#   1 the near suites, one step per commit (pillow, PyJWT, lxml, urllib3 with CI_REQUIRE_NETWORK=1 for the live peer
+#   test, and the own test); 2 the FULL suite at the tip (--parallel 4), because DRF reaches every view;
+#   3 the 6 planted pins, each caught with exactly that package's ids (plant.py).
+# A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
+set -u
+TIP=$1; STEP=${2:-1}; BASE=9263e9f8
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades || exit 1
+PY=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env_h263/bin/python
+AUDIT_VENV=/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/9b6cbba1-ad21-4f0f-a33a-aad5adc0a779/scratchpad/pipaudit-venv
+E=docs/evidence/h263-package-upgrades
+AVAIL_G=$(awk '/^MemAvailable:/ {print int($2/1048576)}' /proc/meminfo)
+MEMG=$((AVAIL_G - 2))
+echo "available at start: ${AVAIL_G}G; cap ${MEMG}G"
+[ "$MEMG" -ge 6 ] || { echo "STOP (exit 5): cap under 6G; wait and tell the SM"; exit 5; }
+LOAD1=$(awk '{print int($1)}' /proc/loadavg)
+[ "$LOAD1" -lt 8 ] || { echo "STOP (exit 5): load $(cat /proc/loadavg); another suite is running"; exit 5; }
+UNITP=gap-h263-$$
+UPART=none
+CAP="systemd-run --user --scope -q --unit=\${UNITP}-\${UPART} -p MemoryMax=${MEMG}G -p MemorySwapMax=0"
+( while sleep 10; do
+    A=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
+    if [ "$A" -lt 1572864 ]; then
+        for U in $UNITP-red $UNITP-pillow $UNITP-pyjwt $UNITP-lxml $UNITP-urllib3 $UNITP-own $UNITP-suite; do
+            if systemctl --user is-active -q "$U.scope"; then
+                echo "MEMORY STOP $(date +%T): available ${A} kB; stopping $U.scope" >> $E/memory_watchdog.txt
+                systemctl --user stop "$U.scope"
+            fi
+        done
+    fi
+  done ) &
+WATCHDOG=$!
+export PYTHONFAULTHANDLER=1
+export EXEMPT_EMAIL_DOMAINS=
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+[ "$STEP" = 1 ] || { echo "only step 1 exists"; exit 1; }
+mkdir -p $E
+# The private venv must carry the six new pins, and the shared venv must not be it.
+[ "$PY" != "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python" ] || { echo "STOP: that is the shared venv"; exit 1; }
+VERS=$($PY -c 'import importlib.metadata as m; print(" ".join(m.version(p) for p in ("gunicorn","pillow","pyjwt","lxml","urllib3","djangorestframework")))' 2>&1)
+echo "private venv: $VERS"
+[ "$VERS" = "22.0.0 13.0.0 2.15.0 6.1.0 2.8.0 3.18.2" ] || { echo "STOP: the private venv does not carry the six pins"; exit 1; }
+CHANGED="requirements.txt Dockerfile .pip-audit-ignore.toml AutoGrader/settings.py"
+restore_tree() { kill $WATCHDOG 2>/dev/null; git checkout HEAD -- $CHANGED 2>/dev/null; find AutoGrader assignments -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
+trap restore_tree EXIT
+summary() { grep -E "^(Ran |OK|FAILED \(|(FAIL|ERROR): )" "$1" | cut -c1-200 | head -${2:-12}; }
+ids_of() { grep -oE "\b(PYSEC|GHSA|OSV)-[0-9A-Za-z-]+\b" "$1" | sort -u | wc -l; }
+OWN="assignments.tests_h263_list_error_shape"
+echo "load at start: $(cat /proc/loadavg)"
+
+echo "=== 0. the red run: $OWN with the setting removed (DRF 3.18's own default) $(date +%T)"
+python3 -I - <<'PY'
+import re
+p = "AutoGrader/settings.py"
+s = open(p).read()
+m = re.search(r'\n(?:    #[^\n]*\n)*    "LIST_SERIALIZER_ERRORS_AS_DICT": False,\n', s)
+assert m, "the setting and its comment were not found"
+open(p, "w").write(s[: m.start()] + "\n" + s[m.end() :])
+PY
+grep -q "LIST_SERIALIZER_ERRORS_AS_DICT" AutoGrader/settings.py && { echo "STOP: the setting is still there"; exit 3; }
+UPART=red
+eval "PYTHONDONTWRITEBYTECODE=1 $CAP nice -n 10 timeout -k 60 900 $PY manage.py test --noinput --verbosity 2 --settings=settings_worktree $OWN" < /dev/null > $E/red_run_setting_removed.txt 2>&1
+RED_EXIT=$?
+echo "red run exit=$RED_EXIT (non-zero expected)"
+RF=$E/red_run_setting_removed.txt
+RC=/home/bond-servant-in-training/Documents/Projects/GAP-builder-scripts/reason_check.py
+RED_OK=1
+[ "$RED_EXIT" -ne 0 ] || RED_OK=0
+grep -qE "^OK" $RF && RED_OK=0
+grep -qE "^Ran 2 tests in" $RF || { echo "red run: no 'Ran 2 tests' line"; RED_OK=0; }
+grep -qE "unittest.loader._FailedTest" $RF && { echo "red run: the module failed to load"; RED_OK=0; }
+# Each test compares the list shape with what DRF 3.18 now returns: a dict keyed by the failing index.
+python3 -I $RC $RF test_a_valid_item_keeps_its_empty_place "{1: {'points': [ErrorDetail(string='A valid number is required.'" || RED_OK=0
+python3 -I $RC $RF test_the_failing_item_is_reported_at_its_own_position "{0: {'points': [ErrorDetail(string='A valid number is required.'" || RED_OK=0
+[ "$(grep -cE '^(FAIL|ERROR): ' $RF)" = 2 ] || { echo "red run: not exactly 2 blocks ($(grep -cE '^(FAIL|ERROR): ' $RF))"; RED_OK=0; }
+git checkout HEAD -- AutoGrader/settings.py
+git diff --quiet HEAD -- . ":!$E" && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+[ "$RED_OK" = 1 ] || { echo "STOP (exit 4): the red run is not as written"; exit 4; }
+echo "red run is as written: 2 blocks, each red for its written reason"
+
+echo "=== 0b. the audit on the base pins, the six entries still out $(date +%T)"
+git checkout $BASE -- requirements.txt
+$AUDIT_VENV/bin/python scripts/pip_audit_gate.py < /dev/null > $E/audit_planted_base_pins.txt 2>&1
+BP=$?
+git checkout HEAD -- requirements.txt
+git diff --quiet HEAD -- . ":!$E" || { echo "STOP: requirements.txt not restored"; exit 3; }
+echo "base pins exit=$BP (1 expected); ids named: $(ids_of $E/audit_planted_base_pins.txt) (87 expected)"
+[ "$BP" = 1 ] && [ "$(ids_of $E/audit_planted_base_pins.txt)" = 87 ] || { echo "STOP (exit 4): the base pins are not the 87 written"; exit 4; }
+
+echo "=== 1a. makemigrations --check $(date +%T)"
+$PY manage.py makemigrations --check --dry-run --settings=settings_worktree < /dev/null > $E/makemigrations_check.txt 2>&1
+echo "makemigrations exit=$? (0 = no changes)"; cat $E/makemigrations_check.txt
+grep -q "No changes detected" $E/makemigrations_check.txt || { echo "STOP: migrations are not up to date"; exit 2; }
+
+echo "=== 1b. the seam $(date +%T)"
+git diff --name-only $BASE HEAD > $E/seam_changed_files.txt
+python3 -I $E/seam_check.py $BASE < /dev/null > $E/seam_code.txt 2>&1; SEAM=$?; cat $E/seam_code.txt
+[ "$SEAM" = 0 ] || { echo "STOP: the seam check failed"; exit 2; }
+
+echo "=== 1c. the audit at the tip $(date +%T)"
+$AUDIT_VENV/bin/python scripts/pip_audit_gate.py < /dev/null > $E/audit_tip.txt 2>&1
+AT=$?
+echo "audit at the tip exit=$AT (0 expected)"; grep -E "No known vulnerabilities|accepted advisories|Found" $E/audit_tip.txt
+[ "$AT" = 0 ] && grep -q "No known vulnerabilities found, 105 ignored" $E/audit_tip.txt || { echo "STOP: the audit is not clean at the tip"; exit 2; }
+
+echo "=== 1d. gunicorn 22.0.0: --check-config, then a boot with the Dockerfile's flags $(date +%T)"
+G=$($PY -c 'import gunicorn; print(gunicorn.__version__)')
+echo "gunicorn $G"
+[ "$G" = "22.0.0" ] || { echo "STOP: not gunicorn 22.0.0"; exit 2; }
+GB=$E/gunicorn_boot.txt
+DJANGO_SETTINGS_MODULE=settings_worktree $PY -m gunicorn AutoGrader.wsgi:application --check-config < /dev/null > $GB 2>&1
+echo "--check-config exit=$? (0 expected)" >> $GB
+PORT=8731
+DJANGO_SETTINGS_MODULE=settings_worktree nice -n 10 $PY -m gunicorn AutoGrader.wsgi:application --bind 127.0.0.1:$PORT --timeout 100 --workers 2 --threads 4 --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200 < /dev/null >> $GB 2>&1 &
+GPID=$!
+for i in $(seq 1 30); do sleep 1; curl -s -o $E/gunicorn_health.txt -w "%{http_code}" "http://127.0.0.1:$PORT/health" > $E/gunicorn_health_code.txt 2>&1 && grep -qE "^[0-9]{3}$" $E/gunicorn_health_code.txt && break; done
+CODE=$(cat $E/gunicorn_health_code.txt 2>/dev/null)
+echo "GET /health -> $CODE after ${i}s; body: $(cut -c1-200 $E/gunicorn_health.txt 2>/dev/null)" | tee -a $GB
+kill $GPID 2>/dev/null; wait $GPID 2>/dev/null
+pgrep -f "gunicorn AutoGrader.wsgi:application --bind 127.0.0.1:$PORT" > /dev/null && { echo "STOP: a gunicorn process is left"; exit 2; }
+# What this step checks is that gunicorn 22.0.0 boots with the Dockerfile's flags and serves a request through
+# our WSGI app. 200 and 503 both prove that: /health answers 503 when the local DB or Redis is down, which is
+# the environment's business, not this upgrade's. Anything else (no answer, 400, 500) is a stop.
+grep -q "exit=0" $GB || { echo "STOP: gunicorn --check-config did not pass"; exit 2; }
+[ "$CODE" = "200" ] || [ "$CODE" = "503" ] || { echo "STOP: gunicorn did not serve /health (code '$CODE')"; exit 2; }
+echo "gunicorn booted with the Dockerfile's flags and served /health ($CODE), then stopped"
+
+echo "=== 1. the near suites, one step per commit $(date +%T)"
+PILLOW_MODS="ai_processor.tests ai_processor.tests_answer_benchmark_inputs ai_processor.tests_h204_provider_price_sort ai_processor.tests_h205_image_fallback ai_processor.tests_pdf_type_validation assignments.tests_file_reason_codes assignments.tests_real_extraction assignments.tests_security assignments.tests_upload_batch_billing assignments.tests_upload_task_retry_policy AutoGrader.tests_error_messages billing.tests.test_h38_part2_removed_teacher_routes students.tests_batch_item_results students.tests_credits_mid_batch students.tests_h216_student_credit_sentence students.tests_h223_batch_runs_what_fits students.tests_h225_student_empty_wallet students.tests_identity_reason_codes students.tests_upload_credit_door"
+PYJWT_MODS="audit.tests_state_change billing.tests.test_h38_teacher_removal classrooms.tests_teacher_access_sweep students.tests_async_edit_path students.tests_h38_n3_refusal_audit students.tests_post_grading_submission_lock users.tests_activity_middleware_load users.tests_auth_audit_events users.tests_auth_endpoints users.tests_forced_password_change users.tests_last_login_stamp users.tests_patch_password users.tests_remaining_branches users.tests_roads_that_sign_in_or_activate users.tests_student_cannot_name_themselves users.tests_switched_off_means_out users.tests_teacher_renames_student users.tests_token_revocation"
+LXML_MODS="assignments.tests assignments.tests_cache_matrix_p4 assignments.tests_download_pdf assignments.tests_format_assignment_html assignments.tests_pdf_cache assignments.tests_prosemirror_converter assignments.tests_sanitizer_threads assignments.tests_strip_html_from_assignment_titles assignments.tests_title_sanitization"
+for STEP_NAME in pillow pyjwt lxml urllib3 own; do
+    case $STEP_NAME in
+        pillow) MODS="$PILLOW_MODS"; ENVV="";;
+        pyjwt) MODS="$PYJWT_MODS"; ENVV="";;
+        lxml) MODS="$LXML_MODS"; ENVV="";;
+        urllib3) MODS="ai_processor.tests_ssrf_guard"; ENVV="CI_REQUIRE_NETWORK=1";;
+        own) MODS="$OWN AutoGrader.tests_no_pii_in_logs AutoGrader.tests_network_guard"; ENVV="";;
+    esac
+    UPART=$STEP_NAME
+    OUTF=$E/near_$STEP_NAME.txt
+    eval "$ENVV $CAP nice -n 10 timeout -k 60 3600 $PY manage.py test --noinput --verbosity 2 --settings=settings_worktree $MODS" < /dev/null > $OUTF 2>&1
+    echo "$STEP_NAME exit=$? $(date +%T)"; summary $OUTF
+    if grep -qE "^FAILED \\(" $OUTF || ! grep -qE "^OK" $OUTF; then echo "STOP: $STEP_NAME is not green"; exit 2; fi
+done
+# The live peer test is the one that pins urllib3's response internals, so it must have RUN, not been skipped.
+grep -q "test_peer_introspection_works_against_a_real_connection" $E/near_urllib3.txt || { echo "STOP: the live peer test is not in the output"; exit 2; }
+grep -q "Live network check is opt-in" $E/near_urllib3.txt && { echo "STOP: the live peer test was skipped; CI_REQUIRE_NETWORK did not reach it"; exit 2; }
+echo "the live peer test ran (its one GET to example.com)"
+
+echo "=== 2. the FULL suite at the tip (--parallel 4) $(date +%T)"
+UPART=suite
+eval "$CAP nice -n 10 timeout -k 60 5400 $PY manage.py test --noinput --parallel 4 --settings=settings_worktree" < /dev/null > $E/full_suite_private_venv.txt 2>&1
+echo "exit=$? $(date +%T)"; summary $E/full_suite_private_venv.txt
+if grep -qE "^FAILED \\(" $E/full_suite_private_venv.txt || ! grep -qE "^OK" $E/full_suite_private_venv.txt; then echo "STOP: not green"; exit 2; fi
+
+echo "=== 3. the 6 planted pins $(date +%T)"
+PIP_AUDIT_PY=$AUDIT_VENV/bin/python PLANT_BASE=$BASE python3 -I $E/plant.py < /dev/null > $E/plant_log.txt 2>&1
+PL=$?
+echo "plants exit=$PL $(date +%T)"; cut -c1-300 $E/plant_log.txt | tail -4
+git diff --quiet HEAD -- . ":!$E" && echo "source clean after the plants" || { echo "STOP: source not clean after the plants"; exit 3; }
+echo "load at end: $(cat /proc/loadavg)"
+[ "$PL" = 0 ] || { echo "STOP: not every planted pin caught as written"; exit 6; }
+echo "GATE STEPS ALL AS WRITTEN"

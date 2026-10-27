@@ -164,6 +164,30 @@
   - DRF: it reaches every view, so the full suite at the tip.
 - **The full suite at the tip** with `--parallel 4`, in the private venv.
 
+### The pack
+
+- **`run_h263_gate.sh.txt`**, in order: 0 the red run; 0b the audit on the base pins; 1a makemigrations; 1b the
+  seam; 1c the audit at the tip; 1d gunicorn's boot; 1 the five near steps; 2 the full suite; 3 the six plants.
+- **The red run** (rule 22, written before the run): the setting and its comment are cut out of
+  `AutoGrader/settings.py`, which leaves DRF 3.18's own default, and
+  `assignments.tests_h263_list_error_shape` must give exactly 2 blocks, each holding the dict shape the test
+  refuses: `{1: {'points': [ErrorDetail(string='A valid number is required.` for the first test and
+  `{0: {'points': [ErrorDetail(string='A valid number is required.` for the second.
+- **`seam_check.py`** passes at the tip: `requirements.txt` keeps its length and differs by the six pins, the
+  `Dockerfile` by gunicorn's line, `.pip-audit-ignore.toml` loses exactly the six blocks (87 ids) with its other
+  21 entries unchanged and every id left one the base already listed, and `AutoGrader/settings.py` has the
+  base's syntax tree apart from `LIST_SERIALIZER_ERRORS_AS_DICT: False`.
+- **`plant.py`** (A1 to A6): each puts one package back to its old pin, with its advisories still out of the
+  ignore file, and the audit must exit 1 naming exactly that package's ids. The expected sets are read from
+  `git show 9263e9f8:.pip-audit-ignore.toml` before any run: gunicorn 2, pillow 56, PyJWT 17, lxml 1,
+  urllib3 6, djangorestframework 5. `--check` reads them without running anything.
+- **The gunicorn step** takes 200 or 503 from `/health` as proof that 22.0.0 booted with the Dockerfile's flags
+  and served a request through our WSGI app; `/health` answers 503 when the local database or Redis is down,
+  which is the environment's business and not this upgrade's. No answer, 400 or 500 is a stop.
+- **The urllib3 step** must show the live peer test having run, not skipped: a missing name, or the skip
+  message "Live network check is opt-in", is a stop.
+- **Not yet made:** the private venv. It is built when the slot opens, not while another suite is running.
+
 ## The rulings (Senior Manager, 27 October 2026)
 
 1. **DRF's list error shape is kept.** `REST_FRAMEWORK["LIST_SERIALIZER_ERRORS_AS_DICT"] = False`
