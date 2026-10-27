@@ -82,8 +82,10 @@ grep -qE "^OK" $RF && RED_OK=0
 grep -qE "^Ran 2 tests in" $RF || { echo "red run: no 'Ran 2 tests' line"; RED_OK=0; }
 grep -qE "unittest.loader._FailedTest" $RF && { echo "red run: the module failed to load"; RED_OK=0; }
 # Each test compares the list shape with what DRF 3.18 now returns: a dict keyed by the failing index.
-python3 -I $RC $RF test_a_valid_item_keeps_its_empty_place "{1: {'points': [ErrorDetail(string='A valid number is required.'" || RED_OK=0
-python3 -I $RC $RF test_the_failing_item_is_reported_at_its_own_position "{0: {'points': [ErrorDetail(string='A valid number is required.'" || RED_OK=0
+# Python's assertEqual truncates long reprs ("[38 chars]"), so match the EXPECTED list shape on the right of !=,
+# which is always fully printed and proves the test is red because DRF returned a dict, not the pinned list.
+python3 -I $RC $RF test_a_valid_item_keeps_its_empty_place "!= [{}, {'points': ['A valid number is required.']}]" || RED_OK=0
+python3 -I $RC $RF test_the_failing_item_is_reported_at_its_own_position "!= [{'points': ['A valid number is required.']}, {}]" || RED_OK=0
 [ "$(grep -cE '^(FAIL|ERROR): ' $RF)" = 2 ] || { echo "red run: not exactly 2 blocks ($(grep -cE '^(FAIL|ERROR): ' $RF))"; RED_OK=0; }
 git checkout HEAD -- AutoGrader/settings.py
 git diff --quiet HEAD -- . ":!$E" && echo "source restored" || { echo "STOP: not restored"; exit 3; }
