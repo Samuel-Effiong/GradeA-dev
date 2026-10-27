@@ -1,0 +1,33 @@
+available at start: 13G; cap 11G
+load at start: 2.04 6.74 7.88 5/2433 1142758
+=== 0. the red run: new tests against the code as at 3cc85098 (own DB) 13:12:29
+red run exit=1 (non-zero expected)
+red run blocks: 3 (expected 3)
+red run is as written: non-zero exit, no OK line, modules loaded, 3 blocks red for their written reasons
+source restored
+FAIL: test_args_keep_the_4_tuple (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_args_keep_the_4_tuple)
+FAIL: test_the_spec_picks_none_finished_from_completed (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_the_spec_picks_none_finished_from_completed)
+FAIL: test_with_items_finished_the_spec_picks_the_default (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_with_items_finished_the_spec_picks_the_default)
+Ran 5 tests in 0.005s
+FAILED (failures=3)
+dropped test_h269_mid_batch_variant_mut
+=== 1a. makemigrations --check 13:12:34
+makemigrations exit=0 (0 = no changes)
+No changes detected
+=== 1b. the seam, by program 13:12:38
+AutoGrader/reason_codes.py
+AutoGrader/tests_reason_codes.py
+docs/HARDENING_BACKLOG.md
+docs/evidence/h269-mid-batch-variant/NOTES.md
+docs/evidence/h269-mid-batch-variant/mutate.py
+docs/evidence/h269-mid-batch-variant/run_h269_gate.sh.txt
+docs/evidence/h269-mid-batch-variant/seam_check.py
+students/task_tracking.py
+production files changed: 'AutoGrader/reason_codes.py students/task_tracking.py '
+reason_codes.py changed top-level names: []
+FAIL: expected only REASON_CODES to change in reason_codes.py
+task_tracking.py changed top-level names: ['_mid_batch_error']
+task_tracking.py: SEAM OK (only _mid_batch_error changed)
+STOP: the seam check failed
+bash failed with exit status 2.
+gate exit=2

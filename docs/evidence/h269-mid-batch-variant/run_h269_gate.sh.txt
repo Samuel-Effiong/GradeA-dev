@@ -66,10 +66,10 @@ RED_OK=1
 [ "$RED_EXIT" -ne 0 ] || RED_OK=0
 grep -qE "^OK" $RF && RED_OK=0
 grep -qE "unittest.loader._FailedTest" $RF && { echo "red run: a module failed to load"; RED_OK=0; }
-# Expected: 3 FAIL blocks, "Ran 5 tests"
+# Expected: 4 blocks (3 FAIL, 1 ERROR), "Ran 6 tests"
 RED_BLOCK_COUNT=$(grep -cE '^(FAIL|ERROR): ' $RF)
-echo "red run blocks: $RED_BLOCK_COUNT (expected 3)"
-[ "$RED_BLOCK_COUNT" = 3 ] || { echo "STOP: not exactly 3 FAIL/ERROR blocks"; RED_OK=0; }
+echo "red run blocks: $RED_BLOCK_COUNT (expected 4)"
+[ "$RED_BLOCK_COUNT" = 4 ] || { echo "STOP: not exactly 4 FAIL/ERROR blocks"; RED_OK=0; }
 # Each FAIL test must hold its written fragment.
 for t in test_the_spec_picks_none_finished_from_completed test_with_items_finished_the_spec_picks_the_default; do
     if ! python -I -c "
@@ -95,13 +95,26 @@ if not all('!=' in b for b in found):
     print('!= not in block for', sys.argv[2]); sys.exit(1)
 " $RF "$t"; then RED_OK=0; fi
 done
+# The pickle test ERRORs because OVERAGE_CAP_EXCEEDED's lambda can't be pickled at the base.
+for t in test_every_spec_with_variant_from_params_survives_pickle; do
+    if ! python -I -c "
+import re, sys
+text = open(sys.argv[1]).read()
+blocks = re.split(r'^={70}$', text, flags=re.MULTILINE)
+found = [b for b in blocks if re.match(r'\s*(FAIL|ERROR): ' + re.escape(sys.argv[2]) + r'[ (]', b)]
+if not found:
+    print('no block for', sys.argv[2]); sys.exit(1)
+if not all('PicklingError' in b for b in found):
+    print('PicklingError not in block for', sys.argv[2]); sys.exit(1)
+" $RF "$t"; then RED_OK=0; fi
+done
 if [ "$RED_OK" != 1 ]; then
     echo "STOP (exit 4): the red run is not what was written"
     git checkout HEAD -- $RESTORE
     find AutoGrader students -name __pycache__ -type d -prune -exec rm -rf {} +
     exit 4
 fi
-echo "red run is as written: non-zero exit, no OK line, modules loaded, 3 blocks red for their written reasons"
+echo "red run is as written: non-zero exit, no OK line, modules loaded, 4 blocks red for their written reasons"
 git checkout HEAD -- $RESTORE
 find AutoGrader students -name __pycache__ -type d -prune -exec rm -rf {} +
 git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }

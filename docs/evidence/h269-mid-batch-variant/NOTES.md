@@ -86,13 +86,15 @@ The spec has `variant_from_params=None` (set in H-268 as a field, but not used f
 Both tests drive `_mid_batch_error` through the S7c raise site path and assert the wording.
 Both are in the near list (`students.tests_s7d_mid_batch_wording`). SM condition met.
 
-## Expected reds against `3cc85098` (written before the gate)
+## Expected reds against `3cc85098` (updated after H-268 merge, written before the gate)
 
 At the base, MID_BATCH has `variant_from_params=None` and the raiser passes
 `variant="none_finished" if completed == 0 else None`. The old control test
 (`test_control_the_caller_named_variant_is_untouched`) is removed and replaced.
+After the H-268 merge, OVERAGE_CAP_EXCEEDED at the base still has a lambda in
+`variant_from_params`, so the pickle test ERRORs.
 
-3 blocks (3 FAIL, 0 ERROR), "Ran 5 tests". Two tests are green at the base.
+4 blocks (3 FAIL, 1 ERROR), "Ran 6 tests". Two tests are green at the base.
 
 1. `test_the_spec_picks_none_finished_from_completed`: FAIL — `assertIsNotNone(None)` because
    `spec.variant_from_params` is None at the base. ~~Fragment: "is not None".~~
@@ -106,6 +108,10 @@ At the base, MID_BATCH has `variant_from_params=None` and the raiser passes
 3. `test_args_keep_the_4_tuple`: FAIL — at the base, `CodedError(MID_BATCH, completed=0)` without
    `variant=` renders the default sentence ("after 0 of 4"), not the none_finished sentence.
    `assertEqual` mismatch. Fragment: "!=".
+4. `test_every_spec_with_variant_from_params_survives_pickle`: ERROR — at the base,
+   OVERAGE_CAP_EXCEEDED's spec has `variant_from_params=<lambda>` (the lambda H-268 introduced
+   and the re-gate replaced). The pickle test finds it and fails with PicklingError.
+   Fragment: "PicklingError".
 
 Green at the base:
 - `test_a_raiser_that_names_the_variant_still_wins`: the raiser's `variant="none_finished"` on

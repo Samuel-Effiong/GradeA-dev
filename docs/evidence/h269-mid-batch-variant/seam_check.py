@@ -1,7 +1,8 @@
 """H-269 seam check: only the documented units changed in the two production files.
 
-AutoGrader/reason_codes.py: only REASON_CODES changed (the MID_BATCH entry
-gained variant_from_params).
+AutoGrader/reason_codes.py: REASON_CODES, _mid_batch_variant and
+_overage_cap_variant changed (H-269 adds MID_BATCH variant_from_params;
+H-268 merge replaces the OVERAGE_CAP_EXCEEDED lambda with a named function).
 
 students/task_tracking.py: only _mid_batch_error changed (the variant= arg
 was removed).
@@ -73,14 +74,13 @@ def main():
     rc_tip = open(f"{tip_dir}/AutoGrader/reason_codes.py").read()
     rc_changed = changed_top_level(rc_base, rc_tip)
     print(f"reason_codes.py changed top-level names: {sorted(rc_changed)}")
-    if rc_changed != {"REASON_CODES", "_mid_batch_variant"}:
-        print(
-            "FAIL: expected only REASON_CODES and _mid_batch_variant to change in reason_codes.py"
-        )
+    expected_rc = {"REASON_CODES", "_mid_batch_variant", "_overage_cap_variant"}
+    if rc_changed != expected_rc:
+        print(f"FAIL: expected {sorted(expected_rc)} to change in reason_codes.py")
         ok = False
     else:
         print(
-            "reason_codes.py: SEAM OK (only REASON_CODES and _mid_batch_variant changed)"
+            "reason_codes.py: SEAM OK (only REASON_CODES, _mid_batch_variant and _overage_cap_variant changed)"
         )
 
     # task_tracking.py: only _mid_batch_error changed

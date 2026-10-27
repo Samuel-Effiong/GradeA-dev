@@ -1,0 +1,44 @@
+available at start: 13G; cap 11G
+load at start: 2.17 5.69 7.41 13/2470 1145626
+=== 0. the red run: new tests against the code as at 3cc85098 (own DB) 13:13:50
+red run exit=1 (non-zero expected)
+red run blocks: 3 (expected 3)
+red run is as written: non-zero exit, no OK line, modules loaded, 3 blocks red for their written reasons
+source restored
+FAIL: test_args_keep_the_4_tuple (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_args_keep_the_4_tuple)
+FAIL: test_the_spec_picks_none_finished_from_completed (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_the_spec_picks_none_finished_from_completed)
+FAIL: test_with_items_finished_the_spec_picks_the_default (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_with_items_finished_the_spec_picks_the_default)
+Ran 5 tests in 0.006s
+FAILED (failures=3)
+dropped test_h269_mid_batch_variant_mut
+=== 1a. makemigrations --check 13:13:56
+makemigrations exit=0 (0 = no changes)
+No changes detected
+=== 1b. the seam, by program 13:13:59
+AutoGrader/reason_codes.py
+AutoGrader/tests_reason_codes.py
+docs/HARDENING_BACKLOG.md
+docs/evidence/h269-mid-batch-variant/NOTES.md
+docs/evidence/h269-mid-batch-variant/mutate.py
+docs/evidence/h269-mid-batch-variant/run_h269_gate.sh.txt
+docs/evidence/h269-mid-batch-variant/seam_check.py
+students/task_tracking.py
+production files changed: 'AutoGrader/reason_codes.py students/task_tracking.py '
+reason_codes.py changed top-level names: ['REASON_CODES']
+reason_codes.py: SEAM OK (only REASON_CODES changed)
+task_tracking.py changed top-level names: ['_mid_batch_error']
+task_tracking.py: SEAM OK (only _mid_batch_error changed)
+SEAM OK
+=== 1. own modules + near modules + guards at 53216208 13:13:59
+exit=1 13:16:42
+ERROR: test_pickle_at_every_protocol_and_copy (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_pickle_at_every_protocol_and_copy) (cls='InsufficientCreditsMidBatchError', p
+ERROR: test_pickle_at_every_protocol_and_copy (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_pickle_at_every_protocol_and_copy) (cls='InsufficientCreditsMidBatchError', p
+ERROR: test_pickle_at_every_protocol_and_copy (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_pickle_at_every_protocol_and_copy) (cls='InsufficientCreditsMidBatchError', p
+ERROR: test_pickle_at_every_protocol_and_copy (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_pickle_at_every_protocol_and_copy) (cls='InsufficientCreditsMidBatchError', p
+FAIL: test_through_celerys_result_backend_both_serializers (AutoGrader.tests_codederror_serialization.CodedErrorSerializationTests.test_through_celerys_result_backend_both_serializers) (cls='Insuffici
+FAIL: test_the_variant_survives_json_and_pickle (AutoGrader.tests_codederror_serialization.MessageVariantThroughCeleryTests.test_the_variant_survives_json_and_pickle) (serializer='pickle')
+Ran 689 tests in 143.577s
+FAILED (failures=2, errors=4)
+STOP: not green
+bash failed with exit status 2.
+gate exit=2
