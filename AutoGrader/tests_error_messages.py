@@ -1,3 +1,4 @@
+import stripe
 from django.test import SimpleTestCase
 
 from AutoGrader.error_messages import (
@@ -157,9 +158,12 @@ class DescribeBackgroundTaskErrorTest(SimpleTestCase):
 
 
 class DescribeStripeErrorTest(SimpleTestCase):
-    def test_uses_stripe_user_message_when_present(self):
-        exc = Exception("raw internal stripe detail")
-        exc.user_message = "Your card was declined."  # type: ignore[attr-defined]
+    def test_uses_a_card_errors_user_message(self):
+        # H-254: only a card error's text is written for the cardholder;
+        # every other StripeError's user_message is its raw message.
+        exc = stripe.error.CardError(
+            "Your card was declined.", param=None, code="card_declined"
+        )
 
         self.assertEqual(describe_stripe_error(exc), "Your card was declined.")
 
