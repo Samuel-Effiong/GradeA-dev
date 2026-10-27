@@ -88,7 +88,7 @@ Three GitHub Actions workflows, all on `pull_request` and `push` to `main`, `bet
 
 Both workflows supply placeholder env vars, because `settings.py` reads a dozen with no default at import time. The placeholders carry `# pragma: allowlist secret` so `detect-secrets` does not flag them.
 
-> **Contradiction to flag:** `ai_processor/tasks.py:23-25` states *"There is no CI in this repo, so Celery Beat is the only scheduler available"*, and `extraction_benchmark.py` describes `--mode replay` as *"what CI runs"*. **CI does exist** (three workflows). The nightly benchmark replay could move there, as its own comment suggests it should: *"If CI is ever added, the nightly replay belongs there instead — it needs no credentials and no database of its own."*
+> **Note:** `extraction_benchmark.py` describes `--mode replay` as *"what CI runs"*, but no GitHub workflow runs it. The workflows (`.github/workflows/`) run the tests, pre-commit, the migration-safety check and the dependency audit. `ai_processor/tasks.py:27-30` says Beat schedules the benchmarks and that the nightly replay could move to a workflow: *"it needs no credentials and no database of its own."*
 
 ### Pre-commit hooks
 
