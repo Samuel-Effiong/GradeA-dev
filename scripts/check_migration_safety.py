@@ -84,7 +84,7 @@ UNCONDITIONALLY_RISKY_OPS = {
 
 def changed_migration_files(base_ref):
     """New migration files this branch adds relative to base_ref."""
-    result = subprocess.run(
+    result = subprocess.run(  # nosec B603 B607  # fixed git argv
         ["git", "diff", "--name-only", "--diff-filter=A", f"{base_ref}...HEAD"],
         capture_output=True,
         text=True,

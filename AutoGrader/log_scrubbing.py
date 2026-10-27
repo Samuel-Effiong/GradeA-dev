@@ -86,7 +86,7 @@ from django.core.signals import setting_changed
 
 EMAIL = "[email]"
 CREDENTIALS = "[credentials]"
-SECRET = "[secret]"
+SECRET = "[secret]"  # nosec B105  # the scrubber's replacement text, not a password
 MESSAGE_WITHHELD = "[log arguments withheld: the message could not be scrubbed]"
 EXCEPTION_WITHHELD = "[exception text withheld: it could not be scrubbed]"
 
@@ -144,7 +144,7 @@ def is_enabled():
             if settings.configured:
                 _enabled = bool(getattr(settings, "LOG_SCRUB_ADDRESSES", True))
         except Exception:  # noqa: BLE001 - never into the caller
-            pass
+            pass  # nosec B110  # by design
     return True if _enabled is None else _enabled
 
 

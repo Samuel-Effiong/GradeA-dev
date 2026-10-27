@@ -118,7 +118,9 @@ repos:
     hooks:
       - id: bandit
         args: ["-c", "pyproject.toml"]
-        exclude: "tests/|examples/|docs/|setup.py"
+        # H-257: test modules are excluded whatever their folder: the tests/
+        # directories and files named test_*.py or tests_*.py.
+        exclude: "tests/|examples/|docs/|setup.py|(^|/)tests?_[^/]*\\.py$"
 
   # Check for secrets in code
 -   repo: https://github.com/Yelp/detect-secrets

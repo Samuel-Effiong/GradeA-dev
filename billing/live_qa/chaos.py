@@ -294,7 +294,7 @@ def generate_sequence(seed: int, steps: int, actions: Optional[dict] = None) -> 
     pool = actions or DEFAULT_ACTIONS
     names = list(pool)
     weights = [pool[n][0] for n in names]
-    rng = random.Random(seed)
+    rng = random.Random(seed)  # nosec B311  # seeded QA faults
     return rng.choices(names, weights=weights, k=steps)
 
 

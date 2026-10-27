@@ -149,7 +149,7 @@ def make_teacher():
     )
     from users.models import CustomUser, UserTypes
 
-    teacher = CustomUser.objects.create_user(
+    teacher = CustomUser.objects.create_user(  # nosec B106  # throwaway account
         email=f"isolation-{timezone.now().timestamp()}@example.com",
         password="password123",  # pragma: allowlist secret
         user_type=UserTypes.TEACHER,
@@ -197,7 +197,7 @@ def completed_run_ids():
         try:
             done.add(json.loads(line)["run_id"])
         except Exception:
-            continue
+            continue  # nosec B112  # skips an unreadable line of its own log
     return done
 
 

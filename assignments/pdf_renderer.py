@@ -429,7 +429,7 @@ class _DriverStderr:
                 text = text[:DRIVER_STDERR_MAX_LINE] + _DRIVER_STDERR_CUT
             logger.warning("[PDF] Playwright driver stderr: %s", text)
         except Exception:  # noqa: BLE001 - the reader must keep reading
-            pass
+            pass  # nosec B110  # by design
 
 
 _pipe_not_taken_reported = False

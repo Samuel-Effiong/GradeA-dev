@@ -2190,7 +2190,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         try:
             import requests as http_requests
 
-            token_url = "https://oauth2.googleapis.com/token"
+            token_url = "https://oauth2.googleapis.com/token"  # nosec B105  # a URL
             payload = {
                 "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
                 "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
