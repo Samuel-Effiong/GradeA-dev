@@ -127,7 +127,7 @@ packaging==25.0
 pandas==2.3.2
 pathspec==0.12.1
 pdf2image==1.17.0
-pillow==12.0.0
+pillow==13.0.0
 platformdirs==4.4.0
 playwright==1.58.0
 pluggy==1.6.0
