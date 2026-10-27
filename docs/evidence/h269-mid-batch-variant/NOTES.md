@@ -76,7 +76,12 @@ The spec has `variant_from_params=None` (set in H-268 as a field, but not used f
 ### tests_s7d_mid_batch_wording.py (existing, 2 tests)
 
 - `test_nothing_finished_reads_before_any`: unchanged, still green — the message is byte-identical.
+  Calls `_mid_batch_error` end-to-end with completed=0, asserts the "before any" sentence.
 - `test_once_one_finished_it_reads_after_n_of_m`: unchanged, still green.
+  Calls `_mid_batch_error` end-to-end with completed=1 (one item SUCCESS), asserts the "after 1 of 4" sentence.
+
+Both tests drive `_mid_batch_error` through the S7c raise site path and assert the wording.
+Both are in the near list (`students.tests_s7d_mid_batch_wording`). SM condition met.
 
 ## Expected reds against `3cc85098` (written before the gate)
 
