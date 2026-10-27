@@ -127,9 +127,9 @@ echo "--check-config exit=$? (0 expected)" >> $GB
 PORT=8731
 DJANGO_SETTINGS_MODULE=settings_worktree nice -n 10 $PY -m gunicorn AutoGrader.wsgi:application --bind 127.0.0.1:$PORT --timeout 100 --workers 2 --threads 4 --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200 < /dev/null >> $GB 2>&1 &
 GPID=$!
-for i in $(seq 1 30); do sleep 1; curl -s -o $E/gunicorn_health.txt -w "%{http_code}" "http://127.0.0.1:$PORT/health" > $E/gunicorn_health_code.txt 2>&1 && grep -qE "^[0-9]{3}$" $E/gunicorn_health_code.txt && break; done
+for i in $(seq 1 30); do sleep 1; curl -s -o $E/gunicorn_health.txt -w "%{http_code}" "http://127.0.0.1:$PORT/api/v1/health" > $E/gunicorn_health_code.txt 2>&1 && grep -qE "^[0-9]{3}$" $E/gunicorn_health_code.txt && break; done
 CODE=$(cat $E/gunicorn_health_code.txt 2>/dev/null)
-echo "GET /health -> $CODE after ${i}s; body: $(cut -c1-200 $E/gunicorn_health.txt 2>/dev/null)" | tee -a $GB
+echo "GET /api/v1/health -> $CODE after ${i}s; body: $(cut -c1-200 $E/gunicorn_health.txt 2>/dev/null)" | tee -a $GB
 kill $GPID 2>/dev/null; wait $GPID 2>/dev/null
 pgrep -f "gunicorn AutoGrader.wsgi:application --bind 127.0.0.1:$PORT" > /dev/null && { echo "STOP: a gunicorn process is left"; exit 2; }
 # What this step checks is that gunicorn 22.0.0 boots with the Dockerfile's flags and serves a request through
