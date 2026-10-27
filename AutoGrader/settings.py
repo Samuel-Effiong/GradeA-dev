@@ -1008,8 +1008,9 @@ CELERY_BEAT_SCHEDULE = {
     },
     # Grading-quality checks (ai_processor/benchmark/). The nightly one
     # replays recorded model responses: free, deterministic, and the only
-    # scheduled thing that catches a regression in OUR grading code —
-    # there is no CI in this repo, so Beat is the only place to hang it.
+    # scheduled thing that catches a regression in OUR grading code. The
+    # GitHub workflows (.github/workflows/) do not run it, so Beat is where
+    # it is scheduled.
     "nightly-grading-benchmark-replay": {
         "task": "ai_processor.tasks.nightly_grading_benchmark_replay",
         "schedule": crontab(minute=30, hour=1),

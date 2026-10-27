@@ -1,0 +1,390 @@
+# H-258: advisories accepted for now. Read by scripts/pip_audit_gate.py, which
+# passes each id to pip-audit as --ignore-vuln and refuses an entry without a
+# package, ids, a reason or a review date, an id listed twice, and an entry whose
+# review date has passed. One advisory id per line: a new advisory on a package
+# listed here is not covered, so the job goes red.
+#
+# Source: pip-audit 2.9.0 on requirements.txt at beta 31a86456 (2026-10-27).
+# Rulings: Senior Manager, 2026-10-27 (the minor and major upgrades await the
+# owner; gunicorn included).
+
+[[ignore]]
+package = "anyio"  # 4.10.0
+ids = [
+    "PYSEC-2026-4024",
+    "PYSEC-2026-4025",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "black"  # 25.1.0
+ids = [
+    "GHSA-cg8m-r9f2-5wm2",
+    "PYSEC-2026-2120",
+    "PYSEC-2026-2121",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "certifi"  # 2025.8.3
+ids = [
+    "PYSEC-2026-4320",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "cryptography"  # 45.0.7
+ids = [
+    "GHSA-537c-gmf6-5ccf",
+    "PYSEC-2026-2141",
+    "PYSEC-2026-35",
+    "PYSEC-2026-3552",
+    "PYSEC-2026-3553",
+    "PYSEC-2026-3554",
+    "PYSEC-2026-36",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "djangorestframework"  # 3.16.1
+ids = [
+    "GHSA-33wh-fxxf-88vv",
+    "GHSA-3547-9m27-7rxg",
+    "GHSA-xw6w-gcfp-cf8m",
+    "PYSEC-2026-3827",
+    "PYSEC-2026-3828",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "filelock"  # 3.19.1
+ids = [
+    "PYSEC-2026-1374",
+    "PYSEC-2026-1375",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "fsspec"  # 2025.9.0
+ids = [
+    "PYSEC-2026-4217",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "gunicorn"  # 20.0.4
+ids = [
+    "PYSEC-2026-1433",
+    "PYSEC-2026-1434",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "idna"  # 3.10
+ids = [
+    "PYSEC-2026-215",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "lxml"  # 6.0.2
+ids = [
+    "PYSEC-2026-87",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "marshmallow"  # 4.0.1
+ids = [
+    "PYSEC-2026-1605",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "nltk"  # 3.9.1
+ids = [
+    "PYSEC-2026-2085",
+    "PYSEC-2026-2235",
+    "PYSEC-2026-2236",
+    "PYSEC-2026-2237",
+    "PYSEC-2026-3582",
+    "PYSEC-2026-3583",
+    "PYSEC-2026-3584",
+    "PYSEC-2026-3657",
+    "PYSEC-2026-3722",
+    "PYSEC-2026-3723",
+    "PYSEC-2026-3724",
+    "PYSEC-2026-3728",
+    "PYSEC-2026-3729",
+    "PYSEC-2026-3730",
+    "PYSEC-2026-3731",
+    "PYSEC-2026-3732",
+    "PYSEC-2026-3733",
+    "PYSEC-2026-3734",
+    "PYSEC-2026-3735",
+    "PYSEC-2026-3736",
+    "PYSEC-2026-3737",
+    "PYSEC-2026-3738",
+    "PYSEC-2026-3739",
+    "PYSEC-2026-3740",
+    "PYSEC-2026-3741",
+    "PYSEC-2026-3748",
+    "PYSEC-2026-3749",
+    "PYSEC-2026-3750",
+    "PYSEC-2026-3751",
+    "PYSEC-2026-3752",
+    "PYSEC-2026-3868",
+    "PYSEC-2026-3869",
+    "PYSEC-2026-3870",
+    "PYSEC-2026-3871",
+    "PYSEC-2026-3954",
+    "PYSEC-2026-3955",
+    "PYSEC-2026-4318",
+    "PYSEC-2026-597",
+    "PYSEC-2026-96",
+    "PYSEC-2026-97",
+    "PYSEC-2026-98",
+    "PYSEC-2026-99",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "oauthlib"  # 3.3.1
+ids = [
+    "PYSEC-2026-4114",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "pillow"  # 12.0.0
+ids = [
+    "GHSA-22hg-r758-rrw9",
+    "GHSA-24rc-8hj2-v98c",
+    "GHSA-254f-3936-288h",
+    "GHSA-27h8-gf7j-v5hc",
+    "GHSA-332p-7hrc-92wf",
+    "GHSA-3j72-p6qg-6xp7",
+    "GHSA-462x-pgg6-55fp",
+    "GHSA-4rm8-3hmm-39fg",
+    "GHSA-4rr5-89j8-mwwm",
+    "GHSA-58r4-6rv3-gfh8",
+    "GHSA-5x8w-8jj5-q52h",
+    "GHSA-5xm2-6676-qcp9",
+    "GHSA-654x-cwwv-5j9c",
+    "GHSA-65qm-jvmh-6pqg",
+    "GHSA-74r2-7ff9-mjj2",
+    "GHSA-78g4-xqwv-q3g8",
+    "GHSA-7mwm-ghpf-9vrm",
+    "GHSA-9v9v-9qvf-h2hj",
+    "GHSA-c6hw-5grf-ff96",
+    "GHSA-cp9v-662q-vvx9",
+    "GHSA-f2g6-542v-9j58",
+    "GHSA-fc9g-5qg7-mf45",
+    "GHSA-g4qv-2jxx-769h",
+    "GHSA-g7cr-3p24-7wf7",
+    "GHSA-g842-9rc4-69pw",
+    "GHSA-gg2r-wvfm-q9rx",
+    "GHSA-j4m9-6w36-pw47",
+    "GHSA-jg86-v3jv-hrpm",
+    "GHSA-mrfp-p49p-3hf2",
+    "GHSA-p4wg-p73j-c528",
+    "GHSA-p8hx-v2p6-rp84",
+    "GHSA-pchr-8j38-3x4p",
+    "GHSA-q45j-58j2-45rg",
+    "GHSA-v9pv-5gc8-w2m6",
+    "GHSA-vx6w-vv9f-6gvg",
+    "GHSA-w889-685w-c8fh",
+    "GHSA-xgh8-jp6q-p5x8",
+    "PYSEC-2026-165",
+    "PYSEC-2026-2249",
+    "PYSEC-2026-2250",
+    "PYSEC-2026-2251",
+    "PYSEC-2026-2252",
+    "PYSEC-2026-2253",
+    "PYSEC-2026-2254",
+    "PYSEC-2026-2255",
+    "PYSEC-2026-2256",
+    "PYSEC-2026-2257",
+    "PYSEC-2026-2874",
+    "PYSEC-2026-3451",
+    "PYSEC-2026-3452",
+    "PYSEC-2026-3453",
+    "PYSEC-2026-3454",
+    "PYSEC-2026-3493",
+    "PYSEC-2026-3494",
+    "PYSEC-2026-3495",
+    "PYSEC-2026-3496",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "protobuf"  # 6.32.0
+ids = [
+    "PYSEC-2026-1805",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "pyarrow"  # 21.0.0
+ids = [
+    "PYSEC-2026-113",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "pygments"  # 2.19.2
+ids = [
+    "PYSEC-2026-2987",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "pyjwt"  # 2.10.1
+ids = [
+    "GHSA-pxh4-856f-4h89",
+    "PYSEC-2025-183",
+    "PYSEC-2026-120",
+    "PYSEC-2026-175",
+    "PYSEC-2026-176",
+    "PYSEC-2026-177",
+    "PYSEC-2026-178",
+    "PYSEC-2026-179",
+    "PYSEC-2026-4140",
+    "PYSEC-2026-4141",
+    "PYSEC-2026-4144",
+    "PYSEC-2026-4145",
+    "PYSEC-2026-4147",
+    "PYSEC-2026-4148",
+    "PYSEC-2026-4149",
+    "PYSEC-2026-4152",
+    "PYSEC-2026-4183",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "setuptools"  # 80.9.0
+ids = [
+    "GHSA-xmj3-9gf7-h52w",
+    "PYSEC-2026-3447",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "social-auth-app-django"  # 5.5.1
+ids = [
+    "PYSEC-2026-1932",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "social-auth-core"  # 4.7.0
+ids = [
+    "GHSA-526j-582w-7fm9",
+    "PYSEC-2026-4165",
+    "PYSEC-2026-4166",
+    "PYSEC-2026-4167",
+    "PYSEC-2026-4168",
+    "PYSEC-2026-4169",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "soupsieve"  # 2.8
+ids = [
+    "PYSEC-2026-3071",
+    "PYSEC-2026-3072",
+    "PYSEC-2026-4170",
+    "PYSEC-2026-4171",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "sqlparse"  # 0.5.3
+ids = [
+    "GHSA-27jp-wm6q-gp25",
+    "PYSEC-2026-3696",
+    "PYSEC-2026-3697",
+    "PYSEC-2026-3698",
+    "PYSEC-2026-3699",
+    "PYSEC-2026-3923",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "ujson"  # 5.11.0
+ids = [
+    "PYSEC-2026-2291",
+    "PYSEC-2026-2292",
+    "PYSEC-2026-2293",
+    "PYSEC-2026-2294",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "urllib3"  # 2.5.0
+ids = [
+    "PYSEC-2026-141",
+    "PYSEC-2026-1994",
+    "PYSEC-2026-1996",
+    "PYSEC-2026-1998",
+    "PYSEC-2026-4175",
+    "PYSEC-2026-4177",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "virtualenv"  # 20.34.0
+ids = [
+    "GHSA-394h-qwmc-48pf",
+    "GHSA-494p-63j8-28p3",
+    "GHSA-5vjq-rrrf-7h2q",
+    "GHSA-6w3r-xr62-4xcp",
+    "GHSA-8rjx-v5ww-45pp",
+    "GHSA-c947-3pg5-gm8q",
+    "GHSA-c978-59m8-c77v",
+    "GHSA-cx28-75q4-x26q",
+    "GHSA-fc2g-4w5p-6whm",
+    "GHSA-qmx5-4p3x-wvqf",
+    "GHSA-vxj4-q4g9-crj7",
+    "PYSEC-2026-2009",
+    "PYSEC-2026-4011",
+    "PYSEC-2026-4012",
+    "PYSEC-2026-4013",
+    "PYSEC-2026-4014",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
+
+[[ignore]]
+package = "weasyprint"  # 69.0
+ids = [
+    "PYSEC-2026-3940",
+    "PYSEC-2026-4311",
+]
+reason = "upgrade awaiting the owner's ruling (H-258 report)"
+review_by = 2026-11-30
