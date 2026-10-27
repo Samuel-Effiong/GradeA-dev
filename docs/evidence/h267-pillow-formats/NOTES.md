@@ -78,9 +78,10 @@ as BMP or TIFF) will now be refused with a field error. The SM will inform the o
 
 `assignments/validators.py` deleted. `PILLOW_FORMATS`, `_ALLOWED_PILLOW_NAMES`, and
 `validate_image_format` now live in `AutoGrader/image_formats.py` — the single source of
-truth. All consumers import from there. Two new tests added (total 13):
-`test_validator_accepts_exactly_the_four_allowed_formats`,
-`test_validator_rejects_bmp`.
+truth. All consumers import from there.
+
+Gap-closing tests (144e0015): 6 new tests close all 5 mutant gaps (M4–M7 write-path
+validators, M9 verify()). Total: 19 tests in 3 classes.
 
 ### Seam check
 
@@ -99,59 +100,58 @@ No other runtime files touched. `assignments/tests_h267_pillow_formats.py` is te
 Expected AST seam: `git diff --name-only aede70b4..HEAD -- '*.py' ':(exclude)docs/*'
 ':(exclude)*tests*'` yields exactly the 5 files above.
 
-### Red run — 13 tests at the tip, code at base `aede70b4`
+### Red run — 19 tests at the tip, call-site files reverted to base `aede70b4`
 
-At base, `AutoGrader/image_formats.py` does not exist. The test module's top-level import
-`from AutoGrader.image_formats import PILLOW_FORMATS` raises `ImportError`. Django's test
-runner cannot collect any test from the module.
+Method: keep `AutoGrader/image_formats.py` and `assignments/tests_h267_pillow_formats.py`
+from the tip. Revert the 5 call-site files to base:
+`assignments/services.py`, `classrooms/serializers.py`, `users/serializers.py`,
+`users/admin.py`. This isolates the wiring: the module and validator exist, but nothing
+uses them yet.
 
-**Expected result:** Ran 0, Errors 1 — module import failure.
+**Expected result:** Ran 19, Failures 7, Errors 1.
 
-All 13 tests uncollectable (reason: `ModuleNotFoundError: No module named
-'AutoGrader.image_formats'`):
-
-| # | Test | Would-be outcome if import worked |
-|---|---|---|
-| 1 | `test_psd_labelled_as_png_is_refused` | FAIL — PSD opens without `formats=` |
-| 2 | `test_bmp_labelled_as_png_is_refused` | FAIL — BMP opens without `formats=` |
-| 3 | `test_tiff_labelled_as_png_is_refused` | FAIL — TIFF opens without `formats=` |
-| 4 | `test_jpeg_labelled_correctly_is_accepted` | GREEN — JPEG accepted at base too |
-| 5 | `test_png_labelled_correctly_is_accepted` | GREEN — PNG accepted at base too |
-| 6 | `test_gif_labelled_correctly_is_accepted` | GREEN — GIF accepted at base too |
-| 7 | `test_webp_labelled_correctly_is_accepted` | GREEN — WEBP accepted at base too |
-| 8 | `test_allowed_formats_match_image_formats` | FAIL — PILLOW_FORMATS dict absent from services.py |
-| 9 | `test_pillow_formats_values_are_uppercase_strings` | FAIL — same |
-| 10 | `test_validator_accepts_exactly_the_four_allowed_formats` | ERROR — inner import fails too |
-| 11 | `test_validator_rejects_bmp` | ERROR — inner import fails too |
-| 12 | `test_profile_image_rejects_bmp` | FAIL — no validator on serializer, BMP accepted |
-| 13 | `test_profile_image_accepts_jpeg` | GREEN — JPEG accepted by bare ImageField |
-
-Tests 4–7 and 13 are green at base because the base already accepts those four formats
-(and JPEG is always accepted by Django's `ImageField`). They verify no false positives.
-
-### Mutant battery (9 mutants)
-
-| # | Mutant | Killing test | Notes |
+| # | Test | Expected | Reason |
 |---|---|---|---|
-| M1 | Drop `formats=_ALLOWED_PILLOW_NAMES` at `services.py:549` | `test_psd_labelled_as_png_is_refused` | PSD/BMP/TIFF decoders run, no exception |
-| M2 | Remove `"image/webp": "WEBP"` from `PILLOW_FORMATS` | `test_allowed_formats_match_image_formats` | Keys no longer equal `IMAGE_FORMATS`; also `test_validator_accepts_exactly_the_four_allowed_formats` (WEBP rejected) |
-| M3 | Drop `validators=[validate_image_format]` from `DirectAddStudentSerializer.profile_image` (`:658`) | `test_profile_image_rejects_bmp` | BMP accepted by bare ImageField |
-| M4 | Drop `validators=[validate_image_format]` from `StudentRegistrationCompletionSerializer.profile_image` (`:834`) | **GAP** | No test exercises this serializer with an image upload (endpoint returns 410 GONE, H-152) |
-| M5 | Drop `validators=[validate_image_format]` from `SchoolWithAdminSerializer.admin_profile_image` (`:1021`) | **GAP** | No test exercises this serializer's image field with a disallowed format |
-| M6 | Drop `validators=[validate_image_format]` from `CustomUserSerializer` extra_kwargs (`:133`) | **GAP** | No test exercises this serializer with a BMP image |
-| M7 | Drop `validate_image_format(img)` from `_ProfileImageForm.clean_profile_image` (`admin.py:28`) | **GAP** | No test exercises the admin form with a disallowed image format |
-| M8 | Validator swallows exception: `return` instead of `raise ValidationError(...)` in `validate_image_format` | `test_validator_rejects_bmp` | Expects `ValidationError` |
-| M9 | Remove `img.verify()` from `validate_image_format` | **GAP** | All test images are well-formed. `verify()` catches truncated/corrupt files within allowed formats (e.g. a JPEG with a valid SOI marker but truncated body). No test creates such a file. `formats=` already blocks disallowed format headers before `verify()` runs. |
+| 1 | `test_psd_labelled_as_png_is_refused` | FAIL | No `formats=` at base; PSD opens and compresses to JPEG; `FileUnreadableError` not raised |
+| 2 | `test_bmp_labelled_as_png_is_refused` | FAIL | Same; BMP opens fine without format restriction |
+| 3 | `test_tiff_labelled_as_png_is_refused` | FAIL | Same; TIFF opens fine |
+| 4 | `test_jpeg_labelled_correctly_is_accepted` | GREEN | JPEG accepted at base — no false positive |
+| 5 | `test_png_labelled_correctly_is_accepted` | GREEN | PNG accepted at base |
+| 6 | `test_gif_labelled_correctly_is_accepted` | GREEN | GIF accepted at base |
+| 7 | `test_webp_labelled_correctly_is_accepted` | GREEN | WEBP accepted at base |
+| 8 | `test_allowed_formats_match_image_formats` | GREEN | `PILLOW_FORMATS` from tip's `image_formats.py`; `IMAGE_FORMATS` on the service class is unchanged at base; keys match |
+| 9 | `test_pillow_formats_values_are_uppercase_strings` | GREEN | `PILLOW_FORMATS` from tip; values are uppercase |
+| 10 | `test_validator_accepts_exactly_the_four_allowed_formats` | GREEN | Validator from tip; all 4 formats are valid |
+| 11 | `test_validator_rejects_bmp` | GREEN | Validator from tip rejects BMP |
+| 12 | `test_validator_rejects_corrupt_png` | GREEN | Validator from tip; `verify()` catches CRC mismatch |
+| 13 | `test_direct_add_student_rejects_bmp` | FAIL | No validator on `DirectAddStudentSerializer` at base; BMP accepted by bare `ImageField` |
+| 14 | `test_direct_add_student_accepts_jpeg` | GREEN | JPEG accepted by bare `ImageField` at base |
+| 15 | `test_student_registration_completion_rejects_bmp` | FAIL | No validator at base; BMP accepted |
+| 16 | `test_student_registration_completion_accepts_png` | GREEN | PNG accepted at base |
+| 17 | `test_school_with_admin_rejects_bmp` | FAIL | No validator on `admin_profile_image` at base; BMP accepted |
+| 18 | `test_custom_user_serializer_rejects_bmp` | FAIL | No validator in `extra_kwargs` at base; BMP accepted |
+| 19 | `test_admin_form_rejects_bmp` | ERROR | `_ProfileImageForm` does not exist at base; `ImportError` on `from users.admin import _ProfileImageForm` |
 
-**Gap summary:** M4, M5, M6, M7 — four write-path validators lack a dedicated killing
-test. M9 — `verify()` removal not caught. Total: 5 gaps out of 9 mutants.
+Tests 4–7, 8–12, 14, 16 are green because: the upload path already accepts those four
+formats (no false positives); the `image_formats.py` module itself is kept from the tip
+so its own unit tests pass; and bare `ImageField` accepts JPEG/PNG without a validator.
 
-M4 is low-risk (endpoint is 410 GONE). M5–M7 are real gaps: a regression removing the
-validator from one of those serializers or the admin form would go undetected by the
-H-267 test suite alone. The near suites' existing serializer tests may partially cover
-M5–M6 but are not written to assert format validation. M9 is an inherent limitation:
-testing `verify()` requires crafting a corrupt-but-openable image, which is brittle across
-Pillow versions.
+The 7 FAILs prove that each wiring point (3 upload restrictions + 4 serializer validators)
+is absent at base. The 1 ERROR proves the admin form class is new.
+
+### Mutant battery (9 mutants, all KILLED)
+
+| # | Mutant | Killing test |
+|---|---|---|
+| M1 | Drop `formats=_ALLOWED_PILLOW_NAMES` at `services.py:549` | `test_psd_labelled_as_png_is_refused` |
+| M2 | Remove `"image/webp": "WEBP"` from `PILLOW_FORMATS` | `test_allowed_formats_match_image_formats`; also `test_validator_accepts_exactly_the_four_allowed_formats` |
+| M3 | Drop `validators=[validate_image_format]` from `DirectAddStudentSerializer.profile_image` (`:658`) | `test_direct_add_student_rejects_bmp` |
+| M4 | Drop `validators=[validate_image_format]` from `StudentRegistrationCompletionSerializer.profile_image` (`:834`) | `test_student_registration_completion_rejects_bmp` |
+| M5 | Drop `validators=[validate_image_format]` from `SchoolWithAdminSerializer.admin_profile_image` (`:1021`) | `test_school_with_admin_rejects_bmp` |
+| M6 | Drop `validators=[validate_image_format]` from `CustomUserSerializer` extra_kwargs (`:133`) | `test_custom_user_serializer_rejects_bmp` |
+| M7 | Drop `validate_image_format(img)` from `_ProfileImageForm.clean_profile_image` (`admin.py:28`) | `test_admin_form_rejects_bmp` |
+| M8 | Validator swallows exception: `return` instead of `raise ValidationError(...)` | `test_validator_rejects_bmp` |
+| M9 | Remove `img.verify()` from `validate_image_format` | `test_validator_rejects_corrupt_png` (flipped IDAT byte, CRC mismatch) |
 
 ### Near test suites
 
@@ -175,8 +175,8 @@ venv, not the shared `AutoGrader_env`.
 1. Private venv from tip's `requirements.txt`.
 2. `makemigrations --check` — must be clean (no model changes).
 3. AST seam check: `git diff --name-only aede70b4..HEAD -- '*.py' ':(exclude)docs/*' ':(exclude)*tests*'` must yield exactly the 5 files listed above.
-4. Red run: 13 H-267 tests against base code → Errors 1 (import failure), Ran 0.
-5. Green run: 13 H-267 tests at the tip → Ran 13, OK.
-6. Mutant plants A1–A4 (M1, M2, M3, M8 — the four killed mutants).
+4. Red run: checkout base versions of the 5 call-site files, keep `AutoGrader/image_formats.py` and tests from tip, run 19 H-267 tests → Ran 19, Failures 7, Errors 1. Restore tip files after.
+5. Green run: 19 H-267 tests at the tip → Ran 19, OK.
+6. Mutant plants A1–A9 (all 9 mutants killed).
 7. Near suites: assignments, classrooms, users.
 8. Full suite in private venv under `systemd-run --scope -p MemoryMax=8G`.
