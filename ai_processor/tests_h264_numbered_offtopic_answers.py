@@ -303,6 +303,19 @@ class WhatCountsAsAPileTest(StepTest):
         answers = first_reading(pile("<p>1. a</p><p>5. b</p><p>6. c</p>"), questions=4)
         self.assert_untouched(answers)
 
+    def test_an_outside_number_does_not_split_a_section(self):
+        # questions=4, so "7." is outside the assignment. Without the
+        # `in numbers` filter in _numbered_sections, "7. baz" would start
+        # its own section and section 2 would lose it.
+        answers = first_reading(
+            pile("<p>1. foo</p><p>2. bar</p><p>7. baz</p>"), questions=4
+        )
+        _, mocked = self.run_step(
+            answers, [section(1, "foo"), section(2, "bar 7. baz")]
+        )
+        note = self.note(mocked)
+        self.assertIn("7. baz", note)
+
     def test_a_named_question_with_its_own_answer_is_not_touched(self):
         answers = first_reading(pile("<p>1. a</p><p>2. b</p>"))
         answers[1] = section(2, "its own")

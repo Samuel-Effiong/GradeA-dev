@@ -195,3 +195,23 @@ GREEN at b199eed6 and after (controls):
 - The shared venv carries batch 29's pins; this branch's requirements are at
   the base. No install into the shared venv during this gate.
 - H-263's full suite (private venv) and H-268's row gate may run concurrently.
+
+## N2b survival (Gate 1 rejection, 2026-10-27)
+
+N2b removes the `in numbers` filter at services.py:318.
+`test_numbers_outside_the_assignment_are_not_counted` (the original expected
+kill) still passes because `_piled_answers` has a downstream guard:
+`by_key.get(number)` returns None for numbers without an entry (line 369),
+and the `other is None` continue skips them, so outside numbers never reach
+`named`. The filter in `_numbered_sections` is a pre-filter for section
+*boundaries*, not for naming: it stops an outside number from splitting a
+section and losing text. The original test only checked that outside numbers
+don't create a pile; it didn't check that the section text was preserved.
+
+New test: `test_an_outside_number_does_not_split_a_section` — questions=4,
+pile "1. foo / 2. bar / 7. baz". With the filter, section 2 is "2. bar
+7. baz". Without it, "7." starts a new section and section 2 is just
+"2. bar". The assert checks the note includes "7. baz".
+
+Near and guards stand: only the test file changed; no code, schema, or
+settings changes in this fix.

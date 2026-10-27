@@ -221,6 +221,7 @@ MUTANTS = [
 _NUMBERING = "test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line"
 _NO_SECTIONS = "test_writing_with_no_numbered_sections_changes_nothing"
 _OUTSIDE = "test_numbers_outside_the_assignment_are_not_counted"
+_OUTSIDE_SPLIT = "test_an_outside_number_does_not_split_a_section"
 _OUT_OF_ORDER = "test_numbers_out_of_order_are_not_a_pile"
 _WRONG_FORM = "test_a_pile_in_the_wrong_form_counts"
 _FLAG_H253 = "test_a_named_question_with_a_flag_is_left_to_h253"
@@ -251,10 +252,11 @@ EXPECTED = {
     # than 2.5", which would parse as sections 3 and 4 (both in 1-75);
     # assert_untouched calls assert_not_called on the mock.
     "N2": {_NO_SECTIONS: NOT_CALLED},
-    # N2b: numbers outside the assignment count; test_numbers_outside_the_
-    # assignment has questions=4 with sections 1, 5, 6 — all three match,
-    # giving a pile; assert_untouched calls assert_not_called.
-    "N2b": {_OUTSIDE: NOT_CALLED},
+    # N2b: numbers outside the assignment split sections they shouldn't;
+    # questions=4, "7. baz" inside section 2 becomes its own section when the
+    # `in numbers` filter is removed, so section 2 loses "7. baz" and the
+    # note no longer contains that text.
+    "N2b": {_OUTSIDE_SPLIT: NOT_IN},
     # N3: _in_order keeps all markers regardless of order; "<p>2. b</p><p>1.
     # a</p>" now gives two markers (2 then 1), making a pile; assert_untouched
     # calls assert_not_called.

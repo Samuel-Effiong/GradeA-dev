@@ -5,8 +5,8 @@
 #   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block bash <script> <tip> 1 > out; echo "gate exit=$?" >> out
 # 0 the red run: the H-264 + blank-verification test modules as at the tip against the code as at the base (three
 #   code files taken back, prompt 4 restored, prompt 5 and the archive removed; own DB). RULE 22: each red test is red
-#   for its WRITTEN reason (a fragment looked for in every one of its own FAIL/ERROR blocks), and exactly 28 blocks
-#   appear (22 FAIL + 5 ERROR in h264, 1 FAIL in blank_verification);
+#   for its WRITTEN reason (a fragment looked for in every one of its own FAIL/ERROR blocks), and exactly 29 blocks
+#   appear (22 FAIL + 6 ERROR in h264, 1 FAIL in blank_verification);
 # 1a makemigrations --check; 1b the seam by program (three code files + prompt files are the only code changed; by
 #   their syntax trees only the named units changed, only the named statements); 1 the own modules + near (all
 #   ai_processor tests) + guards;
@@ -91,7 +91,7 @@ RC=/home/bond-servant-in-training/Documents/Projects/GAP-builder-scripts/reason_
 RED_OK=1
 [ "$RED_EXIT" -ne 0 ] || RED_OK=0
 grep -qE "^OK" $RF && RED_OK=0
-grep -qE "^Ran 60 tests in" $RF || { echo "red run: no 'Ran 60 tests' line"; RED_OK=0; }
+grep -qE "^Ran 61 tests in" $RF || { echo "red run: no 'Ran 61 tests' line"; RED_OK=0; }
 grep -qE "unittest.loader._FailedTest" $RF && { echo "red run: a module failed to load"; RED_OK=0; }
 # RULE 22: each test below is red for its WRITTEN reason, in every one of its blocks.
 # At the base (b199eed6): pile-splitting code does not exist, so the H-264 tests either hit call_count==0,
@@ -110,6 +110,7 @@ r test_a_failed_or_empty_second_reading_changes_nothing "0 != 1"
 r test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line "0 != 1"
 r test_the_numbers_need_not_start_at_1 "0 != 1"
 r test_a_pile_in_the_wrong_form_counts "0 != 1"
+r test_an_outside_number_does_not_split_a_section "'NoneType'"
 r test_a_pile_under_a_later_question "'NoneType'"
 # TheRecheckCapTest
 r test_the_beta_paper_has_its_first_12_blanks_re_checked "0 != 1"
@@ -123,16 +124,16 @@ r test_the_prompt_has_the_numbered_paper_example "not found"
 r test_the_prompt_is_version_5_and_version_4_is_archived "False is not true"
 # tests_blank_verification (the cap test that H-264 rewrote)
 r test_too_many_blanks_re_reads_the_lowest_numbered_cap "0 != 1"
-# Block count: 22 FAIL + 5 ERROR in h264, 1 FAIL in blank_verification = 28.
+# Block count: 22 FAIL + 6 ERROR in h264, 1 FAIL in blank_verification = 29.
 BLOCKS=$(grep -cE '^(FAIL|ERROR): ' $RF)
-[ "$BLOCKS" = 28 ] || { echo "red run: not exactly 28 FAIL/ERROR blocks ($BLOCKS)"; RED_OK=0; }
+[ "$BLOCKS" = 29 ] || { echo "red run: not exactly 29 FAIL/ERROR blocks ($BLOCKS)"; RED_OK=0; }
 if [ "$RED_OK" != 1 ]; then
     echo "STOP (exit 4): the red run is not what was written"
     git checkout HEAD -- $RESTORE 2>/dev/null; git reset HEAD -- $PROMPT_4_BASE 2>/dev/null; rm -f $PROMPT_4_BASE
     find ai_processor AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} +
     exit 4
 fi
-echo "red run is as written: non-zero exit, no OK line, the module loaded, 28 blocks red for their written reasons and no other"
+echo "red run is as written: non-zero exit, no OK line, the module loaded, 29 blocks red for their written reasons and no other"
 git checkout HEAD -- $RESTORE
 git reset HEAD -- $PROMPT_4_BASE 2>/dev/null
 rm -f $PROMPT_4_BASE
