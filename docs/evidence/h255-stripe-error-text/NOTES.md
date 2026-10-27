@@ -18,8 +18,8 @@ Security Engineer (db).
   is Builder (a0), who built and gated it on 24-25 October from `GAP-a0-runs/h254/` (`92854ca9`, `6bbdce5f`,
   `de456dd7`). Only that one cell changed.
 - **Ruling folded in before the gate (27 October):** `OveragePriceMismatch` (open question 1 of the first pack).
-- **Follow-ups (the Senior Manager's numbers, both Security Engineer (db), Medium):** H-259, the thirteen server log
-  lines with Stripe's text (`AutoGrader/log_scrubbing.py` has no `sk_test_`/`sk_live_` pattern); H-260,
+- **Follow-ups (the Senior Manager's numbers, both Security Engineer (db), Medium):** H-259, the eighteen server log
+  lines with Stripe's text (first counted as thirteen; see open question 2) (`AutoGrader/log_scrubbing.py` has no `sk_test_`/`sk_live_` pattern); H-260,
   `assignments/serializers.py:231`.
 
 ## What the read found (beta `31a86456`)
@@ -130,16 +130,23 @@ Line numbers are at the base, `31a86456`.
 
 1. **`OveragePriceMismatch`** named the Stripe price id and both cent amounts to the customer. **Ruled: folded into
    this row before the gate** (see What changes; test R12, mutant S13).
-2. **Thirteen existing server log lines in `billing/` carry Stripe's text or traceback**, so with an expired key the
+2. **Eighteen existing server log lines in `billing/` carry Stripe's text or traceback**, so with an expired key the
    masked key tail reaches the logs (and Sentry, for ERROR records). These are server-side, not this row's client
    rule. Counted by syntax tree, logger calls inside a Stripe `except` that use the exception:
    - `license_stripe_mutation.py:740`;
    - `license_views.py:787` (`logger.exception` with the text);
    - `license_views.py:1026` (`exc_info`);
    - `receipts.py:135`;
-   - `stripe_service.py:2225`;
+   - `stripe_service.py:2223`;
    - `tasks.py:148`, `tasks.py:203`, `tasks.py:1542` (`exc_info`);
-   - and five more that are `logger.exception` with the traceback: `payment_method_views.py:210, 333, 452, 547, 598`.
+   - and ten more that are `logger.exception` with the traceback: `payment_method_views.py:210, 333, 452, 547, 598`
+     and `stripe_service.py:1032, 1599, 1876, 1890, 4812`.
+
+   **Corrected in H-259's docs commit.** This list first said thirteen. The survey skipped handlers with no
+   `as exc`, so it missed the five `stripe_service.py` lines, which log the traceback without naming the exception.
+   It also gave `stripe_service.py:2225`, which is the line at the tip, not at the base (2223). H-259's survey, by
+   syntax tree at `675b6d4d`, counts every logger call in a Stripe `except` that names the exception, passes
+   `exc_info` or is `logger.exception`.
 
    **Ruled: follow-up H-259** (Medium; `AutoGrader/log_scrubbing.py` has no `sk_test_`/`sk_live_` pattern), H-227's
    form, after this gate.
