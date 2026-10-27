@@ -11,6 +11,12 @@ Run at the worktree's root. The row changes pins and one setting, nothing else:
   every other entry is unchanged;
 * `AutoGrader/settings.py`'s syntax tree equals the base's apart from the one
   key `LIST_SERIALIZER_ERRORS_AS_DICT: False` in `REST_FRAMEWORK`;
+* `audit/emitter.py` differs only in `_client_ip`'s except clause (adding
+  `AttributeError` — DRF 3.18 changed `BaseThrottle.get_ident` to use
+  `request.headers`);
+* `billing/serializers.py` differs only by `validators = []` on
+  `UserSubscriptionSerializer.Meta` (DRF 3.18 auto-generates validators for
+  `UniqueConstraint`; the view handles the conditional unique logic itself);
 * the new test module and `docs/` are this row's own.
 
 Anything else changed is a stop.
@@ -144,6 +150,47 @@ for path in changed:
                 ast.dump(base) == ast.dump(tip),
                 path,
                 f"syntax tree as at the base apart from {SETTING}: False",
+            )
+            and ok
+        )
+    elif path == "audit/emitter.py":
+        b, t = show(path), open(path).read()
+        # The only change: (ValueError, TypeError) -> (ValueError, TypeError, AttributeError)
+        diff_line = b.replace(
+            "except (ValueError, TypeError):",
+            "except (ValueError, TypeError, AttributeError):",
+            1,
+        )
+        ok = (
+            report(
+                b.count("except (ValueError, TypeError):") == 1 and t == diff_line,
+                path,
+                "_client_ip's except clause adds AttributeError (DRF 3.18 compat)",
+            )
+            and ok
+        )
+    elif path == "billing/serializers.py":
+        b, t = show(path), open(path).read()
+        # The only change: validators = [] added inside UserSubscriptionSerializer.Meta
+        base_tree, tip_tree = ast.parse(b), ast.parse(t)
+        # Count the AST difference: exactly one new Assign node for validators = []
+        b_dump = ast.dump(base_tree)
+        # The tip has the comment + validators = [] line; verify by text diff
+        lines_b = b.splitlines()
+        lines_t = t.splitlines()
+        added = [
+            l
+            for l in lines_t
+            if l not in lines_b or lines_t.count(l) > lines_b.count(l)
+        ]
+        added_stripped = [
+            l.strip() for l in added if l.strip() and not l.strip().startswith("#")
+        ]
+        ok = (
+            report(
+                added_stripped == ["validators = []"],
+                path,
+                "validators = [] on UserSubscriptionSerializer.Meta (DRF 3.18 compat)",
             )
             and ok
         )

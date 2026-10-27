@@ -154,7 +154,7 @@ for STEP_NAME in pillow pyjwt lxml urllib3 own; do
         pyjwt) MODS="$PYJWT_MODS"; ENVV="";;
         lxml) MODS="$LXML_MODS"; ENVV="";;
         urllib3) MODS="ai_processor.tests_ssrf_guard"; ENVV="CI_REQUIRE_NETWORK=1 H39_ALLOW_REAL_NETWORK=1";;
-        own) MODS="$OWN AutoGrader.tests_no_pii_in_logs AutoGrader.tests_network_guard"; ENVV="";;
+        own) MODS="$OWN AutoGrader.tests_no_pii_in_logs AutoGrader.tests_network_guard audit.tests_route_coverage billing.tests.test_free_plan_activation_security"; ENVV="";;
     esac
     UPART=$STEP_NAME
     OUTF=$E/near_$STEP_NAME.txt
