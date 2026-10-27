@@ -688,9 +688,8 @@ AI_PROVIDER_ZDR_ENABLED = env.bool("AI_PROVIDER_ZDR_ENABLED", default=False)
 # never answers costs at most three of these. 300 s is about 2.4x the slowest
 # call in the live benchmark records (ai_processor/benchmark/answers/reports,
 # 152 calls; grading p99 113 s, max 118 s; answer reading p99 94 s, max
-# 127 s). The SDK's
-# own default was 600 s, three times over, past the grading task's 25-minute
-# kill point. Read when a process starts.
+# 127 s). The SDK's own default was 600 s, three times over, past the grading
+# task's 25-minute kill point. Read when a process starts.
 AI_PROVIDER_TIMEOUT_SECONDS = env.float("AI_PROVIDER_TIMEOUT_SECONDS", default=300.0)
 
 # Selective blind second opinion (ai_processor/second_opinion.py): a

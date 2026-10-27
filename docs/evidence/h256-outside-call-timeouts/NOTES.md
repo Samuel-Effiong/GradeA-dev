@@ -56,7 +56,8 @@
 - **Not read: the per-call records** (`AICallRecord.duration_ms`, H-201).
   - The local database has no `ai_processor_aicallrecord` table.
   - The beta database login in `.env` (`DATABASE_URI`) is refused ("password authentication failed", 2026-10-27).
-  - The read-only query is `call_record_durations.sql`, for whoever holds a working login.
+  - The read-only query is `call_record_durations.sql`, for whoever holds a working login. **SM ruling
+    2026-10-27:** do not chase the login; the benchmark records are the measurement of record.
 - **Caveats:**
   - The records predate H-204's price sort, which tries the cheapest supplier first even when it is slower. Real
     calls since then may be slower, which is one more reason for the margin.
@@ -68,8 +69,8 @@
 - **The certificate fetch inside `id_token.verify_oauth2_token`** (`google_requests.Request()`).
   - google-auth 2.53.0's own default is `_DEFAULT_TIMEOUT = 120` (`google/auth/transport/requests.py:47`).
     `fetch_certs` calls `request(certs_url, method="GET")` without a timeout, so it gets the 120 s.
-  - It is not a `requests.*` call of ours, and it has a limit. Giving it (5, 10) needs a small `Request` subclass;
-    that is a follow-up if wanted.
+  - It is not a `requests.*` call of ours, and it has a limit. **SM ruling 2026-10-27:** leave it; it is a known
+    limit in the row, with no follow-up row.
 - **No other `requests.*` call in `users/views.py`.**
   - `users/mailerlite_service.py` already passes `timeout=REQUEST_TIMEOUT_SECONDS`.
 - **Stripe's text and traceback in billing logs** are H-255's subject (Security Engineer), not this row's.
