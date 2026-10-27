@@ -172,3 +172,31 @@
   (`gap-h258-895210-suite.scope`); the script recorded exit 124 and "STOP: not green".
 - No test had failed. The output is kept in `stop_90a08225/` (gzipped).
 - The gate runs again from step 0 on the tip with the ruling.
+
+## The gate on 9e59acad (granted by the Senior Manager, 27 October 2026): GREEN
+
+Run 10:45:35 to 10:57:31 WAT inside one `systemd-inhibit`, gate exit 0 ("GATE STEPS ALL AS WRITTEN"). Logs are in
+`gate_9e59acad/` (gzipped).
+- Available memory at the start was 15G, so the cap was 13G.
+- Load was 2.07 2.70 4.05 at the start and 5.24 7.24 6.04 at the end.
+
+- **Red run** (the three new files absent, as at 31a86456):
+  - 12 ERROR blocks, each holding its written FileNotFoundError.
+  - "Ran 12 tests in 0.009s", "FAILED (errors=12)".
+  - Source restored.
+- **makemigrations --check** under Django 5.2.17: "No changes detected".
+- **Seam:** the changed files outside `docs/` are exactly the seven; settings.py a comment only; tasks.py the module
+  docstring only; requirements.txt the same length and differing by exactly the five pins. "SEAM OK".
+- **The audit** (pip-audit 2.9.0):
+  - at the tip: exit 0, "No known vulnerabilities found, 192 ignored";
+  - planted A (the base pins): exit 1, "Found 58 known vulnerabilities, ignored 192 in 5 packages";
+  - planted B (`PYSEC-2026-1434` dropped from the file): exit 1, "Found 1 known vulnerability, ignored 191 in 1
+    package".
+- **The full suite** in the private venv, `--parallel 4`, 10:45:43 to 10:56:57: "Ran 8388 tests in 630.715s",
+  "OK (skipped=30)".
+- **Mutants,** 10:56:57 to 10:57:31: all 12 KILLED as written, each with "Ran 12 tests". Every failing set was
+  exactly the written one test, and every block held its fragment. None survived, differed, failed for the wrong
+  reason or broke.
+- The source was clean after the mutants. No watchdog fired.
+- **The private venv** `~/Documents/Virtualenvs/AutoGrader_env_h258` was removed at 10:58 after the gate (SM
+  ruling). The shared `AutoGrader_env` was not touched at any point.
