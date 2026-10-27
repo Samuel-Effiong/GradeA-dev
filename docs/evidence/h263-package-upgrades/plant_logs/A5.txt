@@ -1,0 +1,12 @@
+WARNING:pip_audit._cli:--no-deps is supported, but users are encouraged to fully hash their pinned dependencies
+WARNING:pip_audit._cli:Consider using a tool like `pip-compile`: https://pip-tools.readthedocs.io/en/latest/#using-hashes
+Found 6 known vulnerabilities, ignored 105 in 1 package
+Name    Version ID              Fix Versions
+------- ------- --------------- ------------
+urllib3 2.5.0   PYSEC-2026-141  2.7.0
+urllib3 2.5.0   PYSEC-2026-1998 2.6.0
+urllib3 2.5.0   PYSEC-2026-1994 2.6.0
+urllib3 2.5.0   PYSEC-2026-1996 2.6.3
+urllib3 2.5.0   PYSEC-2026-4177 2.8.0
+urllib3 2.5.0   PYSEC-2026-4175 2.8.0
+pip-audit gate: 105 accepted advisories from .pip-audit-ignore.toml

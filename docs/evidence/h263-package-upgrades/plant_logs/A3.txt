@@ -1,0 +1,23 @@
+WARNING:pip_audit._cli:--no-deps is supported, but users are encouraged to fully hash their pinned dependencies
+WARNING:pip_audit._cli:Consider using a tool like `pip-compile`: https://pip-tools.readthedocs.io/en/latest/#using-hashes
+Found 17 known vulnerabilities, ignored 105 in 1 package
+Name  Version ID                  Fix Versions
+----- ------- ------------------- ------------
+pyjwt 2.10.1  PYSEC-2026-120      2.12.0
+pyjwt 2.10.1  PYSEC-2025-183
+pyjwt 2.10.1  PYSEC-2026-179      2.13.0
+pyjwt 2.10.1  PYSEC-2026-175      2.13.0
+pyjwt 2.10.1  PYSEC-2026-177      2.13.0
+pyjwt 2.10.1  PYSEC-2026-178      2.13.0
+pyjwt 2.10.1  PYSEC-2026-176      2.12.1
+pyjwt 2.10.1  PYSEC-2026-4145     2.14.0
+pyjwt 2.10.1  PYSEC-2026-4149     2.14.0
+pyjwt 2.10.1  PYSEC-2026-4152     2.14.0
+pyjwt 2.10.1  PYSEC-2026-4144     2.14.0
+pyjwt 2.10.1  PYSEC-2026-4148     2.14.0
+pyjwt 2.10.1  PYSEC-2026-4140     2.14.0
+pyjwt 2.10.1  PYSEC-2026-4141     2.15.0
+pyjwt 2.10.1  PYSEC-2026-4147     2.14.0
+pyjwt 2.10.1  PYSEC-2026-4183     2.15.0
+pyjwt 2.10.1  GHSA-pxh4-856f-4h89 2.14.0
+pip-audit gate: 105 accepted advisories from .pip-audit-ignore.toml

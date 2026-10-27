@@ -1,0 +1,8 @@
+WARNING:pip_audit._cli:--no-deps is supported, but users are encouraged to fully hash their pinned dependencies
+WARNING:pip_audit._cli:Consider using a tool like `pip-compile`: https://pip-tools.readthedocs.io/en/latest/#using-hashes
+Found 2 known vulnerabilities, ignored 105 in 1 package
+Name     Version ID              Fix Versions
+-------- ------- --------------- ------------
+gunicorn 20.0.4  PYSEC-2026-1434 22.0.0
+gunicorn 20.0.4  PYSEC-2026-1433 22.0.0
+pip-audit gate: 105 accepted advisories from .pip-audit-ignore.toml

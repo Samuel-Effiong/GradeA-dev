@@ -212,6 +212,158 @@
    a PSD labelled `image/png` is refused with the existing friendly error rather than a 500.
 6. **Production's signing key** was confirmed by the owner on 2026-10-27 to be over 32 characters.
 
+## DRF 3.18 compatibility fixes (commit 6f992a48)
+
+Two code changes were needed after the gate was granted, discovered when the private-venv
+suite ran under DRF 3.18.2 for the first time.
+
+### audit/emitter.py — `_client_ip` except clause
+
+**What failed:** 12 tests in `audit.tests_route_coverage.AnonymousDoorRefusalUnitTests`
+(e.g. `test_a_refused_door_request_records_one_invalid_request`,
+`test_a_crashed_door_records_one_server_error`,
+`test_any_crashed_anonymous_write_records_one_server_error`) all raised `AttributeError`.
+
+**Why:** DRF 3.18 changed `BaseThrottle.get_ident(request)` from
+`request.META.get('HTTP_X_FORWARDED_FOR')` to `request.headers.get('x-forwarded-for')`.
+The `AnonymousDoorRefusalUnitTests` pass a `SimpleNamespace(META={}, ...)` with no
+`.headers` attribute, so `get_ident` raised `AttributeError`. In production the request
+is always a real `HttpRequest` (which has `.headers`), but `_client_ip` must also handle
+the `SimpleNamespace` path gracefully.
+
+**Fix:** Added `AttributeError` to the existing `except (ValueError, TypeError)` clause
+in `_client_ip()` at `audit/emitter.py:574`. The function returns `None` when it cannot
+parse an IP, which is the existing fallback.
+
+**Covering tests:** the 8 tests in `AnonymousDoorRefusalUnitTests` (lines 372–441 of
+`audit/tests_route_coverage.py`), which call `emit_anonymous_refusal` with a
+`SimpleNamespace` request. All 8 pass on both DRF 3.16 and 3.18.
+
+### billing/serializers.py — `UserSubscriptionSerializer.Meta.validators = []`
+
+**What failed:** 48 tests in `billing.tests.test_free_plan_activation_security`, all
+returning 400 with `{'non_field_errors': ['The fields user must make a unique set.']}`
+instead of the expected 201 or the view's own error.
+
+**Why:** DRF 3.18 auto-generates serializer validators for `UniqueConstraint` (not just
+`unique_together`). The `UserSubscription` model has
+`UniqueConstraint(fields=["user"], condition=Q(is_active=True),
+name="one_active_subscription_per_user")`. DRF 3.18 now enforces this at the serializer
+level before the view can deactivate the old subscription, blocking every subscription
+create for a user who already has an active one.
+
+**Fix:** Added `validators = []` to `UserSubscriptionSerializer.Meta` at
+`billing/serializers.py:278`. The view's `perform_create` deactivates the old
+subscription before creating the new one, so the constraint is handled at the right
+level.
+
+**Covering tests:** the 48 subscription-creation tests in
+`billing.tests.test_free_plan_activation_security` (e.g.
+`test_first_beta_assignment_grants_exactly_one_bucket`,
+`test_self_service_selection_uses_the_same_allow_list`,
+`test_a_stripe_billed_teacher_cannot_switch_themselves_to_beta`,
+`test_switching_away_and_back_does_not_regrant_beta`). All pass on both DRF 3.16 and
+3.18.
+
+## Advisory database drift (base pins, step 0b)
+
+The committed `.pip-audit-ignore.toml` removed exactly 87 ids for the six upgraded
+packages. The live base-pins audit (saved as `audit_planted_base_pins.txt`, no re-run)
+reported 88 ids. The mismatch is advisory database drift, not a bug in the gate.
+
+**Two GHSAs absent from the live output** (relabelled, not withdrawn):
+
+| Missing GHSA | Now reported as | CVE | Evidence |
+|---|---|---|---|
+| GHSA-27h8-gf7j-v5hc | PYSEC-2026-4326 | CVE-2026-112392 | PYSEC-2026-4326's `aliases` includes `GHSA-27h8-gf7j-v5hc` |
+| GHSA-4rr5-89j8-mwwm | PYSEC-2026-4328 | CVE-2026-112396 | PYSEC-2026-4328's `aliases` includes `GHSA-4rr5-89j8-mwwm` |
+
+Neither GHSA record has a `withdrawn` field. pip-audit deduplicated: it dropped the GHSA
+and kept the PYSEC for the same vulnerability.
+
+**One genuinely new advisory:** PYSEC-2026-4327 (CVE-2026-112394, alias
+GHSA-4558-3h8r-v8xp), pillow. GHSA-4558-3h8r-v8xp was not in the base ignore file.
+
+**Arithmetic (case b — relabelled):**
+```
+  87 committed ids
+−  2 GHSAs now reported as PYSECs (same vulns, deduplicated by pip-audit)
++  2 replacement PYSECs (4326, 4328)
++  1 genuinely new PYSEC (4327)
+=  88 in live output
+```
+
+Command: `grep -oP '[A-Z]+-[0-9A-Za-z-]+' audit_planted_base_pins.txt | sort -u | wc -l`
+→ 88. Cross-referenced against the 87 removed ids from the committed ignore file with a
+Python script (tomllib + set difference). Raw OSV records saved as `osv_*.json` (5 files).
+
+**SM ruling:** accepted, no re-run needed. The old pins still trigger advisories and the
+new pins clear them.
+
+## Tip ignore file — the 105 ids name none of the six upgraded packages
+
+The tip's audit says "No known vulnerabilities found, 105 ignored". The 105 ids in
+`.pip-audit-ignore.toml` are spread across 21 packages. None of the six upgraded packages
+(gunicorn, pillow, PyJWT, lxml, urllib3, djangorestframework) has an entry.
+
+Command: `python3 -I -c "import tomllib; ..."`  (reads `.pip-audit-ignore.toml`, groups
+ids by package, checks none of the six appear).
+
+| Package | Count |
+|---|---|
+| anyio | 2 |
+| black | 3 |
+| certifi | 1 |
+| cryptography | 7 |
+| filelock | 2 |
+| fsspec | 1 |
+| idna | 1 |
+| marshmallow | 1 |
+| nltk | 42 |
+| oauthlib | 1 |
+| protobuf | 1 |
+| pyarrow | 1 |
+| pygments | 1 |
+| setuptools | 2 |
+| social-auth-app-django | 1 |
+| social-auth-core | 6 |
+| soupsieve | 4 |
+| sqlparse | 6 |
+| ujson | 4 |
+| virtualenv | 16 |
+| weasyprint | 2 |
+| **Total** | **105** |
+
+## Gate run results (attempt 6, tip e1525bf5, 27 October 2026)
+
+| Step | Result |
+|---|---|
+| 0. Red run | 2 blocks, each red for its written reason |
+| 0b. Base pins audit | exit 1, 88 ids (87 committed + drift, see above) |
+| 1a. makemigrations --check | exit 0, no changes |
+| 1b. Seam | SEAM OK (7 files checked) |
+| 1c. Tip audit | exit 0, "No known vulnerabilities found, 105 ignored" |
+| 1d. Gunicorn boot | 22.0.0, /api/v1/health → 200, health ok |
+| 1. Near suites | pillow 335 OK, PyJWT 331 OK, lxml 270 OK, urllib3 20 OK, own 134 OK |
+| 2. Full suite (--parallel 4) | 8390 OK (skipped=30) |
+| 3. Plants | A1 CAUGHT, A2 CAUGHT (ids drifted), A3–A6 CAUGHT |
+
+**Run count 8390:** the base is `9263e9f8` (H-258's tip), which is 35 commits behind
+`beta` at `fef4249d` and before batch 29's tests were added. Batch 30's strict run
+carries the combined count.
+
+**Plant A2 (pillow) — CAUGHT, ids drifted:** the audit caught pillow (exit 1), but the
+id set differs from the written 56 by the same advisory drift proved at step 0b:
+- expected 56, found 57
+- missing: GHSA-27h8-gf7j-v5hc, GHSA-4rr5-89j8-mwwm (relabelled as PYSECs)
+- extra: PYSEC-2026-4326, PYSEC-2026-4327, PYSEC-2026-4328
+- 56 − 2 + 3 = 57
+- same 5 OSV records (`osv_*.json`) prove it; the written 56 stays as written
+
+**SM ruling:** accepted. A2 counts as CAUGHT with recorded drift. No re-run.
+
+**Private venv** `~/Documents/Virtualenvs/AutoGrader_env_h263` removed after the gate.
+
 ## Timing
 
 - Nothing ran from this row while the batch 29 strict run was going. The H-260 re-run takes the slot after it,
