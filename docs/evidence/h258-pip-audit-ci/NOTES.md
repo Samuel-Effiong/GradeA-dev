@@ -33,8 +33,9 @@
 - **Minor and major (accepted for now, SM ruling (b)):** 27 packages and 192 advisories, all in
   `.pip-audit-ignore.toml`.
   - Review date 2026-11-30.
-  - **The owner's ruling (2026-10-27):** gunicorn 22.0.0, pillow 13.0.0, pyjwt 2.15.0, lxml 6.1.0 and urllib3
-    2.8.0 are approved for upgrade in **H-263 (batch 30)**, and their entries say so. The rest stay on the list to
+  - **The owner's rulings (2026-10-27):** gunicorn 22.0.0, pillow 13.0.0, pyjwt 2.15.0, lxml 6.1.0 and urllib3
+    2.8.0 are approved for upgrade in **H-263 (batch 30)**. A second ruling the same day added djangorestframework
+    3.18.2, which is reachable unauthenticated. Their entries say so. The rest stay on the list to
     the review date.
 - **No fixed version yet:** four nltk advisories (PYSEC-2026-97, -597, -3955, -4318) and one pyjwt advisory
   (PYSEC-2025-183, disputed by the supplier).
@@ -157,3 +158,17 @@
   - makemigrations "No changes detected";
   - `manage.py check` with no issues;
   - flower, google-auth's id_token, `authlib.jose` and a brotli round trip all import and work.
+
+## The first gate run on 90a08225: stopped by me for the owner's second ruling
+
+- **Steps 0 to 1c were as written:**
+  - red run: 12 blocks, each holding FileNotFoundError;
+  - makemigrations: no changes;
+  - seam OK;
+  - the audit at the tip: "No known vulnerabilities found, 192 ignored";
+  - planted A: 58 found; planted B: 1 found.
+- **Why it stopped:** the owner's ruling to add djangorestframework to H-263 arrived while the full suite (step 1)
+  was 40 s in. The Senior Manager asked for the gate on the tip that carries it, so I stopped my own suite scope
+  (`gap-h258-895210-suite.scope`); the script recorded exit 124 and "STOP: not green".
+- No test had failed. The output is kept in `stop_90a08225/` (gzipped).
+- The gate runs again from step 0 on the tip with the ruling.
