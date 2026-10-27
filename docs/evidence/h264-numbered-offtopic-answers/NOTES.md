@@ -186,3 +186,12 @@ GREEN at b199eed6 and after (controls):
   test_a_cap_of_0_checks_nothing, test_at_or_under_the_cap_every_blank_is_re_checked,
   test_the_one_piece_rule_and_the_flag_rule_are_kept
 ```
+
+## Gate notes (SM, 2026-10-27)
+
+- Base is b199eed6, not beta fef4249d. 788ca968 merges clean onto beta.
+  Batch 29 touched ai_processor/services.py (H-256's client timeout), so the
+  batch 30 bundle run is where the two meet.
+- The shared venv carries batch 29's pins; this branch's requirements are at
+  the base. No install into the shared venv during this gate.
+- H-263's full suite (private venv) and H-268's row gate may run concurrently.
