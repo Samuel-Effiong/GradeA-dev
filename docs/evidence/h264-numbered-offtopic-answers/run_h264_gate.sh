@@ -56,6 +56,7 @@ RESTORE="ai_processor/services.py AutoGrader/settings.py ai_processor/extraction
 restore_tree() {
     kill $WATCHDOG 2>/dev/null
     git checkout HEAD -- $RESTORE 2>/dev/null
+    git reset HEAD -- $PROMPT_4_BASE 2>/dev/null
     rm -f $PROMPT_4_BASE 2>/dev/null
     find ai_processor AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null
 }
@@ -127,12 +128,13 @@ BLOCKS=$(grep -cE '^(FAIL|ERROR): ' $RF)
 [ "$BLOCKS" = 28 ] || { echo "red run: not exactly 28 FAIL/ERROR blocks ($BLOCKS)"; RED_OK=0; }
 if [ "$RED_OK" != 1 ]; then
     echo "STOP (exit 4): the red run is not what was written"
-    git checkout HEAD -- $RESTORE 2>/dev/null; rm -f $PROMPT_4_BASE
+    git checkout HEAD -- $RESTORE 2>/dev/null; git reset HEAD -- $PROMPT_4_BASE 2>/dev/null; rm -f $PROMPT_4_BASE
     find ai_processor AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} +
     exit 4
 fi
 echo "red run is as written: non-zero exit, no OK line, the module loaded, 28 blocks red for their written reasons and no other"
 git checkout HEAD -- $RESTORE
+git reset HEAD -- $PROMPT_4_BASE 2>/dev/null
 rm -f $PROMPT_4_BASE
 find ai_processor AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} +
 git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
