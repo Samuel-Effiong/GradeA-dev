@@ -54,15 +54,17 @@ The spec has `variant_from_params=None` (set in H-268 as a field, but not used f
 
 ## Tests
 
-### tests_reason_codes.py: SpecChosenVariantMidBatchTests (new class, 4 tests)
+### tests_reason_codes.py: SpecChosenVariantMidBatchTests (new class, 5 tests)
 
 - `test_the_spec_picks_none_finished_from_completed`: completed=0 → spec picks "none_finished";
   renders the correct sentence; spec.variant_from_params is not None.
-- `test_mid_batch_with_items_finished_the_spec_picks_the_default`: completed > 0 → spec picks None;
+- `test_with_items_finished_the_spec_picks_the_default`: completed=2 → spec picks None;
   renders the default sentence.
-- `test_mid_batch_a_raiser_that_names_the_variant_still_wins`: a raiser naming
+- `test_boundary_one_finished_is_the_default`: completed=1 → the default sentence (the boundary;
+  kills mutant M3 which changes == 0 to <= 1).
+- `test_a_raiser_that_names_the_variant_still_wins`: a raiser naming
   `variant="none_finished"` on completed=2 overrides the spec (which would return None).
-- `test_mid_batch_args_keep_the_4_tuple`: at completed=0, the spec-chosen variant is NOT in args;
+- `test_args_keep_the_4_tuple`: at completed=0, the spec-chosen variant is NOT in args;
   rebuilt from args it still renders the same sentence.
 
 ### Existing tests updated
@@ -82,7 +84,7 @@ At the base, MID_BATCH has `variant_from_params=None` and the raiser passes
 `variant="none_finished" if completed == 0 else None`. The old control test
 (`test_control_the_caller_named_variant_is_untouched`) is removed and replaced.
 
-3 blocks (3 FAIL, 0 ERROR), "Ran 4 tests". The raiser-wins test is green at the base.
+3 blocks (3 FAIL, 0 ERROR), "Ran 5 tests". Two tests are green at the base.
 
 1. `test_the_spec_picks_none_finished_from_completed`: FAIL — `assertIsNotNone(None)` because
    `spec.variant_from_params` is None at the base. Fragment: "is not None".
@@ -95,5 +97,18 @@ At the base, MID_BATCH has `variant_from_params=None` and the raiser passes
 Green at the base:
 - `test_a_raiser_that_names_the_variant_still_wins`: the raiser's `variant="none_finished"` on
   completed=2 works identically at the base (no spec to interfere, and the raiser's variant wins).
+- `test_boundary_one_finished_is_the_default`: completed=1 without variant gets the default
+  sentence at the base too (the spec doesn't interfere). This is the mutant M3's kill test.
+
+## Expected mutant results (written before the gate)
+
+3 mutants, all on `AutoGrader/reason_codes.py` (the MID_BATCH spec's `variant_from_params`).
+Expected: 3/3 KILLED, 0 SURVIVED, 0 BROKEN.
+
+| ID | What | Expected status | Expected failing tests |
+|----|------|-----------------|------------------------|
+| M1 | drop variant_from_params (None) | KILLED | spec_picks ("is not None"), default ("is not None"), args ("!=") |
+| M2 | always return "none_finished" | KILLED | default ("!="), boundary ("!=") |
+| M3 | boundary: completed <= 1 | KILLED | boundary ("!=") |
 
 Security Engineer (db)

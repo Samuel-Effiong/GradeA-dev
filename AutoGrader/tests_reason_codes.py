@@ -710,6 +710,13 @@ class SpecChosenVariantMidBatchTests(SimpleTestCase):
         error = self._error(2)
         self.assertEqual(str(error), self.AFTER)
 
+    def test_boundary_one_finished_is_the_default(self):
+        error = self._error(1)
+        self.assertEqual(
+            str(error),
+            "Credits ran out after 1 of 4 items. The finished items are saved.",
+        )
+
     def test_a_raiser_that_names_the_variant_still_wins(self):
         error = self._error(2, variant="none_finished")
         self.assertEqual(str(error), self.BEFORE)
