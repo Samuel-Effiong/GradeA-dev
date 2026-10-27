@@ -2587,8 +2587,9 @@ Do not include any explanatory text before or after the JSON
         # pages per call; this sends the WHOLE submission in one, because a
         # missing answer could be on any page and a partial view would just
         # miss it. That is affordable for an ordinary script and not for a
-        # 40-page one, so past the cap the re-read is skipped rather than
-        # attempted and failed.
+        # 40-page one, so past the PAGE cap the re-read is skipped rather
+        # than attempted and failed. (Past the question cap it is not
+        # skipped any more: H-264 re-checks the lowest-numbered `cap`.)
         #
         # Skipping is safe in the one direction that matters: this step can
         # only ever move a question BLANK -> NOT_FOUND_IN_DOCUMENT, so not
