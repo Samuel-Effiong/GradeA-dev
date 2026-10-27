@@ -28,7 +28,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from audit.enums import ReasonCode
-from AutoGrader.error_messages import describe_stripe_error, describe_user_error
+from AutoGrader.error_messages import (
+    describe_stripe_error,
+    describe_user_error,
+    stripe_error_label,
+)
 from AutoGrader.reason_codes import CodedError, coded_entry, coded_response
 from classrooms.models import School
 from classrooms.permissions import IsNotStudent, IsSuperAdmin
@@ -784,10 +788,10 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except stripe.error.StripeError as exc:
-            logger.exception(
+            logger.error(
                 "Stripe error during license overage purchase for license %s: %s",
                 license_sub.id,
-                exc,
+                stripe_error_label(exc),
             )
             return Response(
                 {
@@ -1024,7 +1028,9 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             )
         except stripe.error.StripeError as exc:
             logger.error(
-                "Failed to create setup intent for license %s", pk, exc_info=exc
+                "Failed to create setup intent for license %s: %s",
+                pk,
+                stripe_error_label(exc),
             )
             return Response(
                 {

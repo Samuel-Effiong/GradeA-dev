@@ -41,7 +41,7 @@ from django.utils import timezone
 
 from audit.enums import ReasonCode
 from AutoGrader.dispatch import safe_delay
-from AutoGrader.error_messages import describe_stripe_error
+from AutoGrader.error_messages import describe_stripe_error, stripe_error_label
 from AutoGrader.reason_codes import CodedError
 from classrooms.models import School
 from users.models import CustomUser
@@ -1028,15 +1028,16 @@ class SubscriptionReactivationService:
                                 user_sub.stripe_subscription_id,
                                 cancel_at_period_end=True,
                             )
-                        except stripe.error.StripeError:
-                            logger.exception(
+                        except stripe.error.StripeError as revert_exc:
+                            logger.error(
                                 "Reactivation: compensating Stripe revert "
                                 "ALSO failed for subscription %s "
-                                "(stripe_subscription_id=%s). MANUAL "
+                                "(stripe_subscription_id=%s): %s. MANUAL "
                                 "RECONCILIATION NEEDED — Stripe and local "
                                 "state now disagree about renewal.",
                                 locked_sub.id,
                                 user_sub.stripe_subscription_id,
+                                stripe_error_label(revert_exc),
                             )
                         raise
 
@@ -1595,13 +1596,14 @@ class StripeSubscriptionMutationService:
                     invoice["id"],
                     stripe_subscription_id,
                 )
-        except stripe.error.StripeError:
-            logger.exception(
+        except stripe.error.StripeError as exc:
+            logger.error(
                 "Failed to void/refund a potential duplicate invoice for "
                 "subscription %s after an interval-crossing upgrade "
-                "checkout. MANUAL RECONCILIATION NEEDED — check this "
+                "checkout (%s). MANUAL RECONCILIATION NEEDED — check this "
                 "subscription's invoices in the Stripe dashboard.",
                 stripe_subscription_id,
+                stripe_error_label(exc),
             )
 
     @staticmethod
@@ -1872,12 +1874,14 @@ class StripeSubscriptionMutationService:
                 items=[{"id": item_id, "price": old_price_id}],
                 proration_behavior="none",
             )
-        except stripe.error.StripeError:
-            logger.exception(
+        except stripe.error.StripeError as exc:
+            logger.error(
                 "Failed to revert subscription %s to its previous price %s "
-                "after a failed upgrade payment. Manual reconciliation needed.",
+                "after a failed upgrade payment (%s). Manual reconciliation "
+                "needed.",
                 stripe_subscription_id,
                 old_price_id,
+                stripe_error_label(exc),
             )
 
         if invoice is None:
@@ -1886,11 +1890,12 @@ class StripeSubscriptionMutationService:
         try:
             if invoice.get("status") == "open":
                 stripe.Invoice.void_invoice(invoice["id"])
-        except stripe.error.StripeError:
-            logger.exception(
-                "Failed to void unpaid upgrade invoice %s for subscription %s.",
+        except stripe.error.StripeError as exc:
+            logger.error(
+                "Failed to void unpaid upgrade invoice %s for subscription %s: %s",
                 invoice.get("id"),
                 stripe_subscription_id,
+                stripe_error_label(exc),
             )
 
     @staticmethod
@@ -2227,7 +2232,7 @@ class StripeSubscriptionScheduleService:
                 "invalid, nothing to release: %s",
                 user_sub.stripe_schedule_id,
                 user_sub.id,
-                exc,
+                stripe_error_label(exc),
             )
         except stripe.error.StripeError as exc:
             raise ValueError(
@@ -4815,10 +4820,11 @@ class StripeWebhookHandler:
                 customer_id,
                 invoice_settings={"default_payment_method": payment_method_id},
             )
-        except stripe.error.StripeError:
-            logger.exception(
-                "Failed to set default payment method for customer %s.",
+        except stripe.error.StripeError as exc:
+            logger.error(
+                "Failed to set default payment method for customer %s: %s",
                 customer_id,
+                stripe_error_label(exc),
             )
             return
 
