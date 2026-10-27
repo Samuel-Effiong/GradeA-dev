@@ -1,4 +1,5 @@
 import json
+import logging
 
 from django.db import transaction
 from django.utils import timezone
@@ -28,6 +29,14 @@ from .models import (  # Rubric
     AssignmentGenerationRole,
     AssignmentGenerationSession,
     AssignmentStatus,
+)
+
+logger = logging.getLogger(__name__)
+
+#: What the client reads when an assignment's save fails (H-260).
+ASSIGNMENT_SAVE_FAILED = (
+    "We couldn't save this assignment. Please try again, and contact support "
+    "if the problem continues."
 )
 
 
@@ -228,9 +237,11 @@ class AssignmentSerializer(serializers.ModelSerializer):
 
                 return assignment
         except Exception as e:
-            raise serializers.ValidationError(
-                f"Failed to create assignment and rubric: {e}"
-            ) from e
+            # H-260: a database error's text names tables, constraints and
+            # the row's values. The client reads a fixed sentence; the log
+            # gets the class, with no text and no traceback.
+            logger.warning("Assignment save failed: %s", type(e).__name__)
+            raise serializers.ValidationError(ASSIGNMENT_SAVE_FAILED) from e
 
     def normalize(self, obj):
         return json.loads(json.dumps(obj, sort_keys=True))
