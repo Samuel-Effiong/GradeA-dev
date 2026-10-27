@@ -167,7 +167,7 @@
 ### The pack
 
 - **`run_h263_gate.sh.txt`**, in order: 0 the red run; 0b the audit on the base pins; 1a makemigrations; 1b the
-  seam; 1c the audit at the tip; 1d gunicorn's boot; 1 the five near steps; 2 the full suite; 3 the six plants.
+  seam; 1c the audit at the tip; 1d gunicorn's boot (`health_verdict.py`); 1 the five near steps; 2 the full suite; 3 the six plants.
 - **The red run** (rule 22, written before the run): the setting and its comment are cut out of
   `AutoGrader/settings.py`, which leaves DRF 3.18's own default, and
   `assignments.tests_h263_list_error_shape` must give exactly 2 blocks, each holding the dict shape the test
@@ -182,8 +182,14 @@
   `git show 9263e9f8:.pip-audit-ignore.toml` before any run: gunicorn 2, pillow 56, PyJWT 17, lxml 1,
   urllib3 6, djangorestframework 5. `--check` reads them without running anything.
 - **The gunicorn step** takes 200 or 503 from `/health` as proof that 22.0.0 booted with the Dockerfile's flags
-  and served a request through our WSGI app; `/health` answers 503 when the local database or Redis is down,
-  which is the environment's business and not this upgrade's. No answer, 400 or 500 is a stop.
+  and served a request through our WSGI app. `health_verdict.py` judges it (SM ruling 1, 2026-10-27): 200
+  passes; 503 passes **only** when the body's `checks` map names `database` or `cache` as the failing one and
+  nothing else fails, because that is the local environment's business and not this upgrade's. A 503 for any
+  other reason, one whose body does not say, an unparseable body, no answer, a 400 or a 500 is a stop. The
+  response passes through `APIJSONRenderer`, which wraps the payload, so the `checks` map is looked for at any
+  depth. Judged against nine made-up bodies before the gate: 200; 503 on the database; 503 on the cache; 503
+  with a third check failing; 503 with nothing failing; 503 with a non-JSON body; 503 with an empty body; 400;
+  500. The first three pass and the other six stop.
 - **The urllib3 step** must show the live peer test having run, not skipped: a missing name, or the skip
   message "Live network check is opt-in", is a stop.
 - **Not yet made:** the private venv. It is built when the slot opens, not while another suite is running.

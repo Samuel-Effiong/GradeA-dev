@@ -131,10 +131,15 @@ echo "GET /health -> $CODE after ${i}s; body: $(cut -c1-200 $E/gunicorn_health.t
 kill $GPID 2>/dev/null; wait $GPID 2>/dev/null
 pgrep -f "gunicorn AutoGrader.wsgi:application --bind 127.0.0.1:$PORT" > /dev/null && { echo "STOP: a gunicorn process is left"; exit 2; }
 # What this step checks is that gunicorn 22.0.0 boots with the Dockerfile's flags and serves a request through
-# our WSGI app. 200 and 503 both prove that: /health answers 503 when the local DB or Redis is down, which is
-# the environment's business, not this upgrade's. Anything else (no answer, 400, 500) is a stop.
+# our WSGI app. 200 proves it. 503 proves it too, but ONLY when the body names the database or the cache check
+# as the one that failed and nothing else failed (SM ruling 1, 2026-10-27): that is the local environment's
+# business, not this upgrade's. A 503 for any other reason, or one whose body does not say, is a stop, as is no
+# answer, a 400 or a 500.
 grep -q "exit=0" $GB || { echo "STOP: gunicorn --check-config did not pass"; exit 2; }
-[ "$CODE" = "200" ] || [ "$CODE" = "503" ] || { echo "STOP: gunicorn did not serve /health (code '$CODE')"; exit 2; }
+python3 -I $E/health_verdict.py "$CODE" $E/gunicorn_health.txt < /dev/null >> $GB 2>&1
+HEALTH_OK=$?
+tail -3 $GB
+[ "$HEALTH_OK" = 0 ] || { echo "STOP: gunicorn did not serve /health as written (code '$CODE')"; exit 2; }
 echo "gunicorn booted with the Dockerfile's flags and served /health ($CODE), then stopped"
 
 echo "=== 1. the near suites, one step per commit $(date +%T)"
