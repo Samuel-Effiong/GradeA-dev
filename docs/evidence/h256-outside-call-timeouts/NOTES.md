@@ -217,3 +217,26 @@ Run 10:23:56 to 10:28:16 inside one `systemd-inhibit`. Available memory was 14G,
     gate: by rule 22 a fragment is written before its run.
   - The gate runs again from step 0 on the corrected pack, after a new grant.
 - Source was clean after the mutants; the mutant database was dropped; no watchdog fired.
+
+## The gate on 5045f44a (granted by the Senior Manager, 27 October 2026): GREEN
+
+Run 10:30:40 to 10:35:58 WAT inside one `systemd-inhibit`, gate exit 0 ("GATE STEPS ALL AS WRITTEN"). Logs are in
+`gate_5045f44a/` (gzipped).
+- Available memory at the start was 16G, so the cap was 14G.
+- Load was 2.69 2.70 5.70 at the start and 4.35 3.51 5.16 at the end.
+
+- **Red run** (the four production files as at 31a86456, the three modules as at the tip):
+  - 6 FAIL blocks, each holding its written fragment, no ERROR, no OK line.
+  - "Ran 10 tests in 1.380s", "FAILED (failures=6)".
+  - Source restored.
+- **makemigrations --check:** no changes.
+- **Seam:** the changed files are exactly the four production files beside the tests and `docs/`. "SEAM OK: four
+  production files, each changed only as written".
+- **Step 1** (own, 26 near modules, the 21 guards), 10:31:12 to 10:34:27:
+  - "Ran 804 tests in 169.871s", "OK (skipped=3)".
+  - No provider host in the log.
+- **Step 2, mutants,** 10:34:27 to 10:35:58:
+  - All 14 KILLED as written, each with "Ran 10 tests". Every failing set was exactly the written one, and every
+    block held its fragment.
+  - Failing / expected: M1-M4 1/1 (M3 and M4 two blocks each, one per subtest); M5-M8 2/2; M9-M14 1/1.
+- The source was clean after the mutants, and the mutant database was dropped. No watchdog fired.
