@@ -680,7 +680,7 @@ class SpecChosenVariantTests(SimpleTestCase):
         its raise site (students/task_tracking.py) and its spec picks
         nothing from params. H-269 may move it; H-268 does not."""
         spec = REASON_CODES[ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH]
-        self.assertIsNone(spec.variant_from_params)  # type: ignore[attr-defined]
+        self.assertIsNone(spec.variant_from_params)
         error = CodedError(
             ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH,
             params={"completed": 0, "total": 4},

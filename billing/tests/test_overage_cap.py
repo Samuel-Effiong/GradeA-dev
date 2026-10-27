@@ -292,6 +292,7 @@ class GrantTimeOverageCapTests(OverageCapTestBase):
         for fragment in (
             "Purchase limit exceeded",
             "Purchase limit reached",
-            "—",
+            "or fewer to proceed",
+            "next cycle starts",
         ):
             self.assertNotIn(fragment, written)

@@ -33,6 +33,7 @@ params only. An exception's own text (`detail`) stays server-side.
 from __future__ import annotations
 
 import string
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from rest_framework import status
@@ -78,6 +79,10 @@ class ReasonSpec:
     #: `CodedError(variant=)` (INSUFFICIENT_CREDITS_MID_BATCH when nothing
     #: had finished yet). Each takes its placeholders from `params`.
     alternative_messages: dict = field(default_factory=dict)
+    #: H-268: picks a key of `alternative_messages` from the params when
+    #: the raiser names no variant (OVERAGE_CAP_EXCEEDED at 0 blocks left).
+    #: A raiser's own `variant=` still wins, so "none_finished" is unchanged.
+    variant_from_params: Callable[[dict], str | None] | None = None
 
     def template(self, variant=None):
         return self.message if variant is None else self.alternative_messages[variant]
@@ -267,15 +272,27 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
     ReasonCode.OVERAGE_CAP_EXCEEDED: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_400_BAD_REQUEST,
-        # H-233: reads right at 0 left too (the old sentence said "Reduce
-        # your quantity to 0 or fewer").
-        "This purchase would go over your plan's limit of {max_blocks} "
-        "block(s) per billing cycle. You have {remaining} block(s) left this "
-        "cycle.",
+        # H-268 (the owner's wording, via the SM 2026-10-27). Two
+        # sentences, picked from the params by variant_from_params:
+        # remaining > 0 gets the default; remaining == 0 gets
+        # "cap_reached". H-233's rule holds: the zero sentence never says
+        # "reduce your quantity to 0 or fewer". The dash is U+2014.
+        "Purchase limit exceeded — max {max_blocks} blocks. Reduce "
+        "your quantity to {remaining} or fewer to proceed.",
         "Request fewer blocks, or wait until your next billing cycle, then "
         "try again.",
         retryable=False,
         params=frozenset({"max_blocks", "remaining"}),
+        alternative_messages={
+            "cap_reached": (
+                "Purchase limit reached — you have used all "
+                "{max_blocks} blocks for this billing cycle. You can buy "
+                "more when your next cycle starts."
+            ),
+        },
+        variant_from_params=lambda params: (
+            "cap_reached" if params.get("remaining") == 0 else None
+        ),
     ),
     # The generic throttle catch-all (custom_exception_handler, users/
     # exceptions.py): any DRF `Throttled` without its own `.envelope`
@@ -626,15 +643,22 @@ class CodedError(Exception):
             raise TypeError(f"{code}: params must be scalars: {sorted(not_scalar)}")
         if variant is not None and variant not in spec.alternative_messages:
             raise ValueError(f"{code}: not an approved message variant: {variant!r}")
+        # H-268: when the raiser names no variant, the spec may pick one
+        # from the params (OVERAGE_CAP_EXCEEDED at 0 blocks left). The
+        # raiser's own variant= still wins, and the spec-chosen one does
+        # NOT ride in args (it is re-derived from the same params).
+        chosen = variant
+        if chosen is None and spec.variant_from_params is not None:
+            chosen = spec.variant_from_params(params)
         display = dict(display or {})
-        stray = set(display) - spec.placeholders(variant)
+        stray = set(display) - spec.placeholders(chosen)
         if stray:
             raise ValueError(f"{code}: display for no placeholder: {sorted(stray)}")
         not_text = [k for k, v in display.items() if not isinstance(v, str)]
         if not_text:
             raise TypeError(f"{code}: display values must be text: {sorted(not_text)}")
         missing = (
-            spec.placeholders(variant) - set(params) - set(spec.defaults) - set(display)
+            spec.placeholders(chosen) - set(params) - set(spec.defaults) - set(display)
         )
         if missing:
             raise ValueError(f"{code}: params missing: {sorted(missing)}")
@@ -646,7 +670,7 @@ class CodedError(Exception):
         self.params = params
         self.detail = detail
         self._spec = spec
-        self._message = spec.render(params, display, variant)
+        self._message = spec.render(params, display, chosen)
         self._remediation = remediation
         self._variant = variant
         super().__init__(self._message)
