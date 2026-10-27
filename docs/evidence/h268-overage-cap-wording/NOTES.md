@@ -127,4 +127,62 @@ Ran 682 in 175.992s, OK.
 
 5/5 KILLED, 0 SURVIVED, 0 BROKEN. No key-shaped text in any log. Exit 0.
 
+## H-268 re-gate: lambda to named function (pickle fix)
+
+SM ruling 2026-10-27: the lambda in `variant_from_params` makes CodedError unpicklable when
+the error stores `self._spec`. `InsufficientCreditsMidBatchError` (a subclass) was caught by
+the serialization tests; plain `CodedError(OVERAGE_CAP_EXCEEDED)` was not tested by the subclass
+iteration but has the same defect. H-268 introduced this; no lambda existed before.
+
+### What changes (re-gate)
+
+- `AutoGrader/reason_codes.py`: lambda replaced by named module-level function `_overage_cap_variant`.
+- `AutoGrader/tests_reason_codes.py`: new test
+  `test_every_spec_with_variant_from_params_survives_pickle` in SpecChosenVariantTests: builds and
+  pickle-round-trips a plain `CodedError` for every ReasonCode whose spec has `variant_from_params`.
+
+### Expected reds against `3cc85098` (re-gate, written before the run)
+
+1 block (0 FAIL, 1 ERROR), "Ran 1 test". The error is for OVERAGE_CAP_EXCEEDED: PicklingError
+because the lambda can't be pickled. Fragment: "PicklingError".
+
+### Expected mutant results (re-gate, M1–M5 re-run)
+
+The mutant anchors change: the lambda text is now `_overage_cap_variant` (the function reference)
+and the function body. All 5 expected KILLED as before.
+
+| ID | What | Expected | Notes |
+|----|------|----------|-------|
+| M1 | swap the two sentences | KILLED | function unchanged, sentences swapped |
+| M2 | drop the zero branch | KILLED | function body changed |
+| M3 | boundary remaining ≤ 1 | KILLED | function body changed |
+| M4 | spec overrides raiser | KILLED | CodedError.__init__ unchanged |
+| M5 | spec-chosen in args | KILLED | CodedError.__init__ unchanged |
+
+### Re-gate on `ea35ebd2`
+
+Run 13:30:35–13:33:44, load1 3.00→1.57, 10G cap.
+
+#### 0. Red run (own DB)
+1 block (0 FAIL, 1 ERROR), Ran 1 test in 0.005s. OVERAGE_CAP_EXCEEDED: PicklingError (lambda).
+Fragment "PicklingError" confirmed. Modules loaded. As written.
+
+#### 1b. Seam by program (re-gate)
+`AutoGrader/reason_codes.py` changed only: `_overage_cap_variant`, `REASON_CODES`. SEAM OK.
+
+#### 1. Own + near + serialization + guards
+Ran 683 in 136.244s, OK.
+
+#### 2. Mutants (5, own DB)
+
+| ID | What | Status | Expected | Also failed |
+|----|------|--------|----------|-------------|
+| M1 | swap the two sentences | KILLED | 8 tests | — |
+| M2 | drop the zero branch | KILLED | 4 tests | — |
+| M3 | boundary remaining ≤ 1 | KILLED | 4 tests | — |
+| M4 | spec overrides raiser | KILLED | 1 test | — |
+| M5 | spec-chosen in args | KILLED | 1 test | — |
+
+5/5 KILLED, 0 SURVIVED, 0 BROKEN. Exit 0.
+
 Security Engineer (db)

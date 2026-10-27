@@ -16,6 +16,7 @@ PATH = "AutoGrader/reason_codes.py"
 ALLOWED_TOPS = {
     "from collections.abc import Callable",  # new import
     "ReasonSpec",  # the variant_from_params field
+    "_overage_cap_variant",  # named function replacing the lambda
 }
 
 # The class-level method that may change.

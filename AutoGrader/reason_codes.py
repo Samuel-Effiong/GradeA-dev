@@ -132,6 +132,10 @@ def _row_spec(
     )
 
 
+def _overage_cap_variant(params):
+    return "cap_reached" if params.get("remaining") == 0 else None
+
+
 def _mid_batch_variant(params):
     return "none_finished" if params.get("completed") == 0 else None
 
@@ -294,9 +298,7 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
                 "more when your next cycle starts."
             ),
         },
-        variant_from_params=lambda params: (
-            "cap_reached" if params.get("remaining") == 0 else None
-        ),
+        variant_from_params=_overage_cap_variant,
     ),
     # The generic throttle catch-all (custom_exception_handler, users/
     # exceptions.py): any DRF `Throttled` without its own `.envelope`
