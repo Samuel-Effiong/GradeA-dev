@@ -56,12 +56,11 @@ CAP_REACHED_MSG = (
     "            ),\n"
 )
 
-# The variant_from_params lambda.
-SELECTOR = (
-    "        variant_from_params=lambda params: (\n"
-    '            "cap_reached" if params.get("remaining") == 0 else None\n'
-    "        ),\n"
-)
+# The variant_from_params function body (module-level _overage_cap_variant).
+FUNC_BODY = '    return "cap_reached" if params.get("remaining") == 0 else None\n'
+
+# The spec reference to the named function.
+SPEC_REF = "        variant_from_params=_overage_cap_variant,\n"
 
 # The chosen/variant logic in CodedError.__init__.
 CHOSEN_GUARD = (
@@ -95,14 +94,14 @@ MUTANTS = [
         OWN_TESTS + CAP_TESTS,
         K,
     ),
-    # M2: drop the zero branch (variant_from_params always returns None).
+    # M2: drop the zero branch (function body always returns None).
     # The zero-left tests see the default sentence with {remaining}=0.
     (
         "M2",
         "drop the zero branch",
         RC,
-        SELECTOR,
-        "        variant_from_params=lambda params: None,\n",
+        FUNC_BODY,
+        "    return None\n",
         OWN_TESTS + CAP_TESTS,
         K,
     ),
@@ -112,10 +111,8 @@ MUTANTS = [
         "M3",
         "boundary: remaining <= 1 picks cap_reached",
         RC,
-        SELECTOR,
-        "        variant_from_params=lambda params: (\n"
-        '            "cap_reached" if params.get("remaining") <= 1 else None\n'
-        "        ),\n",
+        FUNC_BODY,
+        '    return "cap_reached" if params.get("remaining") <= 1 else None\n',
         OWN_TESTS + CAP_TESTS,
         K,
     ),

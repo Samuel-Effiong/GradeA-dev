@@ -1,0 +1,143 @@
+#!/bin/bash
+# H-268 re-gate: lambda → named function (pickle fix). Usage: bash run_h268_regate.sh <tip> 1
+# One grant, inside ONE outer inhibit (memory cap = available - 2G, min 6G, read at start; rule 13):
+#   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block bash <script> <tip> 1 > out; echo "gate exit=$?" >> out
+# 0 the red run: the new pickle test against the code as at the ORIGINAL gate tip (3cc85098, which
+#   still has the lambda). Expected: 1 block (0 FAIL, 1 ERROR), "Ran 1 test". Fragment: "PicklingError".
+# 1b the seam by program (re-gate version: 3cc85098 → new tip, only _overage_cap_variant and REASON_CODES changed);
+# 1 own modules + near modules + AutoGrader.tests_codederror_serialization;
+# 2 the 5 mutants (rule 17; own DB), each judged by its expected tests AND their written fragments.
+# A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
+set -u
+# BASE = 3cc85098 (original gate tip, still has the lambda); the red run takes reason_codes.py back to it.
+TIP=$1; STEP=${2:-1}; BASE=3cc85098
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h268-overage-cap-wording || exit 1
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+E=docs/evidence/h268-overage-cap-wording
+AVAIL_G=$(awk '/^MemAvailable:/ {print int($2/1048576)}' /proc/meminfo)
+MEMG=$((AVAIL_G - 2))
+echo "available at start: ${AVAIL_G}G; cap ${MEMG}G"
+[ "$MEMG" -ge 6 ] || { echo "STOP (exit 5): cap under 6G; wait and tell the SM"; exit 5; }
+UNITP=gap-h268rg-$$
+UPART=none
+CAP="systemd-run --user --scope -q --unit=\${UNITP}-\${UPART} -p MemoryMax=${MEMG}G -p MemorySwapMax=0"
+( while sleep 10; do
+    A=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
+    if [ "$A" -lt 1572864 ]; then
+        for U in $UNITP-red $UNITP-modules $UNITP-mutants; do
+            if systemctl --user is-active -q "$U.scope"; then
+                echo "MEMORY STOP $(date +%T): available ${A} kB; stopping $U.scope" >> $E/memory_watchdog_regate.txt
+                systemctl --user stop "$U.scope"
+            fi
+        done
+    fi
+  done ) &
+WATCHDOG=$!
+export PYTHONFAULTHANDLER=1
+export EXEMPT_EMAIL_DOMAINS=
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+[ "$STEP" = 1 ] || { echo "only step 1 exists"; exit 1; }
+mkdir -p $E
+CHANGED="AutoGrader/reason_codes.py"
+RESTORE="$CHANGED"
+restore_tree() { kill $WATCHDOG 2>/dev/null; git checkout HEAD -- $RESTORE 2>/dev/null; find AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
+trap restore_tree EXIT
+summary() { grep -E "^(Ran |OK|FAILED \(|(FAIL|ERROR): )" "$1" | cut -c1-200 | head -${2:-12}; }
+dropmut() { python manage.py shell --settings=settings_worktree_mut -c "
+from django.conf import settings
+from django.db import connection
+name = settings.DATABASES['default']['TEST']['NAME']
+with connection._nodb_cursor() as c:
+    c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
+print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
+PICKLE_TEST="AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_every_spec_with_variant_from_params_survives_pickle"
+OWN_SPEC="AutoGrader.tests_reason_codes.SpecChosenVariantTests"
+OWN_CAP="billing.tests.test_overage_cap"
+NEAR="AutoGrader.tests_reason_codes AutoGrader.tests_codederror_serialization assignments.tests_file_reason_codes audit.tests_emitter audit.tests_failed_auth_cap audit.tests_metrics audit.tests_route_coverage audit.tests_trace_server_owned billing.tests.test_overage_cap students.tests_batch_item_results students.tests_credits_mid_batch students.tests_h216_student_credit_sentence students.tests_h225_student_empty_wallet students.tests_h38_n3_refusal_audit students.tests_identity_reason_codes students.tests_item_retry_h38 students.tests_item_retry students.tests_s6d_provider_failure students.tests_s6d_rubric_gate users.tests_auth_audit_doors users.tests_auth_lock_envelope users.tests_rate_limited_envelope"
+GUARDS="AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_migration_safety_check AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_student_feedback_guard AutoGrader.tests_submission_audience_guard AutoGrader.tests_student_classmates_guard AutoGrader.tests_network_guard"
+echo "load at start: $(cat /proc/loadavg)"
+echo "=== 0. the red run: pickle test against the code as at $BASE (own DB) $(date +%T)"
+git checkout $BASE -- $CHANGED
+find AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} +
+UPART=red
+eval "PYTHONDONTWRITEBYTECODE=1 $CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree_mut $PICKLE_TEST" < /dev/null > $E/regate_red_run.txt 2>&1
+RED_EXIT=$?
+echo "red run exit=$RED_EXIT (non-zero expected)"
+RF=$E/regate_red_run.txt
+RED_OK=1
+[ "$RED_EXIT" -ne 0 ] || RED_OK=0
+grep -qE "^OK" $RF && RED_OK=0
+grep -qE "unittest.loader._FailedTest" $RF && { echo "red run: a module failed to load"; RED_OK=0; }
+# Expected: 1 block (0 FAIL, 1 ERROR). Fragment: "PicklingError".
+RED_BLOCK_COUNT=$(grep -cE '^(FAIL|ERROR): ' $RF)
+echo "red run blocks: $RED_BLOCK_COUNT (expected 1)"
+[ "$RED_BLOCK_COUNT" = 1 ] || { echo "STOP: not exactly 1 FAIL/ERROR block"; RED_OK=0; }
+RED_ERROR_COUNT=$(grep -cE '^ERROR: ' $RF)
+echo "red run ERROR blocks: $RED_ERROR_COUNT (expected 1)"
+[ "$RED_ERROR_COUNT" = 1 ] || { echo "STOP: not exactly 1 ERROR block"; RED_OK=0; }
+RAN_LINE=$(grep -E '^Ran [0-9]+ tests? in' $RF | tail -1)
+echo "ran: $RAN_LINE (expected 'Ran 1 test')"
+echo "$RAN_LINE" | grep -qE '^Ran 1 test ' || { echo "STOP: did not run exactly 1 test"; RED_OK=0; }
+# The single ERROR block must contain "PicklingError"
+if ! python -I -c "
+import re, sys
+text = open(sys.argv[1]).read()
+blocks = re.split(r'^={70}$', text, flags=re.MULTILINE)
+found = [b for b in blocks if re.match(r'\s*(FAIL|ERROR): ', b)]
+if not found:
+    print('no FAIL/ERROR block'); sys.exit(1)
+if not all('PicklingError' in b for b in found):
+    print('PicklingError not in block'); sys.exit(1)
+print('fragment ok')
+" $RF; then RED_OK=0; fi
+if [ "$RED_OK" != 1 ]; then
+    echo "STOP (exit 4): the red run is not what was written"
+    git checkout HEAD -- $CHANGED
+    find AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} +
+    exit 4
+fi
+echo "red run is as written: 1 ERROR, PicklingError, Ran 1 test"
+git checkout HEAD -- $CHANGED
+find AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} +
+git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+summary $RF
+dropmut
+echo "=== 1b. the seam (re-gate), by program $(date +%T)"
+git diff --name-only $BASE HEAD > $E/regate_seam_changed_files.txt
+cat $E/regate_seam_changed_files.txt
+PROD_CHANGED=$(grep -vE '^(docs/|AutoGrader/tests_reason_codes\.py$|\.secrets\.baseline$)' $E/regate_seam_changed_files.txt | tr '\n' ' ')
+[ "$PROD_CHANGED" = "AutoGrader/reason_codes.py " ] || { echo "STOP: production files changed are not as expected: $PROD_CHANGED"; exit 2; }
+rm -rf $E/.base_regate && mkdir -p $E/.base_regate && git archive $BASE AutoGrader/reason_codes.py | tar -x -C $E/.base_regate
+python -I $E/seam_check_regate.py $E/.base_regate . > $E/regate_seam_code.txt 2>&1; SEAM=$?; rm -rf $E/.base_regate
+cat $E/regate_seam_code.txt
+[ "$SEAM" = 0 ] || { echo "STOP: the re-gate seam check failed"; exit 2; }
+echo "=== 1. own modules + near modules + serialization + guards at $(git rev-parse --short=8 HEAD) $(date +%T)"
+UPART=modules
+eval "$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $NEAR $GUARDS" < /dev/null > $E/regate_modules_and_guards.txt 2>&1
+echo "exit=$? $(date +%T)"; summary $E/regate_modules_and_guards.txt
+if grep -qE "^FAILED \\(" $E/regate_modules_and_guards.txt || ! grep -qE "^OK" $E/regate_modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
+echo "=== 2. mutants: 5 (own DB, rules 17, 18 and 22) $(date +%T)"
+UPART=mutants
+( sleep 60; while systemctl --user is-active -q "$UNITP-mutants.scope"; do
+    NEWEST=$(ls -t $E/mutant_logs/*.txt 2>/dev/null | head -1)
+    if [ -n "$NEWEST" ] && [ $(( $(date +%s) - $(stat -c %Y "$NEWEST") )) -gt 300 ]; then
+        echo "STALL STOP $(date +%T): $NEWEST silent over 300 s; stopping $UNITP-mutants.scope" >> $E/stall_watchdog_regate.txt
+        systemctl --user stop "$UNITP-mutants.scope"; break
+    fi
+    sleep 15
+  done ) &
+STALL=$!
+eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/regate_mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 1320 python $E/mutate.py" < /dev/null > $E/regate_mutation_log.txt 2>&1
+echo "mutants exit=$? $(date +%T)"; kill $STALL 2>/dev/null; cut -c1-300 $E/regate_mutation_log.txt
+CLEAN=0; git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || { echo "STOP: source not clean after mutants"; CLEAN=3; }
+dropmut
+echo "load at end: $(cat /proc/loadavg)"
+[ "$CLEAN" = 0 ] || exit 3
+python -I -c '
+import json, sys
+results = json.load(open(sys.argv[1]))
+not_killed = sorted(k for k, v in results.items() if v["status"] != "KILLED")
+print("mutants:", len(results), "results;", "not killed:", not_killed or "none")
+sys.exit(1 if not_killed or len(results) != 5 else 0)
+' $E/regate_mutation_results.json || { echo "STOP (exit 6): not every mutant was KILLED"; exit 6; }
