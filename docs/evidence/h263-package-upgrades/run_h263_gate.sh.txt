@@ -98,8 +98,9 @@ $AUDIT_VENV/bin/python scripts/pip_audit_gate.py < /dev/null > $E/audit_planted_
 BP=$?
 git checkout HEAD -- requirements.txt
 git diff --quiet HEAD -- . ":!$E" || { echo "STOP: requirements.txt not restored"; exit 3; }
-echo "base pins exit=$BP (1 expected); ids named: $(ids_of $E/audit_planted_base_pins.txt) (87 expected)"
-[ "$BP" = 1 ] && [ "$(ids_of $E/audit_planted_base_pins.txt)" = 87 ] || { echo "STOP (exit 4): the base pins are not the 87 written"; exit 4; }
+BP_IDS=$(ids_of $E/audit_planted_base_pins.txt)
+echo "base pins exit=$BP (1 expected); ids named: $BP_IDS (>=87 expected; 87 at H-258, new advisories may appear)"
+[ "$BP" = 1 ] && [ "$BP_IDS" -ge 87 ] || { echo "STOP (exit 4): the base pins do not have at least the 87 written"; exit 4; }
 
 echo "=== 1a. makemigrations --check $(date +%T)"
 $PY manage.py makemigrations --check --dry-run --settings=settings_worktree < /dev/null > $E/makemigrations_check.txt 2>&1
