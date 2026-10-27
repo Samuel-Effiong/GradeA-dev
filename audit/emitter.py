@@ -571,5 +571,5 @@ def _client_ip(request):
 
     try:
         return str(ipaddress.ip_address(BaseThrottle().get_ident(request)))
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, AttributeError):
         return None

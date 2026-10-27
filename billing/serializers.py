@@ -270,6 +270,11 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "is_active": {"required": False},
         }
+        # DRF 3.18+ auto-generates validators for UniqueConstraint; the
+        # conditional one_active_subscription_per_user is enforced by the
+        # view (which deactivates the old row before creating the new one),
+        # not the serializer.
+        validators = []
 
     def get_subscription_type(self, obj):
         """Returns 'INDIVIDUAL' for UserSubscription (as opposed to 'LICENSE')."""

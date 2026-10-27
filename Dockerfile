@@ -34,7 +34,7 @@ RUN apt-get update --yes --quiet && \
     && rm -rf /var/lib/apt/lists/*
 
 # Install the application server.
-RUN pip install "gunicorn==20.0.4"
+RUN pip install "gunicorn==22.0.0"
 
 # Install the project requirements.
 COPY requirements.txt /

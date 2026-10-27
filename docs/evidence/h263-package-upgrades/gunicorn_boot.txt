@@ -1,0 +1,12 @@
+--check-config exit=0 (0 expected)
+[2026-10-27 12:47:35 +0100] [1100140] [INFO] Starting gunicorn 22.0.0
+[2026-10-27 12:47:35 +0100] [1100140] [INFO] Listening at: http://127.0.0.1:8731 (1100140)
+[2026-10-27 12:47:35 +0100] [1100140] [INFO] Using worker: gthread
+[2026-10-27 12:47:35 +0100] [1100144] [INFO] Booting worker with pid: 1100144
+[2026-10-27 12:47:35 +0100] [1100148] [INFO] Booting worker with pid: 1100148
+GET /api/v1/health -> 200 after 1s; body: {"success":true,"message":"Request Successful","data":{"status":"ok","checks":{"database":"ok","cache":"ok"},"version":"unknown"}}
+[2026-10-27 12:47:37 +0100] [1100140] [INFO] Handling signal: term
+[2026-10-27 11:47:38 +0000] [1100148] [INFO] Worker exiting (pid: 1100148)
+[2026-10-27 11:47:38 +0000] [1100144] [INFO] Worker exiting (pid: 1100144)
+[2026-10-27 12:47:39 +0100] [1100140] [INFO] Shutting down: Master
+health ok: /health answered 200: served and healthy
