@@ -11,6 +11,12 @@ Security Engineer (db).
   H-255 before the gate: the branch is `task/h255-stripe-error-text`, the worktree and this folder were moved, and the
   test module and probe constants were renamed. History was not rewritten: the first four commits' subjects still
   read H-254, and the renumbering is its own commit. The same docs commit adds the missing H-254 row.
+- **The record of the renumber (the Senior Manager's ruling, 27 October):** no history rebuild. The four early
+  subjects that say H-254 (`e35c9681`, `b2ec508f`, `442f3079`, `30997cda`) stand, and `fa8a688d` is the record.
+- **H-254's owner, corrected in the gate-evidence commit:** the new H-254 row first named the Hardening Engineer
+  (from the template). The Hardening Engineer said they did not build it, and the Senior Manager ruled the owner
+  is Builder (a0), who built and gated it on 24-25 October from `GAP-a0-runs/h254/` (`92854ca9`, `6bbdce5f`,
+  `de456dd7`). Only that one cell changed.
 - **Ruling folded in before the gate (27 October):** `OveragePriceMismatch` (open question 1 of the first pack).
 - **Follow-ups (the Senior Manager's numbers, both Security Engineer (db), Medium):** H-259, the thirteen server log
   lines with Stripe's text (`AutoGrader/log_scrubbing.py` has no `sk_test_`/`sk_live_` pattern); H-260,
@@ -316,3 +322,50 @@ condition. It stops on four bad inputs:
   (`test_h255_stripe_error_text_mut`; untracked, excluded by `.git/info/exclude`).
 - Because every billing answer goes through the classifier, the batch's full run is the real regression.
 - **Base:** `31a86456`.
+
+## The gate on d5362e0f (started as planned once load1 was under 8, 27 October 2026)
+
+Pre-start check: load 3.9, Postgres accepting, Redis PONG, no stale `test_h25*` database, seam check passing. The
+start command's own re-read was 3.82. Other teams' runs were waited out, not contended.
+
+Run 10:10:10 to 10:14:30 WAT inside one `systemd-inhibit`. Logs are in `gate_d5362e0f/` (gzipped), including the
+gate's own output.
+- **Exit code: 0**, captured by the start command (`; echo "gate exit=$?"`), whose line ends the output.
+- Available memory at the start was 14G, so the cap was 12G. Load was 3.82 9.48 14.55 at the start and 3.05 5.86
+  11.78 at the end.
+
+- **Red run** (the four production files as at 31a86456, the two modules as at the tip):
+  - 12 FAIL blocks, each holding its written fragment, no ERROR, no OK line. That is ten "unexpectedly found in", R2's
+    "no logs of level WARNING or higher triggered on AutoGrader.error_messages", and R4's "Lists differ".
+  - "Ran 35 tests in 0.558s", "FAILED (failures=12)".
+  - The controls were green, and the source was restored.
+- **makemigrations --check:** exit 0, no changes.
+- **Seam:** "SEAM OK: only the named units changed, and only as packed". The changed-file check passed. The log
+  call and the pass-through condition were printed as packed.
+- **Step 1** (own, the 22 near modules, the 21 guards), 10:10:34 to 10:13:31:
+  - "Ran 838 tests in 159.664s", "OK".
+  - 838 test lines were counted in the log.
+  - The key-shaped text in every log is the probe `sk_test_h255xxxxxxxxxxxxclSJ`, and nothing else.
+- **Step 2, mutants** (own database, rules 17, 18 and 22), 10:13:31 to 10:14:30:
+  - All 13 KILLED, each with "Ran 35 tests".
+  - Every mutant's failing tests are exactly its expected set, with nothing missing, nothing extra and no wrong
+    reason.
+
+| Id | Failing / expected |
+|---|---|
+| S1 | 9 / 9 |
+| S2 | 9 / 9 |
+| S3 | 1 / 1 |
+| S4 | 1 / 1 |
+| S5 | 1 / 1 |
+| S6 | 2 / 2 |
+| S7 | 1 / 1 |
+| S8 | 1 / 1 |
+| S9 | 1 / 1 |
+| S10 | 1 / 1 |
+| S11 | 1 / 1 |
+| S12 | 1 / 1 |
+| S13 | 1 / 1 |
+
+- The source was clean after the mutants, and the mutant database was dropped. No watchdog fired.
+- Not merged. The Senior Manager rules on the gate.
