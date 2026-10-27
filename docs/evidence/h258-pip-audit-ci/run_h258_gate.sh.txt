@@ -1,0 +1,128 @@
+#!/bin/bash
+# H-258 the dependency audit in CI (beta line). Usage: bash run_h258_gate.sh <tip> 1
+# One grant, inside ONE outer inhibit (memory cap = available - 2G, min 6G, read at start; rule 13):
+#   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block bash <script> <tip> 1
+# Every Django run uses the PRIVATE venv AutoGrader_env_h258 (the shared venv keeps the old pins; SM 2026-10-27).
+# 0 the red run: the new test module as at the tip with the three new files absent (as at the base). RULE 22: each
+#   test red for its WRITTEN reason in every block, exactly 12 blocks;
+# 1a makemigrations --check; 1b the changed files and the seam (settings.py's syntax tree as at the base: a
+#   comment only; requirements.txt differs by exactly the five pins); 1c the audit itself with the pinned
+#   pip-audit (clean with the accepted list), and two planted reds (the base pins; one gunicorn id dropped);
+#   1 the FULL suite in the private venv (--parallel 4), the Django patch upgrade's check;
+#   2 the 12 mutants, each judged by its exact failing set AND its written fragment.
+# A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
+set -u
+TIP=$1; STEP=${2:-1}; BASE=31a86456
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h258-pip-audit-ci || exit 1
+PY=/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env_h258/bin/python
+AUDIT_VENV=/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/9b6cbba1-ad21-4f0f-a33a-aad5adc0a779/scratchpad/pipaudit-venv
+E=docs/evidence/h258-pip-audit-ci
+AVAIL_G=$(awk '/^MemAvailable:/ {print int($2/1048576)}' /proc/meminfo)
+MEMG=$((AVAIL_G - 2))
+echo "available at start: ${AVAIL_G}G; cap ${MEMG}G"
+[ "$MEMG" -ge 6 ] || { echo "STOP (exit 5): cap under 6G; wait and tell the SM"; exit 5; }
+UNITP=gap-h258-$$
+UPART=none
+CAP="systemd-run --user --scope -q --unit=\${UNITP}-\${UPART} -p MemoryMax=${MEMG}G -p MemorySwapMax=0"
+( while sleep 10; do
+    A=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
+    if [ "$A" -lt 1572864 ]; then
+        for U in $UNITP-red $UNITP-suite $UNITP-mutants; do
+            if systemctl --user is-active -q "$U.scope"; then
+                echo "MEMORY STOP $(date +%T): available ${A} kB; stopping $U.scope" >> $E/memory_watchdog.txt
+                systemctl --user stop "$U.scope"
+            fi
+        done
+    fi
+  done ) &
+WATCHDOG=$!
+export PYTHONFAULTHANDLER=1
+export EXEMPT_EMAIL_DOMAINS=
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+[ "$STEP" = 1 ] || { echo "only step 1 exists"; exit 1; }
+[ "$($PY -c 'import django; print(django.__version__)')" = 5.2.17 ] || { echo "STOP: the private venv is not on Django 5.2.17"; exit 1; }
+mkdir -p $E
+NEW="scripts/pip_audit_gate.py .github/workflows/audit.yml .pip-audit-ignore.toml"
+restore_tree() { kill $WATCHDOG 2>/dev/null; git checkout HEAD -- $NEW 2>/dev/null; find scripts AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
+trap restore_tree EXIT
+summary() { grep -E "^(Ran |OK|FAILED \(|(FAIL|ERROR): )" "$1" | cut -c1-200 | head -${2:-12}; }
+OWN="AutoGrader.tests_pip_audit_gate"
+echo "load at start: $(cat /proc/loadavg)"
+echo "=== 0. the red run: $OWN with the three new files absent (as at $BASE) $(date +%T)"
+rm -f $NEW
+UPART=red
+eval "PYTHONDONTWRITEBYTECODE=1 $CAP nice -n 10 timeout -k 60 900 $PY manage.py test --noinput --verbosity 2 --settings=settings_worktree $OWN" < /dev/null > $E/red_run_files_as_at_base.txt 2>&1
+RED_EXIT=$?
+echo "red run exit=$RED_EXIT (non-zero expected)"
+RF=$E/red_run_files_as_at_base.txt
+RC=/home/bond-servant-in-training/Documents/Projects/GAP-builder-scripts/reason_check.py
+RED_OK=1
+[ "$RED_EXIT" -ne 0 ] || RED_OK=0
+grep -qE "^OK" $RF && RED_OK=0
+grep -qE "^Ran 12 tests in" $RF || { echo "red run: no 'Ran 12 tests' line"; RED_OK=0; }
+grep -qE "unittest.loader._FailedTest" $RF && { echo "red run: the module failed to load"; RED_OK=0; }
+for T in test_an_entry_gives_its_ids test_an_empty_file_accepts_nothing test_an_entry_on_its_review_date_still_counts test_an_entry_past_its_review_date_is_refused test_an_entry_without_a_reason_is_refused test_an_entry_without_a_review_date_is_refused test_an_entry_without_ids_or_package_is_refused test_an_id_listed_twice_is_refused test_the_command_audits_the_pinned_requirements_strictly test_a_wrong_pip_audit_version_is_refused test_the_checked_in_ignore_file_is_well_formed test_the_workflow_runs_the_runner_with_the_pinned_version; do
+    python3 -I $RC $RF $T "FileNotFoundError: [Errno 2] No such file or directory" || RED_OK=0
+done
+[ "$(grep -cE '^(FAIL|ERROR): ' $RF)" = 12 ] || { echo "red run: not exactly 12 blocks ($(grep -cE '^(FAIL|ERROR): ' $RF))"; RED_OK=0; }
+git checkout HEAD -- $NEW
+find scripts AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} +
+git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E")" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+[ "$RED_OK" = 1 ] || { echo "STOP (exit 4): the red run is not what was written"; exit 4; }
+echo "red run is as written: 12 blocks, each red for its written reason"
+grep -E "^(Ran |OK|FAILED \\()" $RF | cut -c1-200
+echo "=== 1a. makemigrations --check (Django 5.2.17) $(date +%T)"
+$PY manage.py makemigrations --check --dry-run --settings=settings_worktree < /dev/null > $E/makemigrations_check.txt 2>&1; MM=$?; echo "makemigrations exit=$MM (0 = no changes)"; tail -1 $E/makemigrations_check.txt
+[ "$MM" = 0 ] || { echo "STOP: makemigrations reports changes"; exit 2; }
+echo "=== 1b. the changed files and the seam"
+git diff --name-only $BASE HEAD > $E/seam_changed_files.txt
+cat $E/seam_changed_files.txt
+REST=$(grep -vE '^docs/' $E/seam_changed_files.txt | LC_ALL=C sort | tr '\n' ' ')
+[ "$REST" = ".github/workflows/audit.yml .pip-audit-ignore.toml AutoGrader/settings.py AutoGrader/tests_pip_audit_gate.py requirements.txt scripts/pip_audit_gate.py " ] || { echo "STOP: the changed files are not the six ($REST)"; exit 2; }
+python3 -I - "$BASE" > $E/seam_code.txt 2>&1 <<'PYEOF'
+import ast, subprocess, sys
+base = sys.argv[1]
+def show(path):
+    return subprocess.run(["git", "show", f"{base}:{path}"], capture_output=True, text=True, check=True).stdout
+same = ast.dump(ast.parse(show("AutoGrader/settings.py"))) == ast.dump(ast.parse(open("AutoGrader/settings.py").read()))
+print("settings.py syntax tree as at the base (a comment only):", same)
+old = [l for l in show("requirements.txt").splitlines()]
+new = open("requirements.txt").read().splitlines()
+changed = sorted({(a, b) for a, b in zip(old, new) if a != b})
+want = sorted({("Authlib==1.6.3", "Authlib==1.6.12"), ("brotli==1.2.0", "brotli==1.2.1"), ("Django==5.2.6", "Django==5.2.17"), ("pyasn1==0.6.3", "pyasn1==0.6.4"), ("tornado==6.5.4", "tornado==6.5.9")})
+print("requirements.txt: same length", len(old) == len(new), "; changed lines", changed)
+ok = same and len(old) == len(new) and changed == want
+print("SEAM OK" if ok else "SEAM STOP")
+sys.exit(0 if ok else 1)
+PYEOF
+SEAM=$?; cat $E/seam_code.txt
+[ "$SEAM" = 0 ] || { echo "STOP: the seam check failed"; exit 2; }
+echo "=== 1c. the audit itself: pip-audit $($AUDIT_VENV/bin/pip-audit --version) $(date +%T)"
+$AUDIT_VENV/bin/python scripts/pip_audit_gate.py < /dev/null > $E/audit_tip.txt 2>&1; AUD=$?
+echo "audit at the tip exit=$AUD (0 expected)"; grep -E "Found|No known|accepted" $E/audit_tip.txt
+[ "$AUD" = 0 ] && grep -q "No known vulnerabilities found, 192 ignored" $E/audit_tip.txt || { echo "STOP: the audit at the tip is not clean"; exit 2; }
+P=$E/.planted; rm -rf $P; mkdir -p $P/a/scripts $P/b/scripts
+cp scripts/pip_audit_gate.py $P/a/scripts/; cp scripts/pip_audit_gate.py $P/b/scripts/
+git show $BASE:requirements.txt > $P/a/requirements.txt; cp .pip-audit-ignore.toml $P/a/
+cp requirements.txt $P/b/; grep -v '"PYSEC-2026-1434",' .pip-audit-ignore.toml > $P/b/.pip-audit-ignore.toml
+(cd $P/a && $AUDIT_VENV/bin/python scripts/pip_audit_gate.py < /dev/null > ../a.txt 2>&1); PA=$?
+(cd $P/b && $AUDIT_VENV/bin/python scripts/pip_audit_gate.py < /dev/null > ../b.txt 2>&1); PB=$?
+cp $P/a.txt $E/audit_planted_base_pins.txt; cp $P/b.txt $E/audit_planted_one_id_dropped.txt; rm -rf $P
+echo "planted A (the base pins) exit=$PA: $(grep -E '^Found' $E/audit_planted_base_pins.txt)"
+echo "planted B (PYSEC-2026-1434 dropped) exit=$PB: $(grep -E '^Found' $E/audit_planted_one_id_dropped.txt)"
+[ "$PA" = 1 ] && grep -q "^Found 58 known vulnerabilities" $E/audit_planted_base_pins.txt && [ "$PB" = 1 ] && grep -q "^Found 1 known vulnerability" $E/audit_planted_one_id_dropped.txt || { echo "STOP: a planted audit is not red as written"; exit 2; }
+echo "=== 1. the FULL suite in the private venv (--parallel 4) at $(git rev-parse --short=8 HEAD) $(date +%T)"
+UPART=suite
+eval "$CAP nice -n 10 timeout -k 60 5400 $PY manage.py test --noinput --parallel 4 --settings=settings_worktree" < /dev/null > $E/full_suite_private_venv.txt 2>&1
+echo "exit=$? $(date +%T)"; summary $E/full_suite_private_venv.txt
+if grep -qE "^FAILED \\(" $E/full_suite_private_venv.txt || ! grep -qE "^OK" $E/full_suite_private_venv.txt; then echo "STOP: not green"; exit 2; fi
+echo "=== 2. mutants: 12 (rules 17, 18 and 22) $(date +%T)"
+UPART=mutants
+eval "MUT_PYTHON=$PY MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 1500 $PY $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
+MUT=$?
+echo "mutants exit=$MUT $(date +%T)"; cut -c1-300 $E/mutation_log.txt | tail -6
+git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
+echo "load at end: $(cat /proc/loadavg)"
+[ "$MUT" = 0 ] || { echo "STOP: not every mutant KILLED as written"; exit 6; }
+echo "GATE STEPS ALL AS WRITTEN"
