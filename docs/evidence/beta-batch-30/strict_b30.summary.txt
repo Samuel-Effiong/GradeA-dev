@@ -1,0 +1,22 @@
+bundle b30 strict full run start 2026-10-27 13:30 WAT sha=4b2500ec
+merges: H-260 d8ae6fa3, H-264 8b84b4d0, H-263 aede70b4
+venv: AutoGrader_env_batch30 (private, H-263 upgraded pins)
+settings: settings_worktree (DB test_beta_batch_30)
+command: systemd-run --scope -p MemoryMax=24G --user python manage.py test --noinput --verbosity 2 --settings=settings_worktree --parallel 4
+exit=0 wall=680s
+Ran 8472 tests in 680.367s
+OK (skipped=30)
+FAIL/ERROR headers: 0
+per-app test counts:
+  AutoGrader 786
+  ai_processor 1455
+  assignments 780
+  audit 377
+  billing 2255
+  classrooms 640
+  dashboard 430
+  students 867
+  users 882
+chromium PDF tests: ran (not skipped)
+H-268: removed before run (unpicklable CodedError)
+full log: full_run.txt (not committed, 78949 lines, on disk in worktree)
