@@ -691,6 +691,23 @@ class SpecChosenVariantTests(SimpleTestCase):
         )
         self.assertEqual(error.args[5], "none_finished")
 
+    def test_every_spec_with_variant_from_params_survives_pickle(self):
+        """A CodedError whose spec has variant_from_params must be picklable,
+        because the error stores self._spec and Celery pickles task results.
+        This covers plain CodedError too, not just subclasses."""
+        import pickle
+
+        for code, spec in REASON_CODES.items():
+            if spec.variant_from_params is None:
+                continue
+            with self.subTest(code=code.name):
+                params = {p: 0 for p in spec.params}
+                error = CodedError(code, params=params)
+                for protocol in range(2, pickle.HIGHEST_PROTOCOL + 1):
+                    rebuilt = pickle.loads(pickle.dumps(error, protocol=protocol))
+                    self.assertEqual(str(rebuilt), str(error))
+                    self.assertEqual(rebuilt.params, error.params)
+
 
 class RemediationChoiceTests(SimpleTestCase):
     """S7d: one code, a remediation per route (TEACHER_LIST_EMPTY), and "none"
