@@ -81,13 +81,12 @@ not the teacher." The SM confirmed: "leave the grant-time path untouched."
 
 ## Expected reds against `fef4249d` (written before the gate)
 
-9 blocks (7 FAIL, 2 ERROR), "Ran 15 tests". The 6 controls are green (grant-time × 2, within_cap, both_params,
-the_spec_chose_it, exceeding_the_cap_answers_the_coded_envelope passes on the message text — which matched — but the
-original test asserts the old sentence, not this one; actually it depends on the entire envelope).
+10 blocks (8 FAIL, 2 ERROR), "Ran 15 tests". The 5 controls are green (grant-time × 3, within_cap, both_params).
 
-Wait — let me re-count. The tests that are red against beta:
+The tests that are red against beta:
 - `test_with_blocks_left_the_sentence_names_what_is_left`: FAIL (new sentence vs old).
 - `test_with_none_left_the_sentence_sends_them_to_the_next_cycle`: FAIL (new sentence vs old).
+- `test_the_spec_chose_it_so_the_args_keep_their_shape`: FAIL (rebuilt from args renders old sentence, not REACHED).
 - `test_a_raiser_that_names_the_variant_still_wins`: ERROR (no "cap_reached" variant on old spec).
 - `test_control_the_caller_named_variant_is_untouched`: ERROR (no `variant_from_params` attribute).
 - `test_cap_already_reached_rejects_even_a_single_block`: FAIL (asserts new sentence).
@@ -96,9 +95,36 @@ Wait — let me re-count. The tests that are red against beta:
 - `test_the_rendered_body_carries_the_sentence_in_both_places`: FAIL (asserts new sentence).
 - `test_at_zero_left_both_places_read_the_other_sentence`: FAIL (the zero sentence doesn't exist).
 
-Green at the base: grant-time (3 tests: the existing 2 + the new control), within_cap, both_params,
-the_spec_chose_it.
+Green at the base: grant-time (3 tests: the existing 2 + the new control), within_cap, both_params.
 
-## Gate
+## Gate on `681e30f0`
 
-Pending the SM's grant.
+Run 12:36:56–12:41:18, load1 2.64→6.10, 10G cap.
+
+### 0. Red run (own DB)
+10 blocks (8 FAIL, 2 ERROR), Ran 15 in 0.755s. Each block holds its written fragment. Modules loaded.
+
+### 1a. makemigrations --check
+Exit 0, no changes.
+
+### 1b. Seam by program
+`AutoGrader/reason_codes.py` changed only: `from collections.abc import Callable`, `ReasonSpec`,
+`REASON_CODES`, `CodedError.__init__`. `__init__` has `chosen = variant` / `variant_from_params` consultation;
+`self._variant` set from `variant`, not `chosen`. SEAM OK.
+
+### 1. Own + near + guards
+Ran 682 in 175.992s, OK.
+
+### 2. Mutants (5, own DB)
+
+| ID | What | Status | Expected | Also failed |
+|----|------|--------|----------|-------------|
+| M1 | swap the two sentences | KILLED | 8 tests | — |
+| M2 | drop the zero branch | KILLED | 4 tests | — |
+| M3 | boundary remaining ≤ 1 | KILLED | 4 tests | — |
+| M4 | spec overrides raiser | KILLED | 1 test | — |
+| M5 | spec-chosen in args | KILLED | 1 test | — |
+
+5/5 KILLED, 0 SURVIVED, 0 BROKEN. No key-shaped text in any log. Exit 0.
+
+Security Engineer (db)
