@@ -179,3 +179,17 @@ Checked before the pack by parsing only:
   - the 21 guards.
 - **A development run of own + near (not the gate)**, at `c9f19d2b`'s code before commit: "Ran 562 tests in
   48.447s", "OK (skipped=3)". No provider host appeared in its log.
+
+## The first gate run on d2fadd97: stopped by the script (granted by the Senior Manager, 27 October 2026)
+
+- **Steps 0 and 1a were as written.**
+  - Red run: 6 FAIL blocks, each red for its written reason, "Ran 10 tests in 0.882s", "FAILED (failures=6)",
+    source restored.
+  - makemigrations: no changes.
+- **Step 1b stopped on the script, not the code.** The changed-file check sorted with the machine's locale
+  (`ai_processor/...` before `AutoGrader/...`) and compared the result with a list written in byte order.
+  - The four production files were exactly the four named; only their order differed.
+  - No module run, seam check or mutant ran.
+- **Fix:** `LC_ALL=C sort`. The fixed check, run on the stopped run's own file list, passes.
+- **The stopped run's output** is kept in `stop_d2fadd97/` (gzipped).
+- **The gate runs again from step 0** on the corrected pack, after a new grant.

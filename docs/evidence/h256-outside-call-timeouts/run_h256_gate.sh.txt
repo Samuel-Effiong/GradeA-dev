@@ -105,7 +105,7 @@ python manage.py makemigrations --check --dry-run --settings=settings_worktree <
 echo "=== 1b. the seam, by program: the four production files, each changed only as written"
 git diff --name-only $BASE HEAD > $E/seam_changed_files.txt
 cat $E/seam_changed_files.txt
-PROD=$(grep -vE '^(docs/|users/tests_h256_google_exchange_timeout\.py$|ai_processor/tests_h256_provider_timeout\.py$|billing/tests/test_h256_stripe_network_retries\.py$)' $E/seam_changed_files.txt | sort | tr '\n' ' ')
+PROD=$(grep -vE '^(docs/|users/tests_h256_google_exchange_timeout\.py$|ai_processor/tests_h256_provider_timeout\.py$|billing/tests/test_h256_stripe_network_retries\.py$)' $E/seam_changed_files.txt | LC_ALL=C sort | tr '\n' ' ')
 [ "$PROD" = "AutoGrader/settings.py ai_processor/services.py billing/imports.py users/views.py " ] || { echo "STOP: the production files are not the four ($PROD)"; exit 2; }
 SB=$E/.seam_base
 rm -rf $SB; for F in $CHANGED; do mkdir -p $SB/$(dirname $F); git show $BASE:$F > $SB/$F; done
