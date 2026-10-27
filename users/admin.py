@@ -1,8 +1,10 @@
+from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.db.models import Case, F, IntegerField, When
 from django.utils.translation import gettext_lazy as _
 
+from assignments.validators import validate_image_format
 from audit import history
 
 from .models import (
@@ -15,8 +17,21 @@ from .models import (
 from .signals import invalidate_user_caches
 
 
+class _ProfileImageForm(forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = "__all__"
+
+    def clean_profile_image(self):
+        img = self.cleaned_data.get("profile_image")
+        if img:
+            validate_image_format(img)
+        return img
+
+
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
+    form = _ProfileImageForm
     list_display = (
         "email",
         "first_name",

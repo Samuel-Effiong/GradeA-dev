@@ -512,6 +512,12 @@ def number_questions_in_order(questions) -> tuple:
 
 class AssignmentProcessingService:
     IMAGE_FORMATS = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    PILLOW_FORMATS = {
+        "image/jpeg": "JPEG",
+        "image/png": "PNG",
+        "image/gif": "GIF",
+        "image/webp": "WEBP",
+    }
     PDF_FORMAT = "application/pdf"
 
     @classmethod
@@ -543,7 +549,10 @@ class AssignmentProcessingService:
         """
         file_name = file_name_of(uploaded_file)
         try:
-            image = Image.open(BytesIO(uploaded_file.read()))
+            image = Image.open(
+                BytesIO(uploaded_file.read()),
+                formats=list(cls.PILLOW_FORMATS.values()),
+            )
         except DecompressionBombError as exc:
             raise _too_many_pixels(file_name) from exc
         except Exception as exc:
