@@ -675,21 +675,52 @@ class SpecChosenVariantTests(SimpleTestCase):
     def test_a_raiser_that_names_the_variant_still_wins(self):
         self.assertEqual(str(self._error(1, variant="cap_reached")), self.REACHED)
 
-    def test_control_the_caller_named_variant_is_untouched(self):
-        """INSUFFICIENT_CREDITS_MID_BATCH still chooses "none_finished" at
-        its raise site (students/task_tracking.py) and its spec picks
-        nothing from params. H-269 may move it; H-268 does not."""
-        spec = REASON_CODES[ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH]
-        self.assertIsNone(spec.variant_from_params)
-        error = CodedError(
+    def test_control_the_overage_cap_spec_is_untouched(self):
+        """OVERAGE_CAP_EXCEEDED's variant_from_params (H-268) is unchanged."""
+        spec = REASON_CODES[ReasonCode.OVERAGE_CAP_EXCEEDED]
+        self.assertIsNotNone(spec.variant_from_params)
+
+
+class SpecChosenVariantMidBatchTests(SimpleTestCase):
+    """H-269: INSUFFICIENT_CREDITS_MID_BATCH's "none_finished" is now picked
+    by the spec from the params (completed == 0), the way the overage cap does
+    it for remaining == 0. No raise site decides the wording. The messages and
+    error code are byte-identical.
+    """
+
+    AFTER = "Credits ran out after 2 of 4 items. The finished items are saved."
+    BEFORE = "Credits ran out before any of the 4 items were finished."
+
+    def _error(self, completed, **kwargs):
+        return CodedError(
             ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH,
-            params={"completed": 0, "total": 4},
-            variant="none_finished",
+            params={"completed": completed, "total": 4},
+            **kwargs,
         )
-        self.assertEqual(
-            str(error), "Credits ran out before any of the 4 items were finished."
-        )
-        self.assertEqual(error.args[5], "none_finished")
+
+    def test_the_spec_picks_none_finished_from_completed(self):
+        spec = REASON_CODES[ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH]
+        self.assertIsNotNone(spec.variant_from_params)
+        error = self._error(0)
+        self.assertEqual(str(error), self.BEFORE)
+
+    def test_with_items_finished_the_spec_picks_the_default(self):
+        spec = REASON_CODES[ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH]
+        self.assertIsNotNone(spec.variant_from_params)
+        error = self._error(2)
+        self.assertEqual(str(error), self.AFTER)
+
+    def test_a_raiser_that_names_the_variant_still_wins(self):
+        error = self._error(2, variant="none_finished")
+        self.assertEqual(str(error), self.BEFORE)
+
+    def test_args_keep_the_4_tuple(self):
+        """The spec-chosen variant does not ride in args."""
+        error = self._error(0)
+        self.assertEqual(len(error.args), 4)
+        rebuilt = CodedError(*error.args)
+        self.assertEqual(str(rebuilt), self.BEFORE)
+        self.assertEqual(rebuilt.params, error.params)
 
 
 class RemediationChoiceTests(SimpleTestCase):
