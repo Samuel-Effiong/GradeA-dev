@@ -31,12 +31,20 @@ from billing.models import CreditBucketType, CreditWallet, PlanType
 from billing.stripe_service import StripeOverageService, StripeWebhookHandler
 from billing.tests.test_execute_graded_task import ExecuteGradedTaskTestBase
 
-#: H-233 (the user's sentence, SM-approved 2026-10-14): it reads right at
-#: 0 blocks left too, where the old one said "Reduce your quantity to 0 or
-#: fewer".
+#: H-268 (the owner's wording, through the SM 2026-10-27): two sentences,
+#: picked from the params by the spec and never at a raise site. The dash
+#: is U+2014.
+#:
+#: H-233's rule still holds, and CAP_REACHED_SENTENCE is what keeps it:
+#: with nothing left the teacher is never told to "reduce your quantity to
+#: 0 or fewer".
 CAP_SENTENCE = (
-    "This purchase would go over your plan's limit of {max_blocks} block(s) "
-    "per billing cycle. You have {remaining} block(s) left this cycle."
+    "Purchase limit exceeded — max {max_blocks} blocks. Reduce your "
+    "quantity to {remaining} or fewer to proceed."
+)
+CAP_REACHED_SENTENCE = (
+    "Purchase limit reached — you have used all {max_blocks} blocks for "
+    "this billing cycle. You can buy more when your next cycle starts."
 )
 
 
@@ -117,9 +125,10 @@ class CreateOverageCheckoutCapTests(OverageCapTestBase):
 
         self.assertEqual(ctx.exception.reason_code, ReasonCode.OVERAGE_CAP_EXCEEDED)
         self.assertEqual(ctx.exception.params, {"max_blocks": 3, "remaining": 0})
-        self.assertEqual(
-            str(ctx.exception), CAP_SENTENCE.format(max_blocks=3, remaining=0)
-        )
+        # H-268: with nothing left the other sentence shows, and the first
+        # one's "reduce your quantity to ..." never reaches 0 (H-233).
+        self.assertEqual(str(ctx.exception), CAP_REACHED_SENTENCE.format(max_blocks=3))
+        self.assertNotIn("or fewer", str(ctx.exception))
         mock_session_create.assert_not_called()
 
 
@@ -159,6 +168,48 @@ class PurchaseOverageViewCapTests(OverageCapTestBase):
             response.data["remediation"],
             "Request fewer blocks, or wait until your next billing cycle, then "
             "try again.",
+        )
+
+    def _refusal(self, quantity):
+        return self.client.post(
+            self.url,
+            {
+                "success_url": "https://example.com/ok",
+                "cancel_url": "https://example.com/cancel",
+                "quantity": quantity,
+            },
+            format="json",
+        )
+
+    def test_the_rendered_body_carries_the_sentence_in_both_places(self):
+        """F7: the renderer wraps the envelope as `error.field_errors`, so
+        the teacher's sentence is in the body twice. The two must never
+        drift apart."""
+        self._set_blocks_used(2)  # 1 of 3 left
+
+        body = self._refusal(2).json()
+
+        expected = CAP_SENTENCE.format(max_blocks=3, remaining=1)
+        self.assertEqual(body["message"], expected)
+        self.assertEqual(body["error"]["field_errors"]["error"], expected)
+        self.assertIn("—", body["message"])
+
+    def test_at_zero_left_both_places_read_the_other_sentence(self):
+        self._set_blocks_used(3)  # none left
+
+        response = self._refusal(1)
+        body = response.json()
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        expected = CAP_REACHED_SENTENCE.format(max_blocks=3)
+        self.assertEqual(body["message"], expected)
+        self.assertEqual(body["error"]["field_errors"]["error"], expected)
+        self.assertNotIn("or fewer", body["message"])
+        # The sentence formats only max_blocks; both params stay
+        # machine-readable either way.
+        self.assertEqual(
+            body["error"]["field_errors"]["params"],
+            {"max_blocks": 3, "remaining": 0},
         )
 
 
@@ -217,3 +268,30 @@ class GrantTimeOverageCapTests(OverageCapTestBase):
         self.assertIn(
             "NOT granted", mock_record.call_args.kwargs.get("description", "")
         )
+
+    @patch("billing.stripe_service.BillingTransactionService.record")
+    def test_control_the_grant_time_recheck_writes_neither_sentence(self, mock_record):
+        """H-268: this re-check answers Stripe's webhook, not the teacher.
+        It raises no coded error and builds no envelope, so neither of the
+        owner's sentences belongs on this path — the log line is ours. It
+        still grants nothing and still records the payment for refund."""
+        self._set_blocks_used(3)
+
+        with self.assertLogs("billing.stripe_service", level="ERROR") as logs:
+            StripeWebhookHandler._handle_overage_checkout_completed(
+                self._session(), self._metadata(1)
+            )
+
+        self.assertFalse(
+            self.wallet.buckets.filter(bucket_type=CreditBucketType.OVERAGE).exists()
+        )
+        mock_record.assert_called_once()
+        written = "\n".join(logs.output) + mock_record.call_args.kwargs.get(
+            "description", ""
+        )
+        for fragment in (
+            "Purchase limit exceeded",
+            "Purchase limit reached",
+            "—",
+        ):
+            self.assertNotIn(fragment, written)
