@@ -83,6 +83,22 @@ def _make_psd_bytes():
     )
 
 
+def _make_corrupt_png():
+    """Valid PNG with one flipped byte in IDAT data; CRC left unchanged.
+
+    Image.open(formats=("PNG",)) accepts the header, but verify() detects
+    the CRC mismatch on the IDAT chunk and raises.
+    """
+    img = Image.new("RGB", (4, 4), "red")
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    raw = bytearray(buf.getvalue())
+    idat_pos = raw.find(b"IDAT")
+    assert idat_pos != -1, "No IDAT chunk in generated PNG"
+    raw[idat_pos + 4] ^= 0xFF
+    return bytes(raw)
+
+
 class UploadFormatRestrictionTests(TestCase):
     """formats= on _compress_uploaded_image blocks decoders outside the set."""
 
@@ -161,11 +177,21 @@ class FormatMappingTests(TestCase):
         with self.assertRaises(ValidationError):
             validate_image_format(bmp)
 
+    def test_validator_rejects_corrupt_png(self):
+        from django.core.exceptions import ValidationError
+
+        from AutoGrader.image_formats import validate_image_format
+
+        corrupt = _make_corrupt_png()
+        upload = SimpleUploadedFile("corrupt.png", corrupt, content_type="image/png")
+        with self.assertRaises(ValidationError):
+            validate_image_format(upload)
+
 
 class ProfileImageFormatTests(TestCase):
     """Profile image fields reject formats outside the allowed four."""
 
-    def test_profile_image_rejects_bmp(self):
+    def test_direct_add_student_rejects_bmp(self):
         from classrooms.serializers import DirectAddStudentSerializer
 
         bmp = _make_image("BMP", "image/bmp", "headshot")
@@ -178,7 +204,7 @@ class ProfileImageFormatTests(TestCase):
         self.assertFalse(ser.is_valid())
         self.assertIn("profile_image", ser.errors)
 
-    def test_profile_image_accepts_jpeg(self):
+    def test_direct_add_student_accepts_jpeg(self):
         from classrooms.serializers import DirectAddStudentSerializer
 
         jpg = _make_image("JPEG", "image/jpeg", "headshot")
@@ -188,6 +214,78 @@ class ProfileImageFormatTests(TestCase):
             "profile_image": jpg,
         }
         ser = DirectAddStudentSerializer(data=data)
-        # profile_image field itself should be valid (other fields may fail)
         if not ser.is_valid():
             self.assertNotIn("profile_image", ser.errors)
+
+    def test_student_registration_completion_rejects_bmp(self):
+        from classrooms.serializers import StudentRegistrationCompletionSerializer
+
+        bmp = _make_image("BMP", "image/bmp", "headshot")
+        data = {
+            "first_name": "Test",
+            "last_name": "Student",
+            "password": "TestP@ss1234",  # pragma: allowlist secret
+            "token": "faketoken",
+            "profile_image": bmp,
+        }
+        ser = StudentRegistrationCompletionSerializer(data=data)
+        self.assertFalse(ser.is_valid())
+        self.assertIn("profile_image", ser.errors)
+
+    def test_student_registration_completion_accepts_png(self):
+        from classrooms.serializers import StudentRegistrationCompletionSerializer
+
+        png = _make_image("PNG", "image/png", "headshot")
+        data = {
+            "first_name": "Test",
+            "last_name": "Student",
+            "password": "TestP@ss1234",  # pragma: allowlist secret
+            "token": "faketoken",
+            "profile_image": png,
+        }
+        ser = StudentRegistrationCompletionSerializer(data=data)
+        if not ser.is_valid():
+            self.assertNotIn("profile_image", ser.errors)
+
+    def test_school_with_admin_rejects_bmp(self):
+        from classrooms.serializers import SchoolWithAdminSerializer
+
+        bmp = _make_image("BMP", "image/bmp", "headshot")
+        data = {
+            "school_name": "Test School",
+            "admin_email": "admin@testschool.edu",
+            "admin_first_name": "Test",
+            "admin_last_name": "Admin",
+            "admin_profile_image": bmp,
+        }
+        ser = SchoolWithAdminSerializer(data=data)
+        self.assertFalse(ser.is_valid())
+        self.assertIn("admin_profile_image", ser.errors)
+
+    def test_custom_user_serializer_rejects_bmp(self):
+        from users.serializers import CustomUserSerializer
+
+        bmp = _make_image("BMP", "image/bmp", "headshot")
+        data = {
+            "email": "test@example.com",
+            "first_name": "Test",
+            "last_name": "User",
+            "password": "StrongP@ss1234",  # pragma: allowlist secret
+            "profile_image": bmp,
+        }
+        ser = CustomUserSerializer(data=data)
+        self.assertFalse(ser.is_valid())
+        self.assertIn("profile_image", ser.errors)
+
+    def test_admin_form_rejects_bmp(self):
+        from django.utils.datastructures import MultiValueDict
+
+        from users.admin import _ProfileImageForm
+
+        bmp = _make_image("BMP", "image/bmp", "headshot")
+        form = _ProfileImageForm(
+            data={"email": "t@example.com", "first_name": "T", "last_name": "U"},
+            files=MultiValueDict({"profile_image": [bmp]}),
+        )
+        form.is_valid()
+        self.assertIn("profile_image", form.errors)
