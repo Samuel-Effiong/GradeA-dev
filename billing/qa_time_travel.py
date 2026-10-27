@@ -82,6 +82,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from AutoGrader.error_messages import describe_stripe_error
 from classrooms.permissions import IsSuperAdmin
 
 from .imports import stripe
@@ -203,11 +204,14 @@ def new_customer_test_clock_kwargs(email, label=None) -> dict:
             name=(label or f"QA time travel — {email}")[:250],
         )
     except stripe.error.StripeError as exc:
+        # This runs inside get_or_create_customer, so the message can reach
+        # any checkout route's body: Stripe's text only through the
+        # classifier (H-255).
         raise ValueError(
-            "Could not create a Stripe Test Clock for this QA customer: "
-            f"{getattr(exc, 'user_message', None) or exc}. Refusing to create "
-            "a clockless customer, since a Test Clock cannot be attached "
-            "after the fact."
+            "Could not create a Stripe Test Clock for this QA customer. "
+            "Refusing to create a clockless customer, since a Test Clock "
+            "cannot be attached after the fact. "
+            + describe_stripe_error(exc, fallback_message="Please try again.")
         ) from exc
 
     clock_id = QATimeTravelService._safe_get(clock, "id")

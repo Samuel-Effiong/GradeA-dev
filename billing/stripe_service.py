@@ -2087,9 +2087,11 @@ class StripeSubscriptionScheduleService:
             try:
                 stripe.SubscriptionSchedule.release(stale_schedule_id)
             except stripe.error.StripeError as release_exc:
+                # The schedule's id is in the warning above, not the
+                # client's message (H-255).
                 raise ValueError(
                     "Could not schedule the plan change on Stripe: a "
-                    f"stale schedule ({stale_schedule_id}) is attached "
+                    "stale schedule is attached "
                     "and could not be released automatically: "
                     + describe_stripe_error(
                         release_exc,
@@ -2104,7 +2106,7 @@ class StripeSubscriptionScheduleService:
             except stripe.error.StripeError as retry_exc:
                 raise ValueError(
                     "Could not schedule the plan change on Stripe even "
-                    f"after releasing stale schedule {stale_schedule_id}: "
+                    "after releasing a stale schedule: "
                     + describe_stripe_error(
                         retry_exc,
                         fallback_message="Please try again in a moment.",
@@ -2369,7 +2371,12 @@ class StripePriceService:
             )
             return price.id
         except stripe.error.StripeError as exc:
-            raise ValueError(f"Failed to create custom price: {exc}") from exc
+            raise ValueError(
+                "Failed to create custom price: "
+                + describe_stripe_error(
+                    exc, fallback_message="Please try again in a moment."
+                )
+            ) from exc
 
 
 class IndividualPlanChangeService:

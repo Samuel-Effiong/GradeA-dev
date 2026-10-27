@@ -13,6 +13,10 @@ exception server-side — this module only decides what the *user* sees.
 
 from __future__ import annotations
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 DEFAULT_ERROR_MESSAGE = (
     "Something went wrong while processing your request. Please try again, "
     "and contact support if the problem continues."
@@ -256,13 +260,24 @@ def describe_background_task_error(error, fallback_message=None):
 
 def describe_stripe_error(error, fallback_message=None):
     """
-    Stripe exceptions carry their own customer-safe text in `.user_message`
-    when the failure is something a cardholder can act on (declined card,
-    insufficient funds, etc.). When Stripe doesn't provide one (API errors,
-    connection errors, our own bugs), fall through to the generic classifier.
+    A card error's `.user_message` is written for the cardholder (declined
+    card, insufficient funds, etc.) and is shown as-is. Nothing else from
+    Stripe is (H-255): Stripe fills `user_message` from the error's own
+    message for EVERY error type, so an AuthenticationError's reads
+    "Expired API Key provided: sk_test_..." and an InvalidRequestError's
+    names ids and parameters. Those get the caller's fallback, and the
+    server log gets the class name and Stripe's request id only - no
+    message, no traceback (H-227's rule).
     """
-    user_message = getattr(error, "user_message", None)
-    if user_message:
-        return user_message
+    import stripe
+
+    if isinstance(error, stripe.error.CardError) and error.user_message:
+        return error.user_message
+    if isinstance(error, stripe.error.StripeError):
+        logger.warning(
+            "Stripe call failed: %s (request %s)",
+            type(error).__name__,
+            error.request_id,
+        )
 
     return describe_user_error(error, fallback_message)
