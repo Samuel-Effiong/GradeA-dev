@@ -21,6 +21,8 @@ Pinned here:
   (the QA Test Clock, `create_custom_price`, the stale-schedule retry, the
   overage price read) no longer do; the drift report keeps what an operator
   needs (price id, class, request id) without the text;
+- an overage price mismatch (the plan quotes one amount, Stripe charges
+  another) is refused without showing the price id or the amounts;
 - control: a CardError's `user_message` (written for the cardholder) still
   reaches the body.
 
@@ -269,6 +271,31 @@ class OverageRouteTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         assert_no_stripe_text(self, response.data["detail"])
         self.assertNotIn(OVERAGE_PRICE_ID, response.data["detail"])
+
+    def test_a_price_mismatch_on_overage_purchase_answers_without_the_price_id(self):
+        """The plan quotes 400 per block, Stripe charges 500: the purchase is
+        refused, and the customer is not shown the price id or the amounts."""
+        with patch(
+            "billing.overage_pricing.stripe.Price.retrieve",
+            return_value={"unit_amount": 500},
+        ):
+            response = self.client.post(
+                reverse("subscription-purchase-overage"),
+                {
+                    "success_url": "https://example.com/ok",
+                    "cancel_url": "https://example.com/cancel",
+                    "quantity": 1,
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn(OVERAGE_PRICE_ID, response.data["detail"])
+        self.assertEqual(
+            response.data["detail"],
+            "The price of this purchase has changed. Nothing was charged; "
+            "please reload and try again.",
+        )
 
     def test_the_drift_report_names_the_failure_without_its_text(self):
         with patch(
