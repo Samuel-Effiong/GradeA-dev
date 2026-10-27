@@ -281,3 +281,14 @@ def describe_stripe_error(error, fallback_message=None):
         )
 
     return describe_user_error(error, fallback_message)
+
+
+def stripe_error_label(error):
+    """
+    What a server log line, an alert or an operator's note may say about a
+    Stripe failure: its class and Stripe's request id, e.g.
+    "AuthenticationError (request req_123)". The request id finds the call
+    in Stripe's dashboard. Never Stripe's message or its traceback, which
+    can carry a key's tail, ids and parameters (H-259; H-255's rule).
+    """
+    return f"{type(error).__name__} (request {getattr(error, 'request_id', None)})"

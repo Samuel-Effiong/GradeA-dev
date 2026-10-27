@@ -65,6 +65,8 @@ from django.db import (
 )
 from django.utils import timezone
 
+from AutoGrader.error_messages import stripe_error_label
+
 from .imports import stripe
 from .models import (
     LicenseStripeMutationIntent,
@@ -726,8 +728,9 @@ def apply_at_stripe(intent, call, reached, payment_errors=(), read_back_on=()):
         except stripe.error.StripeError as read_exc:
             _reconciliation_needed(
                 intent,
-                f"outcome unknown ({exc}) and the read-back also failed "
-                f"({read_exc}); the intent is left PENDING",
+                f"outcome unknown ({stripe_error_label(exc)}) and the read-back "
+                f"also failed ({stripe_error_label(read_exc)}); the intent is left "
+                "PENDING",
             )
             raise exc from read_exc
         if not applied:
@@ -741,7 +744,7 @@ def apply_at_stripe(intent, call, reached, payment_errors=(), read_back_on=()):
             "H-28 intent %s: Stripe response lost (%s) but the read-back shows "
             "the change applied; continuing.",
             intent.id,
-            exc,
+            stripe_error_label(exc),
         )
         result = None
 

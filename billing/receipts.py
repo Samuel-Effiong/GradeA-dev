@@ -47,6 +47,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from AutoGrader.error_messages import stripe_error_label
+
 from .imports import stripe
 from .models import BillingTransaction
 
@@ -137,7 +139,7 @@ def lookup_receipt_url(*, invoice_id=None, charge_id=None, payment_intent_id=Non
             invoice_id,
             charge_id,
             payment_intent_id,
-            exc,
+            stripe_error_label(exc),
         )
     except Exception:  # noqa: BLE001 - a receipt link must never break a caller
         logger.exception(

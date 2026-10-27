@@ -2,6 +2,7 @@
 H-89: no email address, and no URL password, in anything this process logs.
 H-167: and no value written as `password=...`, `passwd=...`, `secret=...`
 or `token=...`.
+H-259: and no Stripe secret key or webhook signing secret.
 
 WHY A RECORD FACTORY AND NOT A HANDLER FILTER
 --------------------------------------------
@@ -37,8 +38,16 @@ WHAT IS REPLACED
     safe, and what follows it on the line is lost with it. This is the
     form in which redis-py's connection pool prints itself, password
     included, and a pool is what a frame of a failed dispatch holds.
-The first two patterns are not run on a message with no "@" in it, nor the
-third on one with no "=".
+  * (H-259) A Stripe secret or restricted key (`sk_test_`, `sk_live_`,
+    `rk_test_`, `rk_live_`) or webhook signing secret (`whsec_`) keeps its
+    prefix and the rest becomes `[secret]`, up to the next space, quote or
+    bracket: `sk_live_[secret]`. The prefix says which key and which mode,
+    which is what an operator needs. Stripe quotes the key's masked tail in
+    an authentication error's message ("Expired API Key provided:
+    sk_test_****1234"), and that message reaches tracebacks and Sentry.
+    A publishable key (`pk_`) is public and is left alone.
+The first two patterns are not run on a message with no "@" in it, the
+third on one with no "=", nor the fourth on one with no "_".
 
 WHAT IS NOT, AND WHAT IS REPLACED WITH IT (KNOWN LIMITS)
 --------------------------------------------------------
@@ -111,6 +120,10 @@ _ADDRESS = re.compile(
 _USERINFO = re.compile(r"(?<=://)[^\s/]+(?=@)")
 #: H-167: one of four names, "=", and the rest of the line.
 _NAMED_VALUE = re.compile(r"(?i)(password|passwd|secret|token)=[^\n]+")
+#: H-259: a Stripe secret key, restricted key or webhook secret, from the
+#: start of a word: the prefix, then everything up to a space, a quote or a
+#: bracket.
+_STRIPE_SECRET = re.compile(r"\b((?:sk|rk)_(?:test|live)_|whsec_)[^\s'\"()\[\]{}<>,;]+")
 
 _MARKER = "_scrubs_addresses"
 #: True or False once known; None until Django's settings are configured.
@@ -118,8 +131,10 @@ _enabled = None
 
 
 def scrub(text):
-    """`text` with every email address, URL userinfo and named secret
-    value replaced."""
+    """`text` with every email address, URL userinfo, named secret value
+    and Stripe secret replaced."""
+    if "_" in text:
+        text = _STRIPE_SECRET.sub(_prefix_kept, text)
     if "=" in text:
         text = _NAMED_VALUE.sub(_name_kept, text)
     if "@" not in text:
@@ -129,6 +144,10 @@ def scrub(text):
 
 def _name_kept(match):
     return f"{match.group(1)}={SECRET}"
+
+
+def _prefix_kept(match):
+    return f"{match.group(1)}{SECRET}"
 
 
 def is_enabled():

@@ -30,6 +30,7 @@ from django.utils import timezone
 from audit import metrics as audit_metrics
 from AutoGrader import beat_locks
 from AutoGrader.beat_locks import single_instance
+from AutoGrader.error_messages import stripe_error_label
 
 from .imports import stripe
 from .license_service import (
@@ -149,7 +150,7 @@ def _find_new_period_paid_invoice(
             "Could not list invoices for subscription %s while verifying a "
             "new billing period: %s",
             stripe_subscription_id,
-            exc,
+            stripe_error_label(exc),
         )
         return None
 
@@ -203,7 +204,7 @@ def process_license_renewals(self):
                         logger.warning(
                             "Failed to cancel Stripe subscription for license %s: %s",
                             license_sub.id,
-                            str(exc),
+                            stripe_error_label(exc),
                         )
 
                 license_sub.is_active = False
@@ -1542,8 +1543,7 @@ def reconcile_subscription_prices(self):
         logger.error(
             "Subscription price reconciliation could not list Stripe "
             "subscriptions, so NO drift check was performed: %s",
-            str(exc),
-            exc_info=True,
+            stripe_error_label(exc),
         )
         raise
 
