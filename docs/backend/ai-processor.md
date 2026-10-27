@@ -85,6 +85,19 @@ Response format is chosen in three tiers ([services.py:504-510](../../ai_process
 
 Every request sends `HTTP-Referer: FRONTEND_DOMAIN` and `X-Title: GradeA+` for OpenRouter attribution.
 
+**How long a request may wait** (H-256, `AIProcessor.__init__`). The client waits 10 s to connect and
+`AI_PROVIDER_TIMEOUT_SECONDS` (default 300 s, read from the environment when a process starts) for each read, and
+tries a request three times (`max_retries=2`) before the call fails with `openai.APITimeoutError`.
+- **Was** the SDK's default: 600 s per read, three tries, so one request that never answered could hold a grading
+  worker for 30 minutes, past the grading task's 25-minute kill point.
+- **Why 300 s:** the slowest calls in the live benchmark records (`ai_processor/benchmark/answers/reports/`, 152
+  calls) were 118 s for grading (p95 94 s) and 127 s for reading answers (p95 37 s).
+- **A read timeout is per read, not per call** (httpx). A reply that keeps sending bytes, such as keep-alive
+  padding, is not cut off. Whether OpenRouter pads a non-streaming reply was not checked; the limit is meant
+  for a connection that has gone silent.
+- A call that times out is never charged (the charge follows the reply). A run that fails on one refunds what it
+  charged before, through `billing_refund_scope`.
+
 **Which supplier serves a request** (the `provider` object, `_provider_block()` in services.py). Every request
 carries it, on every path:
 
