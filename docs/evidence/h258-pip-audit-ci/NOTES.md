@@ -15,7 +15,7 @@
   `pip-audit -r requirements.txt --strict --no-deps --disable-pip`.
   - All 223 lines of requirements.txt are pinned with `==`, so `--no-deps` audits exactly what is listed without
     installing it.
-  - The full JSON is `audit_before_31a86456.json`.
+  - The full JSON is `audit_before_31a86456.json.gz`.
 - **Result:** "Found 250 known vulnerabilities in 32 packages". "Needs" is the lowest version that clears every
   advisory on the package, staying in the current major where a fix exists there (`findings_table.txt`).
 - **Patch-level (upgraded in this row, SM ruling (a)):**
@@ -73,8 +73,11 @@
 - **Stale comments:**
   - `AutoGrader/settings.py` (the Beat comment on the nightly replay) and `docs/backend/ai-quality-harness.md`
     (two places) no longer say "there is no CI in this repo".
-  - Still saying it, left for the SM: `ai_processor/tasks.py:27` (the module docstring, which other docs quote as
-    the contradiction) and `docs/backend/BACKEND_REFERENCE.md` (1961, 2573, 2587).
+  - **The rest of the "no CI" notes** (SM ruling, 2026-10-27; commit `51043d7a`): `ai_processor/tasks.py`'s module
+    docstring and `docs/backend/BACKEND_REFERENCE.md` (1961, D13, observation 1) now name what the workflows run
+    (the tests, pre-commit, migration safety, the dependency audit) and what they do not (the grading benchmarks).
+  - **Three docs that quoted the old docstring** (`ai-quality-harness.md`, `operations.md`, `README.md`) quote the
+    new one, so none quotes text that no longer exists.
 
 ## The shared virtualenv was not touched
 
@@ -134,8 +137,10 @@
   - **(B)** the tip with PYSEC-2026-1434 (gunicorn) removed from the list: "Found 1 known vulnerability, ignored
     191 in 1 package", exit 1.
 - **The seam:**
-  - the changed files outside `docs/` are exactly the six;
+  - the changed files outside `docs/` are exactly the seven;
   - `AutoGrader/settings.py`'s syntax tree equals the base's (a comment only);
+  - `ai_processor/tasks.py`'s syntax tree equals the base's apart from the module docstring, which no longer says
+    there is no CI;
   - `requirements.txt` has the same number of lines and differs by exactly the five pins.
 
 ## Gate

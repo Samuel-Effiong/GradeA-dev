@@ -6,7 +6,8 @@
 # 0 the red run: the new test module as at the tip with the three new files absent (as at the base). RULE 22: each
 #   test red for its WRITTEN reason in every block, exactly 12 blocks;
 # 1a makemigrations --check; 1b the changed files and the seam (settings.py's syntax tree as at the base: a
-#   comment only; requirements.txt differs by exactly the five pins); 1c the audit itself with the pinned
+#   comment only; ai_processor/tasks.py's as at the base apart from its module docstring; requirements.txt
+#   differs by exactly the five pins); 1c the audit itself with the pinned
 #   pip-audit (clean with the accepted list), and two planted reds (the base pins; one gunicorn id dropped);
 #   1 the FULL suite in the private venv (--parallel 4), the Django patch upgrade's check;
 #   2 the 12 mutants, each judged by its exact failing set AND its written fragment.
@@ -79,7 +80,7 @@ echo "=== 1b. the changed files and the seam"
 git diff --name-only $BASE HEAD > $E/seam_changed_files.txt
 cat $E/seam_changed_files.txt
 REST=$(grep -vE '^docs/' $E/seam_changed_files.txt | LC_ALL=C sort | tr '\n' ' ')
-[ "$REST" = ".github/workflows/audit.yml .pip-audit-ignore.toml AutoGrader/settings.py AutoGrader/tests_pip_audit_gate.py requirements.txt scripts/pip_audit_gate.py " ] || { echo "STOP: the changed files are not the six ($REST)"; exit 2; }
+[ "$REST" = ".github/workflows/audit.yml .pip-audit-ignore.toml AutoGrader/settings.py AutoGrader/tests_pip_audit_gate.py ai_processor/tasks.py requirements.txt scripts/pip_audit_gate.py " ] || { echo "STOP: the changed files are not the seven ($REST)"; exit 2; }
 python3 -I - "$BASE" > $E/seam_code.txt 2>&1 <<'PYEOF'
 import ast, subprocess, sys
 base = sys.argv[1]
@@ -87,6 +88,18 @@ def show(path):
     return subprocess.run(["git", "show", f"{base}:{path}"], capture_output=True, text=True, check=True).stdout
 same = ast.dump(ast.parse(show("AutoGrader/settings.py"))) == ast.dump(ast.parse(open("AutoGrader/settings.py").read()))
 print("settings.py syntax tree as at the base (a comment only):", same)
+def body_without_docstring(text):
+    tree = ast.parse(text)
+    first = tree.body[0] if tree.body else None
+    doc = first.value.value if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant) and isinstance(first.value.value, str) else None
+    if doc is not None:
+        tree.body = tree.body[1:]
+    return ast.dump(tree), doc
+tb, tdoc = body_without_docstring(show("ai_processor/tasks.py"))
+nb, ndoc = body_without_docstring(open("ai_processor/tasks.py").read())
+tasks_ok = tb == nb and tdoc is not None and ndoc is not None and tdoc != ndoc and "There is no CI in this repo" in tdoc and "There is no CI" not in ndoc
+print("tasks.py syntax tree as at the base apart from the module docstring, which no longer says there is no CI:", tasks_ok)
+same = same and tasks_ok
 old = [l for l in show("requirements.txt").splitlines()]
 new = open("requirements.txt").read().splitlines()
 changed = sorted({(a, b) for a, b in zip(old, new) if a != b})
