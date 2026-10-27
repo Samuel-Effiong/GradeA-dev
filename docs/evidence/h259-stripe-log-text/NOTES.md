@@ -183,3 +183,72 @@ A changed file outside the eight is the gate script's changed-file check, not th
 - **The mutants:** 30, with a 3300 s limit and the 300 s stall watchdog.
 - Because the lines sit on many billing paths, the batch's full run is the real regression.
 - **Base:** `675b6d4d`.
+
+## The gate on b02dbb09 (started once load1 was under 6, 27 October 2026)
+
+Pre-start check: Postgres accepting, Redis PONG, no stale `test_h259*` database, seam check passing. Load was 7.22 when
+the start was queued; the start command waited for load1 under 6 (six 30 s waits, the last at 6.83) and re-read it
+under 8 before starting. Other teams' runs were waited out, not contended.
+
+Run 10:51:16 to 11:00:47 WAT inside one `systemd-inhibit`. Logs are in `gate_b02dbb09/` (gzipped), including the
+gate's own output.
+- **Exit code: 0**, captured by the start command (`; echo "gate exit=$?"`), whose line ends the output.
+- Available memory at the start was 14G, so the cap was 12G. Load was 5.87 5.33 4.84 at the start and 2.85 5.17
+  5.44 at the end.
+
+- **Red run** (the eight production files as at 675b6d4d, the module as at the tip), 10:51:16 to 10:52:01:
+  - 22 FAIL blocks, each red for its written reason ("unexpectedly found in"), no ERROR, no OK line.
+  - "Ran 23 tests in 2.002s", "FAILED (failures=22)".
+  - The control was green, and the source was restored.
+- **makemigrations --check:** exit 0, "No changes detected".
+- **Changed files:** the eight production files, the test module and `docs/`; `.secrets.baseline` passed as "line
+  numbers and generated_at only".
+- **Seam:** "SEAM OK: only the named units changed, and only what they log". Each file changed only its allowed units.
+  23 log calls sit in Stripe except clauses, 18 of them labelled. The scrub statement and the pattern printed as
+  packed.
+- **Step 1** (own, the 49 near modules, the 20 guards), 10:52:10 to 10:58:04:
+  - "Ran 1205 tests in 314.203s", "OK".
+  - 1205 test lines were counted in the log (a test with a docstring prints the docstring, not its name).
+  - The log holds no key-shaped text. Key-shaped text appears only in the red run and the mutant logs: the probe
+    `sk_test_h259xxxxxxxxxxxxk7Qp`, the scrubber tests' `<prefix>H259notarealkey0` and their masked
+    `<prefix>[secret]`, and the publishable-key control `pk_live_H259notarealkey0`. Nothing else.
+- **Step 2, mutants** (own database, rules 17, 18 and 22), 10:58:04 to 11:00:47:
+  - All 30 KILLED, each with "Ran 23 tests".
+  - Every mutant's failing tests are exactly its expected set, with nothing missing, nothing extra and no wrong
+    reason.
+
+| Id | Failing / expected |
+|---|---|
+| H1 | 19 / 19 |
+| H2 | 19 / 19 |
+| P1 | 1 / 1 |
+| P2 | 1 / 1 |
+| P3 | 1 / 1 |
+| V1 | 1 / 1 |
+| V2 | 1 / 1 |
+| W1 | 1 / 1 |
+| W2 | 1 / 1 |
+| W3 | 1 / 1 |
+| W4 | 1 / 1 |
+| W5 | 1 / 1 |
+| W6 | 1 / 1 |
+| R1 | 1 / 1 |
+| T1 | 1 / 1 |
+| T2 | 1 / 1 |
+| T3 | 1 / 1 |
+| T4 | 1 / 1 |
+| T5 | 1 / 1 |
+| T6 | 1 / 1 |
+| K1 | 1 / 1 |
+| K2 | 1 / 1 |
+| K3 | 1 / 1 |
+| K4 | 1 / 1 |
+| S1 | 3 / 3 |
+| S2 | 3 / 3 |
+| S3 | 3 / 3 |
+| S4 | 3 / 3 |
+| S5 | 1 / 1 |
+| S6 | 3 / 3 |
+
+- The source was clean after the mutants, and the mutant database was dropped. No watchdog fired.
+- Not merged. The Senior Manager rules on the gate.
