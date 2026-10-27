@@ -118,7 +118,9 @@ def main() -> int:
         print(f"pip-audit gate: {e}", file=sys.stderr)
         return 2
     print(f"pip-audit gate: {len(ids)} accepted advisories from {IGNORE_FILE.name}")
-    return subprocess.run(audit_command(ids), cwd=ROOT).returncode
+    return subprocess.run(  # nosec B603  # fixed argv built above, no shell
+        audit_command(ids), cwd=ROOT
+    ).returncode
 
 
 if __name__ == "__main__":
