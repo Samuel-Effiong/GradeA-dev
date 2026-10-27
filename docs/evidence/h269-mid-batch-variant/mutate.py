@@ -40,11 +40,9 @@ K = "keepdb"
 
 # --- Anchors (exact text in reason_codes.py, including leading whitespace) ---
 
-SELECTOR = (
-    "        variant_from_params=lambda params: (\n"
-    '            "none_finished" if params.get("completed") == 0 else None\n'
-    "        ),\n"
-)
+FUNC_BODY = '    return "none_finished" if params.get("completed") == 0 else None\n'
+
+SPEC_REF = "        variant_from_params=_mid_batch_variant,\n"
 
 # id, what is broken, file, text(s) replaced, new text(s), tests, database kind
 MUTANTS = [
@@ -54,7 +52,7 @@ MUTANTS = [
         "M1",
         "drop variant_from_params (no spec selection)",
         RC,
-        SELECTOR,
+        SPEC_REF,
         "        variant_from_params=None,\n",
         OWN_TESTS,
         K,
@@ -65,10 +63,8 @@ MUTANTS = [
         "M2",
         "always return none_finished (ignore completed)",
         RC,
-        SELECTOR,
-        "        variant_from_params=lambda params: (\n"
-        '            "none_finished"\n'
-        "        ),\n",
+        FUNC_BODY,
+        '    return "none_finished"\n',
         OWN_TESTS,
         K,
     ),
@@ -78,10 +74,8 @@ MUTANTS = [
         "M3",
         "boundary: completed <= 1 picks none_finished",
         RC,
-        SELECTOR,
-        "        variant_from_params=lambda params: (\n"
-        '            "none_finished" if params.get("completed") <= 1 else None\n'
-        "        ),\n",
+        FUNC_BODY,
+        '    return "none_finished" if params.get("completed") <= 1 else None\n',
         OWN_TESTS,
         K,
     ),

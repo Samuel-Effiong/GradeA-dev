@@ -28,8 +28,11 @@ The spec has `variant_from_params=None` (set in H-268 as a field, but not used f
 
 ## What changes
 
-- `AutoGrader/reason_codes.py`: the MID_BATCH spec gains
-  `variant_from_params=lambda params: "none_finished" if params.get("completed") == 0 else None`.
+- `AutoGrader/reason_codes.py`: the MID_BATCH spec gains `variant_from_params=_mid_batch_variant`,
+  a named function (not a lambda) that returns `"none_finished"` when `completed == 0`, else `None`.
+  Named function required because `InsufficientCreditsMidBatchError` stores `self._spec` and the
+  pickle serialization tests (Celery result backend) iterate over all CodedError subclasses —
+  a lambda on the spec makes the error unpicklable. Gate stop on 53216208 caught this.
 - `students/task_tracking.py:534`: remove the `variant=` argument. The raiser no longer picks the
   variant; the spec picks it from the same `completed` param.
 - `AutoGrader/tests_reason_codes.py`:

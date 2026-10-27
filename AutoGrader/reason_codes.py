@@ -132,6 +132,10 @@ def _row_spec(
     )
 
 
+def _mid_batch_variant(params):
+    return "none_finished" if params.get("completed") == 0 else None
+
+
 REASON_CODES: dict[ReasonCode, ReasonSpec] = {
     ReasonCode.MISSING_STUDENT_NAME: ReasonSpec(
         ErrorClass.USER,
@@ -245,9 +249,7 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
                 "Credits ran out before any of the {total} items were finished."
             )
         },
-        variant_from_params=lambda params: (
-            "none_finished" if params.get("completed") == 0 else None
-        ),
+        variant_from_params=_mid_batch_variant,
     ),
     ReasonCode.INSUFFICIENT_CREDITS: ReasonSpec(
         ErrorClass.USER,
