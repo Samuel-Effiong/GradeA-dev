@@ -44,7 +44,10 @@ class UserCacheMixin:
             base = f"{model_name}s:user_id__{user_id}:instance_id__{instance_id}"
         else:
             query_params = json.dumps(self.request.query_params.dict(), sort_keys=True)
-            query_hash = hashlib.md5(query_params.encode()).hexdigest()
+            # Names a cache entry; secures nothing (H-257, Bandit B324).
+            query_hash = hashlib.md5(
+                query_params.encode(), usedforsecurity=False
+            ).hexdigest()
             base = f"{model_name}s:user_id__{user_id}:query__{query_hash}"
 
         # The MD5 of the query params is exactly why targeted key deletion

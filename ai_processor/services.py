@@ -332,7 +332,7 @@ def _current_attempt() -> int:
         if current_task and current_task.request.id:
             return int(current_task.request.retries or 0) + 1
     except Exception:  # noqa: BLE001 - a log field must never fail the call
-        pass
+        pass  # nosec B110  # by design: a log field
     return 1
 
 

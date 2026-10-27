@@ -32,7 +32,7 @@ def generate_temporary_password(user):
         try:
             validate_password(candidate, user=user)
         except Exception:
-            continue
+            continue  # nosec B112  # the next candidate is tried
         return candidate
     # Astronomically unlikely with a 20-char/66-symbol alphabet, but never
     # fall through to a weaker password.

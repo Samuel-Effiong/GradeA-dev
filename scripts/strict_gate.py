@@ -200,7 +200,7 @@ def now():
 
 def sh(args, cwd=None, env=None):
     """Run a command, capturing text output. Never raises on non-zero exit."""
-    return subprocess.run(
+    return subprocess.run(  # nosec B603  # the gate's own argument lists, no shell
         args, cwd=cwd, env=env, capture_output=True, text=True, check=False
     )
 
@@ -730,7 +730,7 @@ class Gate:
         self.log(f"run {run['index']}: {name}: {' '.join(argv)}")
         path = self.log_dir / logname
         with open(path, "wb") as out:
-            rc = subprocess.run(
+            rc = subprocess.run(  # nosec B603  # own argv
                 argv,
                 cwd=self.worktree,
                 env=self.env(db),
@@ -1172,7 +1172,7 @@ def run_gate(args):
             os.path.abspath(__file__),
             *sys.argv[1:],
         ]
-        os.execvpe("systemd-inhibit", argv, env)
+        os.execvpe("systemd-inhibit", argv, env)  # nosec B606 B607  # re-exec
     gate = Gate(args)
     signal.signal(signal.SIGTERM, _raise_interrupt)
     try:

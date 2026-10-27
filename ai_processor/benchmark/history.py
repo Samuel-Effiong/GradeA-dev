@@ -87,7 +87,7 @@ def code_sha():
     """Short git HEAD, or None when git is unavailable (never raises — this
     is provenance metadata, not something worth failing a run over)."""
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603 B607  # fixed git argv
             ["git", "rev-parse", "--short", "HEAD"],
             cwd=str(BENCHMARK_DIR),
             capture_output=True,
