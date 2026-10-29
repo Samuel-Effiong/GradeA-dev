@@ -46,9 +46,11 @@ echo ""
 echo "=== MUTANTS ==="
 
 assert_clean() {
-  if [ -n "$(git diff --name-only)" ]; then
+  local dirty
+  dirty="$(git diff --name-only -- ':(exclude)docs/evidence/*')"
+  if [ -n "$dirty" ]; then
     echo "FATAL: tree is dirty after M${1} restore:" >&2
-    git diff --name-only >&2
+    echo "$dirty" >&2
     exit 1
   fi
 }
@@ -61,7 +63,7 @@ run_mutant() {
   "$@"
   {
     echo "### git diff of mutated file(s)"
-    git diff
+    git diff -- ':(exclude)docs/evidence/*'
     echo ""
     echo "### test output"
     python manage.py test "${TEST_MODULE}.${test}" --noinput -v 2 2>&1

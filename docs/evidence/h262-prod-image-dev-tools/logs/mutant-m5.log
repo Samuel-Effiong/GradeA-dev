@@ -1,3 +1,19 @@
+### git diff of mutated file(s)
+diff --git a/Dockerfile b/Dockerfile
+index ab1fa890..90204bd1 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -36,7 +36,7 @@ ENV PYTHONUNBUFFERED=1 \
+ # Runtime system libraries (not headers or compilers).
+ RUN apt-get update --yes --quiet && \
+     apt-get install --yes --quiet --no-install-recommends \
+-        libgl1 \
++        libmariadb-dev libgl1 \
+         libglib2.0-0 \
+         poppler-utils \
+         libpango-1.0-0 \
+
+### test output
 test_no_libmariadb_dev_anywhere (ai_processor.tests_h262_prod_image_dev_tools.DockerfileMultiStageTest.test_no_libmariadb_dev_anywhere) ... FAIL
 
 ======================================================================

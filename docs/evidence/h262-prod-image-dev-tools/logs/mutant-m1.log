@@ -1,3 +1,15 @@
+### git diff of mutated file(s)
+diff --git a/requirements.txt b/requirements.txt
+index 4d21e86d..2cc3856d 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -164,3 +164,4 @@ webencodings==0.5.1
+ zope.event==6.2
+ zope.interface==8.5
+ zopfli==0.4.3
++flower==2.0.1
+
+### test output
 test_dev_packages_not_in_production_requirements (ai_processor.tests_h262_prod_image_dev_tools.RequirementsSplitTest.test_dev_packages_not_in_production_requirements) ... FAIL
 
 ======================================================================

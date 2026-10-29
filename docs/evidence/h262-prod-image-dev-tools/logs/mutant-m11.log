@@ -1,3 +1,21 @@
+### git diff of mutated file(s)
+diff --git a/scripts/pip_audit_gate.py b/scripts/pip_audit_gate.py
+index 97b4271f..2b678add 100644
+--- a/scripts/pip_audit_gate.py
++++ b/scripts/pip_audit_gate.py
+@@ -134,10 +134,6 @@ def main() -> int:
+     if rc != 0:
+         return rc
+
+-    all_ids = sorted(set(prod_ids) | set(dev_ids))
+-    rc = subprocess.run(  # nosec B603
+-        audit_command(REQUIREMENTS_DEV, all_ids), cwd=ROOT
+-    ).returncode
+     return rc
+
+
+
+### test output
 test_audit_gate_audits_dev_requirements_too (ai_processor.tests_h262_prod_image_dev_tools.AuditGateTest.test_audit_gate_audits_dev_requirements_too) ... FAIL
 
 ======================================================================
@@ -9,7 +27,7 @@ Traceback (most recent call last):
 AssertionError: 'requirements-dev.txt' not found in ['requirements.txt'] : no -r requirements-dev.txt in subprocess.run calls; got ['requirements.txt']
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.010s
+Ran 1 test in 0.012s
 
 FAILED (failures=1)
 Found 1 test(s).

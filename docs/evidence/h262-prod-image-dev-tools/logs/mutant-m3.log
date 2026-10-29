@@ -1,3 +1,16 @@
+### git diff of mutated file(s)
+diff --git a/Dockerfile b/Dockerfile
+index ab1fa890..028f70ed 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -1,5 +1,4 @@
+ # --- Build stage: compile C extensions, then discard compilers and headers ---
+-FROM python:3.12-slim-bookworm AS build
+
+ RUN apt-get update --yes --quiet && \
+     apt-get install --yes --quiet --no-install-recommends \
+
+### test output
 test_dockerfile_has_build_and_runtime_stages (ai_processor.tests_h262_prod_image_dev_tools.DockerfileMultiStageTest.test_dockerfile_has_build_and_runtime_stages) ... FAIL
 
 ======================================================================

@@ -1,3 +1,52 @@
+### git diff of mutated file(s)
+diff --git a/.pip-audit-ignore-dev.toml b/.pip-audit-ignore-dev.toml
+deleted file mode 100644
+index 2c849a35..00000000
+--- a/.pip-audit-ignore-dev.toml
++++ /dev/null
+@@ -1,40 +0,0 @@
+-# H-262: advisories accepted for dev-only packages. Read by
+-# scripts/pip_audit_gate.py alongside .pip-audit-ignore.toml; same format and
+-# validation rules. These packages are NOT in requirements.txt and NOT in the
+-# production Docker image.
+-#
+-# Source: split from .pip-audit-ignore.toml (H-258 baseline) during H-262.
+-# Rulings: Senior Manager, 2026-10-27.
+-
+-[[ignore]]
+-package = "black"  # 25.1.0
+-ids = [
+-    "GHSA-cg8m-r9f2-5wm2",
+-    "PYSEC-2026-2120",
+-    "PYSEC-2026-2121",
+-]
+-reason = "upgrade awaiting the owner's ruling (H-258 report)"
+-review_by = 2026-11-30
+-
+-[[ignore]]
+-package = "virtualenv"  # 20.34.0
+-ids = [
+-    "GHSA-394h-qwmc-48pf",
+-    "GHSA-494p-63j8-28p3",
+-    "GHSA-5vjq-rrrf-7h2q",
+-    "GHSA-6w3r-xr62-4xcp",
+-    "GHSA-8rjx-v5ww-45pp",
+-    "GHSA-c947-3pg5-gm8q",
+-    "GHSA-c978-59m8-c77v",
+-    "GHSA-cx28-75q4-x26q",
+-    "GHSA-fc2g-4w5p-6whm",
+-    "GHSA-qmx5-4p3x-wvqf",
+-    "GHSA-vxj4-q4g9-crj7",
+-    "PYSEC-2026-2009",
+-    "PYSEC-2026-4011",
+-    "PYSEC-2026-4012",
+-    "PYSEC-2026-4013",
+-    "PYSEC-2026-4014",
+-]
+-reason = "upgrade awaiting the owner's ruling (H-258 report)"
+-review_by = 2026-11-30
+
+### test output
 test_dev_only_ignores_in_separate_file (ai_processor.tests_h262_prod_image_dev_tools.AuditGateTest.test_dev_only_ignores_in_separate_file) ... FAIL
 
 ======================================================================
@@ -9,7 +58,7 @@ Traceback (most recent call last):
 AssertionError: False is not true : .pip-audit-ignore-dev.toml not found for dev-only advisory ignores
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.002s
+Ran 1 test in 0.003s
 
 FAILED (failures=1)
 Found 1 test(s).

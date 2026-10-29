@@ -1,3 +1,19 @@
+### git diff of mutated file(s)
+diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
+index 09b5991d..b2bdcb3d 100644
+--- a/.github/workflows/tests.yml
++++ b/.github/workflows/tests.yml
+@@ -133,7 +133,7 @@ jobs:
+       - name: Install Python dependencies
+         run: |
+           python -m pip install --upgrade pip
+-          pip install -r requirements-dev.txt
++          pip install -r requirements.txt
+
+       - name: Check for missing migrations
+         # Catches a model change committed without its migration, which
+
+### test output
 test_tests_workflow_installs_dev_requirements (ai_processor.tests_h262_prod_image_dev_tools.CIWorkflowTest.test_tests_workflow_installs_dev_requirements) ... FAIL
 
 ======================================================================
