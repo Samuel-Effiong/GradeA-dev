@@ -67,7 +67,7 @@ DEV_ONLY_PACKAGES = {
     "types-docutils",
     "types-python-dateutil",
     "types-pytz",
-    "types-PyYAML",
+    "types-pyyaml",
     "types-requests",
     "virtualenv",
 }
