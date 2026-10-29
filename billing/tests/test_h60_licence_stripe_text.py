@@ -108,7 +108,9 @@ class LicenceStripeTextTests(LicencePhaseTestCase):
             self.assert_no_stripe_text(
                 self.update_seats, fixed="Stripe error while updating seats."
             )
-        self.assertIn(SENTINEL, self.only_intent().failure_reason)
+        reason = self.only_intent().failure_reason
+        self.assertNotIn(SENTINEL, reason)
+        self.assertIn("InvalidRequestError", reason)
 
     def test_the_seats_route_answers_with_the_fixed_text(self):
         """The view returns the ValueError's text as its 400, so this is
