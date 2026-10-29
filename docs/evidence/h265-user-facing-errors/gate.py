@@ -31,6 +31,9 @@ SEAM = sorted(
         "billing/errors.py",
         "billing/license_overage_offline_views.py",
         "billing/license_service.py",
+        "billing/license_stripe_mutation.py",
+        "billing/overage_pricing.py",
+        "billing/plan_policy.py",
         "billing/license_views.py",
         "billing/qa_time_travel.py",
         "billing/serializers.py",
@@ -83,6 +86,7 @@ def restore():
             *SITES,
             "AutoGrader/error_messages.py",
             "billing/license_service.py",
+            "billing/overage_pricing.py",
         ],
         check=False,
     )
@@ -143,7 +147,7 @@ b = blocks(t)
 restore()
 ok = (
     rc != 0
-    and line(t, r"^Ran 23 tests")
+    and line(t, r"^Ran 28 tests")
     and line(t, r"^FAILED \(failures=20\)$")
     and "_FailedTest" not in t
     and len(b) == 20
@@ -190,12 +194,12 @@ if changed != SEAM:
 
 print("== 1. own + near")
 rc, t = test([OWN], E / "own.txt")
-if rc or not line(t, r"^Ran 23 tests") or not line(t, r"^OK$"):
-    stop("own not Ran 23 OK")
+if rc or not line(t, r"^Ran 28 tests") or not line(t, r"^OK$"):
+    stop("own not Ran 28 OK")
 rc, t = test(NEAR, E / "near.txt")
 print(line(t, r"^Ran .*"), line(t, r"^(OK|FAILED).*"))
-if rc or not line(t, r"^Ran 2730 tests") or not line(t, r"^OK( \(skipped=\d+\))?$"):
-    stop("near not Ran 2730 OK")
+if rc or not line(t, r"^Ran 2735 tests") or not line(t, r"^OK( \(skipped=\d+\))?$"):
+    stop("near not Ran 2735 OK")
 skips = re.findall(r"\.\.\. skipped '([^']*)'", t)
 bad = [s for s in skips if "RUN_" not in s]
 print("skips", len(skips), "non-opt-in", bad)
@@ -264,6 +268,14 @@ MUT = {
         1,
         [OWN],
         {"test_top_up_credits_hides_library_error_text": "!="},
+    ),
+    "M7": (
+        "billing/overage_pricing.py",
+        re.compile(r"class OveragePriceMismatch\(BillingRequestError\):"),
+        "class OveragePriceMismatch(ValueError):",
+        1,
+        [OWN],
+        {"test_overage_price_mismatch_is_user_facing": "False is not true"},
     ),
 }
 results = {}

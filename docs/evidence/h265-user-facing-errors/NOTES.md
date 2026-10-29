@@ -84,3 +84,16 @@ SM ruling (as SM; this row is the SM's own): fix in H-265, not in the tests.
 - widened survey: `grep -rnE "(return|=|\() *ValueError\("` and every `class X(ValueError)` in
   billing/ and dashboard/: the 2 above and the 5 above are the complete list.
 Then the whole gate reruns with expectations revised below before the run.
+
+## Revised expectations for run 2 (written before the run; tests dd657d3f, fix f0c52c97)
+- red (same call-site revert of the 7 site files): "Ran 28", `FAILED (failures=20)`, the same 20
+  `*_hides_library_error_text` FAIL blocks; green: the 3 guards and the 5 new
+  `UserWrittenValueErrorClassesTests` (the classes are at the tip).
+  (The 5 new tests were red at 7bf39c55, before the fix: Ran 5, FAILED (failures=5), "False is not true".)
+- own: Ran 28, OK.
+- near `billing dashboard AutoGrader.tests_error_messages`: **Ran 2735**, OK (2730 + 5; DiscoverRunner
+  id list, 0 load failures). Skips: opt-in (`RUN_*`) only; run 1 had 2, both RUN_REAL_AI.
+- seam: the 13 files plus billing/license_stripe_mutation.py, billing/overage_pricing.py,
+  billing/plan_policy.py = 16.
+- mutants M1-M6 as before, plus
+  | M7 | `OveragePriceMismatch` back to a bare `ValueError` | KILLED | test_overage_price_mismatch_is_user_facing (`False is not true`) |
