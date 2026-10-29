@@ -288,36 +288,87 @@ Beta 3-app total: 4571 tests, 19 skips, 4 reasons.
 B0 3-app total: 4614 tests, 19 skips, 4 reasons (identical).
 No new skips introduced by B0. All 43 new B0 tests run without skipping.
 
+near-run.log archived to GAP-a0-runs/b0/near-run.log.
+sha256: `80f53a94442f8fb5761fcfd8bdb6df4127e0ea9ecc41a0e7c2d781cb79bc506a`.
+Committed evidence: near-run.log.gz at 6f5e95d9.
+
 ### Makemigrations
 
 `python manage.py makemigrations --check --dry-run` must exit 0. No schema
 changes.
 
-### Mutant battery (M1–M12)
+### Mutant battery (M1–M12 + M7b)
 
 Each mutant modifies one protection. Run only the killing test(s), not the
 full suite. Restore the file after each mutant.
 
+Fragments revised after the "next guard down" lesson (M1 STOP): when a
+guard is removed, the next downstream guard often fires with a different
+`attempted` code, producing an assertEqual mismatch rather than
+"not raised".
+
 | # | Mutant | File:line | Mutation | Test(s) | Expected |
 |---|---|---|---|---|---|
-| M1 | Remove entry guard | services.py:5502 | Delete `assert_not_zero_credit(MODEL_CALL)` | test_execute_graded_task_raises_before_any_provider_call | FAIL: `ZeroCreditViolation not raised` |
-| M2 | Guard after provider | services.py:5502 | Move `assert_not_zero_credit(MODEL_CALL)` to after `response = self.__ai_model(...)` | test_execute_graded_task_raises_before_any_provider_call | FAIL: `Expected '_AIProcessor__ai_model' to not have been called` (provider.assert_not_called at :241) |
-| M3 | Remove consume guard | models.py:925 | Delete `assert_not_zero_credit(WALLET_CONSUME)` | test_wallet_consume_raises | FAIL: `ZeroCreditViolation not raised` |
+| M1 | Remove entry guard | services.py:5502 | Delete `assert_not_zero_credit(MODEL_CALL)` | test_execute_graded_task_raises_before_any_provider_call | FAIL: `'WALLET_CONSUME' != 'MODEL_CALL'` |
+| M2 | Guard after provider | services.py:5502→5665 | Move `assert_not_zero_credit(MODEL_CALL)` to after `response = self.__ai_model(...)` | test_execute_graded_task_raises_before_any_provider_call | FAIL: `Expected '_AIProcessor__ai_model' to not have been called` |
+| M3 | Remove consume guard | models.py:925 | Delete `assert_not_zero_credit(WALLET_CONSUME)` | test_wallet_consume_raises | FAIL: `'BUCKET_MUTATION' != 'WALLET_CONSUME'` |
 | M4 | Remove _guard_save check | immutable.py:201-204 | Delete the `assert_not_zero_credit(...)` block | test_ledger_record_raises, test_ledger_objects_create_raises, test_usage_log_record_raises | FAIL: `ZeroCreditViolation not raised` |
 | M5 | Remove bulk_create guard | immutable.py:145 | Delete `assert_not_zero_credit(BULK_INSERT)` | test_ledger_bulk_create_raises | FAIL: `ZeroCreditViolation not raised` |
 | M6 | No reset in finally | zero_credit.py:119 | Delete `_active_scopes.reset(token)` | test_scope_state_is_restored_when_the_block_raises | FAIL: `'_selftest' is not None` |
-| M7 | Overwrite instead of stack | zero_credit.py:115 | Replace `_active_scopes.get() + (operation,)` with `(operation,)` | test_nested_scopes_stack_and_unwind | **SURVIVES** (see note) |
+| M7 | ~~Overwrite instead of stack~~ | zero_credit.py:115 | ~~Replace `_active_scopes.get() + (operation,)` with `(operation,)`~~ | — | **WITHDRAWN** (see note) |
+| M7b | Clear instead of restore | zero_credit.py:119 | Replace `_active_scopes.reset(token)` with `_active_scopes.set(())` | test_nested_scopes_stack_and_unwind | FAIL: `None != '_selftest'` |
 | M8 | Registry accepts unknown | zero_credit.py:107-111 | Delete the `if operation not in ZERO_CREDIT_OPERATIONS` check | test_unknown_operation_is_rejected | FAIL: `ValueError not raised` |
 | M9 | Re-add escape hatch | services.py (after :1276) | Add `def get_ai_model_function(self): return self.__ai_model` | test_escape_hatch_is_gone | FAIL: `True is not false` |
 | M10 | Stray client reference | services.py (new method) | Add `self.client.chat.completions` in a new method | test_self_client_is_only_used_inside___ai_model | FAIL: `Lists differ: [(...)] != []` |
-| M11 | Metric not caught | zero_credit.py:171-172 | Delete `except Exception:` + the pass body | test_violation_still_raises_when_metric_and_logging_helpers_fail | FAIL (ERROR): `RuntimeError: metrics down` |
+| M11 | Metric not caught | zero_credit.py:164-172 | Remove try/except around `audit_metrics.count`, exposing the call | test_violation_still_raises_when_metric_and_logging_helpers_fail | ERROR: `RuntimeError: metrics down` |
 | M12 | Remove bucket pre_save | models.py:1695-1697 | Delete or comment `pre_save.connect(guard_bucket_save, ...)` | test_bucket_balance_write_raises_and_bookkeeping_save_does_not | FAIL: `ZeroCreditViolation not raised` |
 
-**M7 note:** `ContextVar.reset(token)` restores the value saved when the
-token was created. With 2-level nesting, overwrite and stack produce the same
-result after inner-scope exit because reset restores the outer value either way.
-A 3-level test or a test that inspects the full stack would kill it. Flagged as
-a known survivor for SM ruling.
+**M7 withdrawn** (SM ruling): `in_zero_credit_scope()` returns only `scopes[-1]`;
+`assert_not_zero_credit()` uses only that accessor; nothing outside
+`zero_credit.py` reads `_active_scopes`. The tuple stack cannot be
+observed through the public API. Plan 06 §3.2's nesting guarantee ("an
+outer scope is never weakened by an inner one") is provided by
+`ContextVar.reset(token)`, not by the stacking mechanism. No accessor
+added; no private-variable test added.
+
+**M7b rationale**: replaces M7. Mutates the property that matters: leaving
+the inner scope clears the outer one (`set(())`) instead of restoring it
+(`reset(token)`). `test_nested_scopes_stack_and_unwind` line 78 asserts
+`in_zero_credit_scope() == OP` after the inner scope exits; with M7b the
+scope is empty, returning `None`.
+
+**M1 STOP record**: ran before SM M7 directive; mutant killed but fragment
+differs from prediction. SM ACCEPTED as killed with corrected fragment.
+Original prediction: `ZeroCreditViolation not raised`. Actual:
+`'WALLET_CONSUME' != 'MODEL_CALL'`. Root cause: removing the MODEL_CALL
+guard lets the function proceed; `consume_credits` calls
+`CreditBucket.consume_credits` → `CreditBucket.save()` → pre_save →
+`guard_bucket_save` → `assert_not_zero_credit(BUCKET_MUTATION)`. The
+violation IS raised but by a downstream guard with a different
+`attempted` code.
+Production note: M1 would mean the provider is called (and paid) before
+WALLET_CONSUME fires. That is why the MODEL_CALL guard exists, and the
+test catches it.
+
+**M3 "next guard down" trace**: removing the WALLET_CONSUME guard at
+`consume_credits` entry lets the method proceed to
+`bucket.consume_credits(remaining)` → `CreditBucket.save(update_fields=
+["used_credits", "updated_at"])` → pre_save → `guard_bucket_save` →
+`assert_not_zero_credit(BUCKET_MUTATION)`. Fragment:
+`'BUCKET_MUTATION' != 'WALLET_CONSUME'`.
+
+**M4/M5 no "next guard down"**: M4's `_guard_save` is connected only to
+CreditLedger and CreditUsageLog (registered at models.py:1689). Removing
+the zero-credit block means `instance._state.adding` returns `True` at
+line 207-208 and the save succeeds. M5's `bulk_create` does not fire
+pre_save signals, so no other guard intervenes. Both: `not raised`.
+
+**M11 mutation detail**: lines 164-172 form a try/except block. Removing
+just the except (lines 171-172) leaves a bare `try:` (syntax error). The
+mutation removes the entire try/except wrapper, exposing
+`audit_metrics.count(...)` directly. When it raises, the error propagates
+out of `_report`, preventing `assert_not_zero_credit` from reaching the
+`raise ZeroCreditViolation(...)` statement.
 
 ---
 
