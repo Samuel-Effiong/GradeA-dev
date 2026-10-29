@@ -82,6 +82,8 @@ import logging
 
 from django.core.cache import cache
 
+from billing.errors import BillingRequestError
+
 from .imports import stripe
 
 logger = logging.getLogger(__name__)
@@ -100,7 +102,7 @@ OVERAGE_PRICE_UNAVAILABLE_MESSAGE = (
 )
 
 
-class OveragePriceUnavailable(ValueError):
+class OveragePriceUnavailable(BillingRequestError):
     """Stripe could not tell us what this plan charges.
 
     H-255: the views answer a ValueError with its text, so str() is the
@@ -118,7 +120,7 @@ OVERAGE_PRICE_CHANGED_MESSAGE = (
 )
 
 
-class OveragePriceMismatch(ValueError):
+class OveragePriceMismatch(BillingRequestError):
     """
     The plan quotes one price and Stripe charges another.
 

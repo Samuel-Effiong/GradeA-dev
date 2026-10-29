@@ -864,7 +864,7 @@ class StripeCheckoutService:
         return session
 
 
-class SubscriptionExpiredDuringRequest(ValueError):
+class SubscriptionExpiredDuringRequest(BillingRequestError):
     """
     Raised by SubscriptionReactivationService.reactivate_if_cancelling when
     the subscription row is gone/inactive, or its billing cycle has ended,
@@ -1767,7 +1767,7 @@ class StripeSubscriptionMutationService:
                 ),
                 why,
             ):
-                return ValueError(message)
+                return BillingRequestError(message)
             return license_stripe_mutation.LicenceStripeChangeNotRecorded(
                 "The plan change could not be paid, and undoing it at our "
                 "payment provider failed. It has been flagged for manual "

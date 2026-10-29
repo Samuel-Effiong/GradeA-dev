@@ -2865,7 +2865,7 @@ class LicenseSubscriptionService:
             ):
                 # `why` (Stripe's text included) is on the intent; the
                 # client gets fixed text (H-60).
-                return ValueError(
+                return BillingRequestError(
                     "Seat increase payment failed. Seats have not been increased."
                 )
             return license_stripe_mutation.LicenceStripeChangeNotRecorded(

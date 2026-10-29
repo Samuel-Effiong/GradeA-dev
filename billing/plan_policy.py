@@ -28,6 +28,8 @@ what must not be freely reachable), and `is_active` alone (the internal
 
 from django.db.models import Q
 
+from billing.errors import BillingRequestError
+
 from .models import PlanCategory, PlanType, SubscriptionPlan
 
 # Door 1. Ordinary users may pick these, and only these, through self-service.
@@ -59,7 +61,7 @@ ADMIN_ASSIGNABLE_PLAN_NAMES = SELF_SERVICE_PLAN_NAMES | {
 }
 
 
-class PlanAssignmentRefused(ValueError):
+class PlanAssignmentRefused(BillingRequestError):
     """A business rule refused a no-payment plan activation."""
 
 
