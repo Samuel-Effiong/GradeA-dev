@@ -58,7 +58,7 @@ def restore():
         shutil.rmtree(p, ignore_errors=True)
 
 
-def test(labels, out, settings="settings_worktree"):
+def test(labels, out, settings="settings_worktree", extra=()):
     with open(out, "w") as fh:
         rc = subprocess.run(
             CAP
@@ -74,6 +74,7 @@ def test(labels, out, settings="settings_worktree"):
                 "--verbosity",
                 "2",
                 f"--settings={settings}",
+                *extra,
                 *labels,
             ],
             stdin=subprocess.DEVNULL,
@@ -166,6 +167,15 @@ print("== 1. own + near")
 rc, t = test([OWN], E / "own.txt")
 if rc or not line(t, r"^Ran 15 tests") or not line(t, r"^OK$"):
     stop("own not Ran 15 OK")
+print("== 1p. own with --parallel 3, five times (batch 31 run 1 race)")
+(E / "parallel").mkdir(exist_ok=True)
+for k in range(1, 6):
+    rc, t = test(
+        [OWN], E / "parallel" / f"own_parallel_{k}.txt", extra=("--parallel", "3")
+    )
+    print(k, line(t, r"^Ran .*"), line(t, r"^(OK|FAILED).*"))
+    if rc or not line(t, r"^Ran 15 tests") or not line(t, r"^OK$"):
+        stop(f"parallel run {k} not Ran 15 OK")
 rc, t = test(NEAR, E / "near.txt")
 print(line(t, r"^Ran .*"), line(t, r"^(OK|FAILED).*"))
 if rc or not line(t, r"^Ran 1553 tests") or not line(t, r"^OK \(skipped=4\)$"):

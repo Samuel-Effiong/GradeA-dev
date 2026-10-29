@@ -301,55 +301,55 @@ WARNINGS:
 ?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
 
 System check identified 1 issue (0 silenced).
-test_a_replaced_picture_is_stored_as_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_a_replaced_picture_is_stored_as_webp) ... Free trial plan not found: no trial activated for user 887a5034-6a6c-4bb1-a3b2-69cd6ed2e31f.
-Cannot activate automatic trial for user 887a5034-6a6c-4bb1-a3b2-69cd6ed2e31f (validation): ValueError
+test_a_replaced_picture_is_stored_as_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_a_replaced_picture_is_stored_as_webp) ... Free trial plan not found: no trial activated for user 13f62a90-f48c-465b-acf4-2d02fde6a966.
+Cannot activate automatic trial for user 13f62a90-f48c-465b-acf4-2d02fde6a966 (validation): ValueError
 ok
-test_direct_add_student_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_direct_add_student_stores_webp) ... Free trial plan not found: no trial activated for user 2ad844a6-c5b5-4e4f-b0df-a88f0e2045dc.
-Cannot activate automatic trial for user 2ad844a6-c5b5-4e4f-b0df-a88f0e2045dc (validation): ValueError
+test_direct_add_student_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_direct_add_student_stores_webp) ... Free trial plan not found: no trial activated for user 7c6241d5-e1af-4af1-8968-05d7a9c10309.
+Cannot activate automatic trial for user 7c6241d5-e1af-4af1-8968-05d7a9c10309 (validation): ValueError
 ok
 test_school_with_admin_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_school_with_admin_stores_webp) ... ok
-test_the_admin_user_form_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_admin_user_form_stores_webp) ... Free trial plan not found: no trial activated for user 044d06eb-a559-47d4-9b54-831f5f21f961.
-Cannot activate automatic trial for user 044d06eb-a559-47d4-9b54-831f5f21f961 (validation): ValueError
+test_the_admin_user_form_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_admin_user_form_stores_webp) ... Free trial plan not found: no trial activated for user d1f023c5-0454-4840-9f14-cdebe08e9432.
+Cannot activate automatic trial for user d1f023c5-0454-4840-9f14-cdebe08e9432 (validation): ValueError
 ok
-test_the_model_stores_a_new_picture_as_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_model_stores_a_new_picture_as_webp) ... Free trial plan not found: no trial activated for user d817fc9a-8431-4984-9b7e-4bb85762b254.
-Cannot activate automatic trial for user d817fc9a-8431-4984-9b7e-4bb85762b254 (validation): ValueError
+test_the_model_stores_a_new_picture_as_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_model_stores_a_new_picture_as_webp) ... Free trial plan not found: no trial activated for user 29cf753c-e75e-4ad3-85b7-5961c87b59d6.
+Cannot activate automatic trial for user 29cf753c-e75e-4ad3-85b7-5961c87b59d6 (validation): ValueError
 ok
-test_the_user_serializer_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_user_serializer_stores_webp) ... Free trial plan not found: no trial activated for user 1c331f71-8f2a-48f2-bd9b-0c0f57098919.
-Cannot activate automatic trial for user 1c331f71-8f2a-48f2-bd9b-0c0f57098919 (validation): ValueError
+test_the_user_serializer_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_user_serializer_stores_webp) ... Free trial plan not found: no trial activated for user d1323350-b0a0-4c8c-8ec3-67db8664170c.
+Cannot activate automatic trial for user d1323350-b0a0-4c8c-8ec3-67db8664170c (validation): ValueError
 ok
-test_a_save_that_keeps_the_picture_does_not_re_encode_it (users.tests_h270_profile_webp.SavesThatKeepThePictureTests.test_a_save_that_keeps_the_picture_does_not_re_encode_it) ... Free trial plan not found: no trial activated for user 9380f609-d9d9-4f78-9fc3-6d5e35498f64.
-Cannot activate automatic trial for user 9380f609-d9d9-4f78-9fc3-6d5e35498f64 (validation): ValueError
+test_a_save_that_keeps_the_picture_does_not_re_encode_it (users.tests_h270_profile_webp.SavesThatKeepThePictureTests.test_a_save_that_keeps_the_picture_does_not_re_encode_it) ... Free trial plan not found: no trial activated for user 7e1aac5f-f4ae-4c14-a1a6-c0af0eb4873b.
+Cannot activate automatic trial for user 7e1aac5f-f4ae-4c14-a1a6-c0af0eb4873b (validation): ValueError
 ok
-test_an_old_jpeg_picture_still_loads_unchanged (users.tests_h270_profile_webp.SavesThatKeepThePictureTests.test_an_old_jpeg_picture_still_loads_unchanged) ... Free trial plan not found: no trial activated for user 327ecd0b-97e5-49f7-a752-04c697b55d9f.
-Cannot activate automatic trial for user 327ecd0b-97e5-49f7-a752-04c697b55d9f (validation): ValueError
+test_an_old_jpeg_picture_still_loads_unchanged (users.tests_h270_profile_webp.SavesThatKeepThePictureTests.test_an_old_jpeg_picture_still_loads_unchanged) ... Free trial plan not found: no trial activated for user 855185ed-1e72-4674-88c5-9fb251385afd.
+Cannot activate automatic trial for user 855185ed-1e72-4674-88c5-9fb251385afd (validation): ValueError
 ok
-test_a_large_picture_is_shrunk_to_1024_on_its_longest_side (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_large_picture_is_shrunk_to_1024_on_its_longest_side) ... Free trial plan not found: no trial activated for user 4e4aaba8-9926-4643-be37-f51f4881eacf.
-Cannot activate automatic trial for user 4e4aaba8-9926-4643-be37-f51f4881eacf (validation): ValueError
+test_a_large_picture_is_shrunk_to_1024_on_its_longest_side (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_large_picture_is_shrunk_to_1024_on_its_longest_side) ... Free trial plan not found: no trial activated for user ce93f49a-ec0e-4d72-a4cf-083d074a81df.
+Cannot activate automatic trial for user ce93f49a-ec0e-4d72-a4cf-083d074a81df (validation): ValueError
 FAIL
-test_a_small_picture_is_not_enlarged (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_small_picture_is_not_enlarged) ... Free trial plan not found: no trial activated for user 349a8ad5-6eb0-4cf8-8019-4742044bcae0.
-Cannot activate automatic trial for user 349a8ad5-6eb0-4cf8-8019-4742044bcae0 (validation): ValueError
+test_a_small_picture_is_not_enlarged (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_small_picture_is_not_enlarged) ... Free trial plan not found: no trial activated for user fe965d90-181b-40f7-93ef-2927cfc8e40a.
+Cannot activate automatic trial for user fe965d90-181b-40f7-93ef-2927cfc8e40a (validation): ValueError
 ok
-test_a_webp_upload_loses_its_exif_too (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_webp_upload_loses_its_exif_too) ... Free trial plan not found: no trial activated for user 5cf84ab7-9fe1-486f-bf01-a75590b2ef27.
-Cannot activate automatic trial for user 5cf84ab7-9fe1-486f-bf01-a75590b2ef27 (validation): ValueError
+test_a_webp_upload_loses_its_exif_too (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_webp_upload_loses_its_exif_too) ... Free trial plan not found: no trial activated for user 9a3d4314-f703-4bab-8e22-4a85cb7adc9e.
+Cannot activate automatic trial for user 9a3d4314-f703-4bab-8e22-4a85cb7adc9e (validation): ValueError
 ok
-test_an_animated_gif_is_stored_as_its_first_frame (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_an_animated_gif_is_stored_as_its_first_frame) ... Free trial plan not found: no trial activated for user 13d962b0-5019-4bcb-8355-6cf57218200c.
-Cannot activate automatic trial for user 13d962b0-5019-4bcb-8355-6cf57218200c (validation): ValueError
+test_an_animated_gif_is_stored_as_its_first_frame (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_an_animated_gif_is_stored_as_its_first_frame) ... Free trial plan not found: no trial activated for user 983e1f0b-c9d4-46c0-9c7d-c227411d1345.
+Cannot activate automatic trial for user 983e1f0b-c9d4-46c0-9c7d-c227411d1345 (validation): ValueError
 ok
-test_an_icc_profile_is_not_stored (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_an_icc_profile_is_not_stored) ... Free trial plan not found: no trial activated for user 88d805cf-a961-4fb2-8e7c-61628a2a5191.
-Cannot activate automatic trial for user 88d805cf-a961-4fb2-8e7c-61628a2a5191 (validation): ValueError
+test_an_icc_profile_is_not_stored (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_an_icc_profile_is_not_stored) ... Free trial plan not found: no trial activated for user 06ec4b6f-7f13-45d0-8385-ffd7245112ae.
+Cannot activate automatic trial for user 06ec4b6f-7f13-45d0-8385-ffd7245112ae (validation): ValueError
 ok
-test_gps_and_orientation_are_gone_and_the_picture_is_upright (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_gps_and_orientation_are_gone_and_the_picture_is_upright) ... Free trial plan not found: no trial activated for user ca924b70-db73-4403-9665-779c0f3792f0.
-Cannot activate automatic trial for user ca924b70-db73-4403-9665-779c0f3792f0 (validation): ValueError
+test_gps_and_orientation_are_gone_and_the_picture_is_upright (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_gps_and_orientation_are_gone_and_the_picture_is_upright) ... Free trial plan not found: no trial activated for user 45d924e2-9071-4586-825f-51b2d32aedd4.
+Cannot activate automatic trial for user 45d924e2-9071-4586-825f-51b2d32aedd4 (validation): ValueError
 ok
-test_transparency_is_kept (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_transparency_is_kept) ... Free trial plan not found: no trial activated for user d3e418b6-74f9-42b6-af68-686d8bde2c79.
-Cannot activate automatic trial for user d3e418b6-74f9-42b6-af68-686d8bde2c79 (validation): ValueError
+test_transparency_is_kept (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_transparency_is_kept) ... Free trial plan not found: no trial activated for user 2a2d58ce-2330-48c0-b58b-b74c34a0a7fd.
+Cannot activate automatic trial for user 2a2d58ce-2330-48c0-b58b-b74c34a0a7fd (validation): ValueError
 ok
 
 ======================================================================
 FAIL: test_a_large_picture_is_shrunk_to_1024_on_its_longest_side (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_large_picture_is_shrunk_to_1024_on_its_longest_side)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 264, in test_a_large_picture_is_shrunk_to_1024_on_its_longest_side
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 269, in test_a_large_picture_is_shrunk_to_1024_on_its_longest_side
     self.assertEqual(Image.open(BytesIO(data)).size, (1024, 512))
 AssertionError: Tuples differ: (3000, 1500) != (1024, 512)
 
@@ -361,7 +361,7 @@ First differing element 0:
 + (1024, 512)
 
 ----------------------------------------------------------------------
-Ran 15 tests in 0.655s
+Ran 15 tests in 0.644s
 
 FAILED (failures=1)
 Destroying test database for alias 'default' ('test_h270_profile_webp')...

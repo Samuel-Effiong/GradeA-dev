@@ -1,7 +1,7 @@
 {
  "M1": {
   "status": "KILLED",
-  "ran": "Ran 15 tests in 0.456s",
+  "ran": "Ran 15 tests in 0.458s",
   "missing": [],
   "also_failed": [
    "test_a_large_picture_is_shrunk_to_1024_on_its_longest_side",
@@ -20,7 +20,7 @@
  },
  "M2": {
   "status": "KILLED",
-  "ran": "Ran 15 tests in 0.580s",
+  "ran": "Ran 15 tests in 0.526s",
   "missing": [],
   "also_failed": [
    "test_a_webp_upload_loses_its_exif_too"
@@ -28,31 +28,31 @@
  },
  "M3": {
   "status": "KILLED",
-  "ran": "Ran 15 tests in 0.556s",
+  "ran": "Ran 15 tests in 0.536s",
   "missing": [],
   "also_failed": []
  },
  "M4": {
   "status": "KILLED",
-  "ran": "Ran 15 tests in 0.655s",
+  "ran": "Ran 15 tests in 0.644s",
   "missing": [],
   "also_failed": []
  },
  "M5": {
   "status": "KILLED",
-  "ran": "Ran 15 tests in 0.541s",
+  "ran": "Ran 15 tests in 0.519s",
   "missing": [],
   "also_failed": []
  },
  "M6": {
   "status": "KILLED",
-  "ran": "Ran 15 tests in 0.537s",
+  "ran": "Ran 15 tests in 0.526s",
   "missing": [],
   "also_failed": []
  },
  "M7": {
   "status": "KILLED",
-  "ran": "Ran 15 tests in 0.533s",
+  "ran": "Ran 15 tests in 0.539s",
   "missing": [],
   "also_failed": [
    "test_a_large_picture_is_shrunk_to_1024_on_its_longest_side",
@@ -70,7 +70,7 @@
  },
  "M8": {
   "status": "KILLED",
-  "ran": "Ran 15 tests in 0.534s",
+  "ran": "Ran 15 tests in 0.535s",
   "missing": [],
   "also_failed": []
  }

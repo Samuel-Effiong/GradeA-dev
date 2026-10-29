@@ -26,7 +26,6 @@ from PIL import ExifTags, Image, ImageCms
 from users.models import CustomUser, UserTypes
 
 PASSWORD = "H270-Pr0file-Pic!"  # pragma: allowlist secret
-_MEDIA_ROOT = tempfile.mkdtemp(prefix="h270_media_")
 
 
 def _upload(img, fmt, name, **save_kwargs):
@@ -62,20 +61,26 @@ def _riff_chunks(data):
     return ids
 
 
-@override_settings(
-    STORAGES={
-        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
-        },
-    },
-    MEDIA_ROOT=_MEDIA_ROOT,
-)
 class ProfileWebPTestCase(TestCase):
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        shutil.rmtree(_MEDIA_ROOT, ignore_errors=True)
+    def setUp(self):
+        # Each test gets its own media folder and removes it. One folder for
+        # the module was shared by every --parallel worker (they fork after
+        # import), and a class finishing on one worker deleted files another
+        # had just saved (batch 31 run 1).
+        super().setUp()
+        media_root = tempfile.mkdtemp(prefix="h270_media_")
+        self.addCleanup(shutil.rmtree, media_root, True)
+        storage = override_settings(
+            STORAGES={
+                "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+                "staticfiles": {
+                    "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+                },
+            },
+            MEDIA_ROOT=media_root,
+        )
+        storage.enable()
+        self.addCleanup(storage.disable)
 
     def make_user(self, email, **extra):
         return CustomUser.objects.create_user(
