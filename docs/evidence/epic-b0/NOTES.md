@@ -175,66 +175,77 @@ do not rewrite those commits; use 5.5 from the next commit on.
 11. `billing/tests/test_zero_credit_scope.py` (new)
 12. `billing/zero_credit.py` (new)
 
-### Red run
+### Red run (revised after test commit 1cfb7dfa — 43 tests)
 
-Revert the 5 guard sites to f5d2d577 content (working-tree only; restore after):
+Wholesale-revert 3 production files to f5d2d577 (working-tree only; restore
+after). This removes all 5 guard sites and restores `get_ai_model_function`.
+Keep all test files and `billing/zero_credit.py` at tip.
 
-1. `ai_processor/services.py:5502` — remove `assert_not_zero_credit(MODEL_CALL)` and the import at :42
-2. `billing/immutable.py` — revert _guard_save zero-credit check and bulk_create guard
-3. `billing/models.py` — revert consume_credits guard and the pre_save.connect for guard_bucket_save
-4. `billing/zero_credit.py:175-181` — revert guard_bucket_save function
+```
+git show f5d2d577:ai_processor/services.py > ai_processor/services.py
+git show f5d2d577:billing/immutable.py > billing/immutable.py
+git show f5d2d577:billing/models.py > billing/models.py
+```
 
-Method: `git show f5d2d577:ai_processor/services.py > ai_processor/services.py`
-etc. for the 3 production files. Keep ALL test files at tip.
+**Tests that FAIL (19):**
 
-**Expected:** the tests that exercise the guard sites FAIL; the mechanics and
-AST tests PASS (they don't depend on the guards).
+| # | Test id | Fragment |
+|---|---|---|
+| 1 | ViolationTests.test_execute_graded_task_raises_before_any_provider_call | `ZeroCreditViolation not raised` |
+| 2 | ViolationTests.test_execute_graded_task_super_admin_unmetered_branch_also_raises | `ZeroCreditViolation not raised` |
+| 3 | ViolationTests.test_wallet_consume_raises | `ZeroCreditViolation not raised` |
+| 4 | ViolationTests.test_ledger_record_raises | `ZeroCreditViolation not raised` |
+| 5 | ViolationTests.test_ledger_objects_create_raises | `ZeroCreditViolation not raised` |
+| 6 | ViolationTests.test_ledger_bulk_create_raises | `ZeroCreditViolation not raised` |
+| 7 | ViolationTests.test_usage_log_record_raises | `ZeroCreditViolation not raised` |
+| 8 | ViolationTests.test_bucket_balance_write_raises_and_bookkeeping_save_does_not | `ZeroCreditViolation not raised` |
+| 9 | ViolationTests.test_allow_unsafe_mutation_does_not_lift_the_scope | `ZeroCreditViolation not raised` |
+| 10 | ViolationTests.test_bulk_create_update_conflicts_form_raises_the_scope_error_first | `ZeroCreditViolation not raised` |
+| 11 | ViolationTests.test_metric_emitted_once_per_violation | `ZeroCreditViolation not raised` |
+| 12 | ViolationTests.test_violation_still_raises_when_metric_and_logging_helpers_fail | `ZeroCreditViolation not raised` |
+| 13 | ViolationTests.test_swallowing_the_violation_does_not_relax_the_scope | `ZeroCreditViolation not raised` |
+| 14 | ViolationTests.test_refund_inside_a_scope_raises_and_changes_nothing | `ZeroCreditViolation not raised` |
+| 15 | ViolationTests.test_zero_credit_block_inside_a_metered_pipeline | `ZeroCreditViolation not raised` |
+| 16 | ThreadIsolationTests.test_scope_in_one_thread_does_not_leak_to_another | `scoped_raised` 0 != 200 |
+| 17 | ThreadIsolationTests.test_n_threads_each_in_own_scope_all_raise | `raised_counts` 0 != 50 |
+| 18 | AdversarialTests.test_charge_after_nested_scope_exits_succeeds | `ZeroCreditViolation not raised` |
+| 19 | MeteringChokepointTests.test_escape_hatch_is_gone | `True is not false` (beta has `get_ai_model_function`) |
 
-Tests that FAIL (with fragments):
+**Tests that PASS (24):**
 
-| # | Test | Expected | Fragment |
-|---|---|---|---|
-| 1 | ViolationTests.test_execute_graded_task_raises_before_any_provider_call | FAIL | `ZeroCreditViolation not raised` |
-| 2 | ViolationTests.test_execute_graded_task_super_admin_unmetered_branch_also_raises | FAIL | `ZeroCreditViolation not raised` |
-| 3 | ViolationTests.test_wallet_consume_raises | FAIL | `ZeroCreditViolation not raised` |
-| 4 | ViolationTests.test_ledger_record_raises | FAIL | `ZeroCreditViolation not raised` |
-| 5 | ViolationTests.test_ledger_objects_create_raises | FAIL | `ZeroCreditViolation not raised` |
-| 6 | ViolationTests.test_ledger_bulk_create_raises | FAIL | `ZeroCreditViolation not raised` |
-| 7 | ViolationTests.test_usage_log_record_raises | FAIL | `ZeroCreditViolation not raised` |
-| 8 | ViolationTests.test_bucket_balance_write_raises_and_bookkeeping_save_does_not | FAIL | `ZeroCreditViolation not raised` |
-| 9 | ViolationTests.test_allow_unsafe_mutation_does_not_lift_the_scope | FAIL | `ZeroCreditViolation not raised` |
-| 10 | ViolationTests.test_bulk_create_update_conflicts_form_raises_the_scope_error_first | FAIL | `ZeroCreditViolation not raised` |
-| 11 | ViolationTests.test_metric_emitted_once_per_violation | FAIL | `ZeroCreditViolation not raised` |
-| 12 | ViolationTests.test_violation_still_raises_when_metric_and_logging_helpers_fail | FAIL | `ZeroCreditViolation not raised` |
-| 13 | ViolationTests.test_swallowing_the_violation_does_not_relax_the_scope | FAIL | `ZeroCreditViolation not raised` |
-| 14 | ViolationTests.test_refund_inside_a_scope_raises_and_changes_nothing | FAIL | `ZeroCreditViolation not raised` |
-| 15 | ViolationTests.test_zero_credit_block_inside_a_metered_pipeline | FAIL | `ZeroCreditViolation not raised` |
-| 16 | ThreadIsolationTests.test_scope_in_one_thread_does_not_leak_to_another | FAIL | scoped_raised count mismatch |
-| 17 | OperationHelperTests.test_an_operation_that_charges_outside_a_scope_fails | FAIL | assertion change (consume_credits succeeds) |
+| # | Test id | Why it survives |
+|---|---|---|
+| 1 | ScopeMechanicsTests.test_unknown_operation_is_rejected | scope mechanics in zero_credit.py (at tip) |
+| 2 | ScopeMechanicsTests.test_register_makes_a_name_usable_and_is_idempotent | scope mechanics |
+| 3 | ScopeMechanicsTests.test_register_rejects_blank_names | scope mechanics |
+| 4 | ScopeMechanicsTests.test_scope_state_is_restored_on_normal_exit | scope mechanics |
+| 5 | ScopeMechanicsTests.test_scope_state_is_restored_when_the_block_raises | scope mechanics |
+| 6 | ScopeMechanicsTests.test_nested_scopes_stack_and_unwind | scope mechanics |
+| 7 | ScopeMechanicsTests.test_decorator_enters_the_scope_on_every_call | scope mechanics |
+| 8 | ScopeMechanicsTests.test_scope_is_not_inherited_by_a_new_thread | scope mechanics |
+| 9 | ViolationTests.test_same_calls_succeed_outside_a_scope | ops outside scope, no guards needed |
+| 10 | OperationHelperTests.test_a_correct_zero_credit_operation_passes | helper checks scope entry + no provider + no credit change; op does none |
+| 11 | OperationHelperTests.test_an_operation_that_never_enters_the_scope_fails | helper checks _entry_recorder, no guard |
+| 12 | OperationHelperTests.test_an_operation_that_charges_outside_a_scope_fails | consume_credits outside scope changes credit state either way; helper detects |
+| 13 | OperationHelperTests.test_an_unregistered_operation_fails | registry check, no guard |
+| 14 | CeleryNonPropagationTests.test_scope_does_not_propagate_across_contextvar_boundary | in_zero_credit_scope() only |
+| 15 | CeleryNonPropagationTests.test_scope_not_inherited_by_thread_simulating_celery_worker | in_zero_credit_scope() only |
+| 16 | AdversarialTests.test_charge_after_all_scopes_exit_succeeds | consume_credits after scope exit succeeds either way |
+| 17 | PerformanceMeasurementTests.test_guard_check_overhead | assert_not_zero_credit in zero_credit.py (at tip) |
+| 18 | MeteringChokepointTests.test_provider_client_is_only_built_in_services | AST scan, structure unchanged |
+| 19 | MeteringChokepointTests.test_self_client_is_only_used_inside___ai_model | AST scan |
+| 20 | MeteringChokepointTests.test___ai_model_is_called_only_from_execute_graded_task_twice | AST scan (beta has same 2 call sites) |
+| 21 | MeteringChokepointTests.test_no_other_module_reaches_the_private_model_method | AST scan (excludes services.py) |
+| 22 | MeteringChokepointTests.test_only_the_benchmark_harness_assigns_to_client_outside_the_class | AST scan |
+| 23 | BehaviouralSpyTests.test_provider_call_only_reachable_through_execute_graded_task | patches __ai_model, calls execute_graded_task; beta path same |
+| 24 | ZeroCreditRegistryTests.test_every_registered_operation_has_a_helper_test | scans zero_credit.py (at tip) |
 
-Tests that PASS either way (mechanics, no guards needed):
+**Totals:** 19 FAIL + 24 PASS = 43.
 
-| # | Test |
-|---|---|
-| 1 | ScopeMechanicsTests.test_unknown_operation_is_rejected |
-| 2 | ScopeMechanicsTests.test_register_makes_a_name_usable_and_is_idempotent |
-| 3 | ScopeMechanicsTests.test_register_rejects_blank_names |
-| 4 | ScopeMechanicsTests.test_scope_state_is_restored_on_normal_exit |
-| 5 | ScopeMechanicsTests.test_scope_state_is_restored_when_the_block_raises |
-| 6 | ScopeMechanicsTests.test_nested_scopes_stack_and_unwind |
-| 7 | ScopeMechanicsTests.test_decorator_enters_the_scope_on_every_call |
-| 8 | ScopeMechanicsTests.test_scope_is_not_inherited_by_a_new_thread |
-| 9 | ViolationTests.test_same_calls_succeed_outside_a_scope |
-| 10 | OperationHelperTests.test_a_correct_zero_credit_operation_passes |
-| 11 | OperationHelperTests.test_an_operation_that_never_enters_the_scope_fails |
-| 12 | OperationHelperTests.test_an_unregistered_operation_fails |
-| 13 | MeteringChokepointTests.* (all 7) |
-| 14 | ZeroCreditRegistryTests.test_every_registered_operation_has_a_helper_test |
-
-**Totals check:** 17 FAIL + 20 PASS = 37 (36 WIP + 1 registry).
-Wait — thread isolation test. If guards are reverted, consume_credits in thread
-A's scope succeeds (no guard), so scoped_raised = 0 instead of 100. The assertion
-`outcomes == {"scoped_raised": 100, "unscoped_ok": 100}` fails.
+Corrections from original NOTES:
+- Removed #17 `OperationHelperTests.test_an_operation_that_charges_outside_a_scope_fails` from FAIL (PASS: helper detects credit change regardless of guards).
+- Added `MeteringChokepointTests.test_escape_hatch_is_gone` to FAIL (wholesale services.py revert restores the escape hatch).
+- Added 6 new tests from 1cfb7dfa: 2 FAIL (n_threads, nested_scope), 4 PASS (celery x2, all_scopes_exit, guard_overhead, behavioural spy).
 
 ### Green run
 
