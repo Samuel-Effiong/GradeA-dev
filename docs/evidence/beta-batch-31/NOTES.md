@@ -48,3 +48,17 @@ Runner: GAP-a0-runs/b29/strict_bundle.sh, copied to GAP-a0-runs/b31/ with the ve
 private one (the original activates the shared AutoGrader_env) and the log folder to b31/.
 `--settings=settings_worktree` (DB `test_beta_batch_31`), `--parallel 4`, mypy and makemigrations
 pre-checks, load/memory guards and the 300 s stall watchdog as in the script.
+
+## Run 1 on f85790bc: STOP (1 error, H-270's test isolation)
+- Ran 8587 (as expected), `FAILED (errors=1, skipped=30)`; mypy and makemigrations passed, no stall,
+  no memory stop, 0 blocked outbound calls, wall 527 s.
+- ERROR `users.tests_h270_profile_webp.SavesThatKeepThePictureTests.test_an_old_jpeg_picture_still_loads_unchanged`:
+  `FileNotFoundError: ... /tmp/h270_media_<x>/profile_pics/old/legacy.jpg`.
+- Cause (SM; H-270 is the SM's row): the test module makes ONE temp `MEDIA_ROOT` at import, and every
+  test class's `tearDownClass` deletes it. `--parallel 4` forks the workers after import, so all
+  workers share that path; a class finishing on one worker deleted the file another worker had
+  just saved. H-270's gate ran its tests sequentially and could not see it. Test code only; the
+  production change is not involved.
+- Next: H-270 run 2 on its own branch (a temp media folder per test, removed by that test), gated
+  with a parallel run of its module; the fixed tip is merged into this bundle and the full run is
+  repeated as run 2. Logs: run1_strict_summary.txt, run1_error_block.txt; the full log (683 KB gzipped, over the hook limit) is archived at GAP-a0-runs/b31/run1_full_run.txt.gz, sha256 a49eabac5448ada6….

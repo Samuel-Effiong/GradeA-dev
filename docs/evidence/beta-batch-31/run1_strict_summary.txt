@@ -1,0 +1,25 @@
+mypy: mypy.....................................................................Passed
+makemigrations: No changes detected
+memory: available 11414 MB at start; cap 9G (available - 2 GB); scope gap-strict-b31-2097248; guard stops it under 1500 MB available
+bundle b31 strict full run start 2026-10-29 13:09:27 WAT sha=f85790bc load=1.48 1.78 1.88
+watchdog: stalled=0 (300 s silence rule; 0 = never fired)
+memory guard: memstop=0 (1 = this run was STOPPED for memory, not a red); min available 8979 MB
+exit=1 end 2026-10-29 13:18:14 WAT wall=527s
+load at end: 4.40 4.55 3.23
+Ran 8587 tests in 494.925s
+FAILED (errors=1, skipped=30)
+blocked_outbound=0
+per-app test counts:
+  ai_processor 1467
+  assignments 805
+  audit 377
+  AutoGrader 805
+  billing 2299
+  classrooms 640
+  dashboard 430
+  students 867
+  users 897
+FAIL/ERROR headers: 1
+ERROR: test_an_old_jpeg_picture_still_loads_unchanged (users.tests_h270_profile_webp.SavesThatKeepThePictureTests.test_an_old_jpeg_picture_still_loads_unchanged)
+suspends during run: 0
+script_exit=0
