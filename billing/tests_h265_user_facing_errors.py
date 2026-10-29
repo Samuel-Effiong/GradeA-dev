@@ -31,12 +31,13 @@ from unittest.mock import patch
 
 from dateutil.relativedelta import relativedelta
 from django.core.cache import cache
-from django.test import override_settings
+from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from billing.license_service import LicenseSubscriptionService
 from billing.models import (
     BillingInterval,
@@ -739,3 +740,48 @@ class DashboardQueryParamRouteTests(LeakAssertions):
             status.HTTP_400_BAD_REQUEST,
             "One of the query parameters is not valid.",
         )
+
+
+class UserWrittenValueErrorClassesTests(SimpleTestCase):
+    """Every ValueError subclass in billing whose text is written to be shown
+    is user-facing, so describe_user_error passes its text through (H-265
+    run 1 stop: these were shown as the fallback)."""
+
+    TEXT = "A sentence written for the user."
+
+    def assert_user_facing(self, cls, *args):
+        error = cls(*args) if args else cls(self.TEXT)
+        self.assertTrue(is_user_facing_error(error), cls.__name__)
+        self.assertEqual(
+            describe_user_error(error, fallback_message="fallback"), str(error)
+        )
+
+    def test_overage_price_unavailable_is_user_facing(self):
+        from billing.overage_pricing import OveragePriceUnavailable
+
+        self.assert_user_facing(OveragePriceUnavailable, "operator detail")
+
+    def test_overage_price_mismatch_is_user_facing(self):
+        from billing.overage_pricing import OveragePriceMismatch
+
+        error = OveragePriceMismatch.__new__(OveragePriceMismatch)
+        ValueError.__init__(error, self.TEXT)
+        self.assertTrue(is_user_facing_error(error))
+        self.assertEqual(
+            describe_user_error(error, fallback_message="fallback"), self.TEXT
+        )
+
+    def test_licence_billing_change_in_progress_is_user_facing(self):
+        from billing.license_stripe_mutation import LicenceBillingChangeInProgress
+
+        self.assert_user_facing(LicenceBillingChangeInProgress)
+
+    def test_subscription_expired_during_request_is_user_facing(self):
+        from billing.stripe_service import SubscriptionExpiredDuringRequest
+
+        self.assert_user_facing(SubscriptionExpiredDuringRequest)
+
+    def test_plan_assignment_refused_is_user_facing(self):
+        from billing.plan_policy import PlanAssignmentRefused
+
+        self.assert_user_facing(PlanAssignmentRefused)
