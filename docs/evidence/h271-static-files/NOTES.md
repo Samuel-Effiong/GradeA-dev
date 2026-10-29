@@ -116,3 +116,12 @@ Other tests failing as well are recorded as `also_failed`, not a mismatch.
 ## After batch 31 (deploy proof, on staging)
 `/admin/login/` answers 200 and its hashed `admin/css/base.<hash>.css` answers 200 `text/css`;
 `/static/editor.html` answers 404; the deploy log shows the collectstatic line before gunicorn.
+
+## Run 4 on 60c6a945: GREEN, matches every line above
+- red: Ran 6, FAILED (failures=5, errors=1), the 6 declared blocks and fragments (red_run.txt).
+- makemigrations: no changes. seam: .gitignore, AutoGrader/settings.py, Dockerfile, requirements.txt.
+- own: Ran 7, OK. near: Ran 2064, OK (skipped=6), the 6 declared reasons (near.txt.gz).
+- pip-audit: BASE exit 1 with 14 findings, tip exit 1 with the same 14; none for whitenoise
+  (pip_audit_base.txt, pip_audit.txt). The 14 are owner row H-272, after batch 31.
+- mutants M1-M6: all KILLED by their declared tests and fragments, also_failed empty
+  (mutation_results.json, mutant_logs/). Runner output: gate_out_run4.txt (exit=0).
