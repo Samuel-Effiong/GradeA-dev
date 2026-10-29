@@ -1,0 +1,11 @@
+Near suite skipped=6 — all opt-in gated, not failures.
+
+5 × RUN_REAL_AI=1 (real AI calls are billed):
+  1. ai_processor.tests_answer_benchmark_live.LiveAnswerExtractionBenchmarkTest.test_live_corpus
+  2. ai_processor.tests_answer_benchmark_live.LiveEndToEndGradingTest.test_extraction_through_real_grading
+  3. ai_processor.tests_real_chunked_extraction.RealChunkedAnswerExtractionSafetyTest.test_blank_and_not_found_do_not_collapse_into_one_silent_zero
+  4. ai_processor.tests_real_chunked_extraction.RealChunkedAssignmentExtractionTest.test_a_multipage_paper_extracts_every_question_exactly_once
+  5. ai_processor.tests_real_superadmin_unmetered.RealProviderSuperadminBothFlagsTest.test_true_superadmin_real_call_is_unmetered_and_type_only_never_calls
+
+1 × CI_REQUIRE_NETWORK=1 (live network check):
+  6. ai_processor.tests_ssrf_guard.PeerIntrospectionAgainstARealConnectionTest.test_peer_introspection_works_against_a_real_connection

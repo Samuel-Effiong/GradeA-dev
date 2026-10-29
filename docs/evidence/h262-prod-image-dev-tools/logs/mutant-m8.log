@@ -1,0 +1,17 @@
+test_dev_only_ignores_in_separate_file (ai_processor.tests_h262_prod_image_dev_tools.AuditGateTest.test_dev_only_ignores_in_separate_file) ... FAIL
+
+======================================================================
+FAIL: test_dev_only_ignores_in_separate_file (ai_processor.tests_h262_prod_image_dev_tools.AuditGateTest.test_dev_only_ignores_in_separate_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h262-prod-image-dev-tools/ai_processor/tests_h262_prod_image_dev_tools.py", line 219, in test_dev_only_ignores_in_separate_file
+    self.assertTrue(
+AssertionError: False is not true : .pip-audit-ignore-dev.toml not found for dev-only advisory ignores
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+FAILED (failures=1)
+Found 1 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).

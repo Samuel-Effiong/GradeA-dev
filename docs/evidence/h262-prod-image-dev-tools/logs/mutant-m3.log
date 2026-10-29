@@ -1,0 +1,17 @@
+test_dockerfile_has_build_and_runtime_stages (ai_processor.tests_h262_prod_image_dev_tools.DockerfileMultiStageTest.test_dockerfile_has_build_and_runtime_stages) ... FAIL
+
+======================================================================
+FAIL: test_dockerfile_has_build_and_runtime_stages (ai_processor.tests_h262_prod_image_dev_tools.DockerfileMultiStageTest.test_dockerfile_has_build_and_runtime_stages)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h262-prod-image-dev-tools/ai_processor/tests_h262_prod_image_dev_tools.py", line 136, in test_dockerfile_has_build_and_runtime_stages
+    self.assertGreaterEqual(
+AssertionError: 1 not greater than or equal to 2 : expected at least 2 FROM stages, found 1
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+FAILED (failures=1)
+Found 1 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
