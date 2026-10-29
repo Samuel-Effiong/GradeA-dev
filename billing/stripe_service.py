@@ -1679,7 +1679,7 @@ class StripeSubscriptionMutationService:
             )
         except stripe.error.StripeError as exc:
             license_stripe_mutation.abandon(
-                intent, f"could not read the subscription: {exc}"
+                intent, f"could not read the subscription: {stripe_error_label(exc)}"
             )
             license_stripe_mutation.log_provider_error(intent, exc)
             raise ValueError(
@@ -1721,7 +1721,7 @@ class StripeSubscriptionMutationService:
                 )
             except stripe.error.StripeError as exc:
                 license_stripe_mutation.abandon(
-                    intent, f"could not create the new Price: {exc}"
+                    intent, f"could not create the new Price: {stripe_error_label(exc)}"
                 )
                 license_stripe_mutation.log_provider_error(intent, exc)
                 raise ValueError(
@@ -1782,7 +1782,7 @@ class StripeSubscriptionMutationService:
         except stripe.error.CardError as exc:
             license_stripe_mutation.log_provider_error(intent, exc)
             raise payment_failed(
-                f"card error: {exc}",
+                f"card error: {stripe_error_label(exc)}",
                 "Card declined. The plan has not been changed; update the "
                 "payment method and try again.",
             ) from exc
@@ -1814,7 +1814,7 @@ class StripeSubscriptionMutationService:
             # may have moved, so nothing is undone automatically.
             license_stripe_mutation.escalate(
                 intent,
-                f"plan upgrade applied, but its invoice could not be read: {exc}",
+                f"plan upgrade applied, but its invoice could not be read: {stripe_error_label(exc)}",
             )
             raise license_stripe_mutation.LicenceStripeChangeNotRecorded(
                 "The plan change was applied at our payment provider but its "

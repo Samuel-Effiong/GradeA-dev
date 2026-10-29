@@ -769,7 +769,7 @@ def undo_unpaid_change(intent, revert, find_invoice, why: str) -> bool:
     try:
         call_stripe(revert, idempotency_key=intent.idempotency_key("revert"))
     except stripe.error.StripeError as exc:
-        problems.append(f"the revert failed: {exc}")
+        problems.append(f"the revert failed: {stripe_error_label(exc)}")
     try:
         invoice_id = find_invoice()
         if invoice_id:
@@ -781,7 +781,9 @@ def undo_unpaid_change(intent, revert, find_invoice, why: str) -> bool:
                     idempotency_key=intent.idempotency_key("void"),
                 )
     except stripe.error.StripeError as exc:
-        problems.append(f"voiding the change's invoice failed: {exc}")
+        problems.append(
+            f"voiding the change's invoice failed: {stripe_error_label(exc)}"
+        )
 
     if problems:
         escalate(intent, f"Payment not collected ({why}); " + "; ".join(problems))

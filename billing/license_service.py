@@ -2827,7 +2827,7 @@ class LicenseSubscriptionService:
             )
         except stripe.error.StripeError as exc:
             license_stripe_mutation.abandon(
-                intent, f"could not read the subscription: {exc}"
+                intent, f"could not read the subscription: {stripe_error_label(exc)}"
             )
             license_stripe_mutation.log_provider_error(intent, exc)
             raise ValueError(
@@ -2890,7 +2890,7 @@ class LicenseSubscriptionService:
             )
         except stripe.error.CardError as exc:
             license_stripe_mutation.log_provider_error(intent, exc)
-            raise payment_failed(f"card error: {exc}") from exc
+            raise payment_failed(f"card error: {stripe_error_label(exc)}") from exc
         except stripe.error.StripeError as exc:
             license_stripe_mutation.log_provider_error(intent, exc)
             raise ValueError(
@@ -2916,7 +2916,7 @@ class LicenseSubscriptionService:
                 # may have moved, so nothing is undone automatically.
                 license_stripe_mutation.escalate(
                     intent,
-                    f"seat increase applied, but its invoice could not be read: {exc}",
+                    f"seat increase applied, but its invoice could not be read: {stripe_error_label(exc)}",
                 )
                 raise license_stripe_mutation.LicenceStripeChangeNotRecorded(
                     "The seat change was applied at our payment provider but "
