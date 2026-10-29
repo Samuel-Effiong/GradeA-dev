@@ -49,8 +49,8 @@ name = settings.DATABASES['default']['TEST']['NAME']
 with connection._nodb_cursor() as c:
     c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
 print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
-OWN="assignments.tests_h263_list_error_shape.RubricErrorShapeTests"
-NEAR="assignments.tests_h263_list_error_shape users.tests_renderers"
+OWN="assignments.tests_h263_list_error_shape"
+NEAR="assignments.tests_h263_list_error_shape users.tests_renderers classrooms.tests_tenancy_and_roster"
 GUARDS="AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_migration_safety_check AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_student_feedback_guard AutoGrader.tests_submission_audience_guard AutoGrader.tests_student_classmates_guard AutoGrader.tests_network_guard"
 echo "load at start: $(cat /proc/loadavg)"
 echo "=== 0. the red run: new tests against the code as at $BASE (own DB) $(date +%T)"
@@ -65,10 +65,12 @@ RED_OK=1
 [ "$RED_EXIT" -ne 0 ] || RED_OK=0
 grep -qE "^OK" $RF && RED_OK=0
 grep -qE "unittest.loader._FailedTest" $RF && { echo "red run: a module failed to load"; RED_OK=0; }
-# Expected: 3 FAIL blocks, "Ran 4 tests"
+# Expected: 4 FAIL blocks, "Ran 6 tests"
 RED_BLOCK_COUNT=$(grep -cE '^(FAIL|ERROR): ' $RF)
-echo "red run blocks: $RED_BLOCK_COUNT (expected 3)"
-[ "$RED_BLOCK_COUNT" = 3 ] || { echo "STOP: not exactly 3 FAIL/ERROR blocks"; RED_OK=0; }
+echo "red run blocks: $RED_BLOCK_COUNT (expected 4)"
+[ "$RED_BLOCK_COUNT" = 4 ] || { echo "STOP: not exactly 4 FAIL/ERROR blocks"; RED_OK=0; }
+grep -qE "^Ran 6 tests" $RF || { echo "STOP: not Ran 6"; RED_OK=0; }
+grep -qE "^FAILED \\(failures=4\\)$" $RF || { echo "STOP: not FAILED (failures=4)"; RED_OK=0; }
 # Fragment checks
 for t in test_only_the_failing_item_appears_keyed_by_index test_the_failing_item_is_reported_at_its_own_index; do
     if ! python -I -c "
@@ -82,7 +84,8 @@ if not all('!=' in b for b in found):
     print('!= not in block for', sys.argv[2]); sys.exit(1)
 " $RF "$t"; then RED_OK=0; fi
 done
-for t in test_the_dict_shape_is_a_mapping; do
+for t in test_the_dict_shape_is_a_mapping:is_not_an_instance_of test_bulk_topic_errors_are_field_errors_keyed_by_index:not_found_in; do
+    FRAG=$(echo "${t#*:}" | tr _ " "); t=${t%%:*}
     if ! python -I -c "
 import re, sys
 text = open(sys.argv[1]).read()
@@ -90,9 +93,9 @@ blocks = re.split(r'^={70}$', text, flags=re.MULTILINE)
 found = [b for b in blocks if re.match(r'\s*(FAIL|ERROR): ' + re.escape(sys.argv[2]) + r'[ (]', b)]
 if not found:
     print('no block for', sys.argv[2]); sys.exit(1)
-if not all('is not an instance of' in b for b in found):
-    print('is not an instance of not in block for', sys.argv[2]); sys.exit(1)
-" $RF "$t"; then RED_OK=0; fi
+if not all(sys.argv[3] in b for b in found):
+    print(sys.argv[3], 'not in block for', sys.argv[2]); sys.exit(1)
+" $RF "$t" "$FRAG"; then RED_OK=0; fi
 done
 if [ "$RED_OK" != 1 ]; then
     echo "STOP (exit 4): the red run is not what was written"
@@ -100,7 +103,7 @@ if [ "$RED_OK" != 1 ]; then
     find AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} +
     exit 4
 fi
-echo "red run is as written: non-zero exit, no OK line, modules loaded, 3 blocks red for their written reasons"
+echo "red run is as written: non-zero exit, no OK line, modules loaded, 4 blocks red for their written reasons"
 git checkout HEAD -- $CHANGED
 find AutoGrader -name __pycache__ -type d -prune -exec rm -rf {} +
 git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
@@ -124,6 +127,7 @@ UPART=modules
 eval "$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
 echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
 if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
+grep -qE "^Ran 332 tests" $E/modules_and_guards.txt || { echo "STOP: near + guards is not Ran 332"; exit 2; }
 echo "=== 2. mutants: 1 (own DB, rules 17, 18 and 22) $(date +%T)"
 UPART=mutants
 eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 1320 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1

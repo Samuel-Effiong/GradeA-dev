@@ -33,7 +33,7 @@ OUT = pathlib.Path(os.environ.get("MUT_RESULTS", HERE / "mutation_results.json")
 LOGS = pathlib.Path(os.environ.get("MUT_LOGS", HERE / "mutant_logs"))
 
 SP = "AutoGrader/settings.py"
-OWN_TESTS = ["assignments.tests_h263_list_error_shape.RubricErrorShapeTests"]
+OWN_TESTS = ["assignments.tests_h263_list_error_shape"]
 K = "keepdb"
 
 # --- Anchors ---
@@ -56,15 +56,18 @@ MUTANTS = [
 _KEYED = "test_only_the_failing_item_appears_keyed_by_index"
 _INDEX = "test_the_failing_item_is_reported_at_its_own_index"
 _MAPPING = "test_the_dict_shape_is_a_mapping"
+_TOPIC = "test_bulk_topic_errors_are_field_errors_keyed_by_index"
 
 NE = "!="
 NOT_INSTANCE = "is not an instance of"
+NOT_FOUND = "not found in"
 
 EXPECTED = {
     "M1": {
         _KEYED: NE,
         _INDEX: NE,
         _MAPPING: NOT_INSTANCE,
+        _TOPIC: NOT_FOUND,
     },
 }
 

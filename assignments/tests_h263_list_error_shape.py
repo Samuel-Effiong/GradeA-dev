@@ -15,8 +15,11 @@ Run with:
 from collections.abc import Mapping
 
 from django.test import SimpleTestCase
+from django.urls import reverse
+from rest_framework import status
 
 from assignments.serializers import QuestionSerializer
+from classrooms.tests_tenancy_and_roster import ClassroomTenancyBase
 from users.renderers import flatten_errors
 
 NOT_A_NUMBER = ["A valid number is required."]
@@ -67,3 +70,29 @@ class RubricErrorShapeTests(SimpleTestCase):
         serializer.is_valid()
         message = flatten_errors(serializer.errors)
         self.assertEqual(message, "Points: A valid number is required.")
+
+
+class TopicBulkCreateErrorShapeTests(ClassroomTenancyBase):
+    """The bulk topic create (`POST /course/<id>/topics`) is a top-level
+    `many=True` serializer. With the list shape its errors were a list, so the
+    renderer left `field_errors` out; with the dict shape they are a Mapping
+    and the frontend gets `field_errors` keyed by the failing item's index."""
+
+    def post_topics(self, topics):
+        self.client.force_authenticate(self.teacher_a)
+        url = reverse("course-create-topics", kwargs={"pk": self.course_a.pk})
+        response = self.client.post(url, topics, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        return response.json()
+
+    def test_bulk_topic_errors_are_field_errors_keyed_by_index(self):
+        body = self.post_topics(["Algebra", ""])
+        self.assertIn("field_errors", body["error"])
+        self.assertEqual(
+            body["error"]["field_errors"],
+            {"1": {"name": ["This field may not be blank."]}},
+        )
+
+    def test_bulk_topic_error_message_is_unchanged(self):
+        body = self.post_topics(["Algebra", ""])
+        self.assertEqual(body["message"], "Name: This field may not be blank.")

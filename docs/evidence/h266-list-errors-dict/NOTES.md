@@ -57,33 +57,48 @@ overwrites the prefix at each nested dict level, so the intermediate index key d
 - `test_the_error_message_is_byte_identical_to_the_list_shape`: `flatten_errors` produces
   "Points: A valid number is required." — same as with the list shape.
 
+### tests_h263_list_error_shape.py: TopicBulkCreateErrorShapeTests (2 tests, API level)
+
+Added by the SM on 2026-10-29 before any gate run: the bulk topic create is the one input
+where `field_errors` appears for the first time, and the scope names it, so it gets a test
+(declared gaps are not accepted for the paths a row exists to protect).
+
+- `test_bulk_topic_errors_are_field_errors_keyed_by_index`: `POST /course/<id>/topics` with
+  `["Algebra", ""]` → 400, `error.field_errors == {"1": {"name": ["This field may not be blank."]}}`.
+- `test_bulk_topic_error_message_is_unchanged`: same request, `message` is
+  "Name: This field may not be blank." in both shapes (guard, green at the base).
+
 ## Expected reds against `aede70b4` (written before the gate)
 
-At the base, `LIST_SERIALIZER_ERRORS_AS_DICT` is `False`, so the errors are list-shaped.
+At the base `LIST_SERIALIZER_ERRORS_AS_DICT` is `False`, so the errors are list-shaped.
+Call-site revert: only `AutoGrader/settings.py` is taken back to the base.
 
-4 blocks (4 FAIL, 0 ERROR), "Ran 4 tests".
+"Ran 6 tests", `FAILED (failures=4)`, 4 blocks (4 FAIL, 0 ERROR):
 
-1. `test_only_the_failing_item_appears_keyed_by_index`: FAIL — errors are `[{}, {"points": ...}]`
-   (list), not `{1: {"points": ...}}` (dict). Fragment: "!=".
-2. `test_the_failing_item_is_reported_at_its_own_index`: FAIL — same reason. Fragment: "!=".
-3. `test_the_dict_shape_is_a_mapping`: FAIL — the list is not a Mapping.
-   Fragment: "is not an instance of".
-4. `test_the_error_message_is_byte_identical_to_the_list_shape`: green at the base. Wait —
-   `flatten_errors` produces the same text for both shapes. This test is green at the base.
+1. `test_only_the_failing_item_appears_keyed_by_index`: FAIL, the errors are a list. Fragment "!=".
+2. `test_the_failing_item_is_reported_at_its_own_index`: FAIL, same reason. Fragment "!=".
+3. `test_the_dict_shape_is_a_mapping`: FAIL, a list is not a Mapping. Fragment "is not an instance of".
+4. `test_bulk_topic_errors_are_field_errors_keyed_by_index`: FAIL, the top-level error is a
+   list so the renderer sends `error: {}`. Fragment "not found in".
 
-Correction: 3 blocks (3 FAIL, 0 ERROR), "Ran 4 tests". One test is green at the base.
+Green at the base (guards: the `message` text must not change):
+- `test_the_error_message_is_byte_identical_to_the_list_shape`
+- `test_bulk_topic_error_message_is_unchanged`
 
-Green at the base:
-- `test_the_error_message_is_byte_identical_to_the_list_shape`: `flatten_errors` produces
-  "Points: A valid number is required." regardless of the error shape.
+## Near suite + guards (written before the gate)
+
+`assignments.tests_h263_list_error_shape users.tests_renderers classrooms.tests_tenancy_and_roster`
+plus the 20 guard modules in the script: **Ran 332**, OK. The count is from a DiscoverRunner id
+list at the tip (332 ids, 332 unique), not grep.
 
 ## Expected mutant results (written before the gate)
 
-1 mutant on `AutoGrader/settings.py` (the `LIST_SERIALIZER_ERRORS_AS_DICT` setting).
+1 mutant on `AutoGrader/settings.py`, run against the whole module.
 Expected: 1/1 KILLED, 0 SURVIVED, 0 BROKEN.
 
 | ID | What | Expected status | Expected failing tests |
 |----|------|-----------------|------------------------|
-| M1 | flip True back to False | KILLED | keyed_by_index ("!="), at_its_own_index ("!="), is_a_mapping ("is not an instance of") |
+| M1 | flip True back to False | KILLED | keyed_by_index ("!="), at_its_own_index ("!="), is_a_mapping ("is not an instance of"), bulk_topic_errors_are_field_errors_keyed_by_index ("not found in") |
 
-Security Engineer (db)
+Security Engineer (db); pack completed and run by the Senior Manager on 2026-10-29 (the
+Security Engineer's session ended).
