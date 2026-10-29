@@ -29,7 +29,11 @@ from django.utils import timezone
 
 from audit.enums import ReasonCode
 from AutoGrader.dispatch import safe_delay
-from AutoGrader.error_messages import describe_stripe_error, describe_user_error
+from AutoGrader.error_messages import (
+    describe_stripe_error,
+    describe_user_error,
+    stripe_error_label,
+)
 from AutoGrader.reason_codes import CodedError, coded_entry
 from AutoGrader.tasks import send_email_task
 from billing.errors import BillingRequestError
@@ -2824,7 +2828,7 @@ class LicenseSubscriptionService:
             )
         except stripe.error.StripeError as exc:
             license_stripe_mutation.abandon(
-                intent, f"could not read the subscription: {exc}"
+                intent, f"could not read the subscription: {stripe_error_label(exc)}"
             )
             license_stripe_mutation.log_provider_error(intent, exc)
             raise BillingRequestError(
@@ -2887,7 +2891,7 @@ class LicenseSubscriptionService:
             )
         except stripe.error.CardError as exc:
             license_stripe_mutation.log_provider_error(intent, exc)
-            raise payment_failed(f"card error: {exc}") from exc
+            raise payment_failed(f"card error: {stripe_error_label(exc)}") from exc
         except stripe.error.StripeError as exc:
             license_stripe_mutation.log_provider_error(intent, exc)
             raise BillingRequestError(
@@ -2913,7 +2917,7 @@ class LicenseSubscriptionService:
                 # may have moved, so nothing is undone automatically.
                 license_stripe_mutation.escalate(
                     intent,
-                    f"seat increase applied, but its invoice could not be read: {exc}",
+                    f"seat increase applied, but its invoice could not be read: {stripe_error_label(exc)}",
                 )
                 raise license_stripe_mutation.LicenceStripeChangeNotRecorded(
                     "The seat change was applied at our payment provider but "
@@ -3340,7 +3344,9 @@ class LicenseSubscriptionService:
             # Nothing was charged. Mark the intent FAILED so it doesn't
             # linger as a phantom PENDING row.
             intent.status = LicenseOveragePurchaseStatus.FAILED
-            intent.failure_reason = f"Checkout session creation failed: {exc}"
+            intent.failure_reason = (
+                f"Checkout session creation failed: {stripe_error_label(exc)}"
+            )
             intent.save(update_fields=["status", "failure_reason", "updated_at"])
             raise BillingRequestError(
                 "Could not start overage checkout: "

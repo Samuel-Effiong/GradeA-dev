@@ -318,7 +318,7 @@ class CancelPhaseTests(LicencePhaseTestCase):
         intent = self.only_intent()
         self.assertEqual(intent.status, LicenseStripeMutationStatus.FAILED)
         self.assertIn("read-back shows not applied", intent.failure_reason)
-        self.assertIn("Request timed out", intent.failure_reason)
+        self.assertIn("APIConnectionError", intent.failure_reason)
 
     def test_a_server_error_is_treated_as_an_unknown_outcome(self):
         def fail_after_applying(*args, **kwargs):

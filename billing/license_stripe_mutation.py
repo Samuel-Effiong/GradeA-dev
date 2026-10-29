@@ -721,7 +721,7 @@ def apply_at_stripe(intent, call, reached, payment_errors=(), read_back_on=()):
             _set_status(
                 intent,
                 LicenseStripeMutationStatus.FAILED,
-                failure_reason=f"Stripe refused: {exc}",
+                failure_reason=f"Stripe refused: {stripe_error_label(exc)}",
             )
             raise
         try:
@@ -738,7 +738,7 @@ def apply_at_stripe(intent, call, reached, payment_errors=(), read_back_on=()):
             _set_status(
                 intent,
                 LicenseStripeMutationStatus.FAILED,
-                failure_reason=f"Outcome unknown ({exc}); read-back shows not applied",
+                failure_reason=f"Outcome unknown ({stripe_error_label(exc)}); read-back shows not applied",
             )
             raise
         logger.warning(
@@ -770,7 +770,7 @@ def undo_unpaid_change(intent, revert, find_invoice, why: str) -> bool:
     try:
         call_stripe(revert, idempotency_key=intent.idempotency_key("revert"))
     except stripe.error.StripeError as exc:
-        problems.append(f"the revert failed: {exc}")
+        problems.append(f"the revert failed: {stripe_error_label(exc)}")
     try:
         invoice_id = find_invoice()
         if invoice_id:
@@ -782,7 +782,9 @@ def undo_unpaid_change(intent, revert, find_invoice, why: str) -> bool:
                     idempotency_key=intent.idempotency_key("void"),
                 )
     except stripe.error.StripeError as exc:
-        problems.append(f"voiding the change's invoice failed: {exc}")
+        problems.append(
+            f"voiding the change's invoice failed: {stripe_error_label(exc)}"
+        )
 
     if problems:
         escalate(intent, f"Payment not collected ({why}); " + "; ".join(problems))
@@ -834,7 +836,7 @@ def finalise(intent, revalidate, write, compensate=None):
                     compensate, idempotency_key=intent.idempotency_key("revert")
                 )
             except stripe.error.StripeError as revert_exc:
-                cause = f"{cause}; the revert at Stripe also failed: {revert_exc}"
+                cause = f"{cause}; the revert at Stripe also failed: {stripe_error_label(revert_exc)}"
             else:
                 _set_status(
                     intent,
