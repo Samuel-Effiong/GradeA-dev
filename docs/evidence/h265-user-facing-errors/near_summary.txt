@@ -1,0 +1,11 @@
+Near suite, run 2 on 333ed425: summary. The full log (1.2 MB, over the 500 KB hook limit) is archived at
+~/Documents/Projects/GAP-a0-runs/h265/near_run2.txt.gz, sha256 of the uncompressed log 07432a920adcdc01e4c6ebae5c67fe410be87a46927ee09f49eabf715c912c66
+
+test lines ending ' ... ok': 866
+test lines with FAIL/ERROR: 0
+
+test_model_answers_from_the_teachers_section (dashboard.tests_real_ai_chat.RealSchoolAdminAIChatTest.test_model_answers_from_the_teachers_section) ... skipped 'Real AI call is opt-in and billed: set RUN_REAL_AI=1'
+test_model_answers_from_the_bounded_teacher_context (dashboard.tests_real_ai_chat.RealTeacherAIChatTest.test_model_answers_from_the_bounded_teacher_context) ... skipped 'Real AI call is opt-in and billed: set RUN_REAL_AI=1'
+
+Ran 2735 tests in 454.355s
+OK (skipped=2)

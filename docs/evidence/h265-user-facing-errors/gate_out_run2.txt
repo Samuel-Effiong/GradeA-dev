@@ -1,0 +1,19 @@
+== 0. red run: sites at a3f5a6a1
+Ran 28 tests in 1.727s FAILED (failures=20) blocks 20
+red run as written
+== 1a. makemigrations
+== 1b. seam
+['AutoGrader/error_messages.py', 'billing/errors.py', 'billing/license_overage_offline_views.py', 'billing/license_service.py', 'billing/license_stripe_mutation.py', 'billing/license_views.py', 'billing/overage_pricing.py', 'billing/plan_policy.py', 'billing/qa_time_travel.py', 'billing/serializers.py', 'billing/services.py', 'billing/stripe_service.py', 'billing/views.py', 'billing/views_admin_credits.py', 'dashboard/query_params.py', 'dashboard/views.py']
+== 1. own + near
+Ran 2735 tests in 454.355s OK (skipped=2)
+skips 2 non-opt-in []
+== 2. mutants
+M1 {'status': 'KILLED', 'ran': 'Ran 28 tests in 1.304s', 'missing': [], 'also_failed': []}
+M2 {'status': 'KILLED', 'ran': 'Ran 28 tests in 1.419s', 'missing': [], 'also_failed': ['test_licence_billing_change_in_progress_is_user_facing', 'test_overage_price_mismatch_is_user_facing', 'test_overage_price_unavailable_is_user_facing', 'test_plan_assignment_refused_is_user_facing', 'test_subscription_expired_during_request_is_user_facing']}
+M3 {'status': 'KILLED', 'ran': 'Ran 23 tests in 2.172s', 'missing': [], 'also_failed': []}
+M4 {'status': 'KILLED', 'ran': 'Ran 28 tests in 2.791s', 'missing': [], 'also_failed': []}
+M5 {'status': 'KILLED', 'ran': 'Ran 28 tests in 1.156s', 'missing': [], 'also_failed': []}
+M6 {'status': 'KILLED', 'ran': 'Ran 28 tests in 1.493s', 'missing': [], 'also_failed': []}
+M7 {'status': 'KILLED', 'ran': 'Ran 28 tests in 1.187s', 'missing': [], 'also_failed': []}
+GATE GREEN
+gate exit=0

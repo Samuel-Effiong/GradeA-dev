@@ -97,3 +97,14 @@ Then the whole gate reruns with expectations revised below before the run.
   billing/plan_policy.py = 16.
 - mutants M1-M6 as before, plus
   | M7 | `OveragePriceMismatch` back to a bare `ValueError` | KILLED | test_overage_price_mismatch_is_user_facing (`False is not true`) |
+
+## Run 2 on 333ed425 (SM, 2026-10-29): GREEN, matches the revised expectations
+- red: Ran 28, FAILED (failures=20), the 20 `*_hides_library_error_text` blocks (red_run.txt).
+- own: Ran 28, OK (own.txt).
+- near: Ran 2735, OK (skipped=2), both skips RUN_REAL_AI opt-in (dashboard.tests_real_ai_chat) (near_summary.txt; full log archived, sha256 in the summary).
+- makemigrations: no changes. seam: 16 files, as declared (seam.txt).
+- mutants M1-M7: all KILLED by their declared tests (mutation_results.json, mutant_logs/).
+  M2 (BillingRequestError out of the registry) also failed the 5 `UserWrittenValueErrorClassesTests`.
+  That follows from the design (those classes derive from BillingRequestError). The declaration named the killing
+  tests, not an exclusive set, so this is recorded, not a mismatch.
+- Runner output: gate_out_run2.txt (gate exit=0).
