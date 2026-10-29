@@ -13,7 +13,7 @@ import subprocess
 import sys
 
 E = pathlib.Path("docs/evidence/h271-static-files")
-BASE = "f870fb0b"
+BASE = "7eec85e0"
 OWN = "AutoGrader.tests_h271_static_files"
 NEAR = ["AutoGrader", "audit", "users", "ai_processor.tests_h262_prod_image_dev_tools"]
 SEAM = sorted(
@@ -180,13 +180,17 @@ if rc or not line(t, r"^Ran 7 tests") or not line(t, r"^OK$"):
     stop("own not Ran 7 OK")
 rc, t = test(NEAR, E / "near.txt")
 print(line(t, r"^Ran .*"), line(t, r"^(OK|FAILED).*"))
-if rc or not line(t, r"^Ran 2064 tests") or not line(t, r"^OK( \(skipped=\d+\))?$"):
+if rc or not line(t, r"^Ran 2064 tests") or not line(t, r"^OK \(skipped=6\)$"):
     stop("near not Ran 2064 OK")
 skips = re.findall(r"\.\.\. skipped '([^']*)'", t)
-bad = [s for s in skips if "CI_REQUIRE" not in s]
-print("skips", len(skips), "non-opt-in", bad)
-if bad:
-    stop("a skip without CI_REQUIRE")
+SKIPS = sorted(
+    ["a benchmark, run by label with AUDIT_BENCH=1 only"] * 2
+    + ["CI_REQUIRE_NETWORK not set", "CI_REQUIRE_REDIS not set"]
+    + ["live Google contract tests are opt-in: set CI_REQUIRE_NETWORK=1"] * 2
+)
+print("skips", sorted(skips))
+if sorted(skips) != SKIPS:
+    stop("skips differ")
 
 print("== 1c. pip-audit")
 with open(E / "pip_audit.txt", "w") as fh:

@@ -1,5 +1,18 @@
 # H-271 gate expectations (SM, written and committed before any gate run)
 
+## Run 3 expectations (SM, committed before run 3)
+Everything below the run records stands, with these changes only:
+- Base is now **7eec85e0** (H-262 run 3, which fixes the stale pip-audit test), merged in at
+  6dc8f637. Tip under test: the commit that adds this section. Red reverts the Dockerfile and
+  settings.py to 7eec85e0; neither file changed between f870fb0b and 7eec85e0, so the red lines
+  stay as written. The seam (`git diff --name-only 7eec85e0 HEAD`, production files) is the same
+  4 files.
+- near: **Ran 2064**, exactly `OK (skipped=6)` (DiscoverRunner at 6dc8f637: 2064, 0 load failures;
+  H-262's test fix uses subTest, so the count is unchanged). The 6 skip reasons, exactly:
+  2 x `a benchmark, run by label with AUDIT_BENCH=1 only`, `CI_REQUIRE_NETWORK not set`,
+  `CI_REQUIRE_REDIS not set`, 2 x `live Google contract tests are opt-in: set CI_REQUIRE_NETWORK=1`.
+  This replaces the "CI_REQUIRE only, number recorded" rule, which run 2 showed was wrong.
+
 ## Run 2 on 8a21315c: STOP (near suite, 1 error not caused by H-271)
 - red, makemigrations, seam and own (Ran 7, OK): as written.
 - near: Ran 2064, `FAILED (errors=1, skipped=6)`. The error is
