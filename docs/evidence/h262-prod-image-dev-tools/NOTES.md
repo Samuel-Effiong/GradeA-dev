@@ -1,5 +1,24 @@
 # H-262 notes (Release Builder, a0)
 
+## Run 3: full gate
+
+All results match expectations. No mismatches.
+
+| Step | Expected | Actual |
+|------|----------|--------|
+| Break run | Ran 12, FAILED (errors=1) — `test_the_command_audits_…` with TypeError | Match |
+| Green run | Ran 12, OK | Match |
+| Near suite | Ran 24, OK | Match |
+| Seam check | 11 files | Match |
+
+Logs:
+- `logs/break-r3.log`
+- `logs/green-r3.log`
+- `logs/near-suite-r3.log`
+- `logs/seam-check-r3.log`
+
+---
+
 ## Run 3 on f870fb0b: pre-existing test missed
 
 Found by SM during H-271's gate (H-271 is built on H-262 f870fb0b):
