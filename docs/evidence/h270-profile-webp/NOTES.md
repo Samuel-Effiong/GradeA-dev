@@ -45,3 +45,11 @@ killing tests, not an exclusive set.
 No mutant for "first frame only": the pixels are pasted into a fresh single-frame image, so an
 animated output cannot be produced by any one-line change; test_an_animated_gif_is_stored_as_its_first_frame
 documents it and fails red.
+
+## Run 1 on 6d800043 (code = 958cd554; the later commit is docs-only): GREEN, matches every line above
+- red: Ran 15, FAILED (failures=13), the 13 non-guard blocks with the declared fragments (red_run.txt).
+- makemigrations: no changes. seam: AutoGrader/image_formats.py, users/models.py (seam.txt).
+- own: Ran 15, OK (own.txt). near: Ran 1553, OK (skipped=4), all 4 CI_REQUIRE opt-in (near.txt.gz).
+- mutants M1-M8: all KILLED by their declared tests and fragments (mutation_results.json, mutant_logs/).
+  also_failed is as the design implies: M1/M7 fail every WebP test; M2 also fails the WebP-upload test.
+- Runner output: gate_out_run1.txt (exit=0).
