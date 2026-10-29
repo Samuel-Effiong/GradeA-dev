@@ -1,0 +1,29 @@
+test_a_raiser_that_names_the_variant_still_wins (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_a_raiser_that_names_the_variant_still_wins) ... FAIL
+test_both_params_reach_the_body_whichever_sentence_shows (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_both_params_reach_the_body_whichever_sentence_shows) ... ok
+test_control_the_caller_named_variant_is_untouched (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_control_the_caller_named_variant_is_untouched)
+INSUFFICIENT_CREDITS_MID_BATCH still chooses "none_finished" at ... ok
+test_every_spec_with_variant_from_params_survives_pickle (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_every_spec_with_variant_from_params_survives_pickle)
+A CodedError whose spec has variant_from_params must be picklable, ... ok
+test_the_spec_chose_it_so_the_args_keep_their_shape (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_the_spec_chose_it_so_the_args_keep_their_shape)
+A spec-chosen variant is re-derived from the same params, so it ... ok
+test_with_blocks_left_the_sentence_names_what_is_left (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_with_blocks_left_the_sentence_names_what_is_left) ... ok
+test_with_none_left_the_sentence_sends_them_to_the_next_cycle (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_with_none_left_the_sentence_sends_them_to_the_next_cycle) ... ok
+
+======================================================================
+FAIL: test_a_raiser_that_names_the_variant_still_wins (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_a_raiser_that_names_the_variant_still_wins)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h268-overage-cap-wording/AutoGrader/tests_reason_codes.py", line 676, in test_a_raiser_that_names_the_variant_still_wins
+    self.assertEqual(str(self._error(1, variant="cap_reached")), self.REACHED)
+AssertionError: 'Purchase limit exceeded — max 3 blocks. Reduce your quan[26 chars]eed.' != 'Purchase limit reached — you have used all 3 blocks for [61 chars]rts.'
+- Purchase limit exceeded — max 3 blocks. Reduce your quantity to 1 or fewer to proceed.
++ Purchase limit reached — you have used all 3 blocks for this billing cycle. You can buy more when your next cycle starts.
+
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.006s
+
+FAILED (failures=1)
+Found 7 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
