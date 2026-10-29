@@ -247,17 +247,30 @@ Corrections from original NOTES:
 - Added `MeteringChokepointTests.test_escape_hatch_is_gone` to FAIL (wholesale services.py revert restores the escape hatch).
 - Added 6 new tests from 1cfb7dfa: 2 FAIL (n_threads, nested_scope), 4 PASS (celery x2, all_scopes_exit, guard_overhead, behavioural spy).
 
+#### STOP: red-run fragment mismatch (SM ruling at 8a993b39)
+
+**Observed:** Ran 43, FAILED (failures=18, errors=1). 19 FAIL + 24 PASS.
+All 19 test ids match. All 24 PASS ids match. One fragment mismatch:
+
+- **Test:** ViolationTests.test_bulk_create_update_conflicts_form_raises_the_scope_error_first
+- **Predicted:** FAIL with `ZeroCreditViolation not raised`
+- **Actual:** ERROR with `ImmutableRecordError: CreditLedger is append-only; bulk_create(update_conflicts=True) would rewrite existing rows.`
+- **Cause:** the zero-credit guard (immutable.py:146 on tip) fires before the append-only guard (immutable.py:137 on beta). Removing the zero-credit guard exposes the append-only guard, which raises `ImmutableRecordError` instead. ERROR is the correct outcome for a test whose purpose is guard ordering.
+
+**SM ruling:** ACCEPTED. The test is red for exactly the reason it was written.
+Lesson: when a test's purpose is ordering ("raises X first"), predict the
+exception the next guard down will raise, not just "X not raised".
+
 ### Green run
 
-All B0 tests. Expected: **Ran N, OK** (N = final count after adding new tests).
+Expected: **Ran 43, OK**.
 
 ### Near suite
 
 Labels: `billing`, `ai_processor`, `assignments`.
 
-Current DiscoverRunner count at r2 97c381ef: **4607** (billing 2329, ai_processor
-1473, assignments 805). Will increase after adding new tests. Final count
-declared after test code is committed.
+DiscoverRunner count at tip (after test commit 1cfb7dfa): **4614**.
+Expected: **Ran 4614, OK** (skipped count may vary).
 
 ### Makemigrations
 
