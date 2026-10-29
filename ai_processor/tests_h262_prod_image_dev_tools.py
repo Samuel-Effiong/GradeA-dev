@@ -37,6 +37,7 @@ DEV_ONLY_PACKAGES = {
     "flake8-print",
     "flake8-rst-docstrings",
     "flake8_import_order",
+    "flower",
     "freezegun",
     "honcho",
     "identify",
