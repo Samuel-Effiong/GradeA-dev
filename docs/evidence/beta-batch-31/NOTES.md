@@ -62,3 +62,8 @@ pre-checks, load/memory guards and the 300 s stall watchdog as in the script.
 - Next: H-270 run 2 on its own branch (a temp media folder per test, removed by that test), gated
   with a parallel run of its module; the fixed tip is merged into this bundle and the full run is
   repeated as run 2. Logs: run1_strict_summary.txt, run1_error_block.txt; the full log (683 KB gzipped, over the hook limit) is archived at GAP-a0-runs/b31/run1_full_run.txt.gz, sha256 a49eabac5448ada6….
+
+## Run 2 expectations (committed before run 2)
+H-270 run 2 (Gate 1 green at a49b4a0d: per-test media folder, five --parallel 3 runs OK) is merged at
+4b91c643; outside docs it changes only users/tests_h270_profile_webp.py, with the same test names.
+Expected, unchanged: **Ran 8587, OK, skipped=30**. Same runner, venv and settings as run 1.
