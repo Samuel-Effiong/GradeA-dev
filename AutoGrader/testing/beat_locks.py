@@ -53,7 +53,7 @@ def isolate_beat_locks_per_test():
         try:
             clear_beat_locks()
         except Exception:  # noqa: BLE001
-            pass
+            pass  # nosec B110  # best effort, test support only
         return original(cls)
 
     setattr(_pre_setup, _MARKER, True)

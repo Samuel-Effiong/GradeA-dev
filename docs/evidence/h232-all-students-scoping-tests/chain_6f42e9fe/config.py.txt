@@ -1,0 +1,60 @@
+# H-232 chain config for ../row_chain.py. Written 2026-10-14 by Builder 58
+# BEFORE any run, by reading the tests at 6f42e9fe and dashboard/views.py
+# (all_students) at 8a64c35b. Tests only: no (r) stage. Nothing here was
+# seen by a run.
+
+ROW = "h232"
+WT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h232-all-students-scoping-tests"
+BASE = "8a64c35b"
+OUT = "/home/bond-servant-in-training/Documents/Projects/GAP-58-runs/h232"
+DB_PREFIX = "test_h232"
+
+T = "TheForeignCourseIsInTheRequestedSessionTest"
+TA = (T, "test_a_another_teachers_own_session_shows_none_of_their_students")
+TB = (T, "test_b_a_colleagues_course_in_the_same_school_session_is_not_mine")
+TC = (T, "test_c_a_teacher_removed_from_the_school_loses_the_school_session")
+TD = (T, "test_d_a_colleagues_course_id_in_the_shared_session_is_404")
+
+ROW_MODULES = [
+    "dashboard.tests_h232_all_students_scoping",
+    "dashboard.tests_teacher_all_students",
+]
+
+# Tests only: green on the code as it is; shown able to fail by the mutant.
+R_LABELS = []
+R_FROM_TIP = []
+R_REASON = {}
+REPRO = set()
+
+A_LABELS = ROW_MODULES + [
+    "AutoGrader.tests_cache_invalidation_coverage",
+    "AutoGrader.tests_migration_safety_check",
+    "AutoGrader.tests_no_playwright_at_import",
+    "AutoGrader.tests_no_wildcard_invalidation",
+    "AutoGrader.tests_migration_rollback_defaults",
+    "AutoGrader.tests_redis_test_isolation",
+    "AutoGrader.tests_management_commands_are_commands",
+    "AutoGrader.tests_no_pii_in_logs",
+    "AutoGrader.tests_log_scrubbing",
+    "AutoGrader.tests_sentry_scrubbing",
+    "billing.tests.test_logs_carry_no_email",
+]
+
+EXTRA = ("Items in the first set but not the second:",)
+SCOPE = "            courses = reachable_courses(teacher).filter(session_id=session_id)\n"
+
+MUTANTS = {
+    # Q1 (the Verifier's T1 mutant): every course in the session, whoever
+    # teaches it. (a): another teacher's own session shows their student to
+    # the requester. (b), (c): the colleague's student appears at the FIRST
+    # assertion (each first asks as the right teacher, and the right teacher
+    # now also sees the other's student). (d): the colleague's course_id is
+    # found, 200. The existing module keeps every foreign course in another
+    # session, so the session filter still hides it: none of its tests move.
+    "Q1": (
+        "dashboard/views.py", SCOPE,
+        SCOPE.replace("reachable_courses(teacher)", "Course.objects"),
+        ROW_MODULES, {TA, TB, TC, TD},
+        {TA: EXTRA, TB: EXTRA, TC: EXTRA, TD: ("200 != 404",)},
+    ),
+}

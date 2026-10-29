@@ -94,8 +94,28 @@ STRIPE_PRICE_CACHE_TTL = 300
 _CACHE_PREFIX = "billing:stripe-overage-price:"
 
 
+OVERAGE_PRICE_UNAVAILABLE_MESSAGE = (
+    "We couldn't confirm the overage price with our payment provider. "
+    "Please try again in a moment."
+)
+
+
 class OveragePriceUnavailable(ValueError):
-    """Stripe could not tell us what this plan charges."""
+    """Stripe could not tell us what this plan charges.
+
+    H-255: the views answer a ValueError with its text, so str() is the
+    sentence a customer may be shown. What went wrong, for operators (the
+    drift report and its task), is `detail`."""
+
+    def __init__(self, detail):
+        super().__init__(OVERAGE_PRICE_UNAVAILABLE_MESSAGE)
+        self.detail = detail
+
+
+OVERAGE_PRICE_CHANGED_MESSAGE = (
+    "The price of this purchase has changed. Nothing was charged; "
+    "please reload and try again."
+)
 
 
 class OveragePriceMismatch(ValueError):
@@ -103,19 +123,22 @@ class OveragePriceMismatch(ValueError):
     The plan quotes one price and Stripe charges another.
 
     Raised instead of quoting, so the customer is never shown a number we
-    will not honour.
+    will not honour. H-255: str() is the sentence a customer may be shown;
+    the amounts and the Stripe price id are `detail`, for operators (and in
+    assert_overage_price_in_sync's ERROR log).
     """
 
     def __init__(self, plan, local_cents, stripe_cents):
         self.plan = plan
         self.local_cents = local_cents
         self.stripe_cents = stripe_cents
-        super().__init__(
+        self.detail = (
             f"Overage pricing for plan {plan.name} is out of sync: this "
             f"system quotes {local_cents} cents per block but Stripe price "
             f"{plan.stripe_overage_price_id} charges {stripe_cents}. "
             f"Refusing to quote a price we would not charge."
         )
+        super().__init__(OVERAGE_PRICE_CHANGED_MESSAGE)
 
 
 def _cache_key(price_id) -> str:
@@ -145,8 +168,11 @@ def stripe_overage_unit_price(plan, *, use_cache: bool = True):
     try:
         price = stripe.Price.retrieve(price_id)
     except Exception as exc:  # noqa: BLE001 - reported as a domain error
+        # The class and Stripe's request id, never the message: an
+        # AuthenticationError's names the API key (H-255).
         raise OveragePriceUnavailable(
-            f"Could not read Stripe price {price_id} for plan {plan.name}: {exc!r}"
+            f"Could not read Stripe price {price_id} for plan {plan.name}: "
+            f"{type(exc).__name__} (request {getattr(exc, 'request_id', None)})"
         ) from exc
 
     unit_amount = price.get("unit_amount")
@@ -228,7 +254,7 @@ def overage_price_drift(plans=None) -> list:
         try:
             entry["stripe_cents"] = stripe_overage_unit_price(plan, use_cache=False)
         except OveragePriceUnavailable as exc:
-            entry["error"] = str(exc)
+            entry["error"] = exc.detail
             report.append(entry)
             continue
         entry["in_sync"] = entry["stripe_cents"] == entry["local_cents"]

@@ -169,3 +169,162 @@ class BenchmarkQuestionOutcome(models.Model):
             f"{self.assignment_key}/{self.student_key}/Q{self.question_number} "
             f"= {self.awarded_points}"
         )
+
+
+class CallOutcome(models.TextChoices):
+    """What became of one AI call and its charge (AICallRecord.outcome)."""
+
+    CHARGED = "charged", "Charged"
+    UNMETERED = "unmetered", "Unmetered (super admin)"
+    REFUSED_ACCESS = "refused_access", "Refused before the estimate"
+    REFUSED_GATE = "refused_gate", "Refused at the balance check"
+    PROVIDER_ERROR = "provider_error", "The provider call failed"
+    CANCELLED_AFTER_REPLY = "cancelled_after_reply", "Cancelled after the reply"
+    BALANCE_CHANGED = "balance_changed", "Balance changed after the reply"
+    CHARGE_FAILED = "charge_failed", "The charge failed after the reply"
+    OTHER_ERROR = "other_error", "Another error"
+
+
+class CallKind(models.TextChoices):
+    """Set only where the task type proves it (call_record.KIND_BY_TASK_TYPE)."""
+
+    ASSIGNMENT_EXTRACTION = "assignment_extraction", "Assignment extraction"
+    ASSIGNMENT_GENERATION = "assignment_generation", "Assignment generation"
+    FORMATTING = "formatting", "Feedback wording"
+    STUDENT_SUMMARY = "student_summary", "Student summary"
+    WEEKLY_COURSE_SUMMARY = "weekly_course_summary", "Weekly course summary"
+    WEEKLY_SCHOOL_ADMIN_SUMMARY = (
+        "weekly_school_admin_summary",
+        "Weekly school admin summary",
+    )
+
+
+class CallTaskType(models.TextChoices):
+    EXTRACT_ASSIGNMENT = "extract_assignment", "extract_assignment"
+    EXTRACT_ANSWER = "extract_answer", "extract_answer"
+    GRADE_ASSIGNMENT = "grade_assignment", "grade_assignment"
+    GENERATE_ASSIGNMENT = "generate_assignment", "generate_assignment"
+    FORMATTED_GRADE = "formatted_grade", "formatted_grade"
+    STUDENT_SUMMARY = "student_summary", "student_summary"
+    WEEKLY_COURSE_SUMMARY = "weekly_course_summary", "weekly_course_summary"
+    WEEKLY_SCHOOL_ADMIN_SUMMARY = (
+        "weekly_school_admin_summary",
+        "weekly_school_admin_summary",
+    )
+    OTHER = "other", "other"
+
+
+class CallFeature(models.TextChoices):
+    ASSIGNMENT_EXTRACTION = "Assignment Extraction", "Assignment Extraction"
+    ANSWER_EXTRACTION = "Answer Extraction", "Answer Extraction"
+    GRADING_ASSIGNMENT = "Grading Assignment", "Grading Assignment"
+    ASSIGNMENT_GENERATION = "Assignment Generation", "Assignment Generation"
+    FORMATTED_GRADE = "Formatted Grade", "Formatted Grade"
+    STUDENT_SUMMARY = "Student Summary", "Student Summary"
+    WEEKLY_COURSE_SUMMARY = "Weekly Course Summary", "Weekly Course Summary"
+    WEEKLY_SCHOOL_ADMIN_SUMMARY = (
+        "Weekly School Admin Summary",
+        "Weekly School Admin Summary",
+    )
+    OTHER = "other", "other"
+
+
+class CallErrorClass(models.TextChoices):
+    TIMEOUT = "timeout", "timeout"
+    RATE_LIMIT = "rate_limit", "rate_limit"
+    CONNECTION = "connection", "connection"
+    API_STATUS = "api_status", "api_status"
+    CANCELLED = "cancelled", "cancelled"
+    INSUFFICIENT_CREDITS = "insufficient_credits", "insufficient_credits"
+    FEATURE_NOT_AVAILABLE = "feature_not_available", "feature_not_available"
+    VALUE = "value", "value"
+    OTHER = "other", "other"
+
+
+class CallFinishReason(models.TextChoices):
+    STOP = "stop", "stop"
+    LENGTH = "length", "length"
+    TOOL_CALLS = "tool_calls", "tool_calls"
+    CONTENT_FILTER = "content_filter", "content_filter"
+    FUNCTION_CALL = "function_call", "function_call"
+    ERROR = "error", "error"
+    OTHER = "other", "other"
+
+
+class AICallRecord(models.Model):
+    """One AI call through AIProcessor.execute_graded_task, written AFTER the
+    call and its charge are finished (ai_processor/call_record.py).
+
+    A MEASUREMENT table: ids and numbers only, never any prompt, student or
+    answer text, never an error message. No foreign keys (the ids go stale
+    when a teacher or assignment is deleted, which is correct here), never
+    updated, no route, no serializer, not in the admin. Retention: 400 days,
+    then a purge command that only the user runs on live (not in this
+    slice). It is not the AI-call record of StepRun labels on the saved
+    result (the Phase 2 follow-on): no table or column is shared.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    task_id = models.CharField(
+        max_length=200,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="The id CreditUsageLog.task_id carries; NULL when never charged.",
+    )
+    task_type = models.CharField(max_length=40, choices=CallTaskType.choices)
+    feature = models.CharField(max_length=40, choices=CallFeature.choices)
+    kind = models.CharField(
+        max_length=40,
+        choices=CallKind.choices,
+        null=True,
+        blank=True,
+        help_text="Set only where the task type proves it; otherwise NULL.",
+    )
+    outcome = models.CharField(max_length=24, choices=CallOutcome.choices)
+    error_class = models.CharField(
+        max_length=24, choices=CallErrorClass.choices, null=True, blank=True
+    )
+    model_asked = models.CharField(max_length=255, blank=True, default="")
+    model_answered = models.CharField(max_length=255, null=True, blank=True)
+    upstream_provider = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text=(
+            "The upstream provider that served the call, as the reply named it "
+            "(read from the reply only; NULL when it names none)."
+        ),
+    )
+    finish_reason = models.CharField(
+        max_length=16, choices=CallFinishReason.choices, null=True, blank=True
+    )
+    prompt_version = models.CharField(
+        max_length=128,
+        default="unknown",
+        db_default="unknown",
+        help_text="The prompt version the caller passed, as given; 'unknown' when none was passed.",
+    )
+    estimate = models.PositiveBigIntegerField(null=True, blank=True)
+    prompt_tokens = models.PositiveBigIntegerField(null=True, blank=True)
+    completion_tokens = models.PositiveBigIntegerField(null=True, blank=True)
+    reasoning_tokens = models.PositiveBigIntegerField(null=True, blank=True)
+    cached_tokens = models.PositiveBigIntegerField(null=True, blank=True)
+    total_tokens = models.PositiveBigIntegerField(null=True, blank=True)
+    charged_credits = models.PositiveBigIntegerField(default=0)
+    cost_usd = models.DecimalField(
+        max_digits=14,
+        decimal_places=8,
+        null=True,
+        blank=True,
+        help_text="The provider's reported cost; NULL when the reply carries none.",
+    )
+    images = models.PositiveIntegerField(null=True, blank=True)
+    pdf_items = models.PositiveIntegerField(null=True, blank=True)
+    questions = models.PositiveIntegerField(null=True, blank=True)
+    duration_ms = models.PositiveIntegerField(null=True, blank=True)
+    billed_user_id = models.UUIDField(null=True, blank=True)
+    school_id = models.UUIDField(null=True, blank=True)
+    assignment_id = models.UUIDField(null=True, blank=True)
+    processing_task_id = models.UUIDField(null=True, blank=True)

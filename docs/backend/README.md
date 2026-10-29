@@ -266,7 +266,7 @@ Twelve `*.md` files predate `docs/` and were **left in place**, per the brief. T
 
 ### One contradiction inside the code itself
 
-`ai_processor/tasks.py:23-25` states *"There is no CI in this repo, so Celery Beat is the only scheduler available"*, and `extraction_benchmark.py` calls `--mode replay` *"what CI runs"*. **Three GitHub Actions workflows exist** (`tests.yml`, `pre-commit.yml`, `migration-safety.yml`). The nightly benchmark replay could move there, as that same comment says it should.
+`extraction_benchmark.py` calls `--mode replay` *"what CI runs"*, but no workflow runs it. **Four GitHub Actions workflows exist** (`tests.yml`, `pre-commit.yml`, `migration-safety.yml`, `audit.yml`). `ai_processor/tasks.py:27-30` says Beat schedules the benchmarks and that the nightly replay could move to a workflow.
 
 ---
 

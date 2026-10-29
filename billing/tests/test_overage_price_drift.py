@@ -115,14 +115,16 @@ class PriceAuthorityTests(TestCase):
         self.assertEqual(ctx.exception.local_cents, 400)
         self.assertEqual(ctx.exception.stripe_cents, 500)
 
-    def test_the_refusal_names_both_numbers_so_it_can_be_acted_on(self):
+    def test_the_refusal_detail_names_both_numbers_so_it_can_be_acted_on(self):
+        # H-255: the numbers and the price id are for operators (`detail`);
+        # str() is the fixed sentence a customer may be shown.
         with patch("billing.overage_pricing.stripe.Price.retrieve") as retrieve:
             retrieve.return_value = stripe_price(500)
 
             with self.assertRaises(OveragePriceMismatch) as ctx:
                 assert_overage_price_in_sync(self.plan)
 
-        message = str(ctx.exception)
+        message = ctx.exception.detail
         self.assertIn("400", message)
         self.assertIn("500", message)
         self.assertIn(STRIPE_PRICE_ID, message)

@@ -1,0 +1,11 @@
+WARNING:pip_audit._cli:--no-deps is supported, but users are encouraged to fully hash their pinned dependencies
+WARNING:pip_audit._cli:Consider using a tool like `pip-compile`: https://pip-tools.readthedocs.io/en/latest/#using-hashes
+Found 5 known vulnerabilities, ignored 105 in 1 package
+Name                Version ID                  Fix Versions
+------------------- ------- ------------------- ------------
+djangorestframework 3.16.1  PYSEC-2026-3827     3.17.2
+djangorestframework 3.16.1  PYSEC-2026-3828     3.17.2
+djangorestframework 3.16.1  GHSA-33wh-fxxf-88vv 3.18.2
+djangorestframework 3.16.1  GHSA-3547-9m27-7rxg 3.18.2
+djangorestframework 3.16.1  GHSA-xw6w-gcfp-cf8m 3.18.2
+pip-audit gate: 105 accepted advisories from .pip-audit-ignore.toml

@@ -1,0 +1,8 @@
+0105987fcb27	R1	a withdrawn student without a submission is left out	KILLED	FAILED (failures=5)	True	6.6
+0105987fcb27	R2	a withdrawn student WITH a submission for this assignment is listed	KILLED	FAILED (failures=2)	True	6.5
+0105987fcb27	R3	only a submission for THIS assignment counts	KILLED	FAILED (failures=1)	True	6.5
+0105987fcb27	R4	pending and completed students stay listed	KILLED	FAILED (failures=3)	True	6.5
+0105987fcb27	R5	enrolled students without a submission stay listed	KILLED	FAILED (failures=11)	True	6.0
+0105987fcb27	R6	the H-213 order is kept (submitted rows are not moved)	KILLED	FAILED (failures=1)	True	6.7
+0105987fcb27	R7	a withdrawn student's row carries their submission	KILLED	FAILED (failures=1)	True	6.8
+0105987fcb27	R8	a withdrawal reaches the teacher's cached detail (the bump)	KILLED	FAILED (failures=1)	True	7.0

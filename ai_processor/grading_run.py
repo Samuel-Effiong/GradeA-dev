@@ -142,9 +142,13 @@ class GradingRun:
         for an unnamed one), by the SM's ruling: any backup is "yes", also
         beside an unknown; otherwise any model the provider did not name,
         or that is neither the main model nor a backup, is "unknown";
-        otherwise "no". The lists are the run's reading, not live."""
+        otherwise "no". The lists are the run's reading, not live. A backup
+        is one of either list: the text backup or, for a call that carried an
+        image, the image backup (H-205)."""
         main = self.config.get("MAIN_MODEL")
-        backups = set(self.config.get("GRADING_FALLBACK_MODELS"))
+        backups = set(self.config.get("GRADING_FALLBACK_MODELS")) | set(
+            self.config.get("IMAGE_FALLBACK_MODELS")
+        )
         if any(model in backups for model in models if model is not None):
             return FALLBACK_YES
         if any(model is None or model != main for model in models):

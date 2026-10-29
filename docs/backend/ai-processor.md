@@ -47,7 +47,7 @@ The three pure modules (`objective_grading`, `evidence`, `answer_completeness`) 
 
 Nine prompt files are read **at import time** ([services.py:99-134](../../ai_processor/services.py#L99-L134)) with bare `open()` and **relative paths** — so the process must be started from the repo root or import fails:
 
-`ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt`, `ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS_HTML_2.txt`, `RUBRIC_EXTRACTION_PROMPT.txt`, `ANSWERS_EXTRACTION_PROMPT_HTML_4.txt`, `GRADING_ASSIGNMENT_PROMPT_5.txt`, `ASSIGNMENT_GENERATION_PROMPT_6.txt`, `GRADE_FORMATTER_2.txt`, `STUDENT_SUMMARY_PROMPT.txt`, `WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT.txt`, `WEEKLY_COURSE_SUMMARY_PROMPT.txt`.
+`ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt`, `ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS_HTML_2.txt`, `RUBRIC_EXTRACTION_PROMPT.txt`, `ANSWERS_EXTRACTION_PROMPT_HTML_5.txt`, `GRADING_ASSIGNMENT_PROMPT_5.txt`, `ASSIGNMENT_GENERATION_PROMPT_6.txt`, `GRADE_FORMATTER_2.txt`, `STUDENT_SUMMARY_PROMPT.txt`, `WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT.txt`, `WEEKLY_COURSE_SUMMARY_PROMPT.txt`.
 
 The version numbers are load-bearing history. `GRADING_ASSIGNMENT_PROMPT_5` replaced v3's open-ended "leniency"/"Holistic Uplift" system, **which invited scores above and between rubric levels, making grades both inflated and non-reproducible** ([services.py:113-118](../../ai_processor/services.py#L113-L118)). v4 also fixed the input contract to match what the pipeline actually sends (`answer_html`, not `answer_text`).
 
@@ -67,6 +67,7 @@ api_key  = OPENROUTER_API_KEY
 | `MAIN_MODEL` | `x-ai/grok-4.3` | [services.py:193](../../ai_processor/services.py#L193) |
 | `DEFAULT_FALLBACK_MODELS` | `["deepseek/deepseek-v4-pro", "openai/gpt-5.4-nano"]` | [services.py:196](../../ai_processor/services.py#L196) |
 | `GRADING_FALLBACK_MODELS` | `["deepseek/deepseek-v4-pro"]` | [services.py:202](../../ai_processor/services.py#L202) |
+| `IMAGE_FALLBACK_MODELS` | `["anthropic/claude-haiku-5.5"]` | services.py (H-205): the backup of a grading or extraction call that carries an image |
 
 **Why grading has its own fallback list:** *"Grading is the one task where a silent downgrade to a small model produces scores of visibly different quality between two students in the same class, with nothing recording why."* Grading fallbacks are restricted to models of comparable capability — **never a nano-tier model** ([services.py:198-202](../../ai_processor/services.py#L198-L202)).
 
@@ -83,6 +84,42 @@ Response format is chosen in three tiers ([services.py:504-510](../../ai_process
 | otherwise | none |
 
 Every request sends `HTTP-Referer: FRONTEND_DOMAIN` and `X-Title: GradeA+` for OpenRouter attribution.
+
+**How long a request may wait** (H-256, `AIProcessor.__init__`). The client waits 10 s to connect and
+`AI_PROVIDER_TIMEOUT_SECONDS` (default 300 s, read from the environment when a process starts) for each read, and
+tries a request three times (`max_retries=2`) before the call fails with `openai.APITimeoutError`.
+- **Was** the SDK's default: 600 s per read, three tries, so one request that never answered could hold a grading
+  worker for 30 minutes, past the grading task's 25-minute kill point.
+- **Why 300 s:** the slowest calls in the live benchmark records (`ai_processor/benchmark/answers/reports/`, 152
+  calls) were 118 s for grading (p95 94 s) and 127 s for reading answers (p95 37 s).
+- **A read timeout is per read, not per call** (httpx). A reply that keeps sending bytes, such as keep-alive
+  padding, is not cut off. Whether OpenRouter pads a non-streaming reply was not checked; the limit is meant
+  for a connection that has gone silent.
+- A call that times out is never charged (the charge follows the reply). A run that fails on one refunds what it
+  charged before, through `billing_refund_scope`.
+
+**Which supplier serves a request** (the `provider` object, `_provider_block()` in services.py). Every request
+carries it, on every path:
+
+| Key | Value | What it does |
+|---|---|---|
+| `data_collection` | `"deny"` | leaves out suppliers that train on data (H-206) |
+| `zdr` | `True`, only while `AI_PROVIDER_ZDR_ENABLED` is on (off by default) | only zero-retention endpoints (H-206) |
+| `sort` | `"price"` | the cheapest supplier of the asked model first, then the next cheapest on an outage (H-204) |
+| `quantizations` | `["fp8", "fp16", "bf16", "fp32", "unknown"]` | no fp4 endpoint (H-204) |
+
+- **"unknown" stays in the list on purpose.** Every endpoint of grok-4.3, claude-haiku-5.5 and gpt-5.4-nano
+  publishes its quantization as unknown (the provider's endpoints list, read 25 October 2026). Without it those
+  models would have no endpoint. Only deepseek-v4-pro publishes quantizations: two of its fifteen endpoints are
+  fp4.
+- **The price sort matters mainly for deepseek-v4-pro.** Its output price runs from $0.416 to $3.83 per million
+  tokens across suppliers. Grok has one supplier, and haiku's price is nearly flat.
+- **Stated risk, accepted by the Senior Manager:** the sort turns off the provider's load balancing, so a cheap
+  supplier that is slower is still tried first. Grading runs in the background, and the timeouts and fallbacks are
+  unchanged. If grading time on beta grows noticeably, the sort is dropped and the default order comes back.
+- With zdr on, the sort applies only among zero-retention endpoints.
+- None of the four keys is part of the grading or reading config version, so changing them does not stop saved
+  answers being reused.
 
 **Model pinning and independence:** when a caller pins `override_model` (the blind second grader), the fallback list is pinned to that same model — *"silently falling back to grader A's model would fake the independence the second opinion exists to provide"* ([services.py:4070-4073](../../ai_processor/services.py#L4070-L4073)).
 
@@ -495,7 +532,7 @@ Reason labels are **stable strings, persisted into `review_reasons` and read by 
 
 `pick_second_model(first_model, candidates)` ([second_opinion.py:205-218](../../ai_processor/second_opinion.py#L205-L218)) returns the first candidate that **differs from the model that actually graded** (grader A's result records its routed model, fallbacks included), or `None`. *"A 'second opinion' from the same model shares every blind spot of the first — independence is the whole point, so same-model is a skip, never a fallback."*
 
-`GRADING_SECOND_OPINION_MODELS` has **two** entries deliberately ([settings.py:610-629](../../AutoGrader/settings.py#L610-L629)): grader A can itself fall back to `deepseek-v4-pro`. If deepseek were the only candidate, that fallback would **silently disable the second opinion at exactly the moment grader A is already struggling.** `gemini-2.5-flash` is the third independent option — a different vendor family from both, comparable reasoning tier, structured-output support, priced at or below both. On the normal path it resolves to deepseek exactly as before, so everyday spend is unchanged.
+`GRADING_SECOND_OPINION_MODELS` tries `claude-haiku-5.5` first, then `deepseek-v4-pro` (H-254, the owner's decision of 24 October 2026; [settings.py](../../AutoGrader/settings.py)). A second-opinion request carries the images of the questions it re-grades, and deepseek cannot read images: with deepseek first, grader B failed on every such paper and grader A's grade stood **with no second opinion and no review flag**. Haiku reads images, is cheaper than deepseek in list price, is a different model family from grader A, is served by a zero-retention endpoint, and was the cheapest model tested (H-205 run1: 238/240 handwritten multiple-choice letters, grading MAE 0.556). On the normal path (grader A = grok-4.3) grader B is haiku, with images or without. There are **two** entries deliberately: grader A can itself fall back to haiku (a call with an image) or to deepseek (a text call), and grader B is then the other one, so a fallback never silently disables the second opinion. **Stated limit:** when grader A fell back to haiku (an image call while grok is down), grader B is deepseek, which still fails on the images; that paper keeps grader A's grade without a second opinion.
 
 When no candidate differs, the code logs a **WARNING**, not a debug line ([services.py:3067-3086](../../ai_processor/services.py#L3067-L3086)): *"this is the review queue's safety net going dark. It fires whenever every configured second-opinion candidate collides with whichever model grader A actually ran on — precisely when A is already having trouble."* It records `skipped_reason: "no_independent_model"` — a stable machine-readable code, alongside the human-readable `skipped` string kept for backward compatibility — so `grading_eval` can count how often the net was down.
 
@@ -623,7 +660,7 @@ Every flag defaults to today's behaviour, so deploying changes nothing. The stat
 | Var | Default | Effect |
 |---|---|---|
 | `GRADING_SECOND_OPINION_ENABLED` | `True` | master switch |
-| `GRADING_SECOND_OPINION_MODELS` | `["deepseek/deepseek-v4-pro", "google/gemini-2.5-flash"]` | candidates in preference order |
+| `GRADING_SECOND_OPINION_MODELS` | `["anthropic/claude-haiku-5.5", "deepseek/deepseek-v4-pro"]` | candidates in preference order (haiku first, H-254) |
 | `GRADING_SECOND_OPINION_MIN_CONFIDENCE` | `80` | full re-read below this (**rarely fires** — see above) |
 | `GRADING_SECOND_OPINION_HIGH_POINTS` | `15` | per-question high-stakes trigger |
 | `GRADING_SECOND_OPINION_SAMPLE_RATE` | `0.05` | one draw per submission |
@@ -649,4 +686,4 @@ Every flag defaults to today's behaviour, so deploying changes nothing. The stat
 
 ### Non-configurable constants
 
-`MAIN_MODEL`, `DEFAULT_FALLBACK_MODELS`, `GRADING_FALLBACK_MODELS`, `AI_CONFIDENCE_THRESHOLD` (80), `MAX_TOOL_CALL_ROUNDS` (3), all six chunk-size constants, `PDFService.MAX_PAGE_COUNT` (300), `EXTRACT_CHUNK_SIZE` (50), `grading_cache.CACHE_VERSION`, and every threshold in `objective_grading.py` and `evidence.py`. **Changing any of these requires a deploy** — and for the chunking constants, a re-benchmark first.
+`MAIN_MODEL`, `DEFAULT_FALLBACK_MODELS`, `GRADING_FALLBACK_MODELS`, `IMAGE_FALLBACK_MODELS`, `AI_CONFIDENCE_THRESHOLD` (80), `MAX_TOOL_CALL_ROUNDS` (3), all six chunk-size constants, `PDFService.MAX_PAGE_COUNT` (300), `EXTRACT_CHUNK_SIZE` (50), `grading_cache.CACHE_VERSION`, and every threshold in `objective_grading.py` and `evidence.py`. **Changing any of these requires a deploy** — and for the chunking constants, a re-benchmark first.

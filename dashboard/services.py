@@ -14,10 +14,11 @@ from django.db.models import (
     Q,
     Sum,
 )
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD
-from assignments.models import Assignment, AssignmentStatus
+from assignments.models import Assignment, AssignmentStatus, expected_q, is_expected
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -29,86 +30,6 @@ from dashboard.risk import TREND_INSUFFICIENT_DATA, RiskInputs, StudentRiskEvalu
 from students.models import StudentSubmission
 from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
-
-
-class DashboardService:
-    def analyze_question_difficulty(self, submissions):
-        """
-        The hardest and easiest questions across a set of submissions, as
-        (question_number, mean fraction of available marks) pairs.
-
-        WHAT THIS USED TO DO, AND WHY IT COULD NOT WORK
-
-        It read `submission.answers.items()` and pulled a "score" off each
-        value. Both halves were wrong:
-
-          * `answers` is a LIST of per-question dicts (see
-            ANSWERS_EXTRACTION_PROMPT_HTML_4's output contract and
-            students/services.py, which assigns the extractor's `answers`
-            array straight into the JSONField), so `.items()` raises
-            AttributeError on any real submission;
-          * those dicts carry the student's ANSWER, never a score. Marks
-            live in `submission.feedback["question_evaluations"]`, written
-            by AIProcessor._finalize_grading_result.
-
-        It never surfaced because both callers are commented out
-        (dashboard/views.py). Fixed rather than deleted so that
-        uncommenting them does something correct.
-
-        Scores are normalised to a FRACTION of each question's own marks
-        before averaging. Raw marks are not comparable across questions -
-        a 20-point essay averaging 12 is not "easier" than a 2-point MCQ
-        averaging 2, though raw sums would say so.
-        """
-        question_scores = defaultdict(list)
-
-        for submission in submissions:
-            feedback = getattr(submission, "feedback", None)
-            if not isinstance(feedback, dict):
-                continue
-
-            for evaluation in feedback.get("question_evaluations") or []:
-                if not isinstance(evaluation, dict):
-                    continue
-
-                number = evaluation.get("question_number")
-                if number is None:
-                    continue
-
-                raw_awarded = evaluation.get("score_awarded")
-                raw_available = evaluation.get("max_points")
-                if raw_awarded is None or raw_available is None:
-                    continue
-                try:
-                    awarded = float(raw_awarded)
-                    available = float(raw_available)
-                except (TypeError, ValueError):
-                    continue
-
-                # A zero-mark question has no meaningful difficulty and
-                # would divide by zero.
-                if available <= 0:
-                    continue
-
-                question_scores[str(number)].append(
-                    max(0.0, min(1.0, awarded / available))
-                )
-
-        if not question_scores:
-            return [], []
-
-        question_averages = {
-            number: sum(scores) / len(scores)
-            for number, scores in question_scores.items()
-        }
-
-        # Sorted by (score, question_number) so questions that tie come out
-        # in a stable order rather than whatever dict iteration gives.
-        ranked = sorted(question_averages.items(), key=lambda item: (item[1], item[0]))
-        hardest = ranked[:2]
-        easiest = list(reversed(ranked[-2:]))
-
-        return hardest, easiest
 
 
 class StudentWeeklySummaryService:
@@ -464,7 +385,16 @@ class WeeklyCourseSummaryService:
             float(submission.score_percentage) for submission in graded_submissions
         ]
         dated_scores = [
-            (submission.submission_date, float(submission.score_percentage))
+            (
+                submission.submission_date,
+                float(submission.score_percentage),
+                submission.score,
+                (
+                    submission.max_points
+                    if submission.max_points is not None
+                    else submission.assignment.total_points
+                ),
+            )
             for submission in graded_submissions
         ]
 
@@ -1201,15 +1131,17 @@ class TeacherAIContextService:
         )
 
         submissions = list(
-            StudentSubmission.objects.filter(
-                assignment__course_id__in=course_ids
-            ).values(
+            StudentSubmission.objects.filter(assignment__course_id__in=course_ids)
+            .annotate(points=Coalesce("max_points", "assignment__total_points"))
+            .values(
                 "student_id",
                 "assignment_id",
                 "assignment__course_id",
                 "submission_date",
                 "score_percentage",
                 "grading_confidence",
+                "score",
+                "points",
             )
         )
 
@@ -1224,12 +1156,14 @@ class TeacherAIContextService:
         # the at-risk dashboards: published, and either undated or due.
         due_by_course = defaultdict(int)
         published_by_course = defaultdict(int)
+        due_ids = set()
         for assignment in assignments:
             if assignment["status"] != AssignmentStatus.PUBLISHED:
                 continue
             published_by_course[assignment["course_id"]] += 1
-            if assignment["due_date"] is None or assignment["due_date"] <= now:
+            if is_expected(assignment["status"], assignment["due_date"], now):
                 due_by_course[assignment["course_id"]] += 1
+                due_ids.add(assignment["id"])
 
         submitted_ids = defaultdict(set)
         dated_scores = defaultdict(list)
@@ -1241,7 +1175,14 @@ class TeacherAIContextService:
             submissions_by_course[submission["assignment__course_id"]] += 1
             if submission["score_percentage"] is not None:
                 score = float(submission["score_percentage"])
-                dated_scores[key].append((submission["submission_date"], score))
+                dated_scores[key].append(
+                    (
+                        submission["submission_date"],
+                        score,
+                        submission["score"],
+                        submission["points"],
+                    )
+                )
                 graded_scores_by_course[submission["assignment__course_id"]].append(
                     score
                 )
@@ -1254,7 +1195,9 @@ class TeacherAIContextService:
             result = self.risk_evaluator.evaluate(
                 RiskInputs(
                     expected_assignment_count=due_by_course[enrolment["course_id"]],
-                    submitted_count=len(submitted_ids[key]),
+                    # H-237: only submissions to work that is due count
+                    # toward the rate; "submitted" below shows them all.
+                    submitted_count=len(submitted_ids[key] & due_ids),
                     graded_scores=dated_scores[key],
                 )
             )
@@ -1553,18 +1496,18 @@ class SchoolAdminWeeklySummaryService:
             for course_id in course_ids
         }
 
-        due_assignment_counts = {
-            row["course_id"]: row["count"]
-            for row in (
-                Assignment.objects.filter(
-                    course_id__in=all_course_ids,
-                    status=AssignmentStatus.PUBLISHED,
-                )
-                .filter(Q(due_date__isnull=True) | Q(due_date__lte=timezone.now()))
-                .values("course_id")
-                .annotate(count=Count("id"))
-            )
-        }
+        # The work due by now (the shared expected_q), one row each: the
+        # per-course counts and, for H-237, the ids a submission must be to
+        # for it to count toward the rate. Still one query.
+        due_assignment_counts: dict[UUID, int] = defaultdict(int)
+        due_assignment_ids = set()
+        for assignment_id, course_id in (
+            Assignment.objects.filter(course_id__in=all_course_ids)
+            .filter(expected_q())
+            .values_list("id", "course_id")
+        ):
+            due_assignment_counts[course_id] += 1
+            due_assignment_ids.add(assignment_id)
 
         submissions_by_student = defaultdict(list)
         submissions = (
@@ -1572,6 +1515,7 @@ class SchoolAdminWeeklySummaryService:
                 student_id__in=course_ids_by_student.keys(),
                 assignment__course_id__in=all_course_ids,
             )
+            .annotate(points=Coalesce("max_points", "assignment__total_points"))
             .values_list(
                 "student_id",
                 "assignment_id",
@@ -1579,6 +1523,8 @@ class SchoolAdminWeeklySummaryService:
                 "submission_date",
                 "is_published",
                 "score_percentage",
+                "score",
+                "points",
             )
             .order_by("submission_date", "id")
         )
@@ -1596,14 +1542,24 @@ class SchoolAdminWeeklySummaryService:
                 for row in submissions_by_student.get(student_id, [])
                 if row[1] in student_course_ids
             ]
-            submitted_count = len({row[0] for row in student_submissions})
+            # H-237: only submissions to work that is due count toward the
+            # rate, so an early submission cannot hide a missed one.
+            submitted_count = len(
+                {row[0] for row in student_submissions if row[0] in due_assignment_ids}
+            )
             # Only published, graded submissions count toward the average
             # shown to school admins (matches the prior school-wide behavior).
             graded_scores = [
-                (submission_date, float(score_percentage))
-                for _, _, submission_date, is_published, score_percentage in (
-                    student_submissions
-                )
+                (submission_date, float(score_percentage), score, points)
+                for (
+                    _,
+                    _,
+                    submission_date,
+                    is_published,
+                    score_percentage,
+                    score,
+                    points,
+                ) in student_submissions
                 if is_published and score_percentage is not None
             ]
 

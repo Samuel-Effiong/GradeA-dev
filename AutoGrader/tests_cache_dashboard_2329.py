@@ -30,7 +30,7 @@ from django.core.cache import cache
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 
-from assignments.models import Assignment
+from assignments.models import Assignment, AssignmentStatus
 from AutoGrader.cache_generation import (
     SCOPE_COURSE,
     SCOPE_SCHOOL,
@@ -262,14 +262,17 @@ class TeacherDashboardFamiliesTests(DashboardBase):
         The course-analytics payload carries workflow/performance/ai_trust
         metrics and no course NAME, so renaming the course correctly changes
         nothing - asserting on a rename would test the endpoint's shape
-        rather than its freshness. An assignment moves
-        `total_assignments_assigned`.
+        rather than its freshness. A published assignment moves
+        `total_assignments_assigned` (H-250: drafts are counted apart).
         """
         before = self.get(self.teacher_client, self.courses_url())
         self.assertEqual(before["workflow"]["total_assignments_assigned"], 0)
 
         Assignment.objects.create(
-            title="Course analytics", course=self.course, teacher=self.teacher
+            title="Course analytics",
+            course=self.course,
+            teacher=self.teacher,
+            status=AssignmentStatus.PUBLISHED,
         )
 
         after = self.get(self.teacher_client, self.courses_url())

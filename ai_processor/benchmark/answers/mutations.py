@@ -485,7 +485,7 @@ def run_tests(root: Path, labels, settings: str, pythonpath: str, timeout: int):
     ]
     started = time.monotonic()
     try:
-        completed = subprocess.run(
+        completed = subprocess.run(  # nosec B603  # fixed argv, no shell
             command,
             cwd=root,
             env=env,

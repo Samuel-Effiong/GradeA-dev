@@ -1,0 +1,76 @@
+  ok assignments.serializers.AssignmentDetailSerializer (assignments.models.Assignment): 0 validators, none from UniqueConstraint
+  ok assignments.serializers.AssignmentDetailStudentSerializer (assignments.models.Assignment): 0 validators, none from UniqueConstraint
+  ok assignments.serializers.AssignmentGenerationMessageSerializer (assignments.models.AssignmentGenerationMessage): 0 validators, none from UniqueConstraint
+  ok assignments.serializers.AssignmentGenerationSessionDetailSerializer (assignments.models.AssignmentGenerationSession): 0 validators, none from UniqueConstraint
+  ok assignments.serializers.AssignmentGenerationSessionSerializer (assignments.models.AssignmentGenerationSession): 0 validators, none from UniqueConstraint
+  ok assignments.serializers.AssignmentListSerializer (assignments.models.Assignment): 0 validators, none from UniqueConstraint
+  ok assignments.serializers.AssignmentListStudentSerializer (assignments.models.Assignment): 0 validators, none from UniqueConstraint
+  ok assignments.serializers.AssignmentSerializer (assignments.models.Assignment): 0 validators, none from UniqueConstraint
+  ok audit.serializers.AuditEventSerializer (audit.models.AuditEvent): 0 validators, none from UniqueConstraint
+  ok billing.serializers.BetaProfileSerializer (billing.models.BetaProfile): 0 validators, none from UniqueConstraint
+  ok billing.serializers.BillingTransactionSerializer (billing.models.BillingTransaction): 0 validators, none from UniqueConstraint
+  ok billing.serializers.CarryOverHistorySerializer (billing.models.CreditBucket): 0 validators, none from UniqueConstraint
+  ok billing.serializers.CreditBucketSerializer (billing.models.CreditBucket): 0 validators, none from UniqueConstraint
+  ok billing.serializers.CreditLedgerSerializer (billing.models.CreditLedger): 0 validators, none from UniqueConstraint
+  ok billing.serializers.CreditUsageLogSerializer (billing.models.CreditUsageLog): 0 validators, none from UniqueConstraint
+  ok billing.serializers.CreditWalletSerializer (billing.models.CreditWallet): 0 validators, none from UniqueConstraint
+  ok billing.serializers.CreditWalletSummarySerializer (billing.models.CreditWallet): 0 validators, none from UniqueConstraint
+  ok billing.serializers.LicenseBillingRecordSerializer (billing.models.LicenseBillingRecord): 0 validators, none from UniqueConstraint
+  ok billing.serializers.LicenseOverageOfflineRequestListSerializer (billing.models.LicenseOverageOfflineRequest): 0 validators, none from UniqueConstraint
+  ok billing.serializers.LicenseSubscriptionSerializer (billing.models.LicenseSubscription): 0 validators, none from UniqueConstraint
+  ok billing.serializers.ManualGrantBucketSerializer (billing.models.CreditBucket): 0 validators, none from UniqueConstraint
+  ok billing.serializers.MySubscriptionSerializer (billing.models.UserSubscription): 0 validators, none from UniqueConstraint
+  ok billing.serializers.OverageStatusSerializer (billing.models.CreditWallet): 0 validators, none from UniqueConstraint
+  FLAGGED billing.serializers.SchoolCreditAllocationSerializer (model=billing.models.SchoolCreditAllocation): UniqueTogetherValidator(fields=['license_subscription', 'user'])
+  ok billing.serializers.SubscriptionPlanSerializer (billing.models.SubscriptionPlan): 0 validators, none from UniqueConstraint
+  ok billing.serializers.UserSubscriptionSerializer (billing.models.UserSubscription): 0 validators, none from UniqueConstraint
+  ok classrooms.serializers.CourseCategorySerializer (classrooms.models.CourseCategory): 0 validators, none from UniqueConstraint
+  FLAGGED classrooms.serializers.CourseSerializer (model=classrooms.models.Course): UniqueTogetherValidator(fields=['name', 'teacher', 'session'])
+  ok classrooms.serializers.SchoolSerializer (classrooms.models.School): 0 validators, none from UniqueConstraint
+  ok classrooms.serializers.SessionSerializer (classrooms.models.Session): 0 validators, none from UniqueConstraint
+  ok classrooms.serializers.StudentCourseDetailSerializer (classrooms.models.StudentCourse): 0 validators, none from UniqueConstraint
+  ok classrooms.serializers.StudentCourseSerializer (classrooms.models.StudentCourse): 0 validators, none from UniqueConstraint
+  FLAGGED classrooms.serializers.TopicSerializer (model=classrooms.models.Topic): UniqueTogetherValidator(fields=['name', 'course'])
+  ok dashboard.serializers.CoursePerformanceDashboardSerializer (classrooms.models.Course): 0 validators, none from UniqueConstraint
+  ok dashboard.serializers.DashboardChatMessageSerializer (ai_processor.models.ChatMessage): 0 validators, none from UniqueConstraint
+  ok dashboard.serializers.DashboardChatSessionSerializer (ai_processor.models.ChatSession): 0 validators, none from UniqueConstraint
+  ok dashboard.serializers.UnitPerformanceSerializer (assignments.models.Assignment): 0 validators, none from UniqueConstraint
+  ok students.serializers.StudentListSerializer (users.models.CustomUser): 0 validators, none from UniqueConstraint
+  ok students.serializers.StudentSerializer (users.models.CustomUser): 0 validators, none from UniqueConstraint
+  ok students.serializers.StudentSubmissionDetailSerializer (students.models.StudentSubmission): 0 validators, none from UniqueConstraint
+  ok students.serializers.StudentSubmissionDetailStudentVersionSerializer (students.models.StudentSubmission): 0 validators, none from UniqueConstraint
+  ok students.serializers.StudentSubmissionGradeUpdateSerializer (students.models.StudentSubmission): 0 validators, none from UniqueConstraint
+  FLAGGED students.serializers.StudentSubmissionListSerializer (model=students.models.StudentSubmission): UniqueTogetherValidator(fields=['student', 'assignment'])
+  FLAGGED students.serializers.StudentSubmissionSerializer (model=students.models.StudentSubmission): UniqueTogetherValidator(fields=['student', 'assignment'])
+  ok students.serializers.StudentSubmissionTeacherFeedbackSerializer (students.models.StudentSubmission): 0 validators, none from UniqueConstraint
+  ok students.serializers.StudentSubmissionUpdateSerializer (students.models.StudentSubmission): 0 validators, none from UniqueConstraint
+  ok students.serializers.StudentUploadAnswerSerializer (students.models.StudentSubmission): 0 validators, none from UniqueConstraint
+  ok users.serializers.BetaWhitelistSerializer (users.models.BetaWhitelist): 0 validators, none from UniqueConstraint
+  ok users.serializers.CustomUserSerializer (users.models.CustomUser): 0 validators, none from UniqueConstraint
+  ok users.serializers.GoogleUserSerializer (users.models.CustomUser): 0 validators, none from UniqueConstraint
+  ok users.serializers.SettingsSerializer (users.models.Settings): 0 validators, none from UniqueConstraint
+  ok users.serializers.WaitlistSerializer (users.models.Waitlist): 0 validators, none from UniqueConstraint
+
+Checked 52 ModelSerializer subclasses across 8 modules.
+Flagged: 5
+  billing.serializers.SchoolCreditAllocationSerializer model=billing.models.SchoolCreditAllocation fields=['license_subscription', 'user'] (NOT emptied)
+  classrooms.serializers.CourseSerializer model=classrooms.models.Course fields=['name', 'teacher', 'session'] (NOT emptied)
+  classrooms.serializers.TopicSerializer model=classrooms.models.Topic fields=['name', 'course'] (NOT emptied)
+  students.serializers.StudentSubmissionListSerializer model=students.models.StudentSubmission fields=['student', 'assignment'] (NOT emptied)
+  students.serializers.StudentSubmissionSerializer model=students.models.StudentSubmission fields=['student', 'assignment'] (NOT emptied)
+
+--- Cross-check under DRF 3.16.1 (shared venv) ---
+All 5 flagged serializers also have the same UniqueTogetherValidator under DRF 3.16.1:
+  SchoolCreditAllocationSerializer: 1 validator (from unique_together)
+  CourseSerializer: 1 validator (from unconditional UniqueConstraint — DRF 3.16 already handled these)
+  TopicSerializer: 1 validator (from unconditional UniqueConstraint)
+  StudentSubmissionListSerializer: 1 validator (from unconditional UniqueConstraint)
+  StudentSubmissionSerializer: 1 validator (from unconditional UniqueConstraint)
+
+Conclusion: NO new auto-generated validators were introduced by DRF 3.18 beyond
+UserSubscriptionSerializer (which had a CONDITIONAL UniqueConstraint with
+condition=Q(is_active=True), now emptied by validators=[]).
+
+DRF 3.16 already generated validators from unconditional UniqueConstraints. The 3.18
+change is that it now ALSO generates validators from conditional UniqueConstraints,
+which only affected UserSubscriptionSerializer in this project.

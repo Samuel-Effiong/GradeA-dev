@@ -363,6 +363,9 @@ def run_live(scenario, teacher, course) -> dict:
             "fallback_models": list(
                 getattr(ai_services, "GRADING_FALLBACK_MODELS", [])
             ),
+            "image_fallback_models": list(
+                getattr(ai_services, "IMAGE_FALLBACK_MODELS", [])
+            ),
             "blank_verification_model": (
                 getattr(settings, "ANSWER_BLANK_VERIFICATION_MODEL", "") or None
             ),

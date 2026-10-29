@@ -11,7 +11,13 @@ from django.db.models.functions import Concat
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from ai_processor.extraction_flags import REVIEW_FLAG
+from ai_processor.extraction_flags import REVIEW_REASON_TYPE as EXTRACTION_FLAG
+from ai_processor.extraction_flags import TIER_OF as EXTRACTION_FLAG_TIER
+from ai_processor.extraction_flags import answers_with_flags, flags_from_extraction
+from ai_processor.extraction_schemas import BLANK, ILLEGIBLE, NOT_FOUND_IN_DOCUMENT
 from ai_processor.grading_run import GradingRun
+from ai_processor.reading_run import ReadingRun
 from ai_processor.services import (
     GRADING_ASSIGNMENT_PROMPT,
     REPLY_CORRECTED,
@@ -42,6 +48,7 @@ from .exceptions import (
     SubmissionAlreadyGradedError,
     SubmissionAnswersUnreadableError,
     SubmissionBeingGradedError,
+    SubmissionGradedMeanwhileError,
     SubmissionGradingInProgressError,
     SubmissionLimitReachedError,
     SubmissionProcessingInProgressError,
@@ -56,6 +63,7 @@ from .models import (
     GradingState,
     StudentSubmission,
 )
+from .reading_label import READING_LABEL_FIELDS, apply_reading_label
 from .signals import invalidate_submission_caches
 from .task_tracking import (
     cancellable_final_save,
@@ -194,8 +202,27 @@ def student_submission_to_html(submission, *, show_grade=True) -> str:
     # indentation are kept: the text below is part of the document.
     printable, left_out = printable_answers(submission.answers)
     if printable:
+        # H-253: each answer with its own flag, from the paper's stored ones.
+        printable = answers_with_flags(
+            printable, getattr(submission, "extraction_flags", None)
+        )
         for ans in printable:
-            status = "Answered" if ans.get("answer_html") else "Skipped"
+            answer_html = rich(ans.get("answer_html"))
+            if answer_html:
+                status = "Answered"
+            else:
+                # H-253: an answer not found or not read is not "skipped".
+                status, empty = EMPTY_ANSWER_WORDING.get(
+                    ans.get("answer_status"), ("Skipped", "No answer submitted.")
+                )
+                answer_html = f"<em>{empty}</em>"
+            flag = ans.get(REVIEW_FLAG)
+            flag_html = (
+                f"<p><strong>Flagged for review:</strong> "
+                f"{safe(flag.get('message'))} {safe(flag.get('detail'))}</p>"
+                if isinstance(flag, dict)
+                else ""
+            )
 
             questions_html += f"""
             <article style="margin-bottom: 24px;">
@@ -205,11 +232,11 @@ def student_submission_to_html(submission, *, show_grade=True) -> str:
                 <div>
                     <strong>Student Answer:</strong>
                     <div style="margin:8px 0; padding:10px; border-left:4px solid #ccc;">
-                        {rich(ans.get('answer_html')) or "<em>No answer submitted.</em>"}
+                        {answer_html}
                     </div>
                 </div>
 
-                <p><strong>Status:</strong> {status}</p>
+                <p><strong>Status:</strong> {status}</p>{flag_html}
             </article>
             """
 
@@ -279,7 +306,7 @@ GRADING_TASK_TIME_LIMIT_SECONDS = 25 * 60
 GRADING_CLAIM_STALE_AFTER = timedelta(seconds=GRADING_TASK_TIME_LIMIT_SECONDS + 5 * 60)
 
 
-def _claim_submission_for_grading(submission_id):
+def _claim_submission_for_grading(submission_id, only_if_ungraded=False):
     """
     Atomically claim a submission for grading (C3). Returns True if the
     claim was acquired.
@@ -293,17 +320,21 @@ def _claim_submission_for_grading(submission_id):
     Claimable states: anything that is not a *fresh* RUNNING claim - IDLE,
     DONE (legitimate re-grade), FAILED, and a RUNNING claim older than
     GRADING_CLAIM_STALE_AFTER (left behind by a crashed/killed worker).
+
+    H-215a: with only_if_ungraded the same UPDATE also requires graded_at
+    to be empty, so an automatic run never grades a paper graded since it
+    was queued. The check and the claim are one statement, so a grade
+    committed before the claim is always seen.
     """
     now = timezone.now()
     stale_cutoff = now - GRADING_CLAIM_STALE_AFTER
-    claimed = (
-        StudentSubmission.objects.filter(pk=submission_id)
-        .exclude(
-            grading_state=GradingState.RUNNING,
-            grading_started_at__gt=stale_cutoff,
-        )
-        .update(grading_state=GradingState.RUNNING, grading_started_at=now)
-    )
+    candidates = StudentSubmission.objects.filter(pk=submission_id)
+    if only_if_ungraded:
+        candidates = candidates.filter(graded_at__isnull=True)
+    claimed = candidates.exclude(
+        grading_state=GradingState.RUNNING,
+        grading_started_at__gt=stale_cutoff,
+    ).update(grading_state=GradingState.RUNNING, grading_started_at=now)
     if claimed:
         # H-1 Stage 3 (pre-existing staleness P1): .update() bypasses
         # post_save, and only the FAILED release path below invalidated -
@@ -425,6 +456,63 @@ def _whole_count(value):
         return 0
 
 
+#: H-253: what the answer document says for an answer with no text, by its
+#: status: (status line, the line in the answer's place).
+EMPTY_ANSWER_WORDING = {
+    BLANK: ("Left blank", "Left blank."),
+    NOT_FOUND_IN_DOCUMENT: (
+        "Not found in the upload",
+        "No answer could be found for this question in the upload.",
+    ),
+    ILLEGIBLE: ("Could not be read", "This answer could not be read from the upload."),
+}
+
+#: H-242: the columns a new reading of a paper owns for its review state.
+EXTRACTION_REVIEW_FIELDS = (
+    "extraction_flags",
+    "needs_review",
+    "review_reasons",
+    "review_severity",
+    "review_tier",
+)
+
+
+def _extraction_flag_reason(flag):
+    """One extraction flag as a review-queue reason, with its tier and
+    sort key."""
+    tier = EXTRACTION_FLAG_TIER.get(flag.get("kind"), "moderate")
+    reason = {"type": EXTRACTION_FLAG, **flag}
+    return reason, tier, _review_sort_key(tier, 1.0 if tier == "critical" else None)
+
+
+def apply_extraction_flags(submission, extraction_result):
+    """H-242: set what the reader noticed about a new reading of a paper,
+    and the review state it calls for, on `submission` (not saved).
+
+    A new reading replaces the paper's answers, so it replaces the review
+    state too: every reason on file was about the answers being replaced.
+    A paper with no flags is taken off the queue; a paper with any is put
+    on it with the reader's reasons. Grading later rebuilds the reasons and
+    keeps these (_populate_and_save_grade).
+
+    H-253: the answer document prints each answer's flag, so call this
+    before it is built."""
+    flags = flags_from_extraction(extraction_result)
+    submission.extraction_flags = flags
+    filed = [_extraction_flag_reason(flag) for flag in flags]
+    if filed:
+        submission.needs_review = True
+        submission.review_reasons = [reason for reason, _, _ in filed]
+        submission.review_severity = max(key for _, _, key in filed)
+        submission.review_tier = _worst_tier([tier for _, tier, _ in filed])
+    else:
+        submission.needs_review = False
+        submission.review_reasons = None
+        submission.review_severity = None
+        submission.review_tier = None
+    return flags
+
+
 def _coerce_confidence(value):
     """Clamp a model-reported 0-100 confidence to a safe int; the DB field
     is non-nullable, and the model can emit null or junk here."""
@@ -445,7 +533,8 @@ def emit_grading_completed(submission, *, actor, before, task_id=None):
     `grade_engine` ran; the after is read back from the saved row."""
     # BE-A-09 #2: the model that actually served THIS grading run - not
     # necessarily MAIN_MODEL, since OpenRouter may have routed to one of
-    # GRADING_FALLBACK_MODELS - is already captured on the graded result as
+    # GRADING_FALLBACK_MODELS or, for a call with an image,
+    # IMAGE_FALLBACK_MODELS (H-205) - is already captured on the graded result as
     # `grading_model` (ai_processor/services.py) and threaded onto the
     # submission via `submission.feedback = grading`. Reading it back here is
     # the only way this emit, which only sees the persisted submission,
@@ -532,7 +621,7 @@ def _refuse_unreadable_answers(submission):
     raise SubmissionAnswersUnreadableError(ANSWERS_UNREADABLE_FOR_TEACHER)
 
 
-def grade_engine(user, submission, processing_task_id=None):
+def grade_engine(user, submission, processing_task_id=None, only_if_ungraded=False):
     # FR-A-06 #7 (S6d): nothing to grade against -> 409 RUBRIC_MISSING,
     # before the claim, the AI call and any charge. Every grading path
     # comes through here, including scheduled and automatic runs, which
@@ -542,7 +631,20 @@ def grade_engine(user, submission, processing_task_id=None):
     if printable_answers(submission.answers)[1] == ALL_LEFT_OUT:
         _refuse_unreadable_answers(submission)
 
-    if not _claim_submission_for_grading(submission.id):
+    if not _claim_submission_for_grading(
+        submission.id, only_if_ungraded=only_if_ungraded
+    ):
+        # H-215a: an automatic run that lost the claim because the paper
+        # was graded meanwhile skips it; otherwise another run holds it.
+        if (
+            only_if_ungraded
+            and StudentSubmission.objects.filter(
+                pk=submission.id, graded_at__isnull=False
+            ).exists()
+        ):
+            raise SubmissionGradedMeanwhileError(
+                f"Submission {submission.id} was graded after it was queued."
+            )
         raise SubmissionGradingInProgressError(
             f"Submission {submission.id} is already being graded."
         )
@@ -744,6 +846,43 @@ def _populate_and_save_grade(submission, grading, processing_task_id, run=None):
         sort_keys.append(_review_sort_key("critical", 1.0))
         reasons.append({"type": ANSWERS_UNREADABLE, "left_out": left_out})
         logger.warning(*unreadable_answers_log_line(submission, left_out))
+
+    # Source 5 (H-242): what the reader noticed when the paper was read.
+    # An answer it could not find or read is already in Source 1, and gets
+    # the reader's message there; every other flag is filed as its own.
+    key = ai_processor._question_number_key
+    flags = [
+        flag
+        for flag in (
+            submission.extraction_flags
+            if isinstance(submission.extraction_flags, list)
+            else []
+        )
+        if isinstance(flag, dict)
+    ]
+    flag_by_question = {
+        key(flag.get("question_number")): flag
+        for flag in flags
+        if flag.get("question_number") is not None
+    }
+    in_source_1 = set()
+    for reason in reasons:
+        if reason.get("type") != "answer_not_found":
+            continue
+        question = key(reason.get("question_number"))
+        in_source_1.add(question)
+        flag = flag_by_question.get(question)
+        if flag is not None:
+            reason["message"] = flag.get("message")
+            reason["detail"] = flag.get("detail")
+    for flag in flags:
+        number = flag.get("question_number")
+        if number is not None and key(number) in in_source_1:
+            continue
+        reason, tier, sort_key = _extraction_flag_reason(flag)
+        tiers.append(tier)
+        sort_keys.append(sort_key)
+        reasons.append(reason)
 
     if reasons:
         submission.needs_review = True
@@ -1226,6 +1365,7 @@ def upload_answers_engine(
     with billing_refund_scope(
         reason="answer upload failed before the submission was persisted"
     ):
+        reading_run = ReadingRun()
         student_submission = ai_processor.extract_answer_with_retry(
             request_user,
             content,
@@ -1233,6 +1373,7 @@ def upload_answers_engine(
             assignment_model=assignment,
             max_retries=3,
             processing_task_id=processing_task_id,
+            reading_run=reading_run,
         )
 
         if student_submission is not None:
@@ -1331,7 +1472,12 @@ def upload_answers_engine(
                         submission_date=timezone.now(),
                     )
 
+                # How these answers were read, set before the one save below:
+                # the label and the answers are one INSERT or one UPDATE.
+                apply_reading_label(submission, reading_run, submission.answers)
                 ensure_task_not_cancelled(processing_task_id)
+                # Before the document: it prints each answer's flag (H-253).
+                apply_extraction_flags(submission, student_submission)
                 answer_html = student_submission_to_html(submission)
                 submission.raw_input = (
                     AssignmentProcessingService.html_to_prosemirror_text(answer_html)
@@ -1357,6 +1503,8 @@ def upload_answers_engine(
                                 "attempt_count",
                                 "raw_input",
                                 "extraction_confidence",
+                                *EXTRACTION_REVIEW_FIELDS,
+                                *READING_LABEL_FIELDS,
                             ]
                         )
 
@@ -1561,6 +1709,7 @@ def update_submission_from_raw_text(
     with billing_refund_scope(
         reason="submission edit failed before the new answers were persisted"
     ):
+        reading_run = ReadingRun()
         extracted = ai_processor.extract_answer_with_retry(
             user,
             content,
@@ -1568,6 +1717,7 @@ def update_submission_from_raw_text(
             assignment_model=assignment,
             max_retries=3,
             processing_task_id=processing_task_id,
+            reading_run=reading_run,
         )
         answers = extracted.get("answers") if isinstance(extracted, dict) else None
         if not is_a_list_of_objects(answers):
@@ -1583,6 +1733,11 @@ def update_submission_from_raw_text(
             )
             ensure_task_not_cancelled(processing_task_id)
             locked.answers = answers
+            # An edit is a new reading: its label replaces the old one in
+            # the same save.
+            apply_reading_label(locked, reading_run, answers)
+            # Before the document: it prints each answer's flag (H-253).
+            apply_extraction_flags(locked, extracted)
             locked.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
                 student_submission_to_html(locked)
             )
@@ -1593,7 +1748,13 @@ def update_submission_from_raw_text(
                 # Only what this path owns - never a full-row save from an
                 # instance that predates the extraction.
                 locked.save(
-                    update_fields=["answers", "raw_input", "extraction_confidence"]
+                    update_fields=[
+                        "answers",
+                        "raw_input",
+                        "extraction_confidence",
+                        *EXTRACTION_REVIEW_FIELDS,
+                        *READING_LABEL_FIELDS,
+                    ]
                 )
     return locked
 

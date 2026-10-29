@@ -1,0 +1,235 @@
+# flake8: noqa: E501
+"""Item 6 in-repo mutants (Builder 2 · 4d): deliberate breaks, and the tests that must catch each.
+
+Run by gate.py inside the throwaway worktree item6-mut (cwd), copied there as
+item6_mutate.py; `python -I mutate.py --check` in any tree only counts the
+anchors (no run). Each mutant: the file is edited (anchor found exactly once),
+the mutated module's __pycache__ removed (rule 17), its labels run with
+--settings=settings_worktree --keepdb (after one baseline that creates the
+database), output straight to its own log file with stdin from /dev/null
+(rule 18), the file restored from the saved source and sha256-checked.
+
+Judged (rules 18, 19, 22; H-229): KILLED AS WRITTEN = non-zero exit, the run's
+own "Ran" line, no load failure, the failing set EXACTLY the written one, and
+each written fragment inside that test's own failure block, all of a test's
+fragments in ONE block. Anything else is reported as what it is (SURVIVED,
+DIFFERS with the extra or missing tests named, WRONG REASON, BROKEN) and the
+battery ends non-zero. EXPECTED was written before any run.
+"""
+
+import hashlib
+import json
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+
+LOGS = pathlib.Path(os.environ.get("MUT_LOGS", "mutant_logs"))
+RESULTS = pathlib.Path(os.environ.get("MUT_RESULTS", "mutation_results.json"))
+SETTINGS = os.environ.get("MUT_SETTINGS", "settings_worktree")
+
+PERM = "users/permissions.py"
+RATE = "users/tests_rate_limited_envelope.py"
+CHECK = "scripts/check_migration_safety.py"
+
+L228 = ["users.tests_credit_balance_permission", "students.tests_h225_student_empty_wallet"]
+L226 = ["users.tests_rate_limited_envelope"]
+L217 = ["AutoGrader.tests_migration_safety_check"]
+
+GENERIC = "There aren't enough AI credits available for this."
+STUDENT = "Your answers were not submitted."
+NOT_INSTANCE = "is not an instance of <class 'billing.errors.StudentEmptyWalletError'>"
+
+# id: (what is broken, file, old, new, labels)
+MUTANTS = {
+    "M228-1": (
+        "H-225's P1 again: the plain EmptyWalletError raised for a student",
+        PERM,
+        '                raise StudentEmptyWalletError("Credit wallet is empty")\n',
+        '                raise EmptyWalletError("Credit wallet is empty")\n',
+        L228,
+    ),
+    "M226-1": (
+        "the stand-in patches a method the view never calls: the real exchange runs again",
+        RATE,
+        '        stand_in = patch("requests.post")\n',
+        '        stand_in = patch("requests.put")\n',
+        L226,
+    ),
+    "M217-1": (
+        "the AddConstraint rule removed",
+        CHECK,
+        '    elif op_name == "AddConstraint":\n',
+        '    elif op_name == "AddConstraint" and False:\n',
+        L217,
+    ),
+    "M217-2": (
+        "the RemoveConstraint rule removed",
+        CHECK,
+        '    elif op_name == "RemoveConstraint":\n',
+        '    elif op_name == "RemoveConstraint" and False:\n',
+        L217,
+    ),
+    "M217-3": (
+        "a RunSQL judged by its state operations (the two-step way reported)",
+        CHECK,
+        '            "acknowledges"\n        ]\n\n    return []\n',
+        '            "acknowledges"\n        ]\n\n    elif op_name == "RunSQL":\n        return findings_for(op.state_operations, state.clone(), app_label)\n\n    return []\n',
+        L217,
+    ),
+    "M217-4": (
+        "the finding no longer names the two-step way",
+        CHECK,
+        '            "steps: RunSQL ... NOT VALID, then VALIDATE CONSTRAINT in the next "\n',
+        '            "steps: add it, then validate it in the next "\n',
+        L217,
+    ),
+}
+
+#: Written before any run: {mutant: {test: [fragments all in ONE of its blocks]}}.
+EXPECTED = {
+    # The unit test (H-228) and H-225's five student route tests, each of
+    # which first fails at its error-text assertion with both sentences in
+    # the block (H-225's chain config, P1). C1/C2 and the other 19 unit tests
+    # stay green.
+    "M228-1": {
+        "test_student_is_refused_when_their_teacher_has_none": [NOT_INSTANCE],
+        "test_s1_the_synchronous_upload": [GENERIC, STUDENT],
+        "test_s2_the_asynchronous_upload": [GENERIC, STUDENT],
+        "test_s3_the_edit": [GENERIC, STUDENT],
+        "test_s4_the_asynchronous_edit": [GENERIC, STUDENT],
+        "test_s5_the_students_own_funded_wallet_changes_nothing": [GENERIC, STUDENT],
+    },
+    # The real exchange runs (the H-39 guard blocks it): test 1 fails at the
+    # stand-in's call count (its first assertion after the envelope), test 2
+    # at assertNoLogs. The other ten tests of the module stay green.
+    "M226-1": {
+        "test_google_auth_throttle": ["Expected 'put' to have been called once. Called 0 times."],
+        "test_the_google_throttle_probe_never_calls_google": [
+            "Unexpected logs found: ['ERROR:users.views:Google OAuth token exchange failed"
+        ],
+    },
+    "M217-1": {
+        "test_a_check_constraint_added_in_one_step_is_reported": ["Lists differ: [] != ['AddConstraint']"],
+        "test_a_unique_constraint_added_in_one_step_is_reported": ["Lists differ: [] != ['AddConstraint']"],
+        "test_the_finding_names_the_constraint_and_the_two_step_way": ["0 != 1"],
+    },
+    "M217-2": {
+        "test_a_constraint_dropped_in_one_step_is_reported": ["Lists differ: [] != ['RemoveConstraint']"],
+    },
+    "M217-3": {
+        "test_the_two_step_way_itself_is_not_reported": ["Lists differ: ['AddConstraint'] != []"],
+    },
+    "M217-4": {
+        "test_the_finding_names_the_constraint_and_the_two_step_way": ["'NOT VALID' not found in"],
+    },
+}
+
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+BLOCK = re.compile(
+    r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)([^\n]*\n.*?)(?=^(?:FAIL|ERROR): |^Ran \d+ tests)",
+    re.M | re.S,
+)
+RAN = re.compile(r"^Ran (\d+) tests? in ", re.M)
+LOAD_FAILURE = ("unittest.loader._FailedTest", "ModuleNotFoundError", "ImportError:")
+
+
+def sha(path):
+    return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
+
+
+def clear_pycache(rel):
+    shutil.rmtree(pathlib.Path(rel).parent / "__pycache__", ignore_errors=True)
+
+
+def run_tests(labels, log):
+    with open(log, "w") as fh, open(os.devnull) as nothing:
+        rc = subprocess.run(
+            [sys.executable, "manage.py", "test", "--noinput", "--verbosity", "2",
+             f"--settings={SETTINGS}", "--keepdb", *labels],
+            stdin=nothing, stdout=fh, stderr=subprocess.STDOUT,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "EXEMPT_EMAIL_DOMAINS": ""},
+        ).returncode
+    return rc, open(log, errors="replace").read()
+
+
+def judge(mid, rc, text):
+    expected = EXPECTED[mid]
+    problems = []
+    if rc == 0:
+        problems.append("SURVIVED (exit 0)")
+    if not RAN.search(text):
+        problems.append("no Ran line")
+    if any(s in text for s in LOAD_FAILURE):
+        problems.append("load failure")
+    failed = {name for name, _ in LINE.findall(text)}
+    extra, missing = sorted(failed - set(expected)), sorted(set(expected) - failed)
+    if extra or missing:
+        problems.append(f"DIFFERS: also failed {extra}; did not fail {missing}")
+    blocks = {}
+    for name, _, body in BLOCK.findall(text):
+        blocks.setdefault(name, []).append(body)
+    for test, fragments in expected.items():
+        bodies = blocks.get(test, [])
+        if test in failed and not any(all(f in b for f in fragments) for b in bodies):
+            problems.append(f"WRONG REASON {test}: {fragments} not together in one of its blocks")
+    return problems, sorted(failed)
+
+
+def main():
+    if "--check" in sys.argv:
+        bad = 0
+        for mid, (_, rel, old, _new, _labels) in MUTANTS.items():
+            n = pathlib.Path(rel).read_text().count(old)
+            print(f"{mid}: anchor in {rel} found {n} time(s)")
+            bad += n != 1
+        print("anchors ok" if not bad else f"{bad} anchor(s) wrong")
+        return 1 if bad else 0
+
+    LOGS.mkdir(parents=True, exist_ok=True)
+    labels = sorted({l for m in MUTANTS.values() for l in m[4]})
+    rc, text = run_tests(labels, LOGS / "baseline.log")
+    m = RAN.search(text)
+    print(f"baseline: exit={rc} {m.group(0).strip() if m else 'NO Ran LINE'}", flush=True)
+    if rc != 0 or not m:
+        print("BATTERY: the baseline is not green; no mutant run")
+        return 2
+    rows = {}
+    bad = 0
+    for mid, (what, rel, old, new, mlabels) in MUTANTS.items():
+        path = pathlib.Path(rel)
+        source = path.read_text()
+        before = sha(path)
+        if source.count(old) != 1:
+            print(f"{mid}: BROKEN, anchor found {source.count(old)} times")
+            bad += 1
+            continue
+        path.write_text(source.replace(old, new))
+        clear_pycache(rel)
+        try:
+            rc, text = run_tests(mlabels, LOGS / f"{mid}.log")
+        finally:
+            path.write_text(source)
+            clear_pycache(rel)
+            if sha(path) != before:
+                print(f"{mid}: RESTORE FAILED its sha check; stopping")
+                return 3
+        problems, failed = judge(mid, rc, text)
+        m = RAN.search(text)
+        verdict = "KILLED as written" if not problems else "; ".join(problems)
+        print(f"{mid} ({what}): exit={rc} {m.group(0).strip() if m else 'no Ran'}; failing {failed}; {verdict}", flush=True)
+        rows[mid] = {"what": what, "file": rel, "exit": rc, "failed": failed,
+                     "expected": EXPECTED[mid], "verdict": verdict}
+        bad += bool(problems)
+    RESULTS.write_text(json.dumps(rows, indent=2))
+    if bad:
+        print(f"BATTERY: {bad} mutant(s) not killed as written")
+        return 1
+    print("BATTERY: every mutant killed as written")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

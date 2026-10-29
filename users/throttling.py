@@ -237,4 +237,4 @@ def clear_verify_failures(email):
     try:
         cache.delete(_verify_address_key("attempts", email))
     except Exception:  # noqa: BLE001
-        pass
+        pass  # nosec B110  # best effort: a cache outage must not fail the request

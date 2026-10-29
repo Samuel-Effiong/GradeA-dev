@@ -202,7 +202,13 @@ def spied_gate():
 
 
 class RefusalAssertions(unittest.TestCase):
-    def assertCleanRefusalResponse(self, response, expected_status, expected_code):
+    def assertCleanRefusalResponse(
+        self,
+        response,
+        expected_status,
+        expected_code,
+        credits_message=GENERIC_CREDITS_MESSAGE,
+    ):
         self.assertEqual(response.status_code, expected_status, response.content)
         self.assertEqual(response.data.get("code"), expected_code, response.data)
         self.assertTrue(response.data.get("error"), response.data)
@@ -213,7 +219,7 @@ class RefusalAssertions(unittest.TestCase):
         # the error text, never "1. Error: ... 2. Code: ...".
         self.assertEqual(json.loads(body)["message"], response.data["error"])
         if expected_code == CREDITS_CODE:
-            self.assertEqual(response.data["error"], GENERIC_CREDITS_MESSAGE)
+            self.assertEqual(response.data["error"], credits_message)
 
     def assertNoCreditDetail(self, text):
         for fragment in CREDIT_DETAIL_FRAGMENTS:
@@ -635,7 +641,15 @@ class D9StudentSubmissionRefusalStatusTest(RefusalAssertions, APITestCase):
                     if refusal is AIFeatureNotAvailableError
                     else (PAYMENT_REQUIRED, CREDITS_CODE)
                 )
-                self.assertCleanRefusalResponse(response, *expected)
+                # H-216: a STUDENT whose teacher cannot pay reads the fixed
+                # student sentence, not the generic wallet text.
+                expected_status, expected_code = expected
+                self.assertCleanRefusalResponse(
+                    response,
+                    expected_status,
+                    expected_code,
+                    credits_message=STUDENT_UPLOAD_NOT_PROCESSED,
+                )
                 self.assertEqual(gate.call_count, 1)
                 submission.refresh_from_db()
                 self.assertEqual(submission.answers[0]["answer_html"], "original")
@@ -764,8 +778,17 @@ class D11EmptyWalletPermissionTest(RefusalAssertions, APITestCase):
                 tasks_before = BackgroundProcessingTask.objects.count()
                 with spied_gate() as gate:
                     response = getattr(self.client, method)(url, data, format="json")
+                # H-225: a STUDENT refused at the permission (the teacher's
+                # wallet is empty) reads the fixed student sentence.
                 self.assertCleanRefusalResponse(
-                    response, PAYMENT_REQUIRED, CREDITS_CODE
+                    response,
+                    PAYMENT_REQUIRED,
+                    CREDITS_CODE,
+                    credits_message=(
+                        STUDENT_UPLOAD_NOT_PROCESSED
+                        if user.user_type == UserTypes.STUDENT
+                        else GENERIC_CREDITS_MESSAGE
+                    ),
                 )
                 self.assertEqual(gate.call_count, 0, "work ran past the permission")
                 self.assertEqual(BackgroundProcessingTask.objects.count(), tasks_before)

@@ -1,0 +1,119 @@
+# H-235 chain config for ../row_chain.py. The user's decision (2026-10-14,
+# through the SM): my-students' counts over PUBLISHED assignments only (DRAFT
+# and UNPUBLISHED out, not-yet-due IN); submitted = submissions to them; the
+# percent follows; at_risk unchanged. Written by the Builder (13) BEFORE any
+# run, by reading the tests at b08ef0a2, the fix at 34d70fff and the base
+# abcc69e5 (H-234's final tip). Every message was checked against unittest's
+# own output; the operands are int, int, float (the counts and the rounded
+# percent) and bool (at_risk). Nothing here was seen by a run.
+
+ROW = "h235"
+WT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h235-counts-published-only"
+BASE = "abcc69e5"  # H-234: the counts include every assignment of the counted courses
+OUT = "/home/bond-servant-in-training/Documents/Projects/GAP-58-runs/h235"
+DB_PREFIX = "test_h235"
+
+T = "TheCountsAreOverPublishedWorkTest"
+P1 = (T, "test_p1_a_draft_is_not_in_the_total")
+P2 = (T, "test_p2_an_unpublished_one_is_not_in_the_total")
+P3 = (T, "test_p3_control_a_published_one_not_yet_due_is_in_the_total")
+P4 = (T, "test_p4_a_submission_to_a_draft_is_not_counted")
+P5 = (T, "test_p5_a_submission_to_an_unpublished_one_is_not_counted")
+P6 = (T, "test_p6_the_percent_follows")
+R1 = (T, "test_r1_control_at_risk_still_counts_only_work_due_by_now")
+
+ROW_MODULES = ["classrooms.tests_h235_counts_published_only"]
+
+ONE_EXTRA_IN_TOTAL = ("Tuples differ: (2, 1, 50.0) != (1, 1, 100.0)",)
+ONE_EXTRA_BOTH = ("Tuples differ: (2, 2, 100.0) != (1, 1, 100.0)",)
+
+# (r): the test file as at the tip, on abcc69e5. P3 and R1 are green on
+# both by design.
+R_LABELS = ROW_MODULES
+R_FROM_TIP = ["classrooms/tests_h235_counts_published_only.py"]
+R_REASON = {
+    P1: ONE_EXTRA_IN_TOTAL,
+    P2: ONE_EXTRA_IN_TOTAL,
+    P4: ONE_EXTRA_BOTH,
+    P5: ONE_EXTRA_BOTH,
+    P6: ("Tuples differ: (3, 2, 66.67) != (2, 1, 50.0)",),
+}
+REPRO = set(R_REASON)
+
+A_LABELS = ROW_MODULES + [
+    "classrooms.tests_h234_grade_follows_filters",
+    "classrooms.tests_h230_my_students_withdrawn",
+    "classrooms.tests_h231_bad_filter_numbers",
+    "classrooms.tests_my_students_at_risk_filter",
+    "classrooms.tests_my_students_grade_filter",
+    "classrooms.tests_my_students_concurrency",
+    "classrooms.tests_my_students_course_scope",
+    "classrooms.tests_enrollment_list_order",
+    "classrooms.tests_query_budget",
+    "classrooms.tests_security_penetration",
+    "classrooms.tests_teacher_access_sweep",
+    "billing.tests.test_h38_part2_removed_teacher_routes",
+    "dashboard.tests_teacher_all_students",
+    "dashboard.tests_h232_all_students_scoping",
+    "AutoGrader.tests_student_classmates_guard",
+    "AutoGrader.tests_cache_bespoke_1114",
+    "AutoGrader.tests_migration_safety_check",
+    "AutoGrader.tests_no_playwright_at_import",
+    "AutoGrader.tests_no_wildcard_invalidation",
+    "AutoGrader.tests_cache_invalidation_coverage",
+    "AutoGrader.tests_migration_rollback_defaults",
+    "AutoGrader.tests_redis_test_isolation",
+    "AutoGrader.tests_management_commands_are_commands",
+    "AutoGrader.tests_no_pii_in_logs",
+    "AutoGrader.tests_log_scrubbing",
+    "AutoGrader.tests_sentry_scrubbing",
+    "billing.tests.test_logs_carry_no_email",
+]
+
+SER = "students/serializers.py"
+TOTAL_FILTER = (
+    "            for assignment in enrollment.course.assignments.all()\n"
+    "            if self._is_published(assignment)\n"
+    "        )\n"
+)
+SUBMITTED_FILTER = "            and self._is_published(submission.assignment)\n"
+PUBLISHED = "        return assignment.status == AssignmentStatus.PUBLISHED\n"
+EXPECTED = (
+    "        return self._is_published(assignment) and (\n"
+    "            assignment.due_date is None or assignment.due_date <= timezone.now()\n"
+    "        )\n"
+)
+
+MUTANTS = {
+    # Q1 the total counts every assignment again (the base's meaning).
+    "Q1": (SER, TOTAL_FILTER,
+           "            for assignment in enrollment.course.assignments.all()\n"
+           "        )\n",
+           ROW_MODULES, {P1, P2, P4, P5, P6},
+           {P1: ONE_EXTRA_IN_TOTAL, P2: ONE_EXTRA_IN_TOTAL,
+            P4: ONE_EXTRA_IN_TOTAL, P5: ONE_EXTRA_IN_TOTAL,
+            P6: ("Tuples differ: (3, 1, 33.33) != (2, 1, 50.0)",)}),
+    # Q2 the submitted count takes every submission again.
+    "Q2": (SER, SUBMITTED_FILTER, "", ROW_MODULES, {P4, P5, P6},
+           {P4: ("Tuples differ: (1, 2, 200.0) != (1, 1, 100.0)",),
+            P5: ("Tuples differ: (1, 2, 200.0) != (1, 1, 100.0)",),
+            P6: ("Tuples differ: (2, 2, 100.0) != (2, 1, 50.0)",)}),
+    # Q3 "published" wrongly also needs "due by now": not-yet-due work
+    # leaves the counts.
+    "Q3": (SER, PUBLISHED,
+           "        return assignment.status == AssignmentStatus.PUBLISHED and (\n"
+           "            assignment.due_date is None or assignment.due_date <= timezone.now()\n"
+           "        )\n",
+           ROW_MODULES, {P3, R1},
+           {P3: ("Tuples differ: (1, 1, 100.0) != (2, 1, 50.0)",),
+            R1: ("Tuples differ: (1, 1, 100.0) != (4, 1, 25.0)",)}),
+    # Q4 "published" read as "not a draft": UNPUBLISHED leaks in.
+    "Q4": (SER, PUBLISHED,
+           "        return assignment.status != AssignmentStatus.DRAFT\n",
+           ROW_MODULES, {P2, P5},
+           {P2: ONE_EXTRA_IN_TOTAL, P5: ONE_EXTRA_BOTH}),
+    # Q5 at_risk moved onto the counts' basis (published, due or not): R1's
+    # three not-yet-due assignments make 1 of 4, below the critical 50%.
+    "Q5": (SER, EXPECTED, "        return self._is_published(assignment)\n",
+           ROW_MODULES, {R1}, {R1: ("True is not false",)}),
+}

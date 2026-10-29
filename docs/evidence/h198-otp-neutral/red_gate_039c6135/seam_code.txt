@@ -1,0 +1,7 @@
+if not user.email_verified_at and (not user.is_active or _holds_admin_power(user)):
+    if not _holds_admin_power(user) and (not verify_lock_until(user.email)):
+        send_user_activation_email(user)
+    return Response({'detail': OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED)
+if user.email_verified_at and user.is_active:
+    return Response({'detail': OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED)
+SEAM OK: only otp changed, in the two ruled branches (and its OpenAPI text)

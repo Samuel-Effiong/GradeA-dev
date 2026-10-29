@@ -263,7 +263,9 @@ class VerifyEmailOtpDoesNotDeadEndANewlyCreatedAdminTests(APITestCase):
                 {"email": admin.email, "otp_type": "VERIFY_EMAIL"},
             )
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # H-198 (the user's ruling): the neutral 202 (it was 400 "Email already
+        # verified."); still nothing re-sent and the token unchanged.
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         mock_resend.assert_not_called()
         admin.refresh_from_db()
         self.assertEqual(admin.activation_token, original_token)

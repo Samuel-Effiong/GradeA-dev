@@ -27,6 +27,8 @@ import re
 import string
 import unicodedata
 
+from .extraction_schemas import ILLEGIBLE, NOT_FOUND_IN_DOCUMENT
+
 # ── Match outcomes ────────────────────────────────────────────────────────
 # Claimed outcomes (graded deterministically):
 CORRECT = "CORRECT"
@@ -363,7 +365,30 @@ def match_objective_answer(question, answer_html):
     return CORRECT if answered_position == correct_position else INCORRECT
 
 
-def build_objective_evaluation(question, answer_html, match):
+#: H-242: what a student and teacher are told when an objective answer is
+#: empty because the reader could not find or read it, not because the
+#: student left it. "Not attempted" is a claim about the student that the
+#: system is not entitled to make (GRADING_ASSIGNMENT_PROMPT_5's rule for
+#: the same statuses on the AI path).
+UNSEEN_ANSWER_WORDING = {
+    NOT_FOUND_IN_DOCUMENT: (
+        "No answer to this question could be found in the upload, so no "
+        "option could be matched.",
+        "Your answer to this question could not be found in the pages that "
+        "were uploaded, so no marks could be given yet. This has been "
+        "flagged for your teacher to check.",
+    ),
+    ILLEGIBLE: (
+        "The answer to this question could not be read from the upload, so "
+        "no option could be matched.",
+        "Your answer to this question could not be read clearly from the "
+        "upload, so no marks could be given yet. This has been flagged for "
+        "your teacher to check.",
+    ),
+}
+
+
+def build_objective_evaluation(question, answer_html, match, answer_status=None):
     """
     A question_evaluation dict shaped identically to the LLM's output
     contract (GRADING_ASSIGNMENT_PROMPT_5.txt), so nothing downstream can
@@ -390,6 +415,10 @@ def build_objective_evaluation(question, answer_html, match):
             "correct one."
         )
         feedback = f"Incorrect. The correct answer is: {model_answer}"
+    elif answer_status in UNSEEN_ANSWER_WORDING:  # NOT_ATTEMPTED, unseen
+        score = 0
+        level = "not_attempted"
+        rationale, feedback = UNSEEN_ANSWER_WORDING[answer_status]
     else:  # NOT_ATTEMPTED
         score = 0
         level = "not_attempted"

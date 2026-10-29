@@ -175,13 +175,17 @@ class InvitedStudentResetTests(APITestCase):
         self.assertEqual(invited.content, unknown.content)
 
     def test_an_inactive_never_verified_row_is_still_refused(self):
-        """Green on the old code too: a self-registered row or an old-scheme
-        pending student does not get a reset code."""
+        """A self-registered row or an old-scheme pending student does not get
+        a reset code. H-198 (the user's ruling): the answer is now the unknown
+        address's 202 (it was 400 "Email not verified."); the activation email
+        it is sent instead is tests_h198_otp_neutral's."""
         pending = self.unverified_inactive()
+        unknown = self.request_reset("nobody.h198@x.example")
 
         response = self.request_reset(pending.email)
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.content, unknown.content)
         self.assertFalse(PasswordResetOTP.objects.filter(user=pending).exists())
         self.sent_mock.assert_not_called()
 
@@ -438,9 +442,13 @@ class InvitedStudentResetTests(APITestCase):
         )
 
     def assert_request_refused(self, account):
+        """No reset code. H-198 (the user's ruling): answered as an unknown
+        address is (it was 400 "Email not verified.")."""
+        unknown = self.request_reset("nobody.h198@x.example")
         response = self.request_reset(account.email)
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.content, unknown.content)
         self.assertFalse(PasswordResetOTP.objects.filter(user=account).exists())
         self.sent_mock.assert_not_called()
 
@@ -775,8 +783,9 @@ class VerifyEmailAdminPowerTests(APITestCase):
 
     # -- controls: nothing else changes ------------------------------------
 
-    def test_a_verified_admin_still_gets_the_already_verified_answer(self):
-        """Green on the old code too."""
+    def test_a_verified_admin_asking_for_verification_gets_the_neutral_answer(self):
+        """H-198 (the user's ruling): the unknown address's 202, nothing sent
+        (it was 400 "Email already verified. Please login.")."""
         account = self.account(
             "vcv.h164@x.example",
             verified=True,
@@ -787,7 +796,7 @@ class VerifyEmailAdminPowerTests(APITestCase):
 
         response = self.ask_for_code(account.email)
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
 
     def test_a_verified_admin_can_still_verify(self):
         """Green on the old code too."""

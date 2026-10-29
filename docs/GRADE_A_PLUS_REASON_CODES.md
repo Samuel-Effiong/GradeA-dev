@@ -4,7 +4,7 @@ Error and reason code reference for Frontend and QA
 
 When the backend refuses something, it says why with a **reason code**: a short, fixed name such as `FILE_TOO_LARGE`. This document lists every code, what it means in plain words, the exact text the user sees, and what the response looks like, so that the frontend can handle each one and QA can test each one.
 
-There are **63 codes**. **44** are sent to the user in a response. **19** are written only into the activity record and are never sent to the user.
+There are **64 codes**. **45** are sent to the user in a response. **19** are written only into the activity record and are never sent to the user.
 
 **Where this applies.** The contract described here is the one on the **staging** environment, updated on 5 October 2026. All paths are under `/api/v1/`.
 
@@ -385,6 +385,18 @@ HTTP 400 · USER · Not retryable
 | Params | none |
 | Returned by | Whole request: `POST submissions/{id}/publish`. Per item: the `skipped` list of `POST assignments/{id}/publish-all-grades`. |
 
+#### `OVERAGE_CAP_EXCEEDED`
+
+HTTP 400 · USER · Not retryable
+
+| Field | Detail |
+|----|----|
+| Message | This purchase would go over your plan's limit of `{max_blocks}` block(s) per billing cycle. You have `{remaining}` block(s) left this cycle. |
+| What to do | Request fewer blocks, or wait until your next billing cycle, then try again. |
+| Params | `max_blocks`, `remaining` |
+| Returned by | Whole request: `POST subscription/credits/overage/purchase` (an individual teacher buying extra credit blocks beyond their plan). |
+| Notes | The cap is per billing cycle and set per plan (`SubscriptionPlan.max_overage_blocks`), not a single fixed number across plans. Re-checked again when Stripe confirms payment; if a race fills the cap between checkout and payment, the payment is kept and flagged for manual refund rather than granting over the cap — that path has no reason code, since it answers Stripe's webhook, not the teacher. |
+
 ### Sign-in locks
 
 Too many wrong attempts. The user has to wait. These four have a slightly different body, described in section 6.
@@ -422,7 +434,7 @@ HTTP 429 · USER · Retryable
 | Message | Too many incorrect codes for this email address. |
 | What to do | Wait, then request a new verification email. |
 | Params | none |
-| Returned by | `POST auth/verify` |
+| Returned by | `POST auth/verify`; `POST auth/register/school-admin` (H-210), which shares verify's per-address count |
 | Notes | The body also has `detail` and `code`. A `Retry-After` header is sent, and the text ends with "Expected available in N seconds." |
 
 #### `REGISTRATION_PAUSED`
@@ -436,6 +448,22 @@ HTTP 429 · USER · Retryable
 | Params | none |
 | Returned by | `POST auth/register/student` |
 | Notes | The body also has `detail` and `code`. A `Retry-After` header is sent (1 to 3600 seconds). |
+
+### Too many requests
+
+Any other route that limits how often it may be called.
+
+#### `RATE_LIMITED`
+
+HTTP 429 · USER · Retryable
+
+| Field | Detail |
+|----|----|
+| Message | Too many requests. Please wait `{wait_seconds}` second(s) and try again. |
+| What to do | Wait, then try again. |
+| Params | `wait_seconds` |
+| Returned by | Any rate-limited route that has no lock of its own above: the general per-user and per-visitor limits, the named limits on the sign-in and sign-up routes, and the dashboard AI prompt route. |
+| Notes | The body keeps DRF's `detail` beside the reason code, and a `Retry-After` header carries the same number of seconds as `wait_seconds`. The four sign-in locks above keep their own codes. |
 
 ### Roster import: the whole request
 
@@ -558,6 +586,18 @@ HTTP 422 · USER · Not retryable
 | What to do | None. The response sends `null`. Nothing for the user to do. |
 | Params | `row` |
 | Returned by | Per row: `results[]` of `POST course/{id}/bulk-add-students`, with `status: "failed"`. |
+
+#### `ROW_NAME_MISMATCH`
+
+HTTP 422 · USER · Not retryable
+
+| Field | Detail |
+|----|----|
+| Message | Row `{row}`: this email already belongs to a student with a different name. |
+| What to do | Use the name on the student's account, or check the email address. |
+| Params | `row` |
+| Returned by | Per row: `results[]` of `POST course/{id}/bulk-add-students`, with `status: "failed"`. |
+| Notes | One email is one student with one name, whichever teacher adds it. Neutral on purpose: the stored name is never sent. Upper/lower case and extra spaces don't count as a difference. Nothing is created or sent for the row. The single add and the direct add refuse the same case with a 400 and the same sentence as `detail`. |
 
 #### `ROW_ALREADY_ENROLLED`
 
@@ -771,7 +811,7 @@ HTTP 429   Retry-After: 1740
 |----|----|----|----|----|
 | `ACCOUNT_LOCKED` | `POST auth/login` | 401 | `detail`, `code: "account_locked"` | 15 minutes. No `Retry-After` header. |
 | `RESET_LOCKED` | `POST auth/reset-password` | 429 | `code`, `message`, `locked_until`, `retry_after_seconds` | `retry_after_seconds`, also in the `Retry-After` header. |
-| `VERIFY_LOCKED` | `POST auth/verify` | 429 | `detail`, `code` | The `Retry-After` header. |
+| `VERIFY_LOCKED` | `POST auth/verify`, `POST auth/register/school-admin` | 429 | `detail`, `code` | The `Retry-After` header. |
 | `REGISTRATION_PAUSED` | `POST auth/register/student` | 429 | `detail`, `code` | The `Retry-After` header. |
 
 ## 7. Errors That Have No Reason Code
@@ -795,8 +835,8 @@ These 19 codes are written into the permanent activity record so that support st
 |----|----|----|
 | `WRONG_PASSWORD` | Sign-in with a wrong password; change-password with a wrong current password | 401 on sign-in; 400 "Incorrect current password. Please try again." on change-password |
 | `INVALID_CREDENTIALS` | Sign-in refused for a reason other than a wrong password, such as an unknown address | 401, the same answer as a wrong password |
-| `ACCOUNT_DEACTIVATED` | Google sign-in to a deactivated account | 401 "This account has been deactivated. Please contact support." |
-| `INVALID_CODE` | A wrong code on verify, reset-password, change-password, student registration or school-admin registration | 400 with that screen's own text, for example "Invalid email or token." |
+| `ACCOUNT_DEACTIVATED` | Google sign-in to a deactivated account; a password reset on a deactivated account (H-221), recorded as refused | 401 "This account has been deactivated. Please contact support." on Google sign-in. On reset-password, 400 "Invalid email, OTP code, or new password.", the same answer as an unknown address |
+| `INVALID_CODE` | A wrong code on verify, reset-password, change-password, student registration or school-admin registration. Also, whether or not the code was right: a reset on an account that has never verified its email and is switched off or holds admin power (H-221), and a code on verify or school-admin registration for a never-verified account with admin power | 400 with that screen's own text, for example "Invalid email or token." |
 | `CODE_EXPIRED` | An expired code on the same five screens | 400 with that screen's own text. Student registration answers 200 with a renewal link |
 | `CODE_MISSING` | Verify called without an email or code | 400 "Email and Token are required." |
 | `CODE_NOT_REQUESTED` | Change-password with a code when none was requested | 400 "No password change code has been requested for this account. Request one and try again." |
@@ -836,7 +876,7 @@ Filters: `reason_code` (exact), `outcome`, `action`, `actor_id`, `actor_role`, `
 | Rows in one class list | 2,000 | `ROSTER_TOO_MANY_ROWS` |
 | Wrong passwords before a lock | 5, then 15 minutes | `ACCOUNT_LOCKED` |
 | Wrong reset codes before a lock | 5, then 30 minutes | `RESET_LOCKED` |
-| Wrong verification codes before a lock | 5, then 30 minutes | `VERIFY_LOCKED` |
+| Wrong verification codes or school-admin invitation tokens before a lock (one count per address, shared by both screens) | 5, then 30 minutes | `VERIFY_LOCKED` |
 
 ### A short checklist for each code
 
@@ -867,10 +907,12 @@ Filters: `reason_code` (exact), `outcome`, `action`, `actor_id`, `actor_role`, `
 | `AI_FEATURE_NOT_AVAILABLE` | Grading, credits and plan | 403 | No |
 | `NOT_RETRYABLE` | Grading, credits and plan | 409 | No |
 | `SUBMISSION_NOT_GRADED` | Grading, credits and plan | 400 | No |
+| `OVERAGE_CAP_EXCEEDED` | Grading, credits and plan | 400 | No |
 | `ACCOUNT_LOCKED` | Sign-in locks | 401 | Yes |
 | `RESET_LOCKED` | Sign-in locks | 429 | Yes |
 | `VERIFY_LOCKED` | Sign-in locks | 429 | Yes |
 | `REGISTRATION_PAUSED` | Sign-in locks | 429 | Yes |
+| `RATE_LIMITED` | Too many requests | 429 | Yes |
 | `ROSTER_NO_INPUT` | Roster import: the whole request | 400 | No |
 | `ROSTER_EMPTY` | Roster import: the whole request | 400 | No |
 | `ROSTER_FILE_UNREADABLE` | Roster import: the whole request | 400 | No |
@@ -881,6 +923,7 @@ Filters: `reason_code` (exact), `outcome`, `action`, `actor_id`, `actor_role`, `
 | `ROW_NAME_CLASH` | Roster import: one row | 422 | No |
 | `ROW_STAFF_EMAIL` | Roster import: one row | 422 | No |
 | `ROW_OTHER_SCHOOL` | Roster import: one row | 422 | No |
+| `ROW_NAME_MISMATCH` | Roster import: one row | 422 | No |
 | `ROW_ALREADY_ENROLLED` | Roster import: one row | 422 | No |
 | `ROW_DUPLICATE` | Roster import: one row | 422 | No |
 | `ROW_ACCOUNT_DISABLED` | Roster import: one row | 422 | No |

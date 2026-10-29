@@ -740,12 +740,28 @@ class DirectAddStudentSerializer(serializers.Serializer):
                 # Imported here, not at module scope: services.roster_import
                 # imports this module for DirectAddStudentSerializer, so a
                 # top-level import the other way is a genuine cycle.
-                from .services import EnrollmentError, check_existing_account_may_join
+                from .services import (
+                    EnrollmentError,
+                    apply_typed_name,
+                    check_existing_account_may_join,
+                )
 
                 try:
                     check_existing_account_may_join(student, course)
+                    # H-247: one email, one student, one name. After the
+                    # gate, so the refusal only speaks of a student this
+                    # teacher may add; an account with no name takes the
+                    # typed one (H-148's rule, as on the single add).
+                    name_fields = apply_typed_name(
+                        student,
+                        first_name=first_name,
+                        middle_name=middle_name,
+                        last_name=last_name,
+                    )
                 except EnrollmentError as exc:
                     raise serializers.ValidationError(str(exc)) from exc
+                if name_fields:
+                    student.save(update_fields=name_fields)
 
                 StudentCourse.objects.create(
                     student=student,
@@ -865,7 +881,7 @@ def _generate_school_admin_password(user):
         try:
             validate_password(candidate, user=user)
         except Exception:
-            continue
+            continue  # nosec B112  # the next candidate is tried
         return candidate
     # Astronomically unlikely with a 20-char/66-symbol alphabet, but never
     # fall through to a weaker password.

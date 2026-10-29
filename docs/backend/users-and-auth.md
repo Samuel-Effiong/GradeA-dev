@@ -344,10 +344,10 @@ Two types, validated by `OTPSerializer` ([users/serializers.py:411-418](../../us
 
 | `otp_type` | Precondition | Action |
 |---|---|---|
-| `VERIFY_EMAIL` | rejects if already verified **and** active | re-sends the activation email |
-| `RESET_PASSWORD` | rejects if `email_verified_at` is unset | `get_or_create` a `PasswordResetOTP`, `generate_code()`, email it via `safe_delay` |
+| `VERIFY_EMAIL` | sends nothing to an account that is already verified **and** active, or that was switched off after verifying (H-202), or that never verified and holds admin power (H-164) | otherwise re-sends the activation email (a pending school admin gets the invitation again), unless H-53 has locked the address |
+| `RESET_PASSWORD` | no reset code for an account that never verified its email and is switched off or holds admin power (H-164), or a verified switched-off one (H-202) | otherwise `get_or_create` a `PasswordResetOTP`, `generate_code()`, email it via `safe_delay`. A never-verified account WITHOUT admin power is sent the activation email instead (H-198), under the same H-53 lock |
 
-An unknown email returns **202 with a neutral message** ([users/views.py:768-774](../../users/views.py#L768-L774)) so the endpoint does not confirm account existence. Note the enumeration is only *partly* closed: a **known** email in the wrong state raises `ParseError` with a specific message ("Email already verified", "Email not verified"), which distinguishes it from an unknown one.
+Every valid request answers **202 with the same neutral message** as an unknown email, whatever the account's state (H-198, the user's ruling of 25 October 2026). The answer never says whether anything was sent. Before H-198 two states answered 400 instead ("Email already verified. Please login." and "Email not verified."), which told a caller the address had an account.
 
 ### `auth/reset-password`
 
@@ -387,6 +387,7 @@ Three deliberate choices ([users/views.py:839-896](../../users/views.py#L839-L89
 
 - The lookup uses `select_for_update()` and requires `user_type=SCHOOL_ADMIN, is_active=False` — the row lock prevents two concurrent submissions of the same invite link from both racing past the `is_active` check ([users/views.py:1321-1332](../../users/views.py#L1321-L1332)).
 - An expired invite says "contact your superadmin", with no self-service renewal.
+- H-210: each attempt spends from the same per-address budget as `auth/verify` (H-53; the invitation token is the same `activation_token`). After 5 attempts that do not succeed, the address is locked for 30 minutes and every attempt, the right token included, gets verify's 429 `VERIFY_LOCKED`, whether or not the address has an account. A success refunds the attempts.
 - Returns a JWT pair — the admin is logged in immediately.
 
 The invite itself is created by `SchoolWithAdminSerializer` ([classrooms/serializers.py:624+](../../classrooms/serializers.py#L624)), which creates the account with **no usable password** and a **high-entropy token** (not the 6-digit OTP), so no secret ever travels through an email template ([classrooms/serializers.py:687-701](../../classrooms/serializers.py#L687-L701)).

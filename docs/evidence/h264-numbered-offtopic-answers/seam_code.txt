@@ -1,0 +1,24 @@
+ai_processor/services.py: ['AIProcessor._retranscribe_found_answers', 'AIProcessor._second_reading', 'AIProcessor._verify_blank_answers', 'ANSWERS_EXTRACTION_PROMPT', 'PILE_QUOTE_LENGTH', 'SPLIT_ANSWER_NOTE', '_BARE_SECTION', '_BLOCK_BREAK', '_LABELLED_SECTION', '_in_order', '_numbered_sections', '_piled_answers', '_quoted_start', '_recovered_answer', '_retranscription_evidence', 'from html import unescape as unescape_html']
+  AIProcessor._retranscribe_found_answers(self, user, content, assignment, answers, assignment_model=None, processing_task_id=None, reading_run=None, config=None)
+  AIProcessor._retranscribe_found_answers: 3 statement(s) replaced by 5
+  AIProcessor._second_reading(self, user, content, assignment, targets, pile_lines, *, assignment_model, processing_task_id, run, config)
+  AIProcessor._second_reading: 1 statement(s) replaced by 1; docstring changed
+  AIProcessor._verify_blank_answers(self, user, content, answers, assignment_model=None, processing_task_id=None, reading_run=None, config=None)
+  AIProcessor._verify_blank_answers: 2 statement(s) replaced by 4
+  _recovered_answer(entry, replacement, note=None)
+  _recovered_answer: 1 statement(s) replaced by 1; docstring changed
+  _retranscription_evidence(entry, pile_line=None)
+  _retranscription_evidence: 0 statement(s) replaced by 1; docstring changed
+AutoGrader/settings.py: nothing in the syntax tree
+ai_processor/extraction_schemas.py: ['__doc__']
+  new: PILE_QUOTE_LENGTH
+  new: SPLIT_ANSWER_NOTE
+  new: _BARE_SECTION
+  new: _BLOCK_BREAK
+  new: _LABELLED_SECTION
+  new: _in_order
+  new: _numbered_sections
+  new: _piled_answers
+  new: _quoted_start
+prompt: _4 archived unchanged; _5 = _4 + 100 lines
+SEAM OK: only the named units changed, and only the named statements

@@ -22,7 +22,12 @@ from users.admin_power import holds_admin_power
 from users.models import ACTIVATION_TOKEN_VALIDITY, CustomUser, UserActivity, UserTypes
 from users.services import generate_temporary_password
 
-from ..models import Course, EnrollmentStatusType, StudentCourse
+from ..models import (
+    Course,
+    EnrollmentStatusType,
+    StudentCourse,
+    teacher_course_access_q,
+)
 from . import notifications
 
 logger = logging.getLogger(__name__)
@@ -151,6 +156,15 @@ def schools_associated_with(student):
     return school_ids
 
 
+def already_teaches(teacher, student):
+    """Whether `teacher` teaches `student` today, in a course they can still
+    reach (H-38): a teacher removed from a school does not keep its pupils.
+    Any enrolment status counts, as it did for the old roster name match."""
+    return StudentCourse.objects.filter(
+        teacher_course_access_q(teacher, prefix="course__"), student=student
+    ).exists()
+
+
 def check_existing_account_may_join(student, course):
     """Raise EnrollmentError unless `student` may be enrolled into `course`.
 
@@ -166,7 +180,11 @@ def check_existing_account_may_join(student, course):
         whose teacher belongs to that same school;
       * an account associated with no school at all may join freely - there
         is no ownership to violate, and this is the ordinary case for a
-        student created by an individual-track teacher.
+        student created by an individual-track teacher;
+      * H-247 (the owner's rule (b), 2026-10-16): a teacher who ALREADY
+        teaches the student keeps access. The school rule keeps strangers
+        out; it must not lock out the tutor who taught a student before a
+        school added them.
 
     Nothing here writes. A rejected attempt must leave the account's
     school, its enrollments and every other tenant row exactly as they
@@ -191,6 +209,9 @@ def check_existing_account_may_join(student, course):
         return
 
     if student_school_ids == {target_school_id}:
+        return
+
+    if course.teacher and already_teaches(course.teacher, student):
         return
 
     # Logged with the detail deliberately withheld from the response, so an
@@ -274,6 +295,58 @@ def _has_no_name(student):
     )
 
 
+#: H-247 (owner's rule, 2026-10-16): one email is one student with one name,
+#: whichever teacher adds it. Neutral on purpose, like the messages above: it
+#: never prints the stored name, so the form can't be used to look up the
+#: name behind any address.
+NAME_MISMATCH_MESSAGE = (
+    "This email already belongs to a student with a different name. Use the "
+    "name on the student's account, or check the email address."
+)
+
+
+def _name_key(first_name, middle_name, last_name):
+    """A name as the rule compares it: each part trimmed, inner spaces
+    collapsed, case ignored. "jane  smith" is Jane Smith; Jane A. Smith is
+    not."""
+    return tuple(
+        " ".join((part or "").split()).casefold()
+        for part in (first_name, middle_name, last_name)
+    )
+
+
+def apply_typed_name(
+    student, *, first_name, middle_name="", last_name="", fill_empty=True
+):
+    """Hold the name a teacher typed against an EXISTING account (H-247).
+
+    * Nothing typed: nothing to check.
+    * The account has no name (H-148): with `fill_empty` it takes the typed
+      one, and the fields to save are returned for the caller to save in
+      its own transaction; without, it is left as it is.
+    * Otherwise the typed name must be the account's name, or
+      EnrollmentError(NAME_MISMATCH_MESSAGE). Nothing is written.
+    """
+    if not ((first_name or "").strip() and (last_name or "").strip()):
+        return []
+    if _has_no_name(student):
+        if not fill_empty:
+            return []
+        student.first_name = first_name
+        student.middle_name = middle_name
+        student.last_name = last_name
+        return ["first_name", "middle_name", "last_name"]
+    if _name_key(first_name, middle_name, last_name) != _name_key(
+        student.first_name, student.middle_name, student.last_name
+    ):
+        logger.info(
+            "Refused a typed name that differs from student %s's account name",
+            student.pk,
+        )
+        raise EnrollmentError(NAME_MISMATCH_MESSAGE)
+    return []
+
+
 def enroll_student_by_email(
     *,
     course,
@@ -286,7 +359,9 @@ def enroll_student_by_email(
     """Add a student to `course` by email address, inviting them if needed.
 
     The names are used when a brand-new account is created. An existing
-    account's names are never overwritten. H-148: with `fill_empty_name`
+    account's names are never overwritten, and H-247: a typed name that is
+    not the account's own refuses the add (apply_typed_name).
+    H-148: with `fill_empty_name`
     (the single add and the class-list import, where the teacher gives
     the name) an existing account that has NO name is given that name; a student cannot name
     themselves and until this nobody could name such an account. The
@@ -374,12 +449,16 @@ def enroll_student_by_email(
             )
             raise AccountDisabledError(DEACTIVATED_ACCOUNT_MESSAGE)
 
-        name_fields = []
-        if fill_empty_name and first_name and last_name and _has_no_name(student):
-            student.first_name = first_name
-            student.middle_name = middle_name
-            student.last_name = last_name
-            name_fields = ["first_name", "middle_name", "last_name"]
+        # H-247: a typed name must be the account's own; H-148: an account
+        # with no name takes it. Checked after the gates above, so the
+        # refusal only ever speaks of a student this teacher may add.
+        name_fields = apply_typed_name(
+            student,
+            first_name=first_name,
+            middle_name=middle_name,
+            last_name=last_name,
+            fill_empty=fill_empty_name,
+        )
 
         if student.is_active and has_signed_in(student):
             if name_fields:

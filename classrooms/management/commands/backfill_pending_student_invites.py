@@ -91,7 +91,7 @@ class EmailNotQueued(Exception):
 
 
 def pending_students():
-    return CustomUser.objects.filter(
+    return CustomUser.objects.filter(  # nosec B106  # a token filter
         user_type=UserTypes.STUDENT,
         is_active=False,
         activation_token__isnull=False,

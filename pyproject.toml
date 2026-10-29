@@ -1,6 +1,10 @@
 [tool.bandit]
 exclude_dirs = ['tests', 'venv', 'docs']
-tests = ['B101', 'B102']
+# H-257: every check runs. The one skip: B404 flags every `import subprocess`,
+# safe or not; the calls themselves are judged by B603, B606 and B607, which
+# stay on. A finding that is not a fault carries `# nosec BXXX` and its reason
+# on its own line.
+skips = ['B404']
 
 [tool.mypy]
 # Without this plugin, mypy has no knowledge of Django's metaclass-generated

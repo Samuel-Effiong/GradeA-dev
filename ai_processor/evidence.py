@@ -204,7 +204,7 @@ def _expand_safe_fracs(text):
     """
     out = []
     i, n = 0, len(text)
-    token = "\\frac"
+    token = "\\frac"  # nosec B105  # a LaTeX command, not a password
     while i < n:
         if (
             text.startswith(token, i)

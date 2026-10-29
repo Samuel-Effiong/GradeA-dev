@@ -1,0 +1,276 @@
+test_a_reply_question_not_asked_about_is_ignored (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_a_reply_question_not_asked_about_is_ignored) ... ok
+test_each_answer_goes_under_its_own_number (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_each_answer_goes_under_its_own_number) ... FAIL
+test_only_the_pile_and_the_numbers_it_names_are_asked_about (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_only_the_pile_and_the_numbers_it_names_are_asked_about) ... ERROR
+test_the_flags_are_six_off_topic_and_the_upload_mismatch (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_the_flags_are_six_off_topic_and_the_upload_mismatch) ... FAIL
+test_the_note_says_where_each_answer_was_put (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_the_note_says_where_each_answer_was_put) ... ERROR
+test_a_failed_or_empty_second_reading_changes_nothing (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_a_failed_or_empty_second_reading_changes_nothing) ...
+  test_a_failed_or_empty_second_reading_changes_nothing (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_a_failed_or_empty_second_reading_changes_nothing) [empty reply] ... FAIL
+  test_a_failed_or_empty_second_reading_changes_nothing (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_a_failed_or_empty_second_reading_changes_nothing) [provider failure] ... FAIL
+test_question_1_missing_from_the_reply (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_question_1_missing_from_the_reply) ... FAIL
+test_some_sections_missing_from_the_reply (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_some_sections_missing_from_the_reply) ... FAIL
+test_the_one_piece_rule_and_the_flag_rule_are_kept (ai_processor.tests_h264_numbered_offtopic_answers.ThePromptTest.test_the_one_piece_rule_and_the_flag_rule_are_kept) ... ok
+test_the_prompt_has_the_numbered_paper_example (ai_processor.tests_h264_numbered_offtopic_answers.ThePromptTest.test_the_prompt_has_the_numbered_paper_example) ... ok
+test_the_prompt_is_version_5_and_version_4_is_archived (ai_processor.tests_h264_numbered_offtopic_answers.ThePromptTest.test_the_prompt_is_version_5_and_version_4_is_archived) ... ok
+test_a_cap_of_0_checks_nothing (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_a_cap_of_0_checks_nothing) ... ok
+test_a_finding_for_a_question_not_asked_about_is_not_applied (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_a_finding_for_a_question_not_asked_about_is_not_applied) ...
+
+ai_processor.services INFO 2026-10-27 11:53:54,306 services 1106311 126468174416832 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
+
+
+
+
+ai_processor.services WARNING 2026-10-27 11:53:54,306 services 1106311 126468174416832 [request_id=- client_request_id=-] [BlankVerification] Re-read found writing for 1 question(s) reported empty (2). Flagged for review.
+
+
+ok
+test_at_or_under_the_cap_every_blank_is_re_checked (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_at_or_under_the_cap_every_blank_is_re_checked) ...
+
+ai_processor.services INFO 2026-10-27 11:53:54,315 services 1106311 126468174416832 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
+
+
+ok
+test_the_beta_paper_has_its_first_12_blanks_re_checked (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_the_beta_paper_has_its_first_12_blanks_re_checked) ...
+
+ai_processor.services INFO 2026-10-27 11:53:54,324 services 1106311 126468174416832 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
+
+
+
+
+ai_processor.services INFO 2026-10-27 11:53:54,324 services 1106311 126468174416832 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
+
+
+ok
+test_the_lowest_numbered_whatever_the_order (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_the_lowest_numbered_whatever_the_order) ...
+
+ai_processor.services INFO 2026-10-27 11:53:54,333 services 1106311 126468174416832 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
+
+
+
+
+ai_processor.services INFO 2026-10-27 11:53:54,333 services 1106311 126468174416832 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
+
+
+ok
+test_the_rest_are_logged_as_not_checked (ai_processor.tests_h264_numbered_offtopic_answers.TheRecheckCapTest.test_the_rest_are_logged_as_not_checked) ... ok
+test_the_beta_reply_ends_with_six_answers_and_the_upload_flag (ai_processor.tests_h264_numbered_offtopic_answers.TheWholeReadingTest.test_the_beta_reply_ends_with_six_answers_and_the_upload_flag) ...
+
+ai_processor.services INFO 2026-10-27 11:53:54,353 services 1106311 126468174416832 [request_id=- client_request_id=-] [BlankVerification] 74 blank(s) exceeds the cap of 12 - re-checking the lowest-numbered 12 (questions [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]); 62 not checked, and the completeness flags still route them for review.
+
+
+
+
+ai_processor.services INFO 2026-10-27 11:53:54,353 services 1106311 126468174416832 [request_id=- client_request_id=-] [BlankVerification] Re-read confirmed 12 blank(s).
+
+
+FAIL
+test_a_named_question_with_a_flag_is_left_to_h253 (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_a_named_question_with_a_flag_is_left_to_h253) ...
+
+ai_processor.services WARNING 2026-10-27 11:53:54,363 services 1106311 126468174416832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 1 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_a_named_question_with_its_own_answer_is_not_touched (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_a_named_question_with_its_own_answer_is_not_touched) ... ok
+test_a_pile_in_the_wrong_form_counts (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_a_pile_in_the_wrong_form_counts) ...
+
+ai_processor.services WARNING 2026-10-27 11:53:54,382 services 1106311 126468174416832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 0 of 2 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_a_pile_under_a_later_question (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_a_pile_under_a_later_question) ...
+
+ai_processor.services WARNING 2026-10-27 11:53:54,392 services 1106311 126468174416832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 3 of 3 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_an_answer_on_topic_is_not_a_pile (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_an_answer_on_topic_is_not_a_pile) ... ok
+test_an_outside_number_does_not_split_a_section (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_an_outside_number_does_not_split_a_section) ...
+
+ai_processor.services WARNING 2026-10-27 11:53:54,411 services 1106311 126468174416832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line) ...
+  test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line) (html='<p>Question 1: a</p><p>Question 2: b</p>') ... FAIL
+  test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line) (html='<p>Question 1 (5 marks) a</p><p>Question 2 (5 marks) b</p>') ... FAIL
+  test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line) (html='<p>Q1. a</p><p>Q2. b</p>') ... FAIL
+  test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line) (html='<p>Q 1 a</p><p>Q 2 b</p>') ... FAIL
+
+
+ai_processor.services WARNING 2026-10-27 11:53:54,427 services 1106311 126468174416832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+
+
+ai_processor.services WARNING 2026-10-27 11:53:54,429 services 1106311 126468174416832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+
+
+ai_processor.services WARNING 2026-10-27 11:53:54,430 services 1106311 126468174416832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+
+
+ai_processor.services WARNING 2026-10-27 11:53:54,431 services 1106311 126468174416832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 2 of 2 question(s); 0 kept as the re-check's quote.
+
+
+  test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line) (html='<p>question 1: a</p>\n<p>QUESTION 2: b</p>') ... FAIL
+test_numbers_out_of_order_are_not_a_pile (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_numbers_out_of_order_are_not_a_pile) ... ok
+test_numbers_outside_the_assignment_are_not_counted (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_numbers_outside_the_assignment_are_not_counted) ... ok
+test_one_numbered_section_is_not_a_pile (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_one_numbered_section_is_not_a_pile) ... ok
+test_the_numbers_need_not_start_at_1 (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_the_numbers_need_not_start_at_1) ...
+
+ai_processor.services WARNING 2026-10-27 11:53:54,467 services 1106311 126468174416832 [request_id=- client_request_id=-] [Retranscription] Second reading recovered 3 of 3 question(s); 0 kept as the re-check's quote.
+
+
+ok
+test_writing_with_no_numbered_sections_changes_nothing (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_writing_with_no_numbered_sections_changes_nothing) ... ok
+
+======================================================================
+ERROR: test_only_the_pile_and_the_numbers_it_names_are_asked_about (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_only_the_pile_and_the_numbers_it_names_are_asked_about)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 195, in test_only_the_pile_and_the_numbers_it_names_are_asked_about
+    note = self.note(mocked)
+           ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 151, in note
+    return mocked.call_args.kwargs["messages"][2]["content"][0]["text"]
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'kwargs'
+
+======================================================================
+ERROR: test_the_note_says_where_each_answer_was_put (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_the_note_says_where_each_answer_was_put)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 201, in test_the_note_says_where_each_answer_was_put
+    note = self.note(mocked)
+           ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 151, in note
+    return mocked.call_args.kwargs["messages"][2]["content"][0]["text"]
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'kwargs'
+
+======================================================================
+FAIL: test_each_answer_goes_under_its_own_number (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_each_answer_goes_under_its_own_number)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 160, in test_each_answer_goes_under_its_own_number
+    self.assertEqual(mocked.call_count, 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_the_flags_are_six_off_topic_and_the_upload_mismatch (ai_processor.tests_h264_numbered_offtopic_answers.TheBetaPaperTest.test_the_flags_are_six_off_topic_and_the_upload_mismatch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 186, in test_the_flags_are_six_off_topic_and_the_upload_mismatch
+    self.assertEqual(
+AssertionError: Lists differ: ['SUB[28 chars]C', 'ANSWER_NOT_FOUND', 'ANSWER_NOT_FOUND', 'A[1432 chars]UND'] != ['SUB[28 chars]C', 'OFF_TOPIC', 'OFF_TOPIC', 'OFF_TOPIC', 'OF[1397 chars]UND']
+
+First differing element 2:
+'ANSWER_NOT_FOUND'
+'OFF_TOPIC'
+
+Diff is 1824 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_a_failed_or_empty_second_reading_changes_nothing (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_a_failed_or_empty_second_reading_changes_nothing) [empty reply]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 251, in test_a_failed_or_empty_second_reading_changes_nothing
+    self.assertEqual(mocked.call_count, 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_a_failed_or_empty_second_reading_changes_nothing (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_a_failed_or_empty_second_reading_changes_nothing) [provider failure]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 251, in test_a_failed_or_empty_second_reading_changes_nothing
+    self.assertEqual(mocked.call_count, 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_question_1_missing_from_the_reply (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_question_1_missing_from_the_reply)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 233, in test_question_1_missing_from_the_reply
+    self.assertEqual(result[n - 1]["answer_html"], f"<p>{SECTIONS[n - 1]}</p>")
+AssertionError: '' != '<p>I studied the desert. There are plants and animals.</p>'
++ <p>I studied the desert. There are plants and animals.</p>
+
+
+======================================================================
+FAIL: test_some_sections_missing_from_the_reply (ai_processor.tests_h264_numbered_offtopic_answers.ThePileIsKeptUnlessEverySectionCameBackTest.test_some_sections_missing_from_the_reply)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 239, in test_some_sections_missing_from_the_reply
+    self.assertEqual(result[1]["answer_html"], f"<p>{SECTIONS[1]}</p>")
+AssertionError: '' != '<p>I studied the desert. There are plants and animals.</p>'
++ <p>I studied the desert. There are plants and animals.</p>
+
+
+======================================================================
+FAIL: test_the_beta_reply_ends_with_six_answers_and_the_upload_flag (ai_processor.tests_h264_numbered_offtopic_answers.TheWholeReadingTest.test_the_beta_reply_ends_with_six_answers_and_the_upload_flag)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 444, in test_the_beta_reply_ends_with_six_answers_and_the_upload_flag
+    self.assertEqual(mocked.call_count, 2)
+AssertionError: 1 != 2
+
+======================================================================
+FAIL: test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line) (html='<p>Question 1: a</p><p>Question 2: b</p>')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 280, in test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line
+    self.assert_split(html)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 259, in assert_split
+    self.assertEqual(mocked.call_count, 1, html)
+AssertionError: 0 != 1 : <p>Question 1: a</p><p>Question 2: b</p>
+
+======================================================================
+FAIL: test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line) (html='<p>Question 1 (5 marks) a</p><p>Question 2 (5 marks) b</p>')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 280, in test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line
+    self.assert_split(html)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 259, in assert_split
+    self.assertEqual(mocked.call_count, 1, html)
+AssertionError: 0 != 1 : <p>Question 1 (5 marks) a</p><p>Question 2 (5 marks) b</p>
+
+======================================================================
+FAIL: test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line) (html='<p>Q1. a</p><p>Q2. b</p>')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 280, in test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line
+    self.assert_split(html)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 259, in assert_split
+    self.assertEqual(mocked.call_count, 1, html)
+AssertionError: 0 != 1 : <p>Q1. a</p><p>Q2. b</p>
+
+======================================================================
+FAIL: test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line) (html='<p>Q 1 a</p><p>Q 2 b</p>')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 280, in test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line
+    self.assert_split(html)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 259, in assert_split
+    self.assertEqual(mocked.call_count, 1, html)
+AssertionError: 0 != 1 : <p>Q 1 a</p><p>Q 2 b</p>
+
+======================================================================
+FAIL: test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line (ai_processor.tests_h264_numbered_offtopic_answers.WhatCountsAsAPileTest.test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line) (html='<p>question 1: a</p>\n<p>QUESTION 2: b</p>')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 280, in test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line
+    self.assert_split(html)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h264-numbered-offtopic-answers/ai_processor/tests_h264_numbered_offtopic_answers.py", line 259, in assert_split
+    self.assertEqual(mocked.call_count, 1, html)
+AssertionError: 0 != 1 : <p>question 1: a</p>
+<p>QUESTION 2: b</p>
+
+----------------------------------------------------------------------
+Ran 30 tests in 0.281s
+
+FAILED (failures=12, errors=2)
+Found 30 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).

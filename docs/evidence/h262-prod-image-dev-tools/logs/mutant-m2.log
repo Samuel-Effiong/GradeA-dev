@@ -1,0 +1,35 @@
+### git diff of mutated file(s)
+diff --git a/requirements-dev.txt b/requirements-dev.txt
+index b7d9e02b..1ea49ea0 100644
+--- a/requirements-dev.txt
++++ b/requirements-dev.txt
+@@ -1,6 +1,6 @@
+ # Development, testing and CI dependencies. Not installed in the
+ # production Docker image. Install with: pip install -r requirements-dev.txt
+--r requirements.txt
++# removed
+
+ bandit==1.8.6
+ black==25.1.0
+
+### test output
+test_requirements_dev_includes_production (ai_processor.tests_h262_prod_image_dev_tools.RequirementsSplitTest.test_requirements_dev_includes_production) ... FAIL
+
+======================================================================
+FAIL: test_requirements_dev_includes_production (ai_processor.tests_h262_prod_image_dev_tools.RequirementsSplitTest.test_requirements_dev_includes_production)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h262-prod-image-dev-tools/ai_processor/tests_h262_prod_image_dev_tools.py", line 107, in test_requirements_dev_includes_production
+    self.assertEqual(
+AssertionError: 'bandit==1.8.6' != '-r requirements.txt'
+- bandit==1.8.6
++ -r requirements.txt
+ : requirements-dev.txt must start with '-r requirements.txt'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.003s
+
+FAILED (failures=1)
+Found 1 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).

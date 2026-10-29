@@ -45,6 +45,7 @@ from rest_framework.exceptions import (
     NotFound,
     ParseError,
     PermissionDenied,
+    Throttled,
     ValidationError,
 )
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -69,6 +70,7 @@ from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.reason_codes import add_coded_envelope
+from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.tasks import send_email_task
 from billing.services import AnalyticsService
 from classrooms.models import (
@@ -164,6 +166,8 @@ NAME_HELD_ELSEWHERE_MESSAGE = "This name cannot be used for this student."
 # whether an account exists.
 OTP_SENT_DETAIL = "An OTP has been sent if an account with that email exists."
 GOOGLE_SIGN_IN_FAILED = "Google sign-in failed. Please try again."
+#: H-256: (connect, read) seconds for the Google token exchange.
+GOOGLE_TOKEN_EXCHANGE_TIMEOUT = (5, 10)
 
 # Founder-approved wording (2026-09-28) for the password-reset email.
 # Wording only: no link.
@@ -1114,21 +1118,20 @@ Sends one of two emails, chosen by `otp_type`:
 | `VERIFY_EMAIL` | a new activation link, valid 15 min (replaces the old code) | `POST /auth/verify` |
 | `RESET_PASSWORD` | a 6-digit password-reset code (valid 15 min) | `POST /auth/reset-password` |
 
-**An unknown address always gets 202.** Show the same neutral confirmation (e.g.
-"If an account exists for that address, we've sent an email") for every 202 and
-never branch on `message`: its wording can differ between cases. The two 400s
-below only happen for existing accounts in the wrong state.
+**Every valid request gets the same 202, whatever the state of the address**
+(H-198): unknown, verified, never verified, switched off. Show one neutral
+confirmation (e.g. "If an account exists for that address, we've sent an email")
+for every 202 and never branch on `message`. The answer does not say whether
+anything was sent, or which email: an already-verified active account is sent
+nothing, and an account that never verified its email is sent its verification
+email instead of a reset code.
 
 **Values**
 - `email`: string, required, must be a valid email address.
 - `otp_type`: exactly `"VERIFY_EMAIL"` or `"RESET_PASSWORD"` (upper case).
 
-**400 cases** (show `message`):
-- invalid `otp_type` or email → "Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`"
-- `VERIFY_EMAIL` for an account that is already active → "Email already verified. Please login."
-  (send the user to sign in)
-- `RESET_PASSWORD` for an account that never verified its email → "Email not verified."
-  (offer `VERIFY_EMAIL` instead)
+**400** (show `message`): only for bad input. An invalid `otp_type` or email →
+"Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`"
 
 While a password reset is locked after 5 wrong codes, this endpoint still answers
 202 but sends no code; the lock is reported by `POST /auth/reset-password` (429
@@ -1167,16 +1170,12 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             ),
             400: OpenApiResponse(
                 response=OpenApiTypes.OBJECT,
-                description="Bad input, or the account is in the wrong state for this otp_type.",
+                description="Bad input only (never the state of the address).",
                 examples=[
                     _auth_error_example(
                         "Invalid otp_type or email",
                         "Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`",
                     ),
-                    _auth_error_example(
-                        "Already verified", "Email already verified. Please login."
-                    ),
-                    _auth_error_example("Email not verified", "Email not verified."),
                 ],
             ),
             429: OpenApiResponse(
@@ -1215,8 +1214,13 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
 
         if otp_type == "VERIFY_EMAIL":
 
+            # H-198 (the user's ruling): an active, verified account is told
+            # nothing either - the neutral reply of an unknown address, and
+            # nothing is made or sent.
             if user.email_verified_at and user.is_active:
-                raise ParseError("Email already verified. Please login.")
+                return Response(
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
+                )
 
             # H-202: a verified account that was switched off is not mailed a
             # code (verify would switch it back on): the neutral reply of an
@@ -1246,10 +1250,19 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
             # reset_password).
             # An account with admin power that never verified its email gets no
             # new first road by a mailbox code: refused as the inactive case is.
+            # H-198 (the user's ruling, superseding H-164's 400 "Email not
+            # verified." for this answer only): such an account still gets no
+            # reset code, but the reply is the neutral one of an unknown
+            # address. Without admin power it is sent what VERIFY_EMAIL would
+            # send, under the same H-53 lock; with admin power, nothing.
             if not user.email_verified_at and (
                 not user.is_active or _holds_admin_power(user)
             ):
-                raise ParseError("Email not verified.")
+                if not _holds_admin_power(user) and not verify_lock_until(user.email):
+                    send_user_activation_email(user)
+                return Response(
+                    {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
+                )
 
             # H-202: a switched-off (verified) account makes and gets no reset
             # code: the neutral reply of an unknown address.
@@ -1445,18 +1458,26 @@ the plain rate limit (10 requests/hour per IP) does not.
         # reset or stamped, whatever code exists (one issued while it was
         # active), and neither is a never-verified account with admin power.
         # The same generic refusal as an unknown address; nothing is
-        # written, so the code is left to expire by itself.
+        # written to the account or the code, so the code is left to expire
+        # by itself. H-221: audited as the wrong code, as verify and the
+        # school-admin registration record the same rule.
         if not user.email_verified_at and (
             not user.is_active or _holds_admin_power(user)
         ):
+            sign_in_failed(request, user, "password_reset", "INVALID_CODE")
             raise ParseError("Invalid email, OTP code, or new password.")
 
         # H-202: what is left inactive here is verified. A switched-off person
         # sets no password and is not told it worked: the generic refusal,
         # the attempt spent like a wrong guess (unless already locked).
+        # H-221: audited as refused for a deactivated account, as Google
+        # sign-in records the same state.
         if not user.is_active:
             if not otp_obj.is_locked():
                 otp_obj.register_failure()
+            sign_in_failed(
+                request, user, "password_reset", "ACCOUNT_DEACTIVATED", denied=True
+            )
             raise ParseError("Invalid email, OTP code, or new password.")
 
         if otp_obj.is_locked():
@@ -1919,6 +1940,12 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         - email: The invited admin's email address
         - token: The activation token from the invitation email
         - password: The password the admin wants to set for their account
+
+        Attempts share `POST /auth/verify`'s per-address budget (H-210):
+        after 5 that do not succeed, the address is locked for 30 minutes
+        and every attempt, the right token included, gets 429
+        `VERIFY_LOCKED` with a `Retry-After` header, whether or not the
+        address has an account.
         """,
         request=SchoolAdminRegistrationCompletionSerializer,
         responses={
@@ -1926,6 +1953,10 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 description="School admin registration completed successfully",
             ),
             400: OpenApiResponse(description="Invalid or expired token"),
+            429: OpenApiResponse(
+                description="VERIFY_LOCKED: too many attempts for this address, "
+                "or the per-network rate limit"
+            ),
             500: OpenApiResponse(description="Internal Server Error"),
         },
     )
@@ -1941,6 +1972,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         # A refused code is recorded after the atomic block has rolled back,
         # never inside it (the event would roll back too).
         audit_failure = None
+        audit_options: dict = {}
         try:
             with transaction.atomic():
                 serializer = SchoolAdminRegistrationCompletionSerializer(
@@ -1952,6 +1984,40 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
                 email = serializer.validated_data["email"].strip().lower()
                 token = serializer.validated_data["token"].strip()
+
+                # H-210: the invitation token is the same activation_token
+                # /auth/verify accepts, so this door spends from verify's
+                # per-address budget (H-53), shared, not a second one. The
+                # attempt is spent before the token is checked; while the
+                # address is locked every attempt gets verify's 429, whether
+                # or not the address has an account.
+                lock_until = verify_lock_until(email)
+                attempt = None if lock_until else reserve_verify_attempt(email)
+                if lock_until or verify_attempt_over_budget(attempt):
+                    wait = (
+                        lock_until - time.time()
+                        if lock_until
+                        else settings.VERIFY_EMAIL_LOCK_SECONDS
+                    )
+                    audit_failure = (account_for_email(email), "VERIFY_LOCKED")
+                    audit_options = {"denied": True}
+                    raise EnvelopedThrottled(
+                        wait=max(1, int(wait)),
+                        detail=(
+                            "Too many incorrect codes for this email address. "
+                            "Please wait, then request a new verification email."
+                        ),
+                        reason_code="VERIFY_LOCKED",
+                        code_value="VERIFY_LOCKED",
+                    )
+
+                def spent():
+                    """The guess that spends the budget locks the address,
+                    and its event says so (as verify's refuse does)."""
+                    if verify_budget_spent(attempt):
+                        lock_verify_address(email)
+                        return {"extra_metadata": {"lock_triggered": True}}
+                    return {}
 
                 # select_for_update prevents two concurrent submissions of the
                 # same invite link from both racing past the is_active check.
@@ -1973,10 +2039,12 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 # same audit event as one (Epic A's failed-sign-in record).
                 if not user or _holds_admin_power(user):
                     audit_failure = (account_for_email(email), "INVALID_CODE")
+                    audit_options = spent()
                     raise ParseError("Invalid or expired activation token.")
 
                 if user.activation_expires and timezone.now() > user.activation_expires:
                     audit_failure = (user, "CODE_EXPIRED")
+                    audit_options = spent()
                     raise ParseError(
                         "This invitation link has expired. Please contact your "
                         "superadmin for a new invitation."
@@ -1992,6 +2060,8 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 with history.acting_as(user):
                     user.save()
 
+            # H-210: a success refunds the address's attempts, as verify's does.
+            clear_verify_failures(email)
             safe_delay(sync_user_to_mailerlite, str(user.id))
 
             refresh = EpochRefreshToken.for_user(user)
@@ -2008,13 +2078,15 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 },
                 status=status.HTTP_200_OK,
             )
-        except (ParseError, ValidationError):
+        # H-210: Throttled too, or the lock's 429 would become the 500 below.
+        except (ParseError, ValidationError, Throttled):
             if audit_failure is not None:
                 sign_in_failed(
                     request,
                     audit_failure[0],
                     "school_admin_invitation",
                     audit_failure[1],
+                    **audit_options,
                 )
             raise
         except Exception as e:
@@ -2118,7 +2190,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         try:
             import requests as http_requests
 
-            token_url = "https://oauth2.googleapis.com/token"
+            token_url = "https://oauth2.googleapis.com/token"  # nosec B105  # a URL
             payload = {
                 "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
                 "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
@@ -2128,11 +2200,19 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             }
 
             try:
-                response = http_requests.post(token_url, data=payload)
+                # H-256: 5 s to connect, 10 s for Google's answer; without a
+                # timeout a Google that never answered held this thread.
+                response = http_requests.post(
+                    token_url, data=payload, timeout=GOOGLE_TOKEN_EXCHANGE_TIMEOUT
+                )
                 response.raise_for_status()
                 token_data = response.json()
             except http_requests.exceptions.RequestException as e:
-                logger.error("Google OAuth token exchange failed", exc_info=e)
+                # By class and frames only: requests writes the host, the
+                # port and the timeout into its messages (H-256).
+                logger.error(
+                    "Google OAuth token exchange failed: %s", describe_error_for_log(e)
+                )
                 self._audit_reason = "GOOGLE_EXCHANGE_FAILED"
                 raise ParseError(
                     describe_user_error(

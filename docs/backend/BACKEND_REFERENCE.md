@@ -176,7 +176,8 @@ Every response is wrapped by `users/renderers.py::APIJSONRenderer`:
 ```
 
 `flatten_errors()` collapses nested DRF error dicts into one human-readable sentence (numbered
-when there are several). `users/exceptions.py::custom_exception_handler` logs every API exception
+when there are several). `users/exceptions.py::custom_exception_handler` logs a refusal DRF answers
+at WARNING with its class and status only (H-227), a crash at ERROR with its traceback,
 and marks DRF-handled responses so the renderer can distinguish a validation error from an
 unhandled 500 (whose message is replaced by `AutoGrader/error_messages.py::describe_user_error`).
 
@@ -1279,7 +1280,8 @@ Key rules:
 * **Model fallbacks are restricted** for `grade_assignment` / `extract_answer` /
   `extract_assignment` to `GRADING_FALLBACK_MODELS` — never a nano-tier model, so two students in
   the same class are never graded by models of visibly different capability because of transient
-  routing.
+  routing. A call of those three that carries an image falls back to `IMAGE_FALLBACK_MODELS`
+  (`anthropic/claude-haiku-5.5`) instead, since deepseek cannot read images (H-205).
 
 ---
 
@@ -1941,6 +1943,12 @@ outage" cannot drift between the silent and the loud path.
 | `CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP` | `True` | worker/beat surviving a Redis restart |
 | scheduler | `django_celery_beat.schedulers:DatabaseScheduler` | one-off `ClockedSchedule` tasks are created at runtime |
 
+**Celery's own task lines (H-218).** `AutoGrader/celery.py` puts `CeleryTraceFilter`
+(`AutoGrader/safe_logging.py`) on the `celery.app.trace` logger. A failed task's line reads
+"Task <name>[<id>] raised unexpected: error=<Class> frames=<file:line:fn <- ...>", still at ERROR, with
+no traceback; a retry line reads "... retry: error text omitted"; neither carries the task's arguments.
+The result backend still stores the exception for `CELERY_RESULT_EXPIRES` (not served).
+
 ### 13.3 Scheduled (Beat) jobs
 
 | Schedule | Task | What it does | Failure handling |
@@ -1950,7 +1958,7 @@ outage" cannot drift between the silent and the loud path.
 | hourly (`:15`) | `billing.tasks.sweep_stale_stripe_events` | settles `PROCESSING` claims abandoned by killed workers; raises ERROR for `FAILED` rows nearing the end of Stripe's ~3-day retry window. **Never re-runs handlers** | `max_retries=0` |
 | 00:00 | `billing.tasks.process_license_renewals` | for `auto_renew=False`: deactivate + cancel at period end. For `auto_renew=True`: verify a **paid invoice covering a new period** before renewing; locks the row and skips if already renewed | per-license try/except; counters in the summary |
 | 01:00 | `billing.tasks.nightly_stripe_live_qa` | real-Stripe QA suite; **no-op unless `ENABLE_STRIPE_LIVE_QA` and `sk_test_` keys** | `max_retries=0` |
-| 01:30 | `ai_processor.tasks.nightly_grading_benchmark_replay` | replays **recorded** model responses through the real pipeline and diffs against the committed baseline — free, deterministic, and the only scheduled check that catches a regression in *our* grading code (there is no CI in this repo) | stale recordings → WARNING + skip, not a regression |
+| 01:30 | `ai_processor.tasks.nightly_grading_benchmark_replay` | replays **recorded** model responses through the real pipeline and diffs against the committed baseline — free, deterministic, and the only scheduled check that catches a regression in *our* grading code (the GitHub workflows do not run it) | stale recordings → WARNING + skip, not a regression |
 | 02:00 | `billing.tasks.process_annual_plan_credit_grants` | monthly credit refresh for ANNUAL-interval plans (billed yearly, credited monthly) | per-row |
 | 03:00 | `billing.tasks.process_license_monthly_credit_refreshes` | per-teacher monthly refresh under a license; resets `total_credits_consumed` idempotently via `consumption_window_start` | per-row |
 | 03:00 weekly (`GRADING_BENCHMARK_DAY_OF_WEEK`) | `ai_processor.tasks.weekly_grading_benchmark_live` | grades the fixed dataset against the **live** model — the only check that can detect the provider changing behaviour. Off unless `ENABLE_AI_LIVE_QA` | `max_retries=0` |
@@ -2020,7 +2028,7 @@ the status.
 | Client | `openai.OpenAI(base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_API_KEY)` |
 | Auth | bearer API key from env; `HTTP-Referer` and `X-Title: GradeA+` headers sent |
 | Primary model | `MAIN_MODEL = "x-ai/grok-4.3"` |
-| Fallbacks | `DEFAULT_FALLBACK_MODELS = ["deepseek/deepseek-v4-pro", "openai/gpt-5.4-nano"]`; **grading/extraction restricted to `GRADING_FALLBACK_MODELS = ["deepseek/deepseek-v4-pro"]`** |
+| Fallbacks | `DEFAULT_FALLBACK_MODELS = ["deepseek/deepseek-v4-pro", "openai/gpt-5.4-nano"]`; **grading/extraction restricted to `GRADING_FALLBACK_MODELS = ["deepseek/deepseek-v4-pro"]`**, or `IMAGE_FALLBACK_MODELS = ["anthropic/claude-haiku-5.5"]` for a call with an image (H-205) |
 | Determinism | `temperature=0.0` everywhere |
 | Output contract | `response_format` is a strict `json_schema` where a schema exists (`grading_schemas.py`, `extraction_schemas.py`), else `json_object` |
 | Sent | prompt text from `ai_processor/*.txt`, base64 images, PDF bytes, question/answer JSON |
@@ -2160,8 +2168,10 @@ All are opt-in via the corresponding `Settings` flag, **all of which default to 
 | Offline overage: pending / approved / rejected | super admins / school admin | — | offline overage lifecycle |
 | Manual credit grant | recipient | — | `POST /admin/credits/grant` |
 
-Every notification send is individually wrapped in `try/except` + `logger.exception` — a mail
-failure never fails the operation that triggered it.
+Every notification send is individually wrapped in `try/except` and logged — a mail
+failure never fails the operation that triggered it. The assignment notices (the due reminders and the
+new-assignment notice in `assignments/tasks.py`) log the error by class and code location only, with no text
+or traceback (H-219).
 
 ### 15.2 Cache invalidation as a side effect
 
@@ -2204,8 +2214,10 @@ otherwise recalculating course final grades and flushing deployment-wide caches 
 
 Three layers, in order:
 
-1. **DRF exception handler** (`users/exceptions.py::custom_exception_handler`) — logs every API
-   exception with view/path/method/user, lets DRF translate known exceptions, and marks the
+1. **DRF exception handler** (`users/exceptions.py::custom_exception_handler`) — lets DRF translate
+   known exceptions and logs each with view/path/method/user: a refusal DRF answers at WARNING,
+   class and status only, no traceback or text (H-227); a crash DRF cannot answer at ERROR with
+   its traceback, and marks the
    response `_drf_handled`. Anything DRF cannot handle becomes a bare `500` carrying `_raw_exc`.
 2. **Renderer** (`users/renderers.py::APIJSONRenderer`) — wraps the payload in the envelope. For
    handled errors it flattens field errors into one sentence and preserves the structured dict
@@ -2556,10 +2568,12 @@ the comments suggest this was learned the hard way.
 share `_EVENT_HANDLERS` and `_record_and_dispatch`. The comment: the table used to be duplicated
 inline in both, so a new event type had to be wired twice or silently no-op'd on one.
 
-### D13 — Beat as the CI substitute
+### D13 — Beat schedules the benchmarks
 
-**Observed.** `ai_processor/tasks.py` states plainly: *"There is no CI in this repo, so Celery Beat
-is the only scheduler available. If CI is ever added, the nightly replay belongs there instead."*
+**Observed.** CI exists: the GitHub workflows (`.github/workflows/`) run the tests, pre-commit, the
+migration-safety check and the dependency audit (H-258). None of them runs the grading benchmarks;
+`ai_processor/tasks.py` says so and notes that the nightly replay could move to a workflow, since it
+needs no credentials and no database of its own.
 
 **Interpretation.** An explicit, documented compromise rather than an accident.
 
@@ -2572,7 +2586,7 @@ is the only scheduler available. If CI is ever added, the nightly replay belongs
 1. **The codebase is unusually well commented at decision points.** Most non-obvious lines carry a
    comment explaining the bug that motivated them. That is what made a documentation pass of this
    depth possible without running the system. It is also the codebase's main defence against
-   regression, given there is no CI.
+   regression, beside the CI test suite (`.github/workflows/tests.yml`).
 
 2. **Correctness effort is concentrated where money and grades are.** Grading and billing carry
    claims, fencing tokens, refund scoping, arithmetic re-derivation and idempotency ledgers. The

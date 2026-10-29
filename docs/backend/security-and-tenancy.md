@@ -84,7 +84,7 @@ Throttling is **anonymous-only by design** — `UserRateThrottle` is not enabled
 
 The OTP is looked up **by user, not by `(user, code)`** ([users/views.py:847-851](../../users/views.py#L847-L851)) — the old lookup *"made every failure indistinguishable from 'no OTP exists', which is why the attempts budget could not be enforced."*
 
-**A residual enumeration leak:** `auth/otp` returns a neutral 202 for an unknown email, but a **known** email in the wrong state raises a specific `ParseError` ("Email already verified", "Email not verified") — which distinguishes it from an unknown one.
+**The code-request answers are neutral (H-198):** `auth/otp` returns the same 202 and message for an unknown email and for every known email, whatever its state. Until H-198 a known email in two states answered a specific 400 ("Email already verified", "Email not verified"), which distinguished it from an unknown one. Self-registration still refuses an address that has an account (a candidate row, not yet numbered).
 
 ---
 

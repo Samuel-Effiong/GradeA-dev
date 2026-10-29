@@ -1,0 +1,147 @@
+#!/bin/bash
+# H-215a automatic grading resilience (beta line). Usage: bash run_h215a_gate.sh <tip> 1
+# One grant, inside ONE outer inhibit (memory cap = available - 2G, min 6G, read at start; rule 13):
+#   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block bash <script> <tip> 1
+# 0 the red run: the new module as at the tip against the code as at the base (the four production files taken
+#   back; own DB). RULE 22: each new red test is red for its WRITTEN reason (a fragment looked for in its own
+#   FAIL/ERROR block; the transient test's 8 sub-case blocks must each hold it);
+# 1a makemigrations --check; 1b the seam by program (exactly the four production files, the new test module and
+#   docs changed); 1 the new module + near modules (every module that calls the auto task, the scheduled batch,
+#   grade_engine_async or the claim, or reads a batch row) + guards;
+#   2 the 12 mutants (rule 17; own DB); G11's log must show the TypeError (e8d537e6's retry) in the beat test's block,
+#   and G12's log (69699386's new item instead of reuse) the four written reds against 69699386.
+# The regression is the batch's one full run on the frozen tip; it is not in this script.
+# A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
+set -u
+# BASE = origin/beta after batch 23; the red run takes the four production files back to it.
+TIP=$1; STEP=${2:-1}; BASE=b02de3fb
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-auto-grade-resilience || exit 1
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+E=docs/evidence/h215a-auto-grade-resilience
+AVAIL_G=$(awk '/^MemAvailable:/ {print int($2/1048576)}' /proc/meminfo)
+MEMG=$((AVAIL_G - 2))
+echo "available at start: ${AVAIL_G}G; cap ${MEMG}G"
+[ "$MEMG" -ge 6 ] || { echo "STOP (exit 5): cap under 6G; wait and tell the SM"; exit 5; }
+# Each run has its own scope unit, gap-h215a-<pid>-<part>; the watchdogs stop only those, by exact name.
+UNITP=gap-h215a-$$
+UPART=none
+CAP="systemd-run --user --scope -q --unit=\${UNITP}-\${UPART} -p MemoryMax=${MEMG}G -p MemorySwapMax=0"
+# Memory watchdog (SM 2026-10-14): available under 1.5 GB stops OUR scope, by its unit name, never by pattern.
+( while sleep 10; do
+    A=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
+    if [ "$A" -lt 1572864 ]; then
+        for U in $UNITP-red $UNITP-modules $UNITP-mutants; do
+            if systemctl --user is-active -q "$U.scope"; then
+                echo "MEMORY STOP $(date +%T): available ${A} kB; stopping $U.scope" >> $E/memory_watchdog.txt
+                systemctl --user stop "$U.scope"
+            fi
+        done
+    fi
+  done ) &
+WATCHDOG=$!
+export PYTHONFAULTHANDLER=1
+export EXEMPT_EMAIL_DOMAINS=
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+[ "$STEP" = 1 ] || { echo "only step 1 exists"; exit 1; }
+mkdir -p $E
+CHANGED="assignments/tasks.py students/services.py students/exceptions.py students/models.py"
+# The mutants write assignments/tasks.py and students/services.py; the trap restores all four.
+RESTORE="$CHANGED"
+restore_tree() { kill $WATCHDOG 2>/dev/null; git checkout HEAD -- $RESTORE 2>/dev/null; find assignments students -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
+trap restore_tree EXIT
+summary() { grep -E "^(Ran |OK|FAILED \(|(FAIL|ERROR): )" "$1" | cut -c1-200 | head -${2:-12}; }
+dropmut() { python manage.py shell --settings=settings_worktree_mut -c "
+from django.conf import settings
+from django.db import connection
+name = settings.DATABASES['default']['TEST']['NAME']
+with connection._nodb_cursor() as c:
+    c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
+print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
+OWN="students.tests_h215a_auto_grade_resilience"
+NEAR="assignments.tests_task_results_carry_no_text assignments.tests_grading_audit_events assignments.tests_upload_task_retry_policy students.tests_batch_item_results students.tests_h38_tasks_namespace students.tests_h38_n3_refusal_audit students.tests_s6d_rubric_gate students.tests_s6d_provider_failure classrooms.tests_teacher_access_sweep students.tests_grading_idempotency students.tests_grading_redelivery_live students.tests_cache_matrix_p1 students.tests_submission_update_freshness students.tests_submission_concurrency students.tests_credits_mid_batch students.tests_item_retry students.tests_item_retry_h38 students.tests_h223_batch_runs_what_fits students.tests_broker_outage students.tests_grading_followup_dispatch students.tests_post_grading_submission_lock students.tests_identity_reason_codes students.tests_submission_tenancy students.tests_upload_credit_door students.tests_grading_label_routes students.tests_grading_label_written students.tests_async_edit_path billing.tests.test_execute_graded_task billing.tests.test_refusal_handling billing.tests.test_h38_part2_removed_teacher_routes audit.tests_history AutoGrader.tests_codederror_serialization AutoGrader.tests_cache_matrix_measurement AutoGrader.tests_dispatch users.tests_auth_endpoints users.tests_remaining_branches users.tests_task_viewset"
+GUARDS="AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_migration_safety_check AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_student_feedback_guard AutoGrader.tests_submission_audience_guard AutoGrader.tests_student_classmates_guard AutoGrader.tests_network_guard"
+echo "load at start: $(cat /proc/loadavg)"
+echo "=== 0. the red run: $OWN against the code as at $BASE (own DB) $(date +%T)"
+git checkout $BASE -- $CHANGED
+find assignments students -name __pycache__ -type d -prune -exec rm -rf {} +
+UPART=red
+eval "PYTHONDONTWRITEBYTECODE=1 $CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree_mut $OWN" < /dev/null > $E/red_run_code_as_at_base.txt 2>&1
+RED_EXIT=$?
+echo "red run exit=$RED_EXIT (non-zero expected)"
+RF=$E/red_run_code_as_at_base.txt
+RC=/home/bond-servant-in-training/Documents/Projects/GAP-builder-scripts/reason_check.py
+RED_OK=1
+[ "$RED_EXIT" -ne 0 ] || RED_OK=0
+grep -qE "^OK" $RF && RED_OK=0
+grep -qE "^Ran [0-9]+ tests? in" $RF || { echo "red run: no Ran line"; RED_OK=0; }
+grep -qE "unittest.loader._FailedTest" $RF && { echo "red run: the module failed to load"; RED_OK=0; }
+# RULE 22: each test below is red for its WRITTEN reason (a fragment written beforehand, looked for in its own block).
+# Green at the base by design (controls): test_the_teachers_own_regrade_still_grades_and_charges and the five
+# tests of NothingElseIsRetriedTest (today's answers, unchanged).
+r() { python -I $RC $RF "$1" "$2" || RED_OK=0; }
+r test_an_auto_paper_graded_by_the_teacher_meanwhile_is_skipped "2 != 1 : the auto run reached the provider for a paper already graded"
+r test_two_deliveries_of_one_auto_paper_charge_once ": the second delivery charged again"
+r test_a_scheduled_batch_paper_graded_meanwhile_is_skipped "2 != 1 : the scheduled batch run reached the provider for a paper already graded"
+r test_every_auto_grade_dispatch_carries_the_flag "[None, None] != [True, True]"
+r test_every_scheduled_batch_dispatch_carries_the_flag "[None, None] != [True, True]"
+r test_a_database_outage_is_retried_once_with_the_first_countdown "0 != 1 : a database outage was not retried"
+r test_each_transient_class_is_retried "0 != 1 : an outage was not retried"
+r test_the_countdown_doubles_to_fifteen_minutes_plus_up_to_thirty_seconds "module 'assignments.tasks' has no attribute '_auto_grade_retry_countdown'"
+r test_a_broker_outage_mid_dispatch_resends_only_the_missed_papers "0 != 1 : a broker outage was not retried"
+r test_a_beat_start_retried_for_real_completes_and_sends_the_missed_papers "'Error: ProcessingTemporarilyUnavailable' != 'Auto-grading started for 2 submissions.'"
+r test_two_outages_on_one_paper_reuse_its_item_twice "'Error: ProcessingTemporarilyUnavailable' != 'Auto-grading started for 2 submissions.'"
+r test_after_a_retry_the_batch_reads_complete_with_no_failure "'2 / 3' != '3 / 3'"
+# Exactly these blocks: one each for the 11 tests above other than the transient one, plus the transient
+# test's 8 sub-case blocks = 19. Nothing else fails.
+[ "$(grep -cE '^(FAIL|ERROR): ' $RF)" = 19 ] || { echo "red run: not exactly 19 FAIL/ERROR blocks"; RED_OK=0; }
+[ "$(grep -cE '^(FAIL|ERROR): test_each_transient_class_is_retried ' $RF)" = 8 ] || { echo "red run: not 8 sub-case blocks"; RED_OK=0; }
+if [ "$RED_OK" != 1 ]; then
+    echo "STOP (exit 4): the red run is not what was written"
+    git checkout HEAD -- $CHANGED
+    find assignments students -name __pycache__ -type d -prune -exec rm -rf {} +
+    exit 4
+fi
+echo "red run is as written: non-zero exit, no OK line, the module loaded, 19 blocks red for their written reasons and no other"
+git checkout HEAD -- $CHANGED
+find assignments students -name __pycache__ -type d -prune -exec rm -rf {} +
+git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+grep -E "^(Ran |OK|FAILED \\()" $RF | cut -c1-200
+dropmut
+echo "=== 1a. makemigrations --check $(date +%T)"
+python manage.py makemigrations --check --dry-run --settings=settings_worktree < /dev/null > $E/makemigrations_check.txt 2>&1; MM=$?; echo "makemigrations exit=$MM (0 = no changes)"; tail -1 $E/makemigrations_check.txt
+[ "$MM" = 0 ] || { echo "STOP: makemigrations reports changes"; exit 2; }
+echo "=== 1b. the seam, by program: exactly the four production files, the new test module and docs"
+git diff --name-only $BASE HEAD > $E/seam_changed_files.txt
+cat $E/seam_changed_files.txt
+[ "$(grep -vE '^docs/' $E/seam_changed_files.txt | sort | tr '\n' ' ')" = "assignments/tasks.py students/exceptions.py students/models.py students/services.py students/tests_h215a_auto_grade_resilience.py " ] || { echo "STOP: the changed files are not the five written"; exit 2; }
+echo "=== 1. own module + near modules + guards at $(git rev-parse --short=8 HEAD) $(date +%T)"
+UPART=modules
+eval "$CAP nice -n 10 timeout -k 60 3500 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $OWN $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
+echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
+if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
+echo "=== 2. mutants: 12 (own DB, rules 17 and 18) $(date +%T)"
+# Time limit 90 s x 12 + 600 = 1680 s, with a 300 s stall watchdog on the newest mutant log (2026-10-14).
+UPART=mutants
+( sleep 60; while systemctl --user is-active -q "$UNITP-mutants.scope"; do
+    NEWEST=$(ls -t $E/mutant_logs/*.txt 2>/dev/null | head -1)
+    if [ -n "$NEWEST" ] && [ $(( $(date +%s) - $(stat -c %Y "$NEWEST") )) -gt 300 ]; then
+        echo "STALL STOP $(date +%T): $NEWEST silent over 300 s; stopping $UNITP-mutants.scope" >> $E/stall_watchdog.txt
+        systemctl --user stop "$UNITP-mutants.scope"; break
+    fi
+    sleep 15
+  done ) &
+STALL=$!
+eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 1680 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
+echo "mutants exit=$? $(date +%T)"; kill $STALL 2>/dev/null; cut -c1-260 $E/mutation_log.txt
+git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
+# The Senior Manager's bug, shown: under G11 (e8d537e6's kwargs-only retry) the beat test fails with the TypeError.
+python -I $RC $E/mutant_logs/G11.txt test_a_beat_start_retried_for_real_completes_and_sends_the_missed_papers "got multiple values for argument 'assignment_id'" || echo "G11: NOT the written TypeError"
+# The written reds against 69699386 (a new item for the failed paper), shown under G12, which restores that code path.
+G12L=$E/mutant_logs/G12.txt
+python -I $RC $G12L test_a_broker_outage_mid_dispatch_resends_only_the_missed_papers "[1, 2, 3, 4] != [1, 2, 3]" || echo "G12: broker test NOT its written red"
+python -I $RC $G12L test_a_beat_start_retried_for_real_completes_and_sends_the_missed_papers "[1, 2, 3, 4] != [1, 2, 3]" || echo "G12: beat test NOT its written red"
+python -I $RC $G12L test_two_outages_on_one_paper_reuse_its_item_twice "[1, 2, 3, 4, 5] != [1, 2, 3]" || echo "G12: two-outage test NOT its written red"
+python -I $RC $G12L test_after_a_retry_the_batch_reads_complete_with_no_failure "'4 / 3' != '3 / 3'" || echo "G12: route test NOT its written red"
+dropmut
+echo "load at end: $(cat /proc/loadavg)"

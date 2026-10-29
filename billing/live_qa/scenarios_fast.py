@@ -87,7 +87,7 @@ def scenario_payment_method_lifecycle(harness) -> CheckRecorder:
     )
 
     # Add a SECOND card, exactly as the "add a card" endpoint does.
-    second = harness.attach_card(
+    second = harness.attach_card(  # nosec B106  # Stripe's test payment method id
         customer_id=sub.customer_id, token="pm_card_mastercard", set_default=False
     )
     rec.expect(

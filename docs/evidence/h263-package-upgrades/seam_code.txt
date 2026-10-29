@@ -1,0 +1,8 @@
+seam ok .pip-audit-ignore.toml: the six packages' blocks out (87 ids), the other 21 entries unchanged
+seam ok .pip-audit-ignore.toml: every id left is one the base already listed
+seam ok AutoGrader/settings.py: syntax tree as at the base apart from LIST_SERIALIZER_ERRORS_AS_DICT: False
+seam ok Dockerfile: gunicorn's pin alone, 20.0.4 to 22.0.0
+seam ok audit/emitter.py: _client_ip's except clause adds AttributeError (DRF 3.18 compat)
+seam ok billing/serializers.py: validators = [] on UserSubscriptionSerializer.Meta (DRF 3.18 compat)
+seam ok requirements.txt: the same length, differing by exactly the six pins
+SEAM OK

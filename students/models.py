@@ -177,6 +177,63 @@ class StudentSubmission(models.Model):
         ),
     )
 
+    # ------------------------------------------------------------------
+    # How the answers were read (AI-call record, slice 2): the label of
+    # the reading, written in the same save as `answers` by
+    # students.reading_label and by nothing else. An edit of the typed
+    # text is a new reading and replaces it. Answers changed in the admin
+    # screen keep the old label (the columns are read-only there).
+    # NOT NULL with a database default, like the grade's label above.
+    # ------------------------------------------------------------------
+    answers_model = models.CharField(
+        max_length=255,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "The AI model that supplied most of the saved answers, as the "
+            "provider named it; 'unknown' when the provider did not say."
+        ),
+    )
+    answers_prompt_version = models.CharField(
+        max_length=128,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text="Version of the instructions the reading was given.",
+    )
+    answers_config_version = models.CharField(
+        max_length=128,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "Version of the settings that shape a reading, taken once at "
+            "the start of the extraction (ai_processor/reading_config.py)."
+        ),
+    )
+    answers_release = models.CharField(
+        max_length=64,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text="The release that did the reading, or 'none'.",
+    )
+    answers_recheck_model = models.CharField(
+        max_length=255,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "The model that answered the blank-answer re-check, as the "
+            "provider named it; 'unknown'; or 'not_run' when no call was made."
+        ),
+    )
+    answers_recheck_result = models.CharField(
+        max_length=32,
+        default=UNLABELLED,
+        db_default=UNLABELLED,
+        help_text=(
+            "What became of the blank-answer re-check: 'not_run', 'failed', "
+            "'confirmed_blank' or 'found_writing'."
+        ),
+    )
+
     needs_review = models.BooleanField(
         default=False,
         db_index=True,
@@ -221,6 +278,19 @@ class StudentSubmission(models.Model):
             "moderate / borderline), denormalised from review_reasons so "
             "the queue can filter on it - review_reasons is a JSONField "
             "and cannot be filtered. ?needs_review=true&review_tier=critical."
+        ),
+    )
+
+    extraction_flags = models.JSONField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "H-242: what the answer reader noticed about this upload, as "
+            "plain-language flags: the upload not being for this assignment, "
+            "an answer off topic or in the wrong form for its question, an "
+            "answer that could not be read or found. Written with the "
+            "answers on every upload and edit; shown to the teacher and the "
+            "student. Each: kind, question_number, message, detail."
         ),
     )
 
@@ -293,7 +363,37 @@ class StudentSubmission(models.Model):
             models.UniqueConstraint(
                 fields=["student", "assignment"],
                 name="unique_student_submission_per_assignment",
-            )
+            ),
+            # The re-check's pair (students.step_label.pair_is_allowed, held
+            # twice): the result column holds one of the five result words,
+            # and "unlabelled" and "not_run" stand in the model column only
+            # beside the same word in the result column.
+            models.CheckConstraint(
+                condition=models.Q(
+                    answers_recheck_result__in=[
+                        "unlabelled",
+                        "not_run",
+                        "failed",
+                        "confirmed_blank",
+                        "found_writing",
+                    ]
+                )
+                & (
+                    (
+                        models.Q(answers_recheck_result="unlabelled")
+                        & models.Q(answers_recheck_model="unlabelled")
+                    )
+                    | (
+                        models.Q(answers_recheck_result="not_run")
+                        & models.Q(answers_recheck_model="not_run")
+                    )
+                    | (
+                        ~models.Q(answers_recheck_result__in=["unlabelled", "not_run"])
+                        & ~models.Q(answers_recheck_model__in=["unlabelled", "not_run"])
+                    )
+                ),
+                name="answers_recheck_pair_allowed",
+            ),
         ]
 
         ordering = ["-submission_date"]
@@ -373,12 +473,17 @@ class BatchUploadSession(models.Model):
         batch_type=None,
         submission_id=None,
         assignment_id=None,
+        note=None,
     ):
         new_entry = {
             "file_name": file_name,
             "status": status,
             "error": error,
         }
+        # H-215a: why a SUCCESS needed no work ("already graded"). The
+        # status stays a word every reader of results already knows.
+        if note:
+            new_entry["note"] = note
         if batch_type == BatchUploadType.SUBMISSION:
             new_entry.update(
                 {

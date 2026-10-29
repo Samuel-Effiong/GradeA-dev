@@ -1175,10 +1175,11 @@ class SharedStudentBase(TeacherRemovalBase):
             score=Decimal("9.00"),
             graded_at=timezone.now(),
         )
-        # After the submission, whose receiver recalculates final_grade.
-        StudentCourse.objects.filter(
-            student=self.student, course_id=self.course_id
-        ).update(final_grade=Decimal("91.50"))
+        # my-students' `grade` is now a cross-course points-weighted
+        # aggregate computed straight from submissions (final_grade_from),
+        # not a read of the stored StudentCourse.final_grade column - this
+        # is the only graded submission in either course, so the expected
+        # figure is this one 9/10 score, not a hand-set column value.
 
         own_session = Session.objects.create(
             name="Own term",
@@ -1284,7 +1285,9 @@ class RemovedTeacherSharedStudentTests(SharedStudentBase):
         )
         self.assertEqual(response.status_code, 200, response.content)
         row = self.student_row(response)
-        self.assertEqual(row["enrolled_courses"], ["Own Chemistry"])
+        self.assertEqual(
+            [c["name"] for c in row["enrolled_courses"]], ["Own Chemistry"]
+        )
         self.assertFalse(leaked, body)
 
     # classrooms/views.py my_students: both prefetches, below the serializer
@@ -1428,7 +1431,8 @@ class ActiveTeacherSharedStudentTests(SharedStudentBase):
         self.assertEqual(response.status_code, 200, response.content)
         row = self.student_row(response)
         self.assertCountEqual(
-            row["enrolled_courses"], ["School A Biology", "Own Chemistry"]
+            [c["name"] for c in row["enrolled_courses"]],
+            ["School A Biology", "Own Chemistry"],
         )
         self.assertNotIn("Colleague", response.content.decode())
 
@@ -1442,8 +1446,11 @@ class ActiveTeacherSharedStudentTests(SharedStudentBase):
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(response.data["count"], 1, response.content)
         row = self.student_row(response)
-        self.assertEqual(row["course_description"], "School A syllabus")
-        self.assertEqual(Decimal(str(row["grade"]["percentage"])), Decimal("91.50"))
+        course = next(
+            c for c in row["enrolled_courses"] if str(c["id"]) == str(self.course_id)
+        )
+        self.assertEqual(course["description"], "School A syllabus")
+        self.assertEqual(Decimal(str(row["grade"]["percentage"])), Decimal("90.00"))
         self.assertEqual(row["total_assignments_submitted"], 1)
 
     def test_my_students_session_filter_selects_the_student(self):
@@ -1514,6 +1521,10 @@ class ActiveTeacherSharedStudentTests(SharedStudentBase):
 # row naming a School A pupil attached that pupil's School A record to the
 # teacher's new course. Unlike the email path it has no cross-school gate
 # (check_existing_account_may_join), so this lookup is the only barrier.
+#
+# H-247 (owner, 2026-10-16) removed the cross-course name match altogether:
+# a no-email row is only ever matched within its own course. These tests
+# stay as the guard that no import attaches another course's pupil.
 # ---------------------------------------------------------------------------
 
 ROSTER_ROW = "Ada,Lovelace"
@@ -1581,7 +1592,7 @@ class RemovedTeacherRosterNameMatchTests(RosterNameMatchBase):
             student=self.ada, course_id=course_id
         ).exists()
         note(
-            "classrooms/services/roster_import.py _find_existing_student_by_name",
+            "classrooms/services/roster_import.py _import_row_without_email",
             "WRITE",
             response,
             attached,
@@ -1644,32 +1655,37 @@ class RemovedTeacherRosterNameMatchTests(RosterNameMatchBase):
 
 
 class ActiveTeacherRosterNameMatchTests(RosterNameMatchBase):
-    """Positive control: never removed, the teacher imports the same
-    no-email row into a second School A course, and the name match still
-    attaches the EXISTING School A Ada (no new account) - so the removed
-    teacher's new-student outcome is the H-38 scoping, not the name match
-    being broken for everyone."""
+    """H-247 (owner, 2026-10-16): with no email a name is unique within one
+    course only, so no teacher's import joins a row to another course's
+    student by name - removed (above) or not. Never removed, the teacher
+    imports the same no-email row into a second School A course and gets
+    a new student; School A's Ada is untouched."""
 
-    def test_import_into_a_second_school_course_attaches_the_existing_student(self):
+    def test_import_into_a_second_school_course_creates_a_new_student(self):
         course_id = self.create_course(
             self.teacher_client, self.session_id, "School A Chemistry"
         )
         students_before = CustomUser.objects.filter(user_type=UserTypes.STUDENT).count()
         response = self.import_ada(course_id)
+        attached = StudentCourse.objects.filter(
+            student=self.ada, course_id=course_id
+        ).exists()
         note(
-            "classrooms/services/roster_import.py _find_existing_student_by_name "
-            "(positive control - active teacher)",
+            "classrooms/services/roster_import.py _import_row_without_email "
+            "(active teacher, H-247)",
             "WRITE",
             response,
-            True,
+            attached,
         )
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(response.data["success_count"], 1, response.content)
         [result] = response.data["results"]
         self.assertEqual(result["status"], "enrolled", result)
         self.assertEqual(result["type"], "direct_add", result)
-        self.assertEqual([a.pk for a in self.adas_in(course_id)], [self.ada.pk])
+        self.assertFalse(attached)
+        [new_ada] = self.adas_in(course_id)
+        self.assertNotEqual(new_ada.pk, self.ada.pk)
         self.assertEqual(
             CustomUser.objects.filter(user_type=UserTypes.STUDENT).count(),
-            students_before,
+            students_before + 1,
         )

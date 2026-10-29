@@ -1,0 +1,14 @@
+.pip-audit-ignore.toml
+AutoGrader/settings.py
+Dockerfile
+assignments/tests_h263_list_error_shape.py
+audit/emitter.py
+billing/serializers.py
+docs/HARDENING_BACKLOG.md
+docs/evidence/h263-package-upgrades/NOTES.md
+docs/evidence/h263-package-upgrades/audit_tip_before_gate.txt
+docs/evidence/h263-package-upgrades/health_verdict.py
+docs/evidence/h263-package-upgrades/plant.py
+docs/evidence/h263-package-upgrades/run_h263_gate.sh.txt
+docs/evidence/h263-package-upgrades/seam_check.py
+requirements.txt

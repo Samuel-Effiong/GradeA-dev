@@ -21,7 +21,7 @@ Grading is done by an AI, and an AI can quietly get worse — either because som
 
 Both scheduled tasks use `max_retries=0`, following `billing/tasks.py`'s live-QA conventions: *"a failure here is a signal to investigate, not a transient to paper over"* ([ai_processor/tasks.py:19-21](../../ai_processor/tasks.py#L19-L21)).
 
-**There is no CI in this repo, so Celery Beat is the only scheduler available.** The module leaves a standing note: *"If CI is ever added, the nightly replay belongs there instead — it needs no credentials and no database of its own"* ([ai_processor/tasks.py:23-25](../../ai_processor/tasks.py#L23-L25)).
+**No GitHub workflow runs either benchmark, so Celery Beat is where they are scheduled.** CI does exist (`.github/workflows/`: the tests, pre-commit, migration safety and the dependency audit), but none of its jobs runs the replay. The module's docstring says the same: *"The nightly replay could move to a workflow: it needs no credentials and no database of its own"* ([ai_processor/tasks.py:27-30](../../ai_processor/tasks.py#L27-L30)).
 
 Both are registered in `BEAT_HEALTH_EXPECTATIONS`, so a stopped job is caught by the watchdog ([settings.py:933](../../AutoGrader/settings.py#L933), [936](../../AutoGrader/settings.py#L936)) — see [project-config.md](project-config.md#why-two-layers-of-beat-monitoring).
 
@@ -294,7 +294,7 @@ This is unusually valuable documentation in its own right: it records four place
 
 `iter_extraction_dataset_errors()` is the equivalent integrity self-check.
 
-The extraction benchmark has **no scheduled job** — it is command-only. Its docstring says `--mode replay` is *"what CI runs"*, but there is no CI in this repo, so **nothing runs it automatically**.
+The extraction benchmark has **no scheduled job** — it is command-only. Its docstring says `--mode replay` is *"what CI runs"*, but no GitHub workflow runs it, so **nothing runs it automatically**.
 
 > **UNVERIFIED:** whether the extraction benchmark is deliberately manual or was simply never wired to Beat. To resolve: ask the team, or check whether a `PeriodicTask` row for it exists in production.
 

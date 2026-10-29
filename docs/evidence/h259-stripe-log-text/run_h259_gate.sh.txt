@@ -1,0 +1,153 @@
+#!/bin/bash
+# H-259 a Stripe failure's log line carries its class and request id, not its text (beta line). Usage: bash run_h259_gate.sh <tip> 1
+# One grant, inside ONE outer inhibit (memory cap = available - 2G, min 6G, read at start; rule 13), and the exit
+# code captured by the start command:
+#   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block bash <script> <tip> 1 > out; echo "gate exit=$?" >> out
+# 0 the red run: the new test module as at the tip against the code as at the base (the eight production files taken
+#   back; own DB). RULE 22: each red test is red for its WRITTEN reason (a fragment looked for in every one of its own
+#   FAIL/ERROR blocks), and exactly 22 blocks appear;
+# 1a makemigrations --check; 1b the seam by program (the eight production files are the only ones changed; by their
+#   syntax trees only the named units changed, the billing ones only in what they log); 1 the own module + near
+#   modules (every billing test module that reaches a changed function or route, the H-28 modules, the root-logger
+#   capture in test_logs_carry_no_email, and the classifier's own tests) + guards;
+#   2 the 30 mutants (rule 17; own DB), each judged by its expected tests AND their written fragments.
+# The regression is the batch's one full run on the frozen tip; it is not in this script.
+# A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
+set -u
+# BASE = 675b6d4d, H-255's gated tip, on which this branch stacks; the red run takes the eight production files back to it.
+TIP=$1; STEP=${2:-1}; BASE=675b6d4d
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h259-h260-stripe-logs || exit 1
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+E=docs/evidence/h259-stripe-log-text
+AVAIL_G=$(awk '/^MemAvailable:/ {print int($2/1048576)}' /proc/meminfo)
+MEMG=$((AVAIL_G - 2))
+echo "available at start: ${AVAIL_G}G; cap ${MEMG}G"
+[ "$MEMG" -ge 6 ] || { echo "STOP (exit 5): cap under 6G; wait and tell the SM"; exit 5; }
+# Each run has its own scope unit, gap-h259-<pid>-<part>; the watchdogs stop only those, by exact name.
+UNITP=gap-h259-$$
+UPART=none
+CAP="systemd-run --user --scope -q --unit=\${UNITP}-\${UPART} -p MemoryMax=${MEMG}G -p MemorySwapMax=0"
+# Memory watchdog (SM 2026-10-14): available under 1.5 GB stops OUR scope, by its unit name, never by pattern.
+( while sleep 10; do
+    A=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
+    if [ "$A" -lt 1572864 ]; then
+        for U in $UNITP-red $UNITP-modules $UNITP-mutants; do
+            if systemctl --user is-active -q "$U.scope"; then
+                echo "MEMORY STOP $(date +%T): available ${A} kB; stopping $U.scope" >> $E/memory_watchdog.txt
+                systemctl --user stop "$U.scope"
+            fi
+        done
+    fi
+  done ) &
+WATCHDOG=$!
+export PYTHONFAULTHANDLER=1
+export EXEMPT_EMAIL_DOMAINS=
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+[ "$STEP" = 1 ] || { echo "only step 1 exists"; exit 1; }
+mkdir -p $E
+CHANGED="AutoGrader/error_messages.py AutoGrader/log_scrubbing.py billing/license_stripe_mutation.py billing/license_views.py billing/payment_method_views.py billing/receipts.py billing/stripe_service.py billing/tasks.py"
+RESTORE="$CHANGED"
+restore_tree() { kill $WATCHDOG 2>/dev/null; git checkout HEAD -- $RESTORE 2>/dev/null; find AutoGrader billing -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
+trap restore_tree EXIT
+summary() { grep -E "^(Ran |OK|FAILED \(|(FAIL|ERROR): )" "$1" | cut -c1-200 | head -${2:-12}; }
+dropmut() { python manage.py shell --settings=settings_worktree_mut -c "
+from django.conf import settings
+from django.db import connection
+name = settings.DATABASES['default']['TEST']['NAME']
+with connection._nodb_cursor() as c:
+    c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
+print('dropped', name)" < /dev/null > $E/.dropmut.out 2>&1; tail -1 $E/.dropmut.out; rm -f $E/.dropmut.out; }
+OWN="billing.tests.test_h259_stripe_log_text"
+NEAR="billing.tests.test_beat_lock_catch_up billing.tests.test_billing_period_anchoring billing.tests.test_cancellation_visibility billing.tests.test_converted_trial_is_not_cancelling billing.tests.test_date_scheduled_cancellation billing.tests.test_event_replay billing.tests.test_h255_stripe_error_text billing.tests.test_h60_licence_stripe_text billing.tests.test_h28_alerting billing.tests.test_h28_cancel_phases billing.tests.test_h28_convert_phases billing.tests.test_h28_finalise_retry billing.tests.test_h28_intent_audit billing.tests.test_h28_licence_stripe_divergence billing.tests.test_h28_licence_stripe_mutation_intent billing.tests.test_h28_plan_phases billing.tests.test_h28_seat_phases billing.tests.test_h28_stripe_budget billing.tests.test_invoice_lookback_boundary billing.tests.test_invoice_payment_failed billing.tests.test_invoice_payment_intent_resolution billing.tests.test_license_cancellation billing.tests.test_license_overage_offline billing.tests.test_live_qa_invariants billing.tests.test_live_qa_scenario_registry billing.tests.test_logs_carry_no_email billing.tests.test_mailerlite_sync billing.tests.test_overage_cap billing.tests.test_overage_purchase_integrity billing.tests.test_payment_methods billing.tests.test_plan_change_retires_old_bucket billing.tests.test_price_drift_reconciliation billing.tests.test_qa_test_clock_attachment billing.tests.test_qa_time_travel_clock billing.tests.test_r5_atomicity_and_refund_idempotency billing.tests.test_receipt_lookup_outside_transaction billing.tests.test_receipts billing.tests.test_refund_reconciliation_classification billing.tests.test_renewal_guards billing.tests.test_rollover_not_double_counted billing.tests.test_scheduled_downgrade_transition billing.tests.test_subscription_cancel billing.tests.test_subscription_cycle_integrity billing.tests.test_subscription_reactivation billing.tests.test_subscription_updated_webhook billing.tests.test_subscription_upgrade billing.tests.test_webhook_idempotency billing.tests.tests_free_trial AutoGrader.tests_error_messages"
+GUARDS="AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_migration_safety_check AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_student_feedback_guard AutoGrader.tests_submission_audience_guard AutoGrader.tests_student_classmates_guard AutoGrader.tests_network_guard"
+echo "load at start: $(cat /proc/loadavg)"
+echo "=== 0. the red run: $OWN against the code as at $BASE (own DB) $(date +%T)"
+git checkout $BASE -- $CHANGED
+find AutoGrader billing -name __pycache__ -type d -prune -exec rm -rf {} +
+UPART=red
+eval "PYTHONDONTWRITEBYTECODE=1 $CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree_mut $OWN" < /dev/null > $E/red_run_code_as_at_base.txt 2>&1
+RED_EXIT=$?
+echo "red run exit=$RED_EXIT (non-zero expected)"
+RF=$E/red_run_code_as_at_base.txt
+RC=/home/bond-servant-in-training/Documents/Projects/GAP-builder-scripts/reason_check.py
+RED_OK=1
+[ "$RED_EXIT" -ne 0 ] || RED_OK=0
+grep -qE "^OK" $RF && RED_OK=0
+grep -qE "^Ran 23 tests in" $RF || { echo "red run: no 'Ran 23 tests' line"; RED_OK=0; }
+grep -qE "unittest.loader._FailedTest" $RF && { echo "red run: a module failed to load"; RED_OK=0; }
+# RULE 22: each test below is red for its WRITTEN reason, in every one of its blocks. At the base every one of the
+# eighteen lines and the alert carries Stripe's message or traceback, and the scrubber has no Stripe pattern.
+# Green at the base by design: the control (a publishable key and ordinary words are left alone).
+r() { python -I $RC $RF "$1" "$2" || RED_OK=0; }
+for t in test_a_receipt_lookup_failure_logs_no_stripe_text test_an_invoice_listing_failure_logs_no_stripe_text \
+         test_a_licence_cancel_failure_in_the_renewal_sweep_logs_no_stripe_text \
+         test_a_price_reconciliation_listing_failure_logs_no_stripe_text \
+         test_a_failed_compensating_revert_on_reactivation_logs_no_stripe_text \
+         test_a_failed_duplicate_invoice_cleanup_logs_no_stripe_text test_a_failed_price_revert_logs_no_stripe_text \
+         test_a_failed_unpaid_invoice_void_logs_no_stripe_text test_an_already_released_schedule_logs_no_stripe_text \
+         test_a_failed_default_card_on_setup_intent_succeeded_logs_no_stripe_text \
+         test_a_stripe_error_on_licence_overage_purchase_logs_no_stripe_text \
+         test_a_stripe_error_on_licence_setup_intent_logs_no_stripe_text \
+         test_a_stripe_error_listing_cards_logs_no_stripe_text test_a_stripe_error_adding_a_card_logs_no_stripe_text \
+         test_a_stripe_error_opening_the_billing_portal_logs_no_stripe_text \
+         test_a_stripe_error_removing_a_card_logs_no_stripe_text test_a_stripe_error_setting_the_default_card_logs_no_stripe_text \
+         test_a_lost_response_that_applied_logs_no_stripe_text test_the_reconciliation_alert_carries_no_stripe_text \
+         test_a_key_in_a_log_line_is_masked test_a_key_in_a_traceback_is_masked test_a_key_in_a_sentry_event_is_masked; do
+    r $t "unexpectedly found in"
+done
+[ "$(grep -cE '^(FAIL|ERROR): ' $RF)" = 22 ] || { echo "red run: not exactly 22 FAIL/ERROR blocks ($(grep -cE '^(FAIL|ERROR): ' $RF))"; RED_OK=0; }
+grep -qE "^ERROR: " $RF && { echo "red run: an ERROR block"; RED_OK=0; }
+if [ "$RED_OK" != 1 ]; then
+    echo "STOP (exit 4): the red run is not what was written"
+    git checkout HEAD -- $CHANGED
+    find AutoGrader billing -name __pycache__ -type d -prune -exec rm -rf {} +
+    exit 4
+fi
+echo "red run is as written: non-zero exit, no OK line, the module loaded, 22 blocks red for their written reasons and no other"
+git checkout HEAD -- $CHANGED
+find AutoGrader billing -name __pycache__ -type d -prune -exec rm -rf {} +
+git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E" | grep -v settings_worktree_mut.py)" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+grep -E "^(Ran |OK|FAILED \\()" $RF | cut -c1-200
+dropmut
+echo "=== 1a. makemigrations --check $(date +%T)"
+python manage.py makemigrations --check --dry-run --settings=settings_worktree < /dev/null > $E/makemigrations_check.txt 2>&1; MM=$?; echo "makemigrations exit=$MM (0 = no changes)"; tail -1 $E/makemigrations_check.txt
+[ "$MM" = 0 ] || { echo "STOP: makemigrations reports changes"; exit 2; }
+echo "=== 1b. the seam, by program: the eight production files are the only ones changed; by their syntax trees only the named units"
+git diff --name-only $BASE HEAD > $E/seam_changed_files.txt
+cat $E/seam_changed_files.txt
+# The secrets baseline moves with the line numbers it records (detect-secrets rewrites it at commit time): allowed
+# only when every changed line is a line_number or generated_at.
+if grep -qx '.secrets.baseline' $E/seam_changed_files.txt; then
+    git diff $BASE HEAD -- .secrets.baseline | grep -E '^[+-] ' | grep -vE '^[+-] +"(line_number|generated_at)": ' > $E/.baseline_other
+    [ -s $E/.baseline_other ] && { echo "STOP: .secrets.baseline changed beyond line numbers"; cat $E/.baseline_other; rm -f $E/.baseline_other; exit 2; }
+    rm -f $E/.baseline_other
+    echo ".secrets.baseline: line numbers and generated_at only"
+fi
+[ "$(grep -vE '^(docs/|billing/tests/test_h259_stripe_log_text\.py$|\.secrets\.baseline$)' $E/seam_changed_files.txt | tr '\n' ' ')" = "AutoGrader/error_messages.py AutoGrader/log_scrubbing.py billing/license_stripe_mutation.py billing/license_views.py billing/payment_method_views.py billing/receipts.py billing/stripe_service.py billing/tasks.py " ] || { echo "STOP: the production files changed are not the eight"; exit 2; }
+rm -rf $E/.base && mkdir -p $E/.base && git archive $BASE AutoGrader/error_messages.py AutoGrader/log_scrubbing.py billing | tar -x -C $E/.base
+python -I $E/seam_check.py $E/.base . > $E/seam_code.txt 2>&1; SEAM=$?; rm -rf $E/.base
+cat $E/seam_code.txt
+[ "$SEAM" = 0 ] || { echo "STOP: the seam check failed"; exit 2; }
+echo "=== 1. own modules + near modules + guards at $(git rev-parse --short=8 HEAD) $(date +%T)"
+UPART=modules
+eval "$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $OWN $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
+echo "exit=$? $(date +%T)"; summary $E/modules_and_guards.txt
+if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
+echo "=== 2. mutants: 30 (own DB, rules 17, 18 and 22) $(date +%T)"
+# Time limit 90 s x 30 + 600 = 3300 s, with a 300 s stall watchdog on the newest mutant log (2026-10-14).
+UPART=mutants
+( sleep 60; while systemctl --user is-active -q "$UNITP-mutants.scope"; do
+    NEWEST=$(ls -t $E/mutant_logs/*.txt 2>/dev/null | head -1)
+    if [ -n "$NEWEST" ] && [ $(( $(date +%s) - $(stat -c %Y "$NEWEST") )) -gt 300 ]; then
+        echo "STALL STOP $(date +%T): $NEWEST silent over 300 s; stopping $UNITP-mutants.scope" >> $E/stall_watchdog.txt
+        systemctl --user stop "$UNITP-mutants.scope"; break
+    fi
+    sleep 15
+  done ) &
+STALL=$!
+eval "MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results.json MUT_LOGS=$E/mutant_logs $CAP nice -n 10 timeout -k 60 3300 python $E/mutate.py" < /dev/null > $E/mutation_log.txt 2>&1
+echo "mutants exit=$? $(date +%T)"; kill $STALL 2>/dev/null; cut -c1-300 $E/mutation_log.txt
+git diff --quiet HEAD -- . ":!$E" && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
+dropmut
+echo "load at end: $(cat /proc/loadavg)"

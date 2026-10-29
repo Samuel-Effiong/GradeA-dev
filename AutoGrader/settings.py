@@ -188,11 +188,17 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
         # import, the process must fail at start, not run with Sentry
         # silently off. The hooks go to init in the same call, so Sentry is
         # never initialised without them.
+        from AutoGrader.sentry_environment import sentry_environment
         from AutoGrader.sentry_scrubbing import scrub_breadcrumb, scrub_event, scrub_log
 
         sentry_sdk.init(
             dsn=SENTRY_DSN,
-            environment=ENVIRONMENT,
+            # H-246: beta runs with ENVIRONMENT=prod; SENTRY_ENVIRONMENT=beta
+            # there keeps its events apart from production's. The release is
+            # read by the SDK itself from SENTRY_RELEASE.
+            environment=sentry_environment(
+                ENVIRONMENT, env.str("SENTRY_ENVIRONMENT", default="")
+            ),
             integrations=[
                 DjangoIntegration(),
                 CeleryIntegration(),
@@ -636,10 +642,14 @@ ANSWER_BLANK_VERIFICATION_ENABLED = env.bool(
     "ANSWER_BLANK_VERIFICATION_ENABLED", default=True
 )
 
-# Above this many blanks, skip the re-read. A submission where almost
-# nothing was answered is either a genuinely near-empty paper or a wholesale
-# extraction failure; in both cases a per-question re-read is the wrong
-# instrument, and the completeness flags already route it to a human.
+# At most this many blanks are re-read in the one call. Above it, the
+# lowest-numbered this-many are re-read and the rest are not (logged), and
+# the completeness flags still route them to a human. 0 re-reads none.
+# H-264: this used to skip the re-read entirely above the cap, on the view
+# that a paper with almost nothing answered is a wholesale failure the
+# re-read cannot help. Seen on beta, that is exactly the case where recovery
+# matters: a numbered paper for another assignment read as one answer under
+# question 1 left 74 blanks, and none of them was checked.
 ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS = env.int(
     "ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS", default=12
 )
@@ -661,6 +671,31 @@ ANSWER_BLANK_VERIFICATION_MAX_PAGES = env.int(
 # which still asks a far narrower question than the extraction did.
 ANSWER_BLANK_VERIFICATION_MODEL = env.str("ANSWER_BLANK_VERIFICATION_MODEL", default="")
 
+# The per-call usage record (ai_processor/call_record.py, H-201): one row per
+# AI call, written after the call and its charge are finished; numbers and
+# ids only. Switch off without a deploy by setting this to false.
+AI_CALL_RECORD_ENABLED = env.bool("AI_CALL_RECORD_ENABLED", default=True)
+
+# H-206: set to true and every request to the AI provider asks for
+# zero-retention endpoints only (`zdr: true` in the provider block,
+# ai_processor/services.py _provider_block). OFF by default (the owner, 24
+# October 2026): while off, prompts may go to suppliers that retain them. When
+# on, a model with no zero-retention endpoint cannot be reached, and its calls
+# fail. The variable is read from the environment when a process starts:
+# changing it on the host needs a restart of the web, worker and Beat
+# processes. The account's own privacy settings are separate.
+AI_PROVIDER_ZDR_ENABLED = env.bool("AI_PROVIDER_ZDR_ENABLED", default=False)
+
+# H-256: how long one request to the AI provider may wait for each read before
+# it is given up (the connect wait is fixed at 10 s in ai_processor/services.py).
+# The SDK tries a request three times (max_retries=2), so a provider that
+# never answers costs at most three of these. 300 s is about 2.4x the slowest
+# call in the live benchmark records (ai_processor/benchmark/answers/reports,
+# 152 calls; grading p99 113 s, max 118 s; answer reading p99 94 s, max
+# 127 s). The SDK's own default was 600 s, three times over, past the grading
+# task's 25-minute kill point. Read when a process starts.
+AI_PROVIDER_TIMEOUT_SECONDS = env.float("AI_PROVIDER_TIMEOUT_SECONDS", default=300.0)
+
 # Selective blind second opinion (ai_processor/second_opinion.py): a
 # DIFFERENT model re-grades triggered questions without seeing the first
 # grade; disagreement flags the submission needs_review for the teacher.
@@ -673,20 +708,28 @@ GRADING_SECOND_OPINION_ENABLED = env.bool(
 # is used; if none differs, the second opinion is skipped — a same-model
 # "second opinion" shares every blind spot of the first.
 #
-# Two entries deliberately: grader A (GRADING_FALLBACK_MODELS in
-# ai_processor/services.py) can itself fall back to deepseek-v4-pro. If
-# deepseek were the only second-opinion candidate, that fallback would
-# silently disable the second opinion at exactly the moment grader A is
-# already struggling. gemini-2.5-flash is the third, independent option
-# for that case — different vendor family from both x-ai (grader A) and
-# deepseek (grader A's fallback), comparable reasoning-tier positioning,
-# structured-output support, and (at the time this was set) priced at or
-# below both of the others. On the normal path (grader A = grok-4.3) this
-# resolves to deepseek exactly as before — gemini is only reached in the
-# previously-broken fallback case, so everyday spend is unchanged.
+# claude-haiku-5.5 first (H-254, the owner's decision of 24 October 2026). A
+# second-opinion request carries the images of the questions it re-grades,
+# and deepseek-v4-pro cannot read images: with deepseek first, grader B
+# failed on every such paper and grader A's grade stood with no second
+# opinion and no review flag. Haiku reads images, is cheaper than deepseek
+# in list price, is a different model family from x-ai (grader A), is served
+# by a zero-retention endpoint, and was the cheapest model tested (H-205
+# run1, 12 scanned papers: 238/240 handwritten multiple-choice letters read,
+# grading mean absolute error 0.556 against the teacher, grok-4.3: 0.626, no
+# errors). On the normal path (grader A = grok-4.3) grader B is haiku, with
+# images or without.
+#
+# Two entries deliberately: grader A can itself fall back to haiku (a call
+# with an image, IMAGE_FALLBACK_MODELS in ai_processor/services.py) or to
+# deepseek (a text call, GRADING_FALLBACK_MODELS). Grader B is then the
+# other one, so a fallback never silently disables the second opinion.
+# STATED LIMIT: when grader A fell back to haiku (an image call while grok
+# is down), grader B is deepseek, which still fails on the images; that
+# paper keeps grader A's grade without a second opinion, as before H-254.
 GRADING_SECOND_OPINION_MODELS = env.list(
     "GRADING_SECOND_OPINION_MODELS",
-    default=["deepseek/deepseek-v4-pro", "google/gemini-2.5-flash"],
+    default=["anthropic/claude-haiku-5.5", "deepseek/deepseek-v4-pro"],
 )
 # Trigger thresholds. A run below this confidence gets a full second
 # read; individual questions trigger on a model-emitted flag_for_review
@@ -979,8 +1022,9 @@ CELERY_BEAT_SCHEDULE = {
     },
     # Grading-quality checks (ai_processor/benchmark/). The nightly one
     # replays recorded model responses: free, deterministic, and the only
-    # scheduled thing that catches a regression in OUR grading code —
-    # there is no CI in this repo, so Beat is the only place to hang it.
+    # scheduled thing that catches a regression in OUR grading code. The
+    # GitHub workflows (.github/workflows/) do not run it, so Beat is where
+    # it is scheduled.
     "nightly-grading-benchmark-replay": {
         "task": "ai_processor.tasks.nightly_grading_benchmark_replay",
         "schedule": crontab(minute=30, hour=1),
@@ -1166,6 +1210,15 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "EXCEPTION_HANDLER": "users.exceptions.custom_exception_handler",
+    # H-263: djangorestframework 3.18.0 changed a `many=True` serializer's
+    # validation errors from a list with one entry per item ([{}, {...}]) to a
+    # dict of the failing items by index ({1: {...}}). The exception handler
+    # passes them through, so the new shape would reach the frontend on four
+    # inputs: a question's `rubric`, `tasks`, `session_breakdown` and the bulk
+    # topic create. False keeps the list shape (DRF warns
+    # RemovedInDRF320Warning); H-266 moves the frontend before DRF 3.20 drops
+    # the switch. assignments.tests_h263_list_error_shape pins the shape.
+    "LIST_SERIALIZER_ERRORS_AS_DICT": False,
     "DEFAULT_ROUTER_TRAILING_SLASH": False,
     # Throttling. Deliberately anonymous-only: `UserRateThrottle` is NOT
     # enabled because the authenticated dashboard and grading views are

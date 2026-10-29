@@ -344,15 +344,25 @@ class OTPEndpointBranchTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_verify_email_on_an_already_verified_account_is_refused(self):
-        response = self.client.post(
+    def test_verify_email_on_an_already_verified_account_gets_the_neutral_answer(self):
+        """H-198: it was 400 "Email already verified. Please login."; it is
+        now the unknown address's 202, and no activation token is made."""
+        with patch("users.services.send_email_task"):
+            response = self.client.post(
+                self.url,
+                {"email": self.user.email, "otp_type": "VERIFY_EMAIL"},
+                format="json",
+            )
+        unknown = self.client.post(
             self.url,
-            {"email": self.user.email, "otp_type": "VERIFY_EMAIL"},
+            {"email": "nobody@gmail.com", "otp_type": "VERIFY_EMAIL"},
             format="json",
         )
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("already verified", str(response.data).lower())
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.content, unknown.content)
+        self.user.refresh_from_db()
+        self.assertIsNone(self.user.activation_token)
 
     def test_verify_email_resends_for_an_unverified_account(self):
         unverified = make_user(
@@ -369,19 +379,30 @@ class OTPEndpointBranchTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         mock_send.assert_called_once()
 
-    def test_reset_password_on_an_unverified_account_is_refused(self):
+    def test_reset_password_on_an_unverified_account_gets_the_neutral_answer(self):
+        """H-198: it was 400 "Email not verified."; it is now the unknown
+        address's 202. No reset code is made; the activation email is sent
+        instead, as VERIFY_EMAIL would send it."""
         unverified = make_user(
             "otp.noreset@gmail.com", is_active=False, email_verified_at=None
         )
 
-        response = self.client.post(
+        with patch("users.views.send_user_activation_email") as mock_send:
+            response = self.client.post(
+                self.url,
+                {"email": unverified.email, "otp_type": "RESET_PASSWORD"},
+                format="json",
+            )
+        unknown = self.client.post(
             self.url,
-            {"email": unverified.email, "otp_type": "RESET_PASSWORD"},
+            {"email": "nobody@gmail.com", "otp_type": "RESET_PASSWORD"},
             format="json",
         )
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("not verified", str(response.data).lower())
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.content, unknown.content)
+        mock_send.assert_called_once()
+        self.assertFalse(PasswordResetOTP.objects.filter(user=unverified).exists())
 
     def test_reset_password_issues_a_code(self):
         with patch("users.views.safe_delay") as mock_delay:

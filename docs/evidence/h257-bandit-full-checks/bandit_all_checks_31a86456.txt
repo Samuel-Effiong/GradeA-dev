@@ -1,0 +1,819 @@
+bandit...................................................................Failed
+- hook id: bandit
+- exit code: 1
+
+[main]	INFO	profile include tests: None
+[main]	INFO	profile exclude tests: None
+[main]	INFO	cli include tests: None
+[main]	INFO	cli exclude tests: None
+[main]	INFO	using config: pyproject.toml
+[main]	INFO	running on Python 3.12.10
+[tester]	WARNING	nosec encountered (B608), but no failed test on line 133
+[tester]	WARNING	nosec encountered (B608), but no failed test on line 138
+[manager]	WARNING	Test in comment: never is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: used is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: to is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: log is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: in is not a test name or id, ignoring
+[tester]	WARNING	nosec encountered (B106), but no failed test on line 191
+[tester]	WARNING	nosec encountered (B106), but no failed test on line 193
+[manager]	WARNING	Test in comment: never is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: used is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: to is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: log is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: in is not a test name or id, ignoring
+[tester]	WARNING	nosec encountered (B106), but no failed test on line 769
+[tester]	WARNING	nosec encountered (B106), but no failed test on line 771
+[manager]	WARNING	Test in comment: fixture is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: shuffling is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: only is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: git is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: with is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: a is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: fixed is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: argument is not a test name or id, ignoring
+[manager]	WARNING	Test in comment: list is not a test name or id, ignoring
+Working... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:12
+Run started:2026-10-27 09:36:17.167882
+
+Test results:
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: '[secret]'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b105_hardcoded_password_string.html
+   Location: ./AutoGrader/log_scrubbing.py:89:9
+88	CREDENTIALS = "[credentials]"
+89	SECRET = "[secret]"
+90	MESSAGE_WITHHELD = "[log arguments withheld: the message could not be scrubbed]"
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b110_try_except_pass.html
+   Location: ./AutoGrader/log_scrubbing.py:146:8
+145	                _enabled = bool(getattr(settings, "LOG_SCRUB_ADDRESSES", True))
+146	        except Exception:  # noqa: BLE001 - never into the caller
+147	            pass
+148	    return True if _enabled is None else _enabled
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b110_try_except_pass.html
+   Location: ./AutoGrader/testing/beat_locks.py:55:8
+54	            clear_beat_locks()
+55	        except Exception:  # noqa: BLE001
+56	            pass
+57	        return original(cls)
+
+--------------------------------------------------
+>> Issue: [B404:blacklist] Consider possible security implications associated with the subprocess module.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/blacklists/blacklist_imports.html#b404-import-subprocess
+   Location: ./ai_processor/benchmark/answers/mutations.py:48:0
+47	import re
+48	import subprocess
+49	import sys
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: ./ai_processor/benchmark/answers/mutations.py:488:20
+487	    try:
+488	        completed = subprocess.run(
+489	            command,
+490	            cwd=root,
+491	            env=env,
+492	            capture_output=True,
+493	            text=True,
+494	            timeout=timeout,
+495	        )
+496	        output = completed.stdout + completed.stderr
+
+--------------------------------------------------
+>> Issue: [B404:blacklist] Consider possible security implications associated with the subprocess module.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/blacklists/blacklist_imports.html#b404-import-subprocess
+   Location: ./ai_processor/benchmark/history.py:54:0
+53	import json
+54	import subprocess
+55	from datetime import datetime, timezone
+
+--------------------------------------------------
+>> Issue: [B607:start_process_with_partial_path] Starting a process with a partial executable path
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b607_start_process_with_partial_path.html
+   Location: ./ai_processor/benchmark/history.py:90:17
+89	    try:
+90	        result = subprocess.run(
+91	            ["git", "rev-parse", "--short", "HEAD"],
+92	            cwd=str(BENCHMARK_DIR),
+93	            capture_output=True,
+94	            text=True,
+95	            timeout=5,
+96	            check=False,
+97	        )
+98	    except (OSError, subprocess.SubprocessError):
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: ./ai_processor/benchmark/history.py:90:17
+89	    try:
+90	        result = subprocess.run(
+91	            ["git", "rev-parse", "--short", "HEAD"],
+92	            cwd=str(BENCHMARK_DIR),
+93	            capture_output=True,
+94	            text=True,
+95	            timeout=5,
+96	            check=False,
+97	        )
+98	    except (OSError, subprocess.SubprocessError):
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./ai_processor/benchmark/isolation_run8/isolation_harness.py:152:14
+151
+152	    teacher = CustomUser.objects.create_user(
+153	        email=f"isolation-{timezone.now().timestamp()}@example.com",
+154	        password="password123",  # pragma: allowlist secret
+155	        user_type=UserTypes.TEACHER,
+156	        is_active=True,
+157	    )
+158	    plan = SubscriptionPlan.objects.create(
+
+--------------------------------------------------
+>> Issue: [B112:try_except_continue] Try, Except, Continue detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b112_try_except_continue.html
+   Location: ./ai_processor/benchmark/isolation_run8/isolation_harness.py:199:8
+198	            done.add(json.loads(line)["run_id"])
+199	        except Exception:
+200	            continue
+201	    return done
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: '\frac'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b105_hardcoded_password_string.html
+   Location: ./ai_processor/evidence.py:207:12
+206	    i, n = 0, len(text)
+207	    token = "\\frac"
+208	    while i < n:
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b110_try_except_pass.html
+   Location: ./ai_processor/services.py:333:4
+332	            return int(current_task.request.retries or 0) + 1
+333	    except Exception:  # noqa: BLE001 - a log field must never fail the call
+334	        pass
+335	    return 1
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b110_try_except_pass.html
+   Location: ./assignments/pdf_renderer.py:431:8
+430	            logger.warning("[PDF] Playwright driver stderr: %s", text)
+431	        except Exception:  # noqa: BLE001 - the reader must keep reading
+432	            pass
+433
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/blacklists/blacklist_calls.html#b311-random
+   Location: ./billing/live_qa/chaos.py:297:10
+296	    weights = [pool[n][0] for n in names]
+297	    rng = random.Random(seed)
+298	    return rng.choices(names, weights=weights, k=steps)
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'pm_card_mastercard'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./billing/live_qa/scenarios_fast.py:90:13
+89	    # Add a SECOND card, exactly as the "add a card" endpoint does.
+90	    second = harness.attach_card(
+91	        customer_id=sub.customer_id, token="pm_card_mastercard", set_default=False
+92	    )
+93	    rec.expect(
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: ''
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/management/commands/backfill_pending_student_invites.py:94:11
+93	def pending_students():
+94	    return CustomUser.objects.filter(
+95	        user_type=UserTypes.STUDENT,
+96	        is_active=False,
+97	        activation_token__isnull=False,
+98	    ).exclude(activation_token="")
+99
+
+--------------------------------------------------
+>> Issue: [B112:try_except_continue] Try, Except, Continue detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b112_try_except_continue.html
+   Location: ./classrooms/serializers.py:883:8
+882	            validate_password(candidate, user=user)
+883	        except Exception:
+884	            continue
+885	        return candidate
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_bulk_enrollment.py:17:23
+16	    def setUp(self):
+17	        self.teacher = User.objects.create_user(
+18	            email="teacher@example.com",
+19	            password="password123",  # pragma: allowlist secret
+20	            first_name="Test",
+21	            last_name="Teacher",
+22	            user_type="TEACHER",
+23	        )
+24	        self.session = Session.objects.create(name="Fall 2024", teacher=self.teacher)
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_bulk_enrollment.py:80:16
+79	        # Pre-enroll Alice
+80	        alice = User.objects.create_user(
+81	            email="alice@example.com",
+82	            password="password123",  # pragma: allowlist secret
+83	            first_name="Alice",
+84	            last_name="Wonderland",
+85	            user_type="STUDENT",
+86	        )
+87	        StudentCourse.objects.create(
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_school_admin_invitation_email.py:20:21
+19	        self.school = School.objects.create(name="Riverside High")
+20	        self.admin = CustomUser.objects.create_user(
+21	            email="admin@example.com",
+22	            password="password123",  # pragma: allowlist secret
+23	            first_name="Ada",
+24	            last_name="Min",
+25	            user_type=UserTypes.SCHOOL_ADMIN,
+26	            school=self.school,
+27	            is_active=False,
+28	            activation_token="test-token-123",
+29	        )
+30
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'original-7-day-token'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_school_admin_otp_deadend.py:43:12
+42	    school = School.objects.create(name="Riverside High")
+43	    admin = CustomUser.objects.create_user(
+44	        email=email,
+45	        first_name="Ada",
+46	        last_name="Min",
+47	        user_type=UserTypes.SCHOOL_ADMIN,
+48	        school=school,
+49	        is_active=False,
+50	        activation_token="original-7-day-token",
+51	        activation_expires=timezone.now() + timezone.timedelta(days=7),
+52	    )
+53	    return school, admin
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_serializers.py:14:20
+13	    def setUp(self):
+14	        self.user = User.objects.create_user(
+15	            email="teacher@example.com",
+16	            password="password123",  # pragma: allowlist secret
+17	            user_type="TEACHER",  # pragma: allowlist secret
+18	        )
+19	        self.session = Session.objects.create(name="Fall 2024", teacher=self.user)
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_views.py:42:26
+41	        # Create a superuser
+42	        self.superadmin = User.objects.create_superuser(
+43	            email="superadmin@example.com",
+44	            password="password123",  # pragma: allowlist secret
+45	            first_name="Super",
+46	            last_name="Admin",
+47	        )
+48	        self.superadmin.user_type = UserTypes.SUPER_ADMIN
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_views.py:53:24
+52	        # Create teachers
+53	        self.teacher1 = User.objects.create_user(
+54	            email="teacher1@example.com",
+55	            password="password123",  # pragma: allowlist secret
+56	            first_name="Teacher",
+57	            last_name="One",
+58	        )
+59	        self.teacher1.user_type = UserTypes.TEACHER
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_views.py:63:24
+62
+63	        self.teacher2 = User.objects.create_user(
+64	            email="teacher2@example.com",
+65	            password="password123",  # pragma: allowlist secret
+66	            first_name="Teacher",
+67	            last_name="Two",
+68	        )
+69	        self.teacher2.user_type = UserTypes.TEACHER
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_views.py:130:18
+129	    def test_list_schools_student_denied(self):
+130	        student = User.objects.create_user(
+131	            email="student1@example.com",
+132	            password="password123",  # pragma: allowlist secret
+133	            first_name="Student",
+134	            last_name="One",
+135	        )
+136	        student.user_type = UserTypes.STUDENT
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_views.py:304:16
+303
+304	        admin = User.objects.create_user(
+305	            email="school-b-admin@example.com",
+306	            password="password123",  # pragma: allowlist secret
+307	            first_name="B",
+308	            last_name="Admin",
+309	        )
+310	        admin.user_type = UserTypes.SCHOOL_ADMIN
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_views.py:344:18
+343
+344	        student = User.objects.create_user(
+345	            email="student.teachersummary@example.com",
+346	            password="password123",  # pragma: allowlist secret
+347	            first_name="Stu",
+348	            last_name="Dent",
+349	        )
+350	        student.user_type = UserTypes.STUDENT
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_views.py:526:16
+525	    def test_school_admin_sees_own_school_without_school_id_param(self):
+526	        admin = User.objects.create_user(
+527	            email="monthly-admin@example.com",
+528	            password="password123",  # pragma: allowlist secret
+529	            first_name="M",
+530	            last_name="Admin",
+531	        )
+532	        admin.user_type = UserTypes.SCHOOL_ADMIN
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_views.py:715:18
+714	        student app, not the teacher app."""
+715	        student = User.objects.create_user(
+716	            email="already.active@example.com",
+717	            password="password123",  # pragma: allowlist secret
+718	            first_name="Already",
+719	            last_name="Active",
+720	        )
+721	        student.user_type = UserTypes.STUDENT
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_views.py:753:18
+752	        )
+753	        student = User.objects.create_user(
+754	            email="astro.student@example.com",
+755	            password="password123",  # pragma: allowlist secret
+756	            first_name="Astro",
+757	            last_name="Student",
+758	        )
+759	        student.user_type = UserTypes.STUDENT
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_views.py:783:18
+782	        )
+783	        student = User.objects.create_user(
+784	            email="not.enrolled@example.com",
+785	            password="password123",  # pragma: allowlist secret
+786	            first_name="Not",
+787	            last_name="Enrolled",
+788	        )
+789	        student.user_type = UserTypes.STUDENT
+
+--------------------------------------------------
+>> Issue: [B106:hardcoded_password_funcarg] Possible hardcoded password: 'password123'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b106_hardcoded_password_funcarg.html
+   Location: ./classrooms/test_views.py:837:28
+836	        super().setUp()
+837	        self.school_admin = User.objects.create_user(
+838	            email="admin@example.com",
+839	            password="password123",  # pragma: allowlist secret
+840	            first_name="School",
+841	            last_name="Admin",
+842	        )
+843	        self.school_admin.user_type = UserTypes.SCHOOL_ADMIN
+
+--------------------------------------------------
+>> Issue: [B404:blacklist] Consider possible security implications associated with the subprocess module.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/blacklists/blacklist_imports.html#b404-import-subprocess
+   Location: ./scripts/check_migration_safety.py:42:0
+41	import re
+42	import subprocess
+43	import sys
+
+--------------------------------------------------
+>> Issue: [B607:start_process_with_partial_path] Starting a process with a partial executable path
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b607_start_process_with_partial_path.html
+   Location: ./scripts/check_migration_safety.py:87:13
+86	    """New migration files this branch adds relative to base_ref."""
+87	    result = subprocess.run(
+88	        ["git", "diff", "--name-only", "--diff-filter=A", f"{base_ref}...HEAD"],
+89	        capture_output=True,
+90	        text=True,
+91	        cwd=REPO_ROOT,
+92	    )
+93	    if result.returncode != 0:
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: ./scripts/check_migration_safety.py:87:13
+86	    """New migration files this branch adds relative to base_ref."""
+87	    result = subprocess.run(
+88	        ["git", "diff", "--name-only", "--diff-filter=A", f"{base_ref}...HEAD"],
+89	        capture_output=True,
+90	        text=True,
+91	        cwd=REPO_ROOT,
+92	    )
+93	    if result.returncode != 0:
+
+--------------------------------------------------
+>> Issue: [B404:blacklist] Consider possible security implications associated with the subprocess module.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/blacklists/blacklist_imports.html#b404-import-subprocess
+   Location: ./scripts/credscan.py:72:0
+71	import string
+72	import subprocess
+73	import sys
+
+--------------------------------------------------
+>> Issue: [B404:blacklist] Consider possible security implications associated with the subprocess module.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/blacklists/blacklist_imports.html#b404-import-subprocess
+   Location: ./scripts/strict_gate.py:52:0
+51	import signal
+52	import subprocess
+53	import sys
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: ./scripts/strict_gate.py:203:11
+202	    """Run a command, capturing text output. Never raises on non-zero exit."""
+203	    return subprocess.run(
+204	        args, cwd=cwd, env=env, capture_output=True, text=True, check=False
+205	    )
+206
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: ./scripts/strict_gate.py:733:17
+732	        with open(path, "wb") as out:
+733	            rc = subprocess.run(
+734	                argv,
+735	                cwd=self.worktree,
+736	                env=self.env(db),
+737	                stdout=out,
+738	                stderr=subprocess.STDOUT,
+739	                check=False,
+740	            ).returncode
+741	        record = {
+
+--------------------------------------------------
+>> Issue: [B606:start_process_with_no_shell] Starting a process without a shell.
+   Severity: Low   Confidence: Medium
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b606_start_process_with_no_shell.html
+   Location: ./scripts/strict_gate.py:1175:8
+1174	        ]
+1175	        os.execvpe("systemd-inhibit", argv, env)
+1176	    gate = Gate(args)
+
+--------------------------------------------------
+>> Issue: [B607:start_process_with_partial_path] Starting a process with a partial executable path
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b607_start_process_with_partial_path.html
+   Location: ./scripts/strict_gate.py:1175:8
+1174	        ]
+1175	        os.execvpe("systemd-inhibit", argv, env)
+1176	    gate = Gate(args)
+
+--------------------------------------------------
+>> Issue: [B404:blacklist] Consider possible security implications associated with the subprocess module.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/blacklists/blacklist_imports.html#b404-import-subprocess
+   Location: ./scripts/test_strict_gate.py:33:0
+32	import shutil
+33	import subprocess
+34	import sys
+
+--------------------------------------------------
+>> Issue: [B607:start_process_with_partial_path] Starting a process with a partial executable path
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b607_start_process_with_partial_path.html
+   Location: ./scripts/test_strict_gate.py:237:15
+236	    def git(self, *args):
+237	        return subprocess.run(
+238	            ["git", *args], cwd=self.root, capture_output=True, text=True, check=True
+239	        ).stdout.strip()
+240
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: ./scripts/test_strict_gate.py:237:15
+236	    def git(self, *args):
+237	        return subprocess.run(
+238	            ["git", *args], cwd=self.root, capture_output=True, text=True, check=True
+239	        ).stdout.strip()
+240
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: ./scripts/test_strict_gate.py:274:22
+273	        ]
+274	        self.result = subprocess.run(
+275	            args,
+276	            cwd=self.root,
+277	            env=env,
+278	            capture_output=True,
+279	            text=True,
+280	            check=False,
+281	            timeout=300,
+282	        )
+283	        return self.result.returncode
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: ./scripts/test_strict_gate.py:300:15
+299	            self.git("update-ref", "refs/heads/beta", ref_sha)
+300	        return subprocess.run(
+301	            [sys.executable, str(SCRIPT), "verify-landed", str(self.evidence)],
+302	            cwd=self.root,
+303	            capture_output=True,
+304	            text=True,
+305	            check=False,
+306	        )
+307
+
+--------------------------------------------------
+>> Issue: [B607:start_process_with_partial_path] Starting a process with a partial executable path
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b607_start_process_with_partial_path.html
+   Location: ./scripts/test_strict_gate.py:309:8
+308	    def cleanup(self):
+309	        subprocess.run(
+310	            ["git", "worktree", "unlock", str(self.worktree)],
+311	            cwd=self.root,
+312	            capture_output=True,
+313	            check=False,
+314	        )
+315	        shutil.rmtree(self.tmp, ignore_errors=True)
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: ./scripts/test_strict_gate.py:309:8
+308	    def cleanup(self):
+309	        subprocess.run(
+310	            ["git", "worktree", "unlock", str(self.worktree)],
+311	            cwd=self.root,
+312	            capture_output=True,
+313	            check=False,
+314	        )
+315	        shutil.rmtree(self.tmp, ignore_errors=True)
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: ./scripts/test_strict_gate.py:1114:13
+1113	    env = dict(os.environ, STRICT_GATE_SCRIPT=str(target))
+1114	    result = subprocess.run(
+1115	        [sys.executable, str(Path(__file__).resolve())],
+1116	        env=env,
+1117	        capture_output=True,
+1118	        text=True,
+1119	        check=False,
+1120	        timeout=3600,
+1121	    )
+1122	    failed = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+) \(", result.stderr, re.M)))
+
+--------------------------------------------------
+>> Issue: [B607:start_process_with_partial_path] Starting a process with a partial executable path
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b607_start_process_with_partial_path.html
+   Location: ./scripts/test_strict_gate.py:1152:11
+1151	    after = hashlib.sha256(tracked.read_bytes()).hexdigest()
+1152	    head = subprocess.run(
+1153	        ["git", "show", "HEAD:scripts/strict_gate.py"],
+1154	        cwd=HERE,
+1155	        capture_output=True,
+1156	        check=False,
+1157	    ).stdout
+1158	    report = {
+
+--------------------------------------------------
+>> Issue: [B603:subprocess_without_shell_equals_true] subprocess call - check for execution of untrusted input.
+   Severity: Low   Confidence: High
+   CWE: CWE-78 (https://cwe.mitre.org/data/definitions/78.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b603_subprocess_without_shell_equals_true.html
+   Location: ./scripts/test_strict_gate.py:1152:11
+1151	    after = hashlib.sha256(tracked.read_bytes()).hexdigest()
+1152	    head = subprocess.run(
+1153	        ["git", "show", "HEAD:scripts/strict_gate.py"],
+1154	        cwd=HERE,
+1155	        capture_output=True,
+1156	        check=False,
+1157	    ).stdout
+1158	    report = {
+
+--------------------------------------------------
+>> Issue: [B324:hashlib] Use of weak MD5 hash for security. Consider usedforsecurity=False
+   Severity: High   Confidence: High
+   CWE: CWE-327 (https://cwe.mitre.org/data/definitions/327.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b324_hashlib.html
+   Location: ./users/mixins.py:47:25
+46	            query_params = json.dumps(self.request.query_params.dict(), sort_keys=True)
+47	            query_hash = hashlib.md5(query_params.encode()).hexdigest()
+48	            base = f"{model_name}s:user_id__{user_id}:query__{query_hash}"
+
+--------------------------------------------------
+>> Issue: [B112:try_except_continue] Try, Except, Continue detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b112_try_except_continue.html
+   Location: ./users/services.py:34:8
+33	            validate_password(candidate, user=user)
+34	        except Exception:
+35	            continue
+36	        return candidate
+
+--------------------------------------------------
+>> Issue: [B110:try_except_pass] Try, Except, Pass detected.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b110_try_except_pass.html
+   Location: ./users/throttling.py:239:4
+238	        cache.delete(_verify_address_key("attempts", email))
+239	    except Exception:  # noqa: BLE001
+240	        pass
+
+--------------------------------------------------
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: 'https://oauth2.googleapis.com/token'
+   Severity: Low   Confidence: Medium
+   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b105_hardcoded_password_string.html
+   Location: ./users/views.py:2190:24
+2189
+2190	            token_url = "https://oauth2.googleapis.com/token"
+2191	            payload = {
+
+--------------------------------------------------
+>> Issue: [B113:request_without_timeout] Call to requests without timeout
+   Severity: Medium   Confidence: Low
+   CWE: CWE-400 (https://cwe.mitre.org/data/definitions/400.html)
+   More Info: https://bandit.readthedocs.io/en/0.0.0/plugins/b113_request_without_timeout.html
+   Location: ./users/views.py:2200:27
+2199	            try:
+2200	                response = http_requests.post(token_url, data=payload)
+2201	                response.raise_for_status()
+
+--------------------------------------------------
+
+Code scanned:
+	Total lines of code: 108723
+	Total lines skipped (#nosec): 2
+	Total potential issues skipped due to specifically being disabled (e.g., #nosec BXXX): 4
+
+Run metrics:
+	Total issues (by severity):
+		Undefined: 0
+		Low: 55
+		Medium: 1
+		High: 1
+	Total issues (by confidence):
+		Undefined: 0
+		Low: 1
+		Medium: 23
+		High: 33
+Files skipped (0):

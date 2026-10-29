@@ -1,0 +1,53 @@
+available at start: 11G; cap 9G
+load at start: 1.99 1.62 2.56 7/2560 476336
+=== 0. the red run: users.tests_h198_otp_neutral users.tests_reset_for_an_invited_student users.tests_switched_off_means_out classrooms.tests_school_admin_active_invite against the code as at 7286717e (own DB) 14:39:09
+red run exit=1 (non-zero expected)
+test_a_verified_active_account_asking_for_verification_is_told_nothing: red for its written reason ('400 != 202')
+test_a_never_verified_switched_off_account_asking_for_a_reset_is_told_nothing: red for its written reason ('400 != 202')
+test_while_the_address_is_locked_that_account_is_sent_nothing: red for its written reason ('400 != 202')
+test_a_never_verified_account_with_admin_power_is_told_and_sent_nothing: red for its written reason ('400 != 202')
+test_an_inactive_never_verified_row_is_still_refused: red for its written reason ('400 != 202')
+test_the_request_refuses_a_never_verified_staff_account: red for its written reason ('400 != 202')
+test_the_request_refuses_a_never_verified_superuser_flag: red for its written reason ('400 != 202')
+test_the_request_refuses_a_never_verified_super_admin_type: red for its written reason ('400 != 202')
+test_the_request_refuses_a_command_line_superuser: red for its written reason ('400 != 202')
+test_a_verified_admin_asking_for_verification_gets_the_neutral_answer: red for its written reason ('400 != 202')
+test_an_active_verified_account_gets_the_neutral_answer: red for its written reason ('400 != 202')
+test_otp_verify_email_short_circuits_instead_of_resending: red for its written reason ('400 != 202')
+test_that_account_is_sent_the_activation_email_and_no_reset_code: red for its written reason ('Called 0 times')
+red run is as written: non-zero exit, no OK line, the module loaded, 15 blocks red for their written reasons and no other
+source restored
+Ran 94 tests in 5.061s
+FAILED (failures=15)
+dropped test_h198_otp_neutral_mut
+=== 1a. makemigrations --check 14:39:35
+makemigrations exit=0 (0 = no changes)
+No changes detected
+=== 1b. the seam, by program: views.py is the only production file; by its syntax tree only otp changes, in the two ruled branches
+classrooms/tests_school_admin_active_invite.py
+docs/HARDENING_BACKLOG.md
+docs/backend/security-and-tenancy.md
+docs/backend/users-and-auth.md
+docs/evidence/h198-otp-neutral/NOTES.md
+docs/evidence/h198-otp-neutral/mutate.py
+docs/evidence/h198-otp-neutral/run_h198_gate.sh.txt
+docs/evidence/h198-otp-neutral/seam_check.py
+users/tests_h198_otp_neutral.py
+users/tests_reset_for_an_invited_student.py
+users/tests_switched_off_means_out.py
+users/views.py
+if not user.email_verified_at and (not user.is_active or _holds_admin_power(user)):
+    if not _holds_admin_power(user) and (not verify_lock_until(user.email)):
+        send_user_activation_email(user)
+    return Response({'detail': OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED)
+if user.email_verified_at and user.is_active:
+    return Response({'detail': OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED)
+SEAM OK: only otp changed, in the two ruled branches (and its OpenAPI text)
+=== 1. own module + near modules + guards at 039c6135 14:39:40
+exit=1 14:42:04
+FAIL: test_reset_password_on_an_unverified_account_is_refused (users.tests_auth_endpoints.OTPEndpointBranchTests.test_reset_password_on_an_unverified_account_is_refused)
+FAIL: test_verify_email_on_an_already_verified_account_is_refused (users.tests_auth_endpoints.OTPEndpointBranchTests.test_verify_email_on_an_already_verified_account_is_refused)
+Ran 733 tests in 125.602s
+FAILED (failures=2, skipped=3)
+STOP: not green
+bash failed with exit status 2.

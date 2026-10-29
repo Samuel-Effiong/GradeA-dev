@@ -256,10 +256,7 @@ class CrossSchoolIsRejected(CrossSchoolBase):
                 "email": self.victim.email,
             },
         )
-        self.assertIn(
-            response.status_code,
-            (status.HTTP_400_BAD_REQUEST, status.HTTP_500_INTERNAL_SERVER_ERROR),
-        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self._assert_nothing_changed()
 
     def test_an_individual_teacher_cannot_poach_a_school_student(self):

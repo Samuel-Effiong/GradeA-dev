@@ -28,7 +28,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from AutoGrader.error_messages import describe_stripe_error
+from AutoGrader.error_messages import describe_stripe_error, stripe_error_label
 from classrooms.permissions import IsNotStudent
 
 from .imports import stripe
@@ -207,8 +207,10 @@ class PaymentMethodViewSet(viewsets.ViewSet):
             )
             customer = stripe.Customer.retrieve(customer_id)
         except stripe.error.StripeError as exc:
-            logger.exception(
-                "Failed to list payment methods for customer %s", customer_id
+            logger.error(
+                "Failed to list payment methods for customer %s: %s",
+                customer_id,
+                stripe_error_label(exc),
             )
             return self._stripe_error_response(
                 exc, "We couldn't load your payment methods. Please try again."
@@ -330,8 +332,10 @@ with `DELETE /payment-methods/{id}/`.
         except ValueError as exc:
             return self._forbidden(exc)
         except stripe.error.StripeError as exc:
-            logger.exception(
-                "Failed to create setup intent for user %s", request.user.id
+            logger.error(
+                "Failed to create setup intent for user %s: %s",
+                request.user.id,
+                stripe_error_label(exc),
             )
             return self._stripe_error_response(
                 exc, "We couldn't set up your payment method. Please try again."
@@ -449,9 +453,10 @@ redirecting, don't cache/reuse an old link.
         except ValueError as exc:
             return self._forbidden(exc)
         except stripe.error.StripeError as exc:
-            logger.exception(
-                "Failed to create billing portal session for user %s",
+            logger.error(
+                "Failed to create billing portal session for user %s: %s",
                 request.user.id,
+                stripe_error_label(exc),
             )
             return self._stripe_error_response(
                 exc, "We couldn't open the billing portal. Please try again."
@@ -544,10 +549,11 @@ redirecting, don't cache/reuse an old link.
         try:
             stripe.PaymentMethod.detach(pk)
         except stripe.error.StripeError as exc:
-            logger.exception(
-                "Failed to detach payment method %s for customer %s",
+            logger.error(
+                "Failed to detach payment method %s for customer %s: %s",
                 pk,
                 customer_id,
+                stripe_error_label(exc),
             )
             return self._stripe_error_response(
                 exc, "We couldn't remove that card. Please try again."
@@ -595,10 +601,11 @@ redirecting, don't cache/reuse an old link.
                 customer_id, invoice_settings={"default_payment_method": pk}
             )
         except stripe.error.StripeError as exc:
-            logger.exception(
-                "Failed to set default payment method %s for customer %s",
+            logger.error(
+                "Failed to set default payment method %s for customer %s: %s",
                 pk,
                 customer_id,
+                stripe_error_label(exc),
             )
             return self._stripe_error_response(
                 exc,

@@ -52,7 +52,11 @@ from assignments.tasks import (
     grade_engine_async,
     upload_answers_engine_async,
 )
-from assignments.upload_door import upload_refusal_if_unaffordable
+from assignments.upload_door import (
+    batch_refusal_response,
+    parked_files,
+    upload_refusal_if_unaffordable,
+)
 from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
@@ -61,6 +65,7 @@ from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.reason_codes import CodedError, coded_response
 from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
+from billing.errors import InsufficientCreditsError
 from classrooms.models import EnrollmentStatusType, teacher_course_access_q
 from classrooms.permissions import IsStudent, IsTeacher
 from users.mixins import UserCacheMixin
@@ -68,6 +73,7 @@ from users.models import CustomUser, UserTypes
 from users.permissions import HasCreditBalance
 
 from .exceptions import (
+    STUDENT_UPLOAD_NOT_PROCESSED,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
@@ -140,13 +146,25 @@ def _submission_closed_response(exc):
     )
 
 
-def _failure_response(exc, fallback_message):
+def _failure_response(exc, fallback_message, requester=None):
     """A coded failure (FR-A-06, including the AI refusals: plan or credits)
     gets its own status and the coded body; any other refusal the user can
     act on is a 400 with its own text; anything else is a 500 with the
-    operation's fallback text (never the raw exception)."""
+    operation's fallback text (never the raw exception).
+
+    H-216: a credit refusal seen by a STUDENT (the wallet is their
+    teacher's) keeps its code but reads the one fixed student sentence, as
+    on the asynchronous routes, with no remediation (the sentence already
+    says what to do). A teacher keeps the generic text and remediation."""
     coded = coded_response(exc)
     if coded is not None:
+        if (
+            requester is not None
+            and requester.user_type == UserTypes.STUDENT
+            and isinstance(exc, InsufficientCreditsError)
+        ):
+            coded.data["error"] = STUDENT_UPLOAD_NOT_PROCESSED
+            coded.data["remediation"] = None
         return coded
     return Response(
         {"error": describe_user_error(exc, fallback_message=fallback_message)},
@@ -624,6 +642,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 e,
                 "We couldn't process your submission. Please check the file "
                 "and try again.",
+                request.user,
             )
 
     @extend_schema(
@@ -780,7 +799,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         except Exception as e:
             logger.error("Failed to save submission update", exc_info=e)
             return _failure_response(
-                e, "We couldn't save your update. Please try again."
+                e, "We couldn't save your update. Please try again.", request.user
             )
 
         # With the request, so the serializer knows a student is asking
@@ -1401,14 +1420,14 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             Do not include any explanatory text before or after the JSON
             """
 
-        # H-180: before the session or any task exists. A file too large to
-        # read counts as "cannot say" for the door (it is that file's own item
-        # below, FR-A-07), so the door never refuses a batch for it.
-        refusal = upload_refusal_if_unaffordable(
-            request.user, assignment, files, prompt
-        )
-        if refusal is not None:
-            return refusal
+        # H-180 / H-223: before the session or any task exists, the door
+        # walks the files with a running balance. A file that does not fit
+        # is parked as its own item below; only when no file fits is the
+        # batch refused. A file too large to read counts as "cannot say"
+        # (it is that file's own item below, FR-A-07).
+        parked = parked_files(request.user, assignment, files, prompt)
+        if parked and len(parked) == len(files):
+            return batch_refusal_response()
 
         session = BatchUploadSession.objects.create(
             teacher=request.user,
@@ -1419,6 +1438,23 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         tasks_data = []
         task_ids = []
+
+        # H-223: every parked file is recorded BEFORE any file is launched.
+        # launch_processing_task dispatches at once, so a park recorded after
+        # an earlier file's item STARTED would be read as a mid-batch stop
+        # (batch_credit_refusal: the session stamped, the rest stopped).
+        parked_items = {
+            index: record_refused_item(
+                requested_by=request.user,
+                task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,
+                error=error,
+                batch_session=session,
+                assignment=assignment,
+                file_name=files[index].name,
+                item_index=index + 1,
+            )
+            for index, error in parked.items()
+        }
 
         # FR-A-07 (S7a): every file is an item. One too large for the batch
         # fails as ITS item (413 FILE_TOO_LARGE) and the others still run;
@@ -1441,6 +1477,17 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         "file_name": uploaded_file.name,
                         "task_id": None,
                         "item_id": refused.id,
+                    }
+                )
+                continue
+
+            if item_index - 1 in parked_items:
+                # H-223: parked (recorded above); uploaded again after a top-up.
+                tasks_data.append(
+                    {
+                        "file_name": uploaded_file.name,
+                        "task_id": None,
+                        "item_id": parked_items[item_index - 1].id,
                     }
                 )
                 continue

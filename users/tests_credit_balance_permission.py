@@ -26,7 +26,11 @@ from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 
 from assignments.models import Assignment
-from billing.errors import EmptyWalletError, InsufficientCreditsError
+from billing.errors import (
+    EmptyWalletError,
+    InsufficientCreditsError,
+    StudentEmptyWalletError,
+)
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from classrooms.models import Course
 from students.models import StudentSubmission
@@ -205,9 +209,13 @@ class HasCreditBalanceTests(TestCase):
         with self.assertRaises(EmptyWalletError) as ctx:
             self.check(self.student, assignment_id=self.assignment.id)
 
-        # Same refusal for a student (D11); the client-facing message is the
-        # role-neutral generic one (billing.errors.INSUFFICIENT_CREDITS_MESSAGE).
-        self.assertIsInstance(ctx.exception, InsufficientCreditsError)
+        # Same refusal for a student (D11), as its student SUBCLASS (H-225):
+        # users.exceptions tells a student the fixed student sentence, not the
+        # generic wallet one (students.tests_h225_student_empty_wallet). The
+        # subclass is asserted here too (H-228): the parent class satisfied
+        # the old assertion, so a plain EmptyWalletError raised for a student
+        # passed at the unit level and was only caught through the routes.
+        self.assertIsInstance(ctx.exception, StudentEmptyWalletError)
         self.assertEqual(ctx.exception.status_code, 402)
 
     def test_students_own_wallet_does_not_authorise_the_call(self):

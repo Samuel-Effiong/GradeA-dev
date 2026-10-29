@@ -24,12 +24,12 @@ from django.db import transaction
 from audit.enums import ReasonCode
 from AutoGrader.reason_codes import REASON_CODES, CodedError, coded_entry
 from AutoGrader.uploads import file_name_of, validate_upload_size
-from users.models import CustomUser, UserTypes
 
-from ..models import EnrollmentStatusType, StudentCourse, teacher_course_access_q
+from ..models import StudentCourse
 from ..serializers import DirectAddStudentSerializer
 from .enrollment import (
     CROSS_SCHOOL_REJECTION_MESSAGE,
+    NAME_MISMATCH_MESSAGE,
     NOT_A_STUDENT_MESSAGE,
     AccountDisabledError,
     EnrollmentError,
@@ -69,6 +69,7 @@ NAME_MAX_LENGTH = 150
 ENROLLMENT_REFUSAL_CODES = {
     NOT_A_STUDENT_MESSAGE: ReasonCode.ROW_STAFF_EMAIL,
     CROSS_SCHOOL_REJECTION_MESSAGE: ReasonCode.ROW_OTHER_SCHOOL,
+    NAME_MISMATCH_MESSAGE: ReasonCode.ROW_NAME_MISMATCH,
 }
 
 
@@ -263,32 +264,6 @@ def parse_roster(*, input_file=None, raw_data=None):
     return parsed, len(data_rows)
 
 
-def _find_existing_student_by_name(*, course, row):
-    """Match a named row against a student the course's teacher ALREADY
-    teaches.
-
-    Scoping to the teacher is load-bearing. Matching by name across the
-    whole user table meant a roster row reading "John Smith" attached some
-    other school's John Smith to this course - exposing that student's
-    record to a teacher with no relationship to them, and surfacing this
-    course in that student's dashboard.
-
-    "Already teaches" means through a course the teacher can still REACH
-    (H-38). `course.teacher` stays set after a teacher is removed from a
-    school, so owner scoping alone matched their old school's pupils and
-    attached those records to the teacher's new course - and this no-email
-    path has no cross-school gate of its own. One filter() call, so the
-    access rule and the enrollment match the same enrollment row.
-    """
-    return CustomUser.objects.filter(
-        teacher_course_access_q(course.teacher, prefix="enrollments__course__"),
-        first_name__iexact=row.first_name,
-        last_name__iexact=row.last_name,
-        middle_name__iexact=row.middle_name,
-        user_type=UserTypes.STUDENT,
-    ).first()
-
-
 SUCCEEDED, FAILED, SKIPPED = "succeeded", "failed", "skipped"
 
 #: ROW_NAME_CLASH's approved remediation for a row that already has an email
@@ -453,34 +428,19 @@ def _import_row_with_email(*, course, row):
 
 
 def _import_row_without_email(*, course, row):
-    student = _find_existing_student_by_name(course=course, row=row)
-
-    if student is not None:
-        if StudentCourse.objects.filter(student=student, course=course).exists():
-            return _not_added(
-                row,
-                ReasonCode.ROW_ALREADY_ENROLLED,
-                SKIPPED,
-                student_display=row.display_name,
-            )
-
-        StudentCourse.objects.create(
-            student=student,
-            course=course,
-            enrollment_status=EnrollmentStatusType.ENROLLED,
-            auto_added=True,
-        )
-        return _added(row, student, "enrolled", "direct_add")
-
-    # Another student of this course with exactly this name: a new account
-    # would be indistinguishable from them (the direct-add serializer's own
-    # rule, checked here so the row gets its code).
+    """H-247 (the owner's rule, 2026-10-16): with no email, a name is
+    unique within ONE course only. The same name in this course is that
+    student, so the row is already done; the same name anywhere else is a
+    different child, so the row is always a new student. Rows are never
+    joined to another course's student by name: that made one account of
+    two children who share a name, and the outcome depended on which
+    teacher typed it and how."""
     if _name_clashes(course, row):
         return _not_added(
             row,
-            ReasonCode.ROW_NAME_CLASH,
-            FAILED,
-            student_display=_full_display(row),
+            ReasonCode.ROW_ALREADY_ENROLLED,
+            SKIPPED,
+            student_display=row.display_name,
         )
 
     serializer = DirectAddStudentSerializer(

@@ -4,8 +4,11 @@ from rest_framework.exceptions import AuthenticationFailed, Throttled
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
+from audit.enums import ReasonCode
 from AutoGrader.reason_codes import CodedError, add_coded_envelope, coded_response
+from billing.errors import StudentEmptyWalletError
 from billing.refusals import is_permanent_refusal, log_refusal
+from students.exceptions import STUDENT_UPLOAD_NOT_PROCESSED
 
 logger = logging.getLogger(__name__)
 
@@ -50,15 +53,29 @@ def custom_exception_handler(exc, context):
                 extra=extra,
             )
         response = coded_response(exc)
+        if isinstance(exc, StudentEmptyWalletError):
+            # H-225: a student refused at the permission (their teacher's
+            # wallet is empty) keeps the code and status but reads the one
+            # fixed student sentence, with no remediation (as H-216 in the
+            # view).
+            response.data["error"] = STUDENT_UPLOAD_NOT_PROCESSED
+            response.data["remediation"] = None
         response._drf_handled = True  # marker for renderer
         return response
-
-    logger.error("API Exception", exc_info=exc, extra=extra)
 
     # ---- Let DRF try to handle it (validation, 404, etc.) ----
     drf_response = exception_handler(exc, context)
 
     if drf_response is not None:
+        # H-227: a refusal DRF answers is an expected outcome, not a fault:
+        # WARNING, no traceback and none of its text (a field message can
+        # quote what the user typed). It is also below Sentry's event level.
+        logger.warning(
+            "API request refused: %s (%s)",
+            type(exc).__name__,
+            drf_response.status_code,
+            extra=extra,
+        )
         envelope = getattr(exc, "envelope", None)
         if envelope is not None and isinstance(drf_response.data, dict):
             reason_code, code_value = envelope
@@ -68,10 +85,29 @@ def custom_exception_handler(exc, context):
                 str(drf_response.data.get("detail", "")),
                 code_value=code_value,
             )
+        elif isinstance(exc, Throttled) and isinstance(drf_response.data, dict):
+            # The generic catch-all: every OTHER throttle (the global
+            # defaults, the named AnonRateThrottle buckets in
+            # users/throttling.py, dashboard/throttling.py's
+            # CustomAIPromptThrottle, and any future one) raises a plain
+            # `Throttled` with no `.envelope`, so it never hit the branch
+            # above. `wait` is the same number DRF already used to build
+            # `detail` and the `Retry-After` header (None only if a
+            # throttle's `wait()` can't say how long - no observed case
+            # today, but the catalogue requires every placeholder).
+            add_coded_envelope(
+                drf_response.data,
+                ReasonCode.RATE_LIMITED,
+                str(drf_response.data.get("detail", "")),
+                params={"wait_seconds": round(exc.wait) if exc.wait is not None else 0},
+            )
         drf_response._drf_handled = True  # marker for renderer
         return drf_response
 
     # ---- Unhandled 500 ----
+    # The only record of a real crash (the renderer does not log): ERROR,
+    # with the traceback.
+    logger.error("API Exception", exc_info=exc, extra=extra)
     response = Response(status=500)
     response.exception = True
     response._raw_exc = exc  # for traceback in renderer

@@ -25,8 +25,13 @@ open run (`current_step_run()`) and marks it where the call leaves. A call
 for a task type that needs a run, made with none open, fails loudly
 (`require_step_scope`); never a silent unlabelled step. STATED LIMIT: a
 future caller of `__ai_model` that forgets the scope loses its marks; the
-task types that need one are named in ENFORCED_STEP_TASK_TYPES and a static
-test covers their callers.
+task types that need one are named in ENFORCED_STEP_TASK_TYPES. A static test
+(students/tests_reading_label_static.py) shows every provider call for an
+enforced type inside a scope; each slice that enforces a type adds its callers
+to that test in the same commit. Slice 2 enforces extract_answer. A scope is
+opened only with `with run.scope():`, never by hand (a static test): Celery
+prefork reuses one context across tasks, so a scope left open would show in the
+next task.
 
 The run never travels inside the dictionary an AI reply became.
 
@@ -59,8 +64,9 @@ STEP_TASK_TYPES = frozenset(
 )
 #: The task types for which a missing scope is an error. Empty in slice 0
 #: (no behaviour changes); each later slice adds its own, in the commit that
-#: makes every caller of that task type open the scope.
-ENFORCED_STEP_TASK_TYPES = frozenset()
+#: makes every caller of that task type open the scope. Slice 2: the reading
+#: of a student's answers.
+ENFORCED_STEP_TASK_TYPES = frozenset({"extract_answer"})
 
 _CURRENT: contextvars.ContextVar["StepRun | None"] = contextvars.ContextVar(
     "ai_step_run", default=None
@@ -114,6 +120,13 @@ class StepRun:
         self._votes = {}
         self._prompts = {}
         self._kept = False
+        self.call_left = False
+        self.reply_received = False
+        self.reply_model = None
+
+    def begin_call(self):
+        """Forget the facts of the last provider call (not the kept replies),
+        so the facts read after a call are that call's."""
         self.call_left = False
         self.reply_received = False
         self.reply_model = None

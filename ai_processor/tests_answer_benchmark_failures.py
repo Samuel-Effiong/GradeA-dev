@@ -313,8 +313,11 @@ class BlankReReadTest(SimpleTestCase):
         )
         self.assertIsNone(run.error)
         self.assertEqual(len(run.provider.verification_calls), 1)
-        self.assertEqual(run.status_by_question["Q2"], NOT_FOUND_IN_DOCUMENT)
-        self.assertEqual(run.html_by_question["Q2"], "")
+        # H-253: no reading recovered Q2, so its text is the re-check's own
+        # quote of the page, flagged as a partial answer: never left empty,
+        # never anything the student did not write.
+        self.assertEqual(run.status_by_question["Q2"], ANSWERED)
+        self.assertEqual(run.html_by_question["Q2"], "<p>...partial...</p>")
         self.assertEqual(run.status_by_question["Q1"], ANSWERED)
 
 
