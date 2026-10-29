@@ -1,0 +1,61 @@
+# H-99: which test modules reach the changed entry points (2026-10-02)
+# Tree: task/h99-placeholder-email dbc65451. Each grep is the command line, then its output.
+
+$ git grep -ln 'course-students\|course-direct-add-student\|course-bulk-add-students\|bulk-add-students\|direct-add-student\|/students"\|DirectAddStudentSerializer\|AddStudentToCourseSerializer\|enroll_student_by_email\|import_roster\|find_account_by_email' -- '*test*.py'
+AutoGrader/tests_cache_commit_race.py
+AutoGrader/tests_cache_commit_race_cost.py
+AutoGrader/tests_cache_dashboard_2329.py
+AutoGrader/tests_cache_dashboard_wide.py
+AutoGrader/tests_cache_matrix_concurrency.py
+AutoGrader/tests_cache_matrix_selftest.py
+AutoGrader/tests_cache_superadmin_1522.py
+AutoGrader/tests_cache_user_fanout.py
+AutoGrader/tests_probe_h1s3_commit_race.py
+AutoGrader/tests_probe_h1s3_user_fanout.py
+billing/tests/test_h38_part2_removed_teacher_routes.py
+billing/tests/test_h38_teacher_removal.py
+classrooms/test_bulk_enrollment.py
+classrooms/test_views.py
+classrooms/tests.py
+classrooms/tests_backfill_pending_student_invites.py
+classrooms/tests_cache_course_roster_scope.py
+classrooms/tests_concurrency_and_resilience.py
+classrooms/tests_course_payload_student_exposure.py
+classrooms/tests_cross_school_enrollment.py
+classrooms/tests_final_grade_zero_score.py
+classrooms/tests_h71_student_add_role.py
+classrooms/tests_h99_placeholder_email.py
+classrooms/tests_my_students_concurrency.py
+classrooms/tests_my_students_course_scope.py
+classrooms/tests_recalculate_final_grades.py
+classrooms/tests_roster_ready_to_use.py
+classrooms/tests_security_penetration.py
+classrooms/tests_tenancy_and_roster.py
+dashboard/tests_cache_matrix_status_summary.py
+users/tests_last_login_stamp.py
+users/tests_user_enrollment_filter_oracle.py
+
+$ git grep -ln 'course-students\|bulk-add-students\|direct-add-student\|enroll_student_by_email\|DirectAddStudentSerializer' -- 'students/'
+(no match)
+
+$ git grep -n 'enroll_student_by_email(\|DirectAddStudentSerializer(\|AddStudentToCourseSerializer(' -- '*.py' ':!*test*' ':!docs'
+classrooms/serializers.py:476:class AddStudentToCourseSerializer(serializers.Serializer):
+classrooms/serializers.py:540:class DirectAddStudentSerializer(serializers.Serializer):
+classrooms/services/enrollment.py:254:def enroll_student_by_email(
+classrooms/services/roster_import.py:265:        student, invited = enroll_student_by_email(
+classrooms/services/roster_import.py:327:    serializer = DirectAddStudentSerializer(
+classrooms/views.py:1331:        serializer = AddStudentToCourseSerializer(data=request.data)
+classrooms/views.py:1343:            student, is_new_student = services.enroll_student_by_email(
+classrooms/views.py:1389:        serializer = DirectAddStudentSerializer(
+
+$ git diff --stat 76cc9b97 -- . ':!docs'
+ classrooms/serializers.py                 |  78 +++++--
+ classrooms/services/__init__.py           |   6 +
+ classrooms/services/enrollment.py         |  42 ++++
+ classrooms/tests_h99_placeholder_email.py | 339 ++++++++++++++++++++++++++++++
+ 4 files changed, 446 insertions(+), 19 deletions(-)
+
+# Result: the 6G step runs the new module plus, from the first grep, every classrooms, billing, users and dashboard module (21),
+# and the regression runs classrooms + users + dashboard + AutoGrader whole (SM), which covers the AutoGrader cache-matrix modules of the first grep.
+# The second grep: no module under students/ reaches the add routes.
+# The third: the production callers are the three views in classrooms/views.py and the roster import.

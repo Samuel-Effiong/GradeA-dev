@@ -1,0 +1,27 @@
+test_a_raiser_that_names_the_variant_still_wins (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_a_raiser_that_names_the_variant_still_wins) ... ok
+test_args_keep_the_4_tuple (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_args_keep_the_4_tuple)
+The spec-chosen variant does not ride in args. ... ok
+test_boundary_one_finished_is_the_default (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_boundary_one_finished_is_the_default) ... FAIL
+test_every_spec_with_variant_from_params_survives_pickle (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_every_spec_with_variant_from_params_survives_pickle)
+A CodedError whose spec has variant_from_params must be picklable, ... ok
+test_the_spec_picks_none_finished_from_completed (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_the_spec_picks_none_finished_from_completed) ... ok
+test_with_items_finished_the_spec_picks_the_default (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_with_items_finished_the_spec_picks_the_default) ... ok
+
+======================================================================
+FAIL: test_boundary_one_finished_is_the_default (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_boundary_one_finished_is_the_default)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h269-mid-batch-variant/AutoGrader/tests_reason_codes.py", line 715, in test_boundary_one_finished_is_the_default
+    self.assertEqual(
+AssertionError: 'Credits ran out before any of the 4 items were finished.' != 'Credits ran out after 1 of 4 items. The finished items are saved.'
+- Credits ran out before any of the 4 items were finished.
++ Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.007s
+
+FAILED (failures=1)
+Found 6 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).

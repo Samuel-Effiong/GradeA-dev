@@ -1,0 +1,115 @@
+/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/gunicorn/util.py:26: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+[2026-09-21 15:54:25 +0100] [1753452] [INFO] Starting gunicorn 20.0.4
+[2026-09-21 15:54:25 +0100] [1753452] [INFO] Listening at: http://127.0.0.1:18765 (1753452)
+[2026-09-21 15:54:25 +0100] [1753452] [INFO] Using worker: gthread
+[2026-09-21 15:54:25 +0100] [1753458] [INFO] Booting worker with pid: 1753458
+[2026-09-21 15:54:25 +0100] [1753459] [INFO] Booting worker with pid: 1753459
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-smoke-0a-a7d667c/users/serializers.py", line 418, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a teacher to access this endpoint.
+API request refused: EmptyWalletError: Credit wallet is empty
+Assignment generation denied by plan/tier for user ba004f49-96ae-40a4-89c2-3c7fa6be7a58: AI access denied: Your current plan does not include this feature. Please upgrade to access it.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 422, in initial
+    self.check_throttles(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 377, in check_throttles
+    self.throttled(request, duration)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 187, in throttled
+    raise exceptions.Throttled(wait)
+rest_framework.exceptions.Throttled: Request was throttled. Expected available in 3 seconds.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-smoke-0a-a7d667c/users/serializers.py", line 418, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a teacher to access this endpoint.
+API request refused: EmptyWalletError: Credit wallet is empty
+Assignment generation denied by plan/tier for user ba004f49-96ae-40a4-89c2-3c7fa6be7a58: AI access denied: Your current plan does not include this feature. Please upgrade to access it.
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty

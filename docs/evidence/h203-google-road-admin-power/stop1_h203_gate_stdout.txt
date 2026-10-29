@@ -1,0 +1,66 @@
+=== 0. reproduce-first: the new module on the base's services.py and license_service.py (own DB) 17:45:33
+load at start: 2.99 3.19 3.43 4/2880 1536040
+prefix exit=1 (non-zero expected)
+source restored
+FAIL: test_a_student_typed_row_carrying_is_staff_is_refused (users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_staff_is_refused)
+FAIL: test_a_student_typed_row_carrying_is_superuser_is_refused (users.tests_admin_power_principle.AddStudentByEmailRoadTests.test_a_student_typed_row_carrying_is_superuser_is_refused)
+FAIL: test_google_refuses_a_command_line_superuser (users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_command_line_superuser)
+FAIL: test_google_refuses_a_never_verified_staff_account (users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_staff_account)
+FAIL: test_google_refuses_a_never_verified_super_admin_type (users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_super_admin_type)
+FAIL: test_google_refuses_a_never_verified_superuser_flag (users.tests_admin_power_principle.GoogleRoadTests.test_google_refuses_a_never_verified_superuser_flag)
+FAIL: test_that_refusal_is_the_failed_google_sign_in_answer (users.tests_admin_power_principle.GoogleRoadTests.test_that_refusal_is_the_failed_google_sign_in_answer)
+FAIL: test_that_refusal_is_the_invalid_invitation_answer (users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_that_refusal_is_the_invalid_invitation_answer)
+FAIL: test_the_invitation_road_refuses_a_pending_row_carrying_is_staff (users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_the_invitation_road_refuses_a_pending_row_carrying_is_staff)
+FAIL: test_the_invitation_road_refuses_a_pending_row_carrying_is_superuser (users.tests_admin_power_principle.SchoolAdminInvitationRoadTests.test_the_invitation_road_refuses_a_pending_row_carrying_is_superuser)
+FAIL: test_a_command_line_superuser_is_refused_and_untouched (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_command_line_superuser_is_refused_and_untouched)
+FAIL: test_a_never_verified_staff_teacher_is_refused_and_untouched (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_staff_teacher_is_refused_and_untouched)
+FAIL: test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched)
+FAIL: test_a_switched_off_verified_teacher_is_refused_and_untouched (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_a_switched_off_verified_teacher_is_refused_and_untouched)
+FAIL: test_the_non_raising_path_returns_none_and_writes_nothing (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_non_raising_path_returns_none_and_writes_nothing)
+FAIL: test_the_refusal_does_not_say_which_school_the_row_belongs_to (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_the_refusal_does_not_say_which_school_the_row_belongs_to)
+FAIL: test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used (billing.tests.test_licence_invite_admin_power.LicenceInviteRoadTests.test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used)
+FAIL: test_bulk_import_refuses_a_student_typed_row_carrying_is_staff (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_staff)
+FAIL: test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser)
+FAIL: test_direct_add_refuses_a_student_typed_row_carrying_is_staff (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_staff)
+FAIL: test_direct_add_refuses_a_student_typed_row_carrying_is_superuser (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_direct_add_refuses_a_student_typed_row_carrying_is_superuser)
+FAIL: test_single_add_refuses_a_student_typed_row_carrying_is_staff (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_staff)
+FAIL: test_single_add_refuses_a_student_typed_row_carrying_is_superuser (classrooms.tests_h203_admin_power_routes.StudentAddRoutesAdminPowerTests.test_single_add_refuses_a_student_typed_row_carrying_is_superuser)
+Ran 37 tests in 3.413s
+FAILED (failures=23)
+step 0: Ran 37 tests in 3.413s; distinct red found 23, written 23 (Ran 37 written)
+step 0 is as written
+reason ok: test_google_refuses_a_never_verified_staff_account <- 200 != 400
+reason ok: test_google_refuses_a_never_verified_superuser_flag <- 200 != 400
+reason ok: test_google_refuses_a_never_verified_super_admin_type <- 200 != 400
+reason ok: test_google_refuses_a_command_line_superuser <- 200 != 400
+reason ok: test_that_refusal_is_the_failed_google_sign_in_answer <- 200 != 400
+reason ok: test_the_invitation_road_refuses_a_pending_row_carrying_is_staff <- 200 != 400
+reason ok: test_the_invitation_road_refuses_a_pending_row_carrying_is_superuser <- 200 != 400
+reason ok: test_that_refusal_is_the_invalid_invitation_answer <- 200 != 400
+reason ok: test_a_student_typed_row_carrying_is_staff_is_refused <- EnrollmentError not raised
+reason ok: test_a_student_typed_row_carrying_is_superuser_is_refused <- EnrollmentError not raised
+reason ok: test_a_never_verified_staff_teacher_is_refused_and_untouched <- ValueError not raised
+reason ok: test_a_never_verified_superuser_flag_teacher_is_refused_and_untouched <- ValueError not raised
+reason ok: test_a_command_line_superuser_is_refused_and_untouched <- ValueError not raised
+reason ok: test_a_switched_off_verified_teacher_is_refused_and_untouched <- ValueError not raised
+reason ok: test_the_non_raising_path_returns_none_and_writes_nothing <- is not None
+reason ok: test_the_refusal_does_not_say_which_school_the_row_belongs_to <- already belongs to another school
+reason ok: test_through_the_route_the_row_fails_and_no_seat_or_mail_is_used <- 0 != 1
+reason ok: test_single_add_refuses_a_student_typed_row_carrying_is_staff <- 200 != 400
+reason ok: test_single_add_refuses_a_student_typed_row_carrying_is_superuser <- 200 != 400
+reason ok: test_bulk_import_refuses_a_student_typed_row_carrying_is_staff <- 0 != 1
+reason ok: test_bulk_import_refuses_a_student_typed_row_carrying_is_superuser <- 0 != 1
+reason ok: test_direct_add_refuses_a_student_typed_row_carrying_is_staff <- 200 not found in (400, 500)
+reason ok: test_direct_add_refuses_a_student_typed_row_carrying_is_superuser <- 200 not found in (400, 500)
+=== 1a. makemigrations --check 17:45:51
+makemigrations exit=0 (0 = no changes)
+No changes detected
+=== 1. new + related modules + guards at 155f542b 17:45:54
+load at start: 4.02 3.40 3.50 1/2903 1536347
+exit=1 17:48:01
+load at end: 1.64 2.70 3.23 2/2901 1538435
+FAIL: test_every_role_loses_a_pre_set_password_when_google_activates_the_row (users.tests_google_auth.GoogleAuthViewTests.test_every_role_loses_a_pre_set_password_when_google_activates_the_row) (user_type='SUPER_ADMIN')
+Ran 608 tests in 112.612s
+FAILED (failures=1, skipped=3)
+STOP: not green
+bash failed with exit status 2.

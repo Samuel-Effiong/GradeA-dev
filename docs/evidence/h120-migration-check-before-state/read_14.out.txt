@@ -1,0 +1,85 @@
+
+== assignments/0038_assignment_updated_at  (1 operations)
+  AddField assignment.updated_at: DateTimeField null=False no-default
+
+== assignments/0040_db_defaults_for_rollback  (1 operations)
+  AlterField assignment.updated_at: DateTimeField null=False no-default  ->  DateTimeField null=False no-default db_default
+
+== billing/0009_betaprofile_uuid_and_more  (4 operations)
+  AddField betaprofile.uuid: UUIDField null=False default max_length=32
+  AlterField betaprofile.initial_beta_credits: PositiveIntegerField null=False default  ->  PositiveIntegerField null=False default
+  AlterField creditbucket.bucket_type: CharField null=False no-default max_length=20 choices=3  ->  CharField null=False no-default max_length=20 choices=4
+  AlterField creditbucket.expires_at: DateTimeField null=True no-default  ->  DateTimeField null=True no-default
+
+== billing/0011_remove_betaprofile_uuid_betaprofile_uid_and_more  (3 operations)
+  RemoveField betaprofile.uuid
+  AddField betaprofile.uid: UUIDField null=True default max_length=32
+  AlterField betaprofile.id: CharField null=False default max_length=100 primary_key=True unique=True  ->  BigAutoField null=False no-default primary_key=True unique=True
+
+== billing/0013_remove_betaprofile_id_alter_betaprofile_uid  (2 operations)
+  RemoveField betaprofile.id
+  AlterField betaprofile.uid: UUIDField null=True default max_length=32  ->  UUIDField null=False default max_length=32 primary_key=True unique=True
+
+== billing/0014_rename_uid_betaprofile_id  (1 operations)
+  RenameField betaprofile.uid -> id
+
+== billing/0016_planfeature_alter_subscriptionplan_options_and_more  (21 operations)
+  CreateModel PlanFeature (3 fields)
+  AlterModelOptions subscriptionplan
+  RemoveField subscriptionplan.overage_block_price
+  AddField subscriptionplan.category: CharField null=False default max_length=20 choices=2
+  AddField subscriptionplan.highlight: CharField null=True no-default max_length=20 choices=2
+  AddField subscriptionplan.interval: CharField null=False default max_length=20 choices=2
+  AddField subscriptionplan.is_contact_sales: BooleanField null=False default
+  AddField subscriptionplan.overage_credit_price_cents: PositiveIntegerField null=False default
+  AddField subscriptionplan.price_cents: PositiveIntegerField null=False default
+  AddField subscriptionplan.product_id: CharField null=True no-default max_length=100
+  AddField subscriptionplan.stripe_price_id: CharField null=True no-default max_length=100
+  AddField subscriptionplan.tagline: CharField null=False no-default max_length=100
+  AddField subscriptionplan.tier: CharField null=False default max_length=20 choices=5
+  AlterField subscriptionplan.carry_over_expiry_months: PositiveSmallIntegerField null=False default  ->  PositiveSmallIntegerField null=False default
+  AlterField subscriptionplan.carry_over_max: PositiveIntegerField null=False default  ->  PositiveIntegerField null=False default
+  AlterField subscriptionplan.carry_over_percent: DecimalField null=False no-default max_digits=5 decimal_places=2  ->  DecimalField null=False default max_digits=5 decimal_places=2
+  AlterField subscriptionplan.max_overage_blocks: PositiveSmallIntegerField null=False default  ->  PositiveSmallIntegerField null=False default
+  AlterField subscriptionplan.monthly_credits: PositiveIntegerField null=False default  ->  PositiveIntegerField null=True default
+  AlterField subscriptionplan.overage_block_size: PositiveIntegerField null=False default  ->  PositiveIntegerField null=False default
+  CreateModel PlanFeatureInclusion (5 fields)
+  AddField subscriptionplan.features: ManyToManyField null=False no-default M2M
+
+== billing/0017_remove_subscriptionplan_overage_credit_price_cents_and_more  (2 operations)
+  RemoveField subscriptionplan.overage_credit_price_cents
+  AlterField subscriptionplan.overage_block_size: PositiveIntegerField null=False default  ->  PositiveIntegerField null=False default
+
+== billing/0021_alter_creditbucket_bucket_type_and_more  (4 operations)
+  AlterField creditbucket.bucket_type: CharField null=False no-default max_length=20 choices=4  ->  CharField null=False no-default max_length=20 choices=5
+  AlterField creditledger.ledger_type: CharField null=False no-default max_length=20 choices=5  ->  CharField null=False no-default max_length=20 choices=6
+  AlterField licensesubscription.contract_months: PositiveSmallIntegerField null=False default choices=3  ->  PositiveSmallIntegerField null=False default choices=4
+  AlterField subscriptionplan.name: CharField null=False no-default max_length=20 unique=True choices=4  ->  CharField null=False no-default max_length=20 unique=True choices=5
+
+== billing/0022_usersubscription_is_trial_usersubscription_trial_end_and_more  (3 operations)
+  AddField usersubscription.is_trial: BooleanField null=False default
+  AddField usersubscription.trial_end: DateTimeField null=True no-default
+  AlterField creditbucket.bucket_type: CharField null=False no-default max_length=20 choices=5  ->  CharField null=False no-default max_length=20 choices=5
+
+== billing/0023_alter_subscriptionplan_name  (1 operations)
+  AlterField subscriptionplan.name: CharField null=False no-default max_length=20 unique=True choices=5  ->  CharField null=False no-default max_length=20 unique=True choices=8
+
+== billing/0025_alter_subscriptionplan_name  (1 operations)
+  AlterField subscriptionplan.name: CharField null=False no-default max_length=20 unique=True choices=8  ->  CharField null=False no-default max_length=100 unique=True choices=13
+
+== billing/0059_append_only_audit_tables  (10 operations)
+  AlterField creditledger.user: ForeignKey null=False no-default  ->  ForeignKey null=True no-default db_constraint=False
+  SeparateDatabaseAndState: database_operations=0 state_operations=2
+      state: RemoveField creditledger.user
+      state: AddField creditledger.user_id: UUIDField null=True no-default max_length=32
+  AddField creditledger.user_email: CharField null=True no-default max_length=254
+  AddField creditusagelog.user_id: UUIDField null=True no-default max_length=32
+  AddField creditusagelog.user_email: CharField null=True no-default max_length=254
+  AlterField creditledger.bucket: ForeignKey null=True no-default  ->  ForeignKey null=True no-default db_constraint=False
+  AlterField creditusagelog.wallet: ForeignKey null=False no-default  ->  ForeignKey null=False no-default db_constraint=False
+  AlterField creditusagelog.bucket: ForeignKey null=False no-default  ->  ForeignKey null=False no-default db_constraint=False
+  AlterField creditusagelog.course: ForeignKey null=True no-default  ->  ForeignKey null=True no-default db_constraint=False
+  AlterField creditusagelog.school: ForeignKey null=True no-default  ->  ForeignKey null=True no-default db_constraint=False
+
+== students/0026_alter_backgroundprocessingtask_task_type  (1 operations)
+  AlterField backgroundprocessingtask.task_type: CharField null=False no-default max_length=64 choices=8  ->  CharField null=False no-default max_length=64 choices=9

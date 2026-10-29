@@ -1,0 +1,3 @@
+# H-123: no test database was left behind (correction added 2026-10-06 with batch 9's docs commit)
+
+`EVIDENCE.md` in this folder and note 6 of v2's record say that the mutation battery left the test database `test_h123_mut` on the local server. It did not. Integration & Release (0b) listed every database whose name starts with `test` on that server on 2026-10-06 at 12:37 WAT, and `test_h123_mut` was not among them: the battery's tests need no database, so `--keepdb` never built one. Nothing was dropped. The author (d5) agrees the sentence was written from the runner's flag without a check. The merged files are left as they were.

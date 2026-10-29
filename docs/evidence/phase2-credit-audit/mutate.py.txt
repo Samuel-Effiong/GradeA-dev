@@ -1,0 +1,147 @@
+"""Mutation battery for the credit-transaction instrumentation (billing/models.py
+CreditLedger.record()/after_bulk_create()/_emit_credit_transaction, and the
+after_bulk_create wiring in billing/immutable.py). Each mutant weakens ONE
+audit-emission protection; a test named for that protection must fail.
+Restores from collision-safe copies and verifies by md5 (never git checkout).
+"""
+import hashlib, json, os, re, shutil, subprocess, sys, time
+
+ROOT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-credit-audit"
+SCR = os.path.dirname(os.path.abspath(__file__))
+M, I = "billing/models.py", "billing/immutable.py"
+LABEL = "billing.tests.test_credit_transaction_audit"
+
+MUTANTS = [
+    ("R1", "record() never emits (record-path events vanish)",
+     [(M, "        row.save()\n        _emit_credit_transaction(row, user)\n        return row",
+          "        row.save()\n        return row")],
+     "test_record_emits_exactly_one_event"),
+    ("B1", "after_bulk_create() body emptied (consume/refund events vanish)",
+     [(M,
+       "        user_ids = {obj.user_id for obj in objs if obj.user_id is not None}\n"
+       "        users_by_id = get_user_model().objects.in_bulk(user_ids) if user_ids else {}\n"
+       "        for row in objs:\n"
+       "            _emit_credit_transaction(row, users_by_id.get(row.user_id))",
+       "        return")],
+     "test_consume_emits_exactly_one_event"),
+    ("B2", "after_bulk_create() actor resolution always empty (actor_id wrong on bulk path)",
+     [(M, "users_by_id = get_user_model().objects.in_bulk(user_ids) if user_ids else {}",
+          "users_by_id = {}")],
+     "test_consume_emits_exactly_one_event"),
+    ("W1", "AppendOnlyQuerySet.bulk_create() never calls after_bulk_create (silent no-op hook)",
+     [(I, "        created = super().bulk_create(objs, *args, **kwargs)\n"
+          "        self.model.after_bulk_create(created)\n"
+          "        return created",
+          "        created = super().bulk_create(objs, *args, **kwargs)\n"
+          "        return created")],
+     "test_consume_emits_exactly_one_event"),
+    ("E1", "outcome hardcoded to FAILURE instead of SUCCESS",
+     [(M, "        outcome=AuditOutcome.SUCCESS,\n        metadata={\"ledger_type\": row.ledger_type, \"credits\": row.amount},",
+          "        outcome=AuditOutcome.FAILURE,\n        metadata={\"ledger_type\": row.ledger_type, \"credits\": row.amount},")],
+     "test_record_emits_exactly_one_event"),
+    ("E2", "target_id uses user_id instead of the ledger row's own id",
+     [(M, "        target_id=row.id,\n        outcome=AuditOutcome.SUCCESS,",
+          "        target_id=getattr(actor, \"id\", None),\n        outcome=AuditOutcome.SUCCESS,")],
+     "test_record_emits_exactly_one_event"),
+    ("E3", "metadata credits dropped (ledger_type only)",
+     [(M, "metadata={\"ledger_type\": row.ledger_type, \"credits\": row.amount},",
+          "metadata={\"ledger_type\": row.ledger_type},")],
+     "test_record_emits_exactly_one_event"),
+    ("E4", "metadata ledger_type hardcoded to GRANT regardless of actual type",
+     [(M, "metadata={\"ledger_type\": row.ledger_type, \"credits\": row.amount},",
+          "metadata={\"ledger_type\": \"GRANT\", \"credits\": row.amount},")],
+     "test_consume_emits_exactly_one_event"),
+    ("E5", "metadata credits value uses row.id instead of row.amount",
+     [(M, "metadata={\"ledger_type\": row.ledger_type, \"credits\": row.amount},",
+          "metadata={\"ledger_type\": row.ledger_type, \"credits\": row.id},")],
+     "test_record_emits_exactly_one_event"),
+    ("D1", "two-bucket bulk_create only emits for the first row, not each row",
+     [(M, "        for row in objs:\n            _emit_credit_transaction(row, users_by_id.get(row.user_id))",
+          "        for row in objs[:1]:\n            _emit_credit_transaction(row, users_by_id.get(row.user_id))")],
+     "test_consume_spanning_two_buckets_emits_one_event_per_ledger_row"),
+]
+
+
+def md5(p):
+    return hashlib.md5(open(p, "rb").read()).hexdigest()
+
+
+def run(timeout=300):
+    env = dict(os.environ)
+    env["DJANGO_SETTINGS_MODULE"] = "settings_worktree"
+    r = subprocess.run(
+        [sys.executable, "manage.py", "test", LABEL, "--settings=settings_worktree", "--keepdb", "--noinput"],
+        cwd=ROOT, capture_output=True, text=True, timeout=timeout, env=env,
+    )
+    out = r.stdout + r.stderr
+    fails = re.findall(r"^(?:FAIL|ERROR): (\S+) \(([^)]*)\)", out, re.M)
+    m = re.search(r"^(OK.*|FAILED.*)$", out, re.M)
+    return r.returncode, out, fails, (m.group(1) if m else "?")
+
+
+def precheck():
+    bad = []
+    for mid, desc, edits, expect in MUTANTS:
+        for f, old, new in edits:
+            n = open(os.path.join(ROOT, f)).read().count(old)
+            if n != 1:
+                bad.append((mid, f, n, old[:60]))
+    return bad
+
+
+def main(only=None):
+    bad = precheck()
+    if bad:
+        for b in bad:
+            print("PATTERN PROBLEM", b)
+        raise SystemExit(1)
+    log = open(os.path.join(SCR, "mutation_log_credit_audit.jsonl"), "a")
+    results = []
+    files = sorted({f for _, _, ms, _ in MUTANTS for f, _, _ in ms})
+    orig = {f: md5(os.path.join(ROOT, f)) for f in files}
+    backups = {}
+    for f in files:
+        b = os.path.join(SCR, "backup_credit_audit_" + f.replace("/", "__"))
+        shutil.copy2(os.path.join(ROOT, f), b)
+        backups[f] = b
+    rc, out, fails, summary = run()
+    base = {"id": "BASE", "rc": rc, "summary": summary, "fails": fails}
+    print("BASELINE", rc, summary, flush=True)
+    log.write(json.dumps(base) + "\n")
+    if rc != 0:
+        raise SystemExit("baseline not green")
+    for mid, desc, edits, expect in MUTANTS:
+        if only and mid not in only:
+            continue
+        try:
+            for f, old, new in edits:
+                p = os.path.join(ROOT, f)
+                s = open(p).read()
+                open(p, "w").write(s.replace(old, new))
+            t = time.time()
+            rc, out, fails, summary = run()
+            names = sorted({n for n, _ in fails})
+            killed = rc != 0 and any(expect in n for n, _ in fails)
+            res = {"id": mid, "desc": desc, "rc": rc, "summary": summary, "expected_test": expect,
+                   "failing": names, "killed_for_named_reason": killed, "secs": round(time.time() - t)}
+        except Exception as e:
+            res = {"id": mid, "desc": desc, "error": str(e), "killed_for_named_reason": False}
+        finally:
+            for f in files:
+                shutil.copy2(backups[f], os.path.join(ROOT, f))
+            bad = [f for f in files if md5(os.path.join(ROOT, f)) != orig[f]]
+            if bad:
+                raise SystemExit(f"RESTORE MISMATCH after {mid}: {bad}")
+        res["restored_md5_ok"] = True
+        print(mid, "KILLED" if res["killed_for_named_reason"] else "SURVIVED/ERR",
+              (res.get("failing") or res.get("error"))[:6] if res.get("failing") else res.get("error"), flush=True)
+        log.write(json.dumps(res) + "\n")
+        log.flush()
+        results.append(res)
+    json.dump({"baseline": base, "mutants": results, "md5": orig},
+               open(os.path.join(SCR, "mutation_results_credit_audit.json"), "w"), indent=1)
+    print("KILLED", sum(r["killed_for_named_reason"] for r in results), "/", len(results))
+
+
+if __name__ == "__main__":
+    main(set(sys.argv[1:]) or None)

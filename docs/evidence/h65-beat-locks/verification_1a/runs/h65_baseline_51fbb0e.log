@@ -1,0 +1,651 @@
+Creating test database for alias 'default' ('test_vf_h65')...
+Found 99 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+  Applying billing.0072_license_stripe_mutation_intent... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more... OK
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_where_the_last_grant_falls_and_what_a_skip_to_the_end_costs (billing.tests.test_vf1a_h65_probe.CMonthEndStart.test_where_the_last_grant_falls_and_what_a_skip_to_the_end_costs) ... Cannot activate automatic trial for user vf1a-h65-c1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user vf1a-h65-c2@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:fd8324a30aed).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:9f98432d7d95).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:c710affe8262).
+Cannot activate automatic trial for user vf1a-h65-c3@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:54e2b8c4fbfd).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:bf59620eabf3).
+FAIL
+test_where_the_last_grant_falls_and_what_a_skip_to_the_end_costs (billing.tests.test_vf1a_h65_probe.CSkippedGrantAcrossTheCycleEnd.test_where_the_last_grant_falls_and_what_a_skip_to_the_end_costs) ... Cannot activate automatic trial for user vf1a-h65-c1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user vf1a-h65-c2@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:2db3037ae13e).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:160ad20fad95).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:b61756adad38).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:de6e41022fed).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:5808096d38be).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:c6ee6e10da45).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:dd100337bcb1).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:0dd57b8094f5).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:5fa2b8d03d87).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:8778c4070327).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:f21666184cfc).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:39810fac1607).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:4f4e1894390b).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:9e16de488b42).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:4b310cdf1df0).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:c3828c40f853).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:b4495e4043c9).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:a6100e8196e7).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:63f35bfef38d).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:f4968fc77028).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:fa35bc721f01).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:ef3a00925943).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:30d698e1768c).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:47e96228779d).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:6624e9f7f483).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:9a3422075f33).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:9d700e9a2498).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:fba3b12cb1fd).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:b594534a2ebf).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:db2b77c83d51).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:34508f52554e).
+Monthly bucket 761d1a21-e528-4109-8a66-f4975d861a8c (wallet f914831b-0f31-4b5a-9119-46b1a68eb655) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Cannot activate automatic trial for user vf1a-h65-c3@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:296abe3daa4f).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:2f178b25dc8a).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:f5ff69ea5741).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:24eab1e70ebe).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:d58baec34c54).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:8d93bce868e7).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:462d6792c6fa).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:bebfa367e5c4).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:3c382a6486eb).
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:0bd19f52c713).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:41b3ac533540).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:341162bd3d0c).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:f94a8196ba08).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:f7817f6d32a4).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:0d5fe6fb0709).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:b993ae3684f6).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:ac7d227c74ce).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:befd6b4a8631).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:0ba9f73b8505).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:3e01ffb305df).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:e5b06574234a).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:851de8e6b3ca).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:484ce08d6f53).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:d9181ecc8f4f).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:412d118b9e95).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:f463e5476f09).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:dc91ae76f776).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:d4c899fa5e9f).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:47c2e6887810).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+Beat task billing.tasks.process_annual_plan_credit_grants: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tasks.process_annual_plan_credit_grants, held by run another-run; this run direct:13619ee9d19a).
+Monthly bucket 484507ee-72a8-4768-8be0-1c1100bf0791 (wallet ce3dd86f-b2fe-421b-a7ee-382f72075c0c) expired at 2026-12-18 02:00:00.003000+00:00 and is still waiting for its owner's refresh or renewal; the refresh has stopped. Kept unexpired so it can still roll over.
+FAIL
+test_a_healthy_lock_store_adds_nothing (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_a_healthy_lock_store_adds_nothing) ... ok
+test_the_watchdog_reports_a_lock_store_that_is_not_answering (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_the_watchdog_reports_a_lock_store_that_is_not_answering) ... ok
+test_leaves_the_cleanup_tasks_lock_held (AutoGrader.tests_beat_locks.BeatLockIsolation1LeavesALockHeld.test_leaves_the_cleanup_tasks_lock_held) ... ok
+test_the_task_executes_instead_of_skipping (AutoGrader.tests_beat_locks.BeatLockIsolation2TheNextTestStillRuns.test_the_task_executes_instead_of_skipping) ... ok
+test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it) ... ok
+test_a_skipped_run_leaves_the_due_grant_for_the_next_run (billing.tests.test_beat_lock_catch_up.AnnualMidCycleGrantCatchUpTests.test_a_skipped_run_leaves_the_due_grant_for_the_next_run) ... Cannot activate automatic trial for user annual-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_skipped_run_leaves_the_expired_bucket_for_the_next_run (billing.tests.test_beat_lock_catch_up.ExpiredBucketCleanupCatchUpTests.test_a_skipped_run_leaves_the_expired_bucket_for_the_next_run) ... Cannot activate automatic trial for user cleanup-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_skipped_run_leaves_the_failed_purchase_for_the_next_run (billing.tests.test_beat_lock_catch_up.FailedEventReplayCatchUpTests.test_a_skipped_run_leaves_the_failed_purchase_for_the_next_run) ... Cannot activate automatic trial for user replay-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_skipped_run_leaves_the_due_refresh_for_the_next_run (billing.tests.test_beat_lock_catch_up.LicenceMonthlyRefreshCatchUpTests.test_a_skipped_run_leaves_the_due_refresh_for_the_next_run) ... Cannot activate automatic trial for user licence-teacher-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_skipped_run_leaves_the_due_licence_for_the_next_run (billing.tests.test_beat_lock_catch_up.LicenceRenewalCatchUpTests.test_a_skipped_run_leaves_the_due_licence_for_the_next_run) ... ok
+test_a_skipped_run_leaves_the_missing_link_for_the_next_run (billing.tests.test_beat_lock_catch_up.MissingReceiptSweepCatchUpTests.test_a_skipped_run_leaves_the_missing_link_for_the_next_run) ... ok
+test_a_skipped_run_leaves_the_stale_intent_for_the_next_run (billing.tests.test_beat_lock_catch_up.StaleLicenceIntentCatchUpTests.test_a_skipped_run_leaves_the_stale_intent_for_the_next_run) ... Stale licence Stripe intents escalated: 1
+ok
+test_a_skipped_run_leaves_the_abandoned_claims_for_the_next_run (billing.tests.test_beat_lock_catch_up.StaleStripeEventSweepCatchUpTests.test_a_skipped_run_leaves_the_abandoned_claims_for_the_next_run)
+Both of the sweep's outcomes: a claim whose worker died before ... Recovered abandoned Stripe event evt_catch_up_unstarted (invoice.payment_succeeded): its worker died before the handler started, so no Stripe call was made and it is safe to re-dispatch. Recovery attempt 1 of 3.
+ok
+test_a_skipped_run_leaves_the_due_renewal_for_the_next_run (billing.tests.test_beat_lock_catch_up.SubscriptionRenewalCatchUpTests.test_a_skipped_run_leaves_the_due_renewal_for_the_next_run) ... Cannot activate automatic trial for user renewal-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_skipped_run_leaves_the_ended_trial_for_the_next_run (billing.tests.test_beat_lock_catch_up.TrialExpiryCatchUpTests.test_a_skipped_run_leaves_the_ended_trial_for_the_next_run) ... Cannot activate automatic trial for user trial-catch-up@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_every_detection_query_is_read_only (billing.tests.test_overlapping_run_rechecks.DoubleGrantDetectionQueryTests.test_every_detection_query_is_read_only) ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_it_finds_the_double_grant_and_its_cost (billing.tests.test_overlapping_run_rechecks.DoubleGrantDetectionQueryTests.test_it_finds_the_double_grant_and_its_cost) ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_its_output_carries_no_email (billing.tests.test_overlapping_run_rechecks.DoubleGrantDetectionQueryTests.test_its_output_carries_no_email) ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_monthly_grants_a_month_apart_are_not_reported (billing.tests.test_overlapping_run_rechecks.DoubleGrantDetectionQueryTests.test_monthly_grants_a_month_apart_are_not_reported) ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_due_subscription_is_still_granted (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_a_due_subscription_is_still_granted)
+The control: one run, one grant. ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_overlapping_run_does_not_grant_the_month_again (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_an_overlapping_run_does_not_grant_the_month_again) ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_each_eligibility_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_each_eligibility_condition_is_rechecked_under_the_lock)
+Every condition the task selects on, changed after the read. ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_service_refuses_a_stale_copy_that_is_no_longer_due (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_the_service_refuses_a_stale_copy_that_is_no_longer_due) ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_single_expiry_is_not_reported (billing.tests.test_overlapping_run_rechecks.TrialDetectionQueryTests.test_a_single_expiry_is_not_reported) ... Cannot activate automatic trial for user trial-detect@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_trial_that_simply_expired_is_not_reported (billing.tests.test_overlapping_run_rechecks.TrialDetectionQueryTests.test_a_trial_that_simply_expired_is_not_reported) ... Cannot activate automatic trial for user trial-detect@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_it_finds_a_paid_subscription_switched_off (billing.tests.test_overlapping_run_rechecks.TrialDetectionQueryTests.test_it_finds_a_paid_subscription_switched_off) ... Cannot activate automatic trial for user trial-detect@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_it_finds_a_trial_bucket_expired_twice (billing.tests.test_overlapping_run_rechecks.TrialDetectionQueryTests.test_it_finds_a_trial_bucket_expired_twice) ... Cannot activate automatic trial for user trial-detect@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_legitimate_inactive_subscriptions_are_not_reported (billing.tests.test_overlapping_run_rechecks.TrialDetectionQueryTests.test_legitimate_inactive_subscriptions_are_not_reported) ... Cannot activate automatic trial for user trial-detect@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_checkout_conversion_in_between_is_not_undone (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_a_checkout_conversion_in_between_is_not_undone)
+The production path, on the ended-trial (time) branch. ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+BillingTransactionService.record called with no stripe_invoice_id, stripe_payment_intent_id, or license_billing_record (type=INDIVIDUAL_TRIAL_CONVERSION_CHARGE) — creating an un-deduplicated row.
+ok
+test_a_checkout_conversion_is_not_undone_on_the_credits_path (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_a_checkout_conversion_is_not_undone_on_the_credits_path)
+The production path, on the credits-exhausted branch, which calls ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+BillingTransactionService.record called with no stripe_invoice_id, stripe_payment_intent_id, or license_billing_record (type=INDIVIDUAL_TRIAL_CONVERSION_CHARGE) — creating an un-deduplicated row.
+ok
+test_a_conversion_in_between_is_not_undone (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_a_conversion_in_between_is_not_undone)
+Stripe's trial-end webhook converts the trial on the same row ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_trial_extended_after_the_read_is_not_expired (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_a_trial_extended_after_the_read_is_not_expired)
+The has-it-ended guard reads the locked row, not the stale copy. ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_ended_trial_is_still_expired (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_an_ended_trial_is_still_expired)
+The control: one run, one EXPIRE row, trial deactivated. ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_overlapping_run_does_not_expire_the_trial_again (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_an_overlapping_run_does_not_expire_the_trial_again) ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_cleanup_first_does_not_write_a_second_expire_row (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_cleanup_first_does_not_write_a_second_expire_row) ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_each_trial_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_each_trial_condition_is_rechecked_under_the_lock) ... Cannot activate automatic trial for user trial-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_due_time_capped_at_the_cycle_end_is_not_granted_early (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_a_due_time_capped_at_the_cycle_end_is_not_granted_early)
+The tolerance must not grant the renewal's month mid-cycle. ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run)
+A long batch: the row is processed minutes after the run started ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_run_starting_a_little_earlier_than_last_months_still_refreshes (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_a_run_starting_a_little_earlier_than_last_months_still_refreshes)
+Beat dispatch and worker pickup jitter from day to day: this ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_month_1s_unused_credits_roll_over (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_month_1s_unused_credits_roll_over) ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_month_2_is_granted_exactly_once_in_total (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_month_2_is_granted_exactly_once_in_total) ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_no_grant_for_the_last_minutes_of_the_contract (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_no_grant_for_the_last_minutes_of_the_contract)
+1a's F2. The last grant set a due time 2 minutes BEFORE the cycle ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_customer_has_a_monthly_bucket_after_the_scheduled_run (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_customer_has_a_monthly_bucket_after_the_scheduled_run) ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_lost_months_query_finds_a_write_off_before_the_refresh (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_lost_months_query_finds_a_write_off_before_the_refresh)
+The ledger exactly as the pre-fix code left it: the cleanup wrote ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_lost_months_query_leaves_out_a_plan_with_no_carry_over (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_lost_months_query_leaves_out_a_plan_with_no_carry_over)
+1a's Q4: nothing was lost on a plan with no carry-over. ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_monthly_bucket_outlives_its_due_time_by_the_grace (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_monthly_bucket_outlives_its_due_time_by_the_grace) ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_new_month_is_granted_on_its_scheduled_run (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_new_month_is_granted_on_its_scheduled_run) ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_service_refuses_a_due_time_capped_at_the_cycle_end (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_service_refuses_a_due_time_capped_at_the_cycle_end) ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_service_refuses_the_last_minutes_of_the_contract (billing.tests.test_monthly_rollover_cleanup_race.AnnualMidCycleGrantRaceTests.test_the_service_refuses_the_last_minutes_of_the_contract) ... Cannot activate automatic trial for user annual-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_deactivated_licences_teacher_is_written_off (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_deactivated_licences_teacher_is_written_off) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_kept_bucket_is_not_spendable (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_kept_bucket_is_not_spendable) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_lapsed_subscriber_is_written_off_on_the_next_cleanup (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_lapsed_subscriber_is_written_off_on_the_next_cleanup) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_licence_teacher_is_entitled_too (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_licence_teacher_is_entitled_too) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_refresh_overdue_by_a_week_is_logged_and_still_kept (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_refresh_overdue_by_a_week_is_logged_and_still_kept) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_teacher_removed_through_the_real_path_is_written_off (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_teacher_removed_through_the_real_path_is_written_off) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_entitled_owners_newest_monthly_bucket_is_kept (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_an_entitled_owners_newest_monthly_bucket_is_kept) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_inactive_allocation_is_written_off (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_an_inactive_allocation_is_written_off) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_older_unprocessed_monthly_bucket_is_still_written_off (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_an_older_unprocessed_monthly_bucket_is_still_written_off) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_it_is_written_off_once_the_owner_is_no_longer_entitled (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_it_is_written_off_once_the_owner_is_no_longer_entitled) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_other_bucket_types_are_still_written_off (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_other_bucket_types_are_still_written_off) ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_renewal_that_arrives_after_the_cleanup_still_rolls_it_over (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_the_renewal_that_arrives_after_the_cleanup_still_rolls_it_over)
+The monthly individual renewal path: the webhook after 05:00. ... Cannot activate automatic trial for user owed-refresh@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_monthly_activation_is_unchanged (billing.tests.test_monthly_rollover_cleanup_race.FirstMonthGraceTests.test_a_monthly_activation_is_unchanged) ... Cannot activate automatic trial for user first-month@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_annual_activation_gets_the_grace (billing.tests.test_monthly_rollover_cleanup_race.FirstMonthGraceTests.test_an_annual_activation_gets_the_grace) ... Cannot activate automatic trial for user first-month@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_an_annual_immediate_plan_change_gets_the_grace (billing.tests.test_monthly_rollover_cleanup_race.FirstMonthGraceTests.test_an_annual_immediate_plan_change_gets_the_grace) ... Cannot activate automatic trial for user first-month@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run)
+A long batch: the row is processed minutes after the run started ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_run_2s_early_reopens_the_consumption_window (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_a_run_2s_early_reopens_the_consumption_window) ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_run_2s_late_reopens_the_consumption_window (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_a_run_2s_late_reopens_the_consumption_window) ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_a_run_starting_a_little_earlier_than_last_months_still_refreshes (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_a_run_starting_a_little_earlier_than_last_months_still_refreshes)
+Beat dispatch and worker pickup jitter from day to day: this ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_month_1s_unused_credits_roll_over (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_month_1s_unused_credits_roll_over) ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_month_2_is_granted_exactly_once_in_total (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_month_2_is_granted_exactly_once_in_total) ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_no_refresh_for_the_last_minutes_of_the_contract (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_no_refresh_for_the_last_minutes_of_the_contract)
+1a's F2, the licence path. ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_customer_has_a_monthly_bucket_after_the_scheduled_run (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_the_customer_has_a_monthly_bucket_after_the_scheduled_run) ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_monthly_bucket_outlives_its_due_time_by_the_grace (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_the_monthly_bucket_outlives_its_due_time_by_the_grace) ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_the_new_month_is_granted_on_its_scheduled_run (billing.tests.test_monthly_rollover_cleanup_race.LicenceMonthlyRefreshRaceTests.test_the_new_month_is_granted_on_its_scheduled_run) ... Cannot activate automatic trial for user race-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_control_the_same_max_hold_with_a_short_ttl (billing.tests.test_vf1a_h65_probe.LHungRunVsNextRun.test_control_the_same_max_hold_with_a_short_ttl) ... Beat task billing.tests.test_vf1a_h65_probe.vf1a_scaled_task is still running after its maximum hold of 4s. Its lock (key gaplus-t116638:1:beat-lock:billing.tests.test_vf1a_h65_probe.vf1a_scaled_task, run direct:ba8bfeee254a) is left to lapse, so the next run can start.
+Beat task billing.tests.test_vf1a_h65_probe.vf1a_scaled_task finished without its lock (key gaplus-t116638:1:beat-lock:billing.tests.test_vf1a_h65_probe.vf1a_scaled_task, run direct:ba8bfeee254a): it had lapsed, so another run may have overlapped this one.
+ok
+test_every_5_min_scaled_a_hung_run_does_not_swallow_the_next (billing.tests.test_vf1a_h65_probe.LHungRunVsNextRun.test_every_5_min_scaled_a_hung_run_does_not_swallow_the_next) ... Beat task billing.tests.test_vf1a_h65_probe.vf1a_scaled_task is still running after its maximum hold of 4s. Its lock (key gaplus-t116638:1:beat-lock:billing.tests.test_vf1a_h65_probe.vf1a_scaled_task, run direct:34198c076821) is left to lapse, so the next run can start.
+Beat task billing.tests.test_vf1a_h65_probe.vf1a_scaled_task: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:billing.tests.test_vf1a_h65_probe.vf1a_scaled_task, held by run direct:34198c076821; this run direct:2e357b651fd7).
+FAIL
+test_each_lock_is_named_after_its_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_each_lock_is_named_after_its_task) ... ok
+test_every_beat_task_is_locked_or_exempt (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_beat_task_is_locked_or_exempt) ... ok
+test_every_exemption_names_a_scheduled_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_exemption_names_a_scheduled_task) ... ok
+test_max_hold_is_below_the_schedule_interval (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_max_hold_is_below_the_schedule_interval)
+So a hung run can never swallow the next scheduled one. ... ok
+test_the_gap_calculation (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_the_gap_calculation) ... ok
+test_it_clears_only_beat_lock_keys (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_it_clears_only_beat_lock_keys) ... ok
+test_the_runner_installed_the_per_test_clearing (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_the_runner_installed_the_per_test_clearing) ... ok
+test_a_live_run_keeps_its_lock_past_the_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_live_run_keeps_its_lock_past_the_ttl) ... ok
+test_a_run_past_max_hold_lets_its_lock_lapse (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_run_past_max_hold_lets_its_lock_lapse) ... ok
+test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds) ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run crashed-run; this run direct:f34e3fcd227c).
+ok
+test_a_lapsed_run_cannot_delete_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_delete_a_newer_runs_lock)
+Compare-and-delete: run A's lock lapses mid-run and run B takes ... ok
+test_a_lapsed_run_cannot_extend_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_extend_a_newer_runs_lock)
+Compare-and-extend: the heartbeat of a run whose lock lapsed must ... ok
+test_a_redis_error_fails_closed_with_an_error_log (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_redis_error_fails_closed_with_an_error_log) ... ok
+test_a_run_takes_and_releases_the_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_takes_and_releases_the_lock) ... ok
+test_a_run_while_another_holds_the_lock_skips_without_working (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_while_another_holds_the_lock_skips_without_working) ... ok
+test_every_run_has_its_own_token (AutoGrader.tests_beat_locks.SingleInstanceTests.test_every_run_has_its_own_token) ... ok
+test_the_lock_is_released_when_the_run_raises (AutoGrader.tests_beat_locks.SingleInstanceTests.test_the_lock_is_released_when_the_run_raises) ... ok
+test_two_concurrent_runs_do_the_work_once (AutoGrader.tests_beat_locks.SingleInstanceTests.test_two_concurrent_runs_do_the_work_once)
+Real threads, released together; the one that gets the lock waits ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t116638:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run direct:da8ba500e35f; this run direct:6209cf5253be).
+ok
+test_run_b_blocked_behind_run_a_does_not_grant_again (billing.tests.test_overlapping_run_rechecks.MidCycleGrantRealLockTests.test_run_b_blocked_behind_run_a_does_not_grant_again) ... Cannot activate automatic trial for user annual-overlap@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_expiry_blocked_behind_a_conversion_leaves_it_paid (billing.tests.test_overlapping_run_rechecks.TrialConversionRealLockTests.test_expiry_blocked_behind_a_conversion_leaves_it_paid) ... Cannot activate automatic trial for user trial-race@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_it_writes_nothing (billing.tests.test_monthly_rollover_cleanup_race.LostMonthsQueryIsReadOnlyTests.test_it_writes_nothing) ... ok
+
+======================================================================
+FAIL: test_where_the_last_grant_falls_and_what_a_skip_to_the_end_costs (billing.tests.test_vf1a_h65_probe.CMonthEndStart.test_where_the_last_grant_falls_and_what_a_skip_to_the_end_costs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8e862e15-e031-4bd4-b8e1-ffe3b15e754c/scratchpad/vf_h65/billing/tests/test_vf1a_h65_probe.py", line 187, in test_where_the_last_grant_falls_and_what_a_skip_to_the_end_costs
+    self.assertEqual(
+AssertionError: 11 != 12 : a grant skipped by every run up to the cycle end is lost: the renewal starts a new chain and never grants it
+
+======================================================================
+FAIL: test_where_the_last_grant_falls_and_what_a_skip_to_the_end_costs (billing.tests.test_vf1a_h65_probe.CSkippedGrantAcrossTheCycleEnd.test_where_the_last_grant_falls_and_what_a_skip_to_the_end_costs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8e862e15-e031-4bd4-b8e1-ffe3b15e754c/scratchpad/vf_h65/billing/tests/test_vf1a_h65_probe.py", line 187, in test_where_the_last_grant_falls_and_what_a_skip_to_the_end_costs
+    self.assertEqual(
+AssertionError: 10 != 11 : a grant skipped by every run up to the cycle end is lost: the renewal starts a new chain and never grants it
+
+======================================================================
+FAIL: test_every_5_min_scaled_a_hung_run_does_not_swallow_the_next (billing.tests.test_vf1a_h65_probe.LHungRunVsNextRun.test_every_5_min_scaled_a_hung_run_does_not_swallow_the_next)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8e862e15-e031-4bd4-b8e1-ffe3b15e754c/scratchpad/vf_h65/billing/tests/test_vf1a_h65_probe.py", line 77, in test_every_5_min_scaled_a_hung_run_does_not_swallow_the_next
+    self.assertTrue(
+AssertionError: False is not true : the next scheduled run was skipped: the hung run's last heartbeat (at 2/3 of max_hold) kept the lock a full TTL past it
+
+----------------------------------------------------------------------
+Ran 99 tests in 34.138s
+
+FAILED (failures=3)
+Destroying test database for alias 'default' ('test_vf_h65')...
+ OK
+
+VF1A_H65_C start=2026-01-31 01:00 end=2027-01-31 01:00
+  no skip: 12 mid-cycle grants, last at 2027-01-28 02:00, carry-over 65000
+  every run skipped from the last grant's run to the end (3 runs): 11 grants, carry-over 60000
+  the same but the last run before the end runs (2 skipped): 12 grants, carry-over 65000
+
+VF1A_H65_C start=2026-01-15 14:00 end=2027-01-15 14:00
+  no skip: 11 mid-cycle grants, last at 2026-12-16 02:00, carry-over 60000
+  every run skipped from the last grant's run to the end (31 runs): 10 grants, carry-over 55000
+  the same but the last run before the end runs (30 skipped): 11 grants, carry-over 60000
+
+VF1A_H65_L max_hold=4s ttl=1s interval=5s: next run RAN ('ran')
+
+VF1A_H65_L max_hold=4s ttl=300s interval=5s: next run SKIPPED ('billing.tests.test_vf1a_h65_probe.vf1a_scaled_task: another run already holds the lock; skipping this one.')
+exit 1

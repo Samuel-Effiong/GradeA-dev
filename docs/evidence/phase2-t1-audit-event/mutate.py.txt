@@ -1,0 +1,135 @@
+"""Mutation battery for T1 (audit event schema + emitter), re-run by audit-lead
+after: license_id -> school_id, per-action metadata allow-list, and the new
+AutoGrader.request_context trace_id fallback. Each mutant weakens ONE
+protection; a test named for that protection must fail. Restores from
+collision-safe copies and verifies by md5 (never git checkout).
+"""
+import hashlib, json, os, re, shutil, subprocess, sys, time
+ROOT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-t1-audit-event"
+SCR = os.path.dirname(os.path.abspath(__file__))
+E, C, MD, MO, A, EN = ("audit/emitter.py","audit/context.py","audit/metadata.py","audit/models.py","audit/apps.py","audit/enums.py")
+MG = "audit/migrations/0001_initial.py"
+LABEL = "audit"
+
+MUTANTS = [
+ # emitter
+ ("E1","student's email stored",[(E,"    if role != ActorRole.STUDENT:  # data minimisation, X-4","    if True:")],"student_event_carries_no_email"),
+ ("E2","student's address and browser stored",[(E,"    if is_student:\n        return fields\n","    if False:\n        return fields\n")],"student_event_carries_no_email"),
+ ("E3","client's X-Request-ID used as the trace id",[(E,"        trace_id=_resolve_trace_id(),",'        trace_id=(uuid.UUID(request_fields["client_correlation_id"]) if (request_fields["client_correlation_id"] and len(request_fields["client_correlation_id"]) == 32) else _resolve_trace_id()),')],"client_cannot_choose_the_trace_id"),
+ ("E4","trace context ignored (every event a fresh trace)",[(E,"    explicit = current_trace_id()\n    if explicit is not None:\n        return explicit\n","    pass\n")],"share_its_id"),
+ ("E4b","the request's own propagated id ignored",[(E,"    inbound = get_request_id()\n    if inbound:\n        try:\n            return uuid.UUID(inbound)\n        except ValueError:\n            pass\n","")],"the_requests_own_id_is_used"),
+ ("E4c","a non-UUID-shaped request id accepted as-is",[(E,"        try:\n            return uuid.UUID(inbound)\n        except ValueError:\n            pass\n","        return inbound\n")],"non_uuid_shaped_request_id"),
+ ("E5","a storage failure raises into the caller",[(E,'    except Exception as exc:  # noqa: BLE001 - FR-A-11: never fail the user action\n        _alert("store_failed", label, type(exc).__name__)\n        return None','    except ZeroDivisionError:\n        return None')],"broken_audit_table"),
+ ("E6","no savepoint around the insert",[(E,"        with transaction.atomic():\n            return AuditEvent.objects.create(**fields)","        if True:\n            return AuditEvent.objects.create(**fields)")],"still_usable_after_the_store_fails"),
+ ("E7","store-failure log carries the exception text",[(E,'_alert("store_failed", label, type(exc).__name__)','_alert("store_failed", label, str(exc))')],"never_carries_values"),
+ ("E8","store failure is not logged",[(E,'_alert("store_failed", label, type(exc).__name__)',"pass")],"broken_audit_table"),
+ ("E9","retention floor of student-record actions ignored",[(E,"    student_record = touches_student_record or action in STUDENT_RECORD_ACTIONS","    student_record = touches_student_record")],"always_touch_student_records"),
+ ("E10","touches_student_record flag ignored",[(E,"    student_record = touches_student_record or action in STUDENT_RECORD_ACTIONS","    student_record = action in STUDENT_RECORD_ACTIONS")],"raised_to_student_record"),
+ ("E11","a success may carry an error class",[(E,"    if outcome == AuditOutcome.SUCCESS and error_class is not None:","    if False:")],"success_with_an_error_class"),
+ ("E12","a failure needs no error class",[(E,"    if outcome != AuditOutcome.SUCCESS and error_class is None:","    if False:")],"failure_without_an_error_class"),
+ ("E13","an unknown action is accepted",[(E,'        raise AuditValidationError("action: not a known action") from None','        action = type("A", (), {"value": str(action)})()')],"unknown_action_is_rejected"),
+ ("E14","metadata not put through the per-action allow-list",[(E,"    clean_metadata, dropped = sanitise_metadata_for_action(action, metadata)","    clean_metadata, dropped = sanitise(metadata)")],"valid_globally_but_wrong_for_this_action"),
+ ("E15","before/after not put through the allow-list",[(E,"    clean_before, dropped_before = sanitise(before)","    clean_before, dropped_before = before, []")],"before_and_after_follow_the_same_allow_list"),
+ ("E16","school not taken from the actor",[(E,'    return role, actor_id, email, _uuid_or_none(school, "school_id")','    return role, actor_id, email, None')],"one_call_writes_exactly_one_complete_row"),
+ ("E17","anonymous visitor not treated as no identity",[(E,'    if actor is None or not getattr(actor, "is_authenticated", True):',"    if actor is None:")],"anonymous_visitor"),
+ ("E18","source address read from REMOTE_ADDR, ignoring the proxy rule",[(E,"        return str(ipaddress.ip_address(BaseThrottle().get_ident(request)))",'        return str(ipaddress.ip_address(request.META.get("REMOTE_ADDR")))')],"edge_proxy_saw"),
+ ("E19","NUL byte left in the browser string",[(E,'agent.replace("\\x00", "").strip()',"agent.strip()")],"nul_byte_in_the_browser"),
+ ("E20","browser string not cut to the column size",[(E,".strip()[:MAX_USER_AGENT]",".strip()")],"very_long_browser_string"),
+ ("E21","client id accepts spaces and newlines",[(E,'_CLIENT_ID = re.compile(r"[A-Za-z0-9._-]{1,64}")','_CLIENT_ID = re.compile(r"[A-Za-z0-9._ \\n-]{1,64}")')],"unusable_client_id"),
+ ("E22","reason code not validated",[(E,"        isinstance(reason_code, str) and _REASON_CODE.fullmatch(reason_code)","        True")],"malformed_reason_code"),
+ ("E23","target type not validated",[(E,"    if not isinstance(target_type, str) or not _TARGET_TYPE.fullmatch(target_type):","    if False:")],"malformed_target_type"),
+ ("E24","strict mode never raises",[(E,"        if strict:\n            raise\n        return None","        return None")],"strict_mode_raises"),
+ ("E25","rejection log carries a caller value",[(E,'_alert("rejected", label, str(exc))','_alert("rejected", label, str(exc) + " outcome=" + repr(outcome))')],"reported_in_the_operational_log_without_the_values"),
+ ("E26","dropped metadata keys are not reported",[(E,"    if dropped:\n","    if False:\n")],"unknown_metadata_key_is_dropped_but"),
+ ("E27","every emit writes two rows",[(E,"            return AuditEvent.objects.create(**fields)","            AuditEvent.objects.create(**fields)\n            return AuditEvent.objects.create(**fields)")],"one_call_writes_exactly_one_complete_row"),
+ # context
+ ("C1","trace context never restored on exit",[(C,"        _trace_var.reset(token)","        pass")],"share_its_id"),
+ ("C2","a garbage trace id raises instead of being replaced",[(C,"        except ValueError:\n            return None","        except TabError:\n            return None")],"garbage_trace_id"),
+ ("C3","a string trace id is not accepted",[(C,"    if isinstance(value, str):\n        try:","    if False:\n        try:")],"server_supplied_id_is_used"),
+ # metadata
+ ("D1","allow-list not enforced",[(MD,"        if not isinstance(key, str) or key not in ALLOWED_KEYS:","        if not isinstance(key, str):")],"unknown_key_is_dropped"),
+ ("D2","email-shaped values allowed",[(MD,"        if _EMAIL_SHAPED.search(value):","        if False:")],"shaped_like_an_email"),
+ ("D3","NUL bytes allowed in values",[(MD,'        if "\\x00" in value:',"        if False:")],"nul_byte"),
+ ("D4","serialised size not bounded",[(MD,'    if len(json.dumps(clean, separators=(",", ":")).encode("utf-8")) > MAX_BYTES:',"    if False:")],"serialised_size_is_bounded"),
+ ("D5","string limit effectively removed",[(MD,"MAX_STRING = 128","MAX_STRING = 100000")],"over_the_limit"),
+ ("D6","nested objects allowed",[(MD,'    return "value is not a scalar or short list"',"    return None")],"nested_object_is_dropped"),
+ ("D7","list length not bounded",[(MD,"        if len(value) > MAX_LIST_ITEMS:","        if False:")],"longer_list_is_dropped"),
+ ("D8","key count not bounded",[(MD,"    if len(value) > MAX_KEYS:","    if False:")],"more_than_the_maximum_number_of_keys"),
+ ("D9","a person-naming key added to the allow-list",[(MD,'        "student_id",\n','        "student_id",\n        "student_name",\n')],"no_allowed_key_names_a_person"),
+ ("D10","non-finite numbers allowed",[(MD,'        return None if math.isfinite(value) else "not a finite number"',"        return None")],"non_finite"),
+ ("D11","raw key echoed into the problem list",[(MD,'    return "<invalid-key>"',"    return str(key)")],"looks_like_personal_data"),
+ ("D12","a non-object value not rejected",[(MD,"    if not isinstance(value, Mapping):","    if False:")],"not_an_object"),
+ ("D13","per-action gate not applied at all",[(MD,"    permitted = metadata_allowlist_for(action)\n    narrowed = {}\n    for key, item in clean.items():\n        if key in permitted:\n            narrowed[key] = item\n        else:\n            problems.append((key, \"not allowed for this action\"))\n    return narrowed, problems","    return clean, problems")],"valid_globally_but_wrong_for_this_action"),
+ ("D14","an action with no call site yet silently accepts any pool key",[(MD,"    AuditAction.LESSON_CREATE: frozenset(),","    AuditAction.LESSON_CREATE: frozenset({\"course_id\"}),")],"an_action_with_no_call_site_yet_accepts_no_metadata"),
+ # model, app, enums, migration
+ ("M1","append-only guard not registered",[(A,"        register_append_only_guards(AuditEvent)","        pass")],"saved_event_cannot_be_edited"),
+ ("M2","another column made writable after creation",[(MO,'frozenset({"source_ip", "user_agent"})','frozenset({"source_ip", "user_agent", "action"})')],"only_those_two_columns"),
+ ("M3","database check on student data made vacuous",[(MG,'models.Q(("actor_role", "STUDENT"), _negated=True),','models.Q(("actor_role", "NOBODY"), _negated=True),')],"student_event_with_an_email_is_refused"),
+ ("M4","reason-code index no longer partial",[(MG,'condition=models.Q(("reason_code__isnull", False)),',"")],"skip_null_rows"),
+ ("M5","actor_email made non-null",[(MG,'models.CharField(blank=True, max_length=254, null=True),\n                ),\n                ("school_id"','models.CharField(blank=True, max_length=254, default=""),\n                ),\n                ("school_id"')],"documented_columns"),
+ ("M6","trace_id made nullable",[(MG,'("trace_id", models.UUIDField()),','("trace_id", models.UUIDField(null=True)),')],"documented_columns"),
+ ("M7","school_id turned into a foreign key",[(MG,"dependencies = []",'dependencies = [("classrooms", "__latest__")]'),(MG,'("school_id", models.UUIDField(blank=True, null=True)),','("school_id", models.ForeignKey(blank=True, null=True, on_delete=models.CASCADE, to="classrooms.school", db_column="school_id")),')],"no_foreign_key"),
+ ("M8","retention index on the wrong columns",[(MG,'fields=["retention_class", "occurred_at"],','fields=["retention_class"],')],"documented_index"),
+ ("N1","GRADING_COMPLETED dropped from student-record actions",[(EN,"        AuditAction.GRADING_COMPLETED,\n","")],"exactly_the_documented_ones"),
+ ("N2","ROSTER_CHANGE dropped from student-record actions",[(EN,"        AuditAction.ROSTER_CHANGE,\n","")],"exactly_the_documented_ones"),
+ ("N3","TAG_RENAME verb removed",[(EN,'    TAG_RENAME = "TAG_RENAME", "Tag renamed"\n',"")],"requirement_lists_has_a_verb"),
+]
+
+def md5(p): return hashlib.md5(open(p,"rb").read()).hexdigest()
+def run(timeout=900):
+    env = dict(os.environ)
+    env["DJANGO_SETTINGS_MODULE"] = "settings_worktree"
+    r = subprocess.run([sys.executable,"manage.py","test",LABEL,"--settings=settings_worktree","--keepdb","--noinput"],cwd=ROOT,capture_output=True,text=True,timeout=timeout,env=env)
+    out = r.stdout + r.stderr
+    fails = re.findall(r"^(?:FAIL|ERROR): (\S+) \(([^)]*)\)", out, re.M)
+    m = re.search(r"^(OK.*|FAILED.*)$", out, re.M)
+    return r.returncode, out, fails, (m.group(1) if m else "?")
+
+def precheck():
+    bad = []
+    for mid,desc,edits,expect in MUTANTS:
+        for f,old,new in edits:
+            n = open(os.path.join(ROOT,f)).read().count(old)
+            if n != 1: bad.append((mid,f,n,old[:60]))
+    return bad
+
+def main(only=None):
+    bad = precheck()
+    if bad:
+        for b in bad: print("PATTERN PROBLEM", b)
+        raise SystemExit(1)
+    log = open(os.path.join(SCR,"mutation_log.jsonl"),"a"); results = []
+    files = sorted({f for _,_,ms,_ in MUTANTS for f,_,_ in ms})
+    orig = {f: md5(os.path.join(ROOT,f)) for f in files}
+    backups = {}
+    for f in files:
+        b = os.path.join(SCR,"backup_"+f.replace("/","__")); shutil.copy2(os.path.join(ROOT,f), b); backups[f]=b
+    rc,out,fails,summary = run()
+    base = {"id":"BASE","rc":rc,"summary":summary,"fails":fails}
+    print("BASELINE", rc, summary, flush=True); log.write(json.dumps(base)+"\n")
+    if rc != 0: raise SystemExit("baseline not green")
+    for mid,desc,edits,expect in MUTANTS:
+        if only and mid not in only: continue
+        try:
+            for f,old,new in edits:
+                p = os.path.join(ROOT,f); s = open(p).read()
+                open(p,"w").write(s.replace(old,new))
+            t=time.time(); rc,out,fails,summary = run()
+            names = sorted({n for n,_ in fails})
+            killed = rc != 0 and any(expect in n for n,_ in fails)
+            res = {"id":mid,"desc":desc,"rc":rc,"summary":summary,"expected_test":expect,"failing":names,"killed_for_named_reason":killed,"secs":round(time.time()-t)}
+        except Exception as e:
+            res = {"id":mid,"desc":desc,"error":str(e),"killed_for_named_reason":False}
+        finally:
+            for f in files:
+                shutil.copy2(backups[f], os.path.join(ROOT,f))
+            bad = [f for f in files if md5(os.path.join(ROOT,f)) != orig[f]]
+            if bad: raise SystemExit(f"RESTORE MISMATCH after {mid}: {bad}")
+        res["restored_md5_ok"]=True
+        print(mid, "KILLED" if res["killed_for_named_reason"] else "SURVIVED/ERR", (res.get("failing") or res.get("error"))[:6] if res.get("failing") else res.get("error"), flush=True)
+        log.write(json.dumps(res)+"\n"); log.flush(); results.append(res)
+    json.dump({"baseline":base,"mutants":results,"md5":orig}, open(os.path.join(SCR,"mutation_results.json"),"w"), indent=1)
+    print("KILLED", sum(r["killed_for_named_reason"] for r in results), "/", len(results))
+
+if __name__=="__main__":
+    main(set(sys.argv[1:]) or None)

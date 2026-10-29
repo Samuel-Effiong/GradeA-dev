@@ -1,0 +1,14 @@
+# Y4: Sentry: an argument that is not text yet is scrubbed
+# file: AutoGrader/sentry_scrubbing.py (occurrence 1)
+# old: '    return scrub(str(value))\n'
+# new: '    return value\n'
+# commit: 8fd5dc9de325d48ff3895e6737570f5c13e8b57a
+# exit: 1
+# elapsed_s: 12.5
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_an_argument_that_is_not_text_yet (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_an_argument_that_is_not_text_yet)
+FAIL: test_it_fails_closed_and_never_raises (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_it_fails_closed_and_never_raises)
+FAIL: test_the_small_hooks_never_raise_either (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_the_small_hooks_never_raise_either)
+
+FAILED (failures=3)

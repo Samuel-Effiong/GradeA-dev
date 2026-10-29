@@ -1,0 +1,214 @@
+"""Mutation battery for the school-admin invite active-on-creation work
+(classrooms/serializers.py: SchoolWithAdminSerializer.create() and
+_send_school_admin_invitation_email()). Each mutant weakens ONE
+protection; a test named for that protection must fail. Restores from a
+collision-safe backup copy and verifies by md5 (never git checkout).
+"""
+
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+ROOT = (
+    "/home/bond-servant-in-training/Documents/Projects/GAP-school-admin-invite-active"
+)
+SCR = os.path.dirname(os.path.abspath(__file__))
+SER = "classrooms/serializers.py"
+LABELS = (
+    "classrooms.tests_school_admin_active_invite "
+    "classrooms.test_school_admin_otp_deadend "
+    "classrooms.test_school_admin_invitation_email "
+    "billing.tests.test_license_admin_user_guard"
+)
+
+MUTANTS = [
+    (
+        "ACT",
+        "new admin created inactive again",
+        [(SER, '"is_active": True,', '"is_active": False,')],
+        "test_admin_is_created_active_with_no_activation_token",
+    ),
+    (
+        "VER",
+        "email_verified_at not set at creation",
+        [(SER, '"email_verified_at": timezone.now(),\n                }', "}")],
+        "test_admin_email_is_marked_verified_at_creation",
+    ),
+    (
+        "MCP",
+        "must_change_password not set on the new admin",
+        [
+            (
+                SER,
+                'user.set_password(generated_password)\n                    user.must_change_password = True\n                    user.save(update_fields=["password", "must_change_password"])',
+                'user.set_password(generated_password)\n                    user.save(update_fields=["password"])',
+            )
+        ],
+        "test_admin_is_created_with_a_working_temporary_password",
+    ),
+    (
+        "LINK",
+        "invitation link reverts to the dead registration-completion page",
+        [
+            (
+                SER,
+                'activation_url = f"https://{frontend_domain}/login"',
+                'activation_url = (\n            f"https://{frontend_domain}/register/school-admin"\n            f"?email={user.email}&token={user.activation_token}"\n        )',
+            )
+        ],
+        "test_invitation_email_links_to_login_on_the_school_admin_domain",
+    ),
+    (
+        "PWDTXT",
+        "temporary password dropped from the email body",
+        [
+            (
+                SER,
+                'f"temporary password: {generated_password}\\n\\n"',
+                'f"temporary password: [redacted]\\n\\n"',
+            )
+        ],
+        "test_invitation_email_body_carries_the_temporary_password",
+    ),
+    (
+        "EXP",
+        "bottom_content reverts to the stale 7-day expiry line",
+        [
+            (
+                SER,
+                '"bottom_content": "",\n            "activation_url": activation_url,\n            "current_year": timezone.now().year,\n            "support_email": settings.SUPPORT_EMAIL,\n        }\n    else:',
+                '"bottom_content": "This invitation link expires in 7 days.",\n            "activation_url": activation_url,\n            "current_year": timezone.now().year,\n            "support_email": settings.SUPPORT_EMAIL,\n        }\n    else:',
+            )
+        ],
+        "test_invitation_email_body_carries_the_temporary_password",
+    ),
+]
+
+
+def md5(p):
+    return hashlib.md5(open(p, "rb").read()).hexdigest()
+
+
+def run(timeout=300):
+    env = dict(os.environ)
+    env["DJANGO_SETTINGS_MODULE"] = "settings_worktree"
+    r = subprocess.run(
+        [
+            sys.executable,
+            "manage.py",
+            "test",
+            *LABELS.split(),
+            "--settings=settings_worktree",
+            "--keepdb",
+            "--noinput",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        env=env,
+    )
+    out = r.stdout + r.stderr
+    fails = re.findall(r"^(?:FAIL|ERROR): (\S+) \(([^)]*)\)", out, re.M)
+    m = re.search(r"^(OK.*|FAILED.*)$", out, re.M)
+    return r.returncode, out, fails, (m.group(1) if m else "?")
+
+
+def precheck():
+    bad = []
+    for mid, desc, edits, expect in MUTANTS:
+        for f, old, new in edits:
+            n = open(os.path.join(ROOT, f)).read().count(old)
+            if n != 1:
+                bad.append((mid, f, n, old[:60]))
+    return bad
+
+
+def main(only=None):
+    bad = precheck()
+    if bad:
+        for b in bad:
+            print("PATTERN PROBLEM", b)
+        raise SystemExit(1)
+    log = open(os.path.join(SCR, "mutation_log.jsonl"), "a")
+    results = []
+    files = sorted({f for _, _, ms, _ in MUTANTS for f, _, _ in ms})
+    orig = {f: md5(os.path.join(ROOT, f)) for f in files}
+    backups = {}
+    for f in files:
+        b = os.path.join(SCR, "backup_" + f.replace("/", "__"))
+        shutil.copy2(os.path.join(ROOT, f), b)
+        backups[f] = b
+    rc, out, fails, summary = run()
+    base = {"id": "BASE", "rc": rc, "summary": summary, "fails": fails}
+    print("BASELINE", rc, summary, flush=True)
+    log.write(json.dumps(base) + "\n")
+    if rc != 0:
+        print(out[-3000:])
+        raise SystemExit("baseline not green")
+    for mid, desc, edits, expect in MUTANTS:
+        if only and mid not in only:
+            continue
+        try:
+            for f, old, new in edits:
+                p = os.path.join(ROOT, f)
+                s = open(p).read()
+                open(p, "w").write(s.replace(old, new))
+            t = time.time()
+            rc, out, fails, summary = run()
+            names = sorted({n for n, _ in fails})
+            killed = rc != 0 and any(expect in n for n, _ in fails)
+            res = {
+                "id": mid,
+                "desc": desc,
+                "rc": rc,
+                "summary": summary,
+                "expected_test": expect,
+                "failing": names,
+                "killed_for_named_reason": killed,
+                "secs": round(time.time() - t),
+            }
+        except Exception as e:
+            res = {
+                "id": mid,
+                "desc": desc,
+                "error": str(e),
+                "killed_for_named_reason": False,
+            }
+        finally:
+            for f in files:
+                shutil.copy2(backups[f], os.path.join(ROOT, f))
+            bad = [f for f in files if md5(os.path.join(ROOT, f)) != orig[f]]
+            if bad:
+                raise SystemExit(f"RESTORE MISMATCH after {mid}: {bad}")
+        res["restored_md5_ok"] = True
+        print(
+            mid,
+            "KILLED" if res["killed_for_named_reason"] else "SURVIVED/ERR",
+            (
+                (res.get("failing") or res.get("error"))[:6]
+                if res.get("failing")
+                else res.get("error")
+            ),
+            flush=True,
+        )
+        log.write(json.dumps(res) + "\n")
+        log.flush()
+        results.append(res)
+    json.dump(
+        {"baseline": base, "mutants": results, "md5": orig},
+        open(os.path.join(SCR, "mutation_results.json"), "w"),
+        indent=1,
+    )
+    print(
+        "KILLED", sum(r["killed_for_named_reason"] for r in results), "/", len(results)
+    )
+
+
+if __name__ == "__main__":
+    main(set(sys.argv[1:]) or None)

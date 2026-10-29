@@ -1,0 +1,38 @@
+{
+ "M1": {
+  "status": "KILLED",
+  "ran": "Ran 7 tests in 3.290s",
+  "missing": [],
+  "also_failed": []
+ },
+ "M2": {
+  "status": "KILLED",
+  "ran": "Ran 7 tests in 2.941s",
+  "missing": [],
+  "also_failed": []
+ },
+ "M3": {
+  "status": "KILLED",
+  "ran": "Ran 7 tests in 2.999s",
+  "missing": [],
+  "also_failed": []
+ },
+ "M4": {
+  "status": "KILLED",
+  "ran": "Ran 7 tests in 3.174s",
+  "missing": [],
+  "also_failed": []
+ },
+ "M5": {
+  "status": "KILLED",
+  "ran": "Ran 6 tests in 0.280s",
+  "missing": [],
+  "also_failed": []
+ },
+ "M6": {
+  "status": "KILLED",
+  "ran": "Ran 7 tests in 3.005s",
+  "missing": [],
+  "also_failed": []
+ }
+}

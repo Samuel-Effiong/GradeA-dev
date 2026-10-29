@@ -1,0 +1,15 @@
+AutoGrader/settings.py
+ai_processor/ANSWERS_EXTRACTION_PROMPT_HTML_5.txt
+ai_processor/extraction_schemas.py
+ai_processor/prompts_archive/ANSWERS_EXTRACTION_PROMPT_HTML_4.txt
+ai_processor/prompts_archive/README.md
+ai_processor/services.py
+ai_processor/tests_blank_verification.py
+ai_processor/tests_h264_numbered_offtopic_answers.py
+docs/HARDENING_BACKLOG.md
+docs/backend/ai-processor.md
+docs/backend/grade-automator-backend-reference.html
+docs/evidence/h264-numbered-offtopic-answers/NOTES.md
+docs/evidence/h264-numbered-offtopic-answers/mutate.py
+docs/evidence/h264-numbered-offtopic-answers/run_h264_gate.sh
+docs/evidence/h264-numbered-offtopic-answers/seam_check.py

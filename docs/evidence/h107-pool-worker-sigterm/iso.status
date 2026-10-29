@@ -1,0 +1,5 @@
+14:04:02 diag_slow_pipe_c3c10348 stalled=0 [Ran 139 tests in 101.489s] [OK] exit=0 wall_s=140
+14:15:41 c1_autograder_serial_c3c10348 wt=Grade-Automator-Plus-h107-pool-worker-sigterm@c3c10348 parallel=1 stalled=0 ok=325 [Ran 517 tests in 628.901s] [OK] exit=0 output=file wall_s=668
+14:21:32 c2_billing_users_p2_c3c10348 wt=Grade-Automator-Plus-h107-pool-worker-sigterm@c3c10348 parallel=2 stalled=0 ok=2741 [Ran 2748 tests in 306.806s] [OK (skipped=4)] exit=0 output=file wall_s=351
+14:31:05 diag_slow_pipe_100ms_control_085adecd stalled=1 [] [] exit=134 wall_s=462
+14:34:01 diag_slow_pipe_100ms_fixed_c3c10348 stalled=0 [Ran 139 tests in 97.661s] [OK] exit=0 wall_s=175

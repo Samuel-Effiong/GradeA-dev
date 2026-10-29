@@ -1,0 +1,12 @@
+# R3: annual task passes its start time
+# file: billing/tasks.py (occurrence 1)
+# old: 'process_mid_cycle_credit_grant(sub, now=now)'
+# new: 'process_mid_cycle_credit_grant(sub)'
+# commit: 47bdc73e5fc740f2904d9a339dad0c5b4c870a31
+# exit: 0
+# elapsed_s: 6.4
+# restored_sha256_matches_commit_blob: True
+
+
+
+OK

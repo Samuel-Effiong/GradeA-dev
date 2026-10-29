@@ -1,0 +1,17 @@
+# S18: P1: an apostrophe and the other special characters of a local part
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '_LOCAL = r"[\\w.!#$%\'*+^`{|}~-]"\n'
+# new: '_LOCAL = r"[\\w.%+-]"\n'
+# commit: 24dfcda64373224f8829e585e91fa0bee751184c
+# exit: 1
+# elapsed_s: 11.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_key_before_an_address_stays_readable (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_key_before_an_address_stays_readable)
+FAIL: test_a_quote_brace_or_bar_just_before_an_address_goes_with_it (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_quote_brace_or_bar_just_before_an_address_goes_with_it) (text="email='pupil@school.edu'")
+FAIL: test_a_quote_brace_or_bar_just_before_an_address_goes_with_it (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_quote_brace_or_bar_just_before_an_address_goes_with_it) (text='{pupil@school.edu}')
+FAIL: test_a_quote_brace_or_bar_just_before_an_address_goes_with_it (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_quote_brace_or_bar_just_before_an_address_goes_with_it) (text='|pupil@school.edu|')
+FAIL: test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) (address="o'brien@school.edu")
+FAIL: test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) (address='a!b#c$d%e*f+g^h_i`j{k|l}m~n-o@school.edu')
+
+FAILED (failures=6)

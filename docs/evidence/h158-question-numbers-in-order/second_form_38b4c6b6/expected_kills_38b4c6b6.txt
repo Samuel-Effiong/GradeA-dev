@@ -1,0 +1,25 @@
+N1: 8 failing, as expected
+N2: 8 failing, as expected
+N3: 1 failing, as expected
+N4: 2 failing, as expected
+N5: 1 failing, as expected
+N6: 7 failing, DIFFERS; unexpected: [('TheNumbererTest', 'test_a_string_of_very_many_digits_does_not_break_the_numbering')]
+N7: 1 failing, as expected
+N8: 2 failing, DIFFERS; unexpected: [('TheNumbererTest', 'test_a_string_of_very_many_digits_does_not_break_the_numbering')]
+N9: 1 failing, as expected
+N10: 1 failing, as expected
+N11: 1 failing, as expected
+N12: 3 failing, as expected
+N13: 1 failing, as expected
+N14: 2 failing, as expected
+N15: 1 failing, as expected
+N16: 1 failing, as expected
+N17: 1 failing, as expected
+N18: 2 failing, as expected
+N19: 18 failing, as expected
+N20: 4 failing, DIFFERS; unexpected: [('TheNumbererTest', 'test_a_long_number_from_the_model_is_kept_only_in_part'), ('TheNumbererTest', 'test_a_string_of_very_many_digits_does_not_break_the_numbering')]
+N21: 10 failing, DIFFERS; unexpected: [('TheNumbererTest', 'test_a_nine_digit_string_is_still_a_number')]
+N22: 1 failing, as expected
+N23: 2 failing, DIFFERS; unexpected: [('TheNumbererTest', 'test_a_nine_digit_string_is_still_a_number')]
+N24: 1 failing, as expected
+5 mutant(s) differ

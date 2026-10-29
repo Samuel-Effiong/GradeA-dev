@@ -1,0 +1,21 @@
+test_audit_gate_audits_dev_requirements_too (ai_processor.tests_h262_prod_image_dev_tools.AuditGateTest.test_audit_gate_audits_dev_requirements_too) ... ok
+test_dev_only_ignores_in_separate_file (ai_processor.tests_h262_prod_image_dev_tools.AuditGateTest.test_dev_only_ignores_in_separate_file) ... ok
+test_audit_workflow_audits_both_files (ai_processor.tests_h262_prod_image_dev_tools.CIWorkflowTest.test_audit_workflow_audits_both_files) ... ok
+test_tests_workflow_installs_dev_requirements (ai_processor.tests_h262_prod_image_dev_tools.CIWorkflowTest.test_tests_workflow_installs_dev_requirements) ... ok
+test_build_essential_only_in_build_stage (ai_processor.tests_h262_prod_image_dev_tools.DockerfileMultiStageTest.test_build_essential_only_in_build_stage) ... ok
+test_dev_headers_only_in_build_stage (ai_processor.tests_h262_prod_image_dev_tools.DockerfileMultiStageTest.test_dev_headers_only_in_build_stage) ... ok
+test_dockerfile_has_build_and_runtime_stages (ai_processor.tests_h262_prod_image_dev_tools.DockerfileMultiStageTest.test_dockerfile_has_build_and_runtime_stages) ... ok
+test_no_libmariadb_dev_anywhere (ai_processor.tests_h262_prod_image_dev_tools.DockerfileMultiStageTest.test_no_libmariadb_dev_anywhere) ... ok
+test_all_dev_packages_in_dev_requirements (ai_processor.tests_h262_prod_image_dev_tools.RequirementsSplitTest.test_all_dev_packages_in_dev_requirements) ... ok
+test_dev_packages_not_in_production_requirements (ai_processor.tests_h262_prod_image_dev_tools.RequirementsSplitTest.test_dev_packages_not_in_production_requirements) ... ok
+test_requirements_dev_includes_production (ai_processor.tests_h262_prod_image_dev_tools.RequirementsSplitTest.test_requirements_dev_includes_production) ... ok
+test_requirements_dev_txt_exists (ai_processor.tests_h262_prod_image_dev_tools.RequirementsSplitTest.test_requirements_dev_txt_exists) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.017s
+
+OK
+Found 12 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
+pip-audit gate: 86 accepted advisories from .pip-audit-ignore.toml, 19 from .pip-audit-ignore-dev.toml

@@ -1,0 +1,5 @@
+Near suite results (shared AutoGrader_env venv):
+
+assignments: exit code 0 (rerun pending for Ran count)
+classrooms: Ran 640, OK
+users: Ran 877, OK (skipped=4)

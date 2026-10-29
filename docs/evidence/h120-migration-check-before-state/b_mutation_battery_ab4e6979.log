@@ -1,0 +1,17 @@
+baseline exit=0
+K1	a changed column is judged by what it was (the old rule put back)	KILLED	FAILED (failures=18)	True	4.3
+K2	a nullable column made NOT NULL with nothing to fill it is reported	KILLED	FAILED (failures=4)	True	4.2
+K3	a default to fill the NULL rows makes NOT NULL additive	KILLED	FAILED (failures=3)	True	3.9
+K4	a type change is reported	KILLED	FAILED (failures=5)	True	4.2
+K5	a shrinking limit is reported	KILLED	FAILED (failures=3)	True	4.6
+K6	only a SHRINKING limit is reported, not a growing one	KILLED	FAILED (failures=4)	True	4.8
+K7	a field with no known past is not called additive	KILLED	FAILED (failures=1)	True	4.0
+K8	an added many-to-many is not reported	KILLED	FAILED (failures=2)	True	4.2
+K9	a database default counts as a default	KILLED	FAILED (failures=2)	True	6.3
+K10	each operation is judged against what the ones before it left	KILLED	FAILED (failures=2)	True	6.6
+K11	a SeparateDatabaseAndState is looked into	KILLED	FAILED (failures=1)	True	4.4
+K12	a SeparateDatabaseAndState is judged by its database operations	KILLED	FAILED (failures=4)	True	4.9
+K13	a real migration is judged against the state BEFORE it	KILLED	FAILED (failures=1, errors=5)	True	5.4
+
+13/13 killed with verified restore
+exit=0 wall_s=68

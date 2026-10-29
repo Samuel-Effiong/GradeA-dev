@@ -1,0 +1,12 @@
+15:39:52 (r) start: loadavg 2.75 3.95 4.88 14/2749 1715593
+15:39:58 (r) end: loadavg 3.42 4.06 4.91 7/2743 1715755
+15:39:58 (r) exit=1 (1 is the expected one)
+15:39:58 (r) the red set is the expected one
+15:39:58 (a) start: loadavg 3.42 4.06 4.91 7/2743 1715769
+15:42:23 (a) end: loadavg 3.90 4.22 4.86 7/2782 1719094
+15:42:23 (a) exit=0
+15:42:23 (b) start: loadavg 3.90 4.22 4.86 10/2782 1719101
+15:43:31 (b) end: loadavg 4.65 4.37 4.87 7/2890 1720687
+15:43:31 (b) exit=0
+15:43:32 expected failing sets: 1 mutant(s) differ
+15:43:32 STOP: a mutant's failing set differs from the expected one

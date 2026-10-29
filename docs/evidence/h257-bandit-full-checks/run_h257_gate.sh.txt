@@ -1,0 +1,70 @@
+#!/bin/bash
+# H-257 Bandit on every check (beta line, stacked on H-256 at 2a6e3eb7). Usage: bash run_h257_gate.sh <tip> 1
+# One grant, inside ONE outer inhibit (memory cap = available - 2G, min 6G, read at start; rule 13):
+#   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block bash <script> <tip> 1
+# 0 the red run: the hook on every file with the tree as at 2a6e3eb7 and pyproject.toml's `tests` limit alone removed:
+#   exactly 56 issues, by Bandit test id as written;
+# 1a the seam (seam_check.py: every changed Python file's syntax tree as at the base, comments only, but
+#   users/mixins.py's usedforsecurity=False; the two config files only as written); 1b the hook on every file at
+#   the tip: Passed, 0 issues; 1 the own test (the cache key's digest) + the cache guards + the 21 guards;
+#   2 the 7 planted findings, each caught as written (plant.py).
+# A trap on EXIT restores the tree. RULE 18: every run writes straight to a file, stdin from /dev/null, nothing piped.
+set -u
+TIP=$1; STEP=${2:-1}; BASE=2a6e3eb7
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h257-bandit-full-checks || exit 1
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+E=docs/evidence/h257-bandit-full-checks
+AVAIL_G=$(awk '/^MemAvailable:/ {print int($2/1048576)}' /proc/meminfo)
+MEMG=$((AVAIL_G - 2))
+echo "available at start: ${AVAIL_G}G; cap ${MEMG}G"
+[ "$MEMG" -ge 6 ] || { echo "STOP (exit 5): cap under 6G; wait and tell the SM"; exit 5; }
+UNITP=gap-h257-$$
+UPART=none
+CAP="systemd-run --user --scope -q --unit=\${UNITP}-\${UPART} -p MemoryMax=${MEMG}G -p MemorySwapMax=0"
+export PYTHONFAULTHANDLER=1
+export EXEMPT_EMAIL_DOMAINS=
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $TIP)" ] || { echo "not at $TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tree not clean"; exit 1; }
+[ "$STEP" = 1 ] || { echo "only step 1 exists"; exit 1; }
+mkdir -p $E
+CHANGED=$(git diff --name-only $BASE HEAD | grep -vE '^docs/' | grep -v '^users/tests_h257_cache_key_digest.py$' | tr '\n' ' ')
+restore_tree() { git checkout HEAD -- $CHANGED 2>/dev/null; rm -f h257_planted_scratch.py; }
+trap restore_tree EXIT
+issues() { grep -E "^>> Issue: \[" "$1" | sed -E 's/^>> Issue: \[(B[0-9]+):.*/\1/' | sort | uniq -c | awk '{print $2"="$1}' | tr '\n' ' '; }
+echo "load at start: $(cat /proc/loadavg)"
+echo "=== 0. the red run: the hook on every file, the tree as at $BASE, pyproject's tests limit alone removed $(date +%T)"
+git checkout $BASE -- $CHANGED
+sed -i "/^tests = \['B101', 'B102'\]$/d" pyproject.toml
+pre-commit run bandit --all-files < /dev/null > $E/red_run_hook_at_base.txt 2>&1
+RED_EXIT=$?
+echo "hook exit=$RED_EXIT (1 expected)"
+RED=$(issues $E/red_run_hook_at_base.txt)
+echo "issues by test: $RED"
+git checkout HEAD -- $CHANGED
+git diff --quiet HEAD -- . ":!$E" && [ -z "$(git status --porcelain -- . ":!$E")" ] && echo "source restored" || { echo "STOP: not restored"; exit 3; }
+WANT="B105=3 B106=19 B110=5 B112=3 B311=1 B324=1 B404=6 B603=11 B606=1 B607=6 "
+[ "$RED_EXIT" = 1 ] && [ "$RED" = "$WANT" ] && [ "$(grep -c '^>> Issue' $E/red_run_hook_at_base.txt)" = 56 ] || { echo "STOP (exit 4): the red run is not the 56 written ($WANT)"; exit 4; }
+echo "red run is as written: 56 issues, by test as written"
+echo "=== 1a. the seam $(date +%T)"
+python3 -I $E/seam_check.py $BASE > $E/seam_code.txt 2>&1; SEAM=$?; cat $E/seam_code.txt
+[ "$SEAM" = 0 ] || { echo "STOP: the seam check failed"; exit 2; }
+echo "=== 1b. the hook on every file at the tip $(date +%T)"
+pre-commit run bandit --all-files < /dev/null > $E/hook_at_tip.txt 2>&1; HOOK=$?
+echo "hook exit=$HOOK (0 expected); $(grep -E '^bandit' $E/hook_at_tip.txt)"
+[ "$HOOK" = 0 ] && grep -qE "^bandit\.+Passed" $E/hook_at_tip.txt && ! grep -q "^>> Issue" $E/hook_at_tip.txt || { echo "STOP: the hook does not pass at the tip"; exit 2; }
+echo "=== 1. own test + cache guards + 21 guards at $(git rev-parse --short=8 HEAD) $(date +%T)"
+OWN="users.tests_h257_cache_key_digest"
+NEAR="AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_cache_generation_wiring AutoGrader.tests_cache_user_fanout"
+GUARDS="AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_migration_safety_check AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm AutoGrader.tests_student_feedback_guard AutoGrader.tests_submission_audience_guard AutoGrader.tests_student_classmates_guard AutoGrader.tests_network_guard"
+UPART=modules
+eval "$CAP nice -n 10 timeout -k 60 1800 python manage.py test --noinput --verbosity 2 --settings=settings_worktree $OWN $NEAR $GUARDS" < /dev/null > $E/modules_and_guards.txt 2>&1
+echo "exit=$? $(date +%T)"; grep -E "^(Ran |OK|FAILED \(|(FAIL|ERROR): )" $E/modules_and_guards.txt | cut -c1-200 | head
+if grep -qE "^FAILED \\(" $E/modules_and_guards.txt || ! grep -qE "^OK" $E/modules_and_guards.txt; then echo "STOP: not green"; exit 2; fi
+echo "=== 2. the 7 planted findings $(date +%T)"
+python3 -I $E/plant.py < /dev/null > $E/plant_log.txt 2>&1
+PL=$?
+echo "plants exit=$PL $(date +%T)"; cut -c1-300 $E/plant_log.txt | tail -4
+git diff --quiet HEAD -- . ":!$E" && [ ! -e h257_planted_scratch.py ] && echo "source clean after the plants, scratch file gone" || echo "STOP: source not clean after the plants"
+echo "load at end: $(cat /proc/loadavg)"
+[ "$PL" = 0 ] || { echo "STOP: not every plant caught as written"; exit 6; }
+echo "GATE STEPS ALL AS WRITTEN"

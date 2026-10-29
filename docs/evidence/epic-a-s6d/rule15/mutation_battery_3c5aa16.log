@@ -1,0 +1,19 @@
+S01	grade_engine refuses before the claim	KILLED	FAILED (failures=16, skipped=1)	True	22.3
+S02	a model answer is a marking guide	KILLED	FAILED (failures=8, skipped=1)	True	10.4
+S03	ANY question without a guide is missing	KILLED	FAILED (failures=6, skipped=1)	True	11.1
+S04	a one-level rubric is a guide	KILLED	FAILED (failures=2, skipped=1)	True	8.8
+S05	grade-async refuses before queuing	KILLED	FAILED (failures=12, skipped=1)	True	8.6
+S06	schedule-grade-async refuses before scheduling	KILLED	FAILED (failures=9, skipped=1)	True	8.5
+S07	grade-all refuses before queuing	KILLED	FAILED (failures=6, skipped=1)	True	10.6
+S08	schedule-grade-all refuses before scheduling	KILLED	FAILED (failures=3, skipped=1)	True	12.6
+S09	a scheduled batch re-checks at run time	KILLED	FAILED (failures=1, skipped=1)	True	11.8
+S17	a run-time refusal records S7a's coded tracked item	KILLED	FAILED (errors=2, skipped=1)	True	9.9
+S10	auto-grade re-checks at run time	KILLED	FAILED (failures=1, skipped=1)	True	9.0
+S11	empty text is SUBMISSION_EMPTY at the route	SURVIVED	OK (skipped=1)	True	9.9
+S12	the service refuses empty text as SUBMISSION_EMPTY	KILLED	FAILED (errors=3, skipped=1)	True	11.8
+S13	the credit clause says refunded when a charge is in scope	KILLED	FAILED (failures=2, skipped=1)	True	13.0
+S14	the grading failure keeps its cause	KILLED	FAILED (failures=2, skipped=1)	True	11.2
+S15	an upload's chunk charges are refunded (F1)	KILLED	FAILED (failures=1, skipped=1)	True	9.7
+S16	a non-infra provider failure is MODEL	KILLED	FAILED (failures=1, skipped=1)	True	8.5
+
+16/17 killed with verified restore

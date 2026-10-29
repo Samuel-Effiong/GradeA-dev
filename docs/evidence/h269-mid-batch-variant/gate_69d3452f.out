@@ -1,0 +1,10 @@
+available at start: 13G; cap 11G
+load at start: 5.44 9.23 8.73 3/2462 1140367
+=== 0. the red run: new tests against the code as at 3cc85098 (own DB) 13:10:34
+red run exit=1 (non-zero expected)
+red run blocks: 3 (expected 3)
+is not None not in block for test_the_spec_picks_none_finished_from_completed
+is not None not in block for test_with_items_finished_the_spec_picks_the_default
+STOP (exit 4): the red run is not what was written
+bash failed with exit status 4.
+gate exit=4

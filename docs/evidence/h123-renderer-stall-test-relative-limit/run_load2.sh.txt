@@ -1,0 +1,16 @@
+#!/bin/bash
+# Starts the granted second load run once, detached from the session.
+# It does NOT start if the 1-minute load is over 4.00 (0b's condition):
+# that is reported, not waited out. Usage: run_load2.sh <tip-sha8>
+set -u
+D=/home/bond-servant-in-training/Documents/Projects/GAP-d5-runs/h123
+cd $D
+L=$(cut -d" " -f1 /proc/loadavg)
+if ! awk -v l="$L" 'BEGIN{exit !(l<=4.00)}'; then
+  echo "$(date +%H:%M:%S) NOT STARTED: load $L is over 4" >> $D/load2_wait.log
+else
+  echo "$(date +%H:%M:%S) starting load2 at load $L" >> $D/load2_wait.log
+  ./load2_h123.sh "$1" > $D/load2_h123.out 2>&1 < /dev/null; rc=$?
+  echo "$(date +%H:%M:%S) load2 exit=$rc" >> $D/load2_wait.log
+fi
+echo "$(date +%H:%M:%S) LOAD2 END" >> $D/load2_wait.log

@@ -1,0 +1,45 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user taken.teacher@rival-academy.edu (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user taken.teacher@rival-academy.edu (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user taken.teacher@rival-academy.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Skipped enrolling taken.teacher@rival-academy.edu in license b7bb4f0f-5779-4e1c-b55b-8cfbfa691c91: Teacher 'taken.teacher@rival-academy.edu' already belongs to school 'Rival Academy of Secret Names'. Cannot enroll under 'Own School'.
+.
+======================================================================
+FAIL: test_a_non_teacher_account_is_refused_without_naming_its_role (billing.tests.test_add_teachers_other_school_not_disclosed.AddTeachersOtherSchoolTest.test_a_non_teacher_account_is_refused_without_naming_its_role)
+SM ruling: the role of an arbitrary address is not disclosed
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-add-teachers-school-leak/billing/tests/test_add_teachers_other_school_not_disclosed.py", line 117, in test_a_non_teacher_account_is_refused_without_naming_its_role
+    self.assertEqual(data["errors"][0]["error"], NOT_A_TEACHER)
+AssertionError: 'Email a.student@rival-academy.edu alread[42 chars]her.' != "This email can't be added as a teacher."
+- Email a.student@rival-academy.edu already belongs to a STUDENT account, not a teacher.
++ This email can't be added as a teacher.
+
+
+======================================================================
+FAIL: test_the_refusal_does_not_name_the_other_school (billing.tests.test_add_teachers_other_school_not_disclosed.AddTeachersOtherSchoolTest.test_the_refusal_does_not_name_the_other_school)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-add-teachers-school-leak/billing/tests/test_add_teachers_other_school_not_disclosed.py", line 88, in test_the_refusal_does_not_name_the_other_school
+    self.assertEqual(data["errors"][0]["error"], GENERIC)
+AssertionError: "Teacher 'taken.teacher@rival-academy.edu[90 chars]ol'." != 'This teacher already belongs to another school.'
+- Teacher 'taken.teacher@rival-academy.edu' already belongs to school 'Rival Academy of Secret Names'. Cannot enroll under 'Own School'.
++ This teacher already belongs to another school.
+
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.534s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...
+Found 3 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

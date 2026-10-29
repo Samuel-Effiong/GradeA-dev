@@ -1,0 +1,51 @@
+      1 outcome=APIConnectionError
+     16 outcome=ok
+Ran 1 test in 679.633s
+OK
+===== P1_unrelated_essay
+ verdict: False | extracted: [(1, 'ANSW', 'OFF_TOPIC'), (2, 'NOT_', 'NONE'), (3, 'NOT_', 'NONE'), (4, 'NOT_', 'NONE')]
+ upload flags: [('SUBMISSION_MISMATCH', None), ('OFF_TOPIC', 1), ('ANSWER_NOT_FOUND', 2), ('ANSWER_NOT_FOUND', 3), ('ANSWER_NOT_FOUND', 4)]
+ after grading: score 0.00 needs_review True critical
+ reasons: [('answer_not_found', None, 2, True), ('answer_not_found', None, 3, True), ('answer_not_found', None, 4, True), ('extraction_flag', 'SUBMISSION_MISMATCH', None, True), ('extraction_flag', 'OFF_TOPIC', 1, True)]
+   Q1 0/2 incorrect by=x-ai/grok-4.3 | The submitted response is an essay on Macbeth rather than an answer to the math question, so no credit can be awarded.
+   Q2 0/4 not_attempted by=x-ai/grok-4.3 | Your response to this question could not be located in the submitted pages, so no marks could be awarded yet. This has been flagged for your teacher t
+   Q3 0/4 not_attempted by=x-ai/grok-4.3 | Your response to this question could not be located in the submitted pages, so no marks could be awarded yet. This has been flagged for your teacher t
+   Q4 0/10 not_attempted by=x-ai/grok-4.3 | Your response to this question could not be located in the submitted pages, so no marks could be awarded yet. This has been flagged for your teacher t
+===== P2_numbered_english_answers
+ verdict: False | extracted: [(1, 'ANSW', 'OFF_TOPIC'), (2, 'ANSW', 'OFF_TOPIC'), (3, 'ANSW', 'OFF_TOPIC'), (4, 'ANSW', 'OFF_TOPIC')]
+ upload flags: [('SUBMISSION_MISMATCH', None), ('OFF_TOPIC', 1), ('OFF_TOPIC', 2), ('OFF_TOPIC', 3), ('OFF_TOPIC', 4)]
+ after grading: score 0.00 needs_review True critical
+ reasons: [('extraction_flag', 'SUBMISSION_MISMATCH', None, True), ('extraction_flag', 'OFF_TOPIC', 1, True), ('extraction_flag', 'OFF_TOPIC', 2, True), ('extraction_flag', 'OFF_TOPIC', 3, True), ('extraction_flag', 'OFF_TOPIC', 4, True)]
+   Q1 0/2 incorrect by=x-ai/grok-4.3 | Your answer discusses metaphors instead of solving 7 x 8. This question is multiple choice and requires selecting B. 56. Score: 0/2.
+   Q2 0/4 poor by=x-ai/grok-4.3 | Your paragraph on Romeo and Juliet does not address the equation. The correct solution is x = 4 after showing 2x = 8. Score: 0/4.
+   Q3 0/4 poor by=x-ai/grok-4.3 | Your answer about first-person narration does not calculate the rectangle area. The area is 20 cm². Score: 0/4.
+   Q4 0/10 poor by=x-ai/grok-4.3 | Your paragraph on persuasive writing does not explain division by zero. Review the model answer for the correct mathematical reasoning. Score: 0/10.
+===== P3_wrong_form_for_type
+ verdict: False | extracted: [(1, 'ANSW', 'OFF_TOPIC'), (2, 'ANSW', 'TYPE_MISMATCH'), (3, 'ANSW', 'NONE'), (4, 'ANSW', 'TYPE_MISMATCH')]
+ upload flags: [('SUBMISSION_MISMATCH', None), ('OFF_TOPIC', 1), ('TYPE_MISMATCH', 2), ('TYPE_MISMATCH', 4)]
+ after grading: score 4.00 needs_review True critical
+ reasons: [('extraction_flag', 'SUBMISSION_MISMATCH', None, True), ('extraction_flag', 'OFF_TOPIC', 1, True), ('extraction_flag', 'TYPE_MISMATCH', 2, True), ('extraction_flag', 'TYPE_MISMATCH', 4, True)]
+   Q1 0/2 incorrect by=x-ai/grok-4.3 | You did not choose an answer option for this multiple-choice question (0/2). Focus on selecting A, B, C, or D.
+   Q2 0/4 poor by=x-ai/grok-4.3 | Your answer does not solve the equation or show working (0/4). Write the steps: subtract 3, then divide by 2.
+   Q3 4/4 excellent by=x-ai/grok-4.3 | Excellent work! You correctly calculated the area as 20 cm² (4/4). Keep showing units in future answers.
+   Q4 0/10 poor by=x-ai/grok-4.3 | This question asked for a paragraph explanation (0/10). Provide the reasoning about why no number times zero yields a consistent result.
+===== P4_one_answer_off_topic
+ verdict: True | extracted: [(1, 'ANSW', 'NONE'), (2, 'ANSW', 'NONE'), (3, 'ANSW', 'NONE'), (4, 'ANSW', 'OFF_TOPIC')]
+ upload flags: [('OFF_TOPIC', 4)]
+ after grading: score 10.00 needs_review True moderate
+ reasons: [('extraction_flag', 'OFF_TOPIC', 4, True)]
+   Q1 2/2 correct by=deterministic | Correct — well done.
+   Q2 4/4 excellent by=x-ai/grok-4.3 | Excellent work! You correctly isolated the variable and solved for x = 4, showing clear working that matches the expected solution.
+   Q3 4/4 excellent by=x-ai/grok-4.3 | Perfect! You correctly calculated the area as 20 cm² using length × width.
+   Q4 0/10 poor by=x-ai/grok-4.3 | Your paragraph discusses cooking jollof rice instead of explaining why division by zero is undefined, so no marks could be awarded. Focus on the actua
+===== P5_degraded_scan
+ verdict: True | extracted: [(1, 'ANSW', 'NONE'), (2, 'ANSW', 'NONE'), (3, 'ANSW', 'NONE'), (4, 'ANSW', 'NONE')]
+ upload flags: []
+ after grading: score 17.00 needs_review True moderate
+ reasons: [('grader_disagreement', None, 4, False)]
+   Q1 2/2 correct by=deterministic | Correct — well done.
+   Q2 4/4 excellent by=x-ai/grok-4.3 | Excellent work! You showed clear steps matching the expected solution and arrived at the correct answer x=4 (4/4).
+   Q3 4/4 excellent by=x-ai/grok-4.3 | Perfect! You correctly calculated the area as 20 cm² (4/4).
+   Q4 7/10 good by=x-ai/grok-4.3 | Good explanation of the key concept (7/10). You identified the central reason correctly. To reach excellent, add a sentence defining division as findi
+
+[exited with code 0]

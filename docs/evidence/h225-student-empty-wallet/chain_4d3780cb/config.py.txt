@@ -1,0 +1,117 @@
+# H-225 chain config for ../row_chain.py. Written 2026-10-14 by Builder 58
+# BEFORE any run, by reading the code at 2fd72948 (tests aca7da9a + fix
+# c5e8ef1a + D11 test change 2fd72948) and the base daac5cf5 (H-216's tip,
+# which H-225 is stacked on). Nothing here was seen by a run.
+
+ROW = "h225"
+WT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h225"
+BASE = "daac5cf5"  # H-216's tip: the permission raises plain EmptyWalletError
+OUT = "/home/bond-servant-in-training/Documents/Projects/GAP-58-runs/h225"
+DB_PREFIX = "test_h225"
+
+S = "AStudentAtAnEmptyWalletReadsTheSentence"
+CTRL = "EveryOtherAnswerIsUnchanged"
+S1 = (S, "test_s1_the_synchronous_upload")
+S2 = (S, "test_s2_the_asynchronous_upload")
+S3 = (S, "test_s3_the_edit")
+S4 = (S, "test_s4_the_asynchronous_edit")
+S5 = (S, "test_s5_the_students_own_funded_wallet_changes_nothing")
+C1 = (CTRL, "test_c1_a_teacher_at_an_empty_wallet_keeps_the_generic_body")
+D11 = (
+    "D11EmptyWalletPermissionTest",
+    "test_every_credit_guarded_endpoint_answers_402_with_a_code",
+)
+
+ROW_MODULES = [
+    "students.tests_h225_student_empty_wallet",
+    "billing.tests.test_refusal_handling",
+    "users.tests_credit_balance_permission",
+]
+
+GENERIC = "There aren't enough AI credits available for this."
+STUDENT = "Your answers were not submitted."
+# Each student test first fails at its error-text assertion (status, codes
+# and a non-empty error pass on the base). D11 fails in its six STUDENT
+# subTests, each block printing both texts.
+STUDENT_TESTS = (S1, S2, S3, S4, S5)
+GENERIC_SHOWN = {t: (GENERIC, STUDENT) for t in STUDENT_TESTS + (D11,)}
+
+R_LABELS = ROW_MODULES
+R_FROM_TIP = [
+    "students/tests_h225_student_empty_wallet.py",
+    "billing/tests/test_refusal_handling.py",
+]
+REPRO = set(GENERIC_SHOWN)
+R_REASON = GENERIC_SHOWN
+
+# (a): the row's modules, H-216's modules (H-225 is stacked on it), every
+# other reader of EmptyWalletError and of the credit refusal body, and the
+# guard list.
+A_LABELS = ROW_MODULES + [
+    "students.tests_h216_student_credit_sentence",
+    "billing.tests.test_refusal_handling_gates",
+    "students.tests_async_edit_path",
+    "students.tests_upload_credit_door",
+    "ai_processor.tests_superadmin_unmetered_both_flags",
+    "AutoGrader.tests_reason_codes",
+    "AutoGrader.tests_codederror_serialization",
+    "AutoGrader.tests_migration_safety_check",
+    "AutoGrader.tests_no_playwright_at_import",
+    "AutoGrader.tests_no_wildcard_invalidation",
+    "AutoGrader.tests_cache_invalidation_coverage",
+    "AutoGrader.tests_migration_rollback_defaults",
+    "AutoGrader.tests_redis_test_isolation",
+    "AutoGrader.tests_management_commands_are_commands",
+    "AutoGrader.tests_no_pii_in_logs",
+    "AutoGrader.tests_log_scrubbing",
+    "AutoGrader.tests_sentry_scrubbing",
+    "billing.tests.test_logs_carry_no_email",
+]
+
+STUDENT_RAISE = '''                raise StudentEmptyWalletError("Credit wallet is empty")'''
+HANDLER = '''        if isinstance(exc, StudentEmptyWalletError):
+            # H-225: a student refused at the permission (their teacher's
+            # wallet is empty) keeps the code and status but reads the one
+            # fixed student sentence, with no remediation (as H-216 in the
+            # view).
+            response.data["error"] = STUDENT_UPLOAD_NOT_PROCESSED
+            response.data["remediation"] = None
+'''
+REMEDIATION = '''            response.data["remediation"] = None
+'''
+NOT_NONE = ("Top up credits, or ask your school administrator, then try again.' is not None",)
+
+MUTANTS = {
+    # P1 (SM's mutant) the permission raises the plain EmptyWalletError for a
+    # student: the base behaviour.
+    "P1": (
+        "users/permissions.py", STUDENT_RAISE,
+        STUDENT_RAISE.replace("StudentEmptyWalletError", "EmptyWalletError"),
+        ROW_MODULES, set(GENERIC_SHOWN), GENERIC_SHOWN,
+    ),
+    # P2 the handler's student branch removed: the same.
+    "P2": ("users/exceptions.py", HANDLER, "", ROW_MODULES, set(GENERIC_SHOWN), GENERIC_SHOWN),
+    # P3 the remediation left as the spec's: the sentence is right, the null
+    # remediation fails (D11's assertCleanRefusalResponse does not read it).
+    "P3": (
+        "users/exceptions.py", REMEDIATION, "", ROW_MODULES,
+        set(STUDENT_TESTS), {t: NOT_NONE for t in STUDENT_TESTS},
+    ),
+    # P4 the permission raises the student subclass for everyone: the
+    # teacher at 0 reads the student sentence (C1), and D11's twelve teacher
+    # subTests do too. The permission unit tests use assertRaises(Empty...),
+    # which the subclass satisfies.
+    "P4": (
+        "users/permissions.py", "            if is_student:\n                # H-225",
+        "            if True:\n                # H-225",
+        ROW_MODULES, {C1, D11}, {C1: (STUDENT,), D11: (STUDENT, GENERIC)},
+    ),
+    # P5 the handler widened to the parent class (StudentEmptyWalletError's
+    # base, EmptyWalletError): a teacher's empty-wallet refusal reads the
+    # student sentence, as in P4.
+    "P5": (
+        "users/exceptions.py", "        if isinstance(exc, StudentEmptyWalletError):",
+        "        if isinstance(exc, StudentEmptyWalletError.__bases__[0]):",
+        ROW_MODULES, {C1, D11}, {C1: (STUDENT,), D11: (STUDENT, GENERIC)},
+    ),
+}

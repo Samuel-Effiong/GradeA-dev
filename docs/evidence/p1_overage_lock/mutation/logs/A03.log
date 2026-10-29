@@ -1,0 +1,48 @@
+# A03: admin delete refused
+# file: billing/admin.py line: None
+# old: '        # prove happened.\n        return False'
+# new: '        # prove happened.\n        return True'
+# modules: billing.tests.test_event_replay.StripeEventAdminLockdownTests
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
+# exit: 1
+# elapsed_s: 3.9
+# restored_sha256_matches_commit_blob: True
+
+Found 4 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_h62_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_every_writable_field_is_read_only (billing.tests.test_event_replay.StripeEventAdminLockdownTests.test_every_writable_field_is_read_only) ... Cannot activate automatic trial for user ledger.owner@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_superuser_cannot_add_a_ledger_row (billing.tests.test_event_replay.StripeEventAdminLockdownTests.test_superuser_cannot_add_a_ledger_row) ... Cannot activate automatic trial for user ledger.owner@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_superuser_cannot_change_status_or_payload (billing.tests.test_event_replay.StripeEventAdminLockdownTests.test_superuser_cannot_change_status_or_payload) ... Cannot activate automatic trial for user ledger.owner@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+ok
+test_superuser_cannot_delete_a_ledger_row (billing.tests.test_event_replay.StripeEventAdminLockdownTests.test_superuser_cannot_delete_a_ledger_row) ... Cannot activate automatic trial for user ledger.owner@replay.test (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
+
+======================================================================
+FAIL: test_superuser_cannot_delete_a_ledger_row (billing.tests.test_event_replay.StripeEventAdminLockdownTests.test_superuser_cannot_delete_a_ledger_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/p1mut-A03-h2o9135k/wt/billing/tests/test_event_replay.py", line 586, in test_superuser_cannot_delete_a_ledger_row
+    self.assertEqual(response.status_code, 403)
+AssertionError: 302 != 403
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.326s
+
+FAILED (failures=1)
+Preserving test database for alias 'default' ('test_h62_mut')...

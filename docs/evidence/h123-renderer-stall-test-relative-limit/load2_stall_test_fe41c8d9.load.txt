@@ -1,0 +1,4 @@
+12:30:07 before the load: loadavg 2.72 5.19 7.17 4/2654 1449716
+12:31:07 start, 8 busy loops at nice 10 for 60 s: loadavg 10.43 6.85 7.62 14/2592 1450470
+12:31:43 test ended: loadavg 13.32 8.02 7.98 14/2663 1451457
+12:31:43 end: loadavg 13.32 8.02 7.98 2/2648 1451464; busy loops stopped: 8

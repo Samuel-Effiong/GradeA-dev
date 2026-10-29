@@ -1,0 +1,16 @@
+FAIL assignments/migrations/0038_assignment_updated_at.py: AddField NOT NULL no default (updated_at)
+FAIL billing/migrations/0010_alter_betaprofile_id.py: type BigAutoField to CharField (id)
+FAIL billing/migrations/0011_remove_betaprofile_uuid_betaprofile_uid_and_more.py: RemoveField; type CharField to BigAutoField (id)
+FAIL billing/migrations/0013_remove_betaprofile_id_alter_betaprofile_uid.py: RemoveField
+FAIL billing/migrations/0014_rename_uid_betaprofile_id.py: RenameField
+FAIL billing/migrations/0016_planfeature_alter_subscriptionplan_options_and_more.py: RemoveField; AddField NOT NULL no default (tagline)
+FAIL billing/migrations/0017_remove_subscriptionplan_overage_credit_price_cents_and_more.py: RemoveField
+FAIL billing/migrations/0031_alter_licensesubscription_custom_price_cents_and_more.py: type PositiveSmallIntegerField to PositiveIntegerField (custom_price_cents); type PositiveSmallIntegerField to PositiveIntegerField (max_seats)
+ACK billing/migrations/0032_remove_subscriptionplan_price_cents_and_more.py: RemoveField; type PositiveIntegerField to DecimalField (overage_block_price)
+ACK billing/migrations/0033_rename_price_subscriptionplan_price_cents.py: RenameField
+FAIL billing/migrations/0034_alter_licensesubscription_custom_price_cents.py: type PositiveIntegerField to DecimalField (custom_price_cents)
+FAIL billing/migrations/0036_alter_licensesubscription_contract_months_and_more.py: type DecimalField to IntegerField (custom_price_cents)
+FAIL billing/migrations/0039_alter_subscriptionplan_overage_block_price.py: type DecimalField to IntegerField (overage_block_price)
+ACK billing/migrations/0046_remove_subscriptionplan_carry_over_max_and_more.py: RemoveField
+FAIL students/migrations/0027_alter_studentsubmission_ai_grading_completed_at.py: type DateField to DateTimeField (ai_grading_completed_at)
+{'FAIL': 12, 'ACK': 3, 'OK': 92}

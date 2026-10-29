@@ -1,0 +1,131 @@
+# H-233 chain config for ../row_chain.py. Written 2026-10-14 by Builder 58
+# BEFORE any run, by reading the tests at f886e643 and the fix in the
+# worktree (committed after batch 19's full run ends, per the SM), and the
+# base 1800ca80 (H-231's tip: H-233 is stacked on it, both rewrite
+# my_students' plain-list guard). Operand types checked: set vs set
+# (assertSetEqual), list vs list (assertListEqual), int vs int, str vs str
+# (assertMultiLineEqual: the old sentence shows in the "- " diff line).
+# Nothing here was seen by a run. TIP is filled in at the grant request.
+
+ROW = "h233"
+WT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h233-overage-wording-at-risk"
+BASE = "1800ca80"
+OUT = "/home/bond-servant-in-training/Documents/Projects/GAP-58-runs/h233"
+DB_PREFIX = "test_h233"
+
+A = "AtRiskReadsLikeABooleanTest"
+V1 = (A, "test_v1_yes_is_true_on_my_students")
+V2 = (A, "test_v2_yes_is_true_on_all_students")
+V3 = (A, "test_v3_an_unknown_value_is_a_400_on_my_students")
+V4 = (A, "test_v4_an_unknown_value_is_a_400_on_all_students")
+V5 = (A, "test_v5_empty_is_not_given_on_all_students")
+V6 = (A, "test_v6_a_refused_value_leaves_nothing_in_the_cache")
+V7 = (A, "test_v7_control_the_plain_values_still_work")
+O_SERVICE = ("CreateOverageCheckoutCapTests", "test_quantity_exceeding_remaining_cap_is_rejected_before_stripe")
+O_ZERO = ("CreateOverageCheckoutCapTests", "test_cap_already_reached_rejects_even_a_single_block")
+O_VIEW = ("PurchaseOverageViewCapTests", "test_exceeding_the_cap_answers_the_coded_envelope")
+
+ROW_MODULES = [
+    "dashboard.tests_h233_at_risk_values",
+    "billing.tests.test_overage_cap",
+]
+
+FIRST_NOT_SECOND = ("Items in the first set but not the second:",)
+SECOND_NOT_FIRST = ("Items in the second set but not the first:",)
+ACCEPTED = ("200 != 400",)
+CACHED = ("First list contains 1 additional elements.",)
+OLD_SENTENCE = {
+    O_SERVICE: ("Purchase limit exceeded",),
+    O_VIEW: ("Purchase limit exceeded",),
+    O_ZERO: ("Reduce your quantity to 0 or fewer",),
+}
+
+# (r): the two test files as at the tip, on 1800ca80.
+R_LABELS = ROW_MODULES
+R_FROM_TIP = ["dashboard/tests_h233_at_risk_values.py", "billing/tests/test_overage_cap.py"]
+R_REASON = {
+    V1: FIRST_NOT_SECOND,   # yes -> false: {safe} vs {risky}
+    V2: FIRST_NOT_SECOND,
+    V3: ACCEPTED,           # maybe -> false, filtered, 200
+    V4: ACCEPTED,
+    V5: SECOND_NOT_FIRST,   # "" -> false on all-students: {safe} vs both
+    V6: CACHED,             # the false-filtered answer was cached
+    **OLD_SENTENCE,
+}
+REPRO = set(R_REASON)
+
+A_LABELS = ROW_MODULES + [
+    "classrooms.tests_h231_bad_filter_numbers",
+    "classrooms.tests_my_students_at_risk_filter",
+    "classrooms.tests_my_students_grade_filter",
+    "classrooms.tests_my_students_concurrency",
+    "classrooms.tests_my_students_course_scope",
+    "classrooms.tests_enrollment_list_order",
+    "classrooms.tests_query_budget",
+    "dashboard.tests_teacher_all_students",
+    "billing.tests.test_h38_part2_removed_teacher_routes",
+    "AutoGrader.tests_reason_codes",
+    "AutoGrader.tests_error_messages",
+    "AutoGrader.tests_codederror_serialization",
+    "AutoGrader.tests_cache_bespoke_1114",
+    "AutoGrader.tests_student_classmates_guard",
+    "AutoGrader.tests_migration_safety_check",
+    "AutoGrader.tests_no_playwright_at_import",
+    "AutoGrader.tests_no_wildcard_invalidation",
+    "AutoGrader.tests_cache_invalidation_coverage",
+    "AutoGrader.tests_migration_rollback_defaults",
+    "AutoGrader.tests_redis_test_isolation",
+    "AutoGrader.tests_management_commands_are_commands",
+    "AutoGrader.tests_no_pii_in_logs",
+    "AutoGrader.tests_log_scrubbing",
+    "AutoGrader.tests_sentry_scrubbing",
+    "billing.tests.test_logs_carry_no_email",
+]
+
+QP = "AutoGrader/query_params.py"
+EMPTY = '    if value in (None, ""):\n'
+REFUSE = (
+    "    except ValidationError:\n"
+    "        raise ValidationError(\n"
+)
+DASH = '        at_risk_filter = boolean_query_param(request, "at_risk")\n'
+OLD_DASH = (
+    '        at_risk_param = request.query_params.get("at_risk")\n'
+    "        at_risk_filter = (\n"
+    '            None if at_risk_param is None else at_risk_param.lower() in ("1", "true")\n'
+    "        )\n"
+)
+GUARD = "            or at_risk is not None\n"
+RC = "AutoGrader/reason_codes.py"
+NEW_SENTENCE = (
+    '        "This purchase would go over your plan\'s limit of {max_blocks} "\n'
+    '        "block(s) per billing cycle. You have {remaining} block(s) left this "\n'
+    '        "cycle.",\n'
+)
+OLD_SENTENCE_TEXT = (
+    '        "Purchase limit exceeded — you have {remaining} block(s) left this "\n'
+    '        "cycle. Reduce your quantity to {remaining} or fewer to proceed.",\n'
+)
+
+MUTANTS = {
+    # K1 empty is no longer "not given": "" -> BooleanField -> 400. V5 and
+    # V7's last request (my-students at_risk="") read a 400 where _ids
+    # asserts 200.
+    "K1": (QP, EMPTY, '    if value is None:\n', ROW_MODULES, {V5, V7},
+           {V5: ("400 != 200",), V7: ("400 != 200",)}),
+    # K2 an unknown word means false again (no 400): V3, V4 are 200; V6's
+    # all-students answer is cached.
+    "K2": (QP, REFUSE, "    except ValidationError:\n        return False\n        raise ValidationError(\n",
+           ROW_MODULES, {V3, V4, V6}, {V3: ACCEPTED, V4: ACCEPTED, V6: CACHED}),
+    # K3 all-students back on the old reading: yes -> false (V2), maybe ->
+    # false (V4, and cached: V6), "" -> false (V5). V7 sends "1" and "false"
+    # there, which the old reading gets right.
+    "K3": ("dashboard/views.py", DASH, OLD_DASH, ROW_MODULES, {V2, V4, V5, V6},
+           {V2: FIRST_NOT_SECOND, V4: ACCEPTED, V5: SECOND_NOT_FIRST, V6: CACHED}),
+    # K4 my-students' guard by truthiness: at_risk=false (False) takes the
+    # unfiltered path and lists both (V7's second request).
+    "K4": ("classrooms/views.py", GUARD, "            or at_risk\n", ROW_MODULES, {V7},
+           {V7: FIRST_NOT_SECOND}),
+    # O1 the old overage sentence: the three pinned sentences.
+    "O1": (RC, NEW_SENTENCE, OLD_SENTENCE_TEXT, ROW_MODULES, set(OLD_SENTENCE), OLD_SENTENCE),
+}

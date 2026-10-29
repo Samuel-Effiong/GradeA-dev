@@ -1,0 +1,8 @@
+  attributed 0 ledger row(s) to their Stripe payment
+
+  backfilled identity on 1 ledger row(s) and 1 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+FAIL: test_stripe_timeout_on_the_allowed_checkout_leaves_no_local_change (billing.tests.test_free_plan_activation_security.ActivationFailureRecoveryTests.test_stripe_timeout_on_the_allowed_checkout_leaves_no_local_change)
+Ran 4677 tests in 2367.664s
+FAILED (failures=1, skipped=26)

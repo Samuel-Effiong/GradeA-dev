@@ -1,0 +1,46 @@
+control (unmutated):
+Ran 4 tests in 15.260s
+OK
+
+== mutant a-ignore-enrolled-courses-filter
+FAIL: test_names_and_the_built_payload_match
+FAIL: test_same_students_scores_and_order_as_the_original
+Ran 4 tests in 15.031s
+FAILED (failures=2)
+restore_ok sha256=caec4be6ad3eb84d
+
+== mutant b-count-unpublished-scores
+FAIL: test_names_and_the_built_payload_match
+FAIL: test_same_students_scores_and_order_as_the_original
+Ran 4 tests in 6.342s
+FAILED (failures=2)
+restore_ok sha256=caec4be6ad3eb84d
+
+== mutant c-include-withdrawn
+FAIL: test_names_and_the_built_payload_match
+FAIL: test_same_students_scores_and_order_as_the_original
+Ran 4 tests in 11.918s
+FAILED (failures=2)
+restore_ok sha256=caec4be6ad3eb84d
+
+== mutant d-include-inactive-students
+FAIL: test_names_and_the_built_payload_match
+FAIL: test_same_students_scores_and_order_as_the_original
+Ran 4 tests in 3.861s
+FAILED (failures=2)
+restore_ok sha256=caec4be6ad3eb84d
+
+== mutant e-drop-submission-ordering
+Ran 4 tests in 2.610s
+OK
+restore_ok sha256=caec4be6ad3eb84d
+
+== mutant f-count-future-assignments
+Ran 4 tests in 3.393s
+OK
+restore_ok sha256=caec4be6ad3eb84d
+
+== mutant g-submitted-count-off-by-one
+Ran 4 tests in 4.604s
+OK
+restore_ok sha256=caec4be6ad3eb84d

@@ -1,0 +1,36 @@
+======================================================================
+ERROR: test_an_old_jpeg_picture_still_loads_unchanged (users.tests_h270_profile_webp.SavesThatKeepThePictureTests.test_an_old_jpeg_picture_still_loads_unchanged)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 58, in testPartExecutor
+    yield
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 634, in run
+    self._callTestMethod(testMethod)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 589, in _callTestMethod
+    if method() is not None:
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-beta-batch-31/users/tests_h270_profile_webp.py", line 304, in test_an_old_jpeg_picture_still_loads_unchanged
+    self.assertEqual(self.stored(user), buf.getvalue())
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-beta-batch-31/users/tests_h270_profile_webp.py", line 91, in stored
+    with default_storage.open(user.profile_image.name, "rb") as f:
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h271_static_files_env/lib/python3.12/site-packages/django/core/files/storage/base.py", line 22, in open
+    return self._open(name, mode)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h271_static_files_env/lib/python3.12/site-packages/django/core/files/storage/filesystem.py", line 81, in _open
+    return File(open(self.path(name), mode))
+    ^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/h270_media_2r6l1ie0/profile_pics/old/legacy.jpg'
+
+----------------------------------------------------------------------
+Ran 8587 tests in 494.925s
+
+FAILED (errors=1, skipped=30)
+Destroying test database for alias 'default' ('test_beta_batch_31_1')...
+Destroying test database for alias 'default' ('test_beta_batch_31_2')...
+Destroying test database for alias 'default' ('test_beta_batch_31_3')...
+Destroying test database for alias 'default' ('test_beta_batch_31_4')...
+Destroying test database for alias 'default' ('test_beta_batch_31')...
+systemd-run failed with exit status 1.

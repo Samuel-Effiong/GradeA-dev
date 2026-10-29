@@ -1,0 +1,62 @@
+M01	on_commit deferral (all flows)	KILLED	FAILED (failures=17, errors=4)	True	41.2
+M02	lookup inline at overage grant site (put lookup back inside)	BROKEN	FAILED (failures=8, errors=1)	True	25.2
+M03	schedule at individual_checkout trial conversion	KILLED	FAILED (failures=1)	True	10.4
+M04	schedule at individual_checkout fresh activation	KILLED	FAILED (failures=1)	True	9.3
+M05	schedule at overage block purchase	KILLED	FAILED (failures=1)	True	10.4
+M06	schedule at license overage, inactive license	KILLED	FAILED (failures=1)	True	9.6
+M07	schedule at license overage fulfilled	KILLED	FAILED (failures=1)	True	9.3
+M08	schedule at upgrade, subscription changed	KILLED	FAILED (failures=1)	True	12.9
+M09	schedule at upgrade applied	KILLED	FAILED (failures=1)	True	12.6
+M10	schedule at individual_subscribe replay	KILLED	FAILED (failures=1)	True	8.7
+M11	schedule at license_create	KILLED	FAILED (failures=1)	True	12.2
+M12	schedule at trial_to_paid replay	KILLED	FAILED (failures=1)	True	9.4
+M13	store PI: trial conversion	KILLED	FAILED (failures=1)	True	9.9
+M14	store PI: fresh activation	KILLED	FAILED (failures=1)	True	8.5
+M15	store PI: individual_subscribe	KILLED	FAILED (failures=1)	True	7.9
+M16	store PI: license_create	KILLED	FAILED (failures=1)	True	8.3
+M17	store PI: trial_to_paid	KILLED	FAILED (failures=1)	True	7.5
+M18	conditional UPDATE (fill-if-null)	KILLED	FAILED (failures=2)	True	8.6
+M19	pre-read already-set short-circuit	KILLED	FAILED (failures=1)	True	4.4
+M20	no-reference short-circuit in fill	KILLED	FAILED (failures=1)	True	4.7
+M21	row-missing guard	KILLED	FAILED (errors=1)	True	4.4
+M22	short timeout	KILLED	FAILED (failures=1)	True	4.1
+M23	no automatic retries	KILLED	FAILED (failures=1)	True	3.9
+M24	generic exception guard	KILLED	FAILED (errors=1)	True	3.8
+M25	StripeError guard	KILLED	FAILED (failures=1)	True	3.2
+M26	unexpanded latest_charge check	BROKEN	FAILED (failures=1)	True	3.4
+M27	invoice-first priority	KILLED	FAILED (failures=2)	True	3.6
+M28	skip when link already known	KILLED	FAILED (failures=1)	True	4.6
+M29	skip when no Stripe reference	KILLED	FAILED (failures=1)	True	5.0
+M30	robust on_commit	KILLED	FAILED (errors=1)	True	5.3
+M31	broker-tolerant dispatch (safe_delay)	KILLED	FAILED (failures=2)	True	7.4
+M32	sweep window lower bound	KILLED	FAILED (failures=1)	True	4.6
+M33	sweep minimum age	KILLED	FAILED (failures=1)	True	4.6
+M34	sweep excludes already-filled rows	KILLED	FAILED (failures=1)	True	4.9
+M35	sweep excludes reference-less rows	KILLED	FAILED (failures=1)	True	3.0
+M36	sweep newest first	KILLED	FAILED (failures=1)	True	3.4
+M37	sweep batch bound	KILLED	FAILED (failures=1)	True	4.2
+M38	sweep time budget	KILLED	FAILED (failures=1)	True	4.6
+M39	hourly beat entry	KILLED	FAILED (failures=1)	True	4.4
+M40	backfill conditional update	KILLED	FAILED (failures=1)	True	4.4
+M41	backfill dry-run	KILLED	FAILED (failures=1)	True	3.4
+P01	allow-list membership (widen to the upgrade flow)	KILLED	FAILED (failures=2)	True	2.7
+P02	vetted-handler second gate	KILLED	FAILED (failures=2)	True	4.1
+P03	VETTED_HANDLERS membership	KILLED	FAILED (failures=2)	True	3.2
+P04	missing-flow guard	KILLED	FAILED (failures=1)	True	3.2
+P05	not-allow-listed guard	KILLED	FAILED (failures=1)	True	3.5
+P06	attempts cap in classify	KILLED	FAILED (failures=1)	True	3.8
+P07	attempts cap in the selection query	KILLED	FAILED (failures=1)	True	3.0
+P08	claim only from FAILED	KILLED	FAILED (failures=1)	True	4.2
+P09	claim fenced on the attempts seen	KILLED	FAILED (failures=1)	True	3.8
+P10	stored payload, never re-fetch Stripe	KILLED	FAILED (failures=3, errors=1)	True	8.0
+P11	handler idempotency guard (_overage_already_granted)	KILLED	FAILED (failures=1)	True	4.8
+P12	per-event skip reason recorded on the row	KILLED	FAILED (failures=3)	True	3.7
+P13	direct flow handler, not the dispatcher	KILLED	FAILED (failures=1)	True	3.3
+P14	only FAILED events selected	KILLED	FAILED (failures=1)	True	3.5
+P15	hourly beat entry	KILLED	FAILED (failures=1)	True	3.1
+A01	admin add refused	KILLED	FAILED (failures=1)	True	4.2
+A02	admin change refused	KILLED	FAILED (failures=1)	True	3.2
+A03	admin delete refused	KILLED	FAILED (failures=1)	True	3.9
+A04	payload read-only in the admin	KILLED	FAILED (failures=1)	True	3.9
+
+58/60 killed with verified restore

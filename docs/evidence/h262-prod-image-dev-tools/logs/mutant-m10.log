@@ -1,0 +1,40 @@
+### git diff of mutated file(s)
+diff --git a/.github/workflows/audit.yml b/.github/workflows/audit.yml
+index 50722c56..c71050ca 100644
+--- a/.github/workflows/audit.yml
++++ b/.github/workflows/audit.yml
+@@ -1,7 +1,7 @@
+ name: Dependency audit
+
+ # H-258/H-262: known vulnerabilities in requirements.txt and
+-# requirements-dev.txt (pip-audit, pinned), on every push and pull request to
++# requirements.txt (pip-audit, pinned), on every push and pull request to
+ # the long-lived branches, and once a week so a new advisory shows up without
+ # a push. The advisories accepted for now are in .pip-audit-ignore.toml (prod)
+ # and .pip-audit-ignore-dev.toml (dev-only), each with a reason and a review
+@@ -38,5 +38,5 @@ jobs:
+       - name: Install pip-audit
+         run: python -m pip install "pip-audit==2.9.0"
+
+-      - name: Audit requirements.txt and requirements-dev.txt
++      - name: Audit requirements.txt and requirements.txt
+         run: python scripts/pip_audit_gate.py
+
+### test output
+test_audit_workflow_audits_both_files (ai_processor.tests_h262_prod_image_dev_tools.CIWorkflowTest.test_audit_workflow_audits_both_files) ... FAIL
+
+======================================================================
+FAIL: test_audit_workflow_audits_both_files (ai_processor.tests_h262_prod_image_dev_tools.CIWorkflowTest.test_audit_workflow_audits_both_files)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h262-prod-image-dev-tools/ai_processor/tests_h262_prod_image_dev_tools.py", line 237, in test_audit_workflow_audits_both_files
+    self.assertIn(
+AssertionError: 'requirements-dev.txt' not found in 'name: Dependency audit\n\n# H-258/H-262: known vulnerabilities in requirements.txt and\n# requirements.txt (pip-audit, pinned), on every push and pull request to\n# the long-lived branches, and once a week so a new advisory shows up without\n# a push. The advisories accepted for now are in .pip-audit-ignore.toml (prod)\n# and .pip-audit-ignore-dev.toml (dev-only), each with a reason and a review\n# date; the runner (scripts/pip_audit_gate.py) fails once a review date has\n# passed.\n#\n# The weekly run audits the default branch (GitHub runs schedules there).\non:\n  push:\n    branches: [main, beta, dev]\n  pull_request:\n    branches: [main, beta, dev]\n  schedule:\n    # Mondays 06:17 UTC.\n    - cron: "17 6 * * 1"\n\nconcurrency:\n  group: audit-${{ github.ref }}\n  cancel-in-progress: true\n\njobs:\n  pip-audit:\n    runs-on: ubuntu-latest\n    timeout-minutes: 10\n    steps:\n      - uses: actions/checkout@v4\n\n      - uses: actions/setup-python@v5\n        with:\n          python-version: "3.12"\n\n      # Only pip-audit is installed: with every requirement pinned, it audits\n      # the listed versions without installing them (--no-deps --disable-pip).\n      - name: Install pip-audit\n        run: python -m pip install "pip-audit==2.9.0"\n\n      - name: Audit requirements.txt and requirements.txt\n        run: python scripts/pip_audit_gate.py\n' : audit.yml must reference requirements-dev.txt
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+FAILED (failures=1)
+Found 1 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).

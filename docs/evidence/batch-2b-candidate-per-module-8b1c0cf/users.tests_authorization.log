@@ -1,0 +1,25 @@
+users.tests_authorization.BetaGateAccessTests.test_anonymous_cannot_list_waitlist ... ok
+users.tests_authorization.BetaGateAccessTests.test_anonymous_cannot_list_whitelist ... ok
+users.tests_authorization.BetaGateAccessTests.test_anonymous_cannot_self_whitelist ... ok
+users.tests_authorization.BetaGateAccessTests.test_anonymous_cannot_transfer_waitlist_entry ... ok
+users.tests_authorization.BetaGateAccessTests.test_authenticated_non_admin_cannot_list_waitlist ... ok
+users.tests_authorization.BetaGateAccessTests.test_authenticated_non_admin_cannot_list_whitelist ... ok
+users.tests_authorization.BetaGateAccessTests.test_superadmin_can_still_manage_whitelist ... ok
+users.tests_authorization.UserObjectScopingTests.test_cached_detail_is_not_shared_across_users ... ok
+users.tests_authorization.UserObjectScopingTests.test_list_is_superadmin_only ... ok
+users.tests_authorization.UserObjectScopingTests.test_school_reassignment_is_ignored ... ok
+users.tests_authorization.UserObjectScopingTests.test_student_can_patch_own_editable_profile_fields ... ok
+users.tests_authorization.UserObjectScopingTests.test_student_cannot_delete_another_user ... ok
+users.tests_authorization.UserObjectScopingTests.test_student_cannot_delete_self ... ok
+users.tests_authorization.UserObjectScopingTests.test_student_cannot_patch_another_user ... ok
+users.tests_authorization.UserObjectScopingTests.test_student_cannot_retrieve_another_user ... ok
+users.tests_authorization.UserObjectScopingTests.test_superadmin_can_retrieve_any_user ... ok
+users.tests_authorization.UserObjectScopingTests.test_superadmin_can_set_privileged_fields ... ok
+users.tests_authorization.UserObjectScopingTests.test_teacher_can_patch_own_profile ... ok
+users.tests_authorization.UserObjectScopingTests.test_teacher_cannot_patch_own_student ... ok
+users.tests_authorization.UserObjectScopingTests.test_teacher_cannot_see_teacher_from_other_school ... ok
+users.tests_authorization.UserObjectScopingTests.test_teacher_cannot_see_unenrolled_student ... ok
+users.tests_authorization.UserObjectScopingTests.test_user_can_retrieve_own_record ... ok
+users.tests_authorization.UserObjectScopingTests.test_user_type_escalation_is_ignored ... ok
+Ran 23 tests in 1.630s
+OK

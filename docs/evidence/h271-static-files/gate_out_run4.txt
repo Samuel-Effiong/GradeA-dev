@@ -1,0 +1,20 @@
+== 0. red run: ['Dockerfile', 'AutoGrader/settings.py'] at 7eec85e0
+Ran 6 tests in 0.399s FAILED (failures=5, errors=1) blocks ['setUpClass', 'test_collected_files_go_to_their_own_folder', 'test_collectstatic_is_the_staticfiles_command', 'test_production_static_storage_is_whitenoise_manifest', 'test_the_container_collects_static_files_before_gunicorn_starts', 'test_whitenoise_comes_directly_after_the_security_middleware']
+red run as written
+== 1a. makemigrations
+== 1b. seam
+['.gitignore', 'AutoGrader/settings.py', 'Dockerfile', 'requirements.txt']
+== 1. own + near
+Ran 2064 tests in 488.798s OK (skipped=6)
+skips ['CI_REQUIRE_NETWORK not set', 'CI_REQUIRE_REDIS not set', 'a benchmark, run by label with AUDIT_BENCH=1 only', 'a benchmark, run by label with AUDIT_BENCH=1 only', 'live Google contract tests are opt-in: set CI_REQUIRE_NETWORK=1', 'live Google contract tests are opt-in: set CI_REQUIRE_NETWORK=1']
+== 1c. pip-audit (findings at tip must equal findings at BASE)
+base 1 14 tip 1 14
+== 2. mutants
+M1 {'status': 'KILLED', 'ran': 'Ran 7 tests in 3.290s', 'missing': [], 'also_failed': []}
+M2 {'status': 'KILLED', 'ran': 'Ran 7 tests in 2.941s', 'missing': [], 'also_failed': []}
+M3 {'status': 'KILLED', 'ran': 'Ran 7 tests in 2.999s', 'missing': [], 'also_failed': []}
+M4 {'status': 'KILLED', 'ran': 'Ran 7 tests in 3.174s', 'missing': [], 'also_failed': []}
+M5 {'status': 'KILLED', 'ran': 'Ran 6 tests in 0.280s', 'missing': [], 'also_failed': []}
+M6 {'status': 'KILLED', 'ran': 'Ran 7 tests in 3.005s', 'missing': [], 'also_failed': []}
+GATE GREEN
+exit=0

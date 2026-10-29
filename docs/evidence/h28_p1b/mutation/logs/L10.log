@@ -1,0 +1,12 @@
+# L10: a paid plan upgrade is never compensated
+# file: billing/license_service.py (occurrence 1)
+# old: 'compensate=compensate if paid_invoice is None else None,'
+# new: 'compensate=compensate,'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 44.2
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_failed_local_write_after_a_paid_upgrade_escalates (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_a_failed_local_write_after_a_paid_upgrade_escalates)
+
+FAILED (failures=1)

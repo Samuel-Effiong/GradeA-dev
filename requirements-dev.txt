@@ -1,0 +1,68 @@
+# Development, testing and CI dependencies. Not installed in the
+# production Docker image. Install with: pip install -r requirements-dev.txt
+-r requirements.txt
+
+bandit==1.8.6
+black==25.1.0
+celery-types==0.24.0
+cfgv==3.4.0
+codespell==2.4.1
+coverage==7.15.4
+detect-secrets==1.5.0
+distlib==0.4.0
+django-browser-reload==1.19.0
+django-stubs==5.2.8
+django-stubs-ext==5.2.8
+djangorestframework-stubs==3.16.6
+docutils==0.22
+docutils-stubs==0.0.22
+dparse==0.6.4
+eradicate==2.3.0
+flake8==7.3.0
+flake8-bugbear==24.12.12
+flake8-comprehensions==3.16.0
+flake8-docstrings==1.7.0
+flake8-eradicate==1.5.0
+flake8-print==5.0.0
+flake8-rst-docstrings==0.3.1
+flake8_import_order==0.19.2
+flower==2.0.1
+freezegun==1.5.5
+honcho==2.0.0
+identify==2.6.14
+imagesize==1.4.1
+iniconfig==2.3.0
+isort==6.0.1
+mccabe==0.7.0
+mypy==1.17.1
+mypy_extensions==1.1.0
+nodeenv==1.9.1
+pathspec==0.12.1
+pluggy==1.6.0
+pre_commit==4.3.0
+py-cpuinfo==9.0.0
+pycodestyle==2.14.0
+pydocstyle==6.3.0
+pyflakes==3.4.0
+pytest==9.1.1
+restructuredtext_lint==1.4.0
+safety==3.6.1
+safety-schemas==0.0.14
+snowballstemmer==3.0.1
+stevedore==5.5.0
+# django's --parallel test runner needs this to pickle a worker's traceback
+# back to the main process; without it, ANY single test failure under
+# --parallel is replaced by "TypeError: cannot pickle 'traceback' object",
+# hiding the real error and (worse) surfacing as an unhandled exception in
+# the main process's result-collection loop instead of a normal reported
+# test failure - see docs/HARDENING_BACKLOG.md for the incident this was
+# found from.
+tblib==3.2.2
+tomlkit==0.13.3
+types-bleach==6.2.0.20250514
+types-docutils==0.22.3.20260316
+types-python-dateutil==2.9.0.20250822
+types-pytz==2025.2.0.20250809
+types-PyYAML==6.0.12.20250915
+types-requests==2.32.4.20250913
+virtualenv==20.34.0

@@ -1,0 +1,3 @@
+classrooms.tests_my_students_concurrency.MyStudentsReadsRacingForeignRosterChanges.test_teacher_a_never_sees_teacher_b_mid_change ... ok
+Ran 1 test in 7.694s
+OK

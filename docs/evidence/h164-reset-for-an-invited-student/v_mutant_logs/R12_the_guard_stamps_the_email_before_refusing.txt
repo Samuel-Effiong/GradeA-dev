@@ -1,0 +1,1161 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user d2a746f6-4e6d-4783-8782-2d0589f636f2.
+Cannot activate automatic trial for user d2a746f6-4e6d-4783-8782-2d0589f636f2 (validation): ValueError
+.Free trial plan not found: no trial activated for user eac664be-10cb-49e5-bd20-9ec648634858.
+Cannot activate automatic trial for user eac664be-10cb-49e5-bd20-9ec648634858 (validation): ValueError
+.Free trial plan not found: no trial activated for user d8dd009b-c920-4f1b-b9e4-8ddbd68bf131.
+Cannot activate automatic trial for user d8dd009b-c920-4f1b-b9e4-8ddbd68bf131 (validation): ValueError
+.Free trial plan not found: no trial activated for user 03f82594-786b-44bf-b408-04da2694ed9d.
+Cannot activate automatic trial for user 03f82594-786b-44bf-b408-04da2694ed9d (validation): ValueError
+.Free trial plan not found: no trial activated for user cfaa3f84-c9f9-45d6-b9a5-47edcb8505ed.
+Cannot activate automatic trial for user cfaa3f84-c9f9-45d6-b9a5-47edcb8505ed (validation): ValueError
+.Free trial plan not found: no trial activated for user 40dd3193-826c-4033-8adb-f314df41d851.
+Cannot activate automatic trial for user 40dd3193-826c-4033-8adb-f314df41d851 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1349, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+.Free trial plan not found: no trial activated for user 432334b6-f2be-4dbb-9876-69c8416db810.
+Cannot activate automatic trial for user 432334b6-f2be-4dbb-9876-69c8416db810 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1349, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+FFree trial plan not found: no trial activated for user 17c1e8b1-677e-428f-87cd-dd4f8400eb28.
+Cannot activate automatic trial for user 17c1e8b1-677e-428f-87cd-dd4f8400eb28 (validation): ValueError
+.Free trial plan not found: no trial activated for user 353babb9-ac37-4462-b4e8-bd44a5fe9504.
+Cannot activate automatic trial for user 353babb9-ac37-4462-b4e8-bd44a5fe9504 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2c146379-3741-470f-a43c-62936ac1e7e1.
+Cannot activate automatic trial for user 2c146379-3741-470f-a43c-62936ac1e7e1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2a539415-9c9a-49b9-a6ce-614d2ae94a18.
+Cannot activate automatic trial for user 2a539415-9c9a-49b9-a6ce-614d2ae94a18 (validation): ValueError
+.Free trial plan not found: no trial activated for user 595418f4-431f-4c88-90b7-80dd3863e20b.
+Cannot activate automatic trial for user 595418f4-431f-4c88-90b7-80dd3863e20b (validation): ValueError
+Creating token for inactive user: cef77550-e298-4b1f-8cc8-8a6bb8e3c686. If this is not intentional, consider checking the user's status before calling the `for_user` method.
+.Free trial plan not found: no trial activated for user 16b961c9-623c-4871-bd37-894f04fd5ed1.
+Cannot activate automatic trial for user 16b961c9-623c-4871-bd37-894f04fd5ed1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 63877d99-ece7-4c09-b89d-9976ac2382ac.
+Cannot activate automatic trial for user 63877d99-ece7-4c09-b89d-9976ac2382ac (validation): ValueError
+.Free trial plan not found: no trial activated for user 2ffa9327-f706-4597-8125-3c7314e4aa78.
+Cannot activate automatic trial for user 2ffa9327-f706-4597-8125-3c7314e4aa78 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+.Free trial plan not found: no trial activated for user bfcd7f44-77e6-4200-ab35-a68fbedcb6e5.
+Cannot activate automatic trial for user bfcd7f44-77e6-4200-ab35-a68fbedcb6e5 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1158, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+.Free trial plan not found: no trial activated for user e67319ca-f360-40df-9413-845d7bd54444.
+Cannot activate automatic trial for user e67319ca-f360-40df-9413-845d7bd54444 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5e586fc8-05ce-4d3e-a2cd-f211777db42e.
+Cannot activate automatic trial for user 5e586fc8-05ce-4d3e-a2cd-f211777db42e (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1349, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Exception
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1336, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.") from Exception
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+.Free trial plan not found: no trial activated for user 84670a2b-a79b-4a55-a987-b2d25073e0f1.
+Cannot activate automatic trial for user 84670a2b-a79b-4a55-a987-b2d25073e0f1 (validation): ValueError
+Free trial plan not found: no trial activated for user 12e9eeca-c4bd-4cfb-9c8f-be6032bd914b.
+Cannot activate automatic trial for user 12e9eeca-c4bd-4cfb-9c8f-be6032bd914b (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1158, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1158, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+.Free trial plan not found: no trial activated for user 6a7f4d5f-87fb-4e00-87a2-8b7e42c743cc.
+Cannot activate automatic trial for user 6a7f4d5f-87fb-4e00-87a2-8b7e42c743cc (validation): ValueError
+Free trial plan not found: no trial activated for user 6b5c8558-e7e0-4fe8-9ddb-d2a41702fe79.
+Cannot activate automatic trial for user 6b5c8558-e7e0-4fe8-9ddb-d2a41702fe79 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1349, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Exception
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1336, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.") from Exception
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+.Free trial plan not found: no trial activated for user 6ee82e05-fcfc-4ce7-a6ae-62ab2bb713d8.
+Cannot activate automatic trial for user 6ee82e05-fcfc-4ce7-a6ae-62ab2bb713d8 (validation): ValueError
+.Free trial plan not found: no trial activated for user 33c7d5a1-0f73-420a-a4ca-80e301fe1eb4.
+Cannot activate automatic trial for user 33c7d5a1-0f73-420a-a4ca-80e301fe1eb4 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2a00389a-710f-45dd-ab6a-3f4bacc27595.
+Cannot activate automatic trial for user 2a00389a-710f-45dd-ab6a-3f4bacc27595 (validation): ValueError
+Free trial plan not found: no trial activated for user e4011b7f-bdfc-4c03-bb8a-bb1ea534a4df.
+Cannot activate automatic trial for user e4011b7f-bdfc-4c03-bb8a-bb1ea534a4df (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1158, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+.Free trial plan not found: no trial activated for user 3c1bcf6d-e43d-4516-a9a4-ce75c151c30f.
+Cannot activate automatic trial for user 3c1bcf6d-e43d-4516-a9a4-ce75c151c30f (validation): ValueError
+Free trial plan not found: no trial activated for user 0ea1f38b-b683-455e-a1b1-1db95c4fa686.
+Cannot activate automatic trial for user 0ea1f38b-b683-455e-a1b1-1db95c4fa686 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1158, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+.Free trial plan not found: no trial activated for user 07bd7084-03fe-4f2f-b7e1-34ff5b2be50b.
+Cannot activate automatic trial for user 07bd7084-03fe-4f2f-b7e1-34ff5b2be50b (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1158, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+.Free trial plan not found: no trial activated for user a4201a51-89c0-4bd7-9938-3bb1439f7d8d.
+Cannot activate automatic trial for user a4201a51-89c0-4bd7-9938-3bb1439f7d8d (validation): ValueError
+Free trial plan not found: no trial activated for user 0cdfa53a-071d-4694-9418-f2f6cd74c13f.
+Cannot activate automatic trial for user 0cdfa53a-071d-4694-9418-f2f6cd74c13f (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1158, in otp
+    raise ParseError("Email not verified.")
+rest_framework.exceptions.ParseError: Email not verified.
+.Free trial plan not found: no trial activated for user 81a7d609-e942-4e1d-a868-03ab1da37362.
+Cannot activate automatic trial for user 81a7d609-e942-4e1d-a868-03ab1da37362 (validation): ValueError
+Free trial plan not found: no trial activated for user 78097906-25d8-46e9-91d4-2d6b25df20c4.
+Cannot activate automatic trial for user 78097906-25d8-46e9-91d4-2d6b25df20c4 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1349, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+FFree trial plan not found: no trial activated for user 97bd1a1d-960b-4294-a2fc-5e7058ed7fab.
+Cannot activate automatic trial for user 97bd1a1d-960b-4294-a2fc-5e7058ed7fab (validation): ValueError
+Free trial plan not found: no trial activated for user 346ce65f-769f-437a-8c9b-59e1fa6090b8.
+Cannot activate automatic trial for user 346ce65f-769f-437a-8c9b-59e1fa6090b8 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1349, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+FFree trial plan not found: no trial activated for user 7c504e70-3968-4143-8e3b-cff75406db2a.
+Cannot activate automatic trial for user 7c504e70-3968-4143-8e3b-cff75406db2a (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1349, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+FFree trial plan not found: no trial activated for user db7d4a35-d79a-4370-b3cc-1f5601634a3e.
+Cannot activate automatic trial for user db7d4a35-d79a-4370-b3cc-1f5601634a3e (validation): ValueError
+Free trial plan not found: no trial activated for user d4226533-c964-4cc3-9931-0c09e61c52e7.
+Cannot activate automatic trial for user d4226533-c964-4cc3-9931-0c09e61c52e7 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1349, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+FFree trial plan not found: no trial activated for user b0705dfc-95af-403f-bca4-91ca42b6224b.
+Cannot activate automatic trial for user b0705dfc-95af-403f-bca4-91ca42b6224b (validation): ValueError
+.Free trial plan not found: no trial activated for user 1ac8beaa-7f0f-4ef8-bb06-2e556a7e40d0.
+Cannot activate automatic trial for user 1ac8beaa-7f0f-4ef8-bb06-2e556a7e40d0 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 990, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+verify_email address locked after too many attempts
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 990, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 962, in verify
+    raise Throttled(
+rest_framework.exceptions.Throttled: Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1799 seconds.
+..API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1133, in otp
+    raise ParseError("Email already verified. Please login.")
+rest_framework.exceptions.ParseError: Email already verified. Please login.
+..Free trial plan not found: no trial activated for user 9d52acac-2870-4924-b10a-28fa366a7b3c.
+Cannot activate automatic trial for user 9d52acac-2870-4924-b10a-28fa366a7b3c (validation): ValueError
+.Free trial plan not found: no trial activated for user 6f07056c-91ed-49e9-a3f6-adee24664718.
+Cannot activate automatic trial for user 6f07056c-91ed-49e9-a3f6-adee24664718 (validation): ValueError
+..Free trial plan not found: no trial activated for user 2d773e37-a361-4e1f-b820-e55b5f504c44.
+Cannot activate automatic trial for user 2d773e37-a361-4e1f-b820-e55b5f504c44 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7a081c71-ddec-4b7d-87a1-74f0704dec8f.
+Cannot activate automatic trial for user 7a081c71-ddec-4b7d-87a1-74f0704dec8f (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 990, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 982, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+.API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 990, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 982, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+.Free trial plan not found: no trial activated for user acce526d-1d40-446a-b2dc-d35ef0939c69.
+Cannot activate automatic trial for user acce526d-1d40-446a-b2dc-d35ef0939c69 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 990, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 982, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+.Free trial plan not found: no trial activated for user adf3fce7-aa30-4063-8b23-0d0cd363b64e.
+Cannot activate automatic trial for user adf3fce7-aa30-4063-8b23-0d0cd363b64e (validation): ValueError
+.Free trial plan not found: no trial activated for user 52396e34-688e-4508-a747-e350a964f14f.
+Cannot activate automatic trial for user 52396e34-688e-4508-a747-e350a964f14f (validation): ValueError
+..Free trial plan not found: no trial activated for user 7a8f4e3a-6ee2-45cb-9033-5a57b2a7599a.
+Cannot activate automatic trial for user 7a8f4e3a-6ee2-45cb-9033-5a57b2a7599a (validation): ValueError
+.Free trial plan not found: no trial activated for user 377638fd-14f9-4a2e-8ef2-13dedbc54510.
+Cannot activate automatic trial for user 377638fd-14f9-4a2e-8ef2-13dedbc54510 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 990, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+.Free trial plan not found: no trial activated for user 83df0918-aa28-4a60-813e-51f386a8d065.
+Cannot activate automatic trial for user 83df0918-aa28-4a60-813e-51f386a8d065 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 990, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+.API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 990, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+.Free trial plan not found: no trial activated for user 5ec1cbfe-ea6f-4114-b06e-3874d4910b13.
+Cannot activate automatic trial for user 5ec1cbfe-ea6f-4114-b06e-3874d4910b13 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 990, in verify
+    refuse("Invalid email or token.")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 978, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+.Free trial plan not found: no trial activated for user c80d8873-9f81-4de3-b728-9ca5db7ec376.
+Cannot activate automatic trial for user c80d8873-9f81-4de3-b728-9ca5db7ec376 (validation): ValueError
+Free trial plan not found: no trial activated for user f0921aa2-bec3-43b3-ab00-d0c68dabe7db.
+Cannot activate automatic trial for user f0921aa2-bec3-43b3-ab00-d0c68dabe7db (validation): ValueError
+Free trial plan not found: no trial activated for user b6b593f5-9ed4-4dbb-b00d-9ed0feb1cab1.
+Cannot activate automatic trial for user b6b593f5-9ed4-4dbb-b00d-9ed0feb1cab1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 25a7c10c-f2ff-4f92-8892-4e2edcabda92.
+Cannot activate automatic trial for user 25a7c10c-f2ff-4f92-8892-4e2edcabda92 (validation): ValueError
+Free trial plan not found: no trial activated for user a58b0439-3185-4342-998a-47510d92fba0.
+Cannot activate automatic trial for user a58b0439-3185-4342-998a-47510d92fba0 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+password_reset_otp_locked
+.Free trial plan not found: no trial activated for user ebcfe300-5c34-445f-a1a7-5e11f8513f27.
+Cannot activate automatic trial for user ebcfe300-5c34-445f-a1a7-5e11f8513f27 (validation): ValueError
+Free trial plan not found: no trial activated for user f6deef74-078c-47f8-83a3-b3fcbeb0382d.
+Cannot activate automatic trial for user f6deef74-078c-47f8-83a3-b3fcbeb0382d (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+.Free trial plan not found: no trial activated for user 89dd7846-11fc-4b77-aeae-c8fac78e4aa3.
+Cannot activate automatic trial for user 89dd7846-11fc-4b77-aeae-c8fac78e4aa3 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+password_reset_otp_locked
+.Free trial plan not found: no trial activated for user ca4b3a6e-86b1-407a-a1ec-0ff3bffbb04c.
+Cannot activate automatic trial for user ca4b3a6e-86b1-407a-a1ec-0ff3bffbb04c (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+password_reset_otp_locked
+.Free trial plan not found: no trial activated for user bdcedf97-88c8-4384-922b-4b0241bede41.
+Cannot activate automatic trial for user bdcedf97-88c8-4384-922b-4b0241bede41 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+password_reset_otp_locked
+.Free trial plan not found: no trial activated for user 616cd162-4874-4e60-ba08-0e7685e98879.
+Cannot activate automatic trial for user 616cd162-4874-4e60-ba08-0e7685e98879 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+.Free trial plan not found: no trial activated for user c49d648d-bf16-4f9e-9e3f-84832774a6ea.
+Cannot activate automatic trial for user c49d648d-bf16-4f9e-9e3f-84832774a6ea (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+password_reset_otp_locked
+.Free trial plan not found: no trial activated for user e36c18ad-9c3d-44a3-9f85-c6b9dfe064c6.
+Cannot activate automatic trial for user e36c18ad-9c3d-44a3-9f85-c6b9dfe064c6 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+password_reset_otp_locked
+.Free trial plan not found: no trial activated for user 8012c0ea-a210-4f6d-acfc-f852c762c963.
+Cannot activate automatic trial for user 8012c0ea-a210-4f6d-acfc-f852c762c963 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+password_reset_otp_locked
+.Free trial plan not found: no trial activated for user 218bb38d-1881-46ec-9986-6924398a84a0.
+Cannot activate automatic trial for user 218bb38d-1881-46ec-9986-6924398a84a0 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+.Free trial plan not found: no trial activated for user 677de212-1e19-41f0-b1c0-1ef9e0334789.
+Cannot activate automatic trial for user 677de212-1e19-41f0-b1c0-1ef9e0334789 (validation): ValueError
+.Free trial plan not found: no trial activated for user 36b95521-2d32-4c0f-8724-e79fb6d17345.
+Cannot activate automatic trial for user 36b95521-2d32-4c0f-8724-e79fb6d17345 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+.Free trial plan not found: no trial activated for user c80c6113-17b4-457e-84d6-6f57d44fbd93.
+Cannot activate automatic trial for user c80c6113-17b4-457e-84d6-6f57d44fbd93 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+password_reset_otp_locked
+.Free trial plan not found: no trial activated for user beee3b70-7714-4326-9d88-f0c87dbae823.
+Cannot activate automatic trial for user beee3b70-7714-4326-9d88-f0c87dbae823 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+.Free trial plan not found: no trial activated for user 17de2865-b16f-4749-8502-2513b2bf6c18.
+Cannot activate automatic trial for user 17de2865-b16f-4749-8502-2513b2bf6c18 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+.Free trial plan not found: no trial activated for user 67261b9c-cf22-46da-8447-01c77b309737.
+Cannot activate automatic trial for user 67261b9c-cf22-46da-8447-01c77b309737 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+password_reset_otp_locked
+.Free trial plan not found: no trial activated for user 705da948-c8bf-4e27-8df9-30b921644b6a.
+Cannot activate automatic trial for user 705da948-c8bf-4e27-8df9-30b921644b6a (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+password_reset_otp_locked
+.Free trial plan not found: no trial activated for user 90007077-59ac-4784-a9a6-075ed9796cdd.
+Cannot activate automatic trial for user 90007077-59ac-4784-a9a6-075ed9796cdd (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+password_reset_otp_locked
+....Free trial plan not found: no trial activated for user e7300211-f401-404c-b6d7-5efe36a3f89e.
+Cannot activate automatic trial for user e7300211-f401-404c-b6d7-5efe36a3f89e (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/views.py", line 1368, in reset_password
+    raise ParseError("Invalid email, OTP code, or new password.")
+rest_framework.exceptions.ParseError: Invalid email, OTP code, or new password.
+.
+======================================================================
+FAIL: test_a_reset_is_refused_for_a_switched_off_never_verified_account (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_a_reset_is_refused_for_a_switched_off_never_verified_account)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 306, in test_a_reset_is_refused_for_a_switched_off_never_verified_account
+    self.assertIsNone(student.email_verified_at)
+AssertionError: datetime.datetime(2026, 10, 8, 18, 37, 42, 848876, tzinfo=datetime.timezone.utc) is not None
+
+======================================================================
+FAIL: test_the_reset_refuses_a_command_line_superuser (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_command_line_superuser)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 514, in test_the_reset_refuses_a_command_line_superuser
+    self.assert_reset_refused(account)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 453, in assert_reset_refused
+    self.assertIsNone(account.email_verified_at)
+AssertionError: datetime.datetime(2026, 10, 8, 18, 37, 43, 961084, tzinfo=datetime.timezone.utc) is not None
+
+======================================================================
+FAIL: test_the_reset_refuses_a_never_verified_staff_account (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_staff_account)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 494, in test_the_reset_refuses_a_never_verified_staff_account
+    self.assert_reset_refused(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 453, in assert_reset_refused
+    self.assertIsNone(account.email_verified_at)
+AssertionError: datetime.datetime(2026, 10, 8, 18, 37, 44, 7229, tzinfo=datetime.timezone.utc) is not None
+
+======================================================================
+FAIL: test_the_reset_refuses_a_never_verified_super_admin_type (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_super_admin_type)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 504, in test_the_reset_refuses_a_never_verified_super_admin_type
+    self.assert_reset_refused(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 453, in assert_reset_refused
+    self.assertIsNone(account.email_verified_at)
+AssertionError: datetime.datetime(2026, 10, 8, 18, 37, 44, 50353, tzinfo=datetime.timezone.utc) is not None
+
+======================================================================
+FAIL: test_the_reset_refuses_a_never_verified_superuser_flag (users.tests_reset_for_an_invited_student.InvitedStudentResetTests.test_the_reset_refuses_a_never_verified_superuser_flag)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 499, in test_the_reset_refuses_a_never_verified_superuser_flag
+    self.assert_reset_refused(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h164-reset-for-an-invited-student/users/tests_reset_for_an_invited_student.py", line 453, in assert_reset_refused
+    self.assertIsNone(account.email_verified_at)
+AssertionError: datetime.datetime(2026, 10, 8, 18, 37, 44, 91896, tzinfo=datetime.timezone.utc) is not None
+
+----------------------------------------------------------------------
+Ran 73 tests in 5.064s
+
+FAILED (failures=5)
+Preserving test database for alias 'default'...
+Found 73 test(s).

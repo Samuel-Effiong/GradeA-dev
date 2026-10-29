@@ -1,0 +1,12 @@
+# O9: H-81 (1a's mutant): a late licence renewal counts to the cycle end
+# file: billing/license_service.py (occurrence 1)
+# old: '        until = min(license_sub.billing_cycle_end, now)\n'
+# new: '        until = now\n'
+# commit: 8ea91e215c58867ee58a2992c464e2b2f4140681
+# exit: 1
+# elapsed_s: 13.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_late_renewal_of_a_chain_served_to_the_end_reports_nothing (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_a_late_renewal_of_a_chain_served_to_the_end_reports_nothing)
+
+FAILED (failures=1)

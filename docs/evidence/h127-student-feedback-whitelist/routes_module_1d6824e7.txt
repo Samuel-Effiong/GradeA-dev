@@ -1,0 +1,534 @@
+Creating test database for alias 'default' ('test_h127_student_feedback_whitelist')...
+Found 31 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+  Applying billing.0072_license_stripe_mutation_intent... OK
+  Applying billing.0073_schoolcreditallocation_grant_anchor_at... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more... OK
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_a_published_grade_is_shown_as_the_student_projection (students.tests_student_feedback_routes.AssignmentDetailPerformanceSummaryTest.test_a_published_grade_is_shown_as_the_student_projection) ... Free trial plan not found: no trial activated for user 8e1988e6-988d-4409-a5de-4089af61e3fc.
+Cannot activate automatic trial for user 8e1988e6-988d-4409-a5de-4089af61e3fc (validation): ValueError
+ok
+test_an_unpublished_grade_shows_nothing (students.tests_student_feedback_routes.AssignmentDetailPerformanceSummaryTest.test_an_unpublished_grade_shows_nothing) ... Free trial plan not found: no trial activated for user b9ee8cb8-7ed5-43ed-925b-4d6438170eee.
+Cannot activate automatic trial for user b9ee8cb8-7ed5-43ed-925b-4d6438170eee (validation): ValueError
+ok
+test_the_older_ai_feedback_column_is_projected_too (students.tests_student_feedback_routes.AssignmentDetailPerformanceSummaryTest.test_the_older_ai_feedback_column_is_projected_too)
+The route falls back to `ai_feedback` when `feedback` is empty; ... Free trial plan not found: no trial activated for user 47cf7763-2a9f-4d85-9cb4-2666310e1f18.
+Cannot activate automatic trial for user 47cf7763-2a9f-4d85-9cb4-2666310e1f18 (validation): ValueError
+ok
+test_plain_values_and_lists_of_them_still_pass (students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_plain_values_and_lists_of_them_still_pass)
+The rule removes nothing from a result of the expected shape. ... Free trial plan not found: no trial activated for user 4a1fa2de-f450-4c48-896b-2cbc94701a1a.
+Cannot activate automatic trial for user 4a1fa2de-f450-4c48-896b-2cbc94701a1a (validation): ValueError
+ok
+test_the_feedback_and_formatted_grade_on_the_submission_page (students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_the_feedback_and_formatted_grade_on_the_submission_page) ... Free trial plan not found: no trial activated for user b11d8577-966b-4677-8f45-53a0b90f6894.
+Cannot activate automatic trial for user b11d8577-966b-4677-8f45-53a0b90f6894 (validation): ValueError
+ok
+test_the_feedback_on_the_assignment_detail (students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_the_feedback_on_the_assignment_detail) ... Free trial plan not found: no trial activated for user 49c88105-8c6e-41f0-a791-e1acb93a2653.
+Cannot activate automatic trial for user 49c88105-8c6e-41f0-a791-e1acb93a2653 (validation): ValueError
+ok
+test_the_whole_analysis_block_is_still_copied_whole (students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_the_whole_analysis_block_is_still_copied_whole)
+A stated limit, pinned so that it is a decision and not an ... Free trial plan not found: no trial activated for user 398bd784-e39c-44c0-bd29-0c7e871535ca.
+Cannot activate automatic trial for user 398bd784-e39c-44c0-bd29-0c7e871535ca (validation): ValueError
+ok
+test_a_published_grade_is_shown_as_the_student_projection (students.tests_student_feedback_routes.StudentDashboardAssignmentsFeedbackTest.test_a_published_grade_is_shown_as_the_student_projection) ... Free trial plan not found: no trial activated for user 7fff3408-bbe7-4034-a777-c2faa6972af2.
+Cannot activate automatic trial for user 7fff3408-bbe7-4034-a777-c2faa6972af2 (validation): ValueError
+ok
+test_an_unpublished_grade_shows_nothing (students.tests_student_feedback_routes.StudentDashboardAssignmentsFeedbackTest.test_an_unpublished_grade_shows_nothing) ... Free trial plan not found: no trial activated for user 166f7f19-6653-4e8f-bcbc-396648656573.
+Cannot activate automatic trial for user 166f7f19-6653-4e8f-bcbc-396648656573 (validation): ValueError
+ok
+test_a_deeply_nested_value_is_shown_as_nothing (students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_deeply_nested_value_is_shown_as_nothing)
+Reading it fails; the failure is an answer of nothing, not a 500. ... Free trial plan not found: no trial activated for user ca0b39d1-9861-43da-a734-87de7cebf7b3.
+Cannot activate automatic trial for user ca0b39d1-9861-43da-a734-87de7cebf7b3 (validation): ValueError
+ok
+test_a_list_is_shown_as_nothing (students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_list_is_shown_as_nothing) ... Free trial plan not found: no trial activated for user 996b5b6e-5536-4b1d-95fc-db8c0e64c91c.
+Cannot activate automatic trial for user 996b5b6e-5536-4b1d-95fc-db8c0e64c91c (validation): ValueError
+ok
+test_a_released_grade_stored_in_python_text_form (students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_released_grade_stored_in_python_text_form) ... Free trial plan not found: no trial activated for user c32d4fd2-af7f-459b-a32b-ad3ab7698ff3.
+Cannot activate automatic trial for user c32d4fd2-af7f-459b-a32b-ad3ab7698ff3 (validation): ValueError
+ok
+test_a_very_long_value_is_shown_as_nothing (students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_very_long_value_is_shown_as_nothing)
+Refused by its length, before any attempt to read it. ... Free trial plan not found: no trial activated for user 08aa04b3-9d51-4d96-aafe-fb522903e427.
+Cannot activate automatic trial for user 08aa04b3-9d51-4d96-aafe-fb522903e427 (validation): ValueError
+ok
+test_an_empty_value_is_shown_as_nothing (students.tests_student_feedback_routes.StudentFormattedGradeTest.test_an_empty_value_is_shown_as_nothing) ... Free trial plan not found: no trial activated for user f41f4250-42e8-4f54-8d50-0bbc74748963.
+Cannot activate automatic trial for user f41f4250-42e8-4f54-8d50-0bbc74748963 (validation): ValueError
+ok
+test_an_unreleased_grade_shows_nothing (students.tests_student_feedback_routes.StudentFormattedGradeTest.test_an_unreleased_grade_shows_nothing) ... Free trial plan not found: no trial activated for user 93749ba6-f367-4d5d-a2ae-f76dd7749691.
+Cannot activate automatic trial for user 93749ba6-f367-4d5d-a2ae-f76dd7749691 (validation): ValueError
+ok
+test_json_text_that_is_also_python_text_is_projected_the_same_way (students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_also_python_text_is_projected_the_same_way)
+The text is read as a Python literal and nothing else (SM ruling). ... Free trial plan not found: no trial activated for user 3819d4d5-e9ad-41c1-b5df-5d84b85bd380.
+Cannot activate automatic trial for user 3819d4d5-e9ad-41c1-b5df-5d84b85bd380 (validation): ValueError
+ok
+test_json_text_that_is_not_python_text_is_shown_as_nothing (students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_not_python_text_is_shown_as_nothing) ... Free trial plan not found: no trial activated for user adcb8843-b9a6-4961-a47c-a6c4e813d3f6.
+Cannot activate automatic trial for user adcb8843-b9a6-4961-a47c-a6c4e813d3f6 (validation): ValueError
+ok
+test_no_formatted_grade_yet_shows_nothing (students.tests_student_feedback_routes.StudentFormattedGradeTest.test_no_formatted_grade_yet_shows_nothing) ... Free trial plan not found: no trial activated for user d607b6ad-4848-4a4b-99fb-8894d5d0e643.
+Cannot activate automatic trial for user d607b6ad-4848-4a4b-99fb-8894d5d0e643 (validation): ValueError
+ok
+test_text_that_is_not_a_dictionary_is_shown_as_nothing (students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_that_is_not_a_dictionary_is_shown_as_nothing) ... Free trial plan not found: no trial activated for user 253af92b-fb06-4048-b94a-4f4f1f509d3a.
+Cannot activate automatic trial for user 253af92b-fb06-4048-b94a-4f4f1f509d3a (validation): ValueError
+ok
+test_text_that_would_run_code_is_only_ever_read_never_run (students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_that_would_run_code_is_only_ever_read_never_run) ... Free trial plan not found: no trial activated for user ac74b5f9-e678-4b92-90c0-2587a1fcd7b2.
+Cannot activate automatic trial for user ac74b5f9-e678-4b92-90c0-2587a1fcd7b2 (validation): ValueError
+ok
+test_text_whose_reading_fails_with_a_type_error_is_shown_as_nothing (students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_whose_reading_fails_with_a_type_error_is_shown_as_nothing)
+Not every failure to read is a syntax or a value error: a list ... Free trial plan not found: no trial activated for user 6aa98b9a-f3fd-4125-bae3-8c96b2d90dcc.
+Cannot activate automatic trial for user 6aa98b9a-f3fd-4125-bae3-8c96b2d90dcc (validation): ValueError
+ok
+test_text_whose_reading_runs_out_of_memory_is_shown_as_nothing (students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_whose_reading_runs_out_of_memory_is_shown_as_nothing)
+400,000 minus signs before a number: within the size limit, and ... Free trial plan not found: no trial activated for user 94545ce0-4c4b-4e1c-8646-fb7bdda86f89.
+Cannot activate automatic trial for user 94545ce0-4c4b-4e1c-8646-fb7bdda86f89 (validation): ValueError
+ok
+test_the_teacher_still_reads_it_whole (students.tests_student_feedback_routes.StudentFormattedGradeTest.test_the_teacher_still_reads_it_whole) ... Free trial plan not found: no trial activated for user 1f005eec-d859-4f46-b21d-7dda93262f66.
+Cannot activate automatic trial for user 1f005eec-d859-4f46-b21d-7dda93262f66 (validation): ValueError
+ok
+test_a_value_that_is_not_a_dictionary_is_shown_as_nothing (students.tests_student_feedback_routes.StudentSafeFeedbackFunctionTest.test_a_value_that_is_not_a_dictionary_is_shown_as_nothing) ... Free trial plan not found: no trial activated for user 841d6f8d-9e66-4bc2-b7d7-f79001870d6a.
+Cannot activate automatic trial for user 841d6f8d-9e66-4bc2-b7d7-f79001870d6a (validation): ValueError
+ok
+test_the_result_never_shares_the_top_level_with_what_is_stored (students.tests_student_feedback_routes.StudentSafeFeedbackFunctionTest.test_the_result_never_shares_the_top_level_with_what_is_stored) ... Free trial plan not found: no trial activated for user 6b1598a5-5d85-4a7d-ae16-0c2b52a7911a.
+Cannot activate automatic trial for user 6b1598a5-5d85-4a7d-ae16-0c2b52a7911a (validation): ValueError
+ok
+test_a_published_grade_shows_a_student_no_review_field (students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_a_published_grade_shows_a_student_no_review_field) ... Free trial plan not found: no trial activated for user 50783ddd-968a-4655-87bd-a41e15797fff.
+Cannot activate automatic trial for user 50783ddd-968a-4655-87bd-a41e15797fff (validation): ValueError
+ok
+test_an_unpublished_grade_shows_a_student_no_review_field (students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_an_unpublished_grade_shows_a_student_no_review_field) ... Free trial plan not found: no trial activated for user e9affd59-d4be-4dd5-ab0b-8020004cf232.
+Cannot activate automatic trial for user e9affd59-d4be-4dd5-ab0b-8020004cf232 (validation): ValueError
+ok
+test_the_teacher_still_sees_the_review_queue_fields (students.tests_student_feedback_routes.StudentSubmissionListReviewFieldsTest.test_the_teacher_still_sees_the_review_queue_fields) ... Free trial plan not found: no trial activated for user 67fa958b-6539-42be-baa3-b0c201d84986.
+Cannot activate automatic trial for user 67fa958b-6539-42be-baa3-b0c201d84986 (validation): ValueError
+ok
+test_a_student_can_still_list_and_use_the_other_filters (students.tests_student_feedback_routes.StudentSubmissionListReviewFiltersTest.test_a_student_can_still_list_and_use_the_other_filters) ... Free trial plan not found: no trial activated for user 1edd4c4a-d4fc-4ec8-9c1f-87b36cce700f.
+Cannot activate automatic trial for user 1edd4c4a-d4fc-4ec8-9c1f-87b36cce700f (validation): ValueError
+ok
+test_a_student_cannot_filter_on_the_review_queue (students.tests_student_feedback_routes.StudentSubmissionListReviewFiltersTest.test_a_student_cannot_filter_on_the_review_queue) ... Free trial plan not found: no trial activated for user 2750673b-25f6-4b09-8851-968e3b896ee9.
+Cannot activate automatic trial for user 2750673b-25f6-4b09-8851-968e3b896ee9 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/users/mixins.py", line 74, in list
+    response = super().list(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 38, in list
+    queryset = self.filter_queryset(self.get_queryset())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/students/views.py", line 287, in filter_queryset
+    self._refuse_review_queue_query_from_a_student()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/students/views.py", line 282, in _refuse_review_queue_query_from_a_student
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: This filter or ordering is not available for your account.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/users/mixins.py", line 74, in list
+    response = super().list(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 38, in list
+    queryset = self.filter_queryset(self.get_queryset())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/students/views.py", line 287, in filter_queryset
+    self._refuse_review_queue_query_from_a_student()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/students/views.py", line 282, in _refuse_review_queue_query_from_a_student
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: This filter or ordering is not available for your account.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/users/mixins.py", line 74, in list
+    response = super().list(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 38, in list
+    queryset = self.filter_queryset(self.get_queryset())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/students/views.py", line 287, in filter_queryset
+    self._refuse_review_queue_query_from_a_student()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/students/views.py", line 282, in _refuse_review_queue_query_from_a_student
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: This filter or ordering is not available for your account.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/users/mixins.py", line 74, in list
+    response = super().list(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 38, in list
+    queryset = self.filter_queryset(self.get_queryset())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/students/views.py", line 287, in filter_queryset
+    self._refuse_review_queue_query_from_a_student()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/students/views.py", line 282, in _refuse_review_queue_query_from_a_student
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: This filter or ordering is not available for your account.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/users/mixins.py", line 74, in list
+    response = super().list(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 38, in list
+    queryset = self.filter_queryset(self.get_queryset())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/students/views.py", line 287, in filter_queryset
+    self._refuse_review_queue_query_from_a_student()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/students/views.py", line 282, in _refuse_review_queue_query_from_a_student
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: This filter or ordering is not available for your account.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/users/mixins.py", line 74, in list
+    response = super().list(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 38, in list
+    queryset = self.filter_queryset(self.get_queryset())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/students/views.py", line 287, in filter_queryset
+    self._refuse_review_queue_query_from_a_student()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/students/views.py", line 282, in _refuse_review_queue_query_from_a_student
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: This filter or ordering is not available for your account.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/users/mixins.py", line 74, in list
+    response = super().list(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 38, in list
+    queryset = self.filter_queryset(self.get_queryset())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/students/views.py", line 287, in filter_queryset
+    self._refuse_review_queue_query_from_a_student()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h127-student-feedback-whitelist/students/views.py", line 282, in _refuse_review_queue_query_from_a_student
+    raise PermissionDenied(
+rest_framework.exceptions.PermissionDenied: This filter or ordering is not available for your account.
+ok
+test_the_teacher_can_still_filter_and_order_the_review_queue (students.tests_student_feedback_routes.StudentSubmissionListReviewFiltersTest.test_the_teacher_can_still_filter_and_order_the_review_queue) ... Free trial plan not found: no trial activated for user 6c7595a6-01f2-4570-a7a8-09e625536715.
+Cannot activate automatic trial for user 6c7595a6-01f2-4570-a7a8-09e625536715 (validation): ValueError
+ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 3.144s
+
+OK
+Destroying test database for alias 'default' ('test_h127_student_feedback_whitelist')...
+ OK

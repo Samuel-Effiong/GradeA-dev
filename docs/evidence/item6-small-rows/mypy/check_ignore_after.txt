@@ -1,0 +1,4 @@
+Sun Oct 25 06:21:37 PM WAT 2026
+AFTER: working-tree .gitignore with the new line (uncommitted), same command
+.gitignore:6:.mypy_cache/	.mypy_cache/
+exit=0

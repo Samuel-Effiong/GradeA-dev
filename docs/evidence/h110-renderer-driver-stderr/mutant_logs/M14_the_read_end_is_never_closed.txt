@@ -1,0 +1,24 @@
+.....F.F...................
+======================================================================
+FAIL: test_close_ends_the_reader_and_closes_both_ends (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_close_ends_the_reader_and_closes_both_ends)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 289, in test_close_ends_the_reader_and_closes_both_ends
+    with self.assertRaises(OSError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: OSError not raised
+
+======================================================================
+FAIL: test_repeated_starts_leak_no_descriptor (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_repeated_starts_leak_no_descriptor)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 314, in test_repeated_starts_leak_no_descriptor
+    self.assertEqual(self.open_descriptors(), before)
+AssertionError: 33 != 8
+
+----------------------------------------------------------------------
+Ran 27 tests in 8.763s
+
+FAILED (failures=2)
+Found 27 test(s).
+System check identified no issues (0 silenced).

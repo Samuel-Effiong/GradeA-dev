@@ -1,0 +1,7 @@
+started 2026-09-30T16:28:00+01:00 tip 1448f14
+test_event_replay       1448f14 rc=0 10s Ran 29 tests in 6.784s OK
+mutant V1 diff:  1 file changed, 1 insertion(+), 1 deletion(-)
+mutant_v1 (lock removed) 1448f14 rc=1 18s Ran 2 tests in 1.299s FAILED (failures=2)
+
+dropped test_h62_mut_v1
+finished 2026-09-30T16:28:32+01:00

@@ -1,0 +1,203 @@
+# Trimmed: the last 200 lines. Full log (1597 KB, over the repo's 500 KB limit):
+# ~/Documents/Projects/GAP-evidence-logs/h38-tasks-namespace_regression_users_assignments_cb365f3_full.txt
+
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/file_uploads.py", line 115, in upload_assignment_file
+    raise InvalidUploadFileError(exc.detail) from exc
+assignments.exceptions.InvalidUploadFileError: Could not read this PDF: cannot open broken document
+Failed to extract assignment from file bad-29.pdf
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/ai_processor/services.py", line 5041, in extract
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/fitz/fitz.py", line 4143, in __init__
+    _fitz.Document_swiginit(self, _fitz.new_Document(filename, stream, filetype, rect, width, height, fontsize))
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fitz.fitz.FileDataError: cannot open broken document
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/services.py", line 445, in prepare_ai_content
+    images = PDFService(uploaded_file).extract()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/ai_processor/services.py", line 5045, in extract
+    raise ValueError(f"Could not read this PDF: {e}") from e
+ValueError: Could not read this PDF: cannot open broken document
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/file_uploads.py", line 111, in upload_assignment_file
+    content = AssignmentProcessingService.prepare_ai_content(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/services.py", line 447, in prepare_ai_content
+    raise ParseError(str(exc)) from exc
+rest_framework.exceptions.ParseError: Could not read this PDF: cannot open broken document
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/views.py", line 854, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/file_uploads.py", line 115, in upload_assignment_file
+    raise InvalidUploadFileError(exc.detail) from exc
+assignments.exceptions.InvalidUploadFileError: Could not read this PDF: cannot open broken document
+.Cannot activate automatic trial for user batch-task-96625f47@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user batch-task-788c0883@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-30 19:15:16,891 task_tracking 3988667 125944770898880 [request_id=-] Background task 49a35cac-c288-471c-9718-11a4fc13fb42 failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/services.py", line 445, in prepare_ai_content
+    images = PDFService(uploaded_file).extract()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/ai_processor/services.py", line 5053, in extract
+    raise ValueError(
+ValueError: This file is not a PDF. If it is a photo or scan, upload it as an image instead.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/file_uploads.py", line 111, in upload_assignment_file
+    content = AssignmentProcessingService.prepare_ai_content(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/services.py", line 447, in prepare_ai_content
+    raise ParseError(str(exc)) from exc
+rest_framework.exceptions.ParseError: This file is not a PDF. If it is a photo or scan, upload it as an image instead.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/tasks.py", line 990, in upload_assignment_async
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/file_uploads.py", line 115, in upload_assignment_file
+    raise InvalidUploadFileError(exc.detail) from exc
+assignments.exceptions.InvalidUploadFileError: This file is not a PDF. If it is a photo or scan, upload it as an image instead.
+.Cannot activate automatic trial for user batch-task-272fb230@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services ERROR 2026-09-30 19:15:17,299 services 3988667 125944770898880 [request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-30 19:15:17,299 services 3988667 125944770898880 [request_id=-] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-09-30 19:15:17,299 services 3988667 125944770898880 [request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-09-30 19:15:17,350 services 3988667 125944770898880 [request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-30 19:15:17,351 services 3988667 125944770898880 [request_id=-] Attempt 2 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-09-30 19:15:17,351 services 3988667 125944770898880 [request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-09-30 19:15:17,406 services 3988667 125944770898880 [request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-30 19:15:17,406 services 3988667 125944770898880 [request_id=-] Attempt 3 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+students.task_tracking ERROR 2026-09-30 19:15:17,462 task_tracking 3988667 125944770898880 [request_id=-] Background task 043f051f-9bf1-40e8-89d4-6259187b5845 failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/tasks.py", line 990, in upload_assignment_async
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/file_uploads.py", line 122, in upload_assignment_file
+    assignment_questions = AssignmentProcessingService.extract_assignment_data(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/services.py", line 864, in extract_assignment_data
+    ai_processor.extract_assignment_with_retry(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/ai_processor/services.py", line 1311, in extract_assignment_with_retry
+    raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+Exception: All 3 attempts failed. Last error: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+.Cannot activate automatic trial for user batch-worker-45e4bae7@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-30 19:15:18,021 task_tracking 3988667 125943314106048 [request_id=-] Background task 7bb17361-fc79-4da2-b325-828876cc3b6c failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/services.py", line 445, in prepare_ai_content
+    images = PDFService(uploaded_file).extract()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/ai_processor/services.py", line 5053, in extract
+    raise ValueError(
+ValueError: This file is not a PDF. If it is a photo or scan, upload it as an image instead.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/tasks.py", line 798, in upload_answers_engine_async
+    content = AssignmentProcessingService.prepare_ai_content(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/services.py", line 447, in prepare_ai_content
+    raise ParseError(str(exc)) from exc
+rest_framework.exceptions.ParseError: This file is not a PDF. If it is a photo or scan, upload it as an image instead.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/tasks.py", line 804, in upload_answers_engine_async
+    raise InvalidUploadFileError(exc.detail) from exc
+assignments.exceptions.InvalidUploadFileError: This file is not a PDF. If it is a photo or scan, upload it as an image instead.
+.[2026-09-30 19:15:27,355: WARNING/MainProcess] Cannot activate automatic trial for user batch-worker-849f2d18@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-30 19:15:27,499 task_tracking 3988667 125943322498752 [request_id=-] Background task 49a1d28f-e5a3-433c-b297-400740fcd0f4 failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/tasks.py", line 990, in upload_assignment_async
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/file_uploads.py", line 105, in upload_assignment_file
+    claim = _claim(course, sha256)
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/file_uploads.py", line 186, in _claim
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+[2026-09-30 19:15:27,529: ERROR/MainProcess] Task assignments.tasks.upload_assignment_async[f1b35afb-7406-4c3f-bb58-7fc772ddbc8c] raised unexpected: UploadAlreadyInProgressError('This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.')
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/celery/app/trace.py", line 453, in trace_task
+    R = retval = fun(*args, **kwargs)
+                 ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/tasks.py", line 990, in upload_assignment_async
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/file_uploads.py", line 105, in upload_assignment_file
+    claim = _claim(course, sha256)
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h38-tasks-namespace/assignments/file_uploads.py", line 186, in _claim
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+.........
+----------------------------------------------------------------------
+Ran 1281 tests in 335.753s
+
+OK (skipped=17)
+Destroying test database for alias 'default'...
+
+[scale] 30-file batch (24 good, 6 bad) took 3.61s
+
+[scale] 6 concurrent 30-file batches took 3.36s; provider calls=24

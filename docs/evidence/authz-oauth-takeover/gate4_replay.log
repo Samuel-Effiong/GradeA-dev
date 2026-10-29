@@ -1,0 +1,34 @@
+##### BASELINE: pristine beta (detached worktree) #####
+ea7183be3f8745ac5d3ce126404f8791694a3d52
+Cannot activate automatic trial for user rtauth-oauth-fresh-112dbe2f@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+=== authz OAuth account-linking takeover — commit ea7183be3f8745ac5d3ce126404f8791694a3d52 ===
+{
+  "victim_email": "rtauth-oauth-victim-be424eaa@gmail.com",
+  "register_status": 200,
+  "attacker_login_before_google_status": 401,
+  "google_signin_status": 200,
+  "attacker_login_after_google_status": 200,
+  "account_active_after": true,
+  "account_has_usable_password_after": true,
+  "vuln_pre_registration_takeover": true
+}
+CONTROL: {"fresh_email": "rtauth-oauth-fresh-112dbe2f@gmail.com", "google_signin_status": 200, "has_usable_password": false, "attacker_guess_login_status": 401, "control_ok_no_password_set": true}
+evidence -> /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-authz-oauth-takeover/docs/evidence/authz-oauth-takeover/logs/oauth_ea7183b.json
+>>> VULN
+##### FIX: task/authz-oauth-takeover #####
+db87b854b0434f28db85ff7febb9a0350dd22a0a
+Cannot activate automatic trial for user rtauth-oauth-fresh-d90abfeb@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+=== authz OAuth account-linking takeover — commit db87b854b0434f28db85ff7febb9a0350dd22a0a ===
+{
+  "victim_email": "rtauth-oauth-victim-e433ec85@gmail.com",
+  "register_status": 200,
+  "attacker_login_before_google_status": 401,
+  "google_signin_status": 200,
+  "attacker_login_after_google_status": 401,
+  "account_active_after": true,
+  "account_has_usable_password_after": false,
+  "vuln_pre_registration_takeover": false
+}
+CONTROL: {"fresh_email": "rtauth-oauth-fresh-d90abfeb@gmail.com", "google_signin_status": 200, "has_usable_password": false, "attacker_guess_login_status": 401, "control_ok_no_password_set": true}
+evidence -> /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-authz-oauth-takeover/docs/evidence/authz-oauth-takeover/logs/oauth_db87b85.json
+>>> not vulnerable

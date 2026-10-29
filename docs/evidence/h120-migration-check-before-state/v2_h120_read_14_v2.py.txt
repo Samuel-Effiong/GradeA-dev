@@ -1,0 +1,87 @@
+"""v2's own reading of the 14 migration files of H-120's table (2026-10-06).
+Not the check and not d5's reader: Django's migration loader with no
+connection (disk only, no database), every operation in file order, and for
+an altered column the field before and after from Django's own state. Also
+what the file's source holds that a state cannot show (raw SQL, data steps,
+the acknowledgement marker). Run from a checkout of the tip with -B.
+Usage: python -B h120_read_14_v2.py"""
+import os, re, sys
+sys.path.insert(0, os.getcwd())
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "AutoGrader.settings")
+import django
+django.setup()
+from django.db.migrations.loader import MigrationLoader
+from django.db.models.fields import NOT_PROVIDED
+
+FILES = ["assignments/0038", "assignments/0040", "billing/0009", "billing/0011", "billing/0013", "billing/0014",
+         "billing/0016", "billing/0017", "billing/0021", "billing/0022", "billing/0023", "billing/0025",
+         "billing/0059", "students/0026"]
+
+def d(field):
+    if field is None:
+        return "(none)"
+    bits = [field.get_internal_type(), "NULL" if field.null else "NOT NULL"]
+    if field.has_default():
+        v = field.default
+        bits.append("default=" + (getattr(v, "__name__", None) or repr(v))[:24])
+    if getattr(field, "db_default", NOT_PROVIDED) is not NOT_PROVIDED:
+        bits.append("db_default")
+    for a in ("max_length", "max_digits", "decimal_places"):
+        if getattr(field, a, None) is not None:
+            bits.append(f"{a}={getattr(field, a)}")
+    if getattr(field, "choices", None):
+        bits.append(f"choices={len(list(field.choices))}")
+    for a in ("primary_key", "unique", "db_index"):
+        if getattr(field, a, False):
+            bits.append(a)
+    if getattr(field, "db_column", None):
+        bits.append(f"db_column={field.db_column}")
+    rel = getattr(field, "remote_field", None)
+    if rel is not None and getattr(rel, "model", None) is not None:
+        bits.append(f"to={rel.model if isinstance(rel.model, str) else rel.model._meta.label_lower}")
+        if getattr(field, "db_constraint", True) is False:
+            bits.append("db_constraint=False")
+    return " ".join(bits)
+
+def walk(ops, state, app, indent="  "):
+    for op in ops:
+        n = type(op).__name__
+        model = getattr(op, "model_name", getattr(op, "name", ""))
+        if n == "AlterField":
+            try:
+                before = state.models[app, op.model_name_lower].fields[op.name]
+            except KeyError:
+                before = None
+            print(f"{indent}{n} {model}.{op.name}: {d(before)}  ->  {d(op.field)}")
+        elif n == "AddField":
+            m2m = " (many-to-many)" if getattr(op.field, "many_to_many", False) else ""
+            print(f"{indent}{n} {model}.{op.name}{m2m}: {d(op.field)}")
+        elif n in ("RemoveField",):
+            print(f"{indent}{n} {model}.{op.name}")
+        elif n == "RenameField":
+            print(f"{indent}{n} {model}.{op.old_name} -> {op.new_name}")
+        elif n == "SeparateDatabaseAndState":
+            print(f"{indent}{n}: database half ({len(op.database_operations)} op(s)):")
+            walk(op.database_operations, state.clone(), app, indent + "    db| ")
+            print(f"{indent}  state half ({len(op.state_operations)} op(s)):")
+            walk(op.state_operations, state.clone(), app, indent + "    st| ")
+        elif n == "CreateModel":
+            print(f"{indent}{n} {op.name} ({len(op.fields)} fields)")
+        elif n in ("RunSQL", "RunPython"):
+            print(f"{indent}{n} (not readable from state)")
+        else:
+            extra = getattr(op, "name", "") or ""
+            print(f"{indent}{n} {model} {extra if extra != model else ''}".rstrip())
+        op.state_forwards(app, state)
+
+loader = MigrationLoader(None)
+for f in FILES:
+    app, prefix = f.split("/")
+    names = [name for (a, name) in loader.graph.nodes if a == app and name.startswith(prefix + "_")]
+    assert len(names) == 1, (f, names)
+    name = names[0]
+    src = open(f"{app}/migrations/{name}.py").read()
+    marks = [w for w in ("RunSQL", "RunPython", "expand-contract-step") if w in src]
+    mig = loader.graph.nodes[(app, name)]
+    print(f"== {app}/{name}: {len(mig.operations)} operation(s); source mentions: {marks or 'none of RunSQL, RunPython, the marker'}")
+    walk(mig.operations, loader.project_state(nodes=[(app, name)], at_end=False), app)

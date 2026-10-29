@@ -1,0 +1,60 @@
+# H-206 notes
+
+- **The switch is OFF by default** (the owner, 24 October 2026: privacy first and the extra
+  DeepSeek cost is accepted, but `AI_PROVIDER_ZDR_ENABLED` defaults to false). Switching it on
+  is a host setting plus a restart of the web, worker and Beat processes.
+- **google/gemini-2.5-flash** (our third second-opinion candidate) has NO zero-retention
+  endpoint today: with the switch on, calls to it would fail. H-205 replaces it; H-206 makes no
+  change for it.
+- Mutants Z1-Z15 (no Z2): expected sets rewritten for the default-off tests (mutate.py, written
+  before any run). Z12 now sets the default back to on.
+
+## Expected result of the default-off tests against the code before the fix
+
+```
+H-206 default-OFF tests: expected result against the code BEFORE the fix (settings default=True,
+helper fallback True). Written 2026-10-24 before any run of these tests. Fragment = text that
+must appear inside that test's own FAIL block.
+
+RED (4):
+  TheSwitch.test_the_default_is_off
+      fragment: "True is not False"
+  TheSwitch.test_the_settings_module_reads_the_variable_with_default_false
+      fragment: 'env.bool("AI_PROVIDER_ZDR_ENABLED", default=True)'
+  TheSwitch.test_at_the_default_no_request_carries_zdr_anywhere
+      fragment: "'zdr': True"   (the first assertion: _provider_block() == OFF)
+  TheSwitch.test_the_switch_is_read_at_each_call_not_once_at_import
+      fragment: "Tuples differ"
+GREEN both before and after the fix (set the switch by override_settings, so the default does not matter):
+  TheSwitch.test_off_sends_no_zdr_and_on_sends_zdr_true_on_every_path
+  TheSwitch.test_with_the_switch_off_the_block_is_exactly_data_collection_deny
+  every test in TheRequestAsksForZeroRetentionOnEveryPath and TheHelper (class-level override on)
+  all static tests (NAMED reason text reworded only)
+```
+
+## Gate on a4161b4d: STOPPED RED (kept on the record)
+
+`stopped_a4161b4d/` (gzipped). Step 0 (17 written reds), 1a and 1b were as written; step 1 stopped
+at "Ran 642 tests, FAILED (failures=1)": `test_the_settings_module_reads_the_variable_with_default_false`
+expected the settings line with double quotes, but `ast.unparse` always writes single quotes, so the
+test could not pass (the flaw predates the default-off change). Fixed in `97364d3b`, test only.
+
+## Gate on e717a0ee: GREEN
+
+`gate_e717a0ee/` (gzipped), 11:28:19 to 11:33:07 WAT 24 October 2026, base c7f3895f (H-201's
+frozen tip), load 2.73 to 1.33, cap 6G.
+
+| Step | Result |
+| --- | --- |
+| 0 red run (the module against c7f3895f's code) | exit 1, "Ran 24 tests", "FAILED (failures=40, errors=5)"; all 17 named tests red for their written fragments |
+| 1a makemigrations --check | exit 0, "No changes detected" |
+| 1b the seam | the diff of services.py removes exactly the old 3-line comment and the one literal provider block |
+| 1 own + near modules (incl. H-201's two) + guards | "Ran 642 tests in 171.483s", "OK" |
+| 2 mutants | 14/14 KILLED (Z1, Z3-Z15), none survived or broken; each with its own Ran line |
+
+Recorded, not hidden: Z5 (a shared dict) also failed 7 tests outside its expected set (the
+order-dependent ones left out on purpose, and the literal test, since the mutant's module-level
+`_SHARED = {"data_collection": "deny"}` sits outside the helper).
+
+The credential-pattern scan of the logs finds only services.py's own source quoted in assertion
+messages (`openrouter_api_key = env.str(...)`, `api_key=openrouter_api_key`): names, no values.

@@ -1,0 +1,14 @@
+"""1a's mutant Y3 for H-80 (the SM's P2 ruling): one logger call formats the
+address INTO the message with an operator, the shape the guard's first
+version did not inspect (`"... %s" % teacher.email`). Expected: killed by
+the source guard and by the success-path behaviour test. Applied in place
+to billing/license_service.py in the current directory; restore with git
+checkout. Run with python -B (rule 17)."""
+
+P = "billing/license_service.py"
+s = open(P, encoding="utf-8").read()
+old = 'logger.info("Created CreditWallet for teacher %s", teacher.id)'
+new = 'logger.info("Created CreditWallet for teacher %s" % teacher.email)'
+assert s.count(old) == 1, s.count(old)
+open(P, "w", encoding="utf-8").write(s.replace(old, new))
+print("applied Y3")

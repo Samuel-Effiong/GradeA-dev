@@ -1,0 +1,1611 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user owner@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user other.teacher@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user school.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user super.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user pupil@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user owner@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user other.teacher@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user school.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user super.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+.Cannot activate automatic trial for user owner@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user other.teacher@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user school.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user super.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+.Cannot activate automatic trial for user owner@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user other.teacher@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user school.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user super.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+.Cannot activate automatic trial for user owner@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user other.teacher@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user school.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user super.admin@h71.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user victim@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 51aca2db-1949-4279-962b-9414778d638d into course 3ad0b610-44b1-437b-b585-6abc9b482d5e: account is associated with school(s) ['612dbfe7-ab2c-444a-bad0-df2094f9e68e'] but the course belongs to school e4ed6b1d-f946-4d9b-a615-d57816fc0280.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user victim@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student af50e715-4b1b-4bfd-8700-294a7d39c655 into course e39149b9-f815-49a6-9d2c-c647eb0eae1e: account is associated with school(s) ['0e638548-4a96-4370-88ee-7ecdbad06281'] but the course belongs to school None.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user victim@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 01f620e5-008c-4085-8482-75907551a928 into course 6b866634-311b-4cef-9949-e9e5a9731c34: account is associated with school(s) ['855bc89e-7762-4934-b515-37b149953a2e'] but the course belongs to school 8253a4a3-ac38-4dc6-aacb-705bff18de9c.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user victim@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student f3ee93d4-31ac-4d53-aae8-bf5cdb6c54de into course 7506ee2d-8a37-4e0d-9988-755d1e87356b: account is associated with school(s) ['e3eaaa11-07bb-4d6d-97d5-39d4f205a1b3'] but the course belongs to school f4a6d19a-9183-455d-9d92-bf68a660be36.
+Failed to direct-add student to course
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/serializers.py", line 610, in create
+    check_existing_account_may_join(student, course)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/services/enrollment.py", line 169, in check_existing_account_may_join
+    raise EnrollmentError(CROSS_SCHOOL_REJECTION_MESSAGE)
+classrooms.services.enrollment.EnrollmentError: This account cannot be added to this school. If you believe this is a mistake, contact your school administrator.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1397, in direct_add_student
+    student = serializer.save()
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/serializers.py", line 612, in create
+    raise serializers.ValidationError(str(exc)) from exc
+rest_framework.exceptions.ValidationError: [ErrorDetail(string='This account cannot be added to this school. If you believe this is a mistake, contact your school administrator.', code='invalid')]
+
+
+django.request ERROR 2026-09-30 19:19:50,341 log 4022281 133336361282496 [request_id=-] Internal Server Error: /api/v1/course/7506ee2d-8a37-4e0d-9988-755d1e87356b/direct-add-student
+
+
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user victim@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student c112f43a-a7cd-4188-a5a0-39ada0c35688 into course dc36c3fa-2bf6-4caa-b7ca-e91514339f86: account is associated with school(s) ['68dd1052-bbb6-4b48-91d0-e0123d2437d2'] but the course belongs to school 81763e3a-2bc9-4745-ba96-0f2b308d225e.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user victim@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 655fd3f8-a2f1-451f-bc99-99de2e2eeec4 into course c5188052-7a3a-4b60-885b-cbf4ab0529d1: account is associated with school(s) ['2405339d-bdc7-4784-a2f5-7282124c8fbe'] but the course belongs to school 307b7b20-1e20-487f-bfa4-0e6a4aea0b53.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user victim@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 44d250ad-a4b7-44e3-9aa8-53b4fb621116 into course bd59910f-4c4d-4fab-a76f-59579f1a1aac: account is associated with school(s) ['1e221f5c-4952-4ceb-9742-e9a878413a7c'] but the course belongs to school 7bd11329-a93f-4f44-9964-e28d98f4d9a2.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user victim@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 15b526c0-594b-49cd-8667-73d42af7e26f into course f420bc10-adbb-40b5-a8e3-7fcb6929e28d: account is associated with school(s) ['9afd01da-0f47-489a-816e-57808187eec0'] but the course belongs to school 3d01c633-af83-4996-b051-59908cca3bd1.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user target@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user dupe@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user target@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student c27f42c8-4da0-41d9-a735-e7afcf868266 into course 26e11719-035e-43f9-b63d-c9235986932c: account is associated with school(s) ['eeeaf468-eb27-47ad-8d59-1bafa0e0f0c3'] but the course belongs to school 10eaf9b8-00f5-4ea2-9f10-ff1a72aa07d4.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user target@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 7a077f07-a384-41b3-b9ee-a5c71160b3e1 into course 5fe340f5-229d-4ebc-a5c7-cdcccbfd3c92: account is associated with school(s) ['81395632-142f-4a63-a289-de93fa6b1aea'] but the course belongs to school 504c417a-c56c-40f2-b1af-acf8f3729997.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user target@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user Solo@legacy.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user target@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user Legacy@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 485a3eee-d290-4754-b580-1586ea8070bb into course c41c9489-256d-42c9-b570-61531e3da73f: account is associated with school(s) ['d9a4014e-9787-4649-90f7-50d2ffc79f69'] but the course belongs to school 04c3aca0-cdab-4f9f-a903-86bcc62d21a2.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user target@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user target@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student dcb76438-86c7-44b1-b69c-e679a7afd40d into course 91bc00b5-1ebd-4bed-aad4-27d274fb8658: account is associated with school(s) ['78cf5245-fec6-4a97-b4cd-557c457f6d31'] but the course belongs to school 91c81d8e-0c9a-4310-a558-d9581d79d57f.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user target@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 0da2a00e-9783-4fa5-8f04-db2f6d531706 into course 70ee91dd-63a3-4821-b087-250526febb64: account is associated with school(s) ['3d5df890-d217-4e26-bfe7-fa892a6c73b4'] but the course belongs to school 6032072b-2734-432e-aa2a-4fa5edb162d4.
+Refused to enroll student 0da2a00e-9783-4fa5-8f04-db2f6d531706 into course 70ee91dd-63a3-4821-b087-250526febb64: account is associated with school(s) ['3d5df890-d217-4e26-bfe7-fa892a6c73b4'] but the course belongs to school 6032072b-2734-432e-aa2a-4fa5edb162d4.
+Refused to enroll student 0da2a00e-9783-4fa5-8f04-db2f6d531706 into course 70ee91dd-63a3-4821-b087-250526febb64: account is associated with school(s) ['3d5df890-d217-4e26-bfe7-fa892a6c73b4'] but the course belongs to school 6032072b-2734-432e-aa2a-4fa5edb162d4.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user target@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user mine@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user target@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1340, in students
+    course = get_object_or_404(self.get_queryset(), pk=self.kwargs["pk"])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s5@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s1@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s2@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s3@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user s4@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user quiet2@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 84ede2e9-1798-453e-b56f-4f242d6e6141 into course ce2431aa-2f21-44de-b86e-f278ca625265: account is associated with school(s) ['1d52219b-6eb7-4b79-9f01-a6c292383d5c'] but the course belongs to school 8ddab829-08fe-4f57-8c4b-158aa0b968a1.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user quiet@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 2932acd1-da77-4a29-b65d-825464890d83 into course 7d6e99e5-a496-4828-912a-b24faa12790a: account is associated with school(s) ['b545d52b-80c8-4714-8543-9da0486f7c7b'] but the course belongs to school 5d1e4238-560d-4220-b46d-f309b58437a2.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user logged@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user free@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user same@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user same3@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user same2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user svc2@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 754889cf-e141-46d1-88b4-a2965ce98d98 into course b7f5e886-129b-435e-a3ec-91a9d0e36fe0: account is associated with school(s) ['b9773562-8cae-4343-8d3b-e54556c619c4'] but the course belongs to school 3f8f007a-6cf5-4dd2-bd25-151fe46011a8.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user svc@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 1194ac56-795d-40ee-bd8b-a94d8bcff0ce into course a6b5625e-f2aa-4161-9e77-d5b5fb69f474: account is associated with school(s) ['1d68702a-c3b5-42fe-b8e7-7563aac83f8e'] but the course belongs to school 9b145bdb-2344-472a-a753-28828ea640a4.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1394, in direct_add_student
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'first_name': [ErrorDetail(string='Ensure this value has at least 2 characters (it has 1).', code='min_length')], 'last_name': [ErrorDetail(string='Ensure this value has at least 2 characters (it has 1).', code='min_length')], 'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ta2@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user solo@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user adminb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1333, in students
+    raise ValidationError(serializer.errors)
+rest_framework.exceptions.ValidationError: {'email': [ErrorDetail(string="This email can't be added as a student.", code='invalid')]}
+.Cannot activate automatic trial for user teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/services/roster_import.py", line 151, in read_rows
+    decoded = input_file.read().decode("utf-8").splitlines()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0x89 in position 0: invalid start byte
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1439, in bulk_add_students
+    rows, total_processed = services.parse_roster(
+                            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/services/roster_import.py", line 171, in parse_roster
+    raw_rows = read_rows(input_file=input_file, raw_data=raw_data)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/services/roster_import.py", line 155, in read_rows
+    raise RosterImportError(
+classrooms.services.roster_import.RosterImportError: This file isn't readable as UTF-8 text. Export your roster as a CSV file and try again.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1446, in bulk_add_students
+    raise ValidationError({exc.field: [exc.message]}) from exc
+rest_framework.exceptions.ValidationError: {'file': [ErrorDetail(string="This file isn't readable as UTF-8 text. Export your roster as a CSV file and try again.", code='invalid')]}
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1439, in bulk_add_students
+    rows, total_processed = services.parse_roster(
+                            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/services/roster_import.py", line 177, in parse_roster
+    raise RosterImportError(
+classrooms.services.roster_import.RosterImportError: This roster has 2005 rows. Upload at most 2000 rows at a time.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1446, in bulk_add_students
+    raise ValidationError({exc.field: [exc.message]}) from exc
+rest_framework.exceptions.ValidationError: {'detail': [ErrorDetail(string='This roster has 2005 rows. Upload at most 2000 rows at a time.', code='invalid')]}
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1439, in bulk_add_students
+    rows, total_processed = services.parse_roster(
+                            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/services/roster_import.py", line 171, in parse_roster
+    raw_rows = read_rows(input_file=input_file, raw_data=raw_data)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/services/roster_import.py", line 145, in read_rows
+    raise RosterImportError(
+classrooms.services.roster_import.RosterImportError: This file is too large. Upload a roster of at most 2048 KB.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1446, in bulk_add_students
+    raise ValidationError({exc.field: [exc.message]}) from exc
+rest_framework.exceptions.ValidationError: {'file': [ErrorDetail(string='This file is too large. Upload a roster of at most 2048 KB.', code='invalid')]}
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student f749e17b-7f65-4415-b368-03fefe080360 into course ea5cec59-e47f-4eff-8a69-bc1ce2ce5220: account is associated with school(s) ['a824aa8b-0bae-4e73-9639-883046ac8f26'] but the course belongs to school 7127fbb0-f7c6-48bf-b5d9-d2a268354994.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.StudentCourse.DoesNotExist: StudentCourse matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No StudentCourse matches the given query.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Topic.DoesNotExist: Topic matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Topic matches the given query.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: Custom permission to only allow teachers to create/edit sessions. Students can only view sessions they are enrolled in.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: Custom permission to only allow teachers to create/edit sessions. Students can only view sessions they are enrolled in.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/users/mixins.py", line 74, in list
+    response = super().list(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 38, in list
+    queryset = self.filter_queryset(self.get_queryset())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 154, in filter_queryset
+    queryset = backend().filter_queryset(self.request, queryset, self)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django_filters/rest_framework/backends.py", line 71, in filter_queryset
+    raise utils.translate_validation(filterset.errors)
+rest_framework.exceptions.ValidationError: {'session': [ErrorDetail(string='“not-a-uuid” is not a valid UUID.', code='invalid')]}
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Topic.DoesNotExist: Topic matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Topic matches the given query.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.StudentCourse.DoesNotExist: StudentCourse matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/users/mixins.py", line 85, in retrieve
+    response = super().retrieve(request, *args, **kwargs)  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 54, in retrieve
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No StudentCourse matches the given query.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: Custom permission to only allow teachers to create/edit sessions. Students can only view sessions they are enrolled in.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: Custom permission to only allow teachers to create/edit sessions. Students can only view sessions they are enrolled in.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: Custom permission to only allow teachers to create/edit sessions. Students can only view sessions they are enrolled in.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1711, in student_summary
+    raise NotFound("This student is not enrolled in the course.")
+rest_framework.exceptions.NotFound: This student is not enrolled in the course.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 18, in create
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'session': [ErrorDetail(string='You do not have access to this session.', code='invalid')]}
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1434, in bulk_add_students
+    course = self.get_object()
+             ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1795, in create_topics
+    course = self.get_object()
+             ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Topic.DoesNotExist: Topic matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/drf_spectacular/drainage.py", line 207, in wrapped_method
+    return method(self, request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/mixins.py", line 90, in destroy
+    instance = self.get_object()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Topic matches the given query.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1388, in direct_add_student
+    course = self.get_object()
+             ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1340, in students
+    course = get_object_or_404(self.get_queryset(), pk=self.kwargs["pk"])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1698, in student_summary
+    course = self.get_object()
+             ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+classrooms.models.Course.DoesNotExist: Course matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/views.py", line 1493, in remove_student
+    course = self.get_object()
+             ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No Course matches the given query.
+.Cannot activate automatic trial for user ta@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user tb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user aa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user ab@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sa@a.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user sb@b.test (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+.Cannot activate automatic trial for user deact.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 6649e623-a9b3-48cf-abfc-dfc0e735e6df into course 3949d3c9-5776-44b5-9f98-bb75ad1a5b3b: the account is deactivated.
+.Cannot activate automatic trial for user deact.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 4a93d068-fab6-41a7-b6f0-ff76dd6e69f2 into course 6017c1b5-7bd1-493c-9697-1a89b1b01ed0: the account is deactivated.
+.Cannot activate automatic trial for user deact.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 2d480223-07d4-4b2a-a47e-f2509ea2248c into course aeb9c6d3-6945-47bc-824b-a1239a011477: the account is deactivated.
+.Cannot activate automatic trial for user deact.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student d3cd60b1-1d83-4fda-ad4a-0d679b2b10cc into course 4b2aa9df-abcd-4a8d-8921-195019bd604f: the account is deactivated.
+.Cannot activate automatic trial for user deact.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user roster.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user roster.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user roster.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user roster.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user colleague@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user roster.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user roster.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user roster.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user roster.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Refused to enroll student 5c1e549c-353b-4a5d-9212-360df6a4b9c2 into course 4cfb7a2f-f718-4d2d-9187-a5c5058511d6: account is associated with school(s) ['3dcb9bda-9e11-46f7-9eff-cb0fbefe9e35'] but the course belongs to school None.
+.Cannot activate automatic trial for user roster.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user roster.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user roster.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user single.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user single.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user me@sweep.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user stranger@sweep.test (validation): Free trial plan not found. Please create one in the admin panel.
+........................Cannot activate automatic trial for user h56-teacher@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user h56-wallet-54d388cb@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user h56-wallet-40a3deb7@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user h56-wallet-18b85ef9@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+............
+======================================================================
+FAIL: test_bulk_import_cannot_hijack_an_existing_teacher_account (classrooms.tests_security_penetration.BulkAndUploadAbuseAttacks.test_bulk_import_cannot_hijack_an_existing_teacher_account)
+A roster row carrying a teacher's email must not enroll that
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/classrooms/tests_security_penetration.py", line 631, in test_bulk_import_cannot_hijack_an_existing_teacher_account
+    self.assertIn("teacher", response.data["results"][0]["error"].lower())
+AssertionError: 'teacher' not found in "this email can't be added as a student."
+
+----------------------------------------------------------------------
+Ran 167 tests in 27.973s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+Found 167 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

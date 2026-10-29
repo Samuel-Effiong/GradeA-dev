@@ -1,0 +1,12 @@
+# O5: H-81: the renewal task reports
+# file: billing/license_service.py (occurrence 1)
+# old: '        LicenseSubscriptionService._report_owed_refreshes(\n            license_sub, active_allocations, now\n        )\n'
+# new: ''
+# commit: 3734461531ad8e353fb262381022b1842e1f6c55
+# exit: 1
+# elapsed_s: 24.2
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_last_refresh_never_made_is_reported_by_the_renewal_task (billing.tests.test_owed_grant_detection.LicenceRenewalReportsOwedRefreshesTests.test_the_last_refresh_never_made_is_reported_by_the_renewal_task)
+
+FAILED (failures=1)

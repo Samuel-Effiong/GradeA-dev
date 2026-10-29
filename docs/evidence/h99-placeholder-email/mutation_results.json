@@ -1,0 +1,66 @@
+{
+  "P1_a_taken_generated_address_attaches_the_account": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_bulk_row_makes_a_new_student",
+      "test_direct_add_makes_a_new_student",
+      "test_the_same_teachers_other_course_gets_a_new_student_by_direct_add",
+      "test_when_every_attempt_collides_nothing_is_attached"
+    ]
+  },
+  "P3_a_refused_insert_is_not_retried": {
+    "killed": true,
+    "failing_tests": [
+      "test_two_requests_picking_one_token_end_as_two_students"
+    ]
+  },
+  "P4_only_one_address_is_tried": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_bulk_row_makes_a_new_student",
+      "test_direct_add_makes_a_new_student",
+      "test_the_same_teachers_other_course_gets_a_new_student_by_direct_add",
+      "test_two_requests_picking_one_token_end_as_two_students",
+      "test_when_every_attempt_collides_nothing_is_attached"
+    ]
+  },
+  "P5_the_suffix_is_four_digits_again": {
+    "killed": true,
+    "failing_tests": [
+      "test_it_is_in_the_placeholder_domain_with_a_long_random_token",
+      "test_the_name_parts_are_folded_and_kept_short"
+    ]
+  },
+  "P6_the_domain_match_is_case_sensitive_and_untrimmed": {
+    "killed": true,
+    "failing_tests": [
+      "test_is_placeholder_email_ignores_case_and_surrounding_spaces"
+    ]
+  },
+  "P7_the_shared_service_accepts_a_placeholder_address": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_bulk_row_refuses_it",
+      "test_the_shared_service_refuses_it_and_logs_ids_only"
+    ]
+  },
+  "P8_the_single_add_form_accepts_a_placeholder_address": {
+    "killed": true,
+    "failing_tests": [
+      "test_each_form_refuses_it_before_any_lookup_or_save"
+    ]
+  },
+  "P9_the_direct_add_form_accepts_a_placeholder_address": {
+    "killed": true,
+    "failing_tests": [
+      "test_direct_add_refuses_it",
+      "test_each_form_refuses_it_before_any_lookup_or_save"
+    ]
+  },
+  "P10_the_name_parts_are_not_cut": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_name_parts_are_folded_and_kept_short"
+    ]
+  }
+}

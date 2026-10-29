@@ -1,0 +1,68 @@
+"""H-191: written on 2026-10-08 BEFORE any run of the row.
+The module (assignments/tests_sanitizer_threads.py) has five tests (the fifth, added after the Senior Manager asked about the conversion cache: threads fill the process-local cache of html_to_prosemirror_text, then every input is read back single-threaded and must be its own document):
+ - the single-thread outputs are what the comparison needs (markers present,
+   distinct): passes on any code, even the shared Cleaner (one thread);
+ - many threads raise nothing and every output is its own (and carries no
+   other input's marker);
+ - the hostile inputs stay clean in every thread (and equal their
+   single-thread output);
+ - the whole conversion gives each thread its own document.
+The shared module-level Cleaner is a RACE: with the switch interval at 1e-6 s
+and 8 threads x 60 rounds x 12 inputs, the three threaded tests are expected
+red on it; HOW OFTEN is measured by run_rate.sh and stated in the evidence,
+not assumed here.
+Usage: python expected_kills.py <battery_dir>
+       python expected_kills.py --repro <log: the module on the shared Cleaner>"""
+import re
+import sys
+from pathlib import Path
+
+C = "TheSanitizerKeepsEachCallersTextToItself"
+T_SINGLE = (C, "test_the_single_thread_outputs_are_what_the_comparison_needs")
+T_MANY = (C, "test_many_threads_raise_nothing_and_every_output_is_its_own")
+T_HOSTILE = (C, "test_the_hostile_inputs_stay_clean_in_every_thread")
+T_WHOLE = (C, "test_the_whole_conversion_gives_each_thread_its_own_document")
+T_CACHE = (C, "test_a_wrong_result_is_never_kept_in_the_conversion_cache")
+
+EXPECTED = {
+    # the shared Cleaner restored: the three threaded tests; the
+    # single-thread test cannot see a race.
+    "S1": {T_MANY, T_HOSTILE, T_WHOLE, T_CACHE},
+    # an onerror attribute allowed on an image: only the hostile test sees it
+    # (the whole conversion drops the attribute at the schema; the others
+    # compare with a single-thread output of the same weakened code).
+    "S2": {T_HOSTILE},
+}
+REPRO = {T_MANY, T_HOSTILE, T_WHOLE, T_CACHE}
+LINE = re.compile(r"^(?:FAIL|ERROR): (test_\w+) \(([\w.]+)\)", re.M)
+
+
+def failing(text):
+    return {(path.split(".")[-2], name) for name, path in LINE.findall(text)}
+
+
+def compare(label, got, expected):
+    extra, missing = got - expected, expected - got
+    print(
+        f"{label}: {len(got)} failing, {'as expected' if got == expected else 'DIFFERS'}"
+        + (f"; unexpected: {sorted(extra)}" if extra else "")
+        + (f"; expected but passed: {sorted(missing)}" if missing else "")
+    )
+    return got != expected
+
+
+if sys.argv[1] == "--repro":
+    bad = compare("repro", failing(Path(sys.argv[2]).read_text(errors="replace")), REPRO)
+    print("the red set is the expected one" if not bad else "the red set differs")
+else:
+    logs = Path(sys.argv[1]) / "logs"
+    def compare_mutant(mutant, expected):
+        text = (logs / f"{mutant}.log").read_text(errors="replace")
+        if "# timed_out: True" in text:
+            print(f"{mutant}: TIMEOUT counted killed (a wedged run); failing set not compared")
+            return False
+        return compare(mutant, failing(text), expected)
+
+    bad = sum(compare_mutant(mutant, expected) for mutant, expected in EXPECTED.items())
+    print("every mutant's failing set is the expected one" if not bad else f"{bad} mutant(s) differ")
+sys.exit(1 if bad else 0)

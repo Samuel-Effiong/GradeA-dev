@@ -1,0 +1,140 @@
+"""v2's probe for H-120 (d5). Copy to AutoGrader/tests_vf2_h120_probe.py of
+the scratch worktree; never committed to the branch. Written 2026-10-06
+before any run of the check by v2, after reading 839a0ec5 (= 047da1bd for
+the check and its tests). No database: SimpleTestCase, the check's own
+functions, d5's helpers for the made-up table.
+
+  E1  the six files of pull request 2 that the new type-change rule reports
+      for the first time (found by v2's own scan, not by the check): the
+      check must say of each exactly what v2 read in the file.
+  E2  billing/0032 changes a type too and carries a marker.
+  E3  what Django's own fill makes safe, and the two edges of it that the
+      check passes (predictions: passes).
+  E4  rule gaps, as predictions (each PASSES the check today): a decimal
+      whose whole part shrinks; unique added to an existing column; a
+      rename through db_column; a foreign key pointed at another table.
+  E5  a foreign key turned into a one-to-one is named as a type change.
+  E6  operations the check has never judged still pass: a table rename, a
+      new index, a new constraint (not H-120's; stated so nobody takes the
+      check for more than it is).
+"""
+
+from django.db import migrations, models
+from django.test import SimpleTestCase
+
+from AutoGrader.tests_migration_safety_check import (
+    altered,
+    check,
+    judged,
+    kinds,
+    type_change,
+)
+
+B = "billing/migrations/"
+NEWLY_REPORTED = {
+    B + "0010_alter_betaprofile_id.py": [type_change("BigAutoField", "CharField")],
+    B
+    + "0031_alter_licensesubscription_custom_price_cents_and_more.py": [
+        type_change("PositiveSmallIntegerField", "PositiveIntegerField"),
+        type_change("PositiveSmallIntegerField", "PositiveIntegerField"),
+    ],
+    B
+    + "0034_alter_licensesubscription_custom_price_cents.py": [
+        type_change("PositiveIntegerField", "DecimalField")
+    ],
+    B
+    + "0036_alter_licensesubscription_contract_months_and_more.py": [
+        type_change("DecimalField", "IntegerField")
+    ],
+    B
+    + "0039_alter_subscriptionplan_overage_block_price.py": [
+        type_change("DecimalField", "IntegerField")
+    ],
+    "students/migrations/0027_alter_studentsubmission_ai_grading_completed_at.py": [
+        type_change("DateField", "DateTimeField")
+    ],
+}
+
+
+class VF2NewlyReportedFiles(SimpleTestCase):
+    def test_e1_each_of_the_six_is_reported_as_a_type_change_and_nothing_else(self):
+        for path, expected in NEWLY_REPORTED.items():
+            with self.subTest(migration=path):
+                self.assertEqual(kinds(check.classify(path)), expected)
+                self.assertFalse(check.has_ack(path))
+
+    def test_e2_billing_0032_changes_a_type_and_is_acknowledged(self):
+        path = B + "0032_remove_subscriptionplan_price_cents_and_more.py"
+        found = kinds(check.classify(path))
+        self.assertIn(type_change("PositiveIntegerField", "DecimalField"), found)
+        self.assertIn("RemoveField", found)
+        self.assertTrue(check.has_ack(path))
+
+
+class VF2WhatAPassDoesNotMean(SimpleTestCase):
+    def test_e3_not_null_with_a_default_passes_whatever_the_default_is(self):
+        import uuid
+
+        passes = {
+            "the same default before and after": (
+                models.IntegerField(null=True, default=0),
+                models.IntegerField(default=0),
+            ),
+            "a default of None, which fills nothing": (
+                models.IntegerField(null=True),
+                models.IntegerField(default=None),
+            ),
+            "one computed default on a unique column": (
+                models.UUIDField(null=True),
+                models.UUIDField(default=uuid.uuid4, unique=True),
+            ),
+        }
+        for name, (before, after) in passes.items():
+            with self.subTest(change=name):
+                self.assertEqual(altered(before, after), [])
+
+    def test_e4_rule_gaps_pass_today(self):
+        gaps = {
+            "a decimal whose whole part shrinks (6,2 to 6,4)": (
+                models.DecimalField(max_digits=6, decimal_places=2),
+                models.DecimalField(max_digits=6, decimal_places=4),
+            ),
+            "unique added to an existing column": (
+                models.CharField(max_length=20),
+                models.CharField(max_length=20, unique=True),
+            ),
+            "a rename through db_column": (
+                models.CharField(max_length=20),
+                models.CharField(max_length=20, db_column="other_name"),
+            ),
+            "a foreign key pointed at another table": (
+                models.ForeignKey("shop.Tag", on_delete=models.CASCADE),
+                models.ForeignKey("shop.Item", on_delete=models.CASCADE),
+            ),
+        }
+        for name, (before, after) in gaps.items():
+            with self.subTest(change=name):
+                self.assertEqual(altered(before, after), [])
+
+    def test_e5_a_foreign_key_made_one_to_one_is_a_type_change(self):
+        self.assertEqual(
+            altered(
+                models.ForeignKey("shop.Tag", on_delete=models.CASCADE),
+                models.OneToOneField("shop.Tag", on_delete=models.CASCADE),
+            ),
+            [type_change("ForeignKey", "OneToOneField")],
+        )
+
+    def test_e6_operations_never_judged_still_pass(self):
+        never = {
+            "a table rename": migrations.AlterModelTable("Item", "shop_things"),
+            "a new index": migrations.AddIndex(
+                "Item", models.Index(fields=["thing"], name="vf2_thing_idx")
+            ),
+            "a new unique constraint": migrations.AddConstraint(
+                "Item", models.UniqueConstraint(fields=["thing"], name="vf2_thing_uniq")
+            ),
+        }
+        for name, operation in never.items():
+            with self.subTest(operation=name):
+                self.assertEqual(judged([operation], thing=models.IntegerField()), [])

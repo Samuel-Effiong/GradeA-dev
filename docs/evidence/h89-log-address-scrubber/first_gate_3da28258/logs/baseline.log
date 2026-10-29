@@ -1,0 +1,20 @@
+# baseline, commit 3da28258a6383bb82339fff0dc24ba2da0ba6487, exit 0
+
+Found 43 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+...........................................
+----------------------------------------------------------------------
+Ran 43 tests in 5.327s
+
+OK
+Preserving test database for alias 'default'...

@@ -1,0 +1,1022 @@
+Creating test database for alias 'default' ('test_h263_package_upgrades')...
+Found 270 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying ai_processor.0006_aicallrecord... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
+  Applying audit.0001_initial... OK
+  Applying audit.0002_alter_auditevent_actor_role... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+  Applying billing.0072_license_stripe_mutation_intent... OK
+  Applying billing.0073_schoolcreditallocation_grant_anchor_at... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying students.0029_background_task_item_result... OK
+  Applying students.0030_batch_session_credits_exhausted_at... OK
+  Applying students.0031_submission_grading_label... OK
+  Applying students.0032_submission_answers_label... OK
+  Applying students.0033_submission_answers_recheck_pair_check... OK
+  Applying students.0034_submission_answers_recheck_pair_validate... OK
+  Applying students.0035_studentsubmission_extraction_flags... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more... OK
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_due_reminder_continues_when_one_email_queue_fails (assignments.tests.AssignmentDueReminderDeliveryTest.test_due_reminder_continues_when_one_email_queue_fails) ... Free trial plan not found: no trial activated for user 6145110c-a6d1-45d5-bf86-041d2792ae01.
+Cannot activate automatic trial for user 6145110c-a6d1-45d5-bf86-041d2792ae01 (validation): ValueError
+Failed to queue due reminder email for teacher: error=RuntimeError frames=tasks.py:1804:send_assignment_due_reminder <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1202:_execute_mock_call
+ok
+test_due_reminder_only_targets_opted_in_teacher_and_real_email_students (assignments.tests.AssignmentDueReminderDeliveryTest.test_due_reminder_only_targets_opted_in_teacher_and_real_email_students) ... Free trial plan not found: no trial activated for user 76bff126-c648-47b2-8cf7-b1c27869ead5.
+Cannot activate automatic trial for user 76bff126-c648-47b2-8cf7-b1c27869ead5 (validation): ValueError
+ok
+test_due_reminder_rejects_invalid_offset (assignments.tests.AssignmentDueReminderDeliveryTest.test_due_reminder_rejects_invalid_offset) ... Free trial plan not found: no trial activated for user c3966a86-383e-4c23-991a-6a9060edc164.
+Cannot activate automatic trial for user c3966a86-383e-4c23-991a-6a9060edc164 (validation): ValueError
+ok
+test_due_reminder_skips_students_who_already_submitted (assignments.tests.AssignmentDueReminderDeliveryTest.test_due_reminder_skips_students_who_already_submitted) ... Free trial plan not found: no trial activated for user 1cb46325-98a6-4469-9779-ab9a4a5574d2.
+Cannot activate automatic trial for user 1cb46325-98a6-4469-9779-ab9a4a5574d2 (validation): ValueError
+ok
+test_due_reminder_skips_unpublished_assignments (assignments.tests.AssignmentDueReminderDeliveryTest.test_due_reminder_skips_unpublished_assignments) ... Free trial plan not found: no trial activated for user 828669e1-35d4-40c3-9d39-bd8f728c98ee.
+Cannot activate automatic trial for user 828669e1-35d4-40c3-9d39-bd8f728c98ee (validation): ValueError
+ok
+test_assignment_close_to_due_date_only_schedules_one_hour_reminder (assignments.tests.AssignmentDueReminderSchedulingTest.test_assignment_close_to_due_date_only_schedules_one_hour_reminder) ... Free trial plan not found: no trial activated for user 77a0e014-d128-4c50-b41b-5ca021c2a6a6.
+Cannot activate automatic trial for user 77a0e014-d128-4c50-b41b-5ca021c2a6a6 (validation): ValueError
+ok
+test_creating_assignment_schedules_both_due_reminders (assignments.tests.AssignmentDueReminderSchedulingTest.test_creating_assignment_schedules_both_due_reminders) ... Free trial plan not found: no trial activated for user 4d5b9147-f1c5-4424-abb0-043948ea9271.
+Cannot activate automatic trial for user 4d5b9147-f1c5-4424-abb0-043948ea9271 (validation): ValueError
+ok
+test_draft_assignment_does_not_schedule_due_reminders (assignments.tests.AssignmentDueReminderSchedulingTest.test_draft_assignment_does_not_schedule_due_reminders) ... Free trial plan not found: no trial activated for user 39fe0126-b9cc-4b98-81a8-b8c1f09f5de5.
+Cannot activate automatic trial for user 39fe0126-b9cc-4b98-81a8-b8c1f09f5de5 (validation): ValueError
+ok
+test_unpublishing_assignment_removes_due_reminders (assignments.tests.AssignmentDueReminderSchedulingTest.test_unpublishing_assignment_removes_due_reminders) ... Free trial plan not found: no trial activated for user 372a1c3a-192a-4c23-8c51-70431fd631be.
+Cannot activate automatic trial for user 372a1c3a-192a-4c23-8c51-70431fd631be (validation): ValueError
+ok
+test_ai_feature_not_available_returns_403 (assignments.tests.AssignmentGenerationDraftAPITest.test_ai_feature_not_available_returns_403) ... Free trial plan not found: no trial activated for user fb8f2a93-16ce-406a-a808-48c1bccb33c0.
+Cannot activate automatic trial for user fb8f2a93-16ce-406a-a808-48c1bccb33c0 (validation): ValueError
+Assignment generation denied by plan/tier for user fb8f2a93-16ce-406a-a808-48c1bccb33c0: AI access denied: plan does not include this feature
+ok
+test_course_context_caps_topic_list_at_fifteen (assignments.tests.AssignmentGenerationDraftAPITest.test_course_context_caps_topic_list_at_fifteen) ... Free trial plan not found: no trial activated for user d77586b2-4326-4c33-9c10-eb47bbc20366.
+Cannot activate automatic trial for user d77586b2-4326-4c33-9c10-eb47bbc20366 (validation): ValueError
+ok
+test_course_context_is_built_and_passed_to_ai_processor (assignments.tests.AssignmentGenerationDraftAPITest.test_course_context_is_built_and_passed_to_ai_processor) ... Free trial plan not found: no trial activated for user 65331afa-f964-4b9b-8b46-dbeff44d735c.
+Cannot activate automatic trial for user 65331afa-f964-4b9b-8b46-dbeff44d735c (validation): ValueError
+ok
+test_empty_questions_with_blank_self_assessment_gets_fallback_reply (assignments.tests.AssignmentGenerationDraftAPITest.test_empty_questions_with_blank_self_assessment_gets_fallback_reply) ... Free trial plan not found: no trial activated for user 9399c28d-4265-43a9-a0bf-eebafd753273.
+Cannot activate automatic trial for user 9399c28d-4265-43a9-a0bf-eebafd753273 (validation): ValueError
+Assignment generation returned an empty-questions payload without needs_clarification set - treating as a clarification turn anyway.
+ok
+test_empty_questions_without_clarification_flag_is_treated_as_clarification (assignments.tests.AssignmentGenerationDraftAPITest.test_empty_questions_without_clarification_flag_is_treated_as_clarification) ... Free trial plan not found: no trial activated for user 3f7e77b6-0909-4e4a-845a-2061a6d6442c.
+Cannot activate automatic trial for user 3f7e77b6-0909-4e4a-845a-2061a6d6442c (validation): ValueError
+Assignment generation returned an empty-questions payload without needs_clarification set - treating as a clarification turn anyway.
+ok
+test_generated_assignment_is_saved_as_draft_not_assignment (assignments.tests.AssignmentGenerationDraftAPITest.test_generated_assignment_is_saved_as_draft_not_assignment) ... Free trial plan not found: no trial activated for user 92fad564-9482-454e-a2f7-b137524583b0.
+Cannot activate automatic trial for user 92fad564-9482-454e-a2f7-b137524583b0 (validation): ValueError
+ok
+test_generated_draft_is_only_persisted_when_saved (assignments.tests.AssignmentGenerationDraftAPITest.test_generated_draft_is_only_persisted_when_saved) ... Free trial plan not found: no trial activated for user 458d9e73-6406-43b8-aa5f-8135d9488b1f.
+Cannot activate automatic trial for user 458d9e73-6406-43b8-aa5f-8135d9488b1f (validation): ValueError
+ok
+test_insufficient_credits_returns_402 (assignments.tests.AssignmentGenerationDraftAPITest.test_insufficient_credits_returns_402) ... Free trial plan not found: no trial activated for user 78a5f36a-7c6c-4d80-a52f-fb8274d23b60.
+Cannot activate automatic trial for user 78a5f36a-7c6c-4d80-a52f-fb8274d23b60 (validation): ValueError
+Assignment generation blocked by insufficient credits for user 78a5f36a-7c6c-4d80-a52f-fb8274d23b60: Refill your wallet to continue
+ok
+test_insufficient_prompt_returns_clarification_not_a_draft (assignments.tests.AssignmentGenerationDraftAPITest.test_insufficient_prompt_returns_clarification_not_a_draft) ... Free trial plan not found: no trial activated for user 1c7bf3af-ea99-4722-97cb-74e830a361f3.
+Cannot activate automatic trial for user 1c7bf3af-ea99-4722-97cb-74e830a361f3 (validation): ValueError
+API request refused: ParseError (400)
+ok
+test_self_assessment_is_sanitized_in_clarification_response (assignments.tests.AssignmentGenerationDraftAPITest.test_self_assessment_is_sanitized_in_clarification_response) ... Free trial plan not found: no trial activated for user c59b74dd-daa3-40d9-9049-f63fc4f3685f.
+Cannot activate automatic trial for user c59b74dd-daa3-40d9-9049-f63fc4f3685f (validation): ValueError
+ok
+test_self_assessment_is_sanitized_in_draft_response (assignments.tests.AssignmentGenerationDraftAPITest.test_self_assessment_is_sanitized_in_draft_response) ... Free trial plan not found: no trial activated for user 1e1e04fa-304e-4442-b9d0-cac79826c685.
+Cannot activate automatic trial for user 1e1e04fa-304e-4442-b9d0-cac79826c685 (validation): ValueError
+ok
+test_short_prompt_is_rejected_before_any_ai_call (assignments.tests.AssignmentGenerationDraftAPITest.test_short_prompt_is_rejected_before_any_ai_call) ... Free trial plan not found: no trial activated for user 3ec4ea62-8f0e-47d4-9576-e7c27cd364a5.
+Cannot activate automatic trial for user 3ec4ea62-8f0e-47d4-9576-e7c27cd364a5 (validation): ValueError
+API request refused: ValidationError (400)
+ok
+test_downloaded_pdf_has_no_duplicated_letters_and_typeset_math (assignments.tests_download_pdf.DownloadPdfRealRenderTest.test_downloaded_pdf_has_no_duplicated_letters_and_typeset_math) ... Free trial plan not found: no trial activated for user 4c16005d-3344-4731-8d1e-1debedcc1fb5.
+Cannot activate automatic trial for user 4c16005d-3344-4731-8d1e-1debedcc1fb5 (validation): ValueError
+ok
+test_a_non_latin_title_still_produces_a_usable_filename (assignments.tests_download_pdf.DownloadPdfViewTest.test_a_non_latin_title_still_produces_a_usable_filename)
+`\w` is Unicode-aware, so a non-Latin title survives the ... Free trial plan not found: no trial activated for user 2908d78b-a7c1-465c-bcd7-3874770ebce8.
+Cannot activate automatic trial for user 2908d78b-a7c1-465c-bcd7-3874770ebce8 (validation): ValueError
+ok
+test_a_title_of_only_punctuation_does_not_yield_a_bare_extension (assignments.tests_download_pdf.DownloadPdfViewTest.test_a_title_of_only_punctuation_does_not_yield_a_bare_extension) ... Free trial plan not found: no trial activated for user 4435837c-d3e7-400f-9f42-02ce77729b1e.
+Cannot activate automatic trial for user 4435837c-d3e7-400f-9f42-02ce77729b1e (validation): ValueError
+ok
+test_an_ordinary_render_failure_is_still_a_500 (assignments.tests_download_pdf.DownloadPdfViewTest.test_an_ordinary_render_failure_is_still_a_500) ... Free trial plan not found: no trial activated for user 2c9be7d6-5479-4ddb-8e36-bab57f87f52e.
+Cannot activate automatic trial for user 2c9be7d6-5479-4ddb-8e36-bab57f87f52e (validation): ValueError
+PDF generation failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/views.py", line 2036, in download_pdf
+    pdf_bytes = get_or_render(
+                ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/pdf_cache.py", line 267, in get_or_render
+    pdf_bytes = render_fn()
+                ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/views.py", line 2039, in <lambda>
+    lambda: render_assignment_pdf(assignment, include_rubric),
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+
+
+django.request ERROR 2026-10-27 11:51:37,997 log 1103265 126603597773760 [request_id=- client_request_id=-] Internal Server Error: /api/v1/assignments/592d9f9d-4b8a-4e0d-b1e3-13e6add53997/download-pdf
+
+
+ok
+test_assignment_with_no_questions_returns_400_without_rendering (assignments.tests_download_pdf.DownloadPdfViewTest.test_assignment_with_no_questions_returns_400_without_rendering) ... Free trial plan not found: no trial activated for user a42c5c80-e682-47fb-b55a-4a092e352157.
+Cannot activate automatic trial for user a42c5c80-e682-47fb-b55a-4a092e352157 (validation): ValueError
+ok
+test_load_shedding_returns_503_with_retry_after (assignments.tests_download_pdf.DownloadPdfViewTest.test_load_shedding_returns_503_with_retry_after)
+Being shed means nothing was attempted because the process is at ... Free trial plan not found: no trial activated for user f346a31c-ae7f-428d-a002-5d6060409a10.
+Cannot activate automatic trial for user f346a31c-ae7f-428d-a002-5d6060409a10 (validation): ValueError
+PDF generation shed under load: at capacity
+
+
+django.request ERROR 2026-10-27 11:51:38,247 log 1103265 126603597773760 [request_id=- client_request_id=-] Service Unavailable: /api/v1/assignments/2e4aa6e5-8f7b-473a-948f-a8ff54b20ca0/download-pdf
+
+
+ok
+test_other_teacher_cannot_download_teacher_view (assignments.tests_download_pdf.DownloadPdfViewTest.test_other_teacher_cannot_download_teacher_view) ... Free trial plan not found: no trial activated for user 0ab8014f-26b0-493c-b6ab-a1ff2770c6c2.
+Cannot activate automatic trial for user 0ab8014f-26b0-493c-b6ab-a1ff2770c6c2 (validation): ValueError
+Free trial plan not found: no trial activated for user ec83ab63-6d6f-43b2-94ac-772fb5c17e0c.
+Cannot activate automatic trial for user ec83ab63-6d6f-43b2-94ac-772fb5c17e0c (validation): ValueError
+API request refused: Http404 (404)
+ok
+test_renderer_failure_returns_500_with_friendly_message (assignments.tests_download_pdf.DownloadPdfViewTest.test_renderer_failure_returns_500_with_friendly_message) ... Free trial plan not found: no trial activated for user f8e6b03b-ad04-48b8-8f26-df1409ca57e9.
+Cannot activate automatic trial for user f8e6b03b-ad04-48b8-8f26-df1409ca57e9 (validation): ValueError
+PDF generation failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/views.py", line 2036, in download_pdf
+    pdf_bytes = get_or_render(
+                ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/pdf_cache.py", line 267, in get_or_render
+    pdf_bytes = render_fn()
+                ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/views.py", line 2039, in <lambda>
+    lambda: render_assignment_pdf(assignment, include_rubric),
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: PDF rendering failed: boom
+
+
+django.request ERROR 2026-10-27 11:51:38,542 log 1103265 126603597773760 [request_id=- client_request_id=-] Internal Server Error: /api/v1/assignments/53a54c15-d45d-4520-8c2d-cbf0ee9a9127/download-pdf
+
+
+ok
+test_response_filename_is_sanitised_from_title (assignments.tests_download_pdf.DownloadPdfViewTest.test_response_filename_is_sanitised_from_title) ... Free trial plan not found: no trial activated for user 2bf08f8d-c41c-4afd-b14f-a4896d6e3393.
+Cannot activate automatic trial for user 2bf08f8d-c41c-4afd-b14f-a4896d6e3393 (validation): ValueError
+ok
+test_student_can_download_published_student_view (assignments.tests_download_pdf.DownloadPdfViewTest.test_student_can_download_published_student_view) ... Free trial plan not found: no trial activated for user 942f55e5-701f-40e3-96eb-c3f11a02644b.
+Cannot activate automatic trial for user 942f55e5-701f-40e3-96eb-c3f11a02644b (validation): ValueError
+ok
+test_student_cannot_download_draft_assignment (assignments.tests_download_pdf.DownloadPdfViewTest.test_student_cannot_download_draft_assignment) ... Free trial plan not found: no trial activated for user bc0739f2-3d7f-49a1-b1ef-531c58759e4f.
+Cannot activate automatic trial for user bc0739f2-3d7f-49a1-b1ef-531c58759e4f (validation): ValueError
+API request refused: Http404 (404)
+ok
+test_student_view_asks_for_the_rubric_free_document (assignments.tests_download_pdf.DownloadPdfViewTest.test_student_view_asks_for_the_rubric_free_document) ... Free trial plan not found: no trial activated for user 4e60fc29-2fff-4b30-b211-4253c7687def.
+Cannot activate automatic trial for user 4e60fc29-2fff-4b30-b211-4253c7687def (validation): ValueError
+ok
+test_teacher_can_download_teacher_view_of_own_assignment (assignments.tests_download_pdf.DownloadPdfViewTest.test_teacher_can_download_teacher_view_of_own_assignment) ... Free trial plan not found: no trial activated for user a10323d1-1b41-43ef-aca2-aa8fac5a767f.
+Cannot activate automatic trial for user a10323d1-1b41-43ef-aca2-aa8fac5a767f (validation): ValueError
+ok
+test_the_filename_is_double_quoted_per_rfc_6266 (assignments.tests_download_pdf.DownloadPdfViewTest.test_the_filename_is_double_quoted_per_rfc_6266)
+The header used to interpolate Python's repr, which emits SINGLE ... Free trial plan not found: no trial activated for user 9fa62340-984e-4923-8e5c-265756d3ac12.
+Cannot activate automatic trial for user 9fa62340-984e-4923-8e5c-265756d3ac12 (validation): ValueError
+ok
+test_the_view_asks_for_the_right_document (assignments.tests_download_pdf.DownloadPdfViewTest.test_the_view_asks_for_the_right_document)
+The view's job is only to decide *which* document to build; how it ... Free trial plan not found: no trial activated for user 0d589f07-0165-437e-b8c9-a62e6896dc3c.
+Cannot activate automatic trial for user 0d589f07-0165-437e-b8c9-a62e6896dc3c (validation): ValueError
+ok
+test_title_course_teacher_and_instructions_are_escaped_in_the_rendered_html (assignments.tests_download_pdf.DownloadPdfViewTest.test_title_course_teacher_and_instructions_are_escaped_in_the_rendered_html)
+Regression guard for a real script-injection path that switching ... Free trial plan not found: no trial activated for user 075576cc-1ea4-43c5-bec4-d0c10a65e19a.
+Cannot activate automatic trial for user 075576cc-1ea4-43c5-bec4-d0c10a65e19a (validation): ValueError
+ok
+test_only_the_teacher_document_carries_the_model_answer (assignments.tests_download_pdf.RenderAssignmentPdfDocumentTest.test_only_the_teacher_document_carries_the_model_answer) ... Free trial plan not found: no trial activated for user 185514f6-2dd7-40dc-a39b-922f9e14a6d6.
+Cannot activate automatic trial for user 185514f6-2dd7-40dc-a39b-922f9e14a6d6 (validation): ValueError
+ok
+test_passes_header_footer_templates_and_margins (assignments.tests_download_pdf.RenderAssignmentPdfDocumentTest.test_passes_header_footer_templates_and_margins) ... Free trial plan not found: no trial activated for user b8921656-ba3e-44d9-8d54-a99d2c01ae06.
+Cannot activate automatic trial for user b8921656-ba3e-44d9-8d54-a99d2c01ae06 (validation): ValueError
+ok
+test_refuses_before_building_anything_when_at_capacity (assignments.tests_download_pdf.RenderAssignmentPdfDocumentTest.test_refuses_before_building_anything_when_at_capacity)
+The capacity pre-check must happen before the document is ... Free trial plan not found: no trial activated for user 54d12133-789a-4c90-b44b-00e3f391842b.
+Cannot activate automatic trial for user 54d12133-789a-4c90-b44b-00e3f391842b (validation): ValueError
+ok
+test_key_changes_when_the_assignment_is_edited (assignments.tests_pdf_cache.BuildCacheKeyTest.test_key_changes_when_the_assignment_is_edited) ... Free trial plan not found: no trial activated for user eec2d04c-e70f-4caf-baa1-fa14d5f69741.
+Cannot activate automatic trial for user eec2d04c-e70f-4caf-baa1-fa14d5f69741 (validation): ValueError
+ok
+test_key_includes_id_view_type_and_timestamp (assignments.tests_pdf_cache.BuildCacheKeyTest.test_key_includes_id_view_type_and_timestamp) ... Free trial plan not found: no trial activated for user e873c8a5-0b34-437d-ac2b-9888ec513311.
+Cannot activate automatic trial for user e873c8a5-0b34-437d-ac2b-9888ec513311 (validation): ValueError
+ok
+test_key_is_outside_every_wildcard_sweep_in_the_project (assignments.tests_pdf_cache.BuildCacheKeyTest.test_key_is_outside_every_wildcard_sweep_in_the_project)
+A rendered PDF must not be collateral damage of somebody else's ... Free trial plan not found: no trial activated for user 2994e568-f5b4-4e28-8a73-d3041a99217d.
+Cannot activate automatic trial for user 2994e568-f5b4-4e28-8a73-d3041a99217d (validation): ValueError
+ok
+test_student_and_teacher_views_get_different_keys (assignments.tests_pdf_cache.BuildCacheKeyTest.test_student_and_teacher_views_get_different_keys)
+The teacher's PDF embeds rubrics the student's must never show - ... Free trial plan not found: no trial activated for user 1573014d-11f5-4ae9-8112-9fbeb968b455.
+Cannot activate automatic trial for user 1573014d-11f5-4ae9-8112-9fbeb968b455 (validation): ValueError
+ok
+test_unsaved_assignment_gets_a_never_matching_key (assignments.tests_pdf_cache.BuildCacheKeyTest.test_unsaved_assignment_gets_a_never_matching_key) ... Free trial plan not found: no trial activated for user 4c3ffc1f-fabd-4a21-9b3d-23239cf05e01.
+Cannot activate automatic trial for user 4c3ffc1f-fabd-4a21-9b3d-23239cf05e01 (validation): ValueError
+ok
+test_repairing_option_letters_moves_the_cache_key (assignments.tests_pdf_cache.BulkWriteInvalidationTest.test_repairing_option_letters_moves_the_cache_key) ... Free trial plan not found: no trial activated for user ce934d7f-90dc-44cb-9f38-bb1d719906e3.
+Cannot activate automatic trial for user ce934d7f-90dc-44cb-9f38-bb1d719906e3 (validation): ValueError
+ok
+test_repairing_titles_moves_the_cache_key (assignments.tests_pdf_cache.BulkWriteInvalidationTest.test_repairing_titles_moves_the_cache_key) ... Free trial plan not found: no trial activated for user 3aa0be5b-afe1-4e0a-b1ac-f1cfefd79a56.
+Cannot activate automatic trial for user 3aa0be5b-afe1-4e0a-b1ac-f1cfefd79a56 (validation): ValueError
+ok
+test_a_cache_hit_is_served_even_while_the_renderer_is_shedding (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_a_cache_hit_is_served_even_while_the_renderer_is_shedding)
+Load shedding must only refuse work the process would actually have ... Free trial plan not found: no trial activated for user bbefb9ec-d929-482f-b90c-bd55534747dd.
+Cannot activate automatic trial for user bbefb9ec-d929-482f-b90c-bd55534747dd (validation): ValueError
+ok
+test_a_cache_hit_still_enforces_permissions (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_a_cache_hit_still_enforces_permissions)
+The cache lookup sits after the permission checks, so warming an ... Free trial plan not found: no trial activated for user b2fb6574-791f-449e-bec8-9c6d8ed36101.
+Cannot activate automatic trial for user b2fb6574-791f-449e-bec8-9c6d8ed36101 (validation): ValueError
+API request refused: PermissionDenied (403)
+ok
+test_a_failed_render_is_never_cached (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_a_failed_render_is_never_cached) ... Free trial plan not found: no trial activated for user b67294b1-2008-4833-b34b-2a7bd9f3cc16.
+Cannot activate automatic trial for user b67294b1-2008-4833-b34b-2a7bd9f3cc16 (validation): ValueError
+PDF generation failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/views.py", line 2036, in download_pdf
+    pdf_bytes = get_or_render(
+                ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/pdf_cache.py", line 267, in get_or_render
+    pdf_bytes = render_fn()
+                ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/views.py", line 2039, in <lambda>
+    lambda: render_assignment_pdf(assignment, include_rubric),
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+
+
+django.request ERROR 2026-10-27 11:51:40,472 log 1103265 126603597773760 [request_id=- client_request_id=-] Internal Server Error: /api/v1/assignments/5b400119-b7b4-4994-b77e-71ab5133a2fe/download-pdf
+
+
+ok
+test_an_uncached_download_is_shed_with_503_and_retry_after (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_an_uncached_download_is_shed_with_503_and_retry_after)
+The other half of the same rule, through the real view: a cold ... Free trial plan not found: no trial activated for user 7fa36e77-7b3a-4561-86f8-d39db597665d.
+Cannot activate automatic trial for user 7fa36e77-7b3a-4561-86f8-d39db597665d (validation): ValueError
+PDF generation shed under load: at capacity
+
+
+django.request ERROR 2026-10-27 11:51:40,603 log 1103265 126603597773760 [request_id=- client_request_id=-] Service Unavailable: /api/v1/assignments/93e701fa-a8e8-42e3-90d5-fe16281a6f97/download-pdf
+
+
+ok
+test_cache_backend_failure_still_serves_a_pdf (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_cache_backend_failure_still_serves_a_pdf) ... Free trial plan not found: no trial activated for user ced57ee6-3fba-4055-b526-91e99b51ac59.
+Cannot activate automatic trial for user ced57ee6-3fba-4055-b526-91e99b51ac59 (validation): ValueError
+[PDF] cache read failed - rendering this assignment fresh.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/pdf_cache.py", line 114, in get_cached_pdf
+    return cache.get(build_cache_key(assignment, view_type))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: redis down
+[PDF] cache write failed - continuing without caching this render.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/pdf_cache.py", line 138, in store_pdf
+    cache.set(build_cache_key(assignment, view_type), pdf_bytes, timeout=_ttl())
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: redis down
+ok
+test_editing_the_assignment_forces_a_fresh_render (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_editing_the_assignment_forces_a_fresh_render) ... Free trial plan not found: no trial activated for user 9a1a8d60-7727-4c56-913a-a1f5b620e262.
+Cannot activate automatic trial for user 9a1a8d60-7727-4c56-913a-a1f5b620e262 (validation): ValueError
+ok
+test_second_download_is_served_from_cache_without_rendering (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_second_download_is_served_from_cache_without_rendering) ... Free trial plan not found: no trial activated for user 09b055ba-10eb-41b7-a8f7-2d7c7290b06a.
+Cannot activate automatic trial for user 09b055ba-10eb-41b7-a8f7-2d7c7290b06a (validation): ValueError
+ok
+test_student_and_teacher_views_are_cached_independently (assignments.tests_pdf_cache.DownloadPdfCachingTest.test_student_and_teacher_views_are_cached_independently) ... Free trial plan not found: no trial activated for user 0a5c55b0-f994-4030-ac80-1b502a33ea99.
+Cannot activate automatic trial for user 0a5c55b0-f994-4030-ac80-1b502a33ea99 (validation): ValueError
+ok
+test_a_cache_backend_failure_does_not_block_deleting_an_assignment (assignments.tests_pdf_cache.InvalidationScopeTest.test_a_cache_backend_failure_does_not_block_deleting_an_assignment) ... Free trial plan not found: no trial activated for user 783148be-7573-431a-830c-be78206df425.
+Cannot activate automatic trial for user 783148be-7573-431a-830c-be78206df425 (validation): ValueError
+[PDF] failed to invalidate cached PDFs for assignment 3f46f8c9-3af7-4e50-ada8-2ab9f31eb993; they are unreachable under the new key anyway and will age out.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/pdf_cache.py", line 175, in invalidate_assignment_pdfs
+    cache.delete_pattern(f"{CACHE_KEY_PREFIX}:{CACHE_VERSION}:{assignment_id}:*")
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: redis down
+ok
+test_a_cache_backend_failure_during_invalidation_is_swallowed (assignments.tests_pdf_cache.InvalidationScopeTest.test_a_cache_backend_failure_during_invalidation_is_swallowed)
+Invalidation is an optimisation, not a correctness requirement - ... Free trial plan not found: no trial activated for user 91b001c8-bd2c-4209-abe9-37b0dddba054.
+Cannot activate automatic trial for user 91b001c8-bd2c-4209-abe9-37b0dddba054 (validation): ValueError
+[PDF] failed to invalidate cached PDFs for assignment 99839172-de41-4ed6-9723-19e47698cb7a; they are unreachable under the new key anyway and will age out.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/pdf_cache.py", line 175, in invalidate_assignment_pdfs
+    cache.delete_pattern(f"{CACHE_KEY_PREFIX}:{CACHE_VERSION}:{assignment_id}:*")
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: redis down
+ok
+test_a_whole_course_of_saves_does_not_cool_one_warm_assignment (assignments.tests_pdf_cache.InvalidationScopeTest.test_a_whole_course_of_saves_does_not_cool_one_warm_assignment)
+The shape that made the old sweep so costly: a teacher working ... Free trial plan not found: no trial activated for user ab703c73-341b-4c21-b81c-3ffe0f7640ac.
+Cannot activate automatic trial for user ab703c73-341b-4c21-b81c-3ffe0f7640ac (validation): ValueError
+ok
+test_deleting_an_assignment_removes_its_cached_teacher_pdf (assignments.tests_pdf_cache.InvalidationScopeTest.test_deleting_an_assignment_removes_its_cached_teacher_pdf)
+The teacher view embeds rubrics and model answers. Those must not ... Free trial plan not found: no trial activated for user 9f67d681-6048-40d5-9ca8-c7472c01ea9b.
+Cannot activate automatic trial for user 9f67d681-6048-40d5-9ca8-c7472c01ea9b (validation): ValueError
+ok
+test_invalidating_one_assignment_never_touches_another (assignments.tests_pdf_cache.InvalidationScopeTest.test_invalidating_one_assignment_never_touches_another) ... Free trial plan not found: no trial activated for user 0cb4bdb2-e1a4-49a2-9886-1a187b620c7c.
+Cannot activate automatic trial for user 0cb4bdb2-e1a4-49a2-9886-1a187b620c7c (validation): ValueError
+ok
+test_saving_an_unrelated_assignment_leaves_this_ones_pdf_cached (assignments.tests_pdf_cache.InvalidationScopeTest.test_saving_an_unrelated_assignment_leaves_this_ones_pdf_cached) ... Free trial plan not found: no trial activated for user 4331473a-3fe9-46f7-a612-0c17db06e44b.
+Cannot activate automatic trial for user 4331473a-3fe9-46f7-a612-0c17db06e44b (validation): ValueError
+ok
+test_saving_this_assignment_drops_its_own_superseded_renders (assignments.tests_pdf_cache.InvalidationScopeTest.test_saving_this_assignment_drops_its_own_superseded_renders)
+The key already carries updated_at, so a superseded render is ... Free trial plan not found: no trial activated for user c0f4080b-9194-45bf-87c8-67e7dd08318d.
+Cannot activate automatic trial for user c0f4080b-9194-45bf-87c8-67e7dd08318d (validation): ValueError
+ok
+test_disabled_cache_never_stores_or_returns (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_disabled_cache_never_stores_or_returns) ... Free trial plan not found: no trial activated for user 35c1118e-5635-4b9b-9d29-a67e3dbc4afd.
+Cannot activate automatic trial for user 35c1118e-5635-4b9b-9d29-a67e3dbc4afd (validation): ValueError
+ok
+test_get_returns_none_on_a_miss (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_get_returns_none_on_a_miss) ... Free trial plan not found: no trial activated for user aa2b21d4-db38-4294-89af-5705aa183389.
+Cannot activate automatic trial for user aa2b21d4-db38-4294-89af-5705aa183389 (validation): ValueError
+ok
+test_oversized_pdf_is_not_cached (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_oversized_pdf_is_not_cached)
+An image-heavy assignment can render to megabytes; caching those ... Free trial plan not found: no trial activated for user 99b2359d-5e3c-4b33-ac7d-a854c7ab6731.
+Cannot activate automatic trial for user 99b2359d-5e3c-4b33-ac7d-a854c7ab6731 (validation): ValueError
+ok
+test_pdf_at_exactly_the_cap_is_still_cached (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_pdf_at_exactly_the_cap_is_still_cached) ... Free trial plan not found: no trial activated for user 21b39f92-13ab-477a-8d60-ae4e73cbfb93.
+Cannot activate automatic trial for user 21b39f92-13ab-477a-8d60-ae4e73cbfb93 (validation): ValueError
+ok
+test_read_failure_degrades_to_a_miss_rather_than_raising (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_read_failure_degrades_to_a_miss_rather_than_raising) ... Free trial plan not found: no trial activated for user e5fddbbe-62c0-42fe-ad3c-ae99c9aa29fe.
+Cannot activate automatic trial for user e5fddbbe-62c0-42fe-ad3c-ae99c9aa29fe (validation): ValueError
+[PDF] cache read failed - rendering this assignment fresh.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/pdf_cache.py", line 114, in get_cached_pdf
+    return cache.get(build_cache_key(assignment, view_type))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: redis down
+ok
+test_store_then_get_round_trips_the_bytes (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_store_then_get_round_trips_the_bytes) ... Free trial plan not found: no trial activated for user 384dd052-2bc1-4ff5-b836-222e9864abe2.
+Cannot activate automatic trial for user 384dd052-2bc1-4ff5-b836-222e9864abe2 (validation): ValueError
+ok
+test_write_failure_is_swallowed_rather_than_raising (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_write_failure_is_swallowed_rather_than_raising) ... Free trial plan not found: no trial activated for user 63609023-d1d6-4103-a44e-0d8c69b36d35.
+Cannot activate automatic trial for user 63609023-d1d6-4103-a44e-0d8c69b36d35 (validation): ValueError
+[PDF] cache write failed - continuing without caching this render.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/pdf_cache.py", line 138, in store_pdf
+    cache.set(build_cache_key(assignment, view_type), pdf_bytes, timeout=_ttl())
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: redis down
+ok
+test_zero_disables_the_size_cap (assignments.tests_pdf_cache.PdfCacheReadWriteTest.test_zero_disables_the_size_cap) ... Free trial plan not found: no trial activated for user d7d7773d-d69c-4f78-a11c-e36a61935788.
+Cannot activate automatic trial for user d7d7773d-d69c-4f78-a11c-e36a61935788 (validation): ValueError
+ok
+test_a_failed_flight_is_cleaned_up_so_the_next_caller_can_retry (assignments.tests_pdf_cache.SingleFlightTest.test_a_failed_flight_is_cleaned_up_so_the_next_caller_can_retry) ... Free trial plan not found: no trial activated for user 030f0386-0fcf-487e-9129-2a4255eb1e3f.
+Cannot activate automatic trial for user 030f0386-0fcf-487e-9129-2a4255eb1e3f (validation): ValueError
+ok
+test_a_failing_render_propagates_to_waiters_and_is_not_cached (assignments.tests_pdf_cache.SingleFlightTest.test_a_failing_render_propagates_to_waiters_and_is_not_cached)
+Waiters get the leader's error rather than each retrying: the ... Free trial plan not found: no trial activated for user 8897efa2-7226-4aed-b07d-eb0f164c834c.
+Cannot activate automatic trial for user 8897efa2-7226-4aed-b07d-eb0f164c834c (validation): ValueError
+ok
+test_concurrent_callers_share_a_single_render (assignments.tests_pdf_cache.SingleFlightTest.test_concurrent_callers_share_a_single_render) ... Free trial plan not found: no trial activated for user 4e400ad9-06e6-4e4f-a781-2b549f5ea73d.
+Cannot activate automatic trial for user 4e400ad9-06e6-4e4f-a781-2b549f5ea73d (validation): ValueError
+ok
+test_different_views_do_not_share_a_flight (assignments.tests_pdf_cache.SingleFlightTest.test_different_views_do_not_share_a_flight)
+The teacher's PDF contains rubrics the student's must not - they ... Free trial plan not found: no trial activated for user c79b1fcc-9a71-4046-8393-c43b29d6ee5b.
+Cannot activate automatic trial for user c79b1fcc-9a71-4046-8393-c43b29d6ee5b (validation): ValueError
+ok
+test_the_shared_render_is_cached_for_later_callers (assignments.tests_pdf_cache.SingleFlightTest.test_the_shared_render_is_cached_for_later_callers) ... Free trial plan not found: no trial activated for user 678fced1-098b-4b01-a6ae-09b720f7d55e.
+Cannot activate automatic trial for user 678fced1-098b-4b01-a6ae-09b720f7d55e (validation): ValueError
+ok
+test_waiter_renders_for_itself_if_the_leader_never_finishes (assignments.tests_pdf_cache.SingleFlightTest.test_waiter_renders_for_itself_if_the_leader_never_finishes)
+A leader that hangs must not pin every waiter forever - after the ... Free trial plan not found: no trial activated for user 4ce65faf-460a-4a25-9e7f-89cfc5149c97.
+Cannot activate automatic trial for user 4ce65faf-460a-4a25-9e7f-89cfc5149c97 (validation): ValueError
+[PDF] timed out waiting for an in-progress render of assignment 6c25381a-5d1b-4136-9e8a-d226ae8026e1 (student view); rendering separately.
+ok
+test_command_is_idempotent (assignments.tests_strip_html_from_assignment_titles.StripHtmlFromAssignmentTitlesCommandTest.test_command_is_idempotent) ... Free trial plan not found: no trial activated for user 286ae222-d215-46f3-83d3-c301ce45d508.
+Cannot activate automatic trial for user 286ae222-d215-46f3-83d3-c301ce45d508 (validation): ValueError
+ok
+test_command_leaves_clean_titles_untouched (assignments.tests_strip_html_from_assignment_titles.StripHtmlFromAssignmentTitlesCommandTest.test_command_leaves_clean_titles_untouched) ... Free trial plan not found: no trial activated for user 064f283d-73f7-4f0f-9771-1520883961a5.
+Cannot activate automatic trial for user 064f283d-73f7-4f0f-9771-1520883961a5 (validation): ValueError
+ok
+test_command_strips_tags_from_existing_titles (assignments.tests_strip_html_from_assignment_titles.StripHtmlFromAssignmentTitlesCommandTest.test_command_strips_tags_from_existing_titles) ... Free trial plan not found: no trial activated for user 32e15069-cac7-41c1-80f2-c4e39578abb4.
+Cannot activate automatic trial for user 32e15069-cac7-41c1-80f2-c4e39578abb4 (validation): ValueError
+ok
+test_dry_run_writes_nothing (assignments.tests_strip_html_from_assignment_titles.StripHtmlFromAssignmentTitlesCommandTest.test_dry_run_writes_nothing) ... Free trial plan not found: no trial activated for user b5b75836-515b-44b0-a853-d4e01f72d0fd.
+Cannot activate automatic trial for user b5b75836-515b-44b0-a853-d4e01f72d0fd (validation): ValueError
+ok
+test_none_title_is_skipped_without_error (assignments.tests_strip_html_from_assignment_titles.StripHtmlFromAssignmentTitlesCommandTest.test_none_title_is_skipped_without_error) ... Free trial plan not found: no trial activated for user 7f0b6bf1-6c79-4428-b407-aede42fab49e.
+Cannot activate automatic trial for user 7f0b6bf1-6c79-4428-b407-aede42fab49e (validation): ValueError
+ok
+test_create_strips_tags_from_title (assignments.tests_title_sanitization.AssignmentTitleSignalTest.test_create_strips_tags_from_title) ... Free trial plan not found: no trial activated for user d5280153-f2f6-497d-b358-f2d12efb6b88.
+Cannot activate automatic trial for user d5280153-f2f6-497d-b358-f2d12efb6b88 (validation): ValueError
+ok
+test_full_save_after_mutating_title_strips_tags (assignments.tests_title_sanitization.AssignmentTitleSignalTest.test_full_save_after_mutating_title_strips_tags) ... Free trial plan not found: no trial activated for user 9f321111-8141-422d-87a1-94a8e94d2cfe.
+Cannot activate automatic trial for user 9f321111-8141-422d-87a1-94a8e94d2cfe (validation): ValueError
+ok
+test_none_title_does_not_raise (assignments.tests_title_sanitization.AssignmentTitleSignalTest.test_none_title_does_not_raise) ... Free trial plan not found: no trial activated for user 4d4098b4-b2e6-466c-ad27-0e9eb531e284.
+Cannot activate automatic trial for user 4d4098b4-b2e6-466c-ad27-0e9eb531e284 (validation): ValueError
+ok
+test_partial_save_with_update_fields_still_strips_tags (assignments.tests_title_sanitization.AssignmentTitleSignalTest.test_partial_save_with_update_fields_still_strips_tags)
+The rigor signal skips work when `questions` isn't in ... Free trial plan not found: no trial activated for user 419db324-bcb9-4dac-8f0b-5141fc8143b5.
+Cannot activate automatic trial for user 419db324-bcb9-4dac-8f0b-5141fc8143b5 (validation): ValueError
+ok
+test_title_without_tags_is_unaffected (assignments.tests_title_sanitization.AssignmentTitleSignalTest.test_title_without_tags_is_unaffected) ... Free trial plan not found: no trial activated for user 50a2ac1a-35cc-4006-8258-955287a3047d.
+Cannot activate automatic trial for user 50a2ac1a-35cc-4006-8258-955287a3047d (validation): ValueError
+ok
+test_repair_command_now_refreshes_only_the_owning_teacher (assignments.tests_cache_matrix_p4.TitleRepairCommandFreshnessTests.test_repair_command_now_refreshes_only_the_owning_teacher) ... Free trial plan not found: no trial activated for user e4fb60ca-c57c-4f96-92a5-fd83c7bc60a1.
+Cannot activate automatic trial for user e4fb60ca-c57c-4f96-92a5-fd83c7bc60a1 (validation): ValueError
+Free trial plan not found: no trial activated for user b40a9536-008c-436b-8842-f710fb57704a.
+Cannot activate automatic trial for user b40a9536-008c-436b-8842-f710fb57704a (validation): ValueError
+ok
+test_a_document_with_none_fields_survives_the_full_pipeline (assignments.tests_format_assignment_html.ConversionPipelineIntegrationTest.test_a_document_with_none_fields_survives_the_full_pipeline) ... format_assignment_standard_html: unparsable due_date 'garbage'; omitting.
+format_assignment_standard_html: skipping non-dict question entry 'a malformed entry that is not even a dict'.
+format_assignment_standard_html: skipping non-dict question entry None.
+ok
+test_empty_dict_input_does_not_raise (assignments.tests_format_assignment_html.DocumentLevelNoneHandlingTest.test_empty_dict_input_does_not_raise) ... ok
+test_missing_questions_key_does_not_raise (assignments.tests_format_assignment_html.DocumentLevelNoneHandlingTest.test_missing_questions_key_does_not_raise) ... ok
+test_missing_total_points_key_defaults_to_zero (assignments.tests_format_assignment_html.DocumentLevelNoneHandlingTest.test_missing_total_points_key_defaults_to_zero) ... ok
+test_non_list_questions_does_not_raise (assignments.tests_format_assignment_html.DocumentLevelNoneHandlingTest.test_non_list_questions_does_not_raise) ... format_assignment_standard_html: 'questions' was 'str', not a list; treating as empty.
+ok
+test_none_instructions_does_not_leak_the_word_none (assignments.tests_format_assignment_html.DocumentLevelNoneHandlingTest.test_none_instructions_does_not_leak_the_word_none) ... ok
+test_none_questions_does_not_raise (assignments.tests_format_assignment_html.DocumentLevelNoneHandlingTest.test_none_questions_does_not_raise) ... ok
+test_none_title_does_not_leak_the_word_none (assignments.tests_format_assignment_html.DocumentLevelNoneHandlingTest.test_none_title_does_not_leak_the_word_none) ... ok
+test_none_total_points_does_not_leak_the_word_none (assignments.tests_format_assignment_html.DocumentLevelNoneHandlingTest.test_none_total_points_does_not_leak_the_word_none) ... ok
+test_zero_total_points_is_preserved_not_blanked (assignments.tests_format_assignment_html.DocumentLevelNoneHandlingTest.test_zero_total_points_is_preserved_not_blanked) ... ok
+test_malformed_due_date_omits_the_line_instead_of_raising (assignments.tests_format_assignment_html.DueDateHandlingTest.test_malformed_due_date_omits_the_line_instead_of_raising) ... format_assignment_standard_html: unparsable due_date 'not-a-date'; omitting.
+ok
+test_non_string_due_date_omits_the_line_instead_of_raising (assignments.tests_format_assignment_html.DueDateHandlingTest.test_non_string_due_date_omits_the_line_instead_of_raising) ... format_assignment_standard_html: unparsable due_date 12345; omitting.
+ok
+test_none_due_date_omits_the_due_date_line (assignments.tests_format_assignment_html.DueDateHandlingTest.test_none_due_date_omits_the_due_date_line) ... ok
+test_valid_due_date_is_rendered (assignments.tests_format_assignment_html.DueDateHandlingTest.test_valid_due_date_is_rendered) ... ok
+test_a_complete_well_formed_assignment_renders_everything (assignments.tests_format_assignment_html.ExistingBehaviourIsUnchangedTest.test_a_complete_well_formed_assignment_renders_everything) ... ok
+test_hostile_field_values_are_still_sanitised (assignments.tests_format_assignment_html.ExistingBehaviourIsUnchangedTest.test_hostile_field_values_are_still_sanitised) ... ok
+test_omitting_the_document_header_skips_title_and_instructions (assignments.tests_format_assignment_html.ExistingBehaviourIsUnchangedTest.test_omitting_the_document_header_skips_title_and_instructions) ... ok
+test_student_facing_version_hides_rubric_and_model_answer (assignments.tests_format_assignment_html.ExistingBehaviourIsUnchangedTest.test_student_facing_version_hides_rubric_and_model_answer) ... ok
+test_none_model_answer_is_simply_omitted (assignments.tests_format_assignment_html.ModelAnswerNoneHandlingTest.test_none_model_answer_is_simply_omitted) ... ok
+test_real_model_answer_renders_when_include_rubric_true (assignments.tests_format_assignment_html.ModelAnswerNoneHandlingTest.test_real_model_answer_renders_when_include_rubric_true) ... ok
+test_list_or_empty_on_non_list (assignments.tests_format_assignment_html.NoneCoalescingHelpersTest.test_list_or_empty_on_non_list) ... format_assignment_standard_html: 'field' was 'str', not a list; treating as empty.
+format_assignment_standard_html: 'field' was 'int', not a list; treating as empty.
+format_assignment_standard_html: 'field' was 'dict', not a list; treating as empty.
+ok
+test_list_or_empty_on_none (assignments.tests_format_assignment_html.NoneCoalescingHelpersTest.test_list_or_empty_on_none) ... ok
+test_list_or_empty_passes_through_a_real_list (assignments.tests_format_assignment_html.NoneCoalescingHelpersTest.test_list_or_empty_passes_through_a_real_list) ... ok
+test_none_default_preserves_falsy_non_none_values (assignments.tests_format_assignment_html.NoneCoalescingHelpersTest.test_none_default_preserves_falsy_non_none_values) ... ok
+test_none_default_preserves_truthy_values (assignments.tests_format_assignment_html.NoneCoalescingHelpersTest.test_none_default_preserves_truthy_values) ... ok
+test_none_default_replaces_only_none (assignments.tests_format_assignment_html.NoneCoalescingHelpersTest.test_none_default_replaces_only_none) ... ok
+test_parse_due_date_on_malformed_input (assignments.tests_format_assignment_html.NoneCoalescingHelpersTest.test_parse_due_date_on_malformed_input) ... format_assignment_standard_html: unparsable due_date 'not-a-date'; omitting.
+format_assignment_standard_html: unparsable due_date 12345; omitting.
+format_assignment_standard_html: unparsable due_date <object object at 0x732526793f00>; omitting.
+format_assignment_standard_html: unparsable due_date [2026, 1, 1]; omitting.
+ok
+test_parse_due_date_on_none_or_empty (assignments.tests_format_assignment_html.NoneCoalescingHelpersTest.test_parse_due_date_on_none_or_empty) ... ok
+test_parse_due_date_on_valid_iso_string (assignments.tests_format_assignment_html.NoneCoalescingHelpersTest.test_parse_due_date_on_valid_iso_string) ... ok
+test_parse_due_date_without_timezone (assignments.tests_format_assignment_html.NoneCoalescingHelpersTest.test_parse_due_date_without_timezone) ... ok
+test_a_doubled_pre_existing_letter_marker_is_not_duplicated (assignments.tests_format_assignment_html.OptionsListStructureTest.test_a_doubled_pre_existing_letter_marker_is_not_duplicated)
+Regression: an assignment edit round-trip through AI re-extraction ... ok
+test_a_p_wrapped_option_stays_in_one_paragraph_with_its_letter (assignments.tests_format_assignment_html.OptionsListStructureTest.test_a_p_wrapped_option_stays_in_one_paragraph_with_its_letter)
+Regression: a live generation call showed the AI often wraps each ... ok
+test_a_pre_existing_letter_marker_is_not_duplicated (assignments.tests_format_assignment_html.OptionsListStructureTest.test_a_pre_existing_letter_marker_is_not_duplicated)
+The AI already bakes a marker into option text ("A) ...", "(A) ...", ... ok
+test_a_single_option_still_renders (assignments.tests_format_assignment_html.OptionsListStructureTest.test_a_single_option_still_renders) ... ok
+test_hostile_option_content_is_still_sanitised (assignments.tests_format_assignment_html.OptionsListStructureTest.test_hostile_option_content_is_still_sanitised) ... ok
+test_no_options_are_emitted_for_a_non_objective_question (assignments.tests_format_assignment_html.OptionsListStructureTest.test_no_options_are_emitted_for_a_non_objective_question) ... ok
+test_no_options_are_emitted_when_options_is_empty (assignments.tests_format_assignment_html.OptionsListStructureTest.test_no_options_are_emitted_when_options_is_empty) ... ok
+test_option_html_formatting_is_preserved_inside_the_paragraph (assignments.tests_format_assignment_html.OptionsListStructureTest.test_option_html_formatting_is_preserved_inside_the_paragraph) ... ok
+test_option_order_is_preserved (assignments.tests_format_assignment_html.OptionsListStructureTest.test_option_order_is_preserved)
+Option order carries the correct answer's position - must not shuffle. ... ok
+test_options_produce_one_lettered_paragraph_per_option (assignments.tests_format_assignment_html.OptionsListStructureTest.test_options_produce_one_lettered_paragraph_per_option) ... ok
+test_options_render_as_lettered_paragraphs_in_the_html (assignments.tests_format_assignment_html.OptionsListStructureTest.test_options_render_as_lettered_paragraphs_in_the_html) ... ok
+test_options_with_hostile_answer_from_a_real_end_to_end_document (assignments.tests_format_assignment_html.OptionsListStructureTest.test_options_with_hostile_answer_from_a_real_end_to_end_document)
+Mirrors the shape of a live chemistry MCQ (see the production sample ... ok
+test_non_list_options_does_not_raise_or_iterate_characters (assignments.tests_format_assignment_html.OptionsNoneHandlingTest.test_non_list_options_does_not_raise_or_iterate_characters) ... format_assignment_standard_html: 'options' was 'str', not a list; treating as empty.
+ok
+test_none_item_within_options_does_not_leak_none (assignments.tests_format_assignment_html.OptionsNoneHandlingTest.test_none_item_within_options_does_not_leak_none) ... ok
+test_none_options_on_objective_question_does_not_raise (assignments.tests_format_assignment_html.OptionsNoneHandlingTest.test_none_options_on_objective_question_does_not_raise) ... ok
+test_real_options_still_render (assignments.tests_format_assignment_html.OptionsNoneHandlingTest.test_real_options_still_render) ... ok
+test_all_non_dict_question_entries_still_returns_a_document (assignments.tests_format_assignment_html.QuestionLevelNoneHandlingTest.test_all_non_dict_question_entries_still_returns_a_document) ... format_assignment_standard_html: skipping non-dict question entry 'bad'.
+format_assignment_standard_html: skipping non-dict question entry None.
+format_assignment_standard_html: skipping non-dict question entry 42.
+ok
+test_missing_question_type_does_not_raise (assignments.tests_format_assignment_html.QuestionLevelNoneHandlingTest.test_missing_question_type_does_not_raise) ... ok
+test_non_dict_question_entries_are_skipped_not_raised (assignments.tests_format_assignment_html.QuestionLevelNoneHandlingTest.test_non_dict_question_entries_are_skipped_not_raised) ... format_assignment_standard_html: skipping non-dict question entry 'not a dict'.
+format_assignment_standard_html: skipping non-dict question entry None.
+format_assignment_standard_html: skipping non-dict question entry 42.
+ok
+test_non_string_question_type_does_not_raise (assignments.tests_format_assignment_html.QuestionLevelNoneHandlingTest.test_non_string_question_type_does_not_raise) ... ok
+test_none_question_number_and_points_do_not_leak_none (assignments.tests_format_assignment_html.QuestionLevelNoneHandlingTest.test_none_question_number_and_points_do_not_leak_none) ... ok
+test_none_question_text_does_not_leak_the_word_none (assignments.tests_format_assignment_html.QuestionLevelNoneHandlingTest.test_none_question_text_does_not_leak_the_word_none) ... ok
+test_none_question_type_does_not_raise (assignments.tests_format_assignment_html.QuestionLevelNoneHandlingTest.test_none_question_type_does_not_raise) ... ok
+test_zero_points_on_a_question_is_preserved (assignments.tests_format_assignment_html.QuestionLevelNoneHandlingTest.test_zero_points_on_a_question_is_preserved) ... ok
+test_genuine_word_none_as_a_rubric_level_is_not_mistaken_for_the_bug (assignments.tests_format_assignment_html.RubricNoneHandlingTest.test_genuine_word_none_as_a_rubric_level_is_not_mistaken_for_the_bug)
+'none'.title() == 'None' is correct, expected behaviour - the fix ... ok
+test_non_dict_rubric_entries_are_skipped_not_raised (assignments.tests_format_assignment_html.RubricNoneHandlingTest.test_non_dict_rubric_entries_are_skipped_not_raised) ... format_assignment_standard_html: skipping non-dict rubric entry 'bad entry'.
+format_assignment_standard_html: skipping non-dict rubric entry None.
+ok
+test_non_list_rubric_does_not_raise (assignments.tests_format_assignment_html.RubricNoneHandlingTest.test_non_list_rubric_does_not_raise) ... format_assignment_standard_html: 'rubric' was 'str', not a list; treating as empty.
+ok
+test_none_rubric_description_does_not_leak_none (assignments.tests_format_assignment_html.RubricNoneHandlingTest.test_none_rubric_description_does_not_leak_none) ... ok
+test_none_rubric_does_not_raise (assignments.tests_format_assignment_html.RubricNoneHandlingTest.test_none_rubric_does_not_raise) ... ok
+test_none_rubric_level_does_not_leak_none (assignments.tests_format_assignment_html.RubricNoneHandlingTest.test_none_rubric_level_does_not_leak_none) ... ok
+test_none_rubric_points_does_not_leak_none (assignments.tests_format_assignment_html.RubricNoneHandlingTest.test_none_rubric_points_does_not_leak_none) ... ok
+test_rubric_is_omitted_when_include_rubric_is_false (assignments.tests_format_assignment_html.RubricNoneHandlingTest.test_rubric_is_omitted_when_include_rubric_is_false) ... ok
+test_zero_rubric_points_is_preserved (assignments.tests_format_assignment_html.RubricNoneHandlingTest.test_zero_rubric_points_is_preserved) ... ok
+test_control_characters_are_removed (assignments.tests_prosemirror_converter.AiHtmlAllowlistTest.test_control_characters_are_removed) ... ok
+test_math_block_class_is_still_allowed (assignments.tests_prosemirror_converter.AiHtmlAllowlistTest.test_math_block_class_is_still_allowed) ... ok
+test_non_strings_pass_through_unchanged (assignments.tests_prosemirror_converter.AiHtmlAllowlistTest.test_non_strings_pass_through_unchanged) ... ok
+test_ordinary_formatting_is_untouched (assignments.tests_prosemirror_converter.AiHtmlAllowlistTest.test_ordinary_formatting_is_untouched) ... ok
+test_script_source_is_not_left_behind_as_prose (assignments.tests_prosemirror_converter.AiHtmlAllowlistTest.test_script_source_is_not_left_behind_as_prose) ... ok
+test_style_source_is_not_left_behind_as_prose (assignments.tests_prosemirror_converter.AiHtmlAllowlistTest.test_style_source_is_not_left_behind_as_prose) ... ok
+test_a_missing_attribute_is_none (assignments.tests_prosemirror_converter.ColwidthParsingTest.test_a_missing_attribute_is_none) ... ok
+test_a_non_numeric_entry_discards_the_whole_value (assignments.tests_prosemirror_converter.ColwidthParsingTest.test_a_non_numeric_entry_discards_the_whole_value)
+Partial widths would lay the table out wrongly, so a malformed ... ok
+test_a_valid_list_is_parsed_to_ints (assignments.tests_prosemirror_converter.ColwidthParsingTest.test_a_valid_list_is_parsed_to_ints) ... ok
+test_an_empty_attribute_is_none (assignments.tests_prosemirror_converter.ColwidthParsingTest.test_an_empty_attribute_is_none) ... ok
+test_whitespace_is_tolerated (assignments.tests_prosemirror_converter.ColwidthParsingTest.test_whitespace_is_tolerated) ... ok
+test_a_cached_result_is_an_immutable_string (assignments.tests_prosemirror_converter.ConversionCacheTest.test_a_cached_result_is_an_immutable_string)
+Guards the reason the *string* form is cached rather than the dict: ... ok
+test_different_html_is_not_confused (assignments.tests_prosemirror_converter.ConversionCacheTest.test_different_html_is_not_confused) ... ok
+test_edited_content_produces_a_different_document (assignments.tests_prosemirror_converter.ConversionCacheTest.test_edited_content_produces_a_different_document)
+No invalidation needed: changed content is a different cache key. ... ok
+test_identical_html_is_converted_once (assignments.tests_prosemirror_converter.ConversionCacheTest.test_identical_html_is_converted_once) ... ok
+test_invalid_input_raises_value_error_not_a_cache_type_error (assignments.tests_prosemirror_converter.ConversionCacheTest.test_invalid_input_raises_value_error_not_a_cache_type_error) ... ok
+test_the_cache_is_bounded (assignments.tests_prosemirror_converter.ConversionCacheTest.test_the_cache_is_bounded) ... ok
+test_a_parser_failure_becomes_a_conversion_error_with_the_cause (assignments.tests_prosemirror_converter.ConversionFailureTest.test_a_parser_failure_becomes_a_conversion_error_with_the_cause) ... HTML -> ProseMirror conversion failed (12 chars, starts '<p>hello</p>')
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h263-package-upgrades/assignments/prosemirror_converter.py", line 665, in html_to_prosemirror_json
+    dom = lxml_html.fromstring(f"<div>{safe_html}</div>")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: lxml exploded
+ok
+test_the_failure_is_logged_with_enough_context_to_debug (assignments.tests_prosemirror_converter.ConversionFailureTest.test_the_failure_is_logged_with_enough_context_to_debug) ... ok
+test_each_heading_level_is_preserved (assignments.tests_prosemirror_converter.HeadingLevelTest.test_each_heading_level_is_preserved) ... ok
+test_heading_level_survives_alongside_alignment (assignments.tests_prosemirror_converter.HeadingLevelTest.test_heading_level_survives_alongside_alignment) ... ok
+test_the_document_renderers_headings_are_not_flattened (assignments.tests_prosemirror_converter.HeadingLevelTest.test_the_document_renderers_headings_are_not_flattened)
+The two real producers both rely on multi-level headings. ... ok
+test_b_and_i_map_onto_strong_and_em (assignments.tests_prosemirror_converter.InlineFormattingTest.test_b_and_i_map_onto_strong_and_em) ... ok
+test_basic_marks_still_work (assignments.tests_prosemirror_converter.InlineFormattingTest.test_basic_marks_still_work) ... ok
+test_strikethrough_variants (assignments.tests_prosemirror_converter.InlineFormattingTest.test_strikethrough_variants)
+Mark name is "strike", not "strikethrough": Tiptap's stock ... ok
+test_superscript_and_subscript_are_marks_not_lost_formatting (assignments.tests_prosemirror_converter.InlineFormattingTest.test_superscript_and_subscript_are_marks_not_lost_formatting) ... ok
+test_superscript_and_subscript_exclude_each_other (assignments.tests_prosemirror_converter.InlineFormattingTest.test_superscript_and_subscript_exclude_each_other) ... ok
+test_underline_is_preserved (assignments.tests_prosemirror_converter.InlineFormattingTest.test_underline_is_preserved) ... ok
+test_control_characters_do_not_break_parsing (assignments.tests_prosemirror_converter.InputValidationTest.test_control_characters_do_not_break_parsing) ... ok
+test_conversion_error_still_subclasses_runtime_error (assignments.tests_prosemirror_converter.InputValidationTest.test_conversion_error_still_subclasses_runtime_error) ... ok
+test_empty_and_non_string_input_raises_value_error (assignments.tests_prosemirror_converter.InputValidationTest.test_empty_and_non_string_input_raises_value_error) ... ok
+test_html_entities_are_decoded (assignments.tests_prosemirror_converter.InputValidationTest.test_html_entities_are_decoded) ... ok
+test_plain_text_without_markup_becomes_a_paragraph (assignments.tests_prosemirror_converter.InputValidationTest.test_plain_text_without_markup_becomes_a_paragraph) ... ok
+test_stray_closing_tag_cannot_escape_the_wrapper (assignments.tests_prosemirror_converter.InputValidationTest.test_stray_closing_tag_cannot_escape_the_wrapper) ... ok
+test_tabs_and_newlines_collapse_the_way_html_says_they_should (assignments.tests_prosemirror_converter.InputValidationTest.test_tabs_and_newlines_collapse_the_way_html_says_they_should)
+Tabs and newlines are legal XML and must not be stripped as control ... ok
+test_unclosed_tags_are_recovered (assignments.tests_prosemirror_converter.InputValidationTest.test_unclosed_tags_are_recovered) ... ok
+test_unicode_is_preserved (assignments.tests_prosemirror_converter.InputValidationTest.test_unicode_is_preserved) ... ok
+test_math_block_class_survives_conversion (assignments.tests_prosemirror_converter.MathBlockTest.test_math_block_class_survives_conversion) ... ok
+test_math_block_survives_the_full_sanitise_then_convert_path (assignments.tests_prosemirror_converter.MathBlockTest.test_math_block_survives_the_full_sanitise_then_convert_path) ... ok
+test_plain_span_gets_no_mark (assignments.tests_prosemirror_converter.MathBlockTest.test_plain_span_gets_no_mark) ... ok
+test_strip_control_chars_passes_non_strings_through (assignments.tests_prosemirror_converter.NonStringInputPassthroughTest.test_strip_control_chars_passes_non_strings_through) ... ok
+test_strip_raw_text_elements_passes_non_strings_through (assignments.tests_prosemirror_converter.NonStringInputPassthroughTest.test_strip_raw_text_elements_passes_non_strings_through) ... ok
+test_a_vanilla_schema_is_unaffected_by_our_customisations (assignments.tests_prosemirror_converter.SchemaIsolationTest.test_a_vanilla_schema_is_unaffected_by_our_customisations) ... ok
+test_building_the_schema_does_not_mutate_the_library_spec (assignments.tests_prosemirror_converter.SchemaIsolationTest.test_building_the_schema_does_not_mutate_the_library_spec) ... ok
+test_repeated_conversions_are_deterministic (assignments.tests_prosemirror_converter.SchemaIsolationTest.test_repeated_conversions_are_deterministic) ... ok
+test_the_shared_schema_is_built_once (assignments.tests_prosemirror_converter.SchemaIsolationTest.test_the_shared_schema_is_built_once) ... ok
+test_benign_style_is_kept (assignments.tests_prosemirror_converter.SecurityTest.test_benign_style_is_kept) ... ok
+test_data_uri_href_drops_the_link_mark (assignments.tests_prosemirror_converter.SecurityTest.test_data_uri_href_drops_the_link_mark) ... ok
+test_event_handler_attributes_are_removed (assignments.tests_prosemirror_converter.SecurityTest.test_event_handler_attributes_are_removed) ... ok
+test_iframe_is_removed (assignments.tests_prosemirror_converter.SecurityTest.test_iframe_is_removed) ... ok
+test_image_with_a_hostile_src_is_dropped (assignments.tests_prosemirror_converter.SecurityTest.test_image_with_a_hostile_src_is_dropped) ... ok
+test_javascript_href_drops_the_link_mark (assignments.tests_prosemirror_converter.SecurityTest.test_javascript_href_drops_the_link_mark) ... ok
+test_legitimate_question_image_survives (assignments.tests_prosemirror_converter.SecurityTest.test_legitimate_question_image_survives)
+format_assignment_standard_html really does emit <img>. ... ok
+test_safe_links_are_kept (assignments.tests_prosemirror_converter.SecurityTest.test_safe_links_are_kept) ... ok
+test_safe_style_helper (assignments.tests_prosemirror_converter.SecurityTest.test_safe_style_helper) ... ok
+test_sanitize_editor_html_removes_disallowed_markup (assignments.tests_prosemirror_converter.SecurityTest.test_sanitize_editor_html_removes_disallowed_markup) ... ok
+test_script_tag_and_its_source_are_removed (assignments.tests_prosemirror_converter.SecurityTest.test_script_tag_and_its_source_are_removed) ... ok
+test_style_element_source_is_removed (assignments.tests_prosemirror_converter.SecurityTest.test_style_element_source_is_removed) ... ok
+test_style_value_that_could_break_out_of_an_attribute_is_dropped (assignments.tests_prosemirror_converter.SecurityTest.test_style_value_that_could_break_out_of_an_attribute_is_dropped) ... ok
+test_url_and_expression_in_style_are_dropped (assignments.tests_prosemirror_converter.SecurityTest.test_url_and_expression_in_style_are_dropped)
+Two layers act here and either outcome is acceptable, so the assertion ... ok
+test_none_and_true_are_serialised_as_json_not_python (assignments.tests_prosemirror_converter.SerialisationTest.test_none_and_true_are_serialised_as_json_not_python) ... ok
+test_service_facade_matches_the_module_functions (assignments.tests_prosemirror_converter.SerialisationTest.test_service_facade_matches_the_module_functions) ... ok
+test_text_and_json_entry_points_agree (assignments.tests_prosemirror_converter.SerialisationTest.test_text_and_json_entry_points_agree) ... ok
+test_text_entry_point_returns_parseable_json (assignments.tests_prosemirror_converter.SerialisationTest.test_text_entry_point_returns_parseable_json) ... ok
+test_a_cell_style_is_preserved (assignments.tests_prosemirror_converter.SerializationBackToDomTest.test_a_cell_style_is_preserved) ... ok
+test_a_default_cell_emits_no_redundant_span_attributes (assignments.tests_prosemirror_converter.SerializationBackToDomTest.test_a_default_cell_emits_no_redundant_span_attributes)
+colspan/rowspan of 1 are the default and must not be written. ... ok
+test_a_default_paragraph_emits_no_style (assignments.tests_prosemirror_converter.SerializationBackToDomTest.test_a_default_paragraph_emits_no_style) ... ok
+test_a_header_cell_emits_th_not_td (assignments.tests_prosemirror_converter.SerializationBackToDomTest.test_a_header_cell_emits_th_not_td) ... ok
+test_a_heading_emits_its_own_level (assignments.tests_prosemirror_converter.SerializationBackToDomTest.test_a_heading_emits_its_own_level) ... ok
+test_a_merged_cell_keeps_its_spans (assignments.tests_prosemirror_converter.SerializationBackToDomTest.test_a_merged_cell_keeps_its_spans) ... ok
+test_a_non_default_alignment_becomes_an_inline_style (assignments.tests_prosemirror_converter.SerializationBackToDomTest.test_a_non_default_alignment_becomes_an_inline_style) ... ok
+test_a_trailing_semicolon_is_not_doubled (assignments.tests_prosemirror_converter.SerializationBackToDomTest.test_a_trailing_semicolon_is_not_doubled) ... ok
+test_an_existing_text_align_style_is_used_as_is (assignments.tests_prosemirror_converter.SerializationBackToDomTest.test_an_existing_text_align_style_is_used_as_is) ... ok
+test_another_style_is_kept_AND_the_alignment_appended (assignments.tests_prosemirror_converter.SerializationBackToDomTest.test_another_style_is_kept_AND_the_alignment_appended)
+The regression this branch exists for: an earlier ... ok
+test_colwidth_is_emitted_as_a_comma_separated_string (assignments.tests_prosemirror_converter.SerializationBackToDomTest.test_colwidth_is_emitted_as_a_comma_separated_string) ... ok
+test_blockquote_and_code_block (assignments.tests_prosemirror_converter.StructuralFidelityTest.test_blockquote_and_code_block) ... ok
+test_every_node_and_mark_in_a_document_is_known_to_the_schema (assignments.tests_prosemirror_converter.StructuralFidelityTest.test_every_node_and_mark_in_a_document_is_known_to_the_schema) ... ok
+test_line_breaks_and_rules (assignments.tests_prosemirror_converter.StructuralFidelityTest.test_line_breaks_and_rules) ... ok
+test_lists_are_converted (assignments.tests_prosemirror_converter.StructuralFidelityTest.test_lists_are_converted) ... ok
+test_nested_lists (assignments.tests_prosemirror_converter.StructuralFidelityTest.test_nested_lists) ... ok
+test_ordered_list_start_is_kept (assignments.tests_prosemirror_converter.StructuralFidelityTest.test_ordered_list_start_is_kept) ... ok
+test_absent_spans_default_to_one (assignments.tests_prosemirror_converter.TableTest.test_absent_spans_default_to_one) ... ok
+test_colspan_and_rowspan_are_preserved (assignments.tests_prosemirror_converter.TableTest.test_colspan_and_rowspan_are_preserved) ... ok
+test_empty_table_does_not_raise (assignments.tests_prosemirror_converter.TableTest.test_empty_table_does_not_raise) ... ok
+test_malformed_and_hostile_spans_fall_back_to_one (assignments.tests_prosemirror_converter.TableTest.test_malformed_and_hostile_spans_fall_back_to_one) ... ok
+test_nested_tables_are_handled (assignments.tests_prosemirror_converter.TableTest.test_nested_tables_are_handled) ... ok
+test_rubric_table_from_the_real_renderer_keeps_its_cells (assignments.tests_prosemirror_converter.TableTest.test_rubric_table_from_the_real_renderer_keeps_its_cells) ... ok
+test_thead_and_tbody_wrappers_do_not_lose_rows (assignments.tests_prosemirror_converter.TableTest.test_thead_and_tbody_wrappers_do_not_lose_rows) ... ok
+test_alignment_is_case_and_space_insensitive (assignments.tests_prosemirror_converter.TextAlignTest.test_alignment_is_case_and_space_insensitive) ... ok
+test_alignment_is_read_from_style (assignments.tests_prosemirror_converter.TextAlignTest.test_alignment_is_read_from_style) ... ok
+test_declaration_without_a_colon_does_not_raise (assignments.tests_prosemirror_converter.TextAlignTest.test_declaration_without_a_colon_does_not_raise)
+Regression: `style.split(":")[1]` raised IndexError, which surfaced as a ... ok
+test_default_alignment_when_absent (assignments.tests_prosemirror_converter.TextAlignTest.test_default_alignment_when_absent) ... ok
+test_missing_style_attribute (assignments.tests_prosemirror_converter.TextAlignTest.test_missing_style_attribute) ... ok
+test_similar_property_names_do_not_match (assignments.tests_prosemirror_converter.TextAlignTest.test_similar_property_names_do_not_match) ... ok
+test_unknown_alignment_value_falls_back (assignments.tests_prosemirror_converter.TextAlignTest.test_unknown_alignment_value_falls_back) ... ok
+test_a_data_href_drops_the_mark (assignments.tests_prosemirror_converter.UnsafeLinkRejectionTest.test_a_data_href_drops_the_mark) ... ok
+test_a_javascript_href_drops_the_mark_entirely (assignments.tests_prosemirror_converter.UnsafeLinkRejectionTest.test_a_javascript_href_drops_the_mark_entirely)
+Returning False tells ProseMirror the rule did not match, so the ... ok
+test_a_mailto_href_is_kept (assignments.tests_prosemirror_converter.UnsafeLinkRejectionTest.test_a_mailto_href_is_kept) ... ok
+test_a_relative_href_is_kept (assignments.tests_prosemirror_converter.UnsafeLinkRejectionTest.test_a_relative_href_is_kept)
+No scheme at all is not a dangerous scheme. ... ok
+test_an_https_href_is_kept (assignments.tests_prosemirror_converter.UnsafeLinkRejectionTest.test_an_https_href_is_kept) ... ok
+test_a_wrong_result_is_never_kept_in_the_conversion_cache (assignments.tests_sanitizer_threads.TheSanitizerKeepsEachCallersTextToItself.test_a_wrong_result_is_never_kept_in_the_conversion_cache)
+html_to_prosemirror_text keeps the last 64 conversions in a ... ok
+test_many_threads_raise_nothing_and_every_output_is_its_own (assignments.tests_sanitizer_threads.TheSanitizerKeepsEachCallersTextToItself.test_many_threads_raise_nothing_and_every_output_is_its_own) ... ok
+test_the_hostile_inputs_stay_clean_in_every_thread (assignments.tests_sanitizer_threads.TheSanitizerKeepsEachCallersTextToItself.test_the_hostile_inputs_stay_clean_in_every_thread) ... ok
+test_the_single_thread_outputs_are_what_the_comparison_needs (assignments.tests_sanitizer_threads.TheSanitizerKeepsEachCallersTextToItself.test_the_single_thread_outputs_are_what_the_comparison_needs)
+The deciding values: every expected output exists and carries its own ... ok
+test_the_whole_conversion_gives_each_thread_its_own_document (assignments.tests_sanitizer_threads.TheSanitizerKeepsEachCallersTextToItself.test_the_whole_conversion_gives_each_thread_its_own_document)
+The real function the writers call, end to end (sanitize, parse, ... ok
+test_empty_title_renders_no_heading (assignments.tests_title_sanitization.FormatAssignmentStandardHtmlTitleHeadingTest.test_empty_title_renders_no_heading) ... ok
+test_none_title_renders_no_heading (assignments.tests_title_sanitization.FormatAssignmentStandardHtmlTitleHeadingTest.test_none_title_renders_no_heading) ... ok
+test_omitting_document_header_still_skips_title (assignments.tests_title_sanitization.FormatAssignmentStandardHtmlTitleHeadingTest.test_omitting_document_header_still_skips_title) ... ok
+test_plain_title_is_wrapped_in_h1 (assignments.tests_title_sanitization.FormatAssignmentStandardHtmlTitleHeadingTest.test_plain_title_is_wrapped_in_h1) ... ok
+test_tag_laden_title_is_rewrapped_as_a_clean_h1 (assignments.tests_title_sanitization.FormatAssignmentStandardHtmlTitleHeadingTest.test_tag_laden_title_is_rewrapped_as_a_clean_h1) ... ok
+test_title_heading_is_the_first_content_in_the_document (assignments.tests_title_sanitization.FormatAssignmentStandardHtmlTitleHeadingTest.test_title_heading_is_the_first_content_in_the_document) ... ok
+test_title_is_escaped_against_injection (assignments.tests_title_sanitization.FormatAssignmentStandardHtmlTitleHeadingTest.test_title_is_escaped_against_injection) ... ok
+test_collapses_whitespace_left_by_stripped_tags (assignments.tests_title_sanitization.StripHtmlFromTitleHelperTest.test_collapses_whitespace_left_by_stripped_tags) ... ok
+test_empty_string_is_passed_through (assignments.tests_title_sanitization.StripHtmlFromTitleHelperTest.test_empty_string_is_passed_through) ... ok
+test_is_idempotent (assignments.tests_title_sanitization.StripHtmlFromTitleHelperTest.test_is_idempotent) ... ok
+test_none_is_passed_through (assignments.tests_title_sanitization.StripHtmlFromTitleHelperTest.test_none_is_passed_through) ... ok
+test_plain_title_is_left_untouched (assignments.tests_title_sanitization.StripHtmlFromTitleHelperTest.test_plain_title_is_left_untouched) ... ok
+test_script_tag_content_does_not_leak_as_visible_text (assignments.tests_title_sanitization.StripHtmlFromTitleHelperTest.test_script_tag_content_does_not_leak_as_visible_text) ... ok
+test_strips_wrapping_heading_tag (assignments.tests_title_sanitization.StripHtmlFromTitleHelperTest.test_strips_wrapping_heading_tag) ... ok
+test_strips_wrapping_paragraph_tag (assignments.tests_title_sanitization.StripHtmlFromTitleHelperTest.test_strips_wrapping_paragraph_tag) ... ok
+
+----------------------------------------------------------------------
+Ran 270 tests in 87.754s
+
+OK
+Destroying test database for alias 'default' ('test_h263_package_upgrades')...
+ OK
+scanned            : 1
+repaired           : 1 assignment(s)
+questions cleaned  : 1
+done
+scanned  : 1
+repaired : 1 assignment(s)
+done

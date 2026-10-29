@@ -1,0 +1,5 @@
+input characters: 532
+shared Cleaner.clean   us/call: 1968.3
+fresh Cleaner + clean  us/call: 1894.2
+Cleaner construction   us/call: 52.1
+sanitize_editor_html   us/call: 2354.4

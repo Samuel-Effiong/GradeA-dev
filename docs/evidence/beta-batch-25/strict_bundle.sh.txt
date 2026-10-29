@@ -1,0 +1,91 @@
+#!/bin/bash
+# Strict full run of a beta bundle (Gate 10 form, with the stall watchdog). Usage: strict_bundle.sh <expected sha> <label, e.g. b13> <worktree directory name> <branch>
+# Pre-checks STOP the script (exit 5 or 6): settings_worktree.py and .env present, the test database name belongs to this worktree only, mypy passes, makemigrations is clean.
+set -u
+# RULE 16 (revised 2026-10-08): the WHOLE script runs inside ONE inhibit, first line to last.
+if [ -z "${GAP_INHIBITED:-}" ]; then
+  exec env GAP_INHIBITED=1 systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why="GAP test run" --mode=block bash "$(readlink -f "$0")" "$@"
+fi
+EXP=${1:?expected sha}; LABEL=${2:?label}; WTDIR=${3:?worktree directory name}; BRANCH=${4:?branch}
+cd /home/bond-servant-in-training/Documents/Projects/$WTDIR || exit 2
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+for v in $(env | grep -oE '^(RACE_COST[A-Z_]*|AUDIT_BENCH[A-Z_]*|ENABLE_GRADING_BENCHMARK)='); do unset "${v%=}"; done
+S=/home/bond-servant-in-training/Documents/Projects/GAP-a0-runs/b25; LOG=$S/strict_$LABEL.log
+SHA=$(git rev-parse --short=8 HEAD)
+[ "$(git branch --show-current)" = "$BRANCH" ] || { echo "wrong branch"; exit 3; }
+[ "$(git rev-parse HEAD)" = "$(git rev-parse "$EXP")" ] || { echo "unexpected HEAD $SHA"; exit 3; }
+[ -n "$(git status --porcelain)" ] && { echo "worktree not clean"; exit 3; }
+# Only a GAP run counts here (its working directory is a Grade-Automator-Plus worktree); another project's test run on the laptop is watched through the load average, as the Senior Manager ruled.
+GAPRUNS=0; for pid in $(pgrep -f "manage.py test"); do case "$(readlink /proc/$pid/cwd 2>/dev/null)" in */Grade-Automator-Plus*) GAPRUNS=$((GAPRUNS+1));; esac; done
+[ "$GAPRUNS" = 0 ] || { echo "another GAP test run is active"; exit 4; }
+[ -f settings_worktree.py ] || { echo "STOP: settings_worktree.py is missing in $WTDIR (copy it from a sibling worktree and change the test database name)"; exit 5; }
+[ -e .env ] || { echo "STOP: .env is missing in $WTDIR (link it as the sibling worktrees do)"; exit 5; }
+DBN=$(sed -nE 's/.*\["NAME"\] *= *"([^"]+)".*/\1/p' settings_worktree.py | tail -1)
+case "$DBN" in test_*) : ;; *) echo "STOP: no test database name in settings_worktree.py"; exit 5;; esac
+for d in /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-*; do [ "$d" = "$PWD" ] && continue; [ -f "$d/settings_worktree.py" ] && grep -q "\"$DBN\"" "$d/settings_worktree.py" && { echo "STOP: test database name $DBN is also used by $d"; exit 5; }; done
+MYPY=$(pre-commit run mypy --all-files 2>&1 | grep -E 'Passed|Failed'); echo "mypy: $MYPY"
+case "$MYPY" in *Passed*) : ;; *) echo "STOP: mypy did not pass"; exit 6;; esac
+MM=$(python manage.py makemigrations --check --dry-run --settings=settings_worktree 2>&1 | tail -1); echo "makemigrations: $MM"
+case "$MM" in "No changes detected"*) : ;; *) echo "STOP: makemigrations is not clean"; exit 6;; esac
+# SM rules 2026-10-14 (batch 19). LOAD: measured here, AFTER the pre-checks, right before the suite. Start only if the
+# 1-minute load is under 8; re-check every 15 s for up to 20 minutes; if it is still 8 or more, do NOT start (exit 7)
+# and tell the SM. MEMORY CAP: available memory minus 2 GB, at least 6G; below that, do NOT start (exit 8).
+# MEMORY GUARD: in the loop below, if available memory drops under 1.5 GB, stop this run's own scope (exit is then
+# reported as a memory stop, not a red).
+# Drill-only settings (defaults are the real rule): GAP_MEMSTOP_MB (memory-stop threshold, default 1500) and
+# GAP_TEST_LABELS (test labels, default empty = the whole suite). A run that sets either is a DRILL, never a batch run;
+# the summary says so.
+MEMSTOP_MB=${GAP_MEMSTOP_MB:-1500}; TEST_LABELS=${GAP_TEST_LABELS:-}
+[ "$MEMSTOP_MB" = 1500 ] && [ -z "$TEST_LABELS" ] || echo "DRILL SETTINGS: memstop threshold ${MEMSTOP_MB} MB; labels '${TEST_LABELS}' (not a batch run)"
+LOADMAX=${GAP_LOADMAX:-8}; lw=0
+while ! awk -v l=$(cut -d' ' -f1 /proc/loadavg) -v m=$LOADMAX 'BEGIN{exit !(l<m)}'; do
+  [ $lw -ge 1200 ] && { echo "STOP: load still $(cut -d' ' -f1-3 /proc/loadavg) after 20 min; NOT started (SM rule: tell the SM)"; exit 7; }
+  [ $lw = 0 ] && echo "load $(cut -d' ' -f1-3 /proc/loadavg) is not under $LOADMAX; waiting (up to 20 min)"
+  sleep 15; lw=$((lw+15))
+done
+AVAIL_MB=$(free -m | awk 'NR==2{print $7}'); CAP_GB=$(( (AVAIL_MB - 2048) / 1024 ))
+[ $CAP_GB -ge 6 ] || { echo "STOP: available ${AVAIL_MB} MB gives a cap of ${CAP_GB}G (< 6G); NOT started (SM rule: wait and tell the SM)"; exit 5; }
+UNIT=gap-strict-$LABEL-$$
+echo "memory: available ${AVAIL_MB} MB at start; cap ${CAP_GB}G (available - 2 GB); scope $UNIT; guard stops it under ${MEMSTOP_MB} MB available"
+echo "bundle $LABEL strict full run start $(date '+%F %T %Z') sha=$SHA load=$(cut -d' ' -f1-3 /proc/loadavg)"
+export PYTHONDONTWRITEBYTECODE=1
+t0=$(date +%s)
+export PYTHONFAULTHANDLER=1 GAP_G10_TAG=strict-$LABEL-$$
+: > $LOG
+( systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why="GAP test run" --mode=block systemd-run --user --scope -q --unit=$UNIT -p MemoryMax=${CAP_GB}G -p MemorySwapMax=0 nice -n 10 flock ~/.machine-fullsuite.lock timeout -k 60 3600 python manage.py test --settings=settings_worktree --parallel 4 --noinput --verbosity 2 $TEST_LABELS >> $LOG 2>&1 < /dev/null; echo $? > $S/strict_$LABEL.rc ) &
+RUN=$!
+# Watchdog (SM interim rule 2026-10-02): after 300 s without a new log line, record the process
+# tree, then SIGABRT the parent (faulthandler prints its traceback into the log), then the workers.
+mine() { for d in /proc/[0-9]*; do grep -qz "^GAP_G10_TAG=$GAP_G10_TAG\$" $d/environ 2>/dev/null && grep -qa "manage.py" $d/cmdline 2>/dev/null && [ "$(cat $d/comm)" = python ] && echo ${d#/proc/}; done; }
+stalled=0; memstop=0; minav=999999
+while kill -0 $RUN 2>/dev/null; do
+  perl -e 'select(undef,undef,undef,5)'
+  av=$(free -m | awk 'NR==2{print $7}'); [ "$av" -lt "$minav" ] && minav=$av
+  if [ "$av" -lt "$MEMSTOP_MB" ] && [ $memstop = 0 ]; then
+    memstop=1; echo "$(date '+%F %T') MEMORY STOP: available ${av} MB < ${MEMSTOP_MB}; stopping scope $UNIT" | tee $S/strict_$LABEL.memstop.txt
+    # SIGKILL at once: the drill of 2026-10-14 16:02 showed the test workers ignore SIGTERM, so a plain stop waited
+    # systemd's full 90 s before killing; in a memory emergency that is too long.
+    systemctl --user kill --signal=SIGKILL $UNIT.scope; systemctl --user stop $UNIT.scope 2>/dev/null; systemctl --user reset-failed $UNIT.scope 2>/dev/null
+  fi
+  age=$(( $(date +%s) - $(stat -c %Y $LOG) ))
+  if [ -s $LOG ] && [ $age -ge 300 ] && [ $stalled = 0 ]; then
+    stalled=1; pids=$(mine | sort -n | tr '\n' ' ')
+    { date '+%F %T'; ps -o pid,ppid,stat,etimes,pcpu,wchan:20,nlwp,args -p $(echo $pids | tr ' ' ',') | cut -c1-160; } > $S/strict_$LABEL.stall_tree.txt 2>&1
+    parent=$(for p in $pids; do pp=$(ps -o ppid= -p $p | tr -d ' '); [ "$(cat /proc/$pp/comm 2>/dev/null)" != python ] && echo $p; done)
+    [ -n "$parent" ] && kill -ABRT $parent
+    perl -e 'select(undef,undef,undef,4)'
+    for p in $pids; do [ "$p" != "$parent" ] && [ -d /proc/$p ] && kill -ABRT $p; done
+  fi
+done
+wait $RUN
+rc=$(cat $S/strict_$LABEL.rc 2>/dev/null || echo missing)
+echo "watchdog: stalled=$stalled (300 s silence rule; 0 = never fired)"
+echo "memory guard: memstop=$memstop (1 = this run was STOPPED for memory, not a red); min available ${minav} MB"
+echo "exit=$rc end $(date '+%F %T %Z') wall=$(( $(date +%s) - t0 ))s"
+echo "load at end: $(cut -d" " -f1-3 /proc/loadavg)"
+grep -E '^Ran [0-9]+ tests' $LOG; grep -E '^(OK|FAILED)' $LOG | tail -1
+echo "blocked_outbound=$(grep -c 'Blocked real outbound network call' $LOG)"
+echo "per-app test counts:"
+grep -oE '^[A-Za-z_0-9]+ \(([A-Za-z_0-9]+)\.[A-Za-z_0-9.]+\)' $LOG | sed -E 's/^[^ ]+ \(([A-Za-z_0-9]+)\..*/\1/' | sort | uniq -c | awk '{printf "  %s %s\n",$2,$1}'
+echo "FAIL/ERROR headers: $(grep -cE '^(FAIL|ERROR): ' $LOG)"; grep -E '^(FAIL|ERROR): ' $LOG | head -20
+echo "suspends during run: $(journalctl --since "@$t0" --no-pager 2>/dev/null | grep -cE 'PM: suspend entry')"

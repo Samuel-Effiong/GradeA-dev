@@ -1,0 +1,13 @@
+# G3: guard: an exception's text in a logger call (signals)
+# file: users/signals.py (occurrence 1)
+# old: '            type(exc).__name__,\n'
+# new: '            exc,\n'
+# commit: af5cee0442448447293933eae2bfd9e122149b38
+# tests: billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest
+# exit: 1
+# elapsed_s: 3.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_no_logger_call_formats_an_address (billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest.test_no_logger_call_formats_an_address)
+
+FAILED (failures=1)

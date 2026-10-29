@@ -1,0 +1,14 @@
+== billing/0010_alter_betaprofile_id: 1 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  AlterField betaprofile.id: BigAutoField NOT NULL primary_key unique  ->  CharField NOT NULL default='00000000-0000-0000-0000 max_length=100 primary_key unique
+== billing/0031_alter_licensesubscription_custom_price_cents_and_more: 2 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  AlterField licensesubscription.custom_price_cents: PositiveSmallIntegerField NULL  ->  PositiveIntegerField NULL
+  AlterField licensesubscription.max_seats: PositiveSmallIntegerField NOT NULL default=0  ->  PositiveIntegerField NOT NULL default=1
+== billing/0034_alter_licensesubscription_custom_price_cents: 1 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  AlterField licensesubscription.custom_price_cents: PositiveIntegerField NULL  ->  DecimalField NULL max_digits=10 decimal_places=2
+== billing/0036_alter_licensesubscription_contract_months_and_more: 2 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  AlterField licensesubscription.contract_months: PositiveSmallIntegerField NOT NULL default=12 choices=4  ->  PositiveSmallIntegerField NOT NULL default=12
+  AlterField licensesubscription.custom_price_cents: DecimalField NULL max_digits=10 decimal_places=2  ->  IntegerField NULL
+== billing/0039_alter_subscriptionplan_overage_block_price: 1 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  AlterField subscriptionplan.overage_block_price: DecimalField NOT NULL default=Decimal('0.00') max_digits=10 decimal_places=2  ->  IntegerField NOT NULL default=0
+== students/0027_alter_studentsubmission_ai_grading_completed_at: 1 operation(s); source mentions: none of RunSQL, RunPython, the marker
+  AlterField studentsubmission.ai_grading_completed_at: DateField NULL  ->  DateTimeField NULL

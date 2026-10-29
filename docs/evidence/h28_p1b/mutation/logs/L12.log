@@ -1,0 +1,18 @@
+# L12: the per-licence guard is reported as busy
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '    return GUARD_CONSTRAINT in str(exc)'
+# new: '    return False'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 45.4
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_a_failed_undo_escalates_to_a_human (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_failed_undo_escalates_to_a_human)
+ERROR: test_a_request_while_another_change_is_in_flight_is_refused (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_a_request_while_another_change_is_in_flight_is_refused)
+ERROR: test_an_unreadable_outcome_leaves_the_intent_pending_and_says_so (billing.tests.test_h28_cancel_phases.CancelPhaseTests.test_an_unreadable_outcome_leaves_the_intent_pending_and_says_so)
+ERROR: test_a_request_while_another_change_is_in_flight_is_refused (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_a_request_while_another_change_is_in_flight_is_refused)
+ERROR: test_a_request_while_another_change_is_in_flight_is_refused (billing.tests.test_h28_plan_phases.PlanPhaseTests.test_a_request_while_another_change_is_in_flight_is_refused)
+ERROR: test_a_failed_local_write_escalates_and_never_recreates (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_a_failed_local_write_escalates_and_never_recreates)
+ERROR: test_a_request_while_another_change_is_in_flight_is_refused (billing.tests.test_h28_convert_phases.ConvertToOfflinePhaseTests.test_a_request_while_another_change_is_in_flight_is_refused)
+
+FAILED (errors=7)

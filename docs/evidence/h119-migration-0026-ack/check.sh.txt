@@ -1,0 +1,18 @@
+#!/bin/bash
+# H-119 proof: the migration safety check itself, as the workflow runs it
+# for the founder's pull request (base: dev), on the branch tip. Not a test run: it imports migration modules and
+# opens no database. Output straight to files. Usage: check.sh <tip-sha8>
+set -euo pipefail
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-h119-migration-0026-ack
+OUT=$P/GAP-d5-runs/h119
+cd $WT
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { echo "NOT FROZEN at $TIP"; exit 9; }
+echo "base origin/dev = $(git rev-parse --short=8 origin/dev)" > $OUT/check.status
+rc=0
+timeout -k 10 300 python scripts/check_migration_safety.py --base origin/dev > $OUT/check_after_$TIP.log 2>&1 < /dev/null || rc=$?
+echo "exit=$rc" >> $OUT/check_after_$TIP.log
+echo "after ($TIP): exit=$rc OK=$(grep -c '^OK ' $OUT/check_after_$TIP.log || true) ACK=$(grep -c '^ACK ' $OUT/check_after_$TIP.log || true) FAIL=$(grep -c '^FAIL ' $OUT/check_after_$TIP.log || true)" >> $OUT/check.status
+[ -z "$(git status --porcelain)" ] || echo "WARNING: tree not clean after the check" >> $OUT/check.status
+cat $OUT/check.status

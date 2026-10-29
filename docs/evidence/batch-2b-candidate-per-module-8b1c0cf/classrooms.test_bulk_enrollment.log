@@ -1,0 +1,9 @@
+classrooms.test_bulk_enrollment.BulkEnrollmentTest.test_bulk_add_missing_required_fields ... ok
+classrooms.test_bulk_enrollment.BulkEnrollmentTest.test_bulk_add_via_csv_file ... ok
+classrooms.test_bulk_enrollment.BulkEnrollmentTest.test_bulk_add_via_tsv_string ... ok
+classrooms.test_bulk_enrollment.BulkEnrollmentTest.test_bulk_add_with_duplicates ... ok
+classrooms.test_bulk_enrollment.BulkEnrollmentTest.test_bulk_add_without_headers_detects_email_in_any_column ... ok
+classrooms.test_bulk_enrollment.BulkEnrollmentTest.test_bulk_add_without_headers_requires_first_and_last_name ... ok
+classrooms.test_bulk_enrollment.BulkEnrollmentTest.test_bulk_invite_link_uses_student_frontend_domain ... ok
+Ran 7 tests in 1.064s
+OK

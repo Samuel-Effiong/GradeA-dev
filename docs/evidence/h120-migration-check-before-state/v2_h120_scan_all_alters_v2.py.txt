@@ -1,0 +1,60 @@
+"""v2, H-120: every AlterField in every migration of the project's own apps,
+judged by v2's OWN statement of the three rules (not by the check's code):
+(1) NULL -> NOT NULL with neither default nor db_default; (2) the internal
+type changes; (3) max_length, max_digits or decimal_places gets smaller.
+Also listed, as v2's extra question: (4) the whole part of a decimal gets
+smaller (max_digits - decimal_places), which rule 3 does not ask.
+Django's loader from disk, no database. Prints only the AlterFields that
+meet a rule, with the file. Usage: python -B h120_scan_all_alters_v2.py"""
+import os, sys
+sys.path.insert(0, os.getcwd())
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "AutoGrader.settings")
+import django
+django.setup()
+from django.db.migrations.loader import MigrationLoader
+from django.db.models.fields import NOT_PROVIDED
+
+OWN = {"assignments", "billing", "classrooms", "dashboard", "students", "users", "ai_processor", "audit"}
+loader = MigrationLoader(None)
+total = alters = 0
+
+def walk(ops, state, app, name, half=""):
+    global alters
+    for op in ops:
+        n = type(op).__name__
+        if n == "AlterField":
+            alters += 1
+            try:
+                old = state.models[app, op.model_name_lower].fields[op.name]
+            except KeyError:
+                old = None
+            new = op.field
+            why = []
+            if old is None:
+                why.append("no known past")
+            else:
+                has_default = new.has_default() or getattr(new, "db_default", NOT_PROVIDED) is not NOT_PROVIDED
+                if old.null and not new.null and not has_default:
+                    why.append("rule 1: NULL to NOT NULL, nothing to fill")
+                if old.get_internal_type() != new.get_internal_type():
+                    why.append(f"rule 2: type {old.get_internal_type()} to {new.get_internal_type()}")
+                for a in ("max_length", "max_digits", "decimal_places"):
+                    b, c = getattr(old, a, None), getattr(new, a, None)
+                    if b is not None and c is not None and c < b:
+                        why.append(f"rule 3: {a} {b} to {c}")
+                if all(getattr(f, a, None) is not None for f in (old, new) for a in ("max_digits", "decimal_places")):
+                    if new.max_digits - new.decimal_places < old.max_digits - old.decimal_places:
+                        why.append(f"(4) whole part {old.max_digits - old.decimal_places} to {new.max_digits - new.decimal_places} digits")
+            if why:
+                print(f"{app}/{name}{half}: {op.model_name}.{op.name}: " + "; ".join(why))
+        elif n == "SeparateDatabaseAndState":
+            walk(op.database_operations, state.clone(), app, name, " [database half]")
+        op.state_forwards(app, state)
+
+for (app, name) in sorted(loader.graph.nodes):
+    if app not in OWN:
+        continue
+    total += 1
+    mig = loader.graph.nodes[(app, name)]
+    walk(mig.operations, loader.project_state(nodes=[(app, name)], at_end=False), app, name)
+print(f"{total} migration files of the project's apps read; {alters} AlterField operations")

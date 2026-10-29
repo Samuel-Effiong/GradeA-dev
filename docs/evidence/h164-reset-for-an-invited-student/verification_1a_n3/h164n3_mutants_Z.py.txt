@@ -1,0 +1,47 @@
+"""1a's mutants for H-164 N3 (rule 19). Usage, in the checkout: python -B h164n3_mutants_Z.py <Z1..Z5> [--check].
+Z1: the reset step has no admin-power arm (users/views.py).
+Z2: the request step has no admin-power arm (users/views.py).
+Z3: the licence re-add never resends the temporary password (billing/license_service.py).
+Z4: the licence re-add always resends (billing/license_service.py).
+Z5: the verify route refuses a staff or superuser account (users/views.py): the road closed.
+"""
+
+import ast
+import sys
+
+V, L = "users/views.py", "billing/license_service.py"
+RESET_OLD = (
+    "        if not user.email_verified_at and (\n"
+    "            not user.is_active or _holds_admin_power(user)\n"
+    "        ):\n"
+    '            raise ParseError("Invalid email, OTP code, or new password.")\n'
+)
+REQ_OLD = (
+    "            if not user.email_verified_at and (\n"
+    "                not user.is_active or _holds_admin_power(user)\n"
+    "            ):\n"
+    '                raise ParseError("Email not verified.")\n'
+)
+VERIFY_OLD = "        user = user.first()\n\n        if user.activation_expires"
+MUT = {
+    "Z5": (V, VERIFY_OLD, '        user = user.first()\n\n        if user.is_superuser or user.is_staff:\n            refuse("Invalid email or token.")\n\n        if user.activation_expires'),
+    "Z1": (V, RESET_OLD, RESET_OLD.replace(" or _holds_admin_power(user)", "")),
+    "Z2": (V, REQ_OLD, REQ_OLD.replace(" or _holds_admin_power(user)", "")),
+    "Z3": (L, "            if user.must_change_password:\n                # A fresh password every resend", "            if False:\n                # A fresh password every resend"),
+    "Z4": (L, "            if user.must_change_password:\n                # A fresh password every resend", "            if True:\n                # A fresh password every resend"),
+}
+code = sys.argv[1]
+if code not in MUT:
+    sys.exit("usage: Z1..Z5")
+path, old, new = MUT[code]
+src = open(path, encoding="utf-8").read()
+if src.count(old) != 1:
+    print(f"ABORT {code}: anchor found {src.count(old)} times")
+    sys.exit(7)
+out = src.replace(old, new)
+ast.parse(out)
+if "--check" in sys.argv:
+    print(f"checked {code}: one anchor, parses, differs")
+    sys.exit(0)
+open(path, "w", encoding="utf-8").write(out)
+print(f"applied {code} to {path}")

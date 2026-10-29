@@ -1,8 +1,24 @@
-# Use an official Python runtime based on Debian 12 "bookworm" as a parent image.
+# --- Build stage: compile C extensions, then discard compilers and headers ---
+FROM python:3.12-slim-bookworm AS build
+
+RUN apt-get update --yes --quiet && \
+    apt-get install --yes --quiet --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        libjpeg62-turbo-dev \
+        zlib1g-dev \
+        libwebp-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install the application server and project requirements.
+COPY requirements.txt /
+RUN pip install --no-cache-dir "gunicorn==22.0.0" -r /requirements.txt
+
+# --- Runtime stage: only what the app needs to serve requests ---
 FROM python:3.12-slim-bookworm
 
 # Add user that will be used in the container.
-RUN useradd wagtail
+RUN useradd appuser
 
 # Port used by this container to serve HTTP.
 EXPOSE 8000
@@ -14,65 +30,64 @@ EXPOSE 8000
 ENV PYTHONUNBUFFERED=1 \
     PORT=8000 \
     HOME=/tmp \
-    PADDLE_HOME=/tmp/.paddle \
-    XDG_CACHE_HOME=/tmp/.cache \
-    PDX_CACHE_DIR=/tmp/.paddlex \
-    TMPDIR=/tmp
+    TMPDIR=/tmp \
+    PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/ms-playwright
 
-# Install system packages required by Wagtail and Django.
+# Runtime system libraries (not headers or compilers).
 RUN apt-get update --yes --quiet && \
     apt-get install --yes --quiet --no-install-recommends \
-        build-essential \
-        libpq-dev \
-        libmariadb-dev \
-        libjpeg62-turbo-dev \
-        zlib1g-dev \
-        libwebp-dev \
         libgl1 \
         libglib2.0-0 \
         poppler-utils \
-        tesseract-ocr \
-        libtesseract-dev \
-        libleptonica-dev \
+        libpango-1.0-0 \
+        libpangoft2-1.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the application server.
-RUN pip install "gunicorn==20.0.4"
+# Copy the installed Python environment from the build stage.
+COPY --from=build /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
+COPY --from=build /usr/local/bin/ /usr/local/bin/
 
-# Install the project requirements.
-COPY requirements.txt /
-RUN pip install -r /requirements.txt
+# Install headless Chromium (used by assignments/pdf_renderer.py to typeset
+# math in downloaded assignment PDFs) plus its OS-level dependencies.
+# --with-deps auto-detects this image's OS (Debian bookworm) and installs
+# exactly the apt packages Chromium needs, rather than hand-maintaining a
+# fragile list here. Must run as root (before "USER appuser" below), and
+# PLAYWRIGHT_BROWSERS_PATH (set above) points it at a fixed, non-/tmp
+# location so the browser persists in the image and stays readable by the
+# non-root "appuser" user that actually serves requests.
+RUN playwright install --with-deps chromium && \
+    chmod -R o+rX /usr/local/share/ms-playwright
 
 # Use /app folder as a directory where the source code is stored.
 WORKDIR /app
 
-# Set this directory to be owned by the "wagtail" user. This Wagtail project
-# uses SQLite, the folder needs to be owned by the user that
-# will be writing to the database file.
-RUN chown wagtail:wagtail /app
+# Set this directory to be owned by the "appuser" user, which writes here
+# (media uploads, static collection) at runtime.
+RUN chown appuser:appuser /app
 
 # Copy the source code of the project into the container.
-COPY --chown=wagtail:wagtail . .
+COPY --chown=appuser:appuser . .
 
-# Pre-create PaddleX/PaddleOCR cache directories and give user access
-RUN mkdir -p /tmp/.paddle /tmp/.cache && \
-    chown -R wagtail:wagtail /tmp/.paddle /tmp/.cache
-
-# Use user "wagtail" to run the build commands below and the server itself.
-USER wagtail
-
-# Run the PaddleOCR initialization and model download as the wagtail user
-# RUN python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(use_angle_cls=True); print('PaddleOCR successfully')"
-
-# Collect static files.
+# Use user "appuser" to run the build commands below and the server itself.
+USER appuser
 
 # Runtime command that executes when "docker run" is called, it does the
 # following:
-#   1. Migrate the database.
+#   1. Collect static files (H-271). Not at build time: settings.py needs
+#      SECRET_KEY, Stripe, Cloudinary and Redis values at import, and those
+#      are not passed into the image build. set -e stops the start if it fails.
 #   2. Start the application server.
 # WARNING:
 #   Migrating database at the same time as starting the server IS NOT THE BEST
 #   PRACTICE. The database should be migrated manually or using the release
-#   phase facilities of your hosting platform. This is used only so the
-#   Wagtail instance can be started with a simple "docker run" command.
-CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 100 --workers 9 --threads 4 --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200
+#   phase facilities of your hosting platform.
+# NOTE: --timeout 100 is mirrored by WEBHOOK_REQUEST_HARD_TIMEOUT_SECONDS in
+# billing/webhooks.py, which derives STRIPE_EVENT_CLAIM_STALE_AFTER from it —
+# the point at which a still-running Stripe webhook claim is treated as
+# abandoned by a killed worker and may be stolen by another delivery. If you
+# raise the timeout here, raise that constant too, or a slow-but-alive request
+# can have its claim stolen and run concurrently with the thief (which can
+# duplicate non-refundable Stripe side effects).
+# WEB_CONCURRENCY and GUNICORN_THREADS override the worker and thread counts
+# without a rebuild; unset, they default to 9 and 4.
+CMD set -xe; python manage.py collectstatic --noinput; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 100 --workers ${WEB_CONCURRENCY:-9} --threads ${GUNICORN_THREADS:-4} --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200

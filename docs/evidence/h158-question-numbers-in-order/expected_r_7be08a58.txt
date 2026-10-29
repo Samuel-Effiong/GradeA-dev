@@ -1,0 +1,2 @@
+repro: 24 failing, as expected
+the red set is the expected one

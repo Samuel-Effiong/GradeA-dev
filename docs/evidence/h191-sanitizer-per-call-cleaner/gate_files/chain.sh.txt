@@ -1,0 +1,81 @@
+#!/bin/bash
+# H-191 gate chain on the frozen tip: (r) the row's test module at the red
+# commit (tests only, the shared module-level Cleaner), in a disposable
+# worktree, expected red on a set written beforehand (a RACE: three tests fail
+# when threads really interleave; the observed rate is measured separately by
+# run_rate.sh); (a) that module, the existing modules that reach the sanitizer
+# (tree_search_modules.txt), students.tests_grading_redelivery_live (the CI
+# failure) and the repo-wide guard list, serial; (b) the battery of 2 mutants.
+# (c) is c_h191.sh, on its own grant.
+# Rule 18: every test command writes straight to a file, stdin from
+# /dev/null. No wall-clock assertion is in these runs; load is recorded.
+# Usage: chain.sh <tip-sha8>
+set -euo pipefail
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-h191-sanitizer
+RW=$P/Grade-Automator-Plus-h191-repro
+OUT=$P/GAP-d5-runs/h191
+E=docs/evidence/h191-sanitizer-per-call-cleaner
+export EXEMPT_EMAIL_DOMAINS=
+WRAP="systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800"
+say() { echo "$(date +%H:%M:%S) $*" | tee -a $OUT/chain.status; }
+load() { say "$1: loadavg $(cat /proc/loadavg)"; }
+cd $WT
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { say "ABORT: tree not frozen at $TIP"; exit 9; }
+[ ! -e $OUT/r_repro_aefb0147.log ] && [ ! -e $OUT/a_modules_$TIP.log ] && [ ! -e $OUT/battery_$TIP ] || { say "ABORT: logs of this chain exist already"; exit 9; }
+[ ! -e $RW ] || { say "ABORT: $RW exists already"; exit 9; }
+BATTERY_RAN=0
+tidy() {
+  set +e
+  cd $WT
+  if [ -e $RW ]; then git worktree remove --force $RW; git worktree prune; fi
+  if [ $BATTERY_RAN = 1 ] && { [ -e $E/logs ] || [ -e $E/results.tsv ]; }; then
+    mkdir -p $OUT/battery_$TIP && mv $E/logs $E/results.tsv $OUT/battery_$TIP/ || say "WARNING: could not move the battery's output"
+  fi
+  [ -z "$(git status --porcelain)" ] && [ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] || say "WARNING: tree not the frozen tip $TIP at exit"
+}
+trap tidy EXIT
+
+repro() { # name commit label flag [file to take from the tip]
+  local name=$1 commit=$2 label=$3 flag=$4 from_tip=${5:-} rc=0 rc2=0 s
+  git worktree add --detach $RW $commit > /dev/null 2>&1
+  if [ -n "$from_tip" ]; then git show $TIP:$from_tip > $RW/$from_tip; say "($name) $from_tip taken from $TIP, the rest is $commit"; fi
+  ln -s $P/Grade-Automator-Plus/.env $RW/.env
+  printf 'from AutoGrader.settings import *  # noqa: F401,F403\nfrom AutoGrader.settings import DATABASES\n\nDATABASES["default"].setdefault("TEST", {})\nDATABASES["default"]["TEST"]["NAME"] = "test_h191_repro"\n' > $RW/settings_worktree.py
+  load "($name) start"; s=$(date +%s)
+  ( cd $RW && PYTHONDONTWRITEBYTECODE=1 ${WRAP/timeout -k 60 1800/timeout -k 10 400} python manage.py test $label --settings=settings_worktree --noinput > $OUT/${name}_repro_$commit.log 2>&1 < /dev/null ) || rc=$?
+  echo "exit=$rc wall_s=$(( $(date +%s)-s ))" >> $OUT/${name}_repro_$commit.log
+  load "($name) end"
+  say "($name) exit=$rc (1 is the expected one; for THIS row 124 and 137, a hang killed by the timeout, also count as RED)"
+  git worktree remove --force $RW; git worktree prune
+  if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
+    say "($name) TIMEOUT COUNTED RED (exit $rc): the failing set is not compared; the log is the evidence"
+    return 0
+  fi
+  [ $rc -eq 1 ] || { say "STOP: ($name) did not end red in the ordinary way"; exit 1; }
+  python3 $OUT/expected_kills.py $flag $OUT/${name}_repro_$commit.log > $OUT/expected_${name}_$commit.txt 2>&1 || rc2=$?
+  say "($name) $(tail -n 1 $OUT/expected_${name}_$commit.txt)"
+  [ $rc2 -eq 0 ] || { say "STOP: ($name) the red set differs from the expected one"; exit 1; }
+}
+repro r aefb0147 assignments.tests_sanitizer_threads --repro assignments/tests_sanitizer_threads.py
+
+# (a)
+load "(a) start"; s=$(date +%s); rc=0
+$WRAP python manage.py test assignments.tests_sanitizer_threads assignments.tests_format_assignment_html assignments.tests_prosemirror_converter assignments.tests_question_type_label billing.tests.test_grading_refund_scope students.tests_answer_document_before_release students.tests_answers_unreadable students.tests_grading_review_fixes students.tests_raw_input_persistence students.tests_submission_concurrency students.tests_grading_redelivery_live AutoGrader.tests_cache_bespoke_1114 AutoGrader.tests_student_feedback_guard AutoGrader.tests_migration_safety_check AutoGrader.tests_no_playwright_at_import AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm billing.tests.test_logs_carry_no_email billing.tests.test_log_scrubbing_end_to_end classrooms.tests_teacher_access_sweep classrooms.tests_course_roster_scope_sweep assignments.tests_schema_extension users.tests_schema_extension --settings=settings_worktree --noinput --verbosity 2 > $OUT/a_modules_$TIP.log 2>&1 < /dev/null || rc=$?
+echo "exit=$rc wall_s=$(( $(date +%s)-s ))" >> $OUT/a_modules_$TIP.log
+load "(a) end"
+say "(a) exit=$rc"; [ $rc -eq 0 ] || { say "STOP: (a) red"; exit 1; }
+
+# (b) the battery
+load "(b) start"; s=$(date +%s); rc=0; BATTERY_RAN=1
+PYTHONDONTWRITEBYTECODE=1 $WRAP python $E/run_mutants.py $TIP > $OUT/b_mutation_battery_$TIP.log 2>&1 < /dev/null || rc=$?
+echo "exit=$rc wall_s=$(( $(date +%s)-s ))" >> $OUT/b_mutation_battery_$TIP.log
+load "(b) end"
+say "(b) exit=$rc"
+tidy; BATTERY_RAN=0
+rc2=0; python3 $OUT/expected_kills.py $OUT/battery_$TIP > $OUT/expected_kills_$TIP.txt 2>&1 || rc2=$?
+say "expected failing sets: $(tail -n 1 $OUT/expected_kills_$TIP.txt)"
+[ $rc -eq 0 ] || { say "STOP: (b) not all killed (exit 124 or 137 is a hang or a cap, reported as such)"; exit 1; }
+[ $rc2 -eq 0 ] || { say "STOP: a mutant's failing set differs from the expected one"; exit 1; }
+say "H-191 CHAIN END: (c) needs its own GRANT"

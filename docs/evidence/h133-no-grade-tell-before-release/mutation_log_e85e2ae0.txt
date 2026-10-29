@@ -1,0 +1,18 @@
+22 mutants: anchors unique, all parse, expected tests named
+12 of 22 mutants selected
+C2_the_queued_task_result_has_no_code KILLED exit 1 ran 75 failed 6 expected-but-passed []
+P1_the_upload_task_does_not_put_the_code_on_the_tracked_row KILLED exit 1 ran 75 failed 5 expected-but-passed []
+P2_the_edit_task_does_not_put_the_code_on_the_tracked_row KILLED exit 1 ran 75 failed 4 expected-but-passed []
+S1_a_student_is_told_the_paper_is_graded KILLED exit 1 ran 75 failed 10 expected-but-passed []
+S2_a_student_is_told_the_paper_is_being_graded KILLED exit 1 ran 75 failed 7 expected-but-passed []
+S3_a_student_is_told_an_upload_is_still_being_processed KILLED exit 1 ran 75 failed 1 expected-but-passed []
+S4_the_teacher_is_given_the_neutral_sentence_for_graded KILLED exit 1 ran 75 failed 1 expected-but-passed []
+S5_the_teacher_is_given_the_neutral_sentence_for_being_graded KILLED exit 1 ran 75 failed 1 expected-but-passed []
+S6_the_edit_path_treats_every_caller_as_a_teacher KILLED exit 1 ran 75 failed 7 expected-but-passed []
+P3_the_uploads_checks_before_the_lock_speak_as_to_a_teacher KILLED exit 1 ran 75 failed 8 expected-but-passed []
+P4_the_uploads_check_under_the_lock_speaks_as_to_a_teacher KILLED exit 1 ran 75 failed 2 expected-but-passed []
+P5_the_edits_check_under_the_lock_speaks_as_to_a_teacher KILLED exit 1 ran 75 failed 2 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 12 of 12

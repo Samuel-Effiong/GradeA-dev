@@ -1,0 +1,201 @@
+[trimmed: last 200 lines of 34329 lines; full log (sha256 prefix 2d66ad497fbd989f) at ~/Documents/Projects/GAP-evidence-logs/h2_run1_failed_68f6464f_regression_ai_processor_autograder.txt]
+11:30:15 test_always_returns_true_never_filters_out_a_record (AutoGrader.tests_request_context.RequestIDLogFilterTests.test_always_returns_true_never_filters_out_a_record) ... ok
+11:30:15 test_injects_current_request_id (AutoGrader.tests_request_context.RequestIDLogFilterTests.test_injects_current_request_id) ... ok
+11:30:15 test_injects_dash_when_no_request_id_set (AutoGrader.tests_request_context.RequestIDLogFilterTests.test_injects_dash_when_no_request_id_set) ... ok
+11:30:15 test_explicit_value_is_used_instead_of_falling_back (AutoGrader.tests_school_admin_frontend_domain.SchoolAdminFrontendDomainSettingTests.test_explicit_value_is_used_instead_of_falling_back) ... ok
+11:30:16 test_falls_back_to_frontend_domain_when_unset (AutoGrader.tests_school_admin_frontend_domain.SchoolAdminFrontendDomainSettingTests.test_falls_back_to_frontend_domain_when_unset) ... ok
+11:30:16 test_failure_building_the_message_itself_propagates (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_failure_building_the_message_itself_propagates)
+11:30:16 A failure before the message is even sent (e.g. EmailMultiAlternatives ... [2026-10-02 10:30:16,026: ERROR/MainProcess] Error sending email: unexpected keyword argument
+11:30:16 ok
+11:30:16 test_falls_back_when_html_message_present_even_without_plain_message (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_falls_back_when_html_message_present_even_without_plain_message) ... ok
+11:30:16 test_flat_merge_data_is_wrapped_identically_for_every_recipient (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_flat_merge_data_is_wrapped_identically_for_every_recipient) ... ok
+11:30:16 test_html_message_is_attached_as_alternative_when_provided (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_html_message_is_attached_as_alternative_when_provided) ... ok
+11:30:16 test_no_html_message_means_no_alternative_attached (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_no_html_message_means_no_alternative_attached) ... ok
+11:30:16 test_no_template_id_means_merge_data_is_never_set (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_no_template_id_means_merge_data_is_never_set) ... ok
+11:30:16 test_per_recipient_merge_data_is_used_as_is_not_rewrapped (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_per_recipient_merge_data_is_used_as_is_not_rewrapped) ... ok
+11:30:16 test_raises_without_fallback_when_no_body_available (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_raises_without_fallback_when_no_body_available)
+11:30:16 A templated-only send (no plain `message`, no `html_message`) that ... [2026-10-02 10:30:16,043: ERROR/MainProcess] Templated email send failed for ['teacher@example.com'] and no plain-text body was provided, so no fallback is possible. Error: Template rejected by provider
+11:30:16 [2026-10-02 10:30:16,043: ERROR/MainProcess] Error sending email: Template rejected by provider
+11:30:16 ok
+11:30:16 test_successful_send_returns_success_message_without_fallback (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_successful_send_returns_success_message_without_fallback) ... ok
+11:30:16 test_template_id_without_merge_data_sets_template_id_only (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_template_id_without_merge_data_sets_template_id_only) ... ok
+11:30:16 test_explicit_value_is_used_instead_of_falling_back (AutoGrader.tests_student_frontend_domain.StudentFrontendDomainSettingTests.test_explicit_value_is_used_instead_of_falling_back) ... ok
+11:30:17 test_falls_back_to_frontend_domain_when_unset (AutoGrader.tests_student_frontend_domain.StudentFrontendDomainSettingTests.test_falls_back_to_frontend_domain_when_unset) ... ok
+11:30:17 test_accepts_file_exactly_at_the_limit (AutoGrader.tests_uploads.ValidateUploadSizeTests.test_accepts_file_exactly_at_the_limit) ... ok
+11:30:17 test_accepts_file_under_the_limit (AutoGrader.tests_uploads.ValidateUploadSizeTests.test_accepts_file_under_the_limit) ... ok
+11:30:17 test_rejects_file_over_the_limit (AutoGrader.tests_uploads.ValidateUploadSizeTests.test_rejects_file_over_the_limit) ... ok
+11:30:17 test_respects_a_custom_limit (AutoGrader.tests_uploads.ValidateUploadSizeTests.test_respects_a_custom_limit) ... ok
+11:30:17
+11:30:17 ======================================================================
+11:30:17 ERROR: test_archive_preparation_failure_does_not_break_the_run (ai_processor.tests_benchmark_history.CommandHistoryIntegrationTest.test_archive_preparation_failure_does_not_break_the_run)
+11:30:17 ----------------------------------------------------------------------
+11:30:17 Traceback (most recent call last):
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_benchmark_history.py", line 456, in test_archive_preparation_failure_does_not_break_the_run
+11:30:17     output = self._run()
+11:30:17              ^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_benchmark_history.py", line 413, in _run
+11:30:17     call_command("grading_benchmark", "--mode", "replay", *args, stdout=out)
+11:30:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 194, in call_command
+11:30:17     return command.execute(*args, **defaults)
+11:30:17            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 460, in execute
+11:30:17     output = self.handle(*args, **options)
+11:30:17              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 143, in handle
+11:30:17     user = self._resolve_user(
+11:30:17            ^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 317, in _resolve_user
+11:30:17     ensure_benchmark_allowed(allow_non_debug)
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 60, in ensure_benchmark_allowed
+11:30:17     raise BenchmarkRefused(
+11:30:17 ai_processor.management.commands.grading_benchmark.BenchmarkRefused: Refusing to run the grading benchmark outside DEBUG: it creates a teacher with 5,000,000 credits in this database. Pass --allow-non-debug, or set ENABLE_GRADING_BENCHMARK=True for the scheduled jobs.
+11:30:17
+11:30:17 ======================================================================
+11:30:17 ERROR: test_database_mirror_failure_does_not_break_the_run (ai_processor.tests_benchmark_history.CommandHistoryIntegrationTest.test_database_mirror_failure_does_not_break_the_run)
+11:30:17 ----------------------------------------------------------------------
+11:30:17 Traceback (most recent call last):
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_benchmark_history.py", line 464, in test_database_mirror_failure_does_not_break_the_run
+11:30:17     output = self._run()
+11:30:17              ^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_benchmark_history.py", line 413, in _run
+11:30:17     call_command("grading_benchmark", "--mode", "replay", *args, stdout=out)
+11:30:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 194, in call_command
+11:30:17     return command.execute(*args, **defaults)
+11:30:17            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 460, in execute
+11:30:17     output = self.handle(*args, **options)
+11:30:17              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 143, in handle
+11:30:17     user = self._resolve_user(
+11:30:17            ^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 317, in _resolve_user
+11:30:17     ensure_benchmark_allowed(allow_non_debug)
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 60, in ensure_benchmark_allowed
+11:30:17     raise BenchmarkRefused(
+11:30:17 ai_processor.management.commands.grading_benchmark.BenchmarkRefused: Refusing to run the grading benchmark outside DEBUG: it creates a teacher with 5,000,000 credits in this database. Pass --allow-non-debug, or set ENABLE_GRADING_BENCHMARK=True for the scheduled jobs.
+11:30:17
+11:30:17 ======================================================================
+11:30:17 ERROR: test_history_is_written_and_report_is_unaffected (ai_processor.tests_benchmark_history.CommandHistoryIntegrationTest.test_history_is_written_and_report_is_unaffected)
+11:30:17 ----------------------------------------------------------------------
+11:30:17 Traceback (most recent call last):
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_benchmark_history.py", line 427, in test_history_is_written_and_report_is_unaffected
+11:30:17     with_history = self._run()
+11:30:17                    ^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_benchmark_history.py", line 413, in _run
+11:30:17     call_command("grading_benchmark", "--mode", "replay", *args, stdout=out)
+11:30:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 194, in call_command
+11:30:17     return command.execute(*args, **defaults)
+11:30:17            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 460, in execute
+11:30:17     output = self.handle(*args, **options)
+11:30:17              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 143, in handle
+11:30:17     user = self._resolve_user(
+11:30:17            ^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 317, in _resolve_user
+11:30:17     ensure_benchmark_allowed(allow_non_debug)
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 60, in ensure_benchmark_allowed
+11:30:17     raise BenchmarkRefused(
+11:30:17 ai_processor.management.commands.grading_benchmark.BenchmarkRefused: Refusing to run the grading benchmark outside DEBUG: it creates a teacher with 5,000,000 credits in this database. Pass --allow-non-debug, or set ENABLE_GRADING_BENCHMARK=True for the scheduled jobs.
+11:30:17
+11:30:17 ======================================================================
+11:30:17 ERROR: test_history_write_failure_does_not_break_the_run (ai_processor.tests_benchmark_history.CommandHistoryIntegrationTest.test_history_write_failure_does_not_break_the_run)
+11:30:17 ----------------------------------------------------------------------
+11:30:17 Traceback (most recent call last):
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_benchmark_history.py", line 444, in test_history_write_failure_does_not_break_the_run
+11:30:17     output = self._run()
+11:30:17              ^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_benchmark_history.py", line 413, in _run
+11:30:17     call_command("grading_benchmark", "--mode", "replay", *args, stdout=out)
+11:30:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 194, in call_command
+11:30:17     return command.execute(*args, **defaults)
+11:30:17            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 460, in execute
+11:30:17     output = self.handle(*args, **options)
+11:30:17              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 143, in handle
+11:30:17     user = self._resolve_user(
+11:30:17            ^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 317, in _resolve_user
+11:30:17     ensure_benchmark_allowed(allow_non_debug)
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 60, in ensure_benchmark_allowed
+11:30:17     raise BenchmarkRefused(
+11:30:17 ai_processor.management.commands.grading_benchmark.BenchmarkRefused: Refusing to run the grading benchmark outside DEBUG: it creates a teacher with 5,000,000 credits in this database. Pass --allow-non-debug, or set ENABLE_GRADING_BENCHMARK=True for the scheduled jobs.
+11:30:17
+11:30:17 ======================================================================
+11:30:17 ERROR: test_no_history_flag_writes_nothing (ai_processor.tests_benchmark_history.CommandHistoryIntegrationTest.test_no_history_flag_writes_nothing)
+11:30:17 ----------------------------------------------------------------------
+11:30:17 Traceback (most recent call last):
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_benchmark_history.py", line 433, in test_no_history_flag_writes_nothing
+11:30:17     output = self._run("--no-history")
+11:30:17              ^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_benchmark_history.py", line 413, in _run
+11:30:17     call_command("grading_benchmark", "--mode", "replay", *args, stdout=out)
+11:30:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 194, in call_command
+11:30:17     return command.execute(*args, **defaults)
+11:30:17            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 460, in execute
+11:30:17     output = self.handle(*args, **options)
+11:30:17              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 143, in handle
+11:30:17     user = self._resolve_user(
+11:30:17            ^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 317, in _resolve_user
+11:30:17     ensure_benchmark_allowed(allow_non_debug)
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 60, in ensure_benchmark_allowed
+11:30:17     raise BenchmarkRefused(
+11:30:17 ai_processor.management.commands.grading_benchmark.BenchmarkRefused: Refusing to run the grading benchmark outside DEBUG: it creates a teacher with 5,000,000 credits in this database. Pass --allow-non-debug, or set ENABLE_GRADING_BENCHMARK=True for the scheduled jobs.
+11:30:17
+11:30:17 ======================================================================
+11:30:17 ERROR: test_replay_run_is_recorded_but_not_archived (ai_processor.tests_benchmark_history.CommandHistoryIntegrationTest.test_replay_run_is_recorded_but_not_archived)
+11:30:17 ----------------------------------------------------------------------
+11:30:17 Traceback (most recent call last):
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_benchmark_history.py", line 470, in test_replay_run_is_recorded_but_not_archived
+11:30:17     self._run()
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_benchmark_history.py", line 413, in _run
+11:30:17     call_command("grading_benchmark", "--mode", "replay", *args, stdout=out)
+11:30:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 194, in call_command
+11:30:17     return command.execute(*args, **defaults)
+11:30:17            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 460, in execute
+11:30:17     output = self.handle(*args, **options)
+11:30:17              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 143, in handle
+11:30:17     user = self._resolve_user(
+11:30:17            ^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 317, in _resolve_user
+11:30:17     ensure_benchmark_allowed(allow_non_debug)
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 60, in ensure_benchmark_allowed
+11:30:17     raise BenchmarkRefused(
+11:30:17 ai_processor.management.commands.grading_benchmark.BenchmarkRefused: Refusing to run the grading benchmark outside DEBUG: it creates a teacher with 5,000,000 credits in this database. Pass --allow-non-debug, or set ENABLE_GRADING_BENCHMARK=True for the scheduled jobs.
+11:30:17
+11:30:17 ======================================================================
+11:30:17 ERROR: test_report_is_identical_with_and_without_history (ai_processor.tests_benchmark_history.CommandHistoryIntegrationTest.test_report_is_identical_with_and_without_history)
+11:30:17 ----------------------------------------------------------------------
+11:30:17 Traceback (most recent call last):
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_benchmark_history.py", line 438, in test_report_is_identical_with_and_without_history
+11:30:17     without = self._metrics_only(self._run("--no-history"))
+11:30:17                                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/tests_benchmark_history.py", line 413, in _run
+11:30:17     call_command("grading_benchmark", "--mode", "replay", *args, stdout=out)
+11:30:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 194, in call_command
+11:30:17     return command.execute(*args, **defaults)
+11:30:17            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/core/management/base.py", line 460, in execute
+11:30:17     output = self.handle(*args, **options)
+11:30:17              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 143, in handle
+11:30:17     user = self._resolve_user(
+11:30:17            ^^^^^^^^^^^^^^^^^^^
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 317, in _resolve_user
+11:30:17     ensure_benchmark_allowed(allow_non_debug)
+11:30:17   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h2-grading-benchmark-guard/ai_processor/management/commands/grading_benchmark.py", line 60, in ensure_benchmark_allowed
+11:30:17     raise BenchmarkRefused(
+11:30:17 ai_processor.management.commands.grading_benchmark.BenchmarkRefused: Refusing to run the grading benchmark outside DEBUG: it creates a teacher with 5,000,000 credits in this database. Pass --allow-non-debug, or set ENABLE_GRADING_BENCHMARK=True for the scheduled jobs.
+11:30:17
+11:30:17 ----------------------------------------------------------------------
+11:30:17 Ran 1280 tests in 743.613s
+11:30:17
+11:30:17 FAILED (errors=7, skipped=6)
+11:30:17 Destroying test database for alias 'default' ('test_h2_grading_benchmark_guard')...
+11:30:32 systemd-run failed with exit status 1.

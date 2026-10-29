@@ -1,0 +1,12 @@
+# G6: grant: a NULL next grant is not due
+# file: billing/services.py (occurrence 1)
+# old: '            or user_subscription.next_credit_grant_at is None\n'
+# new: ''
+# commit: ae944e9664f7cb27d116f20f49b3230dda9f4f9c
+# exit: 1
+# elapsed_s: 5.5
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_each_eligibility_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_each_eligibility_condition_is_rechecked_under_the_lock) [no next grant]
+
+FAILED (errors=1)

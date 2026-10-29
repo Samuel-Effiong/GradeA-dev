@@ -1,0 +1,20 @@
+......EE....................
+======================================================================
+ERROR: test_close_twice_is_harmless (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_close_twice_is_harmless)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 302, in test_close_twice_is_harmless
+    os.fstat(other_end)
+OSError: [Errno 9] Bad file descriptor
+
+======================================================================
+ERROR: test_close_twice_is_harmless (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrDescriptorsTest.test_close_twice_is_harmless)
+----------------------------------------------------------------------
+OSError: [Errno 9] Bad file descriptor
+
+----------------------------------------------------------------------
+Ran 27 tests in 8.610s
+
+FAILED (errors=2)
+Found 27 test(s).
+System check identified no issues (0 silenced).

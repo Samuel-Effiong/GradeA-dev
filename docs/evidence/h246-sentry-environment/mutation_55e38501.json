@@ -1,0 +1,72 @@
+[
+ {
+  "id": "S1",
+  "file": "AutoGrader/sentry_environment.py",
+  "what": "override ignored",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_named_override_wins",
+   "test_an_event_carries_the_environment_and_the_release",
+   "test_the_override_is_trimmed"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "11dba30d598eb418b5aeaffe9d1e12b4a478c4b39cdf378feeec27aa8d99c1b5"
+ },
+ {
+  "id": "S2",
+  "file": "AutoGrader/sentry_environment.py",
+  "what": "override not trimmed",
+  "verdict": "KILLED",
+  "failed": [
+   "test_no_override_keeps_the_apps_environment",
+   "test_the_override_is_trimmed"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "11dba30d598eb418b5aeaffe9d1e12b4a478c4b39cdf378feeec27aa8d99c1b5"
+ },
+ {
+  "id": "S3",
+  "file": "AutoGrader/sentry_environment.py",
+  "what": "no fallback",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_non_text_override_is_ignored",
+   "test_no_override_keeps_the_apps_environment"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "11dba30d598eb418b5aeaffe9d1e12b4a478c4b39cdf378feeec27aa8d99c1b5"
+ },
+ {
+  "id": "S4",
+  "file": "AutoGrader/sentry_environment.py",
+  "what": "non-text override passed through",
+  "verdict": "KILLED",
+  "failed": [
+   "test_a_non_text_override_is_ignored"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "11dba30d598eb418b5aeaffe9d1e12b4a478c4b39cdf378feeec27aa8d99c1b5"
+ },
+ {
+  "id": "S5",
+  "file": "AutoGrader/settings.py",
+  "what": "settings ignore SENTRY_ENVIRONMENT",
+  "verdict": "KILLED",
+  "failed": [
+   "test_sentry_is_given_the_override_with_environment_as_fallback"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "2c3eb305d84b0406e4e35a6f28c05235439e8f56e78616e4ef83f78b6227e102"
+ },
+ {
+  "id": "S6",
+  "file": "AutoGrader/settings.py",
+  "what": "release blanked",
+  "verdict": "KILLED",
+  "failed": [
+   "test_the_release_is_left_to_the_sdk"
+  ],
+  "restored_sha256_match": true,
+  "sha256": "2c3eb305d84b0406e4e35a6f28c05235439e8f56e78616e4ef83f78b6227e102"
+ }
+]

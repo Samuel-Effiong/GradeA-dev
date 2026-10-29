@@ -1,0 +1,1027 @@
+Creating test database for alias 'default' ('test_h266_list_errors_dict')...
+Found 332 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying classrooms.0001_initial... OK
+  Applying ai_processor.0001_initial... OK
+  Applying ai_processor.0002_initial... OK
+  Applying ai_processor.0003_chatsession_user... OK
+  Applying ai_processor.0004_chatsession_assistant_type... OK
+  Applying ai_processor.0005_benchmarkrun_benchmarkquestionoutcome... OK
+  Applying ai_processor.0006_aicallrecord... OK
+  Applying classrooms.0002_initial... OK
+  Applying classrooms.0003_coursecategory_course_categories... OK
+  Applying classrooms.0004_course_teacher... OK
+  Applying classrooms.0005_rename_studentsection_studentcourse... OK
+  Applying classrooms.0006_remove_course_unique_section_name_per_session_and_more... OK
+  Applying classrooms.0007_remove_studentcourse_is_active_and_more... OK
+  Applying classrooms.0008_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0009_school... OK
+  Applying classrooms.0010_alter_studentcourse_enrollment_status... OK
+  Applying classrooms.0011_remove_course_categories_topic... OK
+  Applying classrooms.0012_studentcourse_auto_added... OK
+  Applying classrooms.0013_studentcourse_ai_summary_and_more... OK
+  Applying classrooms.0014_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0015_remove_session_unique_session_name_per_teacher_and_more... OK
+  Applying classrooms.0016_school_is_active... OK
+  Applying assignments.0001_initial... OK
+  Applying assignments.0002_initial... OK
+  Applying assignments.0003_initial... OK
+  Applying assignments.0004_rename_created_by_assignment_teacher_and_more... OK
+  Applying assignments.0005_alter_assignment_options... OK
+  Applying assignments.0006_assignment_estimated_time... OK
+  Applying assignments.0007_remove_assignment_estimated_time_and_more... OK
+  Applying assignments.0008_alter_assignment_due_date... OK
+  Applying assignments.0009_assignment_extraction_confidence_and_more... OK
+  Applying assignments.0010_assignment_custom_ai_prompt... OK
+  Applying assignments.0011_assignment_ai_generated_assignment_ai_generated_at_and_more... OK
+  Applying assignments.0012_assignment_was_overridden... OK
+  Applying assignments.0013_alter_assignment_ai_generated... OK
+  Applying assignments.0014_assignment_self_assessment_and_more... OK
+  Applying assignments.0015_alter_assignment_potential_issues... OK
+  Applying assignments.0016_assignment_extraction_completed_at_and_more... OK
+  Applying assignments.0017_assignment_grading_status... OK
+  Applying assignments.0018_assignment_topic... OK
+  Applying assignments.0019_alter_assignment_title_and_more... OK
+  Applying assignments.0020_remove_assignment_grading_status_and_more... OK
+  Applying assignments.0021_assignment_overridden_at... OK
+  Applying assignments.0022_assignment_raw_input... OK
+  Applying assignments.0023_delete_rubric... OK
+  Applying assignments.0024_alter_assignment_instructions_and_more... OK
+  Applying assignments.0025_alter_assignment_instructions... OK
+  Applying assignments.0026_assignment_status... OK
+  Applying assignments.0027_remove_assignment_unique_assignment_per_course_and_more... OK
+  Applying assignments.0028_alter_assignment_raw_input_hash... OK
+  Applying assignments.0029_assignment_auto_grade_on_due_date... OK
+  Applying assignments.0030_alter_assignment_status... OK
+  Applying assignments.0031_assignment_grading_task_name_and_more... OK
+  Applying assignments.0032_assignmentgenerationsession_and_message... OK
+  Applying assignments.0033_assignmentgenerationhistory_and_more... OK
+  Applying assignments.0034_assignment_admin_grading_notified_at... OK
+  Applying assignments.0035_assignment_rigor_blooms_coverage_and_more... OK
+  Applying assignments.0036_backfill_assignment_rigor... OK
+  Applying assignments.0037_assignment_course_title_index... OK
+  Applying assignments.0038_assignment_updated_at... OK
+  Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
+  Applying audit.0001_initial... OK
+  Applying audit.0002_alter_auditevent_actor_role... OK
+  Applying authtoken.0001_initial... OK
+  Applying authtoken.0002_auto_20160226_1747... OK
+  Applying authtoken.0003_tokenproxy... OK
+  Applying authtoken.0004_alter_tokenproxy_options... OK
+  Applying users.0002_customuser_activation_expires_and_more... OK
+  Applying users.0003_passwordresetotp... OK
+  Applying users.0004_customuser_email_verified_at... OK
+  Applying users.0005_alter_passwordresetotp_code... OK
+  Applying users.0006_alter_passwordresetotp_code... OK
+  Applying users.0007_passwordchangeotp... OK
+  Applying users.0008_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0009_remove_passwordchangeotp_hash_value_and_more... OK
+  Applying users.0010_customuser_school_alter_customuser_user_type... OK
+  Applying billing.0001_initial... OK
+  Applying billing.0002_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0003_creditusagelog_creditwallet_and_more... OK
+  Applying billing.0004_alter_creditwallet_options_alter_creditbucket_wallet... OK
+  Applying billing.0005_usersubscription_pending_plan... OK
+  Applying billing.0006_alter_subscriptionplan_name... OK
+  Applying billing.0007_creditbucket_is_processed_creditusagelog_is_refunded... OK
+  Applying billing.0008_betaprofile... OK
+  Applying billing.0009_betaprofile_uuid_and_more... OK
+  Applying billing.0010_alter_betaprofile_id... OK
+  Applying billing.0011_remove_betaprofile_uuid_betaprofile_uid_and_more... OK
+  Applying billing.0012_populate_beta_profile_uuids... OK
+  Applying billing.0013_remove_betaprofile_id_alter_betaprofile_uid... OK
+  Applying billing.0014_rename_uid_betaprofile_id... OK
+  Applying billing.0015_betaprofile_credits_used_feedback... OK
+  Applying billing.0016_planfeature_alter_subscriptionplan_options_and_more... OK
+  Applying billing.0017_remove_subscriptionplan_overage_credit_price_cents_and_more... OK
+  Applying billing.0018_subscriptionplan_overage_block_price_and_more... OK
+  Applying billing.0019_licensesubscription_schoolcreditallocation... OK
+  Applying billing.0020_licensesubscription_contract_months_and_more... OK
+  Applying billing.0021_alter_creditbucket_bucket_type_and_more... OK
+  Applying billing.0022_usersubscription_is_trial_usersubscription_trial_end_and_more... OK
+  Applying billing.0023_alter_subscriptionplan_name... OK
+  Applying billing.0024_licensesubscription_custom_price_cents... OK
+  Applying billing.0025_alter_subscriptionplan_name... OK
+  Applying billing.0026_licensesubscription_total_credits_consumed... OK
+  Applying billing.0027_stripeevent_creditwallet_stripe_customer_id_and_more... OK
+  Applying billing.0028_alter_usersubscription_is_trial... OK
+  Applying billing.0029_usersubscription_next_credit_grant_at... OK
+  Applying billing.0030_alter_subscriptionplan_interval_and_more... OK
+  Applying billing.0031_alter_licensesubscription_custom_price_cents_and_more... OK
+  Applying billing.0032_remove_subscriptionplan_price_cents_and_more... OK
+  Applying billing.0033_rename_price_subscriptionplan_price_cents... OK
+  Applying billing.0034_alter_licensesubscription_custom_price_cents... OK
+  Applying billing.0035_licensesubscription_stripe_customer_id... OK
+  Applying billing.0036_alter_licensesubscription_contract_months_and_more... OK
+  Applying billing.0037_schoolcreditallocation_next_credit_grant_at... OK
+  Applying billing.0038_licensesubscription_billing_method_and_more... OK
+  Applying billing.0039_alter_subscriptionplan_overage_block_price... OK
+  Applying billing.0040_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0041_alter_usersubscription_pending_change_note_and_more... OK
+  Applying billing.0042_subscriptionplan_stripe_overage_price_id... OK
+  Applying billing.0043_schoolcreditallocation_is_admin_allocation... OK
+  Applying billing.0044_alter_creditusagelog_feature... OK
+  Applying billing.0045_billingtransaction... OK
+  Applying billing.0046_remove_subscriptionplan_carry_over_max_and_more... OK
+  Applying billing.0047_subscriptionplan_carry_over_max... OK
+  Applying billing.0048_alter_billingtransaction_transaction_type_and_more... OK
+  Applying billing.0049_billingtransaction_receipt_url... OK
+  Applying billing.0050_creditusagelog_course... OK
+  Applying billing.0051_creditusagelog_task_id_index... OK
+  Applying billing.0052_creditusagelog_school... OK
+  Applying billing.0053_backfill_creditusagelog_school... OK
+  Applying billing.0054_stripeevent_attempts_stripeevent_claimed_at_and_more... OK
+  Applying billing.0055_licensesubscription_consumption_window_start_and_more... OK
+  Applying billing.0056_liveqarun... OK
+  Applying billing.0057_usersubscription_cancelled_at... OK
+  Applying billing.0058_alter_licensebillingrecord_record_type... OK
+  Applying billing.0059_append_only_audit_tables... OK
+  Applying billing.0060_backfill_audit_identity...
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+ OK
+  Applying billing.0061_add_audit_table_time_indexes... OK
+  Applying billing.0062_liveqarun_skipped_and_error_status... OK
+  Applying billing.0063_payment_disputes... OK
+  Applying billing.0064_refund_credit_reversal... OK
+  Applying billing.0065_backfill_ledger_payment_intent...
+  attributed 0 ledger row(s) to their Stripe payment
+ OK
+  Applying billing.0066_dispute_deficit_by_wallet... OK
+  Applying billing.0067_stripe_event_recovery... OK
+  Applying billing.0068_price_reconciliation... OK
+  Applying billing.0069_price_sync_audit... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
+  Applying billing.0072_license_stripe_mutation_intent... OK
+  Applying billing.0073_schoolcreditallocation_grant_anchor_at... OK
+  Applying dashboard.0001_initial... OK
+  Applying dashboard.0002_schoolatrisksnapshot... OK
+  Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
+  Applying django_celery_beat.0001_initial... OK
+  Applying django_celery_beat.0002_auto_20161118_0346... OK
+  Applying django_celery_beat.0003_auto_20161209_0049... OK
+  Applying django_celery_beat.0004_auto_20170221_0000... OK
+  Applying django_celery_beat.0005_add_solarschedule_events_choices... OK
+  Applying django_celery_beat.0006_auto_20180322_0932... OK
+  Applying django_celery_beat.0007_auto_20180521_0826... OK
+  Applying django_celery_beat.0008_auto_20180914_1922... OK
+  Applying django_celery_beat.0006_auto_20180210_1226... OK
+  Applying django_celery_beat.0006_periodictask_priority... OK
+  Applying django_celery_beat.0009_periodictask_headers... OK
+  Applying django_celery_beat.0010_auto_20190429_0326... OK
+  Applying django_celery_beat.0011_auto_20190508_0153... OK
+  Applying django_celery_beat.0012_periodictask_expire_seconds... OK
+  Applying django_celery_beat.0013_auto_20200609_0727... OK
+  Applying django_celery_beat.0014_remove_clockedschedule_enabled... OK
+  Applying django_celery_beat.0015_edit_solarschedule_events_choices... OK
+  Applying django_celery_beat.0016_alter_crontabschedule_timezone... OK
+  Applying django_celery_beat.0017_alter_crontabschedule_month_of_year... OK
+  Applying django_celery_beat.0018_improve_crontab_helptext... OK
+  Applying django_celery_beat.0019_alter_periodictasks_options... OK
+  Applying django_celery_results.0001_initial... OK
+  Applying django_celery_results.0002_add_task_name_args_kwargs... OK
+  Applying django_celery_results.0003_auto_20181106_1101... OK
+  Applying django_celery_results.0004_auto_20190516_0412... OK
+  Applying django_celery_results.0005_taskresult_worker... OK
+  Applying django_celery_results.0006_taskresult_date_created... OK
+  Applying django_celery_results.0007_remove_taskresult_hidden... OK
+  Applying django_celery_results.0008_chordcounter... OK
+  Applying django_celery_results.0009_groupresult... OK
+  Applying django_celery_results.0010_remove_duplicate_indices... OK
+  Applying django_celery_results.0011_taskresult_periodic_task_name... OK
+  Applying django_celery_results.0012_taskresult_date_started... OK
+  Applying django_celery_results.0013_taskresult_django_cele_periodi_1993cf_idx... OK
+  Applying django_celery_results.0014_alter_taskresult_status... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0011_concurrentusersnapshot_useractivity... OK
+  Applying users.0012_alter_concurrentusersnapshot_timestamp... OK
+  Applying users.0013_customuser_middle_name... OK
+  Applying users.0014_alter_customuser_middle_name... OK
+  Applying users.0015_customuser_bio_settings... OK
+  Applying users.0016_remove_customuser_bio_delete_settings... OK
+  Applying users.0017_settings... OK
+  Applying users.0018_customuser_bio... OK
+  Applying users.0019_betawhitelist... OK
+  Applying users.0020_waitlist_betawhitelist_mode... OK
+  Applying users.0021_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0022_remove_betawhitelist_test_id_alter_betawhitelist_id... OK
+  Applying users.0023_remove_waitlist_id_waitlist_test_id... OK
+  Applying users.0024_remove_waitlist_test_id_waitlist_id... OK
+  Applying users.0025_customuser_profile_image... OK
+  Applying students.0001_initial... OK
+  Applying students.0002_initial... OK
+  Applying students.0003_studentsubmission_graded_at_and_more... OK
+  Applying students.0004_alter_studentsubmission_graded_at... OK
+  Applying students.0005_studentsubmission_ai_feedback_and_more... OK
+  Applying students.0006_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0007_studentsubmission_extraction_confidence... OK
+  Applying students.0008_studentsubmission_formatted_grade... OK
+  Applying students.0009_studentsubmission_raw_input... OK
+  Applying students.0010_batchuploadsession... OK
+  Applying students.0011_batchuploadsession_course_and_more... OK
+  Applying students.0012_alter_batchuploadsession_task_type... OK
+  Applying students.0013_studentsubmission_max_points_and_more... OK
+  Applying students.0014_alter_studentsubmission_score_percentage... OK
+  Applying students.0015_studentsubmission_is_published... OK
+  Applying students.0016_studentsubmission_grading_task_name_and_more... OK
+  Applying students.0017_backgroundprocessingtask... OK
+  Applying students.0018_studentsubmission_attempt_count... OK
+  Applying students.0019_alter_studentsubmission_attempt_count... OK
+  Applying students.0020_studentsubmission_grading_state... OK
+  Applying students.0021_studentsubmission_needs_review... OK
+  Applying students.0022_studentsubmission_review_severity... OK
+  Applying students.0023_studentsubmission_review_tier_and_more... OK
+  Applying students.0024_repair_raw_input_json... OK
+  Applying students.0025_student_submission_hot_path_indexes... OK
+  Applying students.0026_alter_backgroundprocessingtask_task_type... OK
+  Applying students.0027_alter_studentsubmission_ai_grading_completed_at... OK
+  Applying students.0028_backfill_ai_grading_completed_at... OK
+  Applying students.0029_background_task_item_result... OK
+  Applying students.0030_batch_session_credits_exhausted_at... OK
+  Applying students.0031_submission_grading_label... OK
+  Applying students.0032_submission_answers_label... OK
+  Applying students.0033_submission_answers_recheck_pair_check... OK
+  Applying students.0034_submission_answers_recheck_pair_validate... OK
+  Applying students.0035_studentsubmission_extraction_flags... OK
+  Applying token_blacklist.0001_initial... OK
+  Applying token_blacklist.0002_outstandingtoken_jti_hex... OK
+  Applying token_blacklist.0003_auto_20171017_2007... OK
+  Applying token_blacklist.0004_auto_20171017_2013... OK
+  Applying token_blacklist.0005_remove_outstandingtoken_jti... OK
+  Applying token_blacklist.0006_auto_20171017_2113... OK
+  Applying token_blacklist.0007_auto_20171017_2214... OK
+  Applying token_blacklist.0008_migrate_to_bigautofield... OK
+  Applying token_blacklist.0010_fix_migrate_to_bigautofield... OK
+  Applying token_blacklist.0011_linearizes_history... OK
+  Applying token_blacklist.0012_alter_outstandingtoken_user... OK
+  Applying token_blacklist.0013_alter_blacklistedtoken_options_and_more... OK
+  Applying users.0026_customuser_registration_method... OK
+  Applying users.0027_customuser_profile_image_url... OK
+  Applying users.0028_alter_customuser_middle_name... OK
+  Applying users.0029_usergooglecredentials... OK
+  Applying users.0030_usergooglecredentials_access_token_and_more... OK
+  Applying users.0031_settings_notify_new_assignment_posted... OK
+  Applying users.0032_alter_settings_notify_assignment_due_reminder_and_more... OK
+  Applying users.0033_settings_notify_at_risk_student_alerts_and_more... OK
+  Applying users.0034_passwordresetotp_attempts_and_more... OK
+  Applying users.0035_settings_notify_assignment_edited... OK
+  Applying users.0036_customuser_failed_login_attempts_and_more... OK
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback...System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_bulk_topic_error_message_is_unchanged (assignments.tests_h263_list_error_shape.TopicBulkCreateErrorShapeTests.test_bulk_topic_error_message_is_unchanged) ... Free trial plan not found: no trial activated for user 7de2a5cd-6738-4e20-9ae9-8fd6ec7ec090.
+Cannot activate automatic trial for user 7de2a5cd-6738-4e20-9ae9-8fd6ec7ec090 (validation): ValueError
+Free trial plan not found: no trial activated for user 0f16383c-b4a0-4e81-9768-1553e0a0ec79.
+Cannot activate automatic trial for user 0f16383c-b4a0-4e81-9768-1553e0a0ec79 (validation): ValueError
+API request refused: ValidationError (400)
+ok
+test_bulk_topic_errors_are_field_errors_keyed_by_index (assignments.tests_h263_list_error_shape.TopicBulkCreateErrorShapeTests.test_bulk_topic_errors_are_field_errors_keyed_by_index) ... Free trial plan not found: no trial activated for user 656daa9d-94af-4bc6-80f6-e355261d943a.
+Cannot activate automatic trial for user 656daa9d-94af-4bc6-80f6-e355261d943a (validation): ValueError
+Free trial plan not found: no trial activated for user 09d88798-ca9c-4e38-87e9-856938de1eb8.
+Cannot activate automatic trial for user 09d88798-ca9c-4e38-87e9-856938de1eb8 (validation): ValueError
+API request refused: ValidationError (400)
+ok
+test_a_non_utf8_file_is_a_400_not_a_500 (classrooms.tests_tenancy_and_roster.BulkEnrollmentInputLimitsTest.test_a_non_utf8_file_is_a_400_not_a_500) ... Free trial plan not found: no trial activated for user 78ae5623-9f1e-40b5-b98a-45ff272b0b75.
+Cannot activate automatic trial for user 78ae5623-9f1e-40b5-b98a-45ff272b0b75 (validation): ValueError
+Free trial plan not found: no trial activated for user adeac771-dff6-46fb-b553-3c24dd942392.
+Cannot activate automatic trial for user adeac771-dff6-46fb-b553-3c24dd942392 (validation): ValueError
+API request failed with ROSTER_FILE_UNREADABLE: roster.csv isn't readable as text.
+ok
+test_an_oversized_file_is_rejected_without_being_read (classrooms.tests_tenancy_and_roster.BulkEnrollmentInputLimitsTest.test_an_oversized_file_is_rejected_without_being_read) ... Free trial plan not found: no trial activated for user f8134b0b-f4c5-44e3-b06d-5c17727a4082.
+Cannot activate automatic trial for user f8134b0b-f4c5-44e3-b06d-5c17727a4082 (validation): ValueError
+Free trial plan not found: no trial activated for user 5261b1c2-f6ec-4967-9fcc-7568d4aef51c.
+Cannot activate automatic trial for user 5261b1c2-f6ec-4967-9fcc-7568d4aef51c (validation): ValueError
+API request failed with FILE_TOO_LARGE: roster.csv is 2.0 MB and the limit is 2 MB.
+ok
+test_an_oversized_row_count_is_rejected (classrooms.tests_tenancy_and_roster.BulkEnrollmentInputLimitsTest.test_an_oversized_row_count_is_rejected) ... Free trial plan not found: no trial activated for user 5b508568-423c-4145-8f91-14580ed8f250.
+Cannot activate automatic trial for user 5b508568-423c-4145-8f91-14580ed8f250 (validation): ValueError
+Free trial plan not found: no trial activated for user dfddb4e0-c0a1-4fb9-bc92-4c84423bdfe8.
+Cannot activate automatic trial for user dfddb4e0-c0a1-4fb9-bc92-4c84423bdfe8 (validation): ValueError
+API request failed with ROSTER_TOO_MANY_ROWS: This roster has 2001 rows. Upload at most 2000 rows at a time.
+ok
+test_a_name_in_another_course_is_a_different_student (classrooms.tests_tenancy_and_roster.BulkEnrollmentTenancyTest.test_a_name_in_another_course_is_a_different_student)
+H-247 (owner, 2026-10-16): with no email a name is unique within ... Free trial plan not found: no trial activated for user 3e858d6d-46d6-496e-a7ee-46ec652cbcf3.
+Cannot activate automatic trial for user 3e858d6d-46d6-496e-a7ee-46ec652cbcf3 (validation): ValueError
+Free trial plan not found: no trial activated for user 853a0a3a-2cef-49c9-be65-a02e6e3a4c86.
+Cannot activate automatic trial for user 853a0a3a-2cef-49c9-be65-a02e6e3a4c86 (validation): ValueError
+Free trial plan not found: no trial activated for user 6e8d3a42-b529-4f03-977b-902e3c7984d6.
+Cannot activate automatic trial for user 6e8d3a42-b529-4f03-977b-902e3c7984d6 (validation): ValueError
+ok
+test_a_name_match_creates_a_fresh_local_student_instead (classrooms.tests_tenancy_and_roster.BulkEnrollmentTenancyTest.test_a_name_match_creates_a_fresh_local_student_instead) ... Free trial plan not found: no trial activated for user 46254e10-d22e-41f3-89c4-2889667c6037.
+Cannot activate automatic trial for user 46254e10-d22e-41f3-89c4-2889667c6037 (validation): ValueError
+Free trial plan not found: no trial activated for user 0f447dee-8038-4015-93b5-7fd732d107db.
+Cannot activate automatic trial for user 0f447dee-8038-4015-93b5-7fd732d107db (validation): ValueError
+Free trial plan not found: no trial activated for user 0835b5db-747b-4354-9ea4-d0780e735c01.
+Cannot activate automatic trial for user 0835b5db-747b-4354-9ea4-d0780e735c01 (validation): ValueError
+ok
+test_a_name_match_in_another_school_is_not_reused (classrooms.tests_tenancy_and_roster.BulkEnrollmentTenancyTest.test_a_name_match_in_another_school_is_not_reused) ... Free trial plan not found: no trial activated for user 4e349029-3d41-4473-8963-1c3066665d67.
+Cannot activate automatic trial for user 4e349029-3d41-4473-8963-1c3066665d67 (validation): ValueError
+Free trial plan not found: no trial activated for user b2a7d38c-ae48-4698-9d55-6831151b63c1.
+Cannot activate automatic trial for user b2a7d38c-ae48-4698-9d55-6831151b63c1 (validation): ValueError
+Free trial plan not found: no trial activated for user e64bbc8c-7bbe-4a7b-9395-7b4c5fe51817.
+Cannot activate automatic trial for user e64bbc8c-7bbe-4a7b-9395-7b4c5fe51817 (validation): ValueError
+ok
+test_another_teachers_course_is_a_404 (classrooms.tests_tenancy_and_roster.CreateTopicsActionTest.test_another_teachers_course_is_a_404) ... Free trial plan not found: no trial activated for user 9bbc8feb-bd69-446b-93fa-abf94176b15f.
+Cannot activate automatic trial for user 9bbc8feb-bd69-446b-93fa-abf94176b15f (validation): ValueError
+Free trial plan not found: no trial activated for user d8cf3854-853e-4602-9800-88fa1a481177.
+Cannot activate automatic trial for user d8cf3854-853e-4602-9800-88fa1a481177 (validation): ValueError
+API request refused: Http404 (404)
+ok
+test_the_owning_teacher_can_create_topics_in_bulk (classrooms.tests_tenancy_and_roster.CreateTopicsActionTest.test_the_owning_teacher_can_create_topics_in_bulk) ... Free trial plan not found: no trial activated for user c288b6dc-79d7-4aa1-9cfd-5c51171acd81.
+Cannot activate automatic trial for user c288b6dc-79d7-4aa1-9cfd-5c51171acd81 (validation): ValueError
+Free trial plan not found: no trial activated for user dc4fbc9e-fe12-4035-bf27-153c5f92930a.
+Cannot activate automatic trial for user dc4fbc9e-fe12-4035-bf27-153c5f92930a (validation): ValueError
+ok
+test_the_account_has_no_usable_password (classrooms.tests_tenancy_and_roster.DirectAddStudentPasswordTest.test_the_account_has_no_usable_password) ... Free trial plan not found: no trial activated for user 23333954-1c63-422b-96ae-004fad5923af.
+Cannot activate automatic trial for user 23333954-1c63-422b-96ae-004fad5923af (validation): ValueError
+Free trial plan not found: no trial activated for user 66fc8d58-92c4-48f1-9040-169bf4bdc44b.
+Cannot activate automatic trial for user 66fc8d58-92c4-48f1-9040-169bf4bdc44b (validation): ValueError
+ok
+test_the_student_is_still_enrolled_and_active (classrooms.tests_tenancy_and_roster.DirectAddStudentPasswordTest.test_the_student_is_still_enrolled_and_active) ... Free trial plan not found: no trial activated for user b36803cc-ea46-4fab-883a-f7ddb3ea4d96.
+Cannot activate automatic trial for user b36803cc-ea46-4fab-883a-f7ddb3ea4d96 (validation): ValueError
+Free trial plan not found: no trial activated for user 98aeee59-2aed-4259-bb9e-d445eff43466.
+Cannot activate automatic trial for user 98aeee59-2aed-4259-bb9e-d445eff43466 (validation): ValueError
+ok
+test_course_cannot_be_reassigned (classrooms.tests_tenancy_and_roster.EnrollmentReassignmentTest.test_course_cannot_be_reassigned) ... Free trial plan not found: no trial activated for user 7d6b828a-252f-4be6-b9dc-4533bd311900.
+Cannot activate automatic trial for user 7d6b828a-252f-4be6-b9dc-4533bd311900 (validation): ValueError
+Free trial plan not found: no trial activated for user 5f81f314-9426-4173-a5a4-fa5ed773721a.
+Cannot activate automatic trial for user 5f81f314-9426-4173-a5a4-fa5ed773721a (validation): ValueError
+Free trial plan not found: no trial activated for user 4162ea5b-56af-42b2-9b42-007523e43c3e.
+Cannot activate automatic trial for user 4162ea5b-56af-42b2-9b42-007523e43c3e (validation): ValueError
+ok
+test_enrollment_status_is_still_editable (classrooms.tests_tenancy_and_roster.EnrollmentReassignmentTest.test_enrollment_status_is_still_editable) ... Free trial plan not found: no trial activated for user 774dc46b-d8b9-4d24-828c-4899ef7f7c84.
+Cannot activate automatic trial for user 774dc46b-d8b9-4d24-828c-4899ef7f7c84 (validation): ValueError
+Free trial plan not found: no trial activated for user e0f1cdc7-f0bc-4e06-af46-6a8a3524e07b.
+Cannot activate automatic trial for user e0f1cdc7-f0bc-4e06-af46-6a8a3524e07b (validation): ValueError
+Free trial plan not found: no trial activated for user b0f2c497-57db-455a-841f-40983daa8dce.
+Cannot activate automatic trial for user b0f2c497-57db-455a-841f-40983daa8dce (validation): ValueError
+ok
+test_student_cannot_be_reassigned (classrooms.tests_tenancy_and_roster.EnrollmentReassignmentTest.test_student_cannot_be_reassigned) ... Free trial plan not found: no trial activated for user c526f77d-255c-4f4c-b053-adb03a7d3e20.
+Cannot activate automatic trial for user c526f77d-255c-4f4c-b053-adb03a7d3e20 (validation): ValueError
+Free trial plan not found: no trial activated for user 818be27b-2630-444e-9273-13a9d58bc74c.
+Cannot activate automatic trial for user 818be27b-2630-444e-9273-13a9d58bc74c (validation): ValueError
+Free trial plan not found: no trial activated for user f28c64a1-040e-443a-845a-5dba38fd2c59.
+Cannot activate automatic trial for user f28c64a1-040e-443a-845a-5dba38fd2c59 (validation): ValueError
+Free trial plan not found: no trial activated for user d8729aa4-6ec7-4020-8f18-d90f86b09892.
+Cannot activate automatic trial for user d8729aa4-6ec7-4020-8f18-d90f86b09892 (validation): ValueError
+ok
+test_another_schools_enrollment_is_untouched (classrooms.tests_tenancy_and_roster.RemoveStudentTest.test_another_schools_enrollment_is_untouched) ... Free trial plan not found: no trial activated for user 772b9bd3-12c1-4649-b469-33507ee1c89c.
+Cannot activate automatic trial for user 772b9bd3-12c1-4649-b469-33507ee1c89c (validation): ValueError
+Free trial plan not found: no trial activated for user 537e3fcb-902f-446b-a02a-cb2a930e1a0d.
+Cannot activate automatic trial for user 537e3fcb-902f-446b-a02a-cb2a930e1a0d (validation): ValueError
+Free trial plan not found: no trial activated for user eb328267-c196-4a79-b87d-be2e3a37dbd9.
+Cannot activate automatic trial for user eb328267-c196-4a79-b87d-be2e3a37dbd9 (validation): ValueError
+ok
+test_another_teachers_grades_survive (classrooms.tests_tenancy_and_roster.RemoveStudentTest.test_another_teachers_grades_survive) ... Free trial plan not found: no trial activated for user b1bb8692-f0d2-419c-b08c-b0056c2803d8.
+Cannot activate automatic trial for user b1bb8692-f0d2-419c-b08c-b0056c2803d8 (validation): ValueError
+Free trial plan not found: no trial activated for user adafb8e4-591c-4f8c-b905-a2e255580224.
+Cannot activate automatic trial for user adafb8e4-591c-4f8c-b905-a2e255580224 (validation): ValueError
+Free trial plan not found: no trial activated for user 1e69fb6d-c067-401d-9df0-c33c3fac11cb.
+Cannot activate automatic trial for user 1e69fb6d-c067-401d-9df0-c33c3fac11cb (validation): ValueError
+ok
+test_removes_only_the_enrollment_in_that_course (classrooms.tests_tenancy_and_roster.RemoveStudentTest.test_removes_only_the_enrollment_in_that_course) ... Free trial plan not found: no trial activated for user 41bf039b-5fd8-44dd-b2b4-f882115015ec.
+Cannot activate automatic trial for user 41bf039b-5fd8-44dd-b2b4-f882115015ec (validation): ValueError
+Free trial plan not found: no trial activated for user 2462d299-8d8d-444e-853d-f2685af57e77.
+Cannot activate automatic trial for user 2462d299-8d8d-444e-853d-f2685af57e77 (validation): ValueError
+Free trial plan not found: no trial activated for user 6685953e-c95e-48e4-95e8-f7fbbc71ad47.
+Cannot activate automatic trial for user 6685953e-c95e-48e4-95e8-f7fbbc71ad47 (validation): ValueError
+ok
+test_the_student_account_survives (classrooms.tests_tenancy_and_roster.RemoveStudentTest.test_the_student_account_survives) ... Free trial plan not found: no trial activated for user 367ea02a-0694-4f0a-aa89-6b73c3f00694.
+Cannot activate automatic trial for user 367ea02a-0694-4f0a-aa89-6b73c3f00694 (validation): ValueError
+Free trial plan not found: no trial activated for user 814a4e05-8dde-41c9-9e40-d9b789ef8882.
+Cannot activate automatic trial for user 814a4e05-8dde-41c9-9e40-d9b789ef8882 (validation): ValueError
+Free trial plan not found: no trial activated for user 13871c66-fe4a-4051-9f9f-57791980ad8f.
+Cannot activate automatic trial for user 13871c66-fe4a-4051-9f9f-57791980ad8f (validation): ValueError
+ok
+test_student_header_counts_agree_with_the_assignment_list (classrooms.tests_tenancy_and_roster.StudentAssignmentCountsMatchVisibleAssignmentsTest.test_student_header_counts_agree_with_the_assignment_list) ... Free trial plan not found: no trial activated for user 391a6d06-e81e-4124-a5fc-f6c51920671e.
+Cannot activate automatic trial for user 391a6d06-e81e-4124-a5fc-f6c51920671e (validation): ValueError
+Free trial plan not found: no trial activated for user f07de7aa-0a16-431e-a868-bf1092e09514.
+Cannot activate automatic trial for user f07de7aa-0a16-431e-a868-bf1092e09514 (validation): ValueError
+Free trial plan not found: no trial activated for user 49e172ad-9178-4c8f-8fff-37c44bf5f72f.
+Cannot activate automatic trial for user 49e172ad-9178-4c8f-8fff-37c44bf5f72f (validation): ValueError
+ok
+test_teacher_header_counts_still_include_drafts (classrooms.tests_tenancy_and_roster.StudentAssignmentCountsMatchVisibleAssignmentsTest.test_teacher_header_counts_still_include_drafts) ... Free trial plan not found: no trial activated for user bc1b25e0-51b8-45b0-9c91-8ed506582128.
+Cannot activate automatic trial for user bc1b25e0-51b8-45b0-9c91-8ed506582128 (validation): ValueError
+Free trial plan not found: no trial activated for user eab78507-9894-4116-ab71-3a8037615f5f.
+Cannot activate automatic trial for user eab78507-9894-4116-ab71-3a8037615f5f (validation): ValueError
+Free trial plan not found: no trial activated for user 19898d85-595f-40b4-ba7d-6b0b0502388e.
+Cannot activate automatic trial for user 19898d85-595f-40b4-ba7d-6b0b0502388e (validation): ValueError
+ok
+test_query_count_is_flat_across_page_sizes (classrooms.tests_tenancy_and_roster.StudentCourseListQueryBudgetTest.test_query_count_is_flat_across_page_sizes) ... Free trial plan not found: no trial activated for user df2f5140-8399-47e2-8d03-78f0b9ecca53.
+Cannot activate automatic trial for user df2f5140-8399-47e2-8d03-78f0b9ecca53 (validation): ValueError
+Free trial plan not found: no trial activated for user 0645e9c4-26dc-47f4-9895-cc6e06957474.
+Cannot activate automatic trial for user 0645e9c4-26dc-47f4-9895-cc6e06957474 (validation): ValueError
+Free trial plan not found: no trial activated for user b2805f33-733f-4ecd-9afd-dbb1af73cd3d.
+Cannot activate automatic trial for user b2805f33-733f-4ecd-9afd-dbb1af73cd3d (validation): ValueError
+Free trial plan not found: no trial activated for user 907b03db-33ec-477d-b174-9c5b1b7382d0.
+Cannot activate automatic trial for user 907b03db-33ec-477d-b174-9c5b1b7382d0 (validation): ValueError
+Free trial plan not found: no trial activated for user cbf839c2-22a7-469e-a4ca-576b5c559171.
+Cannot activate automatic trial for user cbf839c2-22a7-469e-a4ca-576b5c559171 (validation): ValueError
+Free trial plan not found: no trial activated for user ee5bdc2d-202f-435f-a813-b804e33523e2.
+Cannot activate automatic trial for user ee5bdc2d-202f-435f-a813-b804e33523e2 (validation): ValueError
+Free trial plan not found: no trial activated for user 9b2b985a-35c3-4f46-8f42-c42bd57620be.
+Cannot activate automatic trial for user 9b2b985a-35c3-4f46-8f42-c42bd57620be (validation): ValueError
+Free trial plan not found: no trial activated for user 7809edbd-19a2-4923-ab6b-33327df5d887.
+Cannot activate automatic trial for user 7809edbd-19a2-4923-ab6b-33327df5d887 (validation): ValueError
+Free trial plan not found: no trial activated for user 020f0e61-1759-4386-9669-d1544b551017.
+Cannot activate automatic trial for user 020f0e61-1759-4386-9669-d1544b551017 (validation): ValueError
+Free trial plan not found: no trial activated for user fc0d3925-98cb-4589-9064-ea321dd73c4d.
+Cannot activate automatic trial for user fc0d3925-98cb-4589-9064-ea321dd73c4d (validation): ValueError
+Free trial plan not found: no trial activated for user e9c14128-2dcd-4dd8-888e-cb14013552df.
+Cannot activate automatic trial for user e9c14128-2dcd-4dd8-888e-cb14013552df (validation): ValueError
+Free trial plan not found: no trial activated for user a5867523-72e1-4b8a-9c5b-b17b9d6302e1.
+Cannot activate automatic trial for user a5867523-72e1-4b8a-9c5b-b17b9d6302e1 (validation): ValueError
+Free trial plan not found: no trial activated for user 253d9a27-a0ed-4a82-8508-0378a96fdea8.
+Cannot activate automatic trial for user 253d9a27-a0ed-4a82-8508-0378a96fdea8 (validation): ValueError
+ok
+test_the_counts_are_still_correct (classrooms.tests_tenancy_and_roster.StudentCourseListQueryBudgetTest.test_the_counts_are_still_correct) ... Free trial plan not found: no trial activated for user 10ce95f8-9881-4d4c-9f35-b4abcdfb9e3d.
+Cannot activate automatic trial for user 10ce95f8-9881-4d4c-9f35-b4abcdfb9e3d (validation): ValueError
+Free trial plan not found: no trial activated for user a438546e-cfb8-4b0b-b0e8-ae19bb884022.
+Cannot activate automatic trial for user a438546e-cfb8-4b0b-b0e8-ae19bb884022 (validation): ValueError
+Free trial plan not found: no trial activated for user 51b7b840-c263-4400-9288-d9458506fa1c.
+Cannot activate automatic trial for user 51b7b840-c263-4400-9288-d9458506fa1c (validation): ValueError
+ok
+test_a_blank_topic_name_is_rejected (classrooms.tests_tenancy_and_roster.TopicPermissionTest.test_a_blank_topic_name_is_rejected) ... Free trial plan not found: no trial activated for user 8129bfec-a252-4524-bd71-70a1d985e06b.
+Cannot activate automatic trial for user 8129bfec-a252-4524-bd71-70a1d985e06b (validation): ValueError
+Free trial plan not found: no trial activated for user f9b8f322-75f2-4502-9bc8-cc9cab4f31dc.
+Cannot activate automatic trial for user f9b8f322-75f2-4502-9bc8-cc9cab4f31dc (validation): ValueError
+API request refused: ValidationError (400)
+ok
+test_a_duplicate_topic_is_a_400_not_a_500 (classrooms.tests_tenancy_and_roster.TopicPermissionTest.test_a_duplicate_topic_is_a_400_not_a_500) ... Free trial plan not found: no trial activated for user 87ccb107-0551-40bf-ad93-c8a5e69d7f90.
+Cannot activate automatic trial for user 87ccb107-0551-40bf-ad93-c8a5e69d7f90 (validation): ValueError
+Free trial plan not found: no trial activated for user 1840cd90-a96e-42cf-b312-9ef06063f1f0.
+Cannot activate automatic trial for user 1840cd90-a96e-42cf-b312-9ef06063f1f0 (validation): ValueError
+API request refused: ValidationError (400)
+ok
+test_a_student_cannot_create_a_topic (classrooms.tests_tenancy_and_roster.TopicPermissionTest.test_a_student_cannot_create_a_topic) ... Free trial plan not found: no trial activated for user c9d8b710-c42b-458a-b5c9-90626b9c2d29.
+Cannot activate automatic trial for user c9d8b710-c42b-458a-b5c9-90626b9c2d29 (validation): ValueError
+Free trial plan not found: no trial activated for user 8c2ae046-6e78-45b0-9d47-70f8169b04b1.
+Cannot activate automatic trial for user 8c2ae046-6e78-45b0-9d47-70f8169b04b1 (validation): ValueError
+Free trial plan not found: no trial activated for user 32ba99eb-120b-4022-998e-8acb857c060c.
+Cannot activate automatic trial for user 32ba99eb-120b-4022-998e-8acb857c060c (validation): ValueError
+API request refused: PermissionDenied (403)
+ok
+test_a_teacher_cannot_create_a_topic_on_another_teachers_course (classrooms.tests_tenancy_and_roster.TopicPermissionTest.test_a_teacher_cannot_create_a_topic_on_another_teachers_course) ... Free trial plan not found: no trial activated for user 586c07dd-8adb-426d-85a2-f4cb279ddedd.
+Cannot activate automatic trial for user 586c07dd-8adb-426d-85a2-f4cb279ddedd (validation): ValueError
+Free trial plan not found: no trial activated for user 9b97ee27-fa6c-47de-abc7-c934e4a75265.
+Cannot activate automatic trial for user 9b97ee27-fa6c-47de-abc7-c934e4a75265 (validation): ValueError
+API request refused: ValidationError (400)
+ok
+test_options_preflight_is_allowed (classrooms.tests_tenancy_and_roster.TopicPermissionTest.test_options_preflight_is_allowed)
+http_method_names said "option", so DRF 405'd every OPTIONS ... Free trial plan not found: no trial activated for user 4e0886b5-0e67-4781-a398-e974f39f201a.
+Cannot activate automatic trial for user 4e0886b5-0e67-4781-a398-e974f39f201a (validation): ValueError
+Free trial plan not found: no trial activated for user 7f7f4f5f-25eb-4c8f-8c14-74fba61b1a2b.
+Cannot activate automatic trial for user 7f7f4f5f-25eb-4c8f-8c14-74fba61b1a2b (validation): ValueError
+ok
+test_the_owning_teacher_can_still_create_a_topic (classrooms.tests_tenancy_and_roster.TopicPermissionTest.test_the_owning_teacher_can_still_create_a_topic) ... Free trial plan not found: no trial activated for user 868b7a8e-9dbf-40ad-8920-72137891e3d2.
+Cannot activate automatic trial for user 868b7a8e-9dbf-40ad-8920-72137891e3d2 (validation): ValueError
+Free trial plan not found: no trial activated for user aacb73c4-8cdb-4753-b45e-e5efcda2f5dc.
+Cannot activate automatic trial for user aacb73c4-8cdb-4753-b45e-e5efcda2f5dc (validation): ValueError
+ok
+test_a_withdrawn_student_no_longer_sees_the_course (classrooms.tests_tenancy_and_roster.WithdrawnStudentVisibilityTest.test_a_withdrawn_student_no_longer_sees_the_course) ... Free trial plan not found: no trial activated for user dcde1318-00bc-452e-abe3-17704615d576.
+Cannot activate automatic trial for user dcde1318-00bc-452e-abe3-17704615d576 (validation): ValueError
+Free trial plan not found: no trial activated for user 9f3724d7-2821-4f7d-9f4c-b8f6a3cabaef.
+Cannot activate automatic trial for user 9f3724d7-2821-4f7d-9f4c-b8f6a3cabaef (validation): ValueError
+Free trial plan not found: no trial activated for user c717d3e8-b8c8-4ec0-b81c-e6ba1ccdba96.
+Cannot activate automatic trial for user c717d3e8-b8c8-4ec0-b81c-e6ba1ccdba96 (validation): ValueError
+ok
+test_an_enrolled_student_still_sees_the_course (classrooms.tests_tenancy_and_roster.WithdrawnStudentVisibilityTest.test_an_enrolled_student_still_sees_the_course) ... Free trial plan not found: no trial activated for user 81f2cac9-a93d-4dc9-9853-789ea7b57020.
+Cannot activate automatic trial for user 81f2cac9-a93d-4dc9-9853-789ea7b57020 (validation): ValueError
+Free trial plan not found: no trial activated for user ec91dae8-22a3-49c6-abe7-5f1666b9b603.
+Cannot activate automatic trial for user ec91dae8-22a3-49c6-abe7-5f1666b9b603 (validation): ValueError
+Free trial plan not found: no trial activated for user b12834db-e3eb-4792-aa48-f4231d7fee59.
+Cannot activate automatic trial for user b12834db-e3eb-4792-aa48-f4231d7fee59 (validation): ValueError
+ok
+test_logs_error_and_names_the_overdue_task (AutoGrader.tests_beat_health.CheckBeatHealthTaskTests.test_logs_error_and_names_the_overdue_task) ... ok
+test_returns_all_clear_message_when_nothing_overdue (AutoGrader.tests_beat_health.CheckBeatHealthTaskTests.test_returns_all_clear_message_when_nothing_overdue) ... ok
+test_disabled_task_is_never_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_disabled_task_is_never_reported) ... ok
+test_missing_periodic_task_row_is_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_missing_periodic_task_row_is_reported) ... ok
+test_multiple_overdue_tasks_are_all_reported (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_multiple_overdue_tasks_are_all_reported) ... ok
+test_never_run_task_uses_date_changed_as_reference (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_never_run_task_uses_date_changed_as_reference) ... ok
+test_no_expectations_configured_returns_empty (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_no_expectations_configured_returns_empty) ... ok
+test_on_schedule_task_is_not_overdue (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_on_schedule_task_is_not_overdue) ... ok
+test_overdue_task_is_reported_with_actionable_message (AutoGrader.tests_beat_health.FindOverdueTasksTests.test_overdue_task_is_reported_with_actionable_message) ... ok
+test_days_hours_and_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_days_hours_and_minutes) ... ok
+test_exact_hour_omits_zero_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_exact_hour_omits_zero_minutes) ... ok
+test_hours_and_minutes (AutoGrader.tests_beat_health.HumanizeTests.test_hours_and_minutes) ... ok
+test_minutes_only (AutoGrader.tests_beat_health.HumanizeTests.test_minutes_only) ... ok
+test_negative_delta_clamped_to_zero (AutoGrader.tests_beat_health.HumanizeTests.test_negative_delta_clamped_to_zero) ... ok
+test_singular_minute (AutoGrader.tests_beat_health.HumanizeTests.test_singular_minute) ... ok
+test_zero_renders_as_zero_minutes_not_empty (AutoGrader.tests_beat_health.HumanizeTests.test_zero_renders_as_zero_minutes_not_empty) ... ok
+test_a_healthy_lock_store_adds_nothing (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_a_healthy_lock_store_adds_nothing) ... ok
+test_the_watchdog_reports_a_lock_store_that_is_not_answering (AutoGrader.tests_beat_locks.BeatHealthLockTests.test_the_watchdog_reports_a_lock_store_that_is_not_answering) ... ok
+test_leaves_the_cleanup_tasks_lock_held (AutoGrader.tests_beat_locks.BeatLockIsolation1LeavesALockHeld.test_leaves_the_cleanup_tasks_lock_held) ... ok
+test_the_task_executes_instead_of_skipping (AutoGrader.tests_beat_locks.BeatLockIsolation2TheNextTestStillRuns.test_the_task_executes_instead_of_skipping) ... ok
+test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it) ... ok
+test_only_the_failing_item_appears_keyed_by_index (assignments.tests_h263_list_error_shape.RubricErrorShapeTests.test_only_the_failing_item_appears_keyed_by_index) ... ok
+test_the_dict_shape_is_a_mapping (assignments.tests_h263_list_error_shape.RubricErrorShapeTests.test_the_dict_shape_is_a_mapping) ... ok
+test_the_error_message_is_byte_identical_to_the_list_shape (assignments.tests_h263_list_error_shape.RubricErrorShapeTests.test_the_error_message_is_byte_identical_to_the_list_shape) ... ok
+test_the_failing_item_is_reported_at_its_own_index (assignments.tests_h263_list_error_shape.RubricErrorShapeTests.test_the_failing_item_is_reported_at_its_own_index) ... ok
+test_no_wildcard_sweep_runs_on_a_mutation (AutoGrader.tests_cache_bespoke_1114.BespokeBase.test_no_wildcard_sweep_runs_on_a_mutation) ... Free trial plan not found: no trial activated for user d8724591-174e-4b36-9afb-ac45262f3150.
+Cannot activate automatic trial for user d8724591-174e-4b36-9afb-ac45262f3150 (validation): ValueError
+Free trial plan not found: no trial activated for user 2a94fe1f-6e3c-4aad-aeab-b2948dd780b9.
+Cannot activate automatic trial for user 2a94fe1f-6e3c-4aad-aeab-b2948dd780b9 (validation): ValueError
+ok
+test_a_TEACHERS_course_rename_reaches_the_student (AutoGrader.tests_cache_bespoke_1114.MyCoursesFreshnessTests.test_a_TEACHERS_course_rename_reaches_the_student)
+The `global` half, and the reason it is there. ... Free trial plan not found: no trial activated for user e1a00b4c-ec9d-445c-9470-df6125148fa9.
+Cannot activate automatic trial for user e1a00b4c-ec9d-445c-9470-df6125148fa9 (validation): ValueError
+Free trial plan not found: no trial activated for user 2877d9e9-46f5-453b-81de-49429737bdc7.
+Cannot activate automatic trial for user 2877d9e9-46f5-453b-81de-49429737bdc7 (validation): ValueError
+ok
+test_a_new_enrollment_appears (AutoGrader.tests_cache_bespoke_1114.MyCoursesFreshnessTests.test_a_new_enrollment_appears)
+The `usr` half: the student's own enrolment. ... Free trial plan not found: no trial activated for user 358e9feb-2e99-4bd4-91e8-7ce76e2d92e5.
+Cannot activate automatic trial for user 358e9feb-2e99-4bd4-91e8-7ce76e2d92e5 (validation): ValueError
+Free trial plan not found: no trial activated for user 0ae59f7c-6748-43dc-ab35-2d39c40d02ea.
+Cannot activate automatic trial for user 0ae59f7c-6748-43dc-ab35-2d39c40d02ea (validation): ValueError
+ok
+test_another_students_list_is_unaffected_by_this_ones_enrollment (AutoGrader.tests_cache_bespoke_1114.MyCoursesFreshnessTests.test_another_students_list_is_unaffected_by_this_ones_enrollment) ... Free trial plan not found: no trial activated for user f6d6e579-247c-45d1-8532-a73a65003ada.
+Cannot activate automatic trial for user f6d6e579-247c-45d1-8532-a73a65003ada (validation): ValueError
+Free trial plan not found: no trial activated for user ec80c7c9-a677-46ee-8d69-6a6dc1accf0b.
+Cannot activate automatic trial for user ec80c7c9-a677-46ee-8d69-6a6dc1accf0b (validation): ValueError
+Free trial plan not found: no trial activated for user 40c9cadc-7fa7-40b9-a84e-456168f31fbd.
+Cannot activate automatic trial for user 40c9cadc-7fa7-40b9-a84e-456168f31fbd (validation): ValueError
+ok
+test_no_wildcard_sweep_runs_on_a_mutation (AutoGrader.tests_cache_bespoke_1114.MyCoursesFreshnessTests.test_no_wildcard_sweep_runs_on_a_mutation) ... Free trial plan not found: no trial activated for user fd01cb0b-120e-41d3-a70a-8e541a3f6fe2.
+Cannot activate automatic trial for user fd01cb0b-120e-41d3-a70a-8e541a3f6fe2 (validation): ValueError
+Free trial plan not found: no trial activated for user a6e71107-8ccf-4e04-939d-ec3d51be11c9.
+Cannot activate automatic trial for user a6e71107-8ccf-4e04-939d-ec3d51be11c9 (validation): ValueError
+ok
+test_the_list_is_actually_cached (AutoGrader.tests_cache_bespoke_1114.MyCoursesFreshnessTests.test_the_list_is_actually_cached)
+Guard on the guard. ... Free trial plan not found: no trial activated for user 24810b25-7c34-48a5-adec-d595f775f1a2.
+Cannot activate automatic trial for user 24810b25-7c34-48a5-adec-d595f775f1a2 (validation): ValueError
+Free trial plan not found: no trial activated for user 010c1870-6f80-4b9b-abd9-0ab9e70b7458.
+Cannot activate automatic trial for user 010c1870-6f80-4b9b-abd9-0ab9e70b7458 (validation): ValueError
+ok
+test_withdrawing_the_student_empties_the_list (AutoGrader.tests_cache_bespoke_1114.MyCoursesFreshnessTests.test_withdrawing_the_student_empties_the_list) ... Free trial plan not found: no trial activated for user 26a16296-a1fc-40d0-b8f3-87e872d9f966.
+Cannot activate automatic trial for user 26a16296-a1fc-40d0-b8f3-87e872d9f966 (validation): ValueError
+Free trial plan not found: no trial activated for user 59b5eb11-f38b-43a2-a07f-30ffee08ae2c.
+Cannot activate automatic trial for user 59b5eb11-f38b-43a2-a07f-30ffee08ae2c (validation): ValueError
+ok
+test_a_profile_edit_is_visible_on_the_next_read (AutoGrader.tests_cache_bespoke_1114.ProfileAndSettingsFreshnessTests.test_a_profile_edit_is_visible_on_the_next_read) ... Free trial plan not found: no trial activated for user d126a291-7589-4464-a1ae-d414f59949b5.
+Cannot activate automatic trial for user d126a291-7589-4464-a1ae-d414f59949b5 (validation): ValueError
+Free trial plan not found: no trial activated for user 49896b41-abf9-404f-bf3e-c21dcbea0aeb.
+Cannot activate automatic trial for user 49896b41-abf9-404f-bf3e-c21dcbea0aeb (validation): ValueError
+ok
+test_a_settings_change_is_visible_on_the_next_read (AutoGrader.tests_cache_bespoke_1114.ProfileAndSettingsFreshnessTests.test_a_settings_change_is_visible_on_the_next_read) ... Free trial plan not found: no trial activated for user eba017f0-0f74-46ae-a3dd-962fa42516d2.
+Cannot activate automatic trial for user eba017f0-0f74-46ae-a3dd-962fa42516d2 (validation): ValueError
+Free trial plan not found: no trial activated for user 4f71821f-74d7-4fff-935f-f5ab6c0865f4.
+Cannot activate automatic trial for user 4f71821f-74d7-4fff-935f-f5ab6c0865f4 (validation): ValueError
+ok
+test_another_users_edit_does_not_invalidate_this_profile (AutoGrader.tests_cache_bespoke_1114.ProfileAndSettingsFreshnessTests.test_another_users_edit_does_not_invalidate_this_profile)
+`usr` alone means precisely this: unrelated activity leaves it ... Free trial plan not found: no trial activated for user 3792d2cb-3108-45a1-a884-2b9c69ffd1d7.
+Cannot activate automatic trial for user 3792d2cb-3108-45a1-a884-2b9c69ffd1d7 (validation): ValueError
+Free trial plan not found: no trial activated for user 42c6c3f0-c05b-410a-98b8-4d2d4a691814.
+Cannot activate automatic trial for user 42c6c3f0-c05b-410a-98b8-4d2d4a691814 (validation): ValueError
+ok
+test_no_wildcard_sweep_runs_on_a_mutation (AutoGrader.tests_cache_bespoke_1114.ProfileAndSettingsFreshnessTests.test_no_wildcard_sweep_runs_on_a_mutation) ... Free trial plan not found: no trial activated for user 9f7d5268-22d0-4926-81ed-62c6554c93bf.
+Cannot activate automatic trial for user 9f7d5268-22d0-4926-81ed-62c6554c93bf (validation): ValueError
+Free trial plan not found: no trial activated for user 71a02aa6-d9a0-42ac-814f-7e714c2682dd.
+Cannot activate automatic trial for user 71a02aa6-d9a0-42ac-814f-7e714c2682dd (validation): ValueError
+ok
+test_the_profile_is_actually_cached (AutoGrader.tests_cache_bespoke_1114.ProfileAndSettingsFreshnessTests.test_the_profile_is_actually_cached) ... Free trial plan not found: no trial activated for user ce00c422-fb45-4d65-833c-f3d2892e03d2.
+Cannot activate automatic trial for user ce00c422-fb45-4d65-833c-f3d2892e03d2 (validation): ValueError
+Free trial plan not found: no trial activated for user b955a66e-5b74-4180-ad67-168f0f9238e4.
+Cannot activate automatic trial for user b955a66e-5b74-4180-ad67-168f0f9238e4 (validation): ValueError
+ok
+test_a_course_rename_reaches_the_next_read (AutoGrader.tests_cache_bespoke_1114.SubmissionDetailFreshnessTests.test_a_course_rename_reaches_the_next_read) ... Free trial plan not found: no trial activated for user 9624fdcb-3380-4e2e-8cdf-1775a42d3de9.
+Cannot activate automatic trial for user 9624fdcb-3380-4e2e-8cdf-1775a42d3de9 (validation): ValueError
+Free trial plan not found: no trial activated for user adad24cc-d0c5-4e9d-9021-26774a1a141d.
+Cannot activate automatic trial for user adad24cc-d0c5-4e9d-9021-26774a1a141d (validation): ValueError
+ok
+test_a_due_date_the_teacher_saves_reaches_the_next_read (AutoGrader.tests_cache_bespoke_1114.SubmissionDetailFreshnessTests.test_a_due_date_the_teacher_saves_reaches_the_next_read) ... Free trial plan not found: no trial activated for user a5546b0e-989e-47f3-9b1b-25391e344701.
+Cannot activate automatic trial for user a5546b0e-989e-47f3-9b1b-25391e344701 (validation): ValueError
+Free trial plan not found: no trial activated for user 965254d8-6599-4cba-aaac-62071b17e36d.
+Cannot activate automatic trial for user 965254d8-6599-4cba-aaac-62071b17e36d (validation): ValueError
+ok
+test_a_regrade_is_visible_on_the_next_read (AutoGrader.tests_cache_bespoke_1114.SubmissionDetailFreshnessTests.test_a_regrade_is_visible_on_the_next_read) ... Free trial plan not found: no trial activated for user 1a674a6a-c0e6-4000-adaa-ec5484a0a33f.
+Cannot activate automatic trial for user 1a674a6a-c0e6-4000-adaa-ec5484a0a33f (validation): ValueError
+Free trial plan not found: no trial activated for user 4af3db00-2fac-4160-9368-7f84ecc8abe4.
+Cannot activate automatic trial for user 4af3db00-2fac-4160-9368-7f84ecc8abe4 (validation): ValueError
+ok
+test_a_teachers_answer_does_not_gain_them (AutoGrader.tests_cache_bespoke_1114.SubmissionDetailFreshnessTests.test_a_teachers_answer_does_not_gain_them)
+Control: the staff serializer is not this row's. ... Free trial plan not found: no trial activated for user 445e3164-dc02-46ad-b1ac-8e7e95df65ae.
+Cannot activate automatic trial for user 445e3164-dc02-46ad-b1ac-8e7e95df65ae (validation): ValueError
+Free trial plan not found: no trial activated for user 616e9fb6-fbb4-4df8-b890-6a6751c2e4ee.
+Cannot activate automatic trial for user 616e9fb6-fbb4-4df8-b890-6a6751c2e4ee (validation): ValueError
+ok
+test_a_teachers_retitle_does_NOT_change_a_released_students_document (AutoGrader.tests_cache_bespoke_1114.SubmissionDetailFreshnessTests.test_a_teachers_retitle_does_NOT_change_a_released_students_document)
+Once the grade is released the student reads the stored ... Free trial plan not found: no trial activated for user dcef3e61-d44c-49bc-883b-157c7a98f4a2.
+Cannot activate automatic trial for user dcef3e61-d44c-49bc-883b-157c7a98f4a2 (validation): ValueError
+Free trial plan not found: no trial activated for user 94ff83b8-4c20-4d21-b553-41fbfcfe4a4a.
+Cannot activate automatic trial for user 94ff83b8-4c20-4d21-b553-41fbfcfe4a4a (validation): ValueError
+ok
+test_a_teachers_retitle_does_NOT_change_the_teachers_payload (AutoGrader.tests_cache_bespoke_1114.SubmissionDetailFreshnessTests.test_a_teachers_retitle_does_NOT_change_the_teachers_payload)
+Documents the real contract, which corrected this family's scope. ... Free trial plan not found: no trial activated for user 7c3edc0c-b2a9-465d-91ed-7ab17635550f.
+Cannot activate automatic trial for user 7c3edc0c-b2a9-465d-91ed-7ab17635550f (validation): ValueError
+Free trial plan not found: no trial activated for user a5499b95-1e09-4a44-8dab-ebe7510dc4a2.
+Cannot activate automatic trial for user a5499b95-1e09-4a44-8dab-ebe7510dc4a2 (validation): ValueError
+ok
+test_a_teachers_retitle_reaches_the_students_unreleased_document (AutoGrader.tests_cache_bespoke_1114.SubmissionDetailFreshnessTests.test_a_teachers_retitle_reaches_the_students_unreleased_document)
+Since H-130 a student's document before release is rebuilt from ... Free trial plan not found: no trial activated for user 21623bd1-a7cb-43c8-9322-7e4a5745ee0e.
+Cannot activate automatic trial for user 21623bd1-a7cb-43c8-9322-7e4a5745ee0e (validation): ValueError
+Free trial plan not found: no trial activated for user 92e15089-450e-475c-8317-e93e6e405738.
+Cannot activate automatic trial for user 92e15089-450e-475c-8317-e93e6e405738 (validation): ValueError
+ok
+test_an_assignment_with_no_due_date_and_no_title_sends_null (AutoGrader.tests_cache_bespoke_1114.SubmissionDetailFreshnessTests.test_an_assignment_with_no_due_date_and_no_title_sends_null) ... Free trial plan not found: no trial activated for user 9a9f7c2e-1d5e-45b2-8d50-d58f8e10f8dd.
+Cannot activate automatic trial for user 9a9f7c2e-1d5e-45b2-8d50-d58f8e10f8dd (validation): ValueError
+Free trial plan not found: no trial activated for user 527e3ba8-5a91-4040-a715-3d020e26df41.
+Cannot activate automatic trial for user 527e3ba8-5a91-4040-a715-3d020e26df41 (validation): ValueError
+ok
+test_grading_changes_none_of_the_three (AutoGrader.tests_cache_bespoke_1114.SubmissionDetailFreshnessTests.test_grading_changes_none_of_the_three)
+Nothing about a grade: an unreleased student reads the same ... Free trial plan not found: no trial activated for user 7fbeed7f-229c-4fb8-bf21-c473d2aa8c02.
+Cannot activate automatic trial for user 7fbeed7f-229c-4fb8-bf21-c473d2aa8c02 (validation): ValueError
+Free trial plan not found: no trial activated for user 5995989d-0d31-4c58-a958-ba57af7c834e.
+Cannot activate automatic trial for user 5995989d-0d31-4c58-a958-ba57af7c834e (validation): ValueError
+ok
+test_no_wildcard_sweep_runs_on_a_mutation (AutoGrader.tests_cache_bespoke_1114.SubmissionDetailFreshnessTests.test_no_wildcard_sweep_runs_on_a_mutation) ... Free trial plan not found: no trial activated for user 4a6d0775-faf0-4953-bfc8-e08db3e0fce6.
+Cannot activate automatic trial for user 4a6d0775-faf0-4953-bfc8-e08db3e0fce6 (validation): ValueError
+Free trial plan not found: no trial activated for user 952ad1d4-5a7c-4f4c-b4ea-a71ffa6f05a6.
+Cannot activate automatic trial for user 952ad1d4-5a7c-4f4c-b4ea-a71ffa6f05a6 (validation): ValueError
+ok
+test_the_students_answer_holds_the_three_details (AutoGrader.tests_cache_bespoke_1114.SubmissionDetailFreshnessTests.test_the_students_answer_holds_the_three_details) ... Free trial plan not found: no trial activated for user 6c75c84a-1186-4c38-9728-80f59568563e.
+Cannot activate automatic trial for user 6c75c84a-1186-4c38-9728-80f59568563e (validation): ValueError
+Free trial plan not found: no trial activated for user 5c85de6c-24b3-4f7f-8317-6f46e73e15fe.
+Cannot activate automatic trial for user 5c85de6c-24b3-4f7f-8317-6f46e73e15fe (validation): ValueError
+ok
+test_the_three_are_all_that_was_added_and_none_is_of_a_grade (AutoGrader.tests_cache_bespoke_1114.SubmissionDetailFreshnessTests.test_the_three_are_all_that_was_added_and_none_is_of_a_grade)
+The exact keys of a student's answer: what it had, and three. ... Free trial plan not found: no trial activated for user 718b9d98-cf4d-4f8d-9dd1-fc73b1319e9b.
+Cannot activate automatic trial for user 718b9d98-cf4d-4f8d-9dd1-fc73b1319e9b (validation): ValueError
+Free trial plan not found: no trial activated for user bd165558-d67f-4276-b0c0-8adf041257d9.
+Cannot activate automatic trial for user bd165558-d67f-4276-b0c0-8adf041257d9 (validation): ValueError
+ok
+test_no_production_code_calls_a_wildcard_cache_operation (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_no_production_code_calls_a_wildcard_cache_operation) ... ok
+test_test_infrastructure_is_not_imported_by_production (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_test_infrastructure_is_not_imported_by_production)
+The path exclusion above is only honest if production never ... ok
+test_the_allowlisted_exception_is_exactly_as_documented (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_allowlisted_exception_is_exactly_as_documented) ... ok
+test_the_pdf_clear_stays_an_exact_prefix (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_pdf_clear_stays_an_exact_prefix)
+The exception is only safe while it is one assignment's prefix: ... ok
+test_the_scanner_detects_every_wildcard_form (AutoGrader.tests_no_wildcard_invalidation.NoWildcardInvalidationTests.test_the_scanner_detects_every_wildcard_form)
+Guard on the guard: each form is found in a synthetic module, and ... ok
+test_another_entitys_bump_leaves_the_entry_reachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_another_entitys_bump_leaves_the_entry_reachable)
+The over-invalidation half, stated as a property. Under the ... ok
+test_bumping_any_scope_of_a_family_makes_its_entry_unreachable (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_bumping_any_scope_of_a_family_makes_its_entry_unreachable) ... ok
+test_the_pdf_and_grading_caches_have_their_own_invalidation (AutoGrader.tests_cache_invalidation_coverage.EveryFamilyIsReachableByItsScopeTests.test_the_pdf_and_grading_caches_have_their_own_invalidation)
+Not response caches in the generation scheme, deliberately. ... ok
+test_every_extra_cache_scopes_override_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_extra_cache_scopes_override_is_listed) ... ok
+test_every_family_embeds_at_least_one_generation (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_family_embeds_at_least_one_generation) ... ok
+test_every_mixin_viewset_is_listed (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_every_mixin_viewset_is_listed) ... ok
+test_nothing_is_cached_under_a_raw_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_nothing_is_cached_under_a_raw_key) ... ok
+test_the_key_map_matches_every_versioned_key_call (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_key_map_matches_every_versioned_key_call) ... ok
+test_the_mixin_appends_the_extra_scopes_to_its_key (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_mixin_appends_the_extra_scopes_to_its_key)
+Otherwise MIXIN_EXTRA_SCOPES would describe keys nobody builds. ... ok
+test_the_status_summary_family_is_versioned_on_the_student (AutoGrader.tests_cache_invalidation_coverage.KeyMapIsTheCodeTests.test_the_status_summary_family_is_versioned_on_the_student)
+H-1 step 4: the one family that was still raw is on generations. ... ok
+test_a_factory_imported_from_another_module_is_found_across_modules (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_factory_imported_from_another_module_is_found_across_modules)
+raw_client_uses resolves a factory imported from another module: ... ok
+test_a_listed_module_gaining_raw_writes_changes_its_count (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_listed_module_gaining_raw_writes_changes_its_count)
+v2's F1 on the real beat_locks: two new writes, two more. ... ok
+test_a_write_name_counts_whatever_it_is_called_on (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_a_write_name_counts_whatever_it_is_called_on)
+Rule 1 (v2 F1): in a module that obtains a raw client, a write ... ok
+test_an_imported_factory_counts_in_the_importing_module (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_an_imported_factory_counts_in_the_importing_module) ... ok
+test_any_non_read_call_on_a_client_is_a_write (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_any_non_read_call_on_a_client_is_a_write)
+Rule 2 (v2 F1): the read allow-list. `vf_cmd` is in no list, so ... ok
+test_every_entry_gives_a_reason (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_every_entry_gives_a_reason) ... ok
+test_every_raw_client_user_is_listed (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_every_raw_client_user_is_listed) ... ok
+test_the_live_modules_are_found_by_the_scan (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_live_modules_are_found_by_the_scan)
+The table is not vacuous: each listed module really is found. ... ok
+test_the_scanner_finds_every_shape_it_exists_to_catch (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_scanner_finds_every_shape_it_exists_to_catch) ... ok
+test_the_scanner_ignores_what_is_not_a_raw_write (AutoGrader.tests_cache_invalidation_coverage.RawRedisClientTests.test_the_scanner_ignores_what_is_not_a_raw_write) ... ok
+test_an_insert_that_omits_the_column_succeeds_with_the_default (AutoGrader.tests_migration_rollback_defaults.OldCodeInsertTests.test_an_insert_that_omits_the_column_succeeds_with_the_default) ... Free trial plan not found: no trial activated for user f12b1ee2-9e51-4c34-977e-2fd95a81b66e.
+Cannot activate automatic trial for user f12b1ee2-9e51-4c34-977e-2fd95a81b66e (validation): ValueError
+Free trial plan not found: no trial activated for user 82df7e54-204f-42e2-8e7a-5208437e743d.
+Cannot activate automatic trial for user 82df7e54-204f-42e2-8e7a-5208437e743d (validation): ValueError
+Free trial plan not found: no trial activated for user 01483c05-1de8-4cd0-b8a6-7684a6640cb1.
+Cannot activate automatic trial for user 01483c05-1de8-4cd0-b8a6-7684a6640cb1 (validation): ValueError
+Free trial plan not found: no trial activated for user e6249fa0-9b71-4f43-a9ac-2e1cc32e5337.
+Cannot activate automatic trial for user e6249fa0-9b71-4f43-a9ac-2e1cc32e5337 (validation): ValueError
+ok
+test_a_nullability_preserving_alter_on_the_real_graph_is_skipped (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_a_nullability_preserving_alter_on_the_real_graph_is_skipped)
+The eight AlterFields since production that change choices, ... ok
+test_every_not_null_field_added_since_production_has_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_every_not_null_field_added_since_production_has_a_db_default) ... ok
+test_rule_b_fires_only_when_an_alter_makes_a_column_not_null (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_fires_only_when_an_alter_makes_a_column_not_null)
+Rule (b) on a synthetic migration: nullable to NOT NULL without a ... ok
+test_rule_b_reads_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_reads_the_state_before_each_migration)
+The production wiring (the Verification Engineer's H6 on ... ok
+test_the_guard_flags_a_not_null_field_without_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_flags_a_not_null_field_without_a_db_default)
+Rule (a) on the real graph with a synthetic final state: drop ... ok
+test_the_guard_sees_the_nine_rollback_columns (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_sees_the_nine_rollback_columns)
+Guard on the guard: the fields H-56 found are rule (a) ... ok
+test_the_guard_uses_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_uses_the_state_before_each_migration)
+fields_a_rollback_would_break wires rule (b) to state_before, not to ... ok
+test_the_production_heads_exist (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_production_heads_exist) ... ok
+test_an_assignment_with_a_real_timestamp_keys_on_it (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_assignment_with_a_real_timestamp_keys_on_it) ... ok
+test_an_unsaved_assignment_gets_the_never_matching_pdf_key (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_unsaved_assignment_gets_the_never_matching_pdf_key) ... ok
+test_only_assignment_updated_at_has_a_db_default_without_a_default (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_only_assignment_updated_at_has_a_db_default_without_a_default) ... ok
+test_a_column_made_shorter_is_reported_with_both_numbers (AutoGrader.tests_migration_safety_check.AChangedColumnIsJudgedByWhatItWas.test_a_column_made_shorter_is_reported_with_both_numbers) ... ok
+test_a_field_with_no_known_past_cannot_be_called_additive (AutoGrader.tests_migration_safety_check.AChangedColumnIsJudgedByWhatItWas.test_a_field_with_no_known_past_cannot_be_called_additive) ... ok
+test_a_nullable_column_made_not_null_with_nothing_to_fill_it_is_reported (AutoGrader.tests_migration_safety_check.AChangedColumnIsJudgedByWhatItWas.test_a_nullable_column_made_not_null_with_nothing_to_fill_it_is_reported) ... ok
+test_a_type_change_is_reported_and_named (AutoGrader.tests_migration_safety_check.AChangedColumnIsJudgedByWhatItWas.test_a_type_change_is_reported_and_named) ... ok
+test_changes_that_are_additive_pass (AutoGrader.tests_migration_safety_check.AChangedColumnIsJudgedByWhatItWas.test_changes_that_are_additive_pass) ... ok
+test_each_thing_wrong_with_one_change_is_reported (AutoGrader.tests_migration_safety_check.AChangedColumnIsJudgedByWhatItWas.test_each_thing_wrong_with_one_change_is_reported) ... ok
+test_a_check_constraint_added_in_one_step_is_reported (AutoGrader.tests_migration_safety_check.AConstraintChangedInOneStep.test_a_check_constraint_added_in_one_step_is_reported) ... ok
+test_a_constraint_dropped_in_one_step_is_reported (AutoGrader.tests_migration_safety_check.AConstraintChangedInOneStep.test_a_constraint_dropped_in_one_step_is_reported) ... ok
+test_a_unique_constraint_added_in_one_step_is_reported (AutoGrader.tests_migration_safety_check.AConstraintChangedInOneStep.test_a_unique_constraint_added_in_one_step_is_reported) ... ok
+test_the_finding_names_the_constraint_and_the_two_step_way (AutoGrader.tests_migration_safety_check.AConstraintChangedInOneStep.test_the_finding_names_the_constraint_and_the_two_step_way) ... ok
+test_the_two_step_way_itself_is_not_reported (AutoGrader.tests_migration_safety_check.AConstraintChangedInOneStep.test_the_two_step_way_itself_is_not_reported)
+students/0033's shape: the database gets a RunSQL (unjudged, as ... ok
+test_a_not_null_column_with_no_default_is_reported (AutoGrader.tests_migration_safety_check.AnAddedColumn.test_a_not_null_column_with_no_default_is_reported) ... ok
+test_columns_every_existing_row_can_get_a_value_for_pass (AutoGrader.tests_migration_safety_check.AnAddedColumn.test_columns_every_existing_row_can_get_a_value_for_pass) ... ok
+test_a_record_only_change_is_still_the_next_operations_past (AutoGrader.tests_migration_safety_check.TheOperationsOfOneMigration.test_a_record_only_change_is_still_the_next_operations_past)
+Django's record says the column is NOT NULL after the first ... ok
+test_each_is_judged_against_what_the_ones_before_it_left (AutoGrader.tests_migration_safety_check.TheOperationsOfOneMigration.test_each_is_judged_against_what_the_ones_before_it_left)
+Added nullable, then made NOT NULL, in one file: the second ... ok
+test_raw_sql_and_data_migrations_are_not_judged (AutoGrader.tests_migration_safety_check.TheOperationsOfOneMigration.test_raw_sql_and_data_migrations_are_not_judged)
+A stated limit, pinned: the check reads neither. They are for a ... ok
+test_the_operations_that_were_always_reported_still_are (AutoGrader.tests_migration_safety_check.TheOperationsOfOneMigration.test_the_operations_that_were_always_reported_still_are) ... ok
+test_what_a_separate_database_and_state_does_to_the_database_is_judged (AutoGrader.tests_migration_safety_check.TheOperationsOfOneMigration.test_what_a_separate_database_and_state_does_to_the_database_is_judged) ... ok
+test_an_acknowledgement_is_still_read (AutoGrader.tests_migration_safety_check.TheRealMigrationsTheCheckFailsOnToday.test_an_acknowledgement_is_still_read) ... ok
+test_each_one (AutoGrader.tests_migration_safety_check.TheRealMigrationsTheCheckFailsOnToday.test_each_one) ... ok
+test_seven_of_the_thirteen_pass_and_six_need_a_decision (AutoGrader.tests_migration_safety_check.TheRealMigrationsTheCheckFailsOnToday.test_seven_of_the_thirteen_pass_and_six_need_a_decision)
+students/0026 is the fourteenth: acknowledged already. ... ok
+test_each_one (AutoGrader.tests_migration_safety_check.TheRealMigrationsTheNewRuleReportsForTheFirstTime.test_each_one) ... ok
+test_none_of_them_is_acknowledged (AutoGrader.tests_migration_safety_check.TheRealMigrationsTheNewRuleReportsForTheFirstTime.test_none_of_them_is_acknowledged) ... ok
+test_the_pull_request_goes_from_thirteen_red_files_to_twelve (AutoGrader.tests_migration_safety_check.TheRealMigrationsTheNewRuleReportsForTheFirstTime.test_the_pull_request_goes_from_thirteen_red_files_to_twelve)
+Seven of the thirteen clear, six remain, and these six are new. ... ok
+test_another_process_purging_the_same_queue_cannot_touch_our_messages (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_another_process_purging_the_same_queue_cannot_touch_our_messages)
+THE ACCEPTANCE TEST for broker isolation. ... ok
+test_no_test_module_builds_its_own_broker_client (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_no_test_module_builds_its_own_broker_client)
+A raw Redis client built from the broker URL bypasses the prefix. ... ok
+test_the_broker_and_result_backend_are_prefixed_per_process (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_the_broker_and_result_backend_are_prefixed_per_process) ... ok
+test_a_forked_workers_cache_clear_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_cache_clear_cannot_reach_a_sibling) ...  OK
+ok
+test_a_forked_workers_queue_purge_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_queue_purge_cannot_reach_a_sibling) ... ok
+test_a_concurrent_process_cannot_flush_our_cache (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_flush_our_cache)
+THE ACCEPTANCE TEST FOR H-9 - now passing. ... ok
+test_a_concurrent_process_cannot_reset_our_generation_counters (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_reset_our_generation_counters)
+Same requirement, for the H-1 invariant specifically. ... ok
+test_generation_counters_are_also_destroyed_by_a_flush (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_generation_counters_are_also_destroyed_by_a_flush)
+The blast radius is wider than the Django cache. ... ok
+test_the_mechanism_a_cache_clear_destroys_a_warm_entry (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_the_mechanism_a_cache_clear_destroys_a_warm_entry)
+The mechanism, demonstrated deterministically in-process. ... ok
+test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours)
+THE ACCEPTANCE TEST for the regression. ... ok
+test_no_test_module_configures_the_unscoped_redis_backend (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_configures_the_unscoped_redis_backend) ... ok
+test_no_test_module_measures_redis_server_wide (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_measures_redis_server_wide)
+Server-wide Redis statistics are shared by every concurrent run. ... ok
+test_the_real_redis_override_is_scoped_to_this_process (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_the_real_redis_override_is_scoped_to_this_process) ... ok
+test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run)
+N1 (1a): a run's last heartbeat can land just before max_hold and ... ok
+test_each_lock_is_named_after_its_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_each_lock_is_named_after_its_task) ... ok
+test_every_beat_task_is_locked_or_exempt (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_beat_task_is_locked_or_exempt) ... ok
+test_every_exemption_names_a_scheduled_task (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_every_exemption_names_a_scheduled_task) ... ok
+test_max_hold_is_below_the_schedule_interval (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_max_hold_is_below_the_schedule_interval)
+So a hung run can never swallow the next scheduled one. ... ok
+test_the_gap_calculation (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_the_gap_calculation) ... ok
+test_it_clears_only_beat_lock_keys (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_it_clears_only_beat_lock_keys) ... ok
+test_the_runner_installed_the_per_test_clearing (AutoGrader.tests_beat_locks.ClearBeatLocksTests.test_the_runner_installed_the_per_test_clearing) ... ok
+test_a_hung_run_does_not_swallow_the_next_every_5_minute_run (AutoGrader.tests_beat_locks.EveryFiveMinuteScaledTests.test_a_hung_run_does_not_swallow_the_next_every_5_minute_run) ... ok
+test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_hung_runs_lock_is_gone_within_max_hold_plus_ttl)
+The worst-case lifetime the schedule guard relies on. ... ok
+test_a_live_run_keeps_its_lock_past_the_ttl (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_live_run_keeps_its_lock_past_the_ttl) ... ok
+test_a_run_past_max_hold_lets_its_lock_lapse (AutoGrader.tests_beat_locks.HeartbeatTests.test_a_run_past_max_hold_lets_its_lock_lapse) ... ok
+test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_crashed_runs_lock_lapses_and_the_next_run_proceeds) ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t1799649:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run crashed-run; this run direct:be3df09b1616).
+ok
+test_a_lapsed_run_cannot_delete_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_delete_a_newer_runs_lock)
+Compare-and-delete: run A's lock lapses mid-run and run B takes ... ok
+test_a_lapsed_run_cannot_extend_a_newer_runs_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_lapsed_run_cannot_extend_a_newer_runs_lock)
+Compare-and-extend: the heartbeat of a run whose lock lapsed must ... ok
+test_a_redis_error_fails_closed_with_an_error_log (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_redis_error_fails_closed_with_an_error_log) ... ok
+test_a_run_takes_and_releases_the_lock (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_takes_and_releases_the_lock) ... ok
+test_a_run_while_another_holds_the_lock_skips_without_working (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_run_while_another_holds_the_lock_skips_without_working) ... ok
+test_a_ttl_above_max_hold_is_capped_at_max_hold (AutoGrader.tests_beat_locks.SingleInstanceTests.test_a_ttl_above_max_hold_is_capped_at_max_hold)
+No scheduled task passes ttl > max_hold since 1a's N1, so this is ... ok
+test_every_run_has_its_own_token (AutoGrader.tests_beat_locks.SingleInstanceTests.test_every_run_has_its_own_token) ... ok
+test_the_lock_is_released_when_the_run_raises (AutoGrader.tests_beat_locks.SingleInstanceTests.test_the_lock_is_released_when_the_run_raises) ... ok
+test_two_concurrent_runs_do_the_work_once (AutoGrader.tests_beat_locks.SingleInstanceTests.test_two_concurrent_runs_do_the_work_once)
+Real threads, released together; the one that gets the lock waits ... Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t1799649:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run direct:b04730aff33d; this run direct:97fef52537e6).
+ok
+test_backfill_is_not_a_management_command (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_backfill_is_not_a_management_command) ... ok
+test_every_command_module_defines_a_command_class (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_every_command_module_defines_a_command_class) ... ok
+test_the_moved_script_cannot_be_imported_as_a_module (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_the_moved_script_cannot_be_imported_as_a_module) ... ok
+test_the_sweep_sees_the_projects_commands (AutoGrader.tests_management_commands_are_commands.ManagementCommandsAreCommandsTests.test_the_sweep_sees_the_projects_commands)
+Guards the guard: an empty sweep would pass everything. ... ok
+test_no_log_or_print_call_passes_an_address_or_a_name (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_no_log_or_print_call_passes_an_address_or_a_name) ... ok
+test_tests_and_migrations_are_not_scanned (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_tests_and_migrations_are_not_scanned) ... ok
+test_the_rule_allows_what_the_hook_allows (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_the_rule_allows_what_the_hook_allows)
+Ids, exception text and built messages are outside this rule. ... ok
+test_the_rule_sees_each_shape_the_hook_does (AutoGrader.tests_no_pii_in_logs.NoPiiInAnyLogCallTest.test_the_rule_sees_each_shape_the_hook_does) ... ok
+test_a_record_made_while_settings_are_loading_is_scrubbed (AutoGrader.tests_log_scrubbing.BeforeSettingsAreConfiguredTests.test_a_record_made_while_settings_are_loading_is_scrubbed) ... ok
+test_once_settings_are_configured_the_switch_is_theirs (AutoGrader.tests_log_scrubbing.BeforeSettingsAreConfiguredTests.test_once_settings_are_configured_the_switch_is_theirs) ... ok
+test_a_celery_task_loggers_own_formatter (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_a_celery_task_loggers_own_formatter) ... ok
+test_an_object_argument_whose_text_is_an_address (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_an_object_argument_whose_text_is_an_address) ... ok
+test_pythons_last_resort_handler (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_pythons_last_resort_handler)
+What prints a billing.* or users.* line when the process has ... ok
+test_the_console_handler_from_settings (AutoGrader.tests_log_scrubbing.EveryHandlerPrintsScrubbedTextTests.test_the_console_handler_from_settings) ... ok
+test_a_chained_exception (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_a_chained_exception) ... ok
+test_a_constraint_error_naming_the_address (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_a_constraint_error_naming_the_address) ... ok
+test_an_error_built_with_an_address (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_an_error_built_with_an_address) ... ok
+test_logger_exception (AutoGrader.tests_log_scrubbing.ExceptionTextTests.test_logger_exception) ... ok
+test_a_record_whose_class_cannot_be_replaced_fails_closed (AutoGrader.tests_log_scrubbing.InstallTests.test_a_record_whose_class_cannot_be_replaced_fails_closed) ... ok
+test_a_second_install_does_not_wrap_again (AutoGrader.tests_log_scrubbing.InstallTests.test_a_second_install_does_not_wrap_again) ... ok
+test_a_second_install_still_sets_the_switch (AutoGrader.tests_log_scrubbing.InstallTests.test_a_second_install_still_sets_the_switch) ... ok
+test_another_factorys_records_keep_their_class_and_are_scrubbed (AutoGrader.tests_log_scrubbing.InstallTests.test_another_factorys_records_keep_their_class_and_are_scrubbed)
+Celery or Sentry may have set their own factory first. ... ok
+test_exception_text_that_cannot_be_rendered_fails_closed (AutoGrader.tests_log_scrubbing.InstallTests.test_exception_text_that_cannot_be_rendered_fails_closed) ... ok
+test_it_is_on_and_scrubs_from_the_first_record (AutoGrader.tests_log_scrubbing.OutsideTheTestRunnerTests.test_it_is_on_and_scrubs_from_the_first_record) ... ok
+test_a_key_before_an_address_stays_readable (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_key_before_an_address_stays_readable) ... ok
+test_a_quote_brace_or_bar_just_before_an_address_goes_with_it (AutoGrader.tests_log_scrubbing.ScrubTests.test_a_quote_brace_or_bar_just_before_an_address_goes_with_it)
+They are characters an address may start with, so the scrubber ... ok
+test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) ... ok
+test_text_without_an_at_sign_is_returned_as_it_is (AutoGrader.tests_log_scrubbing.ScrubTests.test_text_without_an_at_sign_is_returned_as_it_is) ... ok
+test_the_four_characters_an_address_is_not_followed_through (AutoGrader.tests_log_scrubbing.ScrubTests.test_the_four_characters_an_address_is_not_followed_through)
+A KNOWN LIMIT (SM, 2026-10-05). "/", "=", "?" and "&" are legal ... ok
+test_settings_import_nothing_from_the_project_at_the_top_level (AutoGrader.tests_log_scrubbing.SettingsStandAloneTests.test_settings_import_nothing_from_the_project_at_the_top_level) ... ok
+test_the_package_installs_the_factory (AutoGrader.tests_log_scrubbing.SettingsStandAloneTests.test_the_package_installs_the_factory) ... ok
+test_a_message_that_cannot_be_formatted_fails_closed (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_a_message_that_cannot_be_formatted_fails_closed)
+The template and a marker; never the arguments, and no error ... ok
+test_a_record_still_pickles (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_a_record_still_pickles) ... ok
+test_msg_args_and_exc_info_are_left_as_they_were (AutoGrader.tests_log_scrubbing.TheRecordItselfTests.test_msg_args_and_exc_info_are_left_as_they_were)
+Only getMessage() and the rendered exception text are scrubbed; ... ok
+test_it_is_off_under_the_test_runner (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_it_is_off_under_the_test_runner)
+So H-80's and H-91's tests read what the code really logged. ... ok
+test_no_environment_or_variable_can_switch_it_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_no_environment_or_variable_can_switch_it_off)
+In settings.py the switch is computed from "are tests running" ... ok
+test_override_settings_switches_it_on_and_back_off (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_override_settings_switches_it_on_and_back_off) ... ok
+test_the_factory_is_installed (AutoGrader.tests_log_scrubbing.TheSwitchTests.test_the_factory_is_installed) ... ok
+test_a_dsn_never_prints_its_password (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_dsn_never_prints_its_password) ... ok
+test_a_password_with_an_at_sign_in_it (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_password_with_an_at_sign_in_it)
+The userinfo ends at the LAST "@" before the host, not the ... ok
+test_a_url_without_credentials_is_left_alone (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_a_url_without_credentials_is_left_alone) ... ok
+test_an_address_in_a_query_string (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_an_address_in_a_query_string) ... ok
+test_text_that_only_looks_like_an_address_is_left_alone (AutoGrader.tests_log_scrubbing.UrlCredentialsTests.test_text_that_only_looks_like_an_address_is_left_alone) ... ok
+test_a_dsn_in_an_exception_never_shows_its_password (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_a_dsn_in_an_exception_never_shows_its_password) ... ok
+test_a_plain_message_event (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_a_plain_message_event) ... ok
+test_an_argument_that_is_not_text_yet (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_an_argument_that_is_not_text_yet)
+An object among the params whose text is an address. ... ok
+test_an_event_with_none_of_these_parts_passes_through (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_an_event_with_none_of_these_parts_passes_through) ... ok
+test_frame_variables_that_hold_no_address_are_unchanged (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_frame_variables_that_hold_no_address_are_unchanged)
+The debugging value of locals is kept: ids, UUIDs, numbers, ... ok
+test_it_fails_closed_and_never_raises (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_it_fails_closed_and_never_raises)
+A part that cannot be scrubbed is replaced by a marker; the event ... ok
+test_no_address_is_left_in_the_events_text (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_no_address_is_left_in_the_events_text) ... ok
+test_the_spans_of_a_transaction (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_the_spans_of_a_transaction)
+A sampled transaction is an event of its own: it does not pass ... ok
+test_the_threads_of_an_event (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_the_threads_of_an_event)
+An event can carry a stack per thread, with frame variables, ... ok
+test_user_context_tags_and_request_are_scrubbed_too (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_user_context_tags_and_request_are_scrubbed_too)
+H-167 reverses H-89's "left alone" for these parts (Senior ... ok
+test_what_makes_the_report_useful_is_kept (AutoGrader.tests_sentry_scrubbing.BeforeSendTests.test_what_makes_the_report_useful_is_kept) ... ok
+test_a_breadcrumbs_message_and_data (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_a_breadcrumbs_message_and_data) ... ok
+test_a_log_items_body_and_attributes (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_a_log_items_body_and_attributes) ... ok
+test_the_small_hooks_never_raise_either (AutoGrader.tests_sentry_scrubbing.BreadcrumbAndLogTests.test_the_small_hooks_never_raise_either) ... ok
+test_a_failure_to_import_the_hooks_is_not_swallowed (AutoGrader.tests_sentry_scrubbing.WiringTests.test_a_failure_to_import_the_hooks_is_not_swallowed)
+settings.py has a try/except ImportError for a missing sentry-sdk ... ok
+test_settings_pass_the_hooks_to_sentry (AutoGrader.tests_sentry_scrubbing.WiringTests.test_settings_pass_the_hooks_to_sentry) ... ok
+test_a_dead_pids_key_in_another_database_is_swept (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_a_dead_pids_key_in_another_database_is_swept) ... ok
+test_a_key_put_through_one_client_is_not_seen_through_another (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_a_key_put_through_one_client_is_not_seen_through_another) ... ok
+test_a_live_pids_key_in_another_database_is_left_alone (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_a_live_pids_key_in_another_database_is_left_alone) ... ok
+test_another_runs_sweeps_leave_a_live_runs_keys_in_other_databases (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_another_runs_sweeps_leave_a_live_runs_keys_in_other_databases)
+A whole other run (its start-of-run sweep, its teardown and its ... ok
+test_delete_own_keys_reaches_another_database (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_delete_own_keys_reaches_another_database) ... ok
+test_each_client_is_on_its_own_database (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_each_client_is_on_its_own_database) ... ok
+test_other_key_families_in_another_database_survive (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_other_key_families_in_another_database_survive)
+The sweep and delete_own_keys match `gaplus-t<digits>:` and ... ok
+test_the_database_is_set_whatever_the_url_says (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_database_is_set_whatever_the_url_says)
+Only the database changes: the host, port, TLS, socket path, ... ok
+test_the_next_run_removes_a_dead_runs_keys_before_its_pid_is_reused (AutoGrader.tests_redis_hygiene_databases.EveryDatabaseIsVisitedTests.test_the_next_run_removes_a_dead_runs_keys_before_its_pid_is_reused)
+A process that is later given a dead run's pid has that run's ... ok
+test_a_second_run_never_touches_a_live_first_run (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_a_second_run_never_touches_a_live_first_run)
+Two concurrent runs: the second one's start-of-run sweep and its ... ok
+test_sigkill_leaves_keys_and_the_next_run_sweeps_them (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigkill_leaves_keys_and_the_next_run_sweeps_them) ... ok
+test_sigkill_leaves_keys_whatever_another_run_sweeps_meanwhile (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigkill_leaves_keys_whatever_another_run_sweeps_meanwhile)
+H-94: the same race as SweepTests', on the killed child's keys. ... ok
+test_sigterm_still_cleans_up_the_runs_own_keys (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigterm_still_cleans_up_the_runs_own_keys) ... ok
+test_hygiene_failure_never_fails_a_run (AutoGrader.tests_redis_hygiene.RunnerWiringTests.test_hygiene_failure_never_fails_a_run) ... ok
+test_the_project_uses_the_hygiene_runner (AutoGrader.tests_redis_hygiene.RunnerWiringTests.test_the_project_uses_the_hygiene_runner) ... ok
+test_delete_own_keys_is_unmoved_by_another_runs_sweep (AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_is_unmoved_by_another_runs_sweep)
+H-94: under --parallel another worker's sweep can run between ... ok
+test_delete_own_keys_takes_only_that_exact_prefix (AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_takes_only_that_exact_prefix) ... ok
+test_sweep_removes_dead_prefixes_and_nothing_else (AutoGrader.tests_redis_hygiene.SweepTests.test_sweep_removes_dead_prefixes_and_nothing_else) ... ok
+test_a_generation_counter_never_expires (AutoGrader.tests_redis_hygiene.TtlTests.test_a_generation_counter_never_expires)
+An expired counter reads as generation 1 and revives every stale ... ok
+test_a_never_expires_key_gets_a_ttl (AutoGrader.tests_redis_hygiene.TtlTests.test_a_never_expires_key_gets_a_ttl) ... ok
+test_an_explicit_timeout_is_left_alone (AutoGrader.tests_redis_hygiene.TtlTests.test_an_explicit_timeout_is_left_alone) ... ok
+test_set_many_with_no_timeout_gets_a_ttl (AutoGrader.tests_redis_hygiene.TtlTests.test_set_many_with_no_timeout_gets_a_ttl) ... ok
+test_the_default_timeout_is_left_alone (AutoGrader.tests_redis_hygiene.TtlTests.test_the_default_timeout_is_left_alone) ... ok
+test_a_reader_that_has_gone_is_an_error_at_once (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_a_reader_that_has_gone_is_an_error_at_once) ... ok
+test_a_reader_that_is_slow_but_reading_is_waited_for (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_a_reader_that_is_slow_but_reading_is_waited_for)
+The patience is per wait, not for the whole write: a reader ... ok
+test_it_gives_up_loudly_after_its_patience_not_never (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_it_gives_up_loudly_after_its_patience_not_never) ... ok
+test_the_default_patience (AutoGrader.tests_patient_test_stream.AReaderThatTakesNothingTests.test_the_default_patience)
+Longer than any pause of a live reader; shorter than the five ... ok
+test_everything_arrives_once_and_in_order (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_everything_arrives_once_and_in_order) ... ok
+test_one_write_larger_than_the_pipe_arrives_whole (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_one_write_larger_than_the_pipe_arrives_whole) ... ok
+test_text_that_cannot_be_encoded_is_written_as_the_stream_would (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_text_that_cannot_be_encoded_is_written_as_the_stream_would) ... ok
+test_the_condition_is_real_a_plain_stream_raises (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_the_condition_is_real_a_plain_stream_raises)
+The control: without the wrapper, the same writes to the same ... ok
+test_what_the_stream_itself_still_holds_goes_out_first (AutoGrader.tests_patient_test_stream.AWriteThatWouldBlockWaitsTests.test_what_the_stream_itself_still_holds_goes_out_first)
+Something written through the underlying stream and still in ... ok
+test_a_stream_with_no_file_descriptor_is_written_to_as_it_is (AutoGrader.tests_patient_test_stream.OtherStreamsTests.test_a_stream_with_no_file_descriptor_is_written_to_as_it_is) ... ok
+test_everything_else_is_the_streams_own (AutoGrader.tests_patient_test_stream.OtherStreamsTests.test_everything_else_is_the_streams_own) ... ok
+test_the_runner_reports_on_a_patient_stream_over_stderr (AutoGrader.tests_patient_test_stream.WiringTests.test_the_runner_reports_on_a_patient_stream_over_stderr) ... ok
+test_the_stream_is_whatever_stderr_is_when_the_run_is_set_up (AutoGrader.tests_patient_test_stream.WiringTests.test_the_stream_is_whatever_stderr_is_when_the_run_is_set_up)
+Not the interpreter's original stderr. A run whose sys.stderr ... ok
+test_unittests_runner_writes_through_it (AutoGrader.tests_patient_test_stream.WiringTests.test_unittests_runner_writes_through_it) ... ok
+test_a_forked_worker_terminated_in_the_middle_of_a_test_dies (AutoGrader.tests_pool_worker_sigterm.ATerminatedPoolWorkerDiesTests.test_a_forked_worker_terminated_in_the_middle_of_a_test_dies) ... ok
+test_the_setup_of_a_spawned_worker_restores_the_default_action_too (AutoGrader.tests_pool_worker_sigterm.ATerminatedPoolWorkerDiesTests.test_the_setup_of_a_spawned_worker_restores_the_default_action_too) ... ok
+test_django_still_starts_each_worker_through_init_worker (AutoGrader.tests_pool_worker_sigterm.TheFixCannotBeDroppedSilentlyTests.test_django_still_starts_each_worker_through_init_worker) ... ok
+test_our_suite_starts_each_worker_through_our_own (AutoGrader.tests_pool_worker_sigterm.TheFixCannotBeDroppedSilentlyTests.test_our_suite_starts_each_worker_through_our_own) ... ok
+test_a_field_list_naming_a_guarded_column_is_found (AutoGrader.tests_student_feedback_guard.ScannerSelfTest.test_a_field_list_naming_a_guarded_column_is_found) ... ok
+test_a_getattr_read_is_found (AutoGrader.tests_student_feedback_guard.ScannerSelfTest.test_a_getattr_read_is_found) ... ok
+test_a_method_of_the_same_name_being_called_is_not_a_read (AutoGrader.tests_student_feedback_guard.ScannerSelfTest.test_a_method_of_the_same_name_being_called_is_not_a_read) ... ok
+test_a_raw_read_is_found_with_its_function (AutoGrader.tests_student_feedback_guard.ScannerSelfTest.test_a_raw_read_is_found_with_its_function) ... ok
+test_a_read_beside_a_projection_is_still_found (AutoGrader.tests_student_feedback_guard.ScannerSelfTest.test_a_read_beside_a_projection_is_still_found) ... ok
+test_a_read_inside_a_projection_is_not_found (AutoGrader.tests_student_feedback_guard.ScannerSelfTest.test_a_read_inside_a_projection_is_not_found) ... ok
+test_a_write_is_not_a_read (AutoGrader.tests_student_feedback_guard.ScannerSelfTest.test_a_write_is_not_a_read) ... ok
+test_the_formatted_grade_column_is_a_guarded_read (AutoGrader.tests_student_feedback_guard.ScannerSelfTest.test_the_formatted_grade_column_is_a_guarded_read) ... ok
+test_h133_the_list_serializer_hides_the_grading_state_and_schedule (AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_h133_the_list_serializer_hides_the_grading_state_and_schedule)
+What a student is sent in place of the grading state and of the ... ok
+test_rule_1_every_raw_read_is_a_named_one (AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_1_every_raw_read_is_a_named_one) ... ok
+test_rule_2_every_field_list_with_a_guarded_column_is_a_named_one (AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_every_field_list_with_a_guarded_column_is_a_named_one) ... ok
+test_rule_2_the_list_serializer_replaces_every_review_field (AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_list_serializer_replaces_every_review_field) ... ok
+test_rule_2_the_student_detail_serializer_projects_both_columns (AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_student_detail_serializer_projects_both_columns) ... ok
+test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant (AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_2_the_upload_answer_sends_every_guarded_key_as_a_constant)
+H-141. The keys are the teacher's, for the page's sake; the ... ok
+test_rule_3_a_student_is_refused_every_review_queue_filter (AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_rule_3_a_student_is_refused_every_review_queue_filter) ... ok
+test_the_scan_covered_the_repository (AutoGrader.tests_student_feedback_guard.StudentFeedbackGuardTest.test_the_scan_covered_the_repository)
+A scan of nothing would pass every rule below. ... ok
+test_a_context_keyword_is_seen (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_a_context_keyword_is_seen) ... ok
+test_a_serializer_built_without_a_context_is_seen (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_a_serializer_built_without_a_context_is_seen) ... ok
+test_a_test_for_a_teacher_does_not_count (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_a_test_for_a_teacher_does_not_count) ... ok
+test_the_body_of_that_test_is_not_the_staff_branch (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_the_body_of_that_test_is_not_the_staff_branch) ... ok
+test_the_else_of_a_test_for_a_student_is_the_staff_branch (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_the_else_of_a_test_for_a_student_is_the_staff_branch) ... ok
+test_the_else_of_another_test_is_not_the_staff_branch (AutoGrader.tests_submission_audience_guard.ScannerSelfTest.test_the_else_of_another_test_is_not_the_staff_branch) ... ok
+test_rule_1_a_serializer_for_both_names_where_a_student_is_answered (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_a_serializer_for_both_names_where_a_student_is_answered) ... ok
+test_rule_1_every_serializer_of_a_submission_says_who_it_is_for (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_every_serializer_of_a_submission_says_who_it_is_for) ... ok
+test_rule_1_the_serializers_are_for_whom_this_guard_was_told (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_1_the_serializers_are_for_whom_this_guard_was_told)
+Changing an audience is a decision; it is made here too. ... ok
+test_rule_2_each_action_builds_the_serializers_named_and_no_other (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_each_action_builds_the_serializers_named_and_no_other) ... ok
+test_rule_2_every_action_of_the_view_is_named (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_every_action_of_the_view_is_named) ... ok
+test_rule_2_put_is_not_routed (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_put_is_not_routed) ... ok
+test_rule_2_who_can_call_each_action_is_as_named (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_2_who_can_call_each_action_is_as_named) ... ok
+test_rule_3_a_student_action_builds_staff_only_in_the_staff_branch (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_3_a_student_action_builds_staff_only_in_the_staff_branch) ... ok
+test_rule_3_a_student_action_gives_every_serializer_the_context (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_3_a_student_action_gives_every_serializer_the_context) ... ok
+test_rule_4_get_serializer_gives_a_student_no_staff_serializer (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_rule_4_get_serializer_gives_a_student_no_staff_serializer) ... ok
+test_the_census_found_the_serializers (AutoGrader.tests_submission_audience_guard.SubmissionAudienceGuardTest.test_the_census_found_the_serializers) ... ok
+test_rule_1_every_roster_site_is_classified (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_every_roster_site_is_classified) ... ok
+test_rule_1_no_classified_site_has_gone (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_no_classified_site_has_gone) ... ok
+test_rule_1_the_course_answer_serves_the_student_first (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_the_course_answer_serves_the_student_first) ... ok
+test_rule_1_the_order_check_fails_when_the_roster_comes_first (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_the_order_check_fails_when_the_roster_comes_first) ... ok
+test_rule_1_the_scan_sees_a_site_when_there_is_one (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_1_the_scan_sees_a_site_when_there_is_one)
+The scan on a made-up file: a use in a method, in a decorator ... ok
+test_rule_2_each_refusal_is_where_the_table_says (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_2_each_refusal_is_where_the_table_says) ... ok
+test_rule_2_every_action_is_classified (AutoGrader.tests_student_classmates_guard.StudentClassmatesGuardTest.test_rule_2_every_action_is_classified) ... ok
+test_blocks_an_unlisted_real_address (AutoGrader.tests_network_guard.NetworkGuardTests.test_blocks_an_unlisted_real_address) ... ok
+test_configured_database_is_allowed (AutoGrader.tests_network_guard.NetworkGuardTests.test_configured_database_is_allowed) ... ok
+test_configured_redis_is_allowed (AutoGrader.tests_network_guard.NetworkGuardTests.test_configured_redis_is_allowed) ... ok
+test_connect_ex_is_also_guarded (AutoGrader.tests_network_guard.NetworkGuardTests.test_connect_ex_is_also_guarded) ... ok
+test_escape_hatch_disables_the_guard (AutoGrader.tests_network_guard.NetworkGuardTests.test_escape_hatch_disables_the_guard) ... ok
+test_loopback_is_never_blocked (AutoGrader.tests_network_guard.NetworkGuardTests.test_loopback_is_never_blocked) ... ok
+test_sockets_are_restored_after_the_context_exits (AutoGrader.tests_network_guard.NetworkGuardTests.test_sockets_are_restored_after_the_context_exits) ... ok
+test_unix_sockets_are_never_touched (AutoGrader.tests_network_guard.NetworkGuardTests.test_unix_sockets_are_never_touched) ... ok
+test_a_validation_error_on_a_field_named_code_still_renders_as_before (users.tests_renderers.APIJSONRendererTests.test_a_validation_error_on_a_field_named_code_still_renders_as_before) ... ok
+test_manual_error_key_becomes_plain_error_message (users.tests_renderers.APIJSONRendererTests.test_manual_error_key_becomes_plain_error_message) ... ok
+test_manual_error_status_is_rendered_as_error (users.tests_renderers.APIJSONRendererTests.test_manual_error_status_is_rendered_as_error) ... ok
+test_refusal_code_beside_the_message_is_not_shown_as_text (users.tests_renderers.APIJSONRendererTests.test_refusal_code_beside_the_message_is_not_shown_as_text) ... ok
+test_success_response_promotes_detail_to_message (users.tests_renderers.APIJSONRendererTests.test_success_response_promotes_detail_to_message) ... ok
+test_success_response_promotes_message_to_message (users.tests_renderers.APIJSONRendererTests.test_success_response_promotes_message_to_message) ... ok
+test_unhandled_exception_never_leaks_raw_technical_detail (users.tests_renderers.APIJSONRendererTests.test_unhandled_exception_never_leaks_raw_technical_detail) ... ok
+test_validation_errors_keep_numbered_message_and_field_errors (users.tests_renderers.APIJSONRendererTests.test_validation_errors_keep_numbered_message_and_field_errors) ... ok
+
+----------------------------------------------------------------------
+Ran 332 tests in 103.954s
+
+OK
+Destroying test database for alias 'default' ('test_h266_list_errors_dict')...

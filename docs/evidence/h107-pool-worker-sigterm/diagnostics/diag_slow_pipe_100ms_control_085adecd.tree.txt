@@ -1,0 +1,21 @@
+ 562426  562399 S          07:31    1 do_wait               |   |   |           \_ /bin/bash /home/bond-servant-in-training/Documents/Projects/GAP-d5-runs/h107/diag_slow_
+ 562436  562426 S          07:31    1 do_wait               |   |   |               \_ /bin/bash /home/bond-servant-in-training/Documents/Projects/GAP-d5-runs/h107/diag_s
+ 562437  562436 S          07:31    1 do_wait               |   |   |               |   \_ systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-ru
+ 562445  562437 SN         07:31    1 do_wait               |   |   |               |   |   \_ flock /home/bond-servant-in-training/.machine-fullsuite.lock timeout -k 60
+ 562446  562445 SN         07:31    1 do_sigtimedwait.isra  |   |   |               |   |       \_ timeout -k 60 1800 python manage.py test assignments.tests_pdf_renderer
+ 562447  562446 SN         07:31    1 do_wait               |   |   |               |   |           \_ python manage.py test assignments.tests_pdf_renderer assignments.te
+ 563312  562447 SN         07:00    1 futex_do_wait         |   |   |               |   |               \_ python manage.py test assignments.tests_pdf_renderer assignment
+ 563314  562447 SN         07:00    1 futex_do_wait         |   |   |               |   |               \_ python manage.py test assignments.tests_pdf_renderer assignment
+ 562439  562436 S          07:31    1 anon_pipe_read        |   |   |               |   \_ /bin/bash /home/bond-servant-in-training/Documents/Projects/GAP-d5-runs/h107/di
+ 572398  562426 R          00:00    1 -                     |   |   |               \_ ps -e -o pid,ppid,stat,etime,nlwp,wchan:20,args --forest
+ 572401  562426 S          00:00    1 anon_pipe_read        |   |   |               \_ cut -c1-170
+  35703    5697 Sl      02:45:26   11 ep_poll               |   |   \_ /home/bond-servant-in-training/.antigravity-ide/extensions/anthropic.claude-code-2.1.289-linux-x64/
+  35922    5697 Sl      02:45:20   18 ep_poll               |   |   \_ /home/bond-servant-in-training/.antigravity-ide/extensions/anthropic.claude-code-2.1.289-linux-x64/
+  36161    5697 Sl      02:45:11   10 ep_poll               |   |   \_ /home/bond-servant-in-training/.antigravity-ide/extensions/anthropic.claude-code-2.1.289-linux-x64/
+  61655    5697 Sl      02:33:38   12 ep_poll               |   |   \_ /home/bond-servant-in-training/.antigravity-ide/extensions/anthropic.claude-code-2.1.289-linux-x64/
+ 259896    5697 Sl      01:44:23    8 ep_poll               |   |   \_ /home/bond-servant-in-training/Documents/Programs/Antigravity IDE/antigravity-ide /home/bond-servan
+ 480766    5697 Sl         33:06    8 ep_poll               |   |   \_ /home/bond-servant-in-training/Documents/Programs/Antigravity IDE/antigravity-ide /home/bond-servan
+ 480773    5697 Sl         33:06   22 unix_stream_data_wai  |   |   \_ /home/bond-servant-in-training/.antigravity-ide/extensions/meta.pyrefly-1.3.2-linux-x64/bin/pyrefly
+   5699    5227 Sl      03:00:02   22 futex_do_wait         |   \_ /proc/self/exe --type=utility --utility-sub-type=node.mojom.NodeService --lang=en-US --service-sandbox-
+   5717    5227 Sl      03:00:02   20 futex_do_wait         |   \_ /proc/self/exe --type=utility --utility-sub-type=node.mojom.NodeService --lang=en-US --service-sandbox-
+   7448    5717 Sl      02:59:51    8 ep_poll               |   |   \_ /home/bond-servant-in-training/Documents/Programs/Antigravity IDE/antigravity-ide /home/bond-servan

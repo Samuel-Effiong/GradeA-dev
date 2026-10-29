@@ -1,0 +1,145 @@
+{
+  "D1_the_door_answers_200": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 11,
+    "expected": [
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_a_valid_code_no_longer_opens_it",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_every_knock_gets_the_same_answer_byte_for_byte",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_an_expired_code_is_not_offered_a_renewal",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_wrong_codes_spend_no_budget_and_never_pause_the_door",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_the_answer_names_no_course_and_no_classmate",
+      "users.tests_old_activation_door_is_closed.ATeachersCodeOpensNothingHereTest.test_a_pending_teachers_code_completes_nothing"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_old_activation_door_is_closed.ATeachersCodeOpensNothingHereTest.test_a_pending_teachers_code_completes_nothing",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_a_valid_code_no_longer_opens_it",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_an_expired_code_is_not_offered_a_renewal",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_every_knock_gets_the_same_answer_byte_for_byte",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_the_answer_names_no_course_and_no_classmate",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_wrong_codes_spend_no_budget_and_never_pause_the_door"
+    ],
+    "pycache_left": 0
+  },
+  "D2_the_renewal_answers_200": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 11,
+    "expected": [
+      "users.tests_old_activation_door_is_closed.TheRenewalTest.test_an_expired_code_is_not_renewed_and_nobody_is_mailed",
+      "users.tests_old_activation_door_is_closed.TheRenewalTest.test_every_request_gets_the_same_answer_byte_for_byte"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_old_activation_door_is_closed.TheRenewalTest.test_an_expired_code_is_not_renewed_and_nobody_is_mailed",
+      "users.tests_old_activation_door_is_closed.TheRenewalTest.test_every_request_gets_the_same_answer_byte_for_byte"
+    ],
+    "pycache_left": 0
+  },
+  "D3_the_sentence_is_another": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 11,
+    "expected": [
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_a_valid_code_no_longer_opens_it",
+      "users.tests_old_activation_door_is_closed.TheRenewalTest.test_an_expired_code_is_not_renewed_and_nobody_is_mailed"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_old_activation_door_is_closed.ATeachersCodeOpensNothingHereTest.test_a_pending_teachers_code_completes_nothing",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_a_valid_code_no_longer_opens_it",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_an_expired_code_is_not_offered_a_renewal",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_every_knock_gets_the_same_answer_byte_for_byte",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_the_answer_names_no_course_and_no_classmate",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_wrong_codes_spend_no_budget_and_never_pause_the_door",
+      "users.tests_old_activation_door_is_closed.TheRenewalTest.test_an_expired_code_is_not_renewed_and_nobody_is_mailed",
+      "users.tests_old_activation_door_is_closed.TheRenewalTest.test_every_request_gets_the_same_answer_byte_for_byte"
+    ],
+    "pycache_left": 0
+  },
+  "D4_the_door_gives_the_code_back": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 11,
+    "expected": [
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_every_knock_gets_the_same_answer_byte_for_byte",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_an_expired_code_is_not_offered_a_renewal"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_an_expired_code_is_not_offered_a_renewal",
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_every_knock_gets_the_same_answer_byte_for_byte"
+    ],
+    "pycache_left": 0
+  },
+  "D5_the_renewal_gives_the_code_back": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 11,
+    "expected": [
+      "users.tests_old_activation_door_is_closed.TheRenewalTest.test_every_request_gets_the_same_answer_byte_for_byte"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_old_activation_door_is_closed.TheRenewalTest.test_every_request_gets_the_same_answer_byte_for_byte"
+    ],
+    "pycache_left": 0
+  },
+  "D6_a_knock_spends_the_budget_for_wrong_codes": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 11,
+    "expected": [
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_wrong_codes_spend_no_budget_and_never_pause_the_door"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_old_activation_door_is_closed.TheDoorTest.test_wrong_codes_spend_no_budget_and_never_pause_the_door"
+    ],
+    "pycache_left": 0
+  },
+  "C1_the_command_does_not_count_the_nameless": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 11,
+    "expected": [
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_dry_run_counts_the_accounts_with_no_name",
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_real_run_reports_the_same_count"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_dry_run_counts_the_accounts_with_no_name",
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_real_run_reports_the_same_count"
+    ],
+    "pycache_left": 0
+  },
+  "C2_the_command_counts_every_converted_account_as_nameless": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 11,
+    "expected": [
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_dry_run_counts_the_accounts_with_no_name",
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_real_run_reports_the_same_count"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_dry_run_counts_the_accounts_with_no_name",
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_real_run_reports_the_same_count"
+    ],
+    "pycache_left": 0
+  },
+  "C3_the_command_prints_an_address": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 11,
+    "expected": [
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_output_still_carries_ids_only"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "users.tests_old_activation_door_is_closed.TheConversionCommandCountsTheNamelessTest.test_the_output_still_carries_ids_only"
+    ],
+    "pycache_left": 0
+  }
+}

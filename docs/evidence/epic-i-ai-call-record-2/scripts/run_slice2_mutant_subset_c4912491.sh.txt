@@ -1,0 +1,45 @@
+#!/bin/bash
+# Slice 2: re-run named mutants only. Usage, under ONE systemd-inhibit:
+#   systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block \
+#     bash run_slice2_mutant_subset.sh <tip> <ids> > subset_<ids>.out 2>&1 < /dev/null
+# Written by the Builder (13), 2026-10-14, for the D3 re-run the SM ordered: D3 of the b9a222cb battery ran across
+# the laptop's 17:13:47-17:19:14 suspend and is VOID. The battery and its judging are mutate.py's own, unchanged
+# (a Ran line, no module that failed to load, EXPECTED[<id>] among the failing tests, written fragments where it
+# has REASONS); MUT_ONLY narrows it to the named ids (an unknown id STOPS it) and its results, logs and summary
+# are written under their own names, never over the full battery's. Rules: 17 (PYTHONDONTWRITEBYTECODE, pycache
+# cleared, in mutate.py), 18 (every run to a file, stdin from /dev/null), 13 (a 6G scope), the mutation database
+# dropped by its exact name afterwards, and every mutated file checked back against HEAD by sha256.
+set -u
+SUB_TIP=${1:?usage: <tip> <ids>}; SUB_IDS=${2:?usage: <tip> <ids>}
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-i-ai-call-record-0-epic-i-ai-call-record-2 || exit 1
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+E=docs/evidence/epic-i-ai-call-record-2
+CAP="systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0"
+SUB_TAG=$(printf '%s' "$SUB_IDS" | tr ', ' '__')
+MUTATED="students/migrations/0032_submission_answers_label.py students/migrations/0033_submission_answers_recheck_pair_check.py students/migrations/0034_submission_answers_recheck_pair_validate.py"
+[ "$(git rev-parse HEAD)" = "$(git rev-parse $SUB_TIP)" ] || { echo "not at $SUB_TIP"; exit 1; }
+git diff --quiet HEAD || { echo "tracked files changed"; exit 1; }
+restore_mutated() { git checkout HEAD -- $MUTATED 2>/dev/null; find students ai_processor -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null; }
+trap restore_mutated EXIT
+dropmut() { python manage.py shell --settings=settings_worktree_mut -c "
+from django.conf import settings
+from django.db import connection
+name = settings.DATABASES['default']['TEST']['NAME']
+with connection._nodb_cursor() as c:
+    c.execute('DROP DATABASE IF EXISTS \"%s\"' % name)
+print('dropped', name)" < /dev/null > $E/.dropmut_subset.out 2>&1; tail -1 $E/.dropmut_subset.out; rm -f $E/.dropmut_subset.out; }
+echo "load at start: $(cat /proc/loadavg)"
+MUT_ONLY="$SUB_IDS" python $E/mutate.py --check < /dev/null > $E/subset_check_$SUB_TAG.txt 2>&1 || { echo "STOP: the check refused"; cat $E/subset_check_$SUB_TAG.txt; exit 2; }
+cat $E/subset_check_$SUB_TAG.txt
+dropmut
+echo "=== mutants $SUB_IDS on $(git rev-parse --short=8 HEAD) $(date +%T)"
+eval "MUT_ONLY='$SUB_IDS' MUT_SETTINGS=settings_worktree_mut MUT_RESULTS=$E/mutation_results_subset_$SUB_TAG.json MUT_LOGS=$E/mutant_logs_subset_$SUB_TAG $CAP nice -n 10 timeout -k 60 1800 python $E/mutate.py" < /dev/null > $E/mutation_log_subset_$SUB_TAG.txt 2>&1
+echo "mutants exit=$? $(date +%T)"
+grep -vE "^(KILLED|SURVIVED|BROKEN|SUBSET):" $E/mutation_log_subset_$SUB_TAG.txt | cut -c1-260
+grep -E "^(KILLED|SURVIVED|BROKEN|SUBSET):" $E/mutation_log_subset_$SUB_TAG.txt
+for F in $MUTATED; do
+    [ "$(sha256sum < $F | cut -d' ' -f1)" = "$(git show HEAD:$F | sha256sum | cut -d' ' -f1)" ] && echo "restored: $F" || echo "STOP: $F differs from HEAD"
+done
+git diff --quiet HEAD && echo "source clean after mutants" || echo "STOP: source not clean after mutants"
+dropmut
+echo "load at end: $(cat /proc/loadavg)"

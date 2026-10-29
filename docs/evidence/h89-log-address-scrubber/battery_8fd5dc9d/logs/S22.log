@@ -1,0 +1,13 @@
+# S22: P1: a last label that is punycode or not ASCII
+# file: AutoGrader/log_scrubbing.py (occurrence 1)
+# old: '    rf"{_LABEL}+(?:\\.{_LABEL}+)*\\.[^\\W\\d_]{_LABEL}+"\n'
+# new: '    rf"{_LABEL}+(?:\\.{_LABEL}+)*\\.[A-Za-z]{{2,}}"\n'
+# commit: 8fd5dc9de325d48ff3895e6737570f5c13e8b57a
+# exit: 1
+# elapsed_s: 13.0
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) (address='pupil@school.xn--p1ai')
+FAIL: test_addresses_of_many_shapes (AutoGrader.tests_log_scrubbing.ScrubTests.test_addresses_of_many_shapes) (address='pupil@школа.рф')
+
+FAILED (failures=2)

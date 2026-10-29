@@ -1,0 +1,17 @@
+# W1: H-93: the window is over after a month less the snap, not a full month
+# file: billing/refresh_timing.py (occurrence 1)
+# old: '    return refresh_due_by(now) - relativedelta(months=1) + ANCHOR_SNAP\n'
+# new: '    return refresh_due_by(now) - relativedelta(months=1)\n'
+# commit: 3734461531ad8e353fb262381022b1842e1f6c55
+# exit: 1
+# elapsed_s: 29.0
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_consumption_window_reopens_at_every_months_refresh (billing.tests.test_licence_grant_anchor.LicenceGrantAnchorTests.test_the_consumption_window_reopens_at_every_months_refresh)
+FAIL: test_a_full_calendar_month_rule_would_leave_it_shut (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_a_full_calendar_month_rule_would_leave_it_shut)
+FAIL: test_the_window_is_over_at_every_refresh_of_any_anchored_chain (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_over_at_every_refresh_of_any_anchored_chain) (opened=datetime.datetime(2026, 3, 31, 3, 0, tzinfo=datetime.timezone.utc), now=datetime.datetime(2026, 4, 30, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_the_window_is_over_at_every_refresh_of_any_anchored_chain (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_over_at_every_refresh_of_any_anchored_chain) (opened=datetime.datetime(2026, 5, 31, 3, 0, tzinfo=datetime.timezone.utc), now=datetime.datetime(2026, 6, 30, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_the_window_is_over_at_every_refresh_of_any_anchored_chain (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_over_at_every_refresh_of_any_anchored_chain) (opened=datetime.datetime(2026, 8, 31, 3, 0, tzinfo=datetime.timezone.utc), now=datetime.datetime(2026, 9, 30, 3, 0, tzinfo=datetime.timezone.utc))
+FAIL: test_the_window_is_over_at_every_refresh_of_any_anchored_chain (billing.tests.test_allocation_anchor.ConsumptionWindowTests.test_the_window_is_over_at_every_refresh_of_any_anchored_chain) (opened=datetime.datetime(2026, 10, 31, 3, 0, tzinfo=datetime.timezone.utc), now=datetime.datetime(2026, 11, 30, 3, 0, tzinfo=datetime.timezone.utc))
+
+FAILED (failures=6)

@@ -1,0 +1,49 @@
+8b23502b:classrooms/tests.py:396:    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+8b23502b:classrooms/tests.py:420:    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+8b23502b:classrooms/tests.py:451:    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+8b23502b:classrooms/tests.py:501:    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:2:`backfill_pending_student_invites` converts every leftover pre-cutover
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:55:    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:58:        call_command("backfill_pending_student_invites", "--dry-run", stdout=out)
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:69:    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:74:            call_command("backfill_pending_student_invites", *args, stdout=out)
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:77:    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:80:        call_command("backfill_pending_student_invites", stdout=out)
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:104:    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:106:        call_command("backfill_pending_student_invites")
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:112:        call_command("backfill_pending_student_invites", stdout=out)
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:119:    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:134:        call_command("backfill_pending_student_invites")
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:141:    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:148:        call_command("backfill_pending_student_invites", stdout=out)
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:158:    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:163:        call_command("backfill_pending_student_invites", "--dry-run", stdout=out)
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:170:    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:178:        call_command("backfill_pending_student_invites", stdout=out)
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:193:    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+8b23502b:classrooms/tests_backfill_pending_student_invites.py:203:        call_command("backfill_pending_student_invites", stdout=out)
+8b23502b:classrooms/tests_conversion_goes_on_past_one_account.py:9:command `backfill_pending_student_invites` stopped there. The account's
+8b23502b:classrooms/tests_conversion_goes_on_past_one_account.py:99:        queued = notifications.send_student_login_invitation_email(
+8b23502b:classrooms/tests_conversion_goes_on_past_one_account.py:242:                call_command("backfill_pending_student_invites", stdout=out)
+8b23502b:classrooms/tests_conversion_needs_a_queued_email.py:5:The one-off command `backfill_pending_student_invites` switches a leftover
+8b23502b:classrooms/tests_conversion_needs_a_queued_email.py:153:                call_command("backfill_pending_student_invites", *args, stdout=out)
+8b23502b:classrooms/tests_conversion_needs_a_queued_email.py:156:            call_command("backfill_pending_student_invites", *args, stdout=out)
+8b23502b:classrooms/tests_conversion_needs_a_queued_email.py:163:        return notifications.send_student_login_invitation_email(
+8b23502b:classrooms/tests_roster_ready_to_use.py:94:        call = self.notify.send_student_login_invitation_email.call_args
+8b23502b:classrooms/tests_roster_ready_to_use.py:110:        self.notify.send_student_login_invitation_email.assert_called_once()
+8b23502b:classrooms/tests_roster_ready_to_use.py:153:        self.notify.send_student_login_invitation_email.assert_not_called()
+8b23502b:classrooms/tests_roster_ready_to_use.py:188:        self.notify.send_student_login_invitation_email.assert_not_called()
+8b23502b:classrooms/tests_roster_ready_to_use.py:279:        self.notify.send_student_login_invitation_email.assert_not_called()
+8b23502b:classrooms/tests_roster_ready_to_use.py:304:        self.notify.send_student_login_invitation_email.assert_not_called()
+8b23502b:classrooms/tests_roster_ready_to_use.py:396:        self.notify.send_student_login_invitation_email.assert_not_called()
+8b23502b:classrooms/tests_roster_ready_to_use.py:407:        self.notify.send_student_login_invitation_email.assert_called_once()
+8b23502b:classrooms/tests_roster_ready_to_use.py:475:        self.notify.send_student_login_invitation_email.assert_not_called()
+8b23502b:classrooms/tests_roster_ready_to_use.py:546:        self.notify.send_student_login_invitation_email.assert_called_once()
+8b23502b:users/tests_old_activation_door_is_closed.py:4:`POST /auth/register/student` let a student who held a 6-digit code set a
+8b23502b:users/tests_old_activation_door_is_closed.py:9:by a one-off command (classrooms: backfill_pending_student_invites), or
+8b23502b:users/tests_old_activation_door_is_closed.py:13:(`POST /course/student/renew-student-token`), now answer every request the
+8b23502b:users/tests_old_activation_door_is_closed.py:103:        return self.client.post(reverse("auth-register-student"), body, format="json")
+8b23502b:users/tests_old_activation_door_is_closed.py:107:            reverse("course-renew-activation-token"), body, format="json"
+8b23502b:users/tests_old_activation_door_is_closed.py:290:        call_command("backfill_pending_student_invites", *args, stdout=out)
+8b23502b:users/tests_throttle_client_identity.py:215:    renew-student-token into one scope, so that if it is ever split the
+8b23502b:users/tests_throttle_client_identity.py:218:    intentional today because renew-student-token is both a token-guessing

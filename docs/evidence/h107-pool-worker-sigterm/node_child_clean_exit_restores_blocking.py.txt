@@ -1,0 +1,9 @@
+import os, subprocess, sys
+from playwright._impl._driver import compute_driver_executable
+node, cli = compute_driver_executable()
+print("driver:", os.path.basename(str(node)), flush=True)
+r, w = os.pipe()
+print("before, blocking:", os.get_blocking(w), flush=True)
+for label, code in (("touches stderr", "process.stderr.write('')"), ("writes to stderr", "console.error('x')"), ("does nothing", "")):
+    subprocess.run([str(node), "-e", code], stderr=w, check=True, timeout=30)
+    print(f"after a Node child that {label} has exited, blocking:", os.get_blocking(w), flush=True)

@@ -1,0 +1,295 @@
+"""1a's verification probes for H-107. Not committed.
+
+R1: text with characters of two, three and four bytes, through a small
+    non-blocking pipe with a reader that is behind: every byte arrives,
+    once and in order (a partial write may stop inside a character).
+R2: a real unittest run through the project runner's own keyword arguments
+    (plain, --buffer and --debug-sql), reporting on a small non-blocking
+    pipe that is read late: every test's line, the summary and the failure
+    arrive. The control: the same run on a plain stream raises
+    BlockingIOError, as the parent of the stalled runs did.
+R3: over a terminal (a pty) the stream still says it is one and the text
+    arrives as a terminal shows it.
+R4: a real pool of TWO forked workers, started by Django's own suite code
+    from the project's suite class with the runner's SIGTERM handler in
+    place: one worker idle on the task queue and one inside a test when the
+    pool is terminated. Both die and the pool joins.
+"""
+
+import fcntl
+import io
+import os
+import subprocess
+import sys
+import threading
+import time
+import unittest
+from unittest import mock
+
+from django.conf import settings
+from django.test import SimpleTestCase
+
+from AutoGrader.redis_test_runner import RedisHygieneRunner
+from AutoGrader.testing.patient_stream import PatientStream
+
+PIPE_BYTES = 4096
+
+
+def small_non_blocking_pipe():
+    read_fd, write_fd = os.pipe()
+    fcntl.fcntl(write_fd, fcntl.F_SETPIPE_SZ, PIPE_BYTES)
+    os.set_blocking(write_fd, False)
+    stream = open(  # noqa: SIM115 - closed by the probe
+        write_fd, "w", encoding="utf-8", errors="backslashreplace", buffering=1
+    )
+    return read_fd, stream
+
+
+class LateReader(threading.Thread):
+    """Reads through its own descriptor, starting late and in small pieces."""
+
+    def __init__(self, read_fd, start_after=0.3):
+        super().__init__(daemon=True)
+        self.read_fd = os.dup(read_fd)
+        self.start_after = start_after
+        self.data = b""
+
+    def run(self):
+        try:
+            time.sleep(self.start_after)
+            while True:
+                piece = os.read(self.read_fd, 1500)
+                if not piece:
+                    return
+                self.data += piece
+                time.sleep(0.0005)
+        finally:
+            os.close(self.read_fd)
+
+
+def many_tests(count):
+    class Many(unittest.TestCase):
+        pass
+
+    for n in range(count):
+        setattr(Many, f"test_ünïcode_{n:03d}", lambda self: None)
+
+    def fails(self):
+        print("VF1A-CAPTURED-STDOUT")
+        self.fail("vf1a: the one expected failure")
+
+    Many.test_zz_fails = fails
+    return unittest.defaultTestLoader.loadTestsFromTestCase(Many)
+
+
+class H107StreamProbes(SimpleTestCase):
+    def pipe(self):
+        read_fd, stream = small_non_blocking_pipe()
+        self.addCleanup(self.quietly, stream.close)
+        self.addCleanup(self.quietly, os.close, read_fd)
+        return read_fd, stream
+
+    @staticmethod
+    def quietly(action, *args):
+        try:
+            action(*args)
+        except (OSError, ValueError):
+            pass
+
+    def test_r1_text_of_many_byte_lengths_arrives_whole(self):
+        lines = [
+            f"ligne {n} — übung 测试 \U0001f393 ... ok\n"
+            for n in range(3000)
+        ]
+        read_fd, stream = self.pipe()
+        reader = LateReader(read_fd)
+        reader.start()
+        patient = PatientStream(stream)
+
+        for line in lines:
+            patient.write(line)
+        patient.flush()
+        stream.close()
+        reader.join(timeout=60)
+
+        self.assertFalse(reader.is_alive(), "the reader never saw the end")
+        self.assertEqual(reader.data.decode("utf-8"), "".join(lines))
+        print(
+            f"\nVF1A_H107_R1 {len(reader.data)} bytes of 1- to 4-byte characters "
+            f"through a {PIPE_BYTES}-byte non-blocking pipe: identical"
+        )
+
+    def run_through_the_runner(self, **options):
+        count = 400
+        read_fd, stream = self.pipe()
+        reader = LateReader(read_fd)
+        reader.start()
+        with mock.patch.object(sys, "stderr", stream):
+            runner = RedisHygieneRunner(
+                verbosity=2, enable_faulthandler=False, **options
+            )
+            kwargs = runner.get_test_runner_kwargs()
+            self.assertIsInstance(kwargs["stream"], PatientStream)
+            self.assertIs(kwargs["stream"].stream, stream)
+            with mock.patch.object(sys, "stdout", io.StringIO()):
+                result = runner.test_runner(**kwargs).run(many_tests(count))
+        stream.close()
+        reader.join(timeout=60)
+        self.assertFalse(reader.is_alive(), "the reader never saw the end")
+        return count, result, reader.data.decode("utf-8")
+
+    def test_r2_a_real_run_reports_everything_through_a_full_pipe(self):
+        shown = {}
+        for name, options in (
+            ("plain", {}),
+            ("--buffer", {"buffer": True}),
+            ("--debug-sql", {"debug_sql": True}),
+        ):
+            with self.subTest(run=name):
+                count, result, output = self.run_through_the_runner(**options)
+
+                self.assertEqual(result.testsRun, count + 1)
+                self.assertEqual(len(result.failures), 1)
+                self.assertGreater(len(output.encode()), 4 * PIPE_BYTES)
+                at = -1
+                for n in range(count):
+                    line = f"test_ünïcode_{n:03d} ("
+                    found = output.find(line, at + 1)
+                    self.assertGreater(found, at, f"{line} is missing or out of order")
+                    at = found
+                self.assertEqual(output.count(" ... ok\n"), count)
+                self.assertEqual(output.count(" ... FAIL\n"), 1)
+                self.assertIn(f"Ran {count + 1} tests in ", output)
+                self.assertIn("FAILED (failures=1)", output)
+                self.assertIn("vf1a: the one expected failure", output)
+                if name == "--buffer":
+                    self.assertIn("VF1A-CAPTURED-STDOUT", output)
+                shown[name] = (len(output.encode()), type(result).__name__)
+        print(f"\nVF1A_H107_R2 bytes reported and result class, per run: {shown}")
+
+        # The control: unittest's own runner on the same kind of pipe, with
+        # nobody reading yet.
+        _read_fd, stream = self.pipe()
+        with self.assertRaises(BlockingIOError):
+            unittest.TextTestRunner(stream=stream, verbosity=2).run(many_tests(400))
+        print("  control: a plain stream on the same pipe raised BlockingIOError")
+
+    def test_r3_over_a_terminal(self):
+        master, slave = os.openpty()
+        self.addCleanup(self.quietly, os.close, master)
+        stream = open(slave, "w", encoding="utf-8", buffering=1)  # noqa: SIM115
+        self.addCleanup(self.quietly, stream.close)
+        patient = PatientStream(stream)
+
+        self.assertTrue(patient.isatty())
+        patient.write("hello ünï\n")
+        patient.flush()
+
+        self.assertEqual(os.read(master, 100), "hello ünï\r\n".encode())
+        print("\nVF1A_H107_R3 over a pty: isatty() is True and the line arrives")
+
+
+JOINED = "VF1A THE POOL JOINED"
+SURVIVED = "VF1A A WORKER SURVIVED THE TERMINATE"
+
+TWO_WORKER_PROBE = f"""
+import multiprocessing, os, signal, sys, threading, time, unittest
+from unittest import mock
+
+import django
+
+django.setup()
+
+from AutoGrader import redis_test_hygiene as hygiene
+from AutoGrader.redis_test_runner import IsolatedParallelTestSuite
+
+BUSY_PID = multiprocessing.Value("i", 0)
+WORKERS = []
+
+
+class Quick(unittest.TestCase):
+    def test_quick(self):
+        pass
+
+
+class Busy(unittest.TestCase):
+    def test_busy(self):
+        BUSY_PID.value = os.getpid()
+        deadline = time.monotonic() + 40
+        while time.monotonic() < deadline:
+            time.sleep(0.05)
+
+
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+def stop_the_run(result):
+    while not BUSY_PID.value:
+        time.sleep(0.05)
+    time.sleep(1.0)  # the quick test is done: its worker is idle on the queue
+    WORKERS.extend(child.pid for child in multiprocessing.active_children())
+    result.shouldStop = True  # Django's loop then calls pool.terminate()
+    time.sleep(12)
+    print({SURVIVED!r}, flush=True)
+    for pid in WORKERS:
+        if alive(pid):
+            os.kill(pid, signal.SIGKILL)
+    os._exit(3)
+
+
+with mock.patch.object(hygiene, "sweep_dead_prefixes", lambda: None), mock.patch.object(
+    hygiene, "delete_own_keys", lambda: None
+), hygiene.redis_test_hygiene():
+    assert signal.getsignal(signal.SIGTERM) is not signal.SIG_DFL
+    suite = IsolatedParallelTestSuite(
+        [unittest.TestSuite([Quick("test_quick")]), unittest.TestSuite([Busy("test_busy")])],
+        2,
+    )
+    suite.used_aliases = set()
+    result = unittest.TestResult()
+    threading.Thread(target=stop_the_run, args=(result,), daemon=True).start()
+    started = time.monotonic()
+    suite.run(result)
+    took = time.monotonic() - started
+    time.sleep(0.3)
+    print(
+        {JOINED!r},
+        "workers:", len(WORKERS),
+        "busy one among them:", BUSY_PID.value in WORKERS,
+        "still alive:", sum(alive(pid) for pid in WORKERS),
+        "tests reported:", result.testsRun,
+        "errors:", len(result.errors),
+        "seconds:", round(took, 1),
+        flush=True,
+    )
+"""
+
+
+class H107PoolProbe(SimpleTestCase):
+    def test_r4_an_idle_and_a_busy_forked_worker_both_die(self):
+        probe = subprocess.run(
+            [sys.executable, "-B", "-c", TWO_WORKER_PROBE],
+            cwd=settings.BASE_DIR,
+            env={
+                **os.environ,
+                "DJANGO_SETTINGS_MODULE": os.environ["DJANGO_SETTINGS_MODULE"],
+            },
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        shown = f"stdout:\n{probe.stdout}\nstderr:\n{probe.stderr[-3000:]}"
+        self.assertNotIn(SURVIVED, probe.stdout, shown)
+        self.assertEqual(probe.returncode, 0, shown)
+        [line] = [ln for ln in probe.stdout.splitlines() if ln.startswith(JOINED)]
+        print(f"\nVF1A_H107_R4 {line}")
+        self.assertIn("workers: 2 ", line)
+        self.assertIn("busy one among them: True", line)
+        self.assertIn("still alive: 0 ", line)
+        self.assertIn("errors: 0 ", line)

@@ -1,0 +1,12 @@
+# P8: a stream with no file descriptor is written to as it is
+# file: AutoGrader/testing/patient_stream.py (occurrence 1)
+# old: '        if fd is None:\n            return self.stream.write(text)\n'
+# new: ''
+# commit: 6370f662bae94068ef0e1f8f880bf6127997a711
+# exit: 1
+# elapsed_s: 12.2
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_a_stream_with_no_file_descriptor_is_written_to_as_it_is (AutoGrader.tests_patient_test_stream.OtherStreamsTests.test_a_stream_with_no_file_descriptor_is_written_to_as_it_is)
+
+FAILED (errors=1)

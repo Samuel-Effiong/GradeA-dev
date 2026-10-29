@@ -1,0 +1,58 @@
+#!/bin/bash
+# H-123 gate chain on the frozen tip: (a) the changed module with the guard
+# list, serial; (b) the battery. (c) is c_h123.sh, on its own grant.
+# Rule 18: every test command writes straight to a file, stdin from
+# /dev/null. The module holds real-browser tests with wall-clock
+# assertions: the chain does not start on a loaded machine (1-minute load
+# average over 4) and records the load at the start and end of each step.
+# Usage: chain.sh <tip-sha8>
+set -euo pipefail
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=$P/Grade-Automator-Plus-h123-renderer-stall-test-relative-limit
+OUT=$P/GAP-d5-runs/h123
+E=docs/evidence/h123-renderer-stall-test-relative-limit
+export EXEMPT_EMAIL_DOMAINS=
+WRAP="systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800"
+say() { echo "$(date +%H:%M:%S) $*" | tee -a $OUT/chain.status; }
+load() { say "$1: loadavg $(cat /proc/loadavg)"; }
+cd $WT
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { say "ABORT: tree not frozen at $TIP"; exit 9; }
+[ ! -e $OUT/a_modules_$TIP.log ] && [ ! -e $OUT/battery_$TIP ] || { say "ABORT: logs of $TIP exist already"; exit 9; }
+L=$(cut -d" " -f1 /proc/loadavg)
+awk -v l="$L" 'BEGIN{exit !(l<=4)}' || { say "NOT STARTED: 1-minute load average $L is over 4"; exit 8; }
+BATTERY_RAN=0
+tidy() {
+  set +e
+  cd $WT
+  if [ $BATTERY_RAN = 1 ] && { [ -e $E/logs ] || [ -e $E/results.tsv ]; }; then
+    mkdir -p $OUT/battery_$TIP && mv $E/logs $E/results.tsv $OUT/battery_$TIP/ || say "WARNING: could not move the battery's output"
+  fi
+  [ -z "$(git status --porcelain)" ] && [ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] || say "WARNING: tree not the frozen tip $TIP at exit"
+}
+trap tidy EXIT
+
+# (a) the changed module, H-118's guard module and H-110's driver-stderr module (both import the changed one),
+# the two other modules that share the renderer, and the repo-wide guard list
+load "(a) start"; s=$(date +%s); rc=0
+$WRAP python manage.py test assignments.tests_pdf_renderer AutoGrader.tests_no_playwright_at_import assignments.tests_pdf_renderer_driver_stderr assignments.tests_download_pdf assignments.tests_renderer_crash AutoGrader.tests_no_wildcard_invalidation AutoGrader.tests_cache_invalidation_coverage AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_redis_test_isolation AutoGrader.tests_beat_health AutoGrader.tests_beat_locks AutoGrader.tests_management_commands_are_commands AutoGrader.tests_error_messages AutoGrader.tests_no_pii_in_logs AutoGrader.tests_log_scrubbing AutoGrader.tests_sentry_scrubbing AutoGrader.tests_redis_hygiene_databases AutoGrader.tests_redis_hygiene AutoGrader.tests_patient_test_stream AutoGrader.tests_pool_worker_sigterm billing.tests.test_logs_carry_no_email billing.tests.test_log_scrubbing_end_to_end classrooms.tests_teacher_access_sweep classrooms.tests_course_roster_scope_sweep assignments.tests_schema_extension users.tests_schema_extension --settings=settings_worktree --noinput --verbosity 2 > $OUT/a_modules_$TIP.log 2>&1 < /dev/null || rc=$?
+echo "exit=$rc wall_s=$(( $(date +%s)-s ))" >> $OUT/a_modules_$TIP.log
+load "(a) end"
+say "(a) exit=$rc"; [ $rc -eq 0 ] || { say "STOP: (a) red"; exit 1; }
+n=$(grep -c "Headless Chromium not available" $OUT/a_modules_$TIP.log || true)
+say "(a) tests skipped for want of Chromium: $n"; [ "$n" = 0 ] || { say "STOP: the probe answered not available"; exit 1; }
+say "(a) $(grep -F '[stall test]' $OUT/a_modules_$TIP.log | tail -n 1 || echo 'NO [stall test] LINE')"
+grep -qF '[stall test]' $OUT/a_modules_$TIP.log || { say "STOP: the stall test printed no baseline"; exit 1; }
+
+# (b) the battery
+load "(b) start"; s=$(date +%s); rc=0; BATTERY_RAN=1
+PYTHONDONTWRITEBYTECODE=1 $WRAP python $E/run_mutants.py $TIP > $OUT/b_mutation_battery_$TIP.log 2>&1 < /dev/null || rc=$?
+echo "exit=$rc wall_s=$(( $(date +%s)-s ))" >> $OUT/b_mutation_battery_$TIP.log
+load "(b) end"
+say "(b) exit=$rc"
+tidy; BATTERY_RAN=0
+rc2=0; python3 $OUT/expected_kills.py $OUT/battery_$TIP > $OUT/expected_kills_$TIP.txt 2>&1 || rc2=$?
+say "expected failing sets: $(tail -n 1 $OUT/expected_kills_$TIP.txt)"
+[ $rc -eq 0 ] || { say "STOP: (b) not all killed"; exit 1; }
+[ $rc2 -eq 0 ] || { say "STOP: a mutant's failing set differs from the expected one"; exit 1; }
+say "H-123 CHAIN END: (c) needs its own GRANT"

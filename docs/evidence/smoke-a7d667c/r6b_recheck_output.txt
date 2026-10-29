@@ -1,0 +1,4 @@
+teacher msg : 402 There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+student msg : 402 There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+R6b student message identical to the teacher's role-neutral message: True
+R6b no specific billing detail (trial/expired/subscription/balance/refill/chargeback/refund/dispute/plan/amounts): True []

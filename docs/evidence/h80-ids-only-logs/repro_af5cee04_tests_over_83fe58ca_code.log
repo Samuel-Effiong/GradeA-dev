@@ -1,0 +1,259 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user trial@h80school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user trial@h80school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+FFSchool 50c13a87-eda7-43a8-aae7-64bba400a196 already has active license subscription 28c01547-9bdb-4651-8eea-e7e56fff3004. Deactivating old license before creating new one.
+Cannot activate automatic trial for user first@h80school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user second@h80school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+ECannot activate automatic trial for user outsider@h80other.edu (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user carried@h80school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+FFFF.Cannot activate automatic trial for user boundary.t0@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user boundary.t1@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Failed to renew credits for teacher boundary.t1@school.edu under license 477c49c6-4e49-4881-8ea6-236df33900b3: simulated failure part-way through the grant
+.Cannot activate automatic trial for user boundary.t0@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user boundary.t1@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user boundary.t0@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user boundary.t1@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Failed to renew credits for teacher boundary.t1@school.edu under license 946421f7-74f8-4e17-a271-7761705c939d: simulated failure part-way through the grant
+.Cannot activate automatic trial for user boundary.t0@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user boundary.t1@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user offline.teacher@school.edu (validation): Free trial plan not found. Please create one in the admin panel.
+F
+======================================================================
+ERROR: test_a_seat_limit_refusal_logs_its_reason_with_ids (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_a_seat_limit_refusal_logs_its_reason_with_ids)
+H-86 (1a's R3): the operator learns why, by ids.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 277, in test_a_seat_limit_refusal_logs_its_reason_with_ids
+    [reason] = [line for line in logs.output if "seat limit" in line]
+    ^^^^^^^^
+ValueError: not enough values to unpack (expected 1, got 0)
+
+======================================================================
+FAIL: test_a_missing_trial_plan_is_logged_as_an_error (billing.tests.test_logs_carry_no_email.FreeTrialRefusalsLogAReasonTest.test_a_missing_trial_plan_is_logged_as_an_error)
+A configuration fault: without it every new teacher is silently
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 333, in test_a_missing_trial_plan_is_logged_as_an_error
+    with self.assertLogs("billing.services", "ERROR") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level ERROR or higher triggered on billing.services
+
+======================================================================
+FAIL: test_a_used_trial_is_logged_as_a_warning (billing.tests.test_logs_carry_no_email.FreeTrialRefusalsLogAReasonTest.test_a_used_trial_is_logged_as_a_warning)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 361, in test_a_used_trial_is_logged_as_a_warning
+    with self.assertLogs("billing.services", "WARNING") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level WARNING or higher triggered on billing.services
+
+======================================================================
+FAIL: test_a_failed_licence_creation_summary_logs_no_address (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_a_failed_licence_creation_summary_logs_no_address)
+create_license_subscription logged the failed_results dicts.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 247, in test_a_failed_licence_creation_summary_logs_no_address
+    self.assertNoAddress(logs)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 216, in assertNoAddress
+    assertGuardedLinesHaveNoAddress(self, logs)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 116, in assertGuardedLinesHaveNoAddress
+    test.assertEqual([line for line in lines if "@" in line], [])
+AssertionError: Lists differ: ['Granted admin analytics allocation (5000[345 chars]'}]"] != []
+
+First list contains 2 additional elements.
+First extra element 0:
+'Granted admin analytics allocation (5000 display credits) to admin@h80school.edu for license c535f4c4-632e-4b12-9a40-faabffecd672'
+
++ []
+- ['Granted admin analytics allocation (5000 display credits) to '
+-  'admin@h80school.edu for license c535f4c4-632e-4b12-9a40-faabffecd672',
+-  'License c535f4c4-632e-4b12-9a40-faabffecd672 creation: 1/1 teacher '
+-  "invitations FAILED: [{'email': 'someone@gmail.com', 'successful': False, "
+-  "'teacher_id': None, 'error': 'Email someone@gmail.com is not a business "
+-  "email. Only business emails are allowed.'}]"]
+
+======================================================================
+FAIL: test_an_other_school_refusal_logs_its_reason_with_ids (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_an_other_school_refusal_logs_its_reason_with_ids)
+H-86: the enrolment's own school check says why, by ids.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 289, in test_an_other_school_refusal_logs_its_reason_with_ids
+    with self.assertLogs("billing.license_service", "WARNING") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level WARNING or higher triggered on billing.license_service
+
+======================================================================
+FAIL: test_carrying_teachers_to_a_new_licence_logs_no_address (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_carrying_teachers_to_a_new_licence_logs_no_address)
+1a's R2: a carried-forward teacher now has an individual plan.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 233, in test_carrying_teachers_to_a_new_licence_logs_no_address
+    self.assertNoAddress(logs)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 216, in assertNoAddress
+    assertGuardedLinesHaveNoAddress(self, logs)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 116, in assertGuardedLinesHaveNoAddress
+    test.assertEqual([line for line in lines if "@" in line], [])
+AssertionError: Lists differ: ['Granted admin analytics allocation (5000[793 chars]e}]"] != []
+
+First list contains 3 additional elements.
+First extra element 0:
+'Granted admin analytics allocation (5000 display credits) to admin@h80school.edu for license f07df431-1619-4fa5-a859-c9109e427095'
+
+Diff is 914 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_enrolling_and_inviting_logs_no_address (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_enrolling_and_inviting_logs_no_address)
+The success path: invitation queued, wallet, enrolment, bucket.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 261, in test_enrolling_and_inviting_logs_no_address
+    self.assertNoAddress(logs)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 216, in assertNoAddress
+    assertGuardedLinesHaveNoAddress(self, logs)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 116, in assertGuardedLinesHaveNoAddress
+    test.assertEqual([line for line in lines if "@" in line], [])
+AssertionError: Lists differ: ['Post-save signal fired for new user new@[663 chars]ol.'] != []
+
+First list contains 8 additional elements.
+First extra element 0:
+'Post-save signal fired for new user new@h80school.edu (ID: 633a8fef-185d-4bc2-94e1-98325022a0ce, type: TEACHER).'
+
+Diff is 769 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_creating_a_user_logs_no_address (billing.tests.test_logs_carry_no_email.SignalsLogNoAddressTest.test_creating_a_user_logs_no_address)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 310, in test_creating_a_user_logs_no_address
+    assertGuardedLinesHaveNoAddress(self, logs)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 116, in assertGuardedLinesHaveNoAddress
+    test.assertEqual([line for line in lines if "@" in line], [])
+AssertionError: Lists differ: ['Post-save signal fired for new user sign[389 chars]el.'] != []
+
+First list contains 5 additional elements.
+First extra element 0:
+'Post-save signal fired for new user signals@h80school.edu (ID: 588d8757-74be-44fe-b065-5b8cd8db7033, type: TEACHER).'
+
++ []
+- ['Post-save signal fired for new user signals@h80school.edu (ID: '
+-  '588d8757-74be-44fe-b065-5b8cd8db7033, type: TEACHER).',
+-  'Created Settings for user signals@h80school.edu',
+-  'Created CreditWallet for user signals@h80school.edu',
+-  'Checking if user signals@h80school.edu needs trial activation',
+-  'Cannot activate automatic trial for user signals@h80school.edu (validation): '
+-  'Free trial plan not found. Please create one in the admin panel.']
+
+======================================================================
+FAIL: test_no_logger_call_formats_an_address (billing.tests.test_logs_carry_no_email.NoEmailInLogCallsTest.test_no_logger_call_formats_an_address)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_logs_carry_no_email.py", line 126, in test_no_logger_call_formats_an_address
+    self.assertEqual(problems, [], "\n".join(problems))
+AssertionError: Lists differ: ['billing/license_service.py:716: admin_us[2807 chars]xc)'] != []
+
+First list contains 61 additional elements.
+First extra element 0:
+'billing/license_service.py:716: admin_user.email'
+
+Diff is 3042 characters long. Set self.maxDiff to None to see it. : billing/license_service.py:716: admin_user.email
+billing/license_service.py:1586: teacher.email
+billing/license_service.py:1813: teacher.email
+billing/license_service.py:3028: performed_by.email
+billing/license_service.py:3130: requesting_user.email
+billing/license_service.py:3189: requesting_user.email
+billing/license_service.py:3455: performed_by.email
+billing/license_service.py:3736: teacher.email
+billing/license_service.py:3883: performed_by.email
+billing/license_service.py:4109: teacher.email
+billing/license_service.py:4109: performed_by.email
+billing/license_service.py:679: admin_user.email
+billing/license_service.py:1099: failed_results
+billing/license_service.py:1386: teacher.email
+billing/license_service.py:1420: teacher.email
+billing/license_service.py:1438: teacher.email
+billing/license_service.py:1540: teacher.email
+billing/license_service.py:3403: performed_by.email
+billing/license_service.py:3938: performed_by.email
+billing/license_service.py:655: admin_user.email
+billing/license_service.py:785: email
+billing/license_service.py:785: the exception's text (exc)
+billing/license_service.py:1310: teacher_email
+billing/license_service.py:1426: teacher.email
+billing/license_service.py:1458: teacher.email
+billing/license_service.py:857: teacher.email
+billing/license_service.py:857: the exception's text (exc)
+billing/license_service.py:874: teacher.email
+billing/license_service.py:874: the exception's text (exc)
+billing/license_service.py:1316: teacher_email
+billing/license_service.py:1516: teacher.email
+billing/license_service.py:1937: allocation.user.email
+billing/license_service.py:1937: str(e)
+billing/license_service.py:3577: recipient_email
+billing/license_service.py:3624: recipient_email
+billing/license_service.py:3834: allocation.user.email
+billing/license_service.py:3834: str(e)
+billing/license_service.py:546: teacher.email
+billing/license_service.py:1027: the exception's text (exc)
+billing/license_service.py:1523: teacher.email
+billing/license_service.py:3526: admin.email
+users/signals.py:303: user.email
+users/signals.py:339: user.email
+users/signals.py:314: user.email
+users/signals.py:327: user.email
+users/signals.py:343: user.email
+users/signals.py:352: user.email
+users/signals.py:362: user.email
+users/signals.py:316: user.email
+users/signals.py:316: str(exc)
+users/signals.py:329: user.email
+users/signals.py:329: str(exc)
+users/signals.py:385: user.email
+users/signals.py:394: user.email
+users/signals.py:374: user.email
+users/signals.py:401: user.email
+users/signals.py:401: str(exc)
+users/signals.py:409: user.email
+users/signals.py:409: str(exc)
+users/signals.py:378: user.email
+users/signals.py:378: str(exc)
+
+======================================================================
+FAIL: test_a_failed_teacher_is_reported_and_not_counted_as_renewed (billing.tests.test_license_renewal_partial_failure.LicenseRenewalTransactionBoundaryTests.test_a_failed_teacher_is_reported_and_not_counted_as_renewed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_license_renewal_partial_failure.py", line 276, in test_a_failed_teacher_is_reported_and_not_counted_as_renewed
+    self.assertTrue(
+AssertionError: False is not true : the failed teacher was not named in the error log
+
+======================================================================
+FAIL: test_a_failed_teacher_leaves_no_partial_writes_behind (billing.tests.test_license_renewal_partial_failure.OfflineRenewalTransactionBoundaryTests.test_a_failed_teacher_leaves_no_partial_writes_behind)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h78-repro/billing/tests/test_license_renewal_partial_failure.py", line 382, in test_a_failed_teacher_leaves_no_partial_writes_behind
+    self.assertIn(str(victim_id), failure.getMessage())
+AssertionError: '25c9fdc1-1da4-4d9a-bd8b-bf8b24201b61' not found in 'Offline renewal: failed to refresh credits for teacher offline.teacher@school.edu under license 8ff2b332-3cfa-4ba3-b08e-e4326bd0f5e0: simulated offline failure part-way through'
+
+----------------------------------------------------------------------
+Ran 15 tests in 2.331s
+
+FAILED (failures=10, errors=1)
+Destroying test database for alias 'default'...
+Found 15 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+systemd-run failed with exit status 1.
+exit=1 wall_s=25

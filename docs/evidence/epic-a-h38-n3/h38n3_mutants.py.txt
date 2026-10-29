@@ -1,0 +1,86 @@
+"""H-38 N3 mutants (author 1a). Each must be killed by a named test in
+students.tests_h38_n3_refusal_audit or AutoGrader.tests_reason_codes."""
+
+HELPER_ACTOR = "        actor = task.requested_by if task else None\n"
+MUTANTS = {
+    "K1 the refused run's event carries no reason": (
+        "assignments/tasks.py",
+        "    if isinstance(exc, CourseNotReachableError):\n        return ReasonCode.COURSE_NOT_REACHABLE\n    return None\n",
+        "    return None\n",
+    ),
+    "K2 the refused batch writes no event": (
+        "assignments/tasks.py",
+        "        _audit_unreachable_course_refusal(\n            batch_user.id, batch_assignment, processing_task_id\n        )\n",
+        "",
+    ),
+    "K3 the refused auto-grade writes no event": (
+        "assignments/tasks.py",
+        "            _audit_unreachable_course_refusal(assignment.course.teacher_id, assignment)\n",
+        "",
+    ),
+    "K4 the batch-level event targets the assignment, not the teacher": (
+        "assignments/tasks.py",
+        "        target_type=\"CustomUser\",\n        target_id=teacher_id,\n",
+        "        target_type=\"Assignment\",\n        target_id=assignment.id,\n",
+    ),
+    "K5 the batch-level event is always the system's": (
+        "assignments/tasks.py",
+        HELPER_ACTOR,
+        "        actor = None\n",
+    ),
+    "K6 the batch-level event carries no reason": (
+        "assignments/tasks.py",
+        "        error_class=ErrorClass.USER,\n        reason_code=ReasonCode.COURSE_NOT_REACHABLE,\n",
+        "        error_class=ErrorClass.USER,\n        reason_code=None,\n",
+    ),
+    "K7 the batch-level event has no school": (
+        "assignments/tasks.py",
+        "        school_id = _course_school_id(assignment.course)\n    except Exception as error:\n        logger.error(\n            \"The requester or school",
+        "        school_id = None\n    except Exception as error:\n        logger.error(\n            \"The requester or school",
+    ),
+    "K8 the batch-level event is a system fault, not the user's case": (
+        "assignments/tasks.py",
+        "        error_class=ErrorClass.USER,\n        reason_code=ReasonCode.COURSE_NOT_REACHABLE,\n",
+        "        error_class=ErrorClass.SYSTEM,\n        reason_code=ReasonCode.COURSE_NOT_REACHABLE,\n",
+    ),
+    "K9 the code is not listed as audit-only": (
+        "AutoGrader/reason_codes.py",
+        "        ReasonCode.COURSE_NOT_REACHABLE,\n",
+        "",
+    ),
+    "K10 every batch writes the event, refused or not": (
+        "assignments/tasks.py",
+        "    if (\n        batch_user is not None\n        and batch_assignment is not None\n        and not teacher_may_reach(batch_user, batch_assignment)\n    ):\n",
+        "    if batch_user is not None and batch_assignment is not None:\n        _audit_unreachable_course_refusal(batch_user.id, batch_assignment)\n    if (\n        batch_user is not None\n        and batch_assignment is not None\n        and not teacher_may_reach(batch_user, batch_assignment)\n    ):\n",
+    ),
+    "K11 the batch-level event drops the tracked task's id": (
+        "assignments/tasks.py",
+        "            \"task_id\": str(processing_task_id) if processing_task_id else None,\n        },\n    )\n\n\n@shared_task(\n    bind=True,\n    # Hard kill point",
+        "            \"task_id\": None,\n        },\n    )\n\n\n@shared_task(\n    bind=True,\n    # Hard kill point",
+    ),
+    "K12 the refused run's event keeps the actor's school (none, once removed)": (
+        "assignments/tasks.py",
+        "            school_id=_unreachable_course_school_id(exc, locals().get(\"submission\")),\n",
+        "",
+    ),
+    "K13 every failed run borrows the course's school, not only the refusal": (
+        "assignments/tasks.py",
+        "    if not isinstance(exc, CourseNotReachableError):\n        return None\n    if not isinstance(submission, StudentSubmission):\n",
+        "    if not isinstance(submission, StudentSubmission):\n",
+    ),
+    "K14 a failed requester lookup breaks the refused batch (no guard)": (
+        "assignments/tasks.py",
+        "    actor = school_id = None\n    try:\n        task = get_processing_task_by_id(processing_task_id)\n        actor = task.requested_by if task else None\n        school_id = _course_school_id(assignment.course)\n    except Exception as error:\n",
+        "    actor = school_id = None\n    try:\n        task = get_processing_task_by_id(processing_task_id)\n        actor = task.requested_by if task else None\n        school_id = _course_school_id(assignment.course)\n    except ZeroDivisionError as error:\n",
+    ),
+    "K15 a failed school lookup breaks the refused run's failure handling (no guard)": (
+        "assignments/tasks.py",
+        "        return _course_school_id(submission.assignment.course)\n    except Exception as error:\n",
+        "        return _course_school_id(submission.assignment.course)\n    except ZeroDivisionError as error:\n",
+    ),
+    "K16 the guard's log line carries the error's text": (
+        "assignments/tasks.py",
+        "            \"grading of assignment %s: %s\",\n            assignment.id,\n            type(error).__name__,\n",
+        "            \"grading of assignment %s: %s\",\n            assignment.id,\n            error,\n",
+    ),
+}

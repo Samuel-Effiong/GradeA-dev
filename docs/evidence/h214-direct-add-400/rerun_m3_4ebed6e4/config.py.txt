@@ -1,0 +1,42 @@
+# H-214 M3 re-run config for ../row_chain.py (SM + Verifier ruling
+# 2026-10-14). Written by Builder 58 BEFORE the run, at tip 4ebed6e4: the
+# 500 control now asserts a dict body after its status line. Scope: the
+# row's own test module green, then M3 alone.
+
+ROW = "h214m3"
+WT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h214-direct-add-400"
+BASE = "913f248f"
+OUT = "/home/bond-servant-in-training/Documents/Projects/GAP-58-runs/h214m3"
+DB_PREFIX = "test_h214m3"
+
+MODULE = ["classrooms.tests_h214_direct_add_answers"]
+CONTROL_500 = (
+    "DirectAddAnswersTests",
+    "test_an_unexpected_failure_is_still_a_500_with_the_fixed_message",
+)
+
+R_LABELS = []
+R_FROM_TIP = []
+REPRO = set()
+R_REASON = {}
+
+A_LABELS = MODULE
+
+CLAUSE = """        except APIException:
+            # H-214: the serializer refuses by raising DRF's own exceptions
+            # ("already enrolled", the school gate); those are the caller's
+            # 400, not a server fault.
+            raise
+"""
+
+MUTANTS = {
+    # M3 widened to every exception: the RuntimeError reaches the project's
+    # exception handler, which answers a bare 500 with no data, so the
+    # control's new isinstance line fails (a FAIL, not an ERROR).
+    "M3": (
+        "classrooms/views.py", CLAUSE,
+        CLAUSE.replace("except APIException:", "except Exception:"),
+        MODULE, {CONTROL_500},
+        {CONTROL_500: ("None is not an instance of <class 'dict'>",)},
+    ),
+}

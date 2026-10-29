@@ -1,0 +1,23 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+..
+----------------------------------------------------------------------
+Ran 2 tests in 365.812s
+
+OK
+Destroying test database for alias 'default'...
+Found 2 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+SCALE plan_listing {"small_8_plans": {"subscription_plan": {"status": 200, "queries": 9, "bytes": 2670, "p50_ms": 25.11, "p95_ms": 34.24}, "subscription_plans": {"status": 200, "queries": 9, "bytes": 2720, "p50_ms": 26.72, "p95_ms": 58.43}, "total_plans": 8}, "large_808_plans": {"subscription_plan": {"status": 200, "queries": 7, "bytes": 2670, "p50_ms": 33.21, "p95_ms": 67.58}, "subscription_plans": {"status": 200, "queries": 9, "bytes": 2720, "p50_ms": 51.75, "p95_ms": 100.65}, "total_plans": 808}}
+
+SCALE signup_burst {"signups": 500, "queries_per_signup_min": 30, "queries_per_signup_max": 30, "queries_first_10": [30, 30, 30, 30, 30, 30, 30, 30, 30, 30], "queries_last_10": [30, 30, 30, 30, 30, 30, 30, 30, 30, 30], "p50_ms": 707.87, "p95_ms": 963.41, "peak_traced_memory_kb": 1240, "users_with_exactly_one_beta": 500, "users_with_more_than_one_beta": 0, "users_with_no_beta": 0}
+exit=0

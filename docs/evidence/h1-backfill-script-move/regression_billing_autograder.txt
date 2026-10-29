@@ -1,0 +1,201 @@
+[trimmed: last 200 lines of 35694 lines; full log (sha256 prefix 85b516df8db72ab1) at ~/Documents/Projects/GAP-evidence-logs/h1_7616bbe9_regression_billing_autograder.txt]
+11:45:05 P3 add generation message      |    0    0    1     0      0      0
+11:45:05 P4 repair titles command       |    0    0    7     0      0      4
+11:45:05 P5 grant credits               |    0    0    3     0      0      0
+11:45:05
+11:45:05 [H-1 step 4 scale measurement, wildcards removed]
+11:45:05   30 students : SCAN=1   queries=15
+11:45:05   300 students: SCAN=1   queries=15
+11:45:05
+11:45:05
+11:45:05 [H-1 Stage 3 commit-race probe] bump in post_save, as in the code: verdict=FRESH
+11:45:05 ok
+11:45:05 test_probe_control_bump_deferred_to_commit (AutoGrader.tests_probe_h1s3_commit_race.CommitRaceProbe.test_probe_control_bump_deferred_to_commit) ...
+11:45:05 [H-1 Stage 3 commit-race probe] control: bump deferred to on_commit: verdict=FRESH
+11:45:05 ok
+11:45:08 test_probe (AutoGrader.tests_probe_h1s3_user_fanout.UserFanoutDecisionProbe.test_probe) ...
+11:45:08 [H-1 Stage 3 user fan-out decision probe]
+11:45:08 --- M1 teacher A renames self [as gated]
+11:45:08     admin A: users/<teacher A>       FRESH      status 200 -> cached 200 / truth 200
+11:45:08     admin A: users/<student>         UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:08     teacher A: users/<student>       UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:08     teacher A: me                    UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:08     student: me                      UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:08     superadmin: users list           FRESH      status 200 -> cached 200 / truth 200
+11:45:08     superadmin: users/<teacher A>    FRESH      status 200 -> cached 200 / truth 200
+11:45:08     admin A: dash summary (sch)      UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:08     admin A: dash students (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:08     admin A: dash teachers (sch)     FRESH      status 200 -> cached 200 / truth 200
+11:45:08     admin B: users/<teacher B>       UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:11 --- M1 teacher A renames self [school-admin fan-out removed]
+11:45:11     admin A: users/<teacher A>       STALE      status 200 -> cached 200 / truth 200
+11:45:11     admin A: users/<student>         UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:11     teacher A: users/<student>       UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:11     teacher A: me                    UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:11     student: me                      UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:11     superadmin: users list           FRESH      status 200 -> cached 200 / truth 200
+11:45:11     superadmin: users/<teacher A>    FRESH      status 200 -> cached 200 / truth 200
+11:45:11     admin A: dash summary (sch)      UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:11     admin A: dash students (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:11     admin A: dash teachers (sch)     FRESH      status 200 -> cached 200 / truth 200
+11:45:11     admin B: users/<teacher B>       UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:14 --- M2 student renamed via model save [as gated]
+11:45:14     admin A: users/<teacher A>       UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:14     admin A: users/<student>         FRESH      status 200 -> cached 200 / truth 200
+11:45:14     teacher A: users/<student>       FRESH      status 200 -> cached 200 / truth 200
+11:45:14     teacher A: me                    UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:14     student: me                      FRESH      status 200 -> cached 200 / truth 200
+11:45:14     superadmin: users list           FRESH      status 200 -> cached 200 / truth 200
+11:45:14     superadmin: users/<teacher A>    UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:14     admin A: dash summary (sch)      UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:14     admin A: dash students (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:14     admin A: dash teachers (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:14     admin B: users/<teacher B>       UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:17 --- M3 student saves Settings [as gated]
+11:45:17     admin A: users/<teacher A>       UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:17     admin A: users/<student>         FRESH      status 200 -> cached 200 / truth 200
+11:45:17     teacher A: users/<student>       FRESH      status 200 -> cached 200 / truth 200
+11:45:17     teacher A: me                    UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:17     student: me                      UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:17     superadmin: users list           FRESH      status 200 -> cached 200 / truth 200
+11:45:17     superadmin: users/<teacher A>    UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:17     admin A: dash summary (sch)      UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:17     admin A: dash students (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:17     admin A: dash teachers (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:17     admin B: users/<teacher B>       UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:20 --- M3 student saves Settings [Settings viewer fan-out removed]
+11:45:20     admin A: users/<teacher A>       UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:20     admin A: users/<student>         FRESH      status 200 -> cached 200 / truth 200
+11:45:20     teacher A: users/<student>       FRESH      status 200 -> cached 200 / truth 200
+11:45:20     teacher A: me                    UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:20     student: me                      UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:20     superadmin: users list           FRESH      status 200 -> cached 200 / truth 200
+11:45:20     superadmin: users/<teacher A>    UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:20     admin A: dash summary (sch)      UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:20     admin A: dash students (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:20     admin A: dash teachers (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:20     admin B: users/<teacher B>       UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:23 --- M5 teacher A edits own bio [as gated]
+11:45:23     admin A: users/<teacher A>       FRESH      status 200 -> cached 200 / truth 200
+11:45:23     admin A: users/<student>         UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:23     teacher A: users/<student>       UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:23     teacher A: me                    UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:23     student: me                      UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:23     superadmin: users list           UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:23     superadmin: users/<teacher A>    FRESH      status 200 -> cached 200 / truth 200
+11:45:23     admin A: dash summary (sch)      UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:23     admin A: dash students (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:23     admin A: dash teachers (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:23     admin B: users/<teacher B>       UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:26 --- M4 credit grant to teacher A [as gated]
+11:45:26     admin A: users/<teacher A>       FRESH      status 200 -> cached 200 / truth 200
+11:45:26     admin A: users/<student>         UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:26     teacher A: users/<student>       UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:26     teacher A: me                    FRESH      status 200 -> cached 200 / truth 200
+11:45:26     student: me                      UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:26     superadmin: users list           UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:26     superadmin: users/<teacher A>    FRESH      status 200 -> cached 200 / truth 200
+11:45:26     admin A: dash summary (sch)      UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:26     admin A: dash students (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:26     admin A: dash teachers (sch)     UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:26     admin B: users/<teacher B>       UNAFFECTED status 200 -> cached 200 / truth 200
+11:45:26 ok
+11:45:27 test_probe (AutoGrader.tests_probe_wallet_invalidation.WalletInvalidationProbe.test_probe) ...
+11:45:27 [wallet invalidation probe]
+11:45:27 --- licence plan change [wildcards removed (H-1 step 4)]
+11:45:27     teacher: users/me              STALE
+11:45:27         differs: ['credit_wallet'] credit_wallet: ['monthly_credit_total']
+11:45:27     admin: users/<teacher>         STALE
+11:45:27         differs: ['credit_wallet'] credit_wallet: ['monthly_credit_total']
+11:45:27     superadmin: users/<teacher>    STALE
+11:45:27         differs: ['credit_wallet'] credit_wallet: ['monthly_credit_total']
+11:45:27 --- overage purchase [wildcards removed (H-1 step 4)]
+11:45:27     teacher: users/me              FRESH
+11:45:27     admin: users/<teacher>         FRESH
+11:45:27     superadmin: users/<teacher>    FRESH
+11:45:27 ok
+11:45:28 test_a_second_run_never_touches_a_live_first_run (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_a_second_run_never_touches_a_live_first_run)
+11:45:33 Two concurrent runs: the second one's start-of-run sweep and its ... ok
+11:45:35 test_sigkill_leaves_keys_and_the_next_run_sweeps_them (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigkill_leaves_keys_and_the_next_run_sweeps_them) ... ok
+11:45:37 test_sigterm_still_cleans_up_the_runs_own_keys (AutoGrader.tests_redis_hygiene.ProcessLifecycleTests.test_sigterm_still_cleans_up_the_runs_own_keys) ... ok
+11:45:37 test_hygiene_failure_never_fails_a_run (AutoGrader.tests_redis_hygiene.RunnerWiringTests.test_hygiene_failure_never_fails_a_run) ... ok
+11:45:37 test_the_project_uses_the_hygiene_runner (AutoGrader.tests_redis_hygiene.RunnerWiringTests.test_the_project_uses_the_hygiene_runner) ... ok
+11:45:37 test_delete_own_keys_takes_only_that_exact_prefix (AutoGrader.tests_redis_hygiene.SweepTests.test_delete_own_keys_takes_only_that_exact_prefix) ... ok
+11:45:37 test_sweep_removes_dead_prefixes_and_nothing_else (AutoGrader.tests_redis_hygiene.SweepTests.test_sweep_removes_dead_prefixes_and_nothing_else) ... ok
+11:45:37 test_a_generation_counter_never_expires (AutoGrader.tests_redis_hygiene.TtlTests.test_a_generation_counter_never_expires)
+11:45:37 An expired counter reads as generation 1 and revives every stale ... ok
+11:45:37 test_a_never_expires_key_gets_a_ttl (AutoGrader.tests_redis_hygiene.TtlTests.test_a_never_expires_key_gets_a_ttl) ... ok
+11:45:37 test_an_explicit_timeout_is_left_alone (AutoGrader.tests_redis_hygiene.TtlTests.test_an_explicit_timeout_is_left_alone) ... ok
+11:45:37 test_set_many_with_no_timeout_gets_a_ttl (AutoGrader.tests_redis_hygiene.TtlTests.test_set_many_with_no_timeout_gets_a_ttl) ... ok
+11:45:37 test_the_default_timeout_is_left_alone (AutoGrader.tests_redis_hygiene.TtlTests.test_the_default_timeout_is_left_alone) ... ok
+11:45:37 test_another_process_purging_the_same_queue_cannot_touch_our_messages (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_another_process_purging_the_same_queue_cannot_touch_our_messages)
+11:45:40 THE ACCEPTANCE TEST for broker isolation. ... ok
+11:45:40 test_no_test_module_builds_its_own_broker_client (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_no_test_module_builds_its_own_broker_client)
+11:45:40 A raw Redis client built from the broker URL bypasses the prefix. ... ok
+11:45:40 test_the_broker_and_result_backend_are_prefixed_per_process (AutoGrader.tests_redis_test_isolation.CeleryBrokerIsolationTests.test_the_broker_and_result_backend_are_prefixed_per_process) ... ok
+11:45:43 test_a_forked_workers_cache_clear_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_cache_clear_cannot_reach_a_sibling) ... ok
+11:45:45 test_a_forked_workers_queue_purge_cannot_reach_a_sibling (AutoGrader.tests_redis_test_isolation.ParallelForkIsolationTests.test_a_forked_workers_queue_purge_cannot_reach_a_sibling) ... ok
+11:45:45 test_a_concurrent_process_cannot_flush_our_cache (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_flush_our_cache)
+11:45:47 THE ACCEPTANCE TEST FOR H-9 - now passing. ... ok
+11:45:47 test_a_concurrent_process_cannot_reset_our_generation_counters (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_a_concurrent_process_cannot_reset_our_generation_counters)
+11:45:50 Same requirement, for the H-1 invariant specifically. ... ok
+11:45:50 test_generation_counters_are_also_destroyed_by_a_flush (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_generation_counters_are_also_destroyed_by_a_flush)
+11:45:50 The blast radius is wider than the Django cache. ... ok
+11:45:50 test_the_mechanism_a_cache_clear_destroys_a_warm_entry (AutoGrader.tests_redis_test_isolation.RedisTestIsolationTests.test_the_mechanism_a_cache_clear_destroys_a_warm_entry)
+11:45:50 The mechanism, demonstrated deterministically in-process. ... ok
+11:45:50 test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_another_process_clearing_the_same_fixed_db_cannot_wipe_ours)
+11:45:52 THE ACCEPTANCE TEST for the regression. ... ok
+11:45:55 test_no_test_module_configures_the_unscoped_redis_backend (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_configures_the_unscoped_redis_backend) ... ok
+11:45:55 test_no_test_module_measures_redis_server_wide (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_no_test_module_measures_redis_server_wide)
+11:45:55 Server-wide Redis statistics are shared by every concurrent run. ... ok
+11:45:55 test_the_real_redis_override_is_scoped_to_this_process (AutoGrader.tests_redis_test_isolation.SuiteOverridesCannotBypassIsolationTests.test_the_real_redis_override_is_scoped_to_this_process) ... ok
+11:45:55 test_generated_ids_are_always_valid (AutoGrader.tests_request_context.GenerateRequestIdTests.test_generated_ids_are_always_valid) ... ok
+11:45:55 test_generates_32_char_lowercase_hex (AutoGrader.tests_request_context.GenerateRequestIdTests.test_generates_32_char_lowercase_hex) ... ok
+11:45:55 test_generates_unique_values (AutoGrader.tests_request_context.GenerateRequestIdTests.test_generates_unique_values) ... ok
+11:45:55 test_defaults_to_none (AutoGrader.tests_request_context.GetSetResetRequestIdTests.test_defaults_to_none) ... ok
+11:45:55 test_reset_restores_prior_value (AutoGrader.tests_request_context.GetSetResetRequestIdTests.test_reset_restores_prior_value) ... ok
+11:45:55 test_set_then_get_roundtrips (AutoGrader.tests_request_context.GetSetResetRequestIdTests.test_set_then_get_roundtrips) ... ok
+11:45:55 test_128_chars_is_valid_boundary (AutoGrader.tests_request_context.IsValidRequestIdTests.test_128_chars_is_valid_boundary) ... ok
+11:45:55 test_129_chars_is_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_129_chars_is_invalid) ... ok
+11:45:55 test_comma_and_pipe_are_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_comma_and_pipe_are_invalid) ... ok
+11:45:55 test_dashed_uuid_is_valid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_dashed_uuid_is_valid) ... ok
+11:45:55 test_dotted_and_underscored_tokens_are_valid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_dotted_and_underscored_tokens_are_valid) ... ok
+11:45:55 test_empty_string_is_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_empty_string_is_invalid) ... ok
+11:45:55 test_html_special_chars_are_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_html_special_chars_are_invalid) ... ok
+11:45:55 test_newline_injection_is_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_newline_injection_is_invalid) ... ok
+11:45:55 test_none_is_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_none_is_invalid) ... ok
+11:45:55 test_plain_uuid4_hex_is_valid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_plain_uuid4_hex_is_valid) ... ok
+11:45:55 test_unicode_lookalikes_are_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_unicode_lookalikes_are_invalid) ... ok
+11:45:55 test_whitespace_is_invalid (AutoGrader.tests_request_context.IsValidRequestIdTests.test_whitespace_is_invalid) ... ok
+11:45:55 test_always_returns_true_never_filters_out_a_record (AutoGrader.tests_request_context.RequestIDLogFilterTests.test_always_returns_true_never_filters_out_a_record) ... ok
+11:45:55 test_injects_current_request_id (AutoGrader.tests_request_context.RequestIDLogFilterTests.test_injects_current_request_id) ... ok
+11:45:55 test_injects_dash_when_no_request_id_set (AutoGrader.tests_request_context.RequestIDLogFilterTests.test_injects_dash_when_no_request_id_set) ... ok
+11:45:56 test_explicit_value_is_used_instead_of_falling_back (AutoGrader.tests_school_admin_frontend_domain.SchoolAdminFrontendDomainSettingTests.test_explicit_value_is_used_instead_of_falling_back) ... ok
+11:45:56 test_falls_back_to_frontend_domain_when_unset (AutoGrader.tests_school_admin_frontend_domain.SchoolAdminFrontendDomainSettingTests.test_falls_back_to_frontend_domain_when_unset) ... ok
+11:45:56 test_failure_building_the_message_itself_propagates (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_failure_building_the_message_itself_propagates)
+11:45:56 A failure before the message is even sent (e.g. EmailMultiAlternatives ... [2026-10-02 10:45:56,465: ERROR/MainProcess] Error sending email: unexpected keyword argument
+11:45:56 ok
+11:45:56 test_falls_back_when_html_message_present_even_without_plain_message (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_falls_back_when_html_message_present_even_without_plain_message) ... ok
+11:45:56 test_flat_merge_data_is_wrapped_identically_for_every_recipient (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_flat_merge_data_is_wrapped_identically_for_every_recipient) ... ok
+11:45:56 test_html_message_is_attached_as_alternative_when_provided (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_html_message_is_attached_as_alternative_when_provided) ... ok
+11:45:56 test_no_html_message_means_no_alternative_attached (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_no_html_message_means_no_alternative_attached) ... ok
+11:45:56 test_no_template_id_means_merge_data_is_never_set (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_no_template_id_means_merge_data_is_never_set) ... ok
+11:45:56 test_per_recipient_merge_data_is_used_as_is_not_rewrapped (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_per_recipient_merge_data_is_used_as_is_not_rewrapped) ... ok
+11:45:56 test_raises_without_fallback_when_no_body_available (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_raises_without_fallback_when_no_body_available)
+11:45:56 A templated-only send (no plain `message`, no `html_message`) that ... [2026-10-02 10:45:56,479: ERROR/MainProcess] Templated email send failed for ['teacher@example.com'] and no plain-text body was provided, so no fallback is possible. Error: Template rejected by provider
+11:45:56 [2026-10-02 10:45:56,479: ERROR/MainProcess] Error sending email: Template rejected by provider
+11:45:56 ok
+11:45:56 test_successful_send_returns_success_message_without_fallback (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_successful_send_returns_success_message_without_fallback) ... ok
+11:45:56 test_template_id_without_merge_data_sets_template_id_only (AutoGrader.tests_send_email_impl.SendEmailImplTests.test_template_id_without_merge_data_sets_template_id_only) ... ok
+11:45:56 test_explicit_value_is_used_instead_of_falling_back (AutoGrader.tests_student_frontend_domain.StudentFrontendDomainSettingTests.test_explicit_value_is_used_instead_of_falling_back) ... ok
+11:45:57 test_falls_back_to_frontend_domain_when_unset (AutoGrader.tests_student_frontend_domain.StudentFrontendDomainSettingTests.test_falls_back_to_frontend_domain_when_unset) ... ok
+11:45:57 test_accepts_file_exactly_at_the_limit (AutoGrader.tests_uploads.ValidateUploadSizeTests.test_accepts_file_exactly_at_the_limit) ... ok
+11:45:57 test_accepts_file_under_the_limit (AutoGrader.tests_uploads.ValidateUploadSizeTests.test_accepts_file_under_the_limit) ... ok
+11:45:57 test_rejects_file_over_the_limit (AutoGrader.tests_uploads.ValidateUploadSizeTests.test_rejects_file_over_the_limit) ... ok
+11:45:57 test_respects_a_custom_limit (AutoGrader.tests_uploads.ValidateUploadSizeTests.test_respects_a_custom_limit) ... ok
+11:45:57
+11:45:57 ----------------------------------------------------------------------
+11:45:57 Ran 2489 tests in 698.235s
+11:45:57
+11:45:57 OK
+11:45:57 Destroying test database for alias 'default' ('test_h1_backfill_script_move')...

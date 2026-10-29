@@ -1,0 +1,107 @@
+"""v2's probe for H-130's follow-up (d5): the submission detail cache tests.
+Copy to AutoGrader/tests_vf2_h130c_probe.py of the scratch worktree; never
+committed to the branch. Written 2026-10-07 before any run, after reading
+d87a56f6 (tests only; three tests replace one).
+
+Same fixture and real Redis cache as d5's class (subclassed, so that
+class's own tests run here a second time; only P1 to P3 are v2's).
+
+  P1  d5's released-student test demands an EQUAL payload after a retitle.
+      An equal payload is also what a stale cache gives. Here the student's
+      generation is read before and after: it moved, so the second read
+      was rendered again, and it is still equal.
+  P2  the module's note says the unreleased document follows the title
+      "and due date". A due date saved by the teacher reaches the student's
+      next read; nothing else in the payload changes.
+  P3  the KNOWN LIMIT as written: with the enrolment row deleted, a retitle
+      does not move the student's generation and the student's next read
+      still has the old title; with the cache emptied the new title is
+      there, so it is the cache and nothing else.
+
+  P4  a fact found while reading, older than this change: the student's
+      serializer declares assignment_title, assignment_due_date and
+      course_title with sources written with two underscores, which name
+      no attribute, so the framework leaves the three keys OUT of the
+      answer. d5's "nothing but the document follows the assignment" is
+      true for that reason. P4 states that the three keys are absent.
+
+Rule 19, which mutant shows which probe red: P1 under Z2 (no student is
+bumped); P2 under Z1 (the student always reads the stored document) and
+Z2; P3 under Z3 (the key gains the global scope); P4 under Z4 (the title's
+source repaired).
+"""
+
+import datetime
+
+from django.core.cache import cache
+
+import AutoGrader.tests_cache_bespoke_1114 as d5s
+from AutoGrader.cache_generation import SCOPE_USER, get_generation
+from classrooms.models import StudentCourse
+
+
+class VF2SubmissionDetailProbe(d5s.SubmissionDetailFreshnessTests):
+    def generation(self):
+        return get_generation(SCOPE_USER, self.student.id)
+
+    def read(self):
+        data = self.get(self.student_client, self.url)
+        self.assertIn("raw_input", data)
+        self.assertIn("Student Information", data["raw_input"])
+        return data
+
+    def test_p1_the_released_students_equal_payload_is_a_fresh_one(self):
+        self.get(self.teacher_client, self.url)  # materialises the snapshot
+        self.submission.refresh_from_db()
+        self.assertTrue(self.submission.raw_input)
+        self.submission.is_published = True
+        self.submission.save()
+        before = self.read()
+        self.assertIn("Original Title", before["raw_input"])
+        generation = self.generation()
+
+        self.retitle()
+
+        self.assertNotEqual(self.generation(), generation)
+        self.assertEqual(before, self.read())
+
+    def test_p2_a_due_date_the_teacher_saves_reaches_the_unreleased_document(self):
+        before = self.read()
+        self.assertNotIn("2031-01-02", before["raw_input"])
+
+        self.assignment.due_date = datetime.datetime(
+            2031, 1, 2, 3, 4, 5, tzinfo=datetime.timezone.utc
+        )
+        self.assignment.save()
+
+        after = self.read()
+        self.assertIn("2031-01-02", after["raw_input"])
+        before.pop("raw_input")
+        after.pop("raw_input")
+        self.assertEqual(before, after)
+
+    def test_p3_the_known_limit_with_the_enrolment_row_deleted(self):
+        deleted, _ = StudentCourse.objects.filter(
+            student=self.student, course=self.course
+        ).delete()
+        self.assertEqual(deleted, 1)
+        before = self.read()  # still 200: no enrolment check on this read
+        self.assertIn("Original Title", before["raw_input"])
+        generation = self.generation()
+
+        self.retitle()
+
+        self.assertEqual(self.generation(), generation)
+        stale = self.read()
+        self.assertIn("Original Title", stale["raw_input"])
+        self.assertNotIn("Retitled By Teacher", stale["raw_input"])
+        cache.clear()
+        fresh = self.read()
+        self.assertIn("Retitled By Teacher", fresh["raw_input"])
+
+    def test_p4_three_declared_keys_are_not_in_the_students_answer(self):
+        data = self.read()
+        for key in ("id", "assignment", "score", "is_published"):
+            self.assertIn(key, data)
+        for key in ("assignment_title", "assignment_due_date", "course_title"):
+            self.assertNotIn(key, data)

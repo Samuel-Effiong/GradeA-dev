@@ -1,0 +1,13 @@
+# S17: a run-time refusal records S7a's coded tracked item
+# file: assignments/tasks.py (occurrence 1)
+# old: '        if actor is not None:\n            item = record_refused_item('
+# new: '        if False:\n            item = record_refused_item('
+# commit: 3c5aa16c4d0ac96214b835d228787f5c9d4b2889
+# exit: 1
+# elapsed_s: 9.9
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_t1_auto_grade_refuses_when_it_runs (students.tests_s6d_rubric_gate.RubricGateAtRunTimeTests.test_t1_auto_grade_refuses_when_it_runs)
+ERROR: test_t2_a_scheduled_batch_refuses_when_it_runs (students.tests_s6d_rubric_gate.RubricGateAtRunTimeTests.test_t2_a_scheduled_batch_refuses_when_it_runs)
+
+FAILED (errors=2, skipped=1)

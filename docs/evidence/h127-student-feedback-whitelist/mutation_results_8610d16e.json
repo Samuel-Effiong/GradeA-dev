@@ -1,0 +1,144 @@
+{
+  "A4_a_value_that_is_not_a_dictionary_is_returned_as_stored": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentSafeFeedbackFunctionTest.test_a_value_that_is_not_a_dictionary_is_shown_as_nothing"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentSafeFeedbackFunctionTest.test_a_value_that_is_not_a_dictionary_is_shown_as_nothing"
+    ],
+    "pycache_left": 0
+  },
+  "D4_the_function_leaves_nothing_out": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "students.tests_formatter_input.GradingResultForFormatterTest.test_only_the_second_opinion_block_is_left_out",
+      "students.tests_formatter_input.AutomaticFollowUpFormatterPromptTest.test_the_prompt_dispatched_after_a_grading",
+      "students.tests_formatter_input.TeacherRoutesFormatterPromptTest.test_the_prompt_dispatched_by_teacher_feedback",
+      "students.tests_formatter_input.TeacherRoutesFormatterPromptTest.test_the_prompt_dispatched_by_update_grade"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_formatter_input.AutomaticFollowUpFormatterPromptTest.test_the_prompt_dispatched_after_a_grading",
+      "students.tests_formatter_input.GradingResultForFormatterTest.test_only_the_second_opinion_block_is_left_out",
+      "students.tests_formatter_input.TeacherRoutesFormatterPromptTest.test_the_prompt_dispatched_by_teacher_feedback",
+      "students.tests_formatter_input.TeacherRoutesFormatterPromptTest.test_the_prompt_dispatched_by_update_grade"
+    ],
+    "pycache_left": 0
+  },
+  "F2_the_allow_list_is_widened_to_for_teacher": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_released_grade_stored_in_python_text_form",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_also_python_text_is_projected_the_same_way"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_plain_values_and_lists_of_them_still_pass",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_released_grade_stored_in_python_text_form",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_also_python_text_is_projected_the_same_way"
+    ],
+    "pycache_left": 0
+  },
+  "F3_text_that_cannot_be_read_is_shown_as_stored": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_that_is_not_a_dictionary_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_not_python_text_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_deeply_nested_value_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_that_would_run_code_is_only_ever_read_never_run",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_an_empty_value_is_shown_as_nothing"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_deeply_nested_value_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_an_empty_value_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_not_python_text_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_that_is_not_a_dictionary_is_shown_as_nothing",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_text_that_would_run_code_is_only_ever_read_never_run"
+    ],
+    "pycache_left": 0
+  },
+  "F4_a_literal_that_is_not_a_dictionary_is_shown_as_stored": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_list_is_shown_as_nothing"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_list_is_shown_as_nothing"
+    ],
+    "pycache_left": 0
+  },
+  "F5_no_size_limit": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_very_long_value_is_shown_as_nothing"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_very_long_value_is_shown_as_nothing"
+    ],
+    "pycache_left": 0
+  },
+  "F6_unknown_sections_are_copied": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_released_grade_stored_in_python_text_form",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_also_python_text_is_projected_the_same_way"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_plain_values_and_lists_of_them_still_pass",
+      "students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_the_feedback_and_formatted_grade_on_the_submission_page",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_a_released_grade_stored_in_python_text_form",
+      "students.tests_student_feedback_routes.StudentFormattedGradeTest.test_json_text_that_is_also_python_text_is_projected_the_same_way"
+    ],
+    "pycache_left": 0
+  },
+  "G1_any_value_under_an_allowed_name_is_copied": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_the_feedback_on_the_assignment_detail",
+      "students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_the_feedback_and_formatted_grade_on_the_submission_page"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_the_feedback_and_formatted_grade_on_the_submission_page",
+      "students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_the_feedback_on_the_assignment_detail"
+    ],
+    "pycache_left": 0
+  },
+  "G2_a_list_is_copied_whatever_it_holds": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 74,
+    "expected": [
+      "students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_the_feedback_on_the_assignment_detail",
+      "students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_the_feedback_and_formatted_grade_on_the_submission_page"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_the_feedback_and_formatted_grade_on_the_submission_page",
+      "students.tests_student_feedback_routes.NestedValuesUnderAllowedNamesTest.test_the_feedback_on_the_assignment_detail"
+    ],
+    "pycache_left": 0
+  }
+}

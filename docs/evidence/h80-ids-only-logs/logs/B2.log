@@ -1,0 +1,13 @@
+# B2: a carried-forward teacher's refusal logs the class, not the text
+# file: billing/license_service.py (occurrence 1)
+# old: '                    teacher.id,\n                    old_license.id,\n                    new_license.id,\n                    type(exc).__name__,\n'
+# new: '                    teacher.id,\n                    old_license.id,\n                    new_license.id,\n                    exc,\n'
+# commit: af5cee0442448447293933eae2bfd9e122149b38
+# tests: billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest billing.tests.test_logs_carry_no_email.SignalsLogNoAddressTest
+# exit: 1
+# elapsed_s: 4.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_carrying_teachers_to_a_new_licence_logs_no_address (billing.tests.test_logs_carry_no_email.LicencePathsLogNoAddressTest.test_carrying_teachers_to_a_new_licence_logs_no_address)
+
+FAILED (failures=1)

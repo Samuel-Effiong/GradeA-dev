@@ -1,0 +1,26 @@
+# H-118 (c) red at 17:10: what the machine looked like, read at 17:11:26 (read-only; nothing of Vezi touched)
+cores: 8
+ 17:11:26 up  5:41,  1 user,  load average: 15.52, 20.51, 15.84
+processes by name with CPU over 5% (no arguments kept):
+%CPU ELAPSED COMMAND
+ 400       0 ps
+86.2      45 pytest
+34.0      28 chrome-headless
+28.8      72 python
+27.1      28 chrome-headless
+22.9      28 chrome-headless
+22.0   20422 antigravity-ide
+21.7      30 MainThread
+12.5       0 localsearch-ext
+11.2      19 postgres
+ 7.3      66 MainThread
+ 7.0    8615 msedge
+ 7.0    4767 localsearch-3
+ 6.4   20470 msedge
+ 6.3      28 chrome-headless
+ 6.3     762 python
+ 5.5   20438 antigravity-ide
+ 5.1   20433 antigravity-ide
+pytest / manage.py test processes (elapsed s, first words):
+45 //.../uv run --frozen pytest
+45 eng-runtime/backend/.../python /home/bond-servant-in-training/Documents/Projects/vezi-worktrees/eng-runtime/backend/.venv/bin/pytest -q -n

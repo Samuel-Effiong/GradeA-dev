@@ -1,0 +1,21 @@
+mypy: mypy.....................................................................Passed
+makemigrations: No changes detected
+bundle b11 strict full run start 2026-10-07 11:28:04 WAT sha=079ae209 load=2.88 5.02 5.09
+watchdog: stalled=0 (300 s silence rule; 0 = never fired)
+exit=1 end 2026-10-07 11:35:25 WAT wall=441s
+load at end: 6.31 6.66 5.85
+Ran 5913 tests in 410.818s
+FAILED (failures=1, skipped=28)
+blocked_outbound=0
+per-app test counts:
+  ai_processor 823
+  assignments 663
+  AutoGrader 607
+  billing 2109
+  classrooms 420
+  dashboard 270
+  students 367
+  users 654
+FAIL/ERROR headers: 1
+FAIL: test_a_teachers_assignment_edit_does_NOT_change_this_payload (AutoGrader.tests_cache_bespoke_1114.SubmissionDetailFreshnessTests.test_a_teachers_assignment_edit_does_NOT_change_this_payload)
+suspends during run: 0

@@ -1,0 +1,30 @@
+H-164 VERIFY-ROAD delta (tip f12f12d0, production users/views.py last changed 1a20074d): 1a's expected results,
+WRITTEN 2026-10-08 19:47:39 WAT, BEFORE ANY RUN. Module users.tests_vf1a_h164_verify, 7 tests x0 x1a x1b x2 x3 x4 x6.
+Mutants h164v_mutants_Q.py Q1 Q2 Q3 Q5 Q6 Q7 (there is no Q4). Rule 22: the failure fragment each red test must carry in its OWN block is written below.
+Every assertion of every test (controls too) was counted against each mutant.
+
+Fragments (what the test's own FAIL block must contain):
+  x0 on the tip:   "no code was issued"          (the request no longer stores a code)
+  x0 under Q2:     "the verify route answered 400" (code issued, but verify refuses)
+  x0 under Q1:     "no code was issued"
+  x1a:             "a code was stored"            (Q2), or the AssertionError on the mail (Q2 sends one too)
+  x1b:             "202 != 400"                    (Q1: the planted code verifies)
+  x2:              "attempt 1"                     (Q1), "the address is not locked" (Q3)
+  x3/x4:           "no code was issued" (Q6), "400 != 202" (Q5)
+  x6:              "google sign-in answered 401"   (Q7)
+
+Unmutated tip: Ran 7, FAILED (failures=1): x0 RED ("no code was issued"). x1a x1b x2 x3 x4 green. x6 GREEN: the Google road is
+  open, which I read in the existing-account branch (the code stamps the email and activates, then returns tokens, with no admin check).
+Old code (users/views.py from 42742c40, before the verify-road change; rest at the tip):
+  x0 GREEN (the old road: 202 with access), x1a RED (a code is stored), x1b RED ("202 != 400"), x2 RED ("attempt 1"),
+  x3 x4 x6 green.                                                         => x1a x1b x2
+Q1 verify without the arm:            x0 (no code was issued: the request skip is still there), x1b ("202 != 400"), x2 ("attempt 1") => x0 x1b x2
+Q2 request without its skip:          x0 (answered 400: verify still refuses), x1a ("a code was stored")      => x0 x1a
+Q3 verify arm raises ParseError:      x0 (no code), x2 ("the address is not locked": the counter alone counts, the lock is not set) => x0 x2
+Q5 verify arm refuses every never-verified account: x0, x3 ("400 != 202"), x4 ("400 != 202")                 => x0 x3 x4
+Q6 request skips every never-verified account:       x0, x3 ("no code was issued"), x4 ("no code was issued") => x0 x3 x4
+Q7 Google refuses never-verified staff/superuser:    x0, x6 ("google sign-in answered 401")                  => x0 x6
+x0 is red in every run except the old code, by design (it asserts the old road is open); its fragment is read per run.
+Not tested by me, by reading only: an invited SCHOOL_ADMIN (pending, inactive, no staff or superuser flag, not admin power by the helper;
+classrooms/test_school_admin_otp_deadend covers it), a verified admin (the request answers "Email already verified." before the skip),
+a verified AND switched-off admin (H-202, not in this delta).

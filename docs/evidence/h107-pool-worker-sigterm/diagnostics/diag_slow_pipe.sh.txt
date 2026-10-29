@@ -1,0 +1,38 @@
+#!/bin/bash
+# H-107 STATED DIAGNOSTIC (SM, 2026-10-05): the one run allowed to break
+# rule 18. The form that stalled (output through a pipe to a slow reader,
+# real Chromium tests in the list), on the FIXED runner: it must complete.
+# Not evidence for any branch but H-107's finding B.
+# Usage: diag_slow_pipe.sh <tip-sha8>
+set -u
+TIP=$1
+P=/home/bond-servant-in-training/Documents/Projects
+WT=${DIAG_WT:-$P/Grade-Automator-Plus-h107-pool-worker-sigterm}
+OUT=$P/GAP-d5-runs/h107
+LOCK=/home/bond-servant-in-training/.machine-fullsuite.lock
+MS=${SLOW_MS:-2}
+N=diag_slow_pipe_$TIP; [ "$MS" != 2 ] && N=diag_slow_pipe_${MS}ms_${DIAG_ROLE:-fixed}_$TIP
+LOG=$OUT/$N.log
+export EXEMPT_EMAIL_DOMAINS= PYTHONFAULTHANDLER=1
+PRE="systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why=GAP-test-run --mode=block systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10"
+cd $WT || exit 9
+[ "$(git rev-parse --short=8 HEAD)" = "$TIP" ] && [ -z "$(git status --porcelain)" ] || { echo "NOT FROZEN at $TIP"; exit 9; }
+echo "STATED DIAGNOSTIC, RULE 18 DELIBERATELY NOT FOLLOWED: output goes through a pipe to a slow reader, one line per $MS ms ; runner at $TIP, ${DIAG_ROLE:-fixed} (H-107 finding B, SM 2026-10-05)" > $LOG
+# The slow reader: one line, then SLOW_MS milliseconds (default 2; the 2 ms
+# run of 14:01 turned out faster than the run writes, so it never filled the pipe).
+slow() { while IFS= read -r l; do printf '%s %s\n' "$(date +%H:%M:%S)" "$l"; perl -e "select(undef,undef,undef,$MS/1000)"; done; }
+s=$(date +%s)
+( $PRE flock $LOCK timeout -k 60 1800 python manage.py test assignments.tests_pdf_renderer assignments.tests_pdf_renderer_gevent assignments.tests_upload_batch_billing assignments.tests_upload_batch_scale assignments.tests_upload_task_retry_policy users.tests_renderers AutoGrader.tests_beat_locks AutoGrader.tests_cache_invalidation_coverage --settings=settings_worktree --noinput --parallel 2 --verbosity 2 2>&1 < /dev/null | slow >> $LOG; echo "exit=${PIPESTATUS[0]}" >> $LOG ) &
+RUN=$!
+stalled=0
+while kill -0 $RUN 2>/dev/null; do
+  perl -e 'select(undef,undef,undef,5)'
+  age=$(( $(date +%s) - $(stat -c %Y $LOG) ))
+  if [ $age -ge 300 ] && [ $stalled = 0 ]; then
+    stalled=1
+    ps -e -o pid,ppid,stat,etime,nlwp,wchan:20,args --forest | grep -B2 -A12 "manage.py test assignments.tests_pdf_renderer" | grep -v grep | cut -c1-170 > $OUT/$N.tree.txt 2>&1
+    for p in $(pgrep -f "^python manage.py test assignments.tests_pdf_renderer"); do kill -ABRT $p; done
+  fi
+done
+wait $RUN
+echo "$(date +%H:%M:%S) $N stalled=$stalled [$(grep -o 'Ran [0-9]* tests in [0-9.]*s' $LOG | tail -1)] [$(grep -E '^[0-9:]+ (OK|FAILED)' $LOG | tail -1 | cut -c10-)] $(tail -1 $LOG) wall_s=$(( $(date +%s)-s ))" | tee -a $OUT/iso.status

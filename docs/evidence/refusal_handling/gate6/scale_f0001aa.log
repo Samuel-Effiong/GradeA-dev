@@ -1,0 +1,872 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user scale-teacher-small-99a370c57d@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user scale-teacher-large-e7f3a2f183@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+GATE6 {"measurement": "permission_refusal", "doctrine_sizes": true, "pool": {"connections": 19, "max_connections": 100}, "students": 600, "queries_min": 1, "queries_max": 3, "p50_ms": 19.7, "p95_ms": 32.8}
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+GATE6 {"measurement": "permission_refusal", "doctrine_sizes": true, "pool": {"connections": 19, "max_connections": 100}, "students": 6000, "queries_min": 1, "queries_max": 3, "p50_ms": 12.0, "p95_ms": 22.2}
+.
+
+students.views ERROR 2026-09-18 14:19:08,239 views 2483661 125519166409664 [request_id=c0ce23377c7242beb411028429a502f0] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,270 views 2483661 125519166409664 [request_id=e062fe15866a4aff8d28a729bd613501] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,297 views 2483661 125519166409664 [request_id=0fdd51ef979a4017b747a4d49e98f4ab] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,323 views 2483661 125519166409664 [request_id=02dc74d81ba74ad68f627b26b79bd3b0] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,352 views 2483661 125519166409664 [request_id=099401a8d06b48b8bedc2d4814f806d2] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,394 views 2483661 125519166409664 [request_id=c572a8bd3c23451ea0a82fdcd35a9e5e] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,427 views 2483661 125519166409664 [request_id=10edc460246c49a581619f30a84f74a4] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,458 views 2483661 125519166409664 [request_id=e61ddf16dd7246eb98d803fa1a2df173] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,495 views 2483661 125519166409664 [request_id=25878f9edca341499e57de43fbba7b2e] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,526 views 2483661 125519166409664 [request_id=4a814b8dadb94d84a0e9a34ad7d6b2dc] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,559 views 2483661 125519166409664 [request_id=f624da8c49404dc0b14a731806a012fe] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,592 views 2483661 125519166409664 [request_id=2b60c551f2bf4521a64d5e22e2742666] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,623 views 2483661 125519166409664 [request_id=b2878d9751b143d58144943b4ddcb0ec] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,656 views 2483661 125519166409664 [request_id=14e18129bc5f4f9497bad5325282d785] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,693 views 2483661 125519166409664 [request_id=5066aa8c8203443ab6d6ee7b4dfe8f90] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,726 views 2483661 125519166409664 [request_id=55084a6f1ef7476a9a899e07483c9787] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,759 views 2483661 125519166409664 [request_id=7b3cd10380ac47b2af0cbe60498f7ceb] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,795 views 2483661 125519166409664 [request_id=efb3967c05674e59bda78226c5811adc] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,827 views 2483661 125519166409664 [request_id=511693593c9a472892f756236833748c] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,859 views 2483661 125519166409664 [request_id=72edff5567a349ebafbd8720d12697e6] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+GATE6 {"measurement": "service_refusal", "doctrine_sizes": true, "pool": {"connections": 19, "max_connections": 100}, "students": 600, "queries_min": 14, "queries_max": 16, "p50_ms": 30.1, "p95_ms": 40.4}
+
+
+students.views ERROR 2026-09-18 14:19:08,893 views 2483661 125519166409664 [request_id=1688378dc0204e588f8caa765d254a46] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,930 views 2483661 125519166409664 [request_id=471d809326b04bd3a8adac9559a945e6] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:08,963 views 2483661 125519166409664 [request_id=5084039c40774c64ab1e8c03cadddb14] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,002 views 2483661 125519166409664 [request_id=9c6a7ef1846d4b5e90429d460c6c1001] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,040 views 2483661 125519166409664 [request_id=b86facbf6ca74efab9c428b73f1d3121] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,078 views 2483661 125519166409664 [request_id=ea8ed77267f14bfb925b342e4964eadb] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,110 views 2483661 125519166409664 [request_id=e9a129564a7c4dee9cfae8d11bf7c5c1] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,148 views 2483661 125519166409664 [request_id=0e2b6cbba66e46d5a61d919031e45523] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,184 views 2483661 125519166409664 [request_id=43fb22d18ec24638a0aeddfeb3ba6f46] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,222 views 2483661 125519166409664 [request_id=aea24772a57f443e8efa4da71350f84f] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,260 views 2483661 125519166409664 [request_id=6823ef6a4b114927b1275baac49ff2c6] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,296 views 2483661 125519166409664 [request_id=58e269fff9794e188598623260727b6f] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,330 views 2483661 125519166409664 [request_id=0ab4d4ac3c0b4901b5e09e7c6114bcb3] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,367 views 2483661 125519166409664 [request_id=e9008c4cb83d4e62b8a9040945d6bb33] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,408 views 2483661 125519166409664 [request_id=8d7df52924264f8eaaa62ae931601d62] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,441 views 2483661 125519166409664 [request_id=7d18e8689d5a4aad85d827ba63befc37] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,474 views 2483661 125519166409664 [request_id=f44a334d5bc24c34bbf9ed6b65422a1b] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,510 views 2483661 125519166409664 [request_id=149557b8d588413dbdc695ddc1a5ff41] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,543 views 2483661 125519166409664 [request_id=195eb5661a4b4a90b667c18f27ed17ad] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+students.views ERROR 2026-09-18 14:19:09,578 views 2483661 125519166409664 [request_id=51b6e11e29704c61b5b8cc7b4bf2dd8b] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 2137, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 1835, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-handling/ai_processor/services.py", line 4525, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26602 credits, but you only have 1000 credits. Please refill your wallet to continue
+GATE6 {"measurement": "service_refusal", "doctrine_sizes": true, "pool": {"connections": 19, "max_connections": 100}, "students": 6000, "queries_min": 14, "queries_max": 16, "p50_ms": 33.2, "p95_ms": 38.4}
+.Cannot activate automatic trial for user scale-teacher-task-de12efdadb@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-18 14:19:41,470 refusals 2483661 125519166409664 [request_id=-] Background task 73eed77c-b588-4c16-9921-0de3becd48ff refused: InsufficientCreditsError: Task requires ~26577 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+GATE6 {"measurement": "refused_task", "doctrine_sizes": true, "pool": {"connections": 19, "max_connections": 100}, "gate_calls_per_item": 1, "queries_per_item": 26, "ms_per_item": 73.1}
+.Cannot activate automatic trial for user weekly-20-7a558f2bf9@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+GATE6 {"measurement": "weekly_course_summaries", "doctrine_sizes": true, "pool": {"connections": 19, "max_connections": 100}, "courses": 20, "queries_per_course": 9.05, "ms_per_course": 13.1, "log_records_with_a_stack_trace": 0}
+Cannot activate automatic trial for user weekly-200-f4513c160a@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+GATE6 {"measurement": "weekly_course_summaries", "doctrine_sizes": true, "pool": {"connections": 19, "max_connections": 100}, "courses": 220, "queries_per_course": 9.0, "ms_per_course": 19.0, "log_records_with_a_stack_trace": 0}
+.
+----------------------------------------------------------------------
+Ran 4 tests in 392.600s
+
+OK
+Preserving test database for alias 'default'...
+Found 4 test(s).
+exit 0

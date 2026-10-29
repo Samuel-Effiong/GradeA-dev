@@ -1,0 +1,100 @@
+available at start: 12G; cap 10G
+load at start: 3.16 3.64 4.27 6/2628 1086814
+=== 0. the red run: ai_processor.tests_h264_numbered_offtopic_answers ai_processor.tests_blank_verification against the code as at b199eed6 (own DB) 12:38:31
+red run exit=1 (non-zero expected)
+test_each_answer_goes_under_its_own_number: red for its written reason ('0 != 1')
+test_the_flags_are_six_off_topic_and_the_upload_mismatch: red for its written reason ('ANSWER_NOT_FOUND')
+test_only_the_pile_and_the_numbers_it_names_are_asked_about: red for its written reason ("'NoneType'")
+test_the_note_says_where_each_answer_was_put: red for its written reason ("'NoneType'")
+test_question_1_missing_from_the_reply: red for its written reason ('I studied the desert')
+test_some_sections_missing_from_the_reply: red for its written reason ('I studied the desert')
+test_a_failed_or_empty_second_reading_changes_nothing: red for its written reason ('0 != 1')
+test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line: red for its written reason ('0 != 1')
+test_the_numbers_need_not_start_at_1: red for its written reason ('0 != 1')
+test_a_pile_in_the_wrong_form_counts: red for its written reason ('0 != 1')
+test_a_pile_under_a_later_question: red for its written reason ("'NoneType'")
+test_the_beta_paper_has_its_first_12_blanks_re_checked: red for its written reason ('0 != 1')
+test_the_rest_are_logged_as_not_checked: red for its written reason ('skipping the re-read')
+test_the_lowest_numbered_whatever_the_order: red for its written reason ("'NoneType'")
+test_a_finding_for_a_question_not_asked_about_is_not_applied: red for its written reason ('blank_verification')
+test_the_beta_reply_ends_with_six_answers_and_the_upload_flag: red for its written reason ('0 != 2')
+test_the_prompt_has_the_numbered_paper_example: red for its written reason ('not found')
+test_the_prompt_is_version_5_and_version_4_is_archived: red for its written reason ('False is not true')
+test_too_many_blanks_re_reads_the_lowest_numbered_cap: red for its written reason ('0 != 1')
+red run is as written: non-zero exit, no OK line, the module loaded, 28 blocks red for their written reasons and no other
+source restored
+Ran 60 tests in 0.668s
+FAILED (failures=23, errors=5)
+dropped test_h264_numbered_offtopic_answers_mut
+=== 1a. makemigrations --check 12:38:39
+makemigrations exit=0 (0 = no changes)
+No changes detected
+=== 1b. the seam, by program 12:38:43
+AutoGrader/settings.py
+ai_processor/ANSWERS_EXTRACTION_PROMPT_HTML_5.txt
+ai_processor/extraction_schemas.py
+ai_processor/prompts_archive/ANSWERS_EXTRACTION_PROMPT_HTML_4.txt
+ai_processor/prompts_archive/README.md
+ai_processor/services.py
+ai_processor/tests_blank_verification.py
+ai_processor/tests_h264_numbered_offtopic_answers.py
+docs/HARDENING_BACKLOG.md
+docs/backend/ai-processor.md
+docs/backend/grade-automator-backend-reference.html
+docs/evidence/h264-numbered-offtopic-answers/NOTES.md
+docs/evidence/h264-numbered-offtopic-answers/mutate.py
+docs/evidence/h264-numbered-offtopic-answers/run_h264_gate.sh
+docs/evidence/h264-numbered-offtopic-answers/seam_check.py
+ai_processor/services.py: ['AIProcessor._retranscribe_found_answers', 'AIProcessor._second_reading', 'AIProcessor._verify_blank_answers', 'ANSWERS_EXTRACTION_PROMPT', 'PILE_QUOTE_LENGTH', 'SPLIT_ANSWER_NOTE', '_BARE_SECTION', '_BLOCK_BREAK', '_LABELLED_SECTION', '_in_order', '_numbered_sections', '_piled_answers', '_quoted_start', '_recovered_answer', '_retranscription_evidence', 'from html import unescape as unescape_html']
+  AIProcessor._retranscribe_found_answers(self, user, content, assignment, answers, assignment_model=None, processing_task_id=None, reading_run=None, config=None)
+  AIProcessor._retranscribe_found_answers: 3 statement(s) replaced by 5
+  AIProcessor._second_reading(self, user, content, assignment, targets, pile_lines, *, assignment_model, processing_task_id, run, config)
+  AIProcessor._second_reading: 1 statement(s) replaced by 1; docstring changed
+  AIProcessor._verify_blank_answers(self, user, content, answers, assignment_model=None, processing_task_id=None, reading_run=None, config=None)
+  AIProcessor._verify_blank_answers: 2 statement(s) replaced by 4
+  _recovered_answer(entry, replacement, note=None)
+  _recovered_answer: 1 statement(s) replaced by 1; docstring changed
+  _retranscription_evidence(entry, pile_line=None)
+  _retranscription_evidence: 0 statement(s) replaced by 1; docstring changed
+AutoGrader/settings.py: nothing in the syntax tree
+ai_processor/extraction_schemas.py: ['__doc__']
+  new: PILE_QUOTE_LENGTH
+  new: SPLIT_ANSWER_NOTE
+  new: _BARE_SECTION
+  new: _BLOCK_BREAK
+  new: _LABELLED_SECTION
+  new: _in_order
+  new: _numbered_sections
+  new: _piled_answers
+  new: _quoted_start
+prompt: _4 archived unchanged; _5 = _4 + 100 lines
+SEAM OK: only the named units changed, and only the named statements
+=== 1. own modules + near (ai_processor) + guards at da7f9648 12:38:44
+exit=0 12:45:32
+Ran 1738 tests in 384.757s
+OK (skipped=6)
+=== 2. mutants: 16 (own DB, rules 17, 18 and 22) 12:45:32
+mutants exit=0 12:46:26
+N1 {'what': '_LABELLED_SECTION loses case insensitivity (QUESTION 2 is not matched)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.313s', 'expected': {'test_each_way_of_numbering_at_the_start_of_a_paragraph_or_line': '0 != 1'}, '
+N2 {'what': '_BARE_SECTION matches decimals (3.5 looks like section 3)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.263s', 'expected': {'test_writing_with_no_numbered_sections_changes_nothing': 'to not have been called'}, 'fail
+N2b {'what': '_numbered_sections counts numbers outside the assignment', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'SURVIVED', 'exit': 0, 'ran_line': 'Ran 29 tests in 0.270s', 'expected': {'test_numbers_outside_the_assignment_are_not_counted': 'to not have been called'}, 'faili
+N3 {'what': '_in_order keeps all markers (out-of-order numbers are piles)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.294s', 'expected': {'test_numbers_out_of_order_are_not_a_pile': 'to not have been called'}, 'failing_tests':
+P1 {'what': 'FLAG_TYPE_MISMATCH is no longer a pile flag', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.282s', 'expected': {'test_a_pile_in_the_wrong_form_counts': '0 != 1'}, 'failing_tests': ['test_a_pile_in_the_wrong_form_count
+P2 {'what': 'a named question with a flag is named by the pile (bypasses H-253)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.285s', 'expected': {'test_a_named_question_with_a_flag_is_left_to_h253': 'not found in'}, 'failing_tes
+P3 {'what': 'PILE_QUOTE_LENGTH is 0 (the note quotes nothing)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.282s', 'expected': {'test_the_note_says_where_each_answer_was_put': 'not found in'}, 'failing_tests': ['test_the_note_sa
+P4 {'what': 'the listed join uses spaces instead of commas', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.283s', 'expected': {'test_the_note_says_where_each_answer_was_put': 'not found in'}, 'failing_tests': ['test_the_note_says_
+T1 {'what': 'piles are not targets (only H-253 route remains)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.296s', 'expected': {'test_each_answer_goes_under_its_own_number': '0 != 1'}, 'failing_tests': ['test_a_failed_or_empty_s
+T2 {'what': 'issuperset becomes issubset (the pile is replaced even when not all sections came back)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.339s', 'expected': {'test_the_beta_reply_ends_with_six_answers_and_the_upload_fla
+T3 {'what': "SPLIT_ANSWER_NOTE says 'second' instead of 'first'", 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.276s', 'expected': {'test_each_answer_goes_under_its_own_number': 'not found in'}, 'failing_tests': ['test_each_answer
+T4 {'what': '_recovered_answer ignores the note argument (always RECOVERED_ANSWER_NOTE)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.298s', 'expected': {'test_each_answer_goes_under_its_own_number': 'not found in'}, 'failing_te
+C1 {'what': 'cap <= 0 does not return early (cap=0 still runs the verification)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.289s', 'expected': {'test_a_cap_of_0_checks_nothing': 'to not have been called'}, 'failing_tests': ['t
+C2 {'what': 'blanks[:cap] becomes blanks[cap:] (the highest-numbered are re-checked)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.273s', 'expected': {'test_the_beta_paper_has_its_first_12_blanks_re_checked': 'not found in'}, 'f
+C3 {'what': 'the log says cap instead of cap + unchecked (total count is wrong)', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.276s', 'expected': {'test_the_rest_are_logged_as_not_checked': '12 blank(s) exceeds'}, 'failing_tests'
+C4 {'what': 'findings for questions not asked about are applied anyway', 'file': 'ai_processor/services.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 29 tests in 0.294s', 'expected': {'test_a_finding_for_a_question_not_asked_about_is_not_applied': 'unexpectedly found in'}, '
+KILLED: ['N1', 'N2', 'N3', 'P1', 'P2', 'P3', 'P4', 'T1', 'T2', 'T3', 'T4', 'C1', 'C2', 'C3', 'C4']
+SURVIVED: ['N2b']
+BROKEN: []
+source clean after mutants
+dropped test_h264_numbered_offtopic_answers_mut
+load at end: 3.69 4.07 4.31 1/2439 1097738
+gate exit=0

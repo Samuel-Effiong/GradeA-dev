@@ -1,0 +1,169 @@
+"""v2 mutants for H-124 (d5), beyond d5's N1-N19 and G1-G3.
+
+Run from the vf2-s1 scratch worktree (detached at COMMIT), inside the rule
+16/13/12 wrappers, output to a file, stdin from /dev/null (rule 18).
+Usage: COMMIT=<sha> MUTANT_LOGS=<dir> python vf_h124_mutants.py check |
+baseline | (no args: every mutant).
+
+Rule 17: every test subprocess runs with PYTHONDONTWRITEBYTECODE=1, and the
+__pycache__ of the mutated module's directory is deleted before each mutant
+and after each restore; `baseline` deletes it first.
+"""
+
+import ast
+import hashlib
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+
+COMMIT = os.environ["COMMIT"]
+GD = "AutoGrader/tests_no_playwright_at_import.py"
+SCRUB = GD  # the module whose __pycache__ `baseline` clears
+RD = GD
+BASELINE = ["AutoGrader.tests_no_playwright_at_import"]
+RULE = ["AutoGrader.tests_no_playwright_at_import.NoTestModuleStartsPlaywrightAtImportTests"]
+LOGS = pathlib.Path(os.environ["MUTANT_LOGS"])  # one file per inner run
+
+# Written 2026-10-06 13:10 WAT, before any run of mine on H-124 and after
+# reading the guard module at blob 1b466b7c (rule 18 addition): the test
+# each mutant must fail, by name. KILLED only with the run's own "Ran" line,
+# named failing tests and this test among them; non-zero without that is
+# BROKEN; KILLED_OTHER = tests failed, but not the one expected.
+EXPECTED = {
+    # One pass instead of a fixed point. In the sample "through two
+    # functions" the rule meets outer() before inner(), so outer is only
+    # found on a second pass. Expected KILLED by test_the_rule_sees_each_shape
+    # and, by my reading of the samples, by no other test.
+    "V1_one_pass_not_a_fixed_point": {"the rule's tests": (RULE, "test_the_rule_sees_each_shape")},
+    # A bracketless decorator is followed on functions only, not on classes.
+    # Expected KILLED by the decorator test (its "on a class" sample) and by
+    # no other test.
+    "V2_bracketless_decorators_on_functions_only": {"the rule's tests": (
+        RULE, "test_the_rule_follows_a_decorator_applied_without_brackets")},
+    # In a class body EVERY method of the class counts by its bare name, not
+    # only those that reach a starter. This makes the rule stricter (more
+    # false alarms), never blinder. v2's prediction, written before the run:
+    # SURVIVES, because no sample calls a harmless method by its bare name in
+    # its class body and no test module of the tree does so in a file that
+    # names a starter. If it survives it is a note (an unpinned false-alarm
+    # direction), not a finding.
+    "V3_any_own_method_counts_in_the_class_body": {"the rule's tests": (
+        RULE, "test_the_wider_rule_still_allows_what_starts_nothing")},
+}
+PREDICTED_TO_SURVIVE = {"V3_any_own_method_counts_in_the_class_body"}
+
+MUTANTS = {
+    "V1_one_pass_not_a_fixed_point": (GD, [
+        ("        grew = len(bare) + len(asked) > before\n",
+         "        grew = False\n"),
+    ]),
+    "V2_bracketless_decorators_on_functions_only": (GD, [
+        ("DECORATED = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)\n",
+         "DECORATED = (ast.FunctionDef, ast.AsyncFunctionDef)\n"),
+    ]),
+    "V3_any_own_method_counts_in_the_class_body": (GD, [
+        ("        own = {method.name for method in methods_of(owner)} & asked if owner else set()\n",
+         "        own = {method.name for method in methods_of(owner)} if owner else set()\n"),
+    ]),
+}
+
+
+def parts(name):
+    """A mutant as a list of (path, edits)."""
+    m = MUTANTS[name]
+    return m if isinstance(m, list) else [m]
+
+
+ENV = {**os.environ, "EXEMPT_EMAIL_DOMAINS": "", "PYTHONDONTWRITEBYTECODE": "1"}
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def clear_pycache(path):
+    shutil.rmtree(pathlib.Path(path).parent / "__pycache__", ignore_errors=True)
+
+
+def run(labels, log_name):
+    """One inner run: output straight to its own file, stdin from the null
+    device, no pipe (rule 18). The file is read only after the run ends."""
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log = LOGS / log_name
+    with open(log, "wb") as fh:
+        out = subprocess.run(
+            [sys.executable, "manage.py", "test", *labels,
+             "--settings=settings_worktree", "--noinput", "-v1"],
+            stdout=fh, stderr=subprocess.STDOUT, env=ENV, stdin=subprocess.DEVNULL,
+        )
+    o = log.read_text(errors="replace")
+    failing = sorted(set(re.findall(r"^(?:FAIL|ERROR): (\w+)", o, re.M)))
+    ran = next((l for l in o.splitlines() if l.startswith("Ran ")), "Ran ?")
+    summary = next((l for l in o.splitlines() if l.startswith(("OK", "FAILED"))), f"? rc={out.returncode}")
+    return out.returncode, ran, summary, failing, o
+
+
+if sys.argv[1:] == ["check"]:
+    for name in MUTANTS:
+        for path, edits in parts(name):
+            src = open(path).read()
+            counts = [src.count(old) for old, _ in edits]
+            for old, new in edits:
+                src = src.replace(old, new, 1)
+            ast.parse(src)
+            print(name, path, counts, "parses")
+    sys.exit()
+
+if sys.argv[1:] == ["baseline"]:
+    clear_pycache(SCRUB)
+    clear_pycache(RD)
+    rc, ran, summary, failing, o = run(BASELINE, "baseline.txt")
+    print("baseline |", ran, "|", summary, "|", failing, flush=True)
+    if rc != 0:
+        print(o[-8000:])
+    sys.exit(rc)
+
+for name in sys.argv[1:] or MUTANTS:
+    mutated = {}
+    bad = False
+    for path, edits in parts(name):
+        src = open(path).read()
+        counts = [src.count(old) for old, _ in edits]
+        if counts != [1] * len(edits):
+            print(name, "APPLY_FAILED", path, counts, flush=True)
+            bad = True
+            break
+        for old, new in edits:
+            src = src.replace(old, new, 1)
+        ast.parse(src)
+        mutated[path] = src
+    if bad:
+        continue
+    for who, (label_set, expected) in EXPECTED[name].items():
+        try:
+            for path, text in mutated.items():
+                clear_pycache(path)
+                open(path, "w").write(text)
+            rc, ran, summary, failing, _ = run(label_set, f"{name}_run.txt")
+            if rc == 0:
+                status = "SURVIVED"
+            elif ran == "Ran ?" or not failing:
+                status = "BROKEN"
+            elif expected in failing:
+                status = "KILLED"
+            else:
+                status = "KILLED_OTHER"
+            note = " (predicted to survive)" if name in PREDICTED_TO_SURVIVE else ""
+            print(name, "|", who, "|", status + note, "|", ran, "|", summary,
+                  "| expected", expected, "| failing", failing, flush=True)
+        finally:
+            for path in mutated:
+                subprocess.run(["git", "checkout", "--", path], check=True)
+                clear_pycache(path)
+                ok = sha(open(path, "rb").read()) == sha(
+                    subprocess.run(["git", "show", f"{COMMIT}:{path}"], capture_output=True).stdout
+                )
+                print("  restore", path, "ok" if ok else "MISMATCH", "| __pycache__ cleared", flush=True)

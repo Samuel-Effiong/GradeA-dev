@@ -1,0 +1,357 @@
+"""1a's verification probes for H-133. Not committed.
+
+Founder's rule: before the teacher releases a grade, a student is told and
+shown nothing that says a grade exists (the attempts dropping to zero and
+the refusal of a change excepted, by the founder's choice).
+
+The author's tests ask the routes that refuse at once, and one queued
+upload refused before its extraction starts. These add:
+
+P1: THE SAME PAPER IN EVERY STATE, EVERY STUDENT ROUTE. One paper is put
+    in turn into: submitted; grading scheduled; being graded; grading
+    failed; graded and unreleased. In each state every route a student can
+    read is asked, and the whole answer is compared with the answer for the
+    submitted paper: nothing may differ except `remaining_attempts`, and
+    only in the graded state. Then released: the grade shows.
+P2: A TASK THAT IS ALREADY RUNNING. The real upload task and the real edit
+    task, with the AI call replaced by a function during which a grade
+    lands, or a grading claim starts. The refusal is then made by the
+    second or third check, inside the task (the third is reached by
+    letting the grade land after the second). What the student reads by
+    polling tasks/status names no grading, is the neutral sentence, and
+    carries the code.
+P3: THE TEACHER IS TOLD THE REASON. The same two tasks started by the
+    teacher (a proxy upload, an edit): tasks/status names grading.
+P4: ONE BUSY ANSWER. Polled as the student, "being graded" and "an
+    earlier upload is still being processed" give the same sentence and
+    code from a task too.
+"""
+
+import ast
+import json
+import uuid
+from datetime import timedelta
+from unittest.mock import patch
+
+from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.test import APITestCase
+
+from assignments.models import Assignment, AssignmentStatus
+from assignments.tasks import (
+    extract_answer_background_task,
+    upload_answers_engine_async,
+)
+from students.models import (
+    BackgroundProcessingTask,
+    BackgroundTaskStatus,
+    BackgroundTaskType,
+    GradingState,
+    StudentSubmission,
+)
+from students.tests_post_grading_submission_lock import (
+    PDF_BYTES,
+    VALID_GRADE,
+    _classroom,
+    _submission,
+)
+
+CLOSED = "This submission can no longer be changed."
+BUSY = "This submission can't be changed right now. Please try again later."
+EXTRACTED = {
+    "answers": [{"question_number": 1, "answer_html": "<p>edited answer</p>"}],
+    "extraction_confidence": 77,
+}
+GRADED = {
+    "graded_at": None,  # set when used
+    "score": 8,
+    "score_percentage": 80,
+    "max_points": 10,
+    "feedback": VALID_GRADE,
+    "grading_state": GradingState.DONE,
+    "grading_confidence": 91,
+    "needs_review": True,
+    "review_tier": "critical",
+    "review_severity": 2.2,
+    "review_reasons": [{"question_number": 1}],
+    "formatted_grade": str({"strengths": ["VF1A formatted"]}),
+}
+
+
+def plain(value):
+    return json.loads(json.dumps(value, default=str))
+
+
+class H133Base(APITestCase):
+    def setUp(self):
+        self.teacher, self.student, self.course, self.assignment = _classroom("vf1a133")
+        self.submission = _submission(self.assignment, self.student, graded=False)
+
+    def put(self, **fields):
+        if "graded_at" in fields and fields["graded_at"] is None:
+            fields["graded_at"] = timezone.now()
+        StudentSubmission.objects.filter(pk=self.submission.pk).update(**fields)
+
+    def another_assignment(self, title):
+        return Assignment.objects.create(
+            title=title,
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            questions=[{"question_number": 1, "question_text": "Q1?", "points": 10}],
+        )
+
+    def poll(self, tracked, user):
+        """tasks/status as `user`: the status, and the meta read back from
+        the text form the route sends it in."""
+        self.client.force_authenticate(user=user)
+        response = self.client.get(
+            reverse("task-task-status", kwargs={"task_id": str(tracked.id)})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        body = plain(response.data)
+        meta = ast.literal_eval(body["meta"]) if body.get("meta") else {}
+        return body, meta
+
+
+class H133EveryStateEveryRouteProbe(H133Base):
+    """P1."""
+
+    def read_everything(self):
+        cache.clear()
+        self.client.force_authenticate(user=self.student)
+        answers = {}
+        for name, url, query in (
+            ("the submission", reverse("student-submission-detail", kwargs={"pk": self.submission.pk}), {}),
+            ("the list", reverse("student-submission-list"), {}),
+            ("the list by assignment", reverse("student-submission-list"), {"assignment": str(self.assignment.pk)}),
+            ("the list of unreleased", reverse("student-submission-list"), {"is_published": "false"}),
+            ("the assignment", reverse("assignment-detail", kwargs={"pk": self.assignment.pk}), {}),
+            ("the assignment list", reverse("assignment-list"), {}),
+            ("the dashboard list", reverse("student-assignments"), {}),
+        ):
+            response = self.client.get(url, query)
+            self.assertEqual(response.status_code, status.HTTP_200_OK, name)
+            answers[name] = plain(response.data)
+        return answers
+
+    @staticmethod
+    def differences(before, after, path=""):
+        """Every place two answers differ, as (path, before, after)."""
+        if isinstance(before, dict) and isinstance(after, dict):
+            found = []
+            for key in sorted(set(before) | set(after)):
+                found += H133EveryStateEveryRouteProbe.differences(
+                    before.get(key, "<absent>"), after.get(key, "<absent>"), f"{path}.{key}"
+                )
+            return found
+        if isinstance(before, list) and isinstance(after, list) and len(before) == len(after):
+            found = []
+            for index, (one, other) in enumerate(zip(before, after)):
+                found += H133EveryStateEveryRouteProbe.differences(one, other, f"{path}[{index}]")
+            return found
+        return [] if before == after else [(path, before, after)]
+
+    def test_p1_the_same_paper_in_every_state(self):
+        submitted = self.read_everything()
+        soon = timezone.now() + timedelta(days=1)
+        states = (
+            ("grading scheduled", {"scheduled_grading_at": soon, "grading_task_name": "vf1a-scheduled"}),
+            ("being graded", {"grading_state": GradingState.RUNNING, "grading_started_at": timezone.now()}),
+            ("grading failed", {"grading_state": GradingState.FAILED, "grading_started_at": None}),
+            ("graded, unreleased", dict(GRADED, scheduled_grading_at=None, grading_task_name=None)),
+        )
+        seen = {}
+        for name, fields in states:
+            self.put(**fields)
+            now = self.read_everything()
+            differing = []
+            for route in submitted:
+                differing += [
+                    (route + path, before, after)
+                    for path, before, after in self.differences(submitted[route], now[route])
+                ]
+            seen[name] = differing
+            allowed = (
+                [d for d in differing if d[0].endswith(".remaining_attempts")]
+                if name == "graded, unreleased"
+                else []
+            )
+            with self.subTest(state=name):
+                self.assertEqual([d for d in differing if d not in allowed], [])
+            for route, answer in now.items():
+                with self.subTest(state=name, route=route, check="no word of grading in a value"):
+                    self.assertNotIn("vf1a-scheduled", json.dumps(answer))
+                    self.assertNotIn("VF1A formatted", json.dumps(answer))
+        print("\nVF1A_H133_P1 one paper, seven student routes, compared with the submitted paper:")
+        for name, differing in seen.items():
+            print(f"  {name}: {len(differing)} difference(s) {differing}")
+
+        # Released: now the grade shows, on the same routes.
+        self.put(is_published=True)
+        released = self.read_everything()
+        row = [r for r in released["the list"]["results"] if str(r["id"]) == str(self.submission.pk)][0]
+        self.assertEqual(row["grading_state"], "DONE")
+        self.assertIsNotNone(row["graded_at"])
+        self.assertNotEqual(released["the submission"], submitted["the submission"])
+        print(
+            "  released: the list says DONE with its time; the submission page differs in "
+            f"{len(self.differences(submitted['the submission'], released['the submission']))} place(s)"
+        )
+
+
+class H133RunningTaskProbe(H133Base):
+    """P2, P3 and P4."""
+
+    def tracked(self, user, **extra):
+        return BackgroundProcessingTask.objects.create(
+            requested_by=user,
+            task_type=BackgroundTaskType.ANSWER_EXTRACTION,
+            assignment=self.assignment,
+            **extra,
+        )
+
+    def a_grade_lands(self, *args, **kwargs):
+        self.put(**dict(GRADED))
+        return dict(EXTRACTED)
+
+    def a_grading_claim_starts(self, *args, **kwargs):
+        self.put(grading_state=GradingState.RUNNING, grading_started_at=timezone.now())
+        return dict(EXTRACTED)
+
+    def run_upload(self, user, during):
+        tracked = self.tracked(user)
+        with patch("students.services.ai_processor") as ai, patch(
+            "assignments.tasks.AssignmentProcessingService.prepare_ai_content",
+            return_value="content",
+        ), patch("assignments.tasks.AssignmentProcessingService.rebuild_uploaded_file"):
+            ai.extract_answer_with_retry.side_effect = during
+            result = upload_answers_engine_async.apply(
+                args=(str(self.assignment.id), {"name": "x"}, "prompt", str(user.id)),
+                kwargs={"processing_task_id": str(tracked.id)},
+            ).get()
+            self.assertEqual(ai.extract_answer_with_retry.call_count, 1)
+        return tracked, result
+
+    def run_edit(self, user, during):
+        tracked = self.tracked(user, submission=self.submission)
+        with patch("students.services.ai_processor") as ai:
+            ai.extract_answer_with_retry.side_effect = during
+            result = extract_answer_background_task.apply(
+                args=(str(self.submission.id), "edited text", str(user.id)),
+                kwargs={"processing_task_id": str(tracked.id)},
+                task_id=str(uuid.uuid4()),
+            ).get()
+            self.assertEqual(ai.extract_answer_with_retry.call_count, 1)
+        return tracked, result
+
+    def assert_student_reads(self, tracked, result, sentence, code):
+        self.assertEqual(result["status"], "FAILURE")
+        self.assertEqual(result["message"], sentence)
+        self.assertEqual(result.get("code"), code)
+        tracked.refresh_from_db()
+        self.assertEqual(tracked.status, BackgroundTaskStatus.FAILURE)
+        body, meta = self.poll(tracked, self.student)
+        self.assertNotIn("grad", json.dumps(body).lower(), body)
+        self.assertEqual(meta.get("error"), sentence)
+        self.assertEqual(meta.get("code"), code, "the code does not reach a student who polls")
+        # The paper keeps the answers it had: the refused change was not saved.
+        self.submission.refresh_from_db()
+        self.assertEqual(self.submission.answers[0]["answer_html"], "original")
+        return body
+
+    # P2 -----------------------------------------------------------------
+    def test_p2_upload_task_a_grade_lands_during_the_extraction(self):
+        tracked, result = self.run_upload(self.student, self.a_grade_lands)
+        body = self.assert_student_reads(tracked, result, CLOSED, "submission_closed")
+        print(f"\nVF1A_H133_P2 upload task, a grade lands during the extraction; the student polls: {body}")
+
+    def test_p2_upload_task_a_grading_claim_starts_during_the_extraction(self):
+        tracked, result = self.run_upload(self.student, self.a_grading_claim_starts)
+        body = self.assert_student_reads(tracked, result, BUSY, "submission_busy")
+        print(f"\nVF1A_H133_P2 upload task, a grading claim starts during the extraction; the student polls: {body}")
+
+    def test_p2_upload_task_a_grade_lands_after_the_second_check(self):
+        """The third check, under the row lock: the grade lands after the
+        check that follows the extraction and before the lock is taken."""
+        calls = []
+
+        def may_submit(assignment, student):
+            calls.append(1)
+            if len(calls) == 2:
+                self.put(**dict(GRADED))
+
+        with patch("students.services.ensure_student_may_submit", side_effect=may_submit):
+            tracked, result = self.run_upload(self.student, lambda *a, **k: dict(EXTRACTED))
+        self.assertEqual(len(calls), 2)
+        body = self.assert_student_reads(tracked, result, CLOSED, "submission_closed")
+        print(f"\nVF1A_H133_P2 upload task, a grade lands after the second check (the check under the lock refuses); the student polls: {body}")
+
+    def test_p2_edit_task_a_grade_lands_during_the_extraction(self):
+        tracked, result = self.run_edit(self.student, self.a_grade_lands)
+        body = self.assert_student_reads(tracked, result, CLOSED, "submission_closed")
+        print(f"\nVF1A_H133_P2 edit task, a grade lands during the extraction; the student polls: {body}")
+
+    def test_p2_edit_task_a_grading_claim_starts_during_the_extraction(self):
+        tracked, result = self.run_edit(self.student, self.a_grading_claim_starts)
+        body = self.assert_student_reads(tracked, result, BUSY, "submission_busy")
+        print(f"\nVF1A_H133_P2 edit task, a grading claim starts during the extraction; the student polls: {body}")
+
+    def test_p2_edit_task_started_on_a_paper_already_graded(self):
+        self.put(**dict(GRADED))
+        tracked = self.tracked(self.student, submission=self.submission)
+        with patch("students.services.ai_processor") as ai:
+            result = extract_answer_background_task.apply(
+                args=(str(self.submission.id), "edited text", str(self.student.id)),
+                kwargs={"processing_task_id": str(tracked.id)},
+                task_id=str(uuid.uuid4()),
+            ).get()
+            ai.extract_answer_with_retry.assert_not_called()
+        body = self.assert_student_reads(tracked, result, CLOSED, "submission_closed")
+        print(f"\nVF1A_H133_P2 edit task on a paper already graded; the student polls: {body}")
+
+    # P3 -----------------------------------------------------------------
+    def test_p3_the_teacher_is_told_the_reason(self):
+        tracked, result = self.run_edit(self.teacher, self.a_grade_lands)
+        self.assertEqual(result["status"], "FAILURE")
+        self.assertIn("already been graded", result["message"])
+        body, meta = self.poll(tracked, self.teacher)
+        self.assertIn("already been graded", meta.get("error", ""))
+        print(f"\nVF1A_H133_P3 the teacher's edit task, a grade lands during it; the teacher polls: {body}")
+
+    # P4 -----------------------------------------------------------------
+    def test_p4_one_busy_answer_from_a_task(self):
+        # Being graded: the claim starts during this task's extraction.
+        graded_now, result = self.run_upload(self.student, self.a_grading_claim_starts)
+        grading_body, grading_meta = self.poll(graded_now, self.student)
+
+        # Being processed: an earlier upload of another assignment is still
+        # going when the route is asked again.
+        other = self.another_assignment("still being processed")
+        BackgroundProcessingTask.objects.create(
+            requested_by=self.student,
+            task_type=BackgroundTaskType.ANSWER_EXTRACTION,
+            assignment=other,
+            status=BackgroundTaskStatus.PENDING,
+        )
+        self.client.force_authenticate(user=self.student)
+        with patch("students.views.launch_processing_task") as launch:
+            refused = self.client.post(
+                reverse("student-submission-upload-async", kwargs={"assignment_id": other.pk}),
+                {"answer": SimpleUploadedFile("a.pdf", PDF_BYTES, content_type="application/pdf")},
+                format="multipart",
+            )
+            launch.assert_not_called()
+        self.assertEqual(refused.status_code, status.HTTP_409_CONFLICT)
+        at_once = plain(refused.data)
+
+        self.assertEqual(grading_meta.get("error"), BUSY)
+        self.assertEqual(at_once.get("error"), BUSY)
+        self.assertEqual(grading_meta.get("code"), at_once.get("code"))
+        self.assertEqual(at_once.get("code"), "submission_busy")
+        print(
+            "\nVF1A_H133_P4 being graded (read from a task) and being processed (refused at once): "
+            f"one sentence and one code: {at_once}"
+        )

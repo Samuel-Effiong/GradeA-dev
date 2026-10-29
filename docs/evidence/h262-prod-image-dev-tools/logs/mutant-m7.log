@@ -1,0 +1,34 @@
+### git diff of mutated file(s)
+diff --git a/scripts/pip_audit_gate.py b/scripts/pip_audit_gate.py
+index 97b4271f..0d931720 100644
+--- a/scripts/pip_audit_gate.py
++++ b/scripts/pip_audit_gate.py
+@@ -44,7 +44,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
+ IGNORE_FILE = ROOT / ".pip-audit-ignore.toml"
+ IGNORE_FILE_DEV = ROOT / ".pip-audit-ignore-dev.toml"
+ REQUIREMENTS = "requirements.txt"
+-REQUIREMENTS_DEV = "requirements-dev.txt"
++REQUIREMENTS_DEV = "requirements.txt"
+ #: Pinned here and in .github/workflows/audit.yml (a test keeps them equal).
+ PIP_AUDIT_VERSION = "2.9.0"
+
+
+### test output
+test_audit_gate_audits_dev_requirements_too (ai_processor.tests_h262_prod_image_dev_tools.AuditGateTest.test_audit_gate_audits_dev_requirements_too) ... FAIL
+
+======================================================================
+FAIL: test_audit_gate_audits_dev_requirements_too (ai_processor.tests_h262_prod_image_dev_tools.AuditGateTest.test_audit_gate_audits_dev_requirements_too)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h262-prod-image-dev-tools/ai_processor/tests_h262_prod_image_dev_tools.py", line 211, in test_audit_gate_audits_dev_requirements_too
+    self.assertIn(
+AssertionError: 'requirements-dev.txt' not found in ['requirements.txt', 'requirements.txt'] : no -r requirements-dev.txt in subprocess.run calls; got ['requirements.txt', 'requirements.txt']
+
+----------------------------------------------------------------------
+Ran 1 test in 0.009s
+
+FAILED (failures=1)
+Found 1 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
+pip-audit gate: 86 accepted advisories from .pip-audit-ignore.toml, 19 from .pip-audit-ignore-dev.toml

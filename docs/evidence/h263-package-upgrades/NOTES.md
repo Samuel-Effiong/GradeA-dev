@@ -1,0 +1,370 @@
+# H-263 notes (Hardening Engineer, 4d)
+
+- **The row** (batch 30): upgrade the six packages the owner approved on 2026-10-27, take their entries out of
+  `.pip-audit-ignore.toml`, and show the audit clean at the tip. One commit per package.
+- **Base:** H-258's tip `9263e9f8` (Senior Manager), so the ignore file and `requirements.txt` do not conflict.
+- **Branch** `task/h263-package-upgrades`.
+
+| Commit | Package | From | To | Ids out of the ignore file |
+|---|---|---|---|---|
+| `21611a99` | gunicorn (`Dockerfile:37` and `requirements.txt`) | 20.0.4 | 22.0.0 | 2 |
+| `83da86fb` | pillow | 12.0.0 | 13.0.0 | 56 |
+| `9d8c74fd` | PyJWT | 2.10.1 | 2.15.0 | 17 |
+| `43d32988` | lxml | 6.0.2 | 6.1.0 | 1 |
+| `00e15e9e` | urllib3 | 2.5.0 | 2.8.0 | 6 |
+| `d154d031` | djangorestframework | 3.16.1 | 3.18.2 | 5 |
+
+- **The ignore file** goes from 27 packages and 192 ids to 21 packages and 105 ids.
+- **The audit at the tip** (pip-audit 2.9.0 through `scripts/pip_audit_gate.py`, before the gate): exit 0, "No
+  known vulnerabilities found, 105 ignored". None of the six new versions has an advisory of its own.
+
+## How the changelogs were read
+
+- **Source:** each package's own changelog at the new version, from its sdist on PyPI (gunicorn
+  `docs/source/news.rst` and `2021-news.rst`; pillow `docs/releasenotes/12.1.0.rst` to `13.0.0.rst`, its
+  `CHANGES.rst` stopping at 11.0.0; PyJWT `CHANGELOG.rst`; lxml `CHANGES.txt`; urllib3 `CHANGES.rst`). DRF's
+  sdist carries none, so `docs/community/release-notes.md` at the `3.18.2` tag on GitHub.
+- **Read as data only:** nothing was installed or run from them. Where a note was unclear, the new source was
+  compared with the installed old version (urllib3, DRF).
+- **Every release between the two versions** was read, not only the last.
+- **Dependants:** no installed package caps any of the six below its new version (each `Requires-Dist` in the
+  shared venv read). All six support Python 3.12; pillow 13.0.0 and lxml 6.1.0 ship cp312 manylinux x86_64
+  wheels.
+
+## What touches us, package by package
+
+### gunicorn 20.0.4 to 22.0.0
+
+- **The fix:** 22.0.0 closes CVE-2024-1135 (request smuggling through conflicting `Transfer-Encoding`) and
+  other HTTP parser holes.
+- **Our CMD** (`Dockerfile`): `--bind --timeout 100 --workers --threads --max-requests 1000 --worker-class
+  gthread --keep-alive 5 --max-requests-jitter 200`. Every flag exists in 22.0.0. The timeout sync check
+  (`scripts/check_gunicorn_timeout_sync.py`) passes.
+- **gthread:** 21.0.0 to 21.2.0 reworked the thread worker and fixed a "bad file descriptor" it introduced;
+  22.0.0 comes after those fixes.
+- **Stricter HTTP parsing in 22.0.0** (the breaking changes):
+  - header names with underscores are now silently dropped. The headers our code reads (`Stripe-Signature`,
+    `X-Forwarded-Proto` for `SECURE_PROXY_SSL_HEADER`, `X-Request-ID`) use dashes;
+  - a request with both `Transfer-Encoding` and `Content-Length` is refused, as are HTTP versions other than
+    1.0 and 1.1. What Railway's edge forwards was not checked;
+  - methods are no longer case-folded.
+- **Also:** 20.1.0 removed the version from the `Server` header and the `--log-dict-config` flag (not used).
+  22.0.0 needs `packaging` (pinned 25.0).
+- **No test imports gunicorn.** Its check is a boot of the app (proposed for the gate).
+
+### pillow 12.0.0 to 13.0.0
+
+- **The fix:** 13.0.0 lists 2 critical, 13 high and 20 medium advisories, among them PSD, JPEG, TIFF, BMP
+  and decompression-bomb bypasses through `seek()`.
+- **Our calls:** `Image.open` (`assignments/services.py:546`, `ai_processor/services.py:6106` and `:6192`),
+  `convert`, `Image.new`, `resize` with `Image.LANCZOS` (`ai_processor/tools.py:328`), `Image.MAX_IMAGE_PIXELS`,
+  `DecompressionBombError`, `UnidentifiedImageError`. All are kept in 13.0.0. `Image.LANCZOS` is still set
+  from the `Resampling` enum (`Image.py:190`).
+- **Removed or changed in 12.1 to 13.0, none used here:** Python 3.10; clipping of I-mode images saved as
+  PNG; `Image.get_child_images()` (moved to `ImageFile`); `Image._show`; `ImageCms` product name and info;
+  `ExifTags.IFD.Makernote`; `getdata()` deprecated (12.1.0); encoding an empty image now raises `ValueError`
+  not `SystemError` (12.2.0).
+- **13.0.0 behaviour that could show:** `resize` now applies `reducing_gap` to RGBA and LA images (it was
+  ignored), and the Linux wheels now link the bundled HarfBuzz. Our resize is of RGB images after `_to_rgb`.
+- **H-258's "not checked" cell, now checked:** does an earlier type check refuse a PSD before `Image.open`?
+  **No.** `uploaded_file.content_type` is the client's claim and only picks the image branch
+  (`IMAGE_FORMATS`); `Image.open(BytesIO(...))` then runs with no `formats=` limit. So a PSD (or any format
+  pillow reads) labelled `image/png` reaches its decoder. H-258's "Yes, likely" becomes **Yes**; 13.0.0 fixes
+  the PSD advisory.
+  - **Proposed, not done here:** `Image.open(..., formats=["JPEG", "PNG", "GIF", "WEBP"])` would refuse every
+    other decoder. That is a behaviour change, so it is a new row for a ruling.
+
+### PyJWT 2.10.1 to 2.15.0
+
+- **The fix:** the algorithm-confusion and HMAC-key advisories of 2.13.0 and 2.14.0, the `crit` header check
+  (2.12.0), and recursion and JWKS fixes.
+- **How we use it:** only through simplejwt 5.5.1 (`pyjwt>=1.7.1`). `SIMPLE_JWT` sets `ALGORITHM = "HS256"`
+  and no `SIGNING_KEY`, so it signs with `SECRET_KEY`. No `PyJWKClient`, no issuer or audience. One test
+  imports `jwt` directly (`users.tests_token_revocation`).
+- **Changes that could touch us:**
+  - 2.11.0 warns (`InsecureKeyLengthWarning`) on an HMAC key under 32 bytes. The local `.env` key is 67
+    bytes, and the owner confirmed on 2026-10-27 that production's is over 32 characters (`SIMPLE_JWT` names no
+    `SIGNING_KEY`, so `SECRET_KEY` is the signing key);
+  - 2.13.0 refuses an empty HMAC key outright;
+  - 2.11.0 requires `iss` to be a string (we set none);
+  - stricter compact-JWS decoding (2.14.0): tokens simplejwt itself issued are compact JWS.
+
+### lxml 6.0.2 to 6.1.0
+
+- **The fix:** CVE-2026-41066, external entities resolved by `iterparse()` and `ETCompatXMLParser`. 6.0.3 and
+  6.0.4 are memory fixes. No API change.
+- **H-258's "not checked" cell, now checked:** does our HTML parsing read entities? **No.** Our code parses
+  only HTML: `lxml.html.fromstring` (`assignments/prosemirror_converter.py:665`, `assignments/services.py:286`
+  to `:307`) and `BeautifulSoup(content, "lxml")` (`ai_processor/tools.py:250`, lxml's HTML parser). It never
+  calls `iterparse`, `ETCompatXMLParser` or an XML parser. The HTML and XML parsers have resolved internal
+  entities only since lxml 5.0.
+
+### urllib3 2.5.0 to 2.8.0
+
+- **The fix:** decompression bombs in the streaming API (2.6.0, 2.6.3, 2.7.0), unbounded chained
+  `Content-Encoding` (2.6.0), unbounded chunk-size lines and HTTPS-proxy TLS (2.8.0).
+- **We use it through requests 2.34.2** (`urllib3<3,>=1.26`), toward Google, MailerLite, Stripe and the URL
+  fetcher in `ai_processor/tools.py`.
+- **The SSRF guard reaches into urllib3's internals:** `_peer_address` reads `response.raw._connection` (or
+  `.connection`), then `.sock.getpeername()`, and fails closed if it cannot. In 2.8.0, `HTTPResponse` still
+  sets `self._connection`, still has the `connection` property returning it, and `HTTPConnection` still holds
+  the socket in `self.sock` (`response.py`, `connection.py` compared with 2.5.0).
+  - **The test that pins this,** `ai_processor.tests_ssrf_guard.PeerIntrospectionAgainstARealConnectionTest`,
+    runs only with `CI_REQUIRE_NETWORK=1` (one GET to example.com), so the normal suite skips it. Proposed for
+    the gate, by ruling.
+- **Other changes:** 2.6.0 wants brotli 1.2.0 or later when brotli is installed (pinned 1.2.1 in H-258);
+  `getheader`/`getheaders` were removed in 2.6.0 and restored in 2.6.1; 2.6.3 caps `Retry-After` at 6 hours;
+  2.7.0 turns deprecation notices into `FutureWarning`; 2.8.0 parses hosts more strictly and stops applying
+  target TLS settings to HTTPS proxies (we use no proxy).
+
+### djangorestframework 3.16.1 to 3.18.2
+
+- **The fix:** GHSA-3547-9m27-7rxg (a compression codec named as the request charset makes a 108-byte body
+  allocate about 97 MiB), large `Accept` headers, `TokenProxy` deletion, and 3.17.2's `AdminRenderer` and
+  body-size fixes.
+- **Needs Django >= 5.2** (pinned 5.2.17). simplejwt, djoser, drf-spectacular and drf-yasg all accept 3.18.
+- **coreapi support was removed (3.17.0):** no effect. coreapi is not in `requirements.txt`; drf-yasg imports
+  `coreschema` inside a try and is not wired in; the schema class is drf-spectacular's.
+- **Two changes reach our API (for a ruling):**
+  1. **List-serializer errors become a dict (3.18.0).** A `many=True` serializer's validation errors were a
+     list with `{}` for each valid item; now they are `{index: errors}` for the failing items only. The
+     custom exception handler (`users/exceptions.py`) passes them through unchanged. Our writable list inputs:
+     `rubric` (`assignments/serializers.py:75`), `tasks` (`:914`), `session_breakdown`
+     (`classrooms/serializers.py:1206`) and the bulk topic create (`classrooms/views.py:1898`). No test was
+     found that pins the list shape. `REST_FRAMEWORK["LIST_SERIALIZER_ERRORS_AS_DICT"] = False` keeps the old
+     shape, with a `RemovedInDRF320Warning`.
+  2. **JSON and form bodies are held to `DATA_UPLOAD_MAX_MEMORY_SIZE` (3.17.2).** `JSONParser` and
+     `FormParser` now read `request.body`, which Django refuses above the limit (`RequestDataTooBig`). We do
+     not set it, so the limit is Django's 2.5 MB; until now a JSON body of any size was parsed.
+     - No JSON input was found that carries file bytes: uploads are multipart (files spill to disk and are
+       capped by `AutoGrader/uploads.py`), `content_b64` is built by the server for the Celery task, and rich
+       text drops `data:` images (`prosemirror_converter.py:388`). The roster file is capped at 2 MB.
+- **Other changes:** `FloatField` refuses nan and inf (3.18.1); `set_rollback` only rolls back initialized
+  connections (3.18.0); `UniqueTogetherValidator` and unique-constraint fixes.
+
+## The gate (granted in form by the Senior Manager, 27 October 2026)
+
+- **The private venv** `~/Documents/Virtualenvs/AutoGrader_env_h263`, a copy of the shared one with the six pins
+  installed, removed after the gate. The shared venv is not touched.
+- **Red:** the audit on the base pins with the six entries removed from the ignore file must find exactly the
+  87 ids that came out; at the tip it is clean. Planted: one package put back to its old pin at the tip must
+  turn the audit red with that package's ids.
+- **Per commit, its near suites** (from a search of the test modules):
+  - gunicorn: `gunicorn --check-config` and a boot with the Dockerfile's flags on a local port, one request to
+    `/health`, then stop;
+  - pillow: the 19 modules that open or compress images (`ai_processor.tests`, `assignments.tests_security`,
+    `assignments.tests_file_reason_codes`, the students batch modules and others);
+  - PyJWT: the 19 auth and token modules (`users.tests_token_revocation`, `users.tests_auth_endpoints`, and
+    others);
+  - lxml: the 11 sanitizer, ProseMirror and PDF modules;
+  - urllib3: `ai_processor.tests_ssrf_guard`, with `CI_REQUIRE_NETWORK=1` so the live peer test runs (SM
+    ruling 3). It makes one GET to `https://example.com/` through `tools._fetch_validated` and reads the
+    peer address off the real response. That is the only outbound request the gate makes, and it is
+    recorded here because the network guard otherwise refuses outbound calls in tests;
+  - DRF: it reaches every view, so the full suite at the tip.
+- **The full suite at the tip** with `--parallel 4`, in the private venv.
+
+### The pack
+
+- **`run_h263_gate.sh.txt`**, in order: 0 the red run; 0b the audit on the base pins; 1a makemigrations; 1b the
+  seam; 1c the audit at the tip; 1d gunicorn's boot (`health_verdict.py`); 1 the five near steps; 2 the full suite; 3 the six plants.
+- **The red run** (rule 22, written before the run): the setting and its comment are cut out of
+  `AutoGrader/settings.py`, which leaves DRF 3.18's own default, and
+  `assignments.tests_h263_list_error_shape` must give exactly 2 blocks, each holding the dict shape the test
+  refuses: `{1: {'points': [ErrorDetail(string='A valid number is required.` for the first test and
+  `{0: {'points': [ErrorDetail(string='A valid number is required.` for the second.
+- **`seam_check.py`** passes at the tip: `requirements.txt` keeps its length and differs by the six pins, the
+  `Dockerfile` by gunicorn's line, `.pip-audit-ignore.toml` loses exactly the six blocks (87 ids) with its other
+  21 entries unchanged and every id left one the base already listed, and `AutoGrader/settings.py` has the
+  base's syntax tree apart from `LIST_SERIALIZER_ERRORS_AS_DICT: False`.
+- **`plant.py`** (A1 to A6): each puts one package back to its old pin, with its advisories still out of the
+  ignore file, and the audit must exit 1 naming exactly that package's ids. The expected sets are read from
+  `git show 9263e9f8:.pip-audit-ignore.toml` before any run: gunicorn 2, pillow 56, PyJWT 17, lxml 1,
+  urllib3 6, djangorestframework 5. `--check` reads them without running anything.
+- **The gunicorn step** takes 200 or 503 from `/health` as proof that 22.0.0 booted with the Dockerfile's flags
+  and served a request through our WSGI app. `health_verdict.py` judges it (SM ruling 1, 2026-10-27): 200
+  passes; 503 passes **only** when the body's `checks` map names `database` or `cache` as the failing one and
+  nothing else fails, because that is the local environment's business and not this upgrade's. A 503 for any
+  other reason, one whose body does not say, an unparseable body, no answer, a 400 or a 500 is a stop. The
+  response passes through `APIJSONRenderer`, which wraps the payload, so the `checks` map is looked for at any
+  depth. Judged against nine made-up bodies before the gate: 200; 503 on the database; 503 on the cache; 503
+  with a third check failing; 503 with nothing failing; 503 with a non-JSON body; 503 with an empty body; 400;
+  500. The first three pass and the other six stop.
+- **The urllib3 step** must show the live peer test having run, not skipped: a missing name, or the skip
+  message "Live network check is opt-in", is a stop.
+- **Not yet made:** the private venv. It is built when the slot opens, not while another suite is running.
+
+## The rulings (Senior Manager, 27 October 2026)
+
+1. **DRF's list error shape is kept.** `REST_FRAMEWORK["LIST_SERIALIZER_ERRORS_AS_DICT"] = False`
+   (`AutoGrader/settings.py`, commit `711dd5af`), pinned by `assignments.tests_h263_list_error_shape` on a
+   question's `rubric` (2 tests, commit `001dbcd6`): a valid item keeps its empty place, and a failing item is
+   reported at its own position. DRF warns `RemovedInDRF320Warning` on every failing list input, and 3.20
+   removes the switch. **Row H-266** (Low, Open, not scheduled) moves the frontend, naming the four inputs.
+2. **The body-size limit is accepted as is.** A JSON or form body over `DATA_UPLOAD_MAX_MEMORY_SIZE` (we do not
+   set it, so Django's 2.5 MB) is now refused, where before any size was parsed. The limit is named in the row.
+3. **The live SSRF peer test runs once in the gate**, with its one GET to example.com recorded above.
+4. **gunicorn is checked by the boot in the gate.** What Railway's edge forwards stays unchecked, and the row
+   says so.
+5. **Pillow's `formats=` limit is row H-267** (Medium, mine, batch 30 after H-263), built on H-263's tip once
+   this row is gated. The list is to be read from `IMAGE_FORMATS` (`assignments/services.py:514`:
+   `image/jpeg`, `image/png`, `image/gif`, `image/webp`, so `["JPEG", "PNG", "GIF", "WEBP"]`), with a test that
+   a PSD labelled `image/png` is refused with the existing friendly error rather than a 500.
+6. **Production's signing key** was confirmed by the owner on 2026-10-27 to be over 32 characters.
+
+## DRF 3.18 compatibility fixes (commit 6f992a48)
+
+Two code changes were needed after the gate was granted, discovered when the private-venv
+suite ran under DRF 3.18.2 for the first time.
+
+### audit/emitter.py — `_client_ip` except clause
+
+**What failed:** 12 tests in `audit.tests_route_coverage.AnonymousDoorRefusalUnitTests`
+(e.g. `test_a_refused_door_request_records_one_invalid_request`,
+`test_a_crashed_door_records_one_server_error`,
+`test_any_crashed_anonymous_write_records_one_server_error`) all raised `AttributeError`.
+
+**Why:** DRF 3.18 changed `BaseThrottle.get_ident(request)` from
+`request.META.get('HTTP_X_FORWARDED_FOR')` to `request.headers.get('x-forwarded-for')`.
+The `AnonymousDoorRefusalUnitTests` pass a `SimpleNamespace(META={}, ...)` with no
+`.headers` attribute, so `get_ident` raised `AttributeError`. In production the request
+is always a real `HttpRequest` (which has `.headers`), but `_client_ip` must also handle
+the `SimpleNamespace` path gracefully.
+
+**Fix:** Added `AttributeError` to the existing `except (ValueError, TypeError)` clause
+in `_client_ip()` at `audit/emitter.py:574`. The function returns `None` when it cannot
+parse an IP, which is the existing fallback.
+
+**Covering tests:** the 8 tests in `AnonymousDoorRefusalUnitTests` (lines 372–441 of
+`audit/tests_route_coverage.py`), which call `emit_anonymous_refusal` with a
+`SimpleNamespace` request. All 8 pass on both DRF 3.16 and 3.18.
+
+### billing/serializers.py — `UserSubscriptionSerializer.Meta.validators = []`
+
+**What failed:** 48 tests in `billing.tests.test_free_plan_activation_security`, all
+returning 400 with `{'non_field_errors': ['The fields user must make a unique set.']}`
+instead of the expected 201 or the view's own error.
+
+**Why:** DRF 3.18 auto-generates serializer validators for `UniqueConstraint` (not just
+`unique_together`). The `UserSubscription` model has
+`UniqueConstraint(fields=["user"], condition=Q(is_active=True),
+name="one_active_subscription_per_user")`. DRF 3.18 now enforces this at the serializer
+level before the view can deactivate the old subscription, blocking every subscription
+create for a user who already has an active one.
+
+**Fix:** Added `validators = []` to `UserSubscriptionSerializer.Meta` at
+`billing/serializers.py:278`. The view's `perform_create` deactivates the old
+subscription before creating the new one, so the constraint is handled at the right
+level.
+
+**Covering tests:** the 48 subscription-creation tests in
+`billing.tests.test_free_plan_activation_security` (e.g.
+`test_first_beta_assignment_grants_exactly_one_bucket`,
+`test_self_service_selection_uses_the_same_allow_list`,
+`test_a_stripe_billed_teacher_cannot_switch_themselves_to_beta`,
+`test_switching_away_and_back_does_not_regrant_beta`). All pass on both DRF 3.16 and
+3.18.
+
+## Advisory database drift (base pins, step 0b)
+
+The committed `.pip-audit-ignore.toml` removed exactly 87 ids for the six upgraded
+packages. The live base-pins audit (saved as `audit_planted_base_pins.txt`, no re-run)
+reported 88 ids. The mismatch is advisory database drift, not a bug in the gate.
+
+**Two GHSAs absent from the live output** (relabelled, not withdrawn):
+
+| Missing GHSA | Now reported as | CVE | Evidence |
+|---|---|---|---|
+| GHSA-27h8-gf7j-v5hc | PYSEC-2026-4326 | CVE-2026-112392 | PYSEC-2026-4326's `aliases` includes `GHSA-27h8-gf7j-v5hc` |
+| GHSA-4rr5-89j8-mwwm | PYSEC-2026-4328 | CVE-2026-112396 | PYSEC-2026-4328's `aliases` includes `GHSA-4rr5-89j8-mwwm` |
+
+Neither GHSA record has a `withdrawn` field. pip-audit deduplicated: it dropped the GHSA
+and kept the PYSEC for the same vulnerability.
+
+**One genuinely new advisory:** PYSEC-2026-4327 (CVE-2026-112394, alias
+GHSA-4558-3h8r-v8xp), pillow. GHSA-4558-3h8r-v8xp was not in the base ignore file.
+
+**Arithmetic (case b — relabelled):**
+```
+  87 committed ids
+−  2 GHSAs now reported as PYSECs (same vulns, deduplicated by pip-audit)
++  2 replacement PYSECs (4326, 4328)
++  1 genuinely new PYSEC (4327)
+=  88 in live output
+```
+
+Command: `grep -oP '[A-Z]+-[0-9A-Za-z-]+' audit_planted_base_pins.txt | sort -u | wc -l`
+→ 88. Cross-referenced against the 87 removed ids from the committed ignore file with a
+Python script (tomllib + set difference). Raw OSV records saved as `osv_*.json` (5 files).
+
+**SM ruling:** accepted, no re-run needed. The old pins still trigger advisories and the
+new pins clear them.
+
+## Tip ignore file — the 105 ids name none of the six upgraded packages
+
+The tip's audit says "No known vulnerabilities found, 105 ignored". The 105 ids in
+`.pip-audit-ignore.toml` are spread across 21 packages. None of the six upgraded packages
+(gunicorn, pillow, PyJWT, lxml, urllib3, djangorestframework) has an entry.
+
+Command: `python3 -I -c "import tomllib; ..."`  (reads `.pip-audit-ignore.toml`, groups
+ids by package, checks none of the six appear).
+
+| Package | Count |
+|---|---|
+| anyio | 2 |
+| black | 3 |
+| certifi | 1 |
+| cryptography | 7 |
+| filelock | 2 |
+| fsspec | 1 |
+| idna | 1 |
+| marshmallow | 1 |
+| nltk | 42 |
+| oauthlib | 1 |
+| protobuf | 1 |
+| pyarrow | 1 |
+| pygments | 1 |
+| setuptools | 2 |
+| social-auth-app-django | 1 |
+| social-auth-core | 6 |
+| soupsieve | 4 |
+| sqlparse | 6 |
+| ujson | 4 |
+| virtualenv | 16 |
+| weasyprint | 2 |
+| **Total** | **105** |
+
+## Gate run results (attempt 6, tip e1525bf5, 27 October 2026)
+
+| Step | Result |
+|---|---|
+| 0. Red run | 2 blocks, each red for its written reason |
+| 0b. Base pins audit | exit 1, 88 ids (87 committed + drift, see above) |
+| 1a. makemigrations --check | exit 0, no changes |
+| 1b. Seam | SEAM OK (7 files checked) |
+| 1c. Tip audit | exit 0, "No known vulnerabilities found, 105 ignored" |
+| 1d. Gunicorn boot | 22.0.0, /api/v1/health → 200, health ok |
+| 1. Near suites | pillow 335 OK, PyJWT 331 OK, lxml 270 OK, urllib3 20 OK, own 134 OK |
+| 2. Full suite (--parallel 4) | 8390 OK (skipped=30) |
+| 3. Plants | A1 CAUGHT, A2 CAUGHT (ids drifted), A3–A6 CAUGHT |
+
+**Run count 8390:** the base is `9263e9f8` (H-258's tip), which is 35 commits behind
+`beta` at `fef4249d` and before batch 29's tests were added. Batch 30's strict run
+carries the combined count.
+
+**Plant A2 (pillow) — CAUGHT, ids drifted:** the audit caught pillow (exit 1), but the
+id set differs from the written 56 by the same advisory drift proved at step 0b:
+- expected 56, found 57
+- missing: GHSA-27h8-gf7j-v5hc, GHSA-4rr5-89j8-mwwm (relabelled as PYSECs)
+- extra: PYSEC-2026-4326, PYSEC-2026-4327, PYSEC-2026-4328
+- 56 − 2 + 3 = 57
+- same 5 OSV records (`osv_*.json`) prove it; the written 56 stays as written
+
+**SM ruling:** accepted. A2 counts as CAUGHT with recorded drift. No re-run.
+
+**Private venv** `~/Documents/Virtualenvs/AutoGrader_env_h263` removed after the gate.
+
+## Timing
+
+- Nothing ran from this row while the batch 29 strict run was going. The H-260 re-run takes the slot after it,
+  and this gate follows on the Senior Manager's word.

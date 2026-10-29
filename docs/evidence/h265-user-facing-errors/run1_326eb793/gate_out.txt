@@ -1,0 +1,11 @@
+== 0. red run: sites at a3f5a6a1
+Ran 23 tests in 1.274s FAILED (failures=20) blocks 20
+red run as written
+== 1a. makemigrations
+== 1b. seam
+['AutoGrader/error_messages.py', 'billing/errors.py', 'billing/license_overage_offline_views.py', 'billing/license_service.py', 'billing/license_views.py', 'billing/qa_time_travel.py', 'billing/serializers.py', 'billing/services.py', 'billing/stripe_service.py', 'billing/views.py', 'billing/views_admin_credits.py', 'dashboard/query_params.py', 'dashboard/views.py']
+== 1. own + near
+Ran 2730 tests in 464.283s FAILED (failures=2, skipped=2)
+STOP: near not Ran 2730 OK
+python failed with exit status 2.
+gate exit=2

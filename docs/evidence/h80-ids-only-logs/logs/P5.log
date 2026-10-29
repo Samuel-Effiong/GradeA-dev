@@ -1,0 +1,13 @@
+# P5: 1a's P1: the offline renewal-failure line carries a traceback
+# file: billing/license_service.py (occurrence 2)
+# old: '                    allocation.user_id,\n                    license_sub.id,\n                    type(e).__name__,\n                    exc_info=True,\n'
+# new: '                    allocation.user_id,\n                    license_sub.id,\n                    type(e).__name__,\n'
+# commit: af5cee0442448447293933eae2bfd9e122149b38
+# tests: billing.tests.test_license_renewal_partial_failure
+# exit: 1
+# elapsed_s: 6.6
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_failed_teacher_leaves_no_partial_writes_behind (billing.tests.test_license_renewal_partial_failure.OfflineRenewalTransactionBoundaryTests.test_a_failed_teacher_leaves_no_partial_writes_behind)
+
+FAILED (failures=1)

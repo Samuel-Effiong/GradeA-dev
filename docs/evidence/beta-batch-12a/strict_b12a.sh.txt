@@ -1,0 +1,49 @@
+#!/bin/bash
+# Strict full run of a beta bundle (Gate 10 form, with the stall watchdog), on task/beta-batch-12a. Usage: gate10_epic.sh <expected full or short sha> <label, e.g. r7>
+set -u
+EXP=${1:?expected sha}; LABEL=${2:?label}
+cd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-beta-batch-12a || exit 2
+source /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/activate
+for v in $(env | grep -oE '^(RACE_COST[A-Z_]*|AUDIT_BENCH[A-Z_]*|ENABLE_GRADING_BENCHMARK)='); do unset "${v%=}"; done
+S=/home/bond-servant-in-training/Documents/Projects/GAP-0b-runs; LOG=$S/strict_$LABEL.log
+SHA=$(git rev-parse --short=8 HEAD)
+[ "$(git branch --show-current)" = task/beta-batch-12a ] || { echo "wrong branch"; exit 3; }
+[ "$(git rev-parse HEAD)" = "$(git rev-parse "$EXP")" ] || { echo "unexpected HEAD $SHA"; exit 3; }
+[ -n "$(git status --porcelain)" ] && { echo "worktree not clean"; exit 3; }
+[ "$(ps -eo comm,args | awk '$1 ~ /^python/ && /manage.py test/' | wc -l)" = 0 ] || { echo "another test run is active"; exit 4; }
+echo "mypy: $(pre-commit run mypy --all-files 2>&1 | grep -E 'Passed|Failed')"
+echo "makemigrations: $(python manage.py makemigrations --check --dry-run --settings=settings_worktree 2>&1 | tail -1)"
+echo "bundle $LABEL strict full run start $(date '+%F %T %Z') sha=$SHA load=$(cut -d' ' -f1-3 /proc/loadavg)"
+export PYTHONDONTWRITEBYTECODE=1
+t0=$(date +%s)
+export PYTHONFAULTHANDLER=1 GAP_G10_TAG=strict-$LABEL-$$
+: > $LOG
+( systemd-inhibit --what=idle:sleep:handle-lid-switch --who=GAP --why="GAP test run" --mode=block systemd-run --user --scope -q -p MemoryMax=12G -p MemorySwapMax=0 nice -n 10 flock ~/.machine-fullsuite.lock timeout -k 60 3600 python manage.py test --settings=settings_worktree --parallel 4 --noinput --verbosity 2 >> $LOG 2>&1 < /dev/null; echo $? > $S/strict_$LABEL.rc ) &
+RUN=$!
+# Watchdog (SM interim rule 2026-10-02): after 300 s without a new log line, record the process
+# tree, then SIGABRT the parent (faulthandler prints its traceback into the log), then the workers.
+mine() { for d in /proc/[0-9]*; do grep -qz "^GAP_G10_TAG=$GAP_G10_TAG\$" $d/environ 2>/dev/null && grep -qa "manage.py" $d/cmdline 2>/dev/null && [ "$(cat $d/comm)" = python ] && echo ${d#/proc/}; done; }
+stalled=0
+while kill -0 $RUN 2>/dev/null; do
+  perl -e 'select(undef,undef,undef,5)'
+  age=$(( $(date +%s) - $(stat -c %Y $LOG) ))
+  if [ -s $LOG ] && [ $age -ge 300 ] && [ $stalled = 0 ]; then
+    stalled=1; pids=$(mine | sort -n | tr '\n' ' ')
+    { date '+%F %T'; ps -o pid,ppid,stat,etimes,pcpu,wchan:20,nlwp,args -p $(echo $pids | tr ' ' ',') | cut -c1-160; } > $S/strict_$LABEL.stall_tree.txt 2>&1
+    parent=$(for p in $pids; do pp=$(ps -o ppid= -p $p | tr -d ' '); [ "$(cat /proc/$pp/comm 2>/dev/null)" != python ] && echo $p; done)
+    [ -n "$parent" ] && kill -ABRT $parent
+    perl -e 'select(undef,undef,undef,4)'
+    for p in $pids; do [ "$p" != "$parent" ] && [ -d /proc/$p ] && kill -ABRT $p; done
+  fi
+done
+wait $RUN
+rc=$(cat $S/strict_$LABEL.rc 2>/dev/null || echo missing)
+echo "watchdog: stalled=$stalled (300 s silence rule; 0 = never fired)"
+echo "exit=$rc end $(date '+%F %T %Z') wall=$(( $(date +%s) - t0 ))s"
+echo "load at end: $(cut -d" " -f1-3 /proc/loadavg)"
+grep -E '^Ran [0-9]+ tests' $LOG; grep -E '^(OK|FAILED)' $LOG | tail -1
+echo "blocked_outbound=$(grep -c 'Blocked real outbound network call' $LOG)"
+echo "per-app test counts:"
+grep -oE '^[A-Za-z_0-9]+ \(([A-Za-z_0-9]+)\.[A-Za-z_0-9.]+\)' $LOG | sed -E 's/^[^ ]+ \(([A-Za-z_0-9]+)\..*/\1/' | sort | uniq -c | awk '{printf "  %s %s\n",$2,$1}'
+echo "FAIL/ERROR headers: $(grep -cE '^(FAIL|ERROR): ' $LOG)"; grep -E '^(FAIL|ERROR): ' $LOG | head -20
+echo "suspends during run: $(journalctl --since "@$t0" --no-pager 2>/dev/null | grep -cE 'PM: suspend entry')"

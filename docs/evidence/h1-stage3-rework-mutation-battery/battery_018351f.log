@@ -1,0 +1,75 @@
+=== roster-scope mutation battery on 018351fae9234d3b9f44b1f264a032baca22d443 started 2026-09-30T13:44:17+01:00
+
+--- control: unmutated tree (creates the test DB)
+test_exit=0
+Ran 16 tests in 14.258s
+OK
+
+--- mutant M1_classmate_fanout_restored (classrooms/signals.py)
+applied
+test_exit=1
+      1 FAIL: test_one_enrolment_bumps_five_scopes_at_a_class_of_30_and_of_300
+Ran 16 tests in 13.290s
+FAILED (failures=1)
+restored_sha256=08d581868e5d05517f209584df3e923e8f6dfcd5fd8387df26195d2e3413f26c MATCHES blob
+
+--- mutant M2_no_crs_on_student_detail (classrooms/views.py)
+applied
+test_exit=1
+      1 FAIL: test_an_enrolment_refreshes_the_classmates_cached_roster
+      1 FAIL: test_a_removal_refreshes_the_classmates_cached_roster
+      1 FAIL: test_a_students_detail_key_carries_that_course
+      1 FAIL: test_what_a_cache_hit_costs_a_student_compared_with_a_teacher
+Ran 16 tests in 17.097s
+FAILED (failures=4)
+restored_sha256=f7fed8d634d3a489026ba7d195fac9cc9b321738fe5ae5a899f8c119e2e12659 MATCHES blob
+
+--- mutant M3_no_crs_on_student_list (classrooms/views.py)
+applied
+test_exit=1
+      1 ERROR: test_a_silent_withdrawal_moves_the_students_list_key
+      1 FAIL: test_an_enrolment_refreshes_the_classmates_cached_roster
+      1 FAIL: test_a_removal_refreshes_the_classmates_cached_roster
+      1 FAIL: test_a_students_list_key_carries_every_enrolled_course
+      1 FAIL: test_what_a_cache_hit_costs_a_student_compared_with_a_teacher
+Ran 16 tests in 15.332s
+FAILED (failures=4, errors=1)
+restored_sha256=f7fed8d634d3a489026ba7d195fac9cc9b321738fe5ae5a899f8c119e2e12659 MATCHES blob
+
+--- mutant M4_my_courses_without_global (classrooms/views.py)
+applied
+test_exit=1
+      1 FAIL: test_an_enrolment_refreshes_the_classmates_cached_roster
+      1 FAIL: test_a_removal_refreshes_the_classmates_cached_roster
+      1 FAIL: test_every_roster_bearing_cached_view_keys_on_a_roster_scope
+Ran 16 tests in 15.108s
+FAILED (failures=3)
+restored_sha256=f7fed8d634d3a489026ba7d195fac9cc9b321738fe5ae5a899f8c119e2e12659 MATCHES blob
+
+--- mutant M5_override_removed (classrooms/views.py)
+applied
+test_exit=1
+      1 ERROR: test_a_silent_withdrawal_moves_the_students_list_key
+      1 FAIL: test_an_enrolment_refreshes_the_classmates_cached_roster
+      1 FAIL: test_a_removal_refreshes_the_classmates_cached_roster
+      1 FAIL: test_a_students_detail_key_carries_that_course
+      1 FAIL: test_a_students_list_key_carries_every_enrolled_course
+      1 FAIL: test_every_roster_bearing_cached_view_keys_on_a_roster_scope
+      1 FAIL: test_what_a_cache_hit_costs_a_student_compared_with_a_teacher
+Ran 16 tests in 13.113s
+FAILED (failures=6, errors=1)
+restored_sha256=f7fed8d634d3a489026ba7d195fac9cc9b321738fe5ae5a899f8c119e2e12659 MATCHES blob
+
+--- mutant M6_batched_read_ignores_counters (AutoGrader/cache_generation.py)
+applied
+test_exit=1
+      1 FAIL: test_an_enrolment_refreshes_the_classmates_cached_roster
+      1 FAIL: test_a_removal_refreshes_the_classmates_cached_roster
+      1 FAIL: test_batched_and_unbatched_build_the_same_key
+      1 FAIL: test_batched_reads_every_generation_in_one_command
+      1 FAIL: test_what_a_cache_hit_costs_a_student_compared_with_a_teacher
+Ran 16 tests in 14.106s
+FAILED (failures=5)
+restored_sha256=51f137e392282e2a2c77a6b3d02d0008e76535c84356aec2d74a77a606163490 MATCHES blob
+
+final_status_lines=0

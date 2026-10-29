@@ -1,0 +1,77 @@
+{
+ "M1": {
+  "status": "KILLED",
+  "ran": "Ran 15 tests in 0.458s",
+  "missing": [],
+  "also_failed": [
+   "test_a_large_picture_is_shrunk_to_1024_on_its_longest_side",
+   "test_a_replaced_picture_is_stored_as_webp",
+   "test_a_small_picture_is_not_enlarged",
+   "test_a_webp_upload_loses_its_exif_too",
+   "test_an_animated_gif_is_stored_as_its_first_frame",
+   "test_an_icc_profile_is_not_stored",
+   "test_direct_add_student_stores_webp",
+   "test_gps_and_orientation_are_gone_and_the_picture_is_upright",
+   "test_school_with_admin_stores_webp",
+   "test_the_admin_user_form_stores_webp",
+   "test_the_user_serializer_stores_webp",
+   "test_transparency_is_kept"
+  ]
+ },
+ "M2": {
+  "status": "KILLED",
+  "ran": "Ran 15 tests in 0.526s",
+  "missing": [],
+  "also_failed": [
+   "test_a_webp_upload_loses_its_exif_too"
+  ]
+ },
+ "M3": {
+  "status": "KILLED",
+  "ran": "Ran 15 tests in 0.536s",
+  "missing": [],
+  "also_failed": []
+ },
+ "M4": {
+  "status": "KILLED",
+  "ran": "Ran 15 tests in 0.644s",
+  "missing": [],
+  "also_failed": []
+ },
+ "M5": {
+  "status": "KILLED",
+  "ran": "Ran 15 tests in 0.519s",
+  "missing": [],
+  "also_failed": []
+ },
+ "M6": {
+  "status": "KILLED",
+  "ran": "Ran 15 tests in 0.526s",
+  "missing": [],
+  "also_failed": []
+ },
+ "M7": {
+  "status": "KILLED",
+  "ran": "Ran 15 tests in 0.539s",
+  "missing": [],
+  "also_failed": [
+   "test_a_large_picture_is_shrunk_to_1024_on_its_longest_side",
+   "test_a_replaced_picture_is_stored_as_webp",
+   "test_a_small_picture_is_not_enlarged",
+   "test_an_animated_gif_is_stored_as_its_first_frame",
+   "test_an_icc_profile_is_not_stored",
+   "test_direct_add_student_stores_webp",
+   "test_gps_and_orientation_are_gone_and_the_picture_is_upright",
+   "test_school_with_admin_stores_webp",
+   "test_the_admin_user_form_stores_webp",
+   "test_the_user_serializer_stores_webp",
+   "test_transparency_is_kept"
+  ]
+ },
+ "M8": {
+  "status": "KILLED",
+  "ran": "Ran 15 tests in 0.535s",
+  "missing": [],
+  "also_failed": []
+ }
+}

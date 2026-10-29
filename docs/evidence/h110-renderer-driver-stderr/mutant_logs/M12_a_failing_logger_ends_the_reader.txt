@@ -1,0 +1,35 @@
+...............Exception in thread pdf-driver-stderr:
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/pdf_renderer.py", line 408, in _forward
+    self._emit(line)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/pdf_renderer.py", line 430, in _emit
+    logger.warning("[PDF] Playwright driver stderr: %s", text)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 268, in failing_warning
+    raise OSError("the log is unavailable")
+OSError: the log is unavailable
+F...........
+======================================================================
+FAIL: test_a_logger_that_raises_does_not_stop_the_reader (assignments.tests_pdf_renderer_driver_stderr_reader.DriverStderrReaderTest.test_a_logger_that_raises_does_not_stop_the_reader)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h110-renderer-driver-stderr/assignments/tests_pdf_renderer_driver_stderr_reader.py", line 275, in test_a_logger_that_raises_does_not_stop_the_reader
+    self.assertEqual(calls, ["one", "two", "three"])
+AssertionError: Lists differ: ['one'] != ['one', 'two', 'three']
+
+Second list contains 2 additional elements.
+First extra element 1:
+'two'
+
+- ['one']
++ ['one', 'two', 'three']
+
+----------------------------------------------------------------------
+Ran 27 tests in 8.652s
+
+FAILED (failures=1)
+Found 27 test(s).
+System check identified no issues (0 silenced).

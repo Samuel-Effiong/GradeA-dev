@@ -1,0 +1,102 @@
+# H-214 chain config for ../row_chain.py. Written 2026-10-14 by Builder 58
+# BEFORE any run, by reading the code at 4a479919 and the base 913f248f.
+# Nothing here was seen by a run.
+
+ROW = "h214"
+WT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h214-direct-add-400"
+BASE = "913f248f"  # beta: views.py without the clause
+OUT = "/home/bond-servant-in-training/Documents/Projects/GAP-58-runs/h214"
+DB_PREFIX = "test_h214"
+
+ANS = "DirectAddAnswersTests"
+ENROLLED = (ANS, "test_an_already_enrolled_student_is_a_400_with_the_reason")
+OTHER_SCHOOL = (ANS, "test_a_student_of_another_school_is_a_400_and_stays_out")
+DRF_403 = (ANS, "test_a_drf_exception_that_is_not_a_validation_error_also_passes_through")
+CONTROL_500 = (ANS, "test_an_unexpected_failure_is_still_a_500_with_the_fixed_message")
+H99 = ("AGeneratedAddressNeverAttachesTests", "test_when_every_attempt_collides_nothing_is_attached")
+CROSS = ("CrossSchoolIsRejected", "test_direct_add_is_rejected")
+H203_STAFF = ("StudentAddRoutesAdminPowerTests", "test_direct_add_refuses_a_student_typed_row_carrying_is_staff")
+H203_SU = ("StudentAddRoutesAdminPowerTests", "test_direct_add_refuses_a_student_typed_row_carrying_is_superuser")
+
+ROW_MODULES = [
+    "classrooms.tests_h214_direct_add_answers",
+    "classrooms.tests_cross_school_enrollment",
+    "classrooms.tests_h99_placeholder_email",
+    "classrooms.tests_h203_admin_power_routes",
+]
+
+# (r): the four modules as at the tip, on the base. Every refusal raised in
+# create() (already enrolled; the join check: other school, is_staff and
+# is_superuser rows) lands in the blanket `except Exception` -> 500. The h99
+# all-collide case raises in create() too. PermissionDenied from save() -> 500.
+R_LABELS = ROW_MODULES
+R_FROM_TIP = [
+    "classrooms/tests_h214_direct_add_answers.py",
+    "classrooms/tests_cross_school_enrollment.py",
+    "classrooms/tests_h99_placeholder_email.py",
+    "classrooms/tests_h203_admin_power_routes.py",
+]
+FIVE_HUNDRED = {
+    ENROLLED: ("500 != 400",),
+    OTHER_SCHOOL: ("500 != 400",),
+    DRF_403: ("500 != 403",),
+    H99: ("500 != 400",),
+    CROSS: ("500 != 400",),
+    H203_STAFF: ("500 not found in (400,)",),
+    H203_SU: ("500 not found in (400,)",),
+}
+REPRO = set(FIVE_HUNDRED)
+R_REASON = FIVE_HUNDRED
+
+# (a): the row's modules, the other direct-add readers, the guard list.
+A_LABELS = ROW_MODULES + [
+    "classrooms.tests_h71_student_add_role",
+    "classrooms.tests_tenancy_and_roster",
+    "classrooms.tests_security_penetration",
+    "AutoGrader.tests_student_classmates_guard",
+    "AutoGrader.tests_migration_safety_check",
+    "AutoGrader.tests_no_playwright_at_import",
+    "AutoGrader.tests_no_wildcard_invalidation",
+    "AutoGrader.tests_cache_invalidation_coverage",
+    "AutoGrader.tests_migration_rollback_defaults",
+    "AutoGrader.tests_redis_test_isolation",
+    "AutoGrader.tests_management_commands_are_commands",
+    "AutoGrader.tests_no_pii_in_logs",
+    "AutoGrader.tests_log_scrubbing",
+    "AutoGrader.tests_sentry_scrubbing",
+    "billing.tests.test_logs_carry_no_email",
+]
+
+CLAUSE = """        except APIException:
+            # H-214: the serializer refuses by raising DRF's own exceptions
+            # ("already enrolled", the school gate); those are the caller's
+            # 400, not a server fault.
+            raise
+"""
+
+MUTANTS = {
+    # M1 the clause removed: the old behaviour, the seven reds of (r).
+    "M1": ("classrooms/views.py", CLAUSE, "", ROW_MODULES, set(FIVE_HUNDRED), FIVE_HUNDRED),
+    # M2 narrowed to DRF's ValidationError: only the PermissionDenied test.
+    "M2": (
+        "classrooms/views.py", CLAUSE,
+        CLAUSE.replace("except APIException:", "except ValidationError:"),
+        ROW_MODULES, {DRF_403}, {DRF_403: ("500 != 403",)},
+    ),
+    # M3 widened to every exception: the RuntimeError control is re-raised
+    # by the test client (an ERROR, not a 500 answer).
+    "M3": (
+        "classrooms/views.py", CLAUSE,
+        CLAUSE.replace("except APIException:", "except Exception:"),
+        ROW_MODULES, {CONTROL_500}, {CONTROL_500: ("RuntimeError: database exploded",)},
+    ),
+    # M4 create()'s sentence swapped for the duplicate-name form: only the
+    # exact-sentence assertion sees it (the old substring passed it).
+    "M4": (
+        "classrooms/serializers.py",
+        '"Student is already enrolled in this course."',
+        'f"A student with the exact name {email!r} is already enrolled in this course."',
+        ROW_MODULES, {ENROLLED},
+        {ENROLLED: ("!= 'Student is already enrolled in this course.'",)},
+    ),
+}

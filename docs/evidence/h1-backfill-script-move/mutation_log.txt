@@ -1,0 +1,4 @@
+B1_backfill_is_back_in_commands {'killed': True, 'failing_tests': ['test_backfill_is_not_a_management_command', 'test_every_command_module_defines_a_command_class']}
+B2_another_script_in_a_commands_dir {'killed': True, 'failing_tests': ['test_every_command_module_defines_a_command_class']}
+B3_scripts_becomes_a_package {'killed': True, 'failing_tests': ['test_the_moved_script_cannot_be_imported_as_a_module']}
+SURVIVORS: []

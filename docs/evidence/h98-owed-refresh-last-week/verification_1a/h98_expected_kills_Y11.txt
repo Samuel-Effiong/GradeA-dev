@@ -1,0 +1,4 @@
+Written 2026-10-05 15:48:19 WAT, before any run of H-98 by 1a.
+Mutant Y11 is expected to fail exactly two tests:
+  billing.tests.test_allocation_anchor.GrantsOwedInTheLastWeekTests.test_an_outage_that_ran_to_the_end_counts_the_last_point_too
+  billing.tests.test_vf1a_h98_probe.H98Probe.test_w1_03

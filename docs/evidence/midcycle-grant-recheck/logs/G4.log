@@ -1,0 +1,12 @@
+# G4: grant: not a trial
+# file: billing/services.py (occurrence 1)
+# old: '            not user_subscription.is_active\n            or user_subscription.is_trial\n'
+# new: '            not user_subscription.is_active\n'
+# commit: ae944e9664f7cb27d116f20f49b3230dda9f4f9c
+# exit: 1
+# elapsed_s: 5.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_each_eligibility_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_each_eligibility_condition_is_rechecked_under_the_lock) [back on a trial]
+
+FAILED (failures=1)

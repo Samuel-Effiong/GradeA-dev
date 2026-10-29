@@ -1,0 +1,15 @@
+"""1a's mutant Y10 for H-107: the runner wraps the interpreter's original
+stderr (sys.__stderr__), not the stream sys.stderr is when the run is set
+up (AutoGrader/redis_test_runner.py). In an ordinary run the two are the
+same object, so d5's wiring test (which compares with sys.stderr) cannot
+tell them apart; my probe R2 replaces sys.stderr first. Applied in place
+in the current directory; restore with git checkout. Run with python -B
+(rule 17)."""
+
+P = "AutoGrader/redis_test_runner.py"
+s = open(P, encoding="utf-8").read()
+old = 'kwargs["stream"] = PatientStream(sys.stderr)'
+new = 'kwargs["stream"] = PatientStream(sys.__stderr__)'
+assert s.count(old) == 1, s.count(old)
+open(P, "w", encoding="utf-8").write(s.replace(old, new))
+print("applied Y10")

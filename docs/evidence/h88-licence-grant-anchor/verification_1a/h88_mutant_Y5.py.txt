@@ -1,0 +1,14 @@
+"""1a's mutant Y5 for H-81: the owed-refresh report measures to `now`
+instead of the earlier of the cycle end and now. A renewal made more than
+a week after the cycle ended (a late offline renewal) would then report
+every teacher of a fully served licence as owed a refresh. Applied in
+place to billing/license_service.py in the current directory; restore with
+git checkout. Run with python -B (rule 17)."""
+
+P = "billing/license_service.py"
+s = open(P, encoding="utf-8").read()
+old = "        until = min(license_sub.billing_cycle_end, now)\n"
+new = "        until = now\n"
+assert s.count(old) == 1, s.count(old)
+open(P, "w", encoding="utf-8").write(s.replace(old, new))
+print("applied Y5")

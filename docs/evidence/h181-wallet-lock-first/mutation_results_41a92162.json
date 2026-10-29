@@ -1,0 +1,156 @@
+{
+  "M1_activate_subscription_no_wallet_first": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 9,
+    "expected": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_activate_subscription"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_activate_subscription"
+    ],
+    "pycache_left": 0
+  },
+  "M2_apply_immediate_plan_change_no_wallet_first": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 9,
+    "expected": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_apply_immediate_plan_change"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_apply_immediate_plan_change"
+    ],
+    "pycache_left": 0
+  },
+  "M3_process_mid_cycle_credit_grant_no_wallet_first": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 9,
+    "expected": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_process_mid_cycle_credit_grant"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_process_mid_cycle_credit_grant"
+    ],
+    "pycache_left": 0
+  },
+  "M4_process_rollover_and_renewal_no_wallet_first": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 9,
+    "expected": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_process_rollover_and_renewal"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_process_rollover_and_renewal"
+    ],
+    "pycache_left": 0
+  },
+  "M5_finalize_trial_conversion_via_stripe_no_wallet_first": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 9,
+    "expected": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_finalize_trial_conversion_via_stripe"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_finalize_trial_conversion_via_stripe"
+    ],
+    "pycache_left": 0
+  },
+  "M6_finalize_trial_to_paid_conversion_no_wallet_first": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 9,
+    "expected": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_finalize_trial_to_paid_conversion"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_finalize_trial_to_paid_conversion"
+    ],
+    "pycache_left": 0
+  },
+  "M7_licence_rollover_helper_no_wallet_first": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 9,
+    "expected": [
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_process_license_renewal",
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_process_offline_renewal",
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_refresh_teacher_credits"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_process_license_renewal",
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_process_offline_renewal",
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_refresh_teacher_credits"
+    ],
+    "pycache_left": 0
+  },
+  "M8_the_helper_locks_nothing": {
+    "status": "KILLED",
+    "exit": 1,
+    "ran": 9,
+    "expected": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_activate_subscription",
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_apply_immediate_plan_change",
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_process_mid_cycle_credit_grant",
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_process_rollover_and_renewal",
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_finalize_trial_conversion_via_stripe",
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_finalize_trial_to_paid_conversion",
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_process_license_renewal",
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_process_offline_renewal",
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_refresh_teacher_credits"
+    ],
+    "expected_but_passed": [],
+    "failing_tests": [
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_process_license_renewal",
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_process_offline_renewal",
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_refresh_teacher_credits",
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_activate_subscription",
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_apply_immediate_plan_change",
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_finalize_trial_conversion_via_stripe",
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_finalize_trial_to_paid_conversion",
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_process_mid_cycle_credit_grant",
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_process_rollover_and_renewal"
+    ],
+    "pycache_left": 0
+  },
+  "M9_licence_rollover_helper_wallet_after_bucket": {
+    "status": "SURVIVED",
+    "exit": 0,
+    "ran": 9,
+    "expected": [
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_process_license_renewal",
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_process_offline_renewal",
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_refresh_teacher_credits"
+    ],
+    "expected_but_passed": [
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_process_license_renewal",
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_process_offline_renewal",
+      "billing.tests.test_wallet_lock_first.LicenceWalletLockFirstTests.test_refresh_teacher_credits"
+    ],
+    "failing_tests": [],
+    "pycache_left": 0
+  },
+  "M10_process_rollover_and_renewal_wallet_after_bucket": {
+    "status": "SURVIVED",
+    "exit": 0,
+    "ran": 9,
+    "expected": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_process_rollover_and_renewal"
+    ],
+    "expected_but_passed": [
+      "billing.tests.test_wallet_lock_first.WalletLockFirstTests.test_process_rollover_and_renewal"
+    ],
+    "failing_tests": [],
+    "pycache_left": 0
+  }
+}

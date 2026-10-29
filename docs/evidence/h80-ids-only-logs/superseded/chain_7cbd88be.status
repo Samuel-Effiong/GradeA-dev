@@ -1,0 +1,4 @@
+11:10:28 repro exit=1 (red expected)
+11:11:37 (a) exit=0
+11:13:32 (b) exit=0
+11:16:55 (c) stopped by d5 (base update onto 6b627cc4 needed); not a result

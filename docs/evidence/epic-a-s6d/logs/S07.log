@@ -1,0 +1,17 @@
+# S07: grade-all refuses before queuing
+# file: assignments/views.py (occurrence 1)
+# old: '        ensure_gradable(assignment)\n'
+# new: ''
+# commit: 3c5aa16c4d0ac96214b835d228787f5c9d4b2889
+# exit: 1
+# elapsed_s: 10.6
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_r1_no_questions (students.tests_s6d_rubric_gate.RubricGateRouteTests.test_r1_no_questions) (case='R1 None', route='H4 grade-all')
+FAIL: test_r1_no_questions (students.tests_s6d_rubric_gate.RubricGateRouteTests.test_r1_no_questions) (case='R1 None', route='H5 schedule-grade-all')
+FAIL: test_r2_empty_questions (students.tests_s6d_rubric_gate.RubricGateRouteTests.test_r2_empty_questions) (case='R2 []', route='H4 grade-all')
+FAIL: test_r2_empty_questions (students.tests_s6d_rubric_gate.RubricGateRouteTests.test_r2_empty_questions) (case='R2 []', route='H5 schedule-grade-all')
+FAIL: test_r3_a_question_with_no_marking_guide (students.tests_s6d_rubric_gate.RubricGateRouteTests.test_r3_a_question_with_no_marking_guide) (case='R3', route='H4 grade-all')
+FAIL: test_r3_a_question_with_no_marking_guide (students.tests_s6d_rubric_gate.RubricGateRouteTests.test_r3_a_question_with_no_marking_guide) (case='R3', route='H5 schedule-grade-all')
+
+FAILED (failures=6, skipped=1)

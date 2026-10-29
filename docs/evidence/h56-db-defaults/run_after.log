@@ -1,0 +1,7 @@
+AutoGrader.tests_migration_rollback_defaults.OldCodeInsertTests.test_an_insert_that_omits_the_column_succeeds_with_the_default ... ok
+AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_every_not_null_field_added_since_production_has_a_db_default ... ok
+AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_flags_a_not_null_field_without_a_db_default ... ok
+AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_sees_the_nine_rollback_columns ... ok
+AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_production_heads_exist ... ok
+Ran 5 tests in 0.628s
+OK

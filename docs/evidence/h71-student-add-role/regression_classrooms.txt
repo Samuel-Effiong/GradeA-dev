@@ -1,0 +1,203 @@
+# Trimmed: the last 200 lines. Full log (520 KB, over the repo's 500 KB limit):
+# ~/Documents/Projects/GAP-evidence-logs/h71-student-add-role_regression_classrooms_3fec037_full.txt
+
+           ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 277, in _bump_pipelined
+    client = cache.client.get_client(write=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+redis.exceptions.ConnectionError: redis unreachable
+Cache generation bump failed for cachegen:crs:2906ec67-1d6d-478f-b196-64ef270bf837; entries keyed on it will serve stale data until their TTL expires.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 171, in bump_generation
+    return _incr_or_create(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 201, in _incr_or_create
+    return cache.incr(key)
+           ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 171, in bump_generation
+    return _incr_or_create(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 201, in _incr_or_create
+    return cache.incr(key)
+           ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 171, in bump_generation
+    return _incr_or_create(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 201, in _incr_or_create
+    return cache.incr(key)
+           ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 171, in bump_generation
+    return _incr_or_create(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 201, in _incr_or_create
+    return cache.incr(key)
+           ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 277, in _bump_pipelined
+    client = cache.client.get_client(write=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+redis.exceptions.ConnectionError: redis unreachable
+Cache generation bump failed for cachegen:usr:e56565f6-55e1-4fcb-a6e7-f9a2a54316a4; entries keyed on it will serve stale data until their TTL expires.
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 171, in bump_generation
+    return _incr_or_create(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 201, in _incr_or_create
+    return cache.incr(key)
+           ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 171, in bump_generation
+    return _incr_or_create(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 201, in _incr_or_create
+    return cache.incr(key)
+           ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 171, in bump_generation
+    return _incr_or_create(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 201, in _incr_or_create
+    return cache.incr(key)
+           ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 171, in bump_generation
+    return _incr_or_create(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 201, in _incr_or_create
+    return cache.incr(key)
+           ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 171, in bump_generation
+    return _incr_or_create(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 201, in _incr_or_create
+    return cache.incr(key)
+           ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h71-student-add-role/AutoGrader/cache_generation.py", line 277, in _bump_pipelined
+    client = cache.client.get_client(write=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+redis.exceptions.ConnectionError: redis unreachable
+.Cannot activate automatic trial for user race-t@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user race-t@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user race-t@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user flip@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user race-t@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user locmem-t@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user locmem-s@x.test (validation): Free trial plan not found. Please create one in the admin panel.
+.....Cannot activate automatic trial for user race-a@indiv.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user race-b@indiv.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user race-s0@indiv.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user race-s1@indiv.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user race-s2@indiv.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user race-s3@indiv.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user race-s4@indiv.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user race-s5@indiv.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user race-s6@indiv.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user race-s7@indiv.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user race-s8@indiv.test (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user race-s9@indiv.test (validation): Free trial plan not found. Please create one in the admin panel.
+.....
+----------------------------------------------------------------------
+Ran 383 tests in 78.021s
+
+OK
+Destroying test database for alias 'default'...

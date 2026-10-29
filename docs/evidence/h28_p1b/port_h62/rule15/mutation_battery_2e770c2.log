@@ -1,0 +1,31 @@
+L01	cancel phase A durable	KILLED	FAILED (errors=1)	True	49.6
+L02	seats phase A durable	KILLED	FAILED (errors=1)	True	37.6
+L03	unknown outcome: a timeout is read back	KILLED	FAILED (failures=7, errors=3)	True	45.2
+L04	a CardError is not a refusal (payment_errors)	SURVIVED	OK	True	41.4
+L05	a refused delete is read back (read_back_on)	KILLED	FAILED (failures=1, errors=1)	True	40.9
+L06	the unpaid change's invoice is voided	KILLED	FAILED (failures=16, errors=1)	True	42.3
+L07	only the change's own invoice (new_invoice_since)	SURVIVED	OK	True	41.4
+L08	finalise compensates where no money moved	KILLED	FAILED (failures=8, errors=1)	True	42.8
+L09	a paid seat increase is never compensated	KILLED	FAILED (failures=1)	True	47.0
+L10	a paid plan upgrade is never compensated	KILLED	FAILED (failures=1)	True	44.2
+L11	F0: a price change reaches Stripe	KILLED	FAILED (failures=21, errors=1)	True	40.8
+L12	the per-licence guard is reported as busy	KILLED	FAILED (errors=7)	True	45.4
+L13	abandon frees the licence (FAILED)	KILLED	FAILED (failures=2)	True	44.1
+L14	stale check: only intents older than STALE_AFTER	KILLED	FAILED (failures=1)	True	41.7
+L15	stale check alerts once (ESCALATED not re-selected)	SURVIVED	OK	True	44.0
+L16	alerts email the super admins	KILLED	FAILED (failures=3)	True	45.5
+L17	resolve --apply needs a note	KILLED	FAILED (failures=5)	True	45.7
+L18	the local write is retried	KILLED	FAILED (failures=1, errors=2)	True	35.2
+L19	a retry after a lost commit reply writes nothing twice	KILLED	FAILED (failures=1)	True	37.7
+L20	the retry runs on a fresh connection	SURVIVED	OK	True	42.1
+L21	an abandoned started call stays PENDING	KILLED	FAILED (failures=1)	True	40.4
+L22	the budget bounds each call	KILLED	FAILED (failures=5)	True	44.4
+L23	the worker reports its caller's transaction	KILLED	FAILED (failures=1)	True	35.9
+L24	the worker closes its own connections	KILLED	FAILED (failures=1)	True	42.8
+L25	convert phase A durable	KILLED	FAILED (errors=1)	True	41.9
+L26	plan change phase A durable	KILLED	FAILED (errors=1)	True	36.8
+L27	each call is bounded at the socket by the time left	KILLED	FAILED (failures=2)	True	37.7
+L29	the worker runs in the caller's context (sees the deadline)	KILLED	FAILED (failures=1)	True	40.2
+L28	licence calls use the app's Stripe API version	KILLED	FAILED (errors=1)	True	37.1
+
+25/29 killed with verified restore

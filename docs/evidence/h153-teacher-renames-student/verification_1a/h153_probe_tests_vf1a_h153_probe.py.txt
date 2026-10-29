@@ -1,0 +1,114 @@
+"""Verifier 1's probes for H-153 (a teacher renames a student).
+
+Not the author's tests. The author says plainly that what follows the
+account's save (the cache refreshes) was not read further, and the one
+test that reads the new name as another teacher clears the cache first.
+These read WITHOUT clearing it. Rule 19: each is evidence only once a run
+has shown it red under the mutant named for it in h153_expected_kills.txt.
+
+  ra  another teacher of the same student, whose course page and whose
+      read of the student's account are already cached, sees the new name
+      on both at once
+  rb  the student's own cached course page (their own roster entry) shows
+      the new name at once
+  rc  a middle name alone can be changed
+
+Answers are read from response.data (the rendered body is wrapped).
+"""
+
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APIClient
+
+from users.tests_teacher_renames_student import NEW, RenameBase
+from users.tokens import EpochRefreshToken
+
+
+class Vf1aCachedReadersProbe(RenameBase):
+    def setUp(self):
+        super().setUp()
+        self.enrol(self.student, self.other_course)
+
+    def client_of(self, user):
+        client = APIClient()
+        token = EpochRefreshToken.for_user(user).access_token
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        return client
+
+    def read(self, client, url):
+        """No cache.clear(): the point is to read what is cached."""
+        with CaptureQueriesContext(connection) as captured:
+            response = client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        return response.data, len(captured)
+
+    def entry_of_the_student(self, course_data):
+        entries = [
+            entry
+            for entry in course_data["students"]
+            if str(entry["id"]) == str(self.student.pk)
+        ]
+        self.assertEqual(len(entries), 1)
+        return entries[0]
+
+    def warm(self, client, url):
+        """Read twice; the second read really comes from the cache."""
+        _, cold = self.read(client, url)
+        data, warm = self.read(client, url)
+        self.assertLess(warm, cold, url)
+        return data
+
+    def rename_as_the_first_teacher(self):
+        response = self.rename(self.teacher, self.student)
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.assertEqual(response.data["first_name"], NEW["first_name"])
+
+    def test_ra_another_teachers_cached_pages_show_the_new_name(self):
+        reader = self.client_of(self.other_teacher)
+        course_url = reverse("course-detail", kwargs={"pk": self.other_course.pk})
+        account_url = reverse("user-detail", kwargs={"pk": self.student.pk})
+        self.assertEqual(
+            self.entry_of_the_student(self.warm(reader, course_url))["first_name"],
+            "Augusta",
+        )
+        self.assertEqual(self.warm(reader, account_url)["first_name"], "Augusta")
+
+        self.rename_as_the_first_teacher()
+
+        with self.subTest(page="the other teacher's course"):
+            entry = self.entry_of_the_student(self.read(reader, course_url)[0])
+            self.assertEqual(
+                (entry["first_name"], entry["last_name"]), ("Ada", "Lovelace")
+            )
+        with self.subTest(page="the student's account, read by the other teacher"):
+            self.assertEqual(self.read(reader, account_url)[0]["first_name"], "Ada")
+
+    def test_rb_the_students_own_cached_course_page_shows_the_new_name(self):
+        reader = self.client_of(self.student)
+        course_url = reverse("course-detail", kwargs={"pk": self.course.pk})
+        self.assertEqual(
+            self.entry_of_the_student(self.warm(reader, course_url))["first_name"],
+            "Augusta",
+        )
+
+        self.rename_as_the_first_teacher()
+
+        entry = self.entry_of_the_student(self.read(reader, course_url)[0])
+        self.assertEqual((entry["first_name"], entry["last_name"]), ("Ada", "Lovelace"))
+
+    def test_rc_a_middle_name_alone_can_be_changed(self):
+        self.assertEqual(self.stored(self.student), ("Augusta", "", "Byron"))
+
+        response = self.rename(
+            self.teacher,
+            self.student,
+            first_name="Augusta",
+            middle_name="King",
+            last_name="Byron",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.assertEqual(self.stored(self.student), ("Augusta", "King", "Byron"))
+        self.assertEqual(response.data["middle_name"], "King")

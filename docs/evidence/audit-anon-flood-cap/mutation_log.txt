@@ -1,0 +1,11 @@
+5 mutants: anchors unique, all parse, expected tests named
+5 of 5 mutants selected
+F1_the_denied_admin_action_is_not_capped KILLED exit 1 ran 23 failed 3 expected-but-passed []
+F2_the_route_target_is_the_cap_key KILLED exit 1 ran 23 failed 1 expected-but-passed []
+F3_the_global_cap_does_not_apply KILLED exit 1 ran 23 failed 3 expected-but-passed []
+F4_a_signed_in_refusal_is_capped_too KILLED exit 1 ran 23 failed 2 expected-but-passed []
+F5_the_admin_action_summary_loses_its_metadata_keys KILLED exit 1 ran 23 failed 1 expected-but-passed []
+SURVIVED: []
+KILLED_NOT_AS_EXPECTED: []
+BROKEN: []
+KILLED: 5 of 5

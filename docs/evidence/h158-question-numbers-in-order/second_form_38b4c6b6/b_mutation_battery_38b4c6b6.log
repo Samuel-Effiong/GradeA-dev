@@ -1,0 +1,28 @@
+baseline exit=0
+N1	extraction saves the questions as numbered	KILLED	FAILED (failures=8)	True	9.9
+N2	the model's own numbers are kept in the stored AI copy	KILLED	FAILED (errors=8)	True	8.1
+N3	extraction logs one line when a number changed	KILLED	FAILED (failures=1)	True	8.0
+N4	extraction logs nothing when no number changed	KILLED	FAILED (failures=2)	True	8.3
+N5	the log line carries a count, not the questions	KILLED	FAILED (failures=1)	True	7.8
+N6	a number already in its place is not counted as changed	KILLED	FAILED (failures=13)	True	7.9
+N7	only an integer counts as already in its place	KILLED	FAILED (failures=1)	True	7.8
+N8	a kept number is bounded in length	KILLED	FAILED (failures=2)	True	7.4
+N9	the input is not changed	KILLED	FAILED (failures=1)	True	7.4
+N10	an entry that is not an object takes no number	KILLED	FAILED (failures=1)	True	7.4
+N11	a value that is not a list is returned as it is	KILLED	FAILED (failures=2, errors=1)	True	7.3
+N12	a generated draft is numbered	KILLED	FAILED (failures=3)	True	7.2
+N13	a stored draft is numbered at its save	KILLED	FAILED (failures=1)	True	7.3
+N14	the serializer refuses a repeated number	KILLED	FAILED (failures=2)	True	7.4
+N15	nothing of the model's numbers rides in a draft	KILLED	FAILED (failures=1)	True	7.6
+N16	the override comparison reads three named keys of the stored AI copy	KILLED	FAILED (failures=1)	True	7.4
+N17	a question with no number keeps none (not the text 'None')	KILLED	FAILED (failures=2)	True	7.6
+N18	a draft path logs one line when a number changed	KILLED	FAILED (failures=2)	True	7.4
+N19	a repeat among positive integers is not kept: the paper is numbered	KILLED	FAILED (failures=18)	True	7.6
+N20	a number that is not a positive integer numbers the paper	KILLED	FAILED (failures=8, errors=2)	True	7.3
+N21	a paper whose numbers are distinct positive integers is kept	KILLED	FAILED (failures=10)	True	7.2
+N22	zero is not a positive integer	KILLED	FAILED (failures=1)	True	7.6
+N23	a string of digits is a number	KILLED	FAILED (failures=2)	True	7.6
+N24	a string of very many digits is no number (int() of it would raise)	KILLED	FAILED (errors=1)	True	7.4
+
+24/24 killed with verified restore
+exit=0 wall_s=200

@@ -1,0 +1,862 @@
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user bdf4ae91-da21-4b0e-be6f-f92c8c0fb98a.
+Cannot activate automatic trial for user bdf4ae91-da21-4b0e-be6f-f92c8c0fb98a (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 181, in permission_denied
+    raise exceptions.PermissionDenied(detail=message, code=code)
+rest_framework.exceptions.PermissionDenied: You must be a superadmin to access this endpoint.
+.API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+FFAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+.Free trial plan not found: no trial activated for user 48fbfcbb-4d51-4f13-8557-931f8df6b317.
+Cannot activate automatic trial for user 48fbfcbb-4d51-4f13-8557-931f8df6b317 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/views.py", line 1068, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/views.py", line 1064, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/views.py", line 1068, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/views.py", line 1064, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/views.py", line 1068, in verify
+    refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/views.py", line 1064, in refuse
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: Invalid email or token.
+.Free trial plan not found: no trial activated for user a5ad3b07-7c54-480a-a6f1-9f0dc4b078d0.
+Cannot activate automatic trial for user a5ad3b07-7c54-480a-a6f1-9f0dc4b078d0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9fbca43b-3e12-4010-a1a2-42a0676a6ff6.
+Cannot activate automatic trial for user 9fbca43b-3e12-4010-a1a2-42a0676a6ff6 (validation): ValueError
+.Free trial plan not found: no trial activated for user 439820a3-3d81-415b-8400-142752020ba4.
+Cannot activate automatic trial for user 439820a3-3d81-415b-8400-142752020ba4 (validation): ValueError
+.Free trial plan not found: no trial activated for user fd2e904e-05d5-413f-9d1b-ac0c1d777687.
+Cannot activate automatic trial for user fd2e904e-05d5-413f-9d1b-ac0c1d777687 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3ada1990-8e1d-41b4-83f9-4c93d4e12493.
+Cannot activate automatic trial for user 3ada1990-8e1d-41b4-83f9-4c93d4e12493 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5d30a3be-23b8-4e28-8572-9d3f2727cac4.
+Cannot activate automatic trial for user 5d30a3be-23b8-4e28-8572-9d3f2727cac4 (validation): ValueError
+.Free trial plan not found: no trial activated for user 478eba11-5dfd-4109-aca4-58bb96dc6b43.
+Cannot activate automatic trial for user 478eba11-5dfd-4109-aca4-58bb96dc6b43 (validation): ValueError
+.Free trial plan not found: no trial activated for user d1737902-890c-4b65-b152-13e18f2ec7be.
+Cannot activate automatic trial for user d1737902-890c-4b65-b152-13e18f2ec7be (validation): ValueError
+.Free trial plan not found: no trial activated for user a148a2e3-b200-4c8b-9b82-da1e92859241.
+Cannot activate automatic trial for user a148a2e3-b200-4c8b-9b82-da1e92859241 (validation): ValueError
+.Free trial plan not found: no trial activated for user b819f8cd-3ad2-4d50-baed-f3e6b119627f.
+Cannot activate automatic trial for user b819f8cd-3ad2-4d50-baed-f3e6b119627f (validation): ValueError
+.Free trial plan not found: no trial activated for user a7941ca0-b098-4be2-8efe-bd68a8fe50ae.
+Cannot activate automatic trial for user a7941ca0-b098-4be2-8efe-bd68a8fe50ae (validation): ValueError
+.Free trial plan not found: no trial activated for user 8047b30d-fa1b-4ae1-85db-08344fa89039.
+Cannot activate automatic trial for user 8047b30d-fa1b-4ae1-85db-08344fa89039 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1e020947-cd10-4d02-a083-66268d5f0b08.
+Cannot activate automatic trial for user 1e020947-cd10-4d02-a083-66268d5f0b08 (validation): ValueError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+.Free trial plan not found: no trial activated for user fbf14d02-1d99-4d67-97ab-ea42ad91bb9e.
+Cannot activate automatic trial for user fbf14d02-1d99-4d67-97ab-ea42ad91bb9e (validation): ValueError
+.Free trial plan not found: no trial activated for user c7492e1c-dcb3-4d02-bcc0-a2494b71b9f4.
+Cannot activate automatic trial for user c7492e1c-dcb3-4d02-bcc0-a2494b71b9f4 (validation): ValueError
+.Free trial plan not found: no trial activated for user b9d1ba94-0e37-4e93-9b82-3dcfdf090540.
+Cannot activate automatic trial for user b9d1ba94-0e37-4e93-9b82-3dcfdf090540 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/users/serializers.py", line 502, in validate
+    raise EnvelopedAuthenticationFailed(
+users.exceptions.EnvelopedAuthenticationFailed: Too many failed login attempts. Please try again later.
+.Free trial plan not found: no trial activated for user 694ad514-5b1f-4f1e-b8bf-e0bb5385e056.
+Cannot activate automatic trial for user 694ad514-5b1f-4f1e-b8bf-e0bb5385e056 (validation): ValueError
+.
+======================================================================
+FAIL: test_anonymous_probes_stop_writing_rows_at_the_global_limit (audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_anonymous_probes_stop_writing_rows_at_the_global_limit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/audit/tests_anonymous_admin_denial_cap.py", line 108, in test_anonymous_probes_stop_writing_rows_at_the_global_limit
+    self.assertEqual(denials().count(), LIMIT)
+AssertionError: 10 != 6
+
+======================================================================
+FAIL: test_naming_a_different_target_each_time_does_not_get_round_the_cap (audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_naming_a_different_target_each_time_does_not_get_round_the_cap)
+The route's target is a URL id the caller chooses; the cap must not
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/audit/tests_anonymous_admin_denial_cap.py", line 132, in test_naming_a_different_target_each_time_does_not_get_round_the_cap
+    self.assertEqual(denials().count(), LIMIT)
+AssertionError: 10 != 6
+
+======================================================================
+FAIL: test_the_first_suppressed_probe_leaves_one_summary_row (audit.tests_anonymous_admin_denial_cap.AnonymousAdminDenialCapTests.test_the_first_suppressed_probe_leaves_one_summary_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-audit-anon-flood-cap/audit/tests_anonymous_admin_denial_cap.py", line 114, in test_the_first_suppressed_probe_leaves_one_summary_row
+    self.assertEqual(len(rows), 1)
+AssertionError: 0 != 1
+
+----------------------------------------------------------------------
+Ran 23 tests in 1.171s
+
+FAILED (failures=3)
+Preserving test database for alias 'default'...
+Found 23 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

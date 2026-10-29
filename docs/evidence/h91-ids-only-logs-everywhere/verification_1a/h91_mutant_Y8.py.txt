@@ -1,0 +1,14 @@
+"""1a's mutant Y8 for H-91: an address put back in a log call in a file
+outside billing (users/mailerlite_service.py, the failed-sync line), where
+only the repository-wide guard, now under AutoGrader/, can see it. Expected:
+killed by AutoGrader.tests_no_pii_in_logs (and by my probe V1, which drives
+that line). Applied in place in the current directory; restore with git
+checkout. Run with python -B (rule 17)."""
+
+P = "users/mailerlite_service.py"
+s = open(P, encoding="utf-8").read()
+old = 'logger.error("MailerLite sync failed for user %s", user.id, exc_info=True)'
+new = 'logger.error("MailerLite sync failed for user %s", user.email, exc_info=True)'
+assert s.count(old) == 1, s.count(old)
+open(P, "w", encoding="utf-8").write(s.replace(old, new))
+print("applied Y8")
