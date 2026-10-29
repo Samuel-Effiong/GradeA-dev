@@ -289,3 +289,24 @@ class ProfileImageFormatTests(TestCase):
         )
         form.is_valid()
         self.assertIn("profile_image", form.errors)
+
+
+class AdminUserFormPasswordTests(TestCase):
+    """H-267's admin form must stay a user change form: Django's own one shows
+    the password as a read-only hash. A plain ModelForm with every field made
+    the stored hash a required, editable text box, so every admin save of a
+    user failed and an admin could overwrite the hash (SM, 2026-10-29)."""
+
+    def test_admin_user_form_shows_the_password_read_only(self):
+        from django.contrib.auth.forms import ReadOnlyPasswordHashField
+
+        from users.admin import CustomUserAdmin
+
+        self.assertIsInstance(
+            CustomUserAdmin.form.base_fields["password"], ReadOnlyPasswordHashField
+        )
+
+    def test_admin_user_form_cannot_change_the_password_hash(self):
+        from users.admin import CustomUserAdmin
+
+        self.assertTrue(CustomUserAdmin.form.base_fields["password"].disabled)
