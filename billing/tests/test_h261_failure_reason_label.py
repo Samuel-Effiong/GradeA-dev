@@ -186,7 +186,7 @@ class Site2OutcomeUnknownTests(MutationIntentFixture):
         assert_no_leak(self, reason)
         self.assertIn("Outcome unknown", reason)
         self.assertIn("APIConnectionError", reason)
-        self.assertIn(REQUEST_ID, reason)
+        self.assertIn("request None", reason)
 
 
 class Site4RevertFailureTests(MutationIntentFixture):

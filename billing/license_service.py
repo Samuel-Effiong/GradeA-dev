@@ -29,7 +29,11 @@ from django.utils import timezone
 
 from audit.enums import ReasonCode
 from AutoGrader.dispatch import safe_delay
-from AutoGrader.error_messages import describe_stripe_error, describe_user_error
+from AutoGrader.error_messages import (
+    describe_stripe_error,
+    describe_user_error,
+    stripe_error_label,
+)
 from AutoGrader.reason_codes import CodedError, coded_entry
 from AutoGrader.tasks import send_email_task
 from classrooms.models import School
@@ -3339,7 +3343,9 @@ class LicenseSubscriptionService:
             # Nothing was charged. Mark the intent FAILED so it doesn't
             # linger as a phantom PENDING row.
             intent.status = LicenseOveragePurchaseStatus.FAILED
-            intent.failure_reason = f"Checkout session creation failed: {exc}"
+            intent.failure_reason = (
+                f"Checkout session creation failed: {stripe_error_label(exc)}"
+            )
             intent.save(update_fields=["status", "failure_reason", "updated_at"])
             raise ValueError(
                 "Could not start overage checkout: "
