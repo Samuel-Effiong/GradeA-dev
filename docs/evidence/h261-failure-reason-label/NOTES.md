@@ -14,9 +14,20 @@ All results match expectations. No mismatches.
 | Seam check | 6 files | Match |
 | Mutant battery | 13/13 killed with `sk_live_FAKE_key_1234` | Match |
 
-Logs:
+Logs (near and seam committed at b3fc40aa; remaining re-run for missing logs):
 - `logs/near-suite-r3.log.gz`
 - `logs/seam-check-r3.log`
+- `logs/red-r3.log`
+- `logs/green-r3.log`
+- `logs/break-r3.log`
+- `logs/makemigrations-r3.log`
+- `logs/mutant-m1-r3.log` through `logs/mutant-m13-r3.log`
+
+**Line-number drift in mutant table (flagged to SM):** 8 of 13 sites have
+actual line numbers 1–2 lines below what NOTES declares (e.g., site 3 is at
+3347 not 3346; site 4 at 838 not 836). Code is unchanged since fc39d8c9;
+the drift is from the original NOTES survey, not a code change. Mutant logs
+use the actual grep'd lines; all 13 kill with the declared fragment.
 
 ---
 
