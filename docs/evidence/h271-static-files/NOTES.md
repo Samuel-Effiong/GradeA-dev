@@ -1,0 +1,66 @@
+# H-271 gate expectations (SM, written and committed before any gate run)
+
+Tip under test: 88d08de1 (tests 8297285e + e1f1e254, code 88d08de1), base f870fb0b (H-262 evidence
+tip; this row changes the Dockerfile and requirements.txt H-262 changed).
+Runner: `python -I docs/evidence/h271-static-files/gate.py 88d08de1`, private venv
+`h271_static_files_env` (H-262's requirements-dev.txt + whitenoise 6.12.0 + pip-audit 2.9.0,
+Django 5.2.17). The runner checks every line below and prints STOP on any difference.
+
+Development runs before this file: the own tests with the code in place, and one production
+`collectstatic` (ENVIRONMENT=prod, fake secrets) into a throwaway `staticfiles/`: 169 files copied,
+807 post-processed, `staticfiles.json` written, no `editor.html`. The first own run found that
+`cloudinary_storage` (first in INSTALLED_APPS) replaces `collectstatic` with a command that reads
+`settings.STATICFILES_STORAGE`, removed in Django 5.1, and crashes. That is not in DESIGN.md: the
+fix moves `cloudinary_storage` after `django.contrib.staticfiles` (its docs' order for media-only
+use) and e1f1e254 adds a test for it. No red run, near suite or mutant has been run.
+
+## Red (call-site revert: Dockerfile and AutoGrader/settings.py at f870fb0b)
+whitenoise stays installed (the venv has it), so the tests import and the guard's storage loads.
+- "Ran 6", `FAILED (failures=5, errors=1)`, no `_FailedTest`.
+  (7 tests; `AdminIsServedAfterCollectstaticTests` errors in setUpClass, so its one test is not run
+  and not counted.)
+- ERROR `setUpClass`: `has no attribute 'STATICFILES_STORAGE'` (cloudinary_storage's collectstatic).
+- FAIL, with fragments:
+  - test_the_container_collects_static_files_before_gunicorn_starts: `-1 == -1`
+  - test_collectstatic_is_the_staticfiles_command: `'cloudinary_storage' != 'django.contrib.staticfiles'`
+  - test_production_static_storage_is_whitenoise_manifest:
+    `'django.contrib.staticfiles.storage.ManifestStaticFilesStorage' != 'whitenoise.storage.CompressedManifestStaticFilesStorage'`
+  - test_whitenoise_comes_directly_after_the_security_middleware:
+    `'whitenoise.middleware.WhiteNoiseMiddleware' not found in [`
+  - test_collected_files_go_to_their_own_folder: `static') != PosixPath(`
+- The guard `test_the_admin_login_fails_on_the_missing_manifest` passes (no block).
+
+## Green
+- makemigrations --check: no changes.
+- seam (`git diff --name-only f870fb0b HEAD`, production files only):
+  `.gitignore`, `AutoGrader/settings.py`, `Dockerfile`, `requirements.txt`.
+- own `AutoGrader.tests_h271_static_files`: Ran 7, OK.
+- near `AutoGrader audit users ai_processor.tests_h262_prod_image_dev_tools`: **Ran 2064**, OK.
+  Count from the DiscoverRunner id list: 2057 at f870fb0b + the 7 new = 2064, 0 load failures.
+  Skips allowed only with a `CI_REQUIRE` reason; any other skip is a stop. Their number is recorded,
+  not declared (not counted beforehand).
+  Why these labels: the middleware and INSTALLED_APPS change touch every request, and AutoGrader
+  (settings and request plumbing), audit (AuditMiddleware) and users (UserActivityMiddleware, admin)
+  are the suites that drive them; the H-262 tests read the Dockerfile and both requirements files.
+  Batch 31's full run covers the rest.
+- No existing test is expected to change (grep: no test reads STATIC_ROOT, the staticfiles
+  backend, the INSTALLED_APPS order or the Dockerfile CMD; the H-262 tests read the Dockerfile's
+  stages and the dev-only package list, which whitenoise is not on).
+- pip-audit: `python scripts/pip_audit_gate.py` exits 0 (no advisory on whitenoise 6.12.0 beyond
+  the accepted lists).
+
+## Mutants (each runs `AutoGrader.tests_h271_static_files`; KILLED = these tests FAIL/ERROR with these fragments)
+| id | change | killed by | fragment |
+|---|---|---|---|
+| M1 | collectstatic removed from the Dockerfile CMD | test_the_container_collects_static_files_before_gunicorn_starts | `-1 == -1` |
+| M2 | WhiteNoiseMiddleware line removed | test_whitenoise_comes_directly_after_the_security_middleware; test_the_admin_login_page_and_its_stylesheet_are_served | `not found in [`; `404 != 200` |
+| M3 | prod backend back to ManifestStaticFilesStorage | test_production_static_storage_is_whitenoise_manifest | `!= 'whitenoise.storage.CompressedManifestStaticFilesStorage'` |
+| M4 | STATIC_ROOT back to `static` | test_collected_files_go_to_their_own_folder | `static') != PosixPath(` |
+| M5 | `cloudinary_storage` moved back to first in INSTALLED_APPS | test_collectstatic_is_the_staticfiles_command; setUpClass | `'cloudinary_storage' != 'django.contrib.staticfiles'`; `has no attribute 'STATICFILES_STORAGE'` |
+| M6 | WhiteNoiseMiddleware moved to the end of MIDDLEWARE | test_whitenoise_comes_directly_after_the_security_middleware | `!=` |
+
+Other tests failing as well are recorded as `also_failed`, not a mismatch.
+
+## After batch 31 (deploy proof, on staging)
+`/admin/login/` answers 200 and its hashed `admin/css/base.<hash>.css` answers 200 `text/css`;
+`/static/editor.html` answers 404; the deploy log shows the collectstatic line before gunicorn.
