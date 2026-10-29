@@ -14,6 +14,7 @@ from rest_framework_simplejwt.serializers import (
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ErrorClass
 from AutoGrader.error_messages import describe_user_error
+from AutoGrader.image_formats import validate_image_format
 from billing.serializers import CreditWalletSerializer
 from billing.services import AnalyticsService
 from classrooms.models import School
@@ -129,6 +130,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "must_change_password": {"read_only": True},
             "date_joined": {"read_only": True},
             "profile_image_url": {"read_only": True},
+            "profile_image": {"validators": [validate_image_format]},
         }
 
     def validate_email(self, value):

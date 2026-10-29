@@ -43,6 +43,7 @@ from assignments.prosemirror_converter import (
     strip_control_chars,
     strip_raw_text_elements,
 )
+from AutoGrader.image_formats import _ALLOWED_PILLOW_NAMES
 from AutoGrader.uploads import file_name_of, human_size
 from students.task_tracking import (
     ensure_task_not_cancelled,
@@ -543,7 +544,10 @@ class AssignmentProcessingService:
         """
         file_name = file_name_of(uploaded_file)
         try:
-            image = Image.open(BytesIO(uploaded_file.read()))
+            image = Image.open(
+                BytesIO(uploaded_file.read()),
+                formats=_ALLOWED_PILLOW_NAMES,
+            )
         except DecompressionBombError as exc:
             raise _too_many_pixels(file_name) from exc
         except Exception as exc:

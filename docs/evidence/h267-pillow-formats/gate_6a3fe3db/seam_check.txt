@@ -1,0 +1,8 @@
+Seam check: PASS
+AutoGrader/image_formats.py
+assignments/services.py
+classrooms/serializers.py
+users/admin.py
+users/serializers.py
+---
+makemigrations --check: No changes detected
