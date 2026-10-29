@@ -126,6 +126,34 @@ Against code at tip.
 - **FAILED** with exactly 3 AttributeError failures for `get_ai_model_function`.
 - No other errors.
 
+#### STOP: break-run mismatch (SM ruling at c1f21b1f)
+
+**Observed:** Ran 37, FAILED (errors=64). All 64 are
+`AttributeError: 'AIProcessor' object has no attribute 'get_ai_model_function'`.
+
+Breakdown:
+- tests_h256_provider_timeout: 4 errors (3 ProviderTimeoutTests + 1 RequestShapeTest;
+  all use `ask()` which calls `get_ai_model_function`)
+- tests_provider_block: 52 errors (TheHelper 1, TheSwitch 1,
+  TheRequestAsksForZeroRetentionOnEveryPath 2 + 48 subTests (8 paths x 6))
+- tests_reading_pipeline.TheMarksAreMadeAtTheProviderCallTest: 8 errors
+  (all use `_call()` which calls `get_ai_model_function`)
+
+**Cause:** "3" was the number of files, not the number of tests that call through
+the deleted escape hatch.
+
+**SM ruling:** ACCEPTED as an error in the expectation; the code is not at fault.
+Continue the gate. From this point, write every expectation as exact test ids
+(or test id + subTest path) with the error line, not as a count.
+
+---
+
+### Commit trailer slip
+
+Commits 9442c0fb, 1cfb7dfa, c1f21b1f use `Co-Authored-By: Claude Opus 4.6`
+instead of the standing rule `Co-Authored-By: Claude Opus 5.5`. SM ruling:
+do not rewrite those commits; use 5.5 from the next commit on.
+
 ---
 
 ## Gate expectations
