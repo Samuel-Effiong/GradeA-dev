@@ -1,0 +1,7 @@
+AutoGrader/settings.py
+assignments/tests_h263_list_error_shape.py
+docs/HARDENING_BACKLOG.md
+docs/evidence/h266-list-errors-dict/NOTES.md
+docs/evidence/h266-list-errors-dict/mutate.py
+docs/evidence/h266-list-errors-dict/run_h266_gate.sh.txt
+docs/evidence/h266-list-errors-dict/seam_check.py

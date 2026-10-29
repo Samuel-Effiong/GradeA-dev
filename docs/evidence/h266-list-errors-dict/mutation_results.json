@@ -1,0 +1,24 @@
+{
+  "M1": {
+    "what": "flip True back to False",
+    "file": "AutoGrader/settings.py",
+    "kind": "keepdb",
+    "status": "KILLED",
+    "exit": 1,
+    "ran_line": "Ran 6 tests in 0.265s",
+    "expected": {
+      "test_only_the_failing_item_appears_keyed_by_index": "!=",
+      "test_the_failing_item_is_reported_at_its_own_index": "!=",
+      "test_the_dict_shape_is_a_mapping": "is not an instance of",
+      "test_bulk_topic_errors_are_field_errors_keyed_by_index": "not found in"
+    },
+    "failing_tests": [
+      "test_bulk_topic_errors_are_field_errors_keyed_by_index",
+      "test_only_the_failing_item_appears_keyed_by_index",
+      "test_the_dict_shape_is_a_mapping",
+      "test_the_failing_item_is_reported_at_its_own_index"
+    ],
+    "wrong_reason": [],
+    "also_failed_not_expected": []
+  }
+}

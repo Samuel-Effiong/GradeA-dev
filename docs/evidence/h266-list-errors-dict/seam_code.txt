@@ -1,0 +1,2 @@
+LIST_SERIALIZER_ERRORS_AS_DICT: base=False, tip=True
+SEAM OK: only the setting value changed
