@@ -47,13 +47,11 @@ django-redis==6.0.0
 django-timezone-field==7.2.1
 django_celery_results==2.6.0
 djangorestframework==3.18.2
-djangorestframework-stubs==3.16.6
 djangorestframework_simplejwt==5.5.1
 djoser==2.3.3
 drf-spectacular==0.28.0
 drf-yasg==1.21.10
 filelock==3.19.1
-flower==2.0.1
 fonttools==4.63.0
 fpdf==1.7.2
 fsspec==2025.9.0
