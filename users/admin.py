@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.forms import UserChangeForm
 from django.db.models import Case, F, IntegerField, When
 from django.utils.translation import gettext_lazy as _
 
 from audit import history
+from AutoGrader.image_formats import validate_image_format
 
 from .models import (
     BetaWhitelist,
@@ -15,8 +17,23 @@ from .models import (
 from .signals import invalidate_user_caches
 
 
+class _ProfileImageForm(UserChangeForm):
+    # UserChangeForm, not a plain ModelForm: it keeps the password a
+    # read-only hash, as UserAdmin's default form does.
+    class Meta(UserChangeForm.Meta):
+        model = CustomUser
+        fields = "__all__"
+
+    def clean_profile_image(self):
+        img = self.cleaned_data.get("profile_image")
+        if img:
+            validate_image_format(img)
+        return img
+
+
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
+    form = _ProfileImageForm
     list_display = (
         "email",
         "first_name",

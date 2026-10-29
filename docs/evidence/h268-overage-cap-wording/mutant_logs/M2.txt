@@ -1,0 +1,110 @@
+Using existing test database for alias 'default' ('test_h268_overage_cap_wording_mut')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_cap_already_reached_rejects_even_a_single_block (billing.tests.test_overage_cap.CreateOverageCheckoutCapTests.test_cap_already_reached_rejects_even_a_single_block) ... Free trial plan not found: no trial activated for user 9e439d30-bc92-46b8-9c38-bc1921281750.
+Cannot activate automatic trial for user 9e439d30-bc92-46b8-9c38-bc1921281750 (validation): ValueError
+FAIL
+test_quantity_exceeding_remaining_cap_is_rejected_before_stripe (billing.tests.test_overage_cap.CreateOverageCheckoutCapTests.test_quantity_exceeding_remaining_cap_is_rejected_before_stripe) ... Free trial plan not found: no trial activated for user 3539499a-44b0-4cc4-81dd-b81aaa498d4c.
+Cannot activate automatic trial for user 3539499a-44b0-4cc4-81dd-b81aaa498d4c (validation): ValueError
+ok
+test_quantity_within_remaining_cap_creates_session (billing.tests.test_overage_cap.CreateOverageCheckoutCapTests.test_quantity_within_remaining_cap_creates_session) ... Free trial plan not found: no trial activated for user 41697c18-bbe2-4674-86c4-0180826c5675.
+Cannot activate automatic trial for user 41697c18-bbe2-4674-86c4-0180826c5675 (validation): ValueError
+ok
+test_control_the_grant_time_recheck_writes_neither_sentence (billing.tests.test_overage_cap.GrantTimeOverageCapTests.test_control_the_grant_time_recheck_writes_neither_sentence)
+H-268: this re-check answers Stripe's webhook, not the teacher. ... Free trial plan not found: no trial activated for user e65b1aef-6448-4a1f-b2cb-b5ffb479d180.
+Cannot activate automatic trial for user e65b1aef-6448-4a1f-b2cb-b5ffb479d180 (validation): ValueError
+ok
+test_over_cap_at_grant_time_grants_nothing_and_flags_for_refund (billing.tests.test_overage_cap.GrantTimeOverageCapTests.test_over_cap_at_grant_time_grants_nothing_and_flags_for_refund) ... Free trial plan not found: no trial activated for user 901d33a1-0721-4790-9db8-13c986142584.
+Cannot activate automatic trial for user 901d33a1-0721-4790-9db8-13c986142584 (validation): ValueError
+Overage checkout session cs_grant_test completed for wallet 6648d409-92f6-4d0b-be37-65360b294a03 but granting 1 more block(s) would exceed the cap (3 used of 3) — credits NOT granted. Needs manual reconciliation (refund the payment via the Stripe dashboard).
+ok
+test_within_cap_grants_never_expiring_overage_bucket (billing.tests.test_overage_cap.GrantTimeOverageCapTests.test_within_cap_grants_never_expiring_overage_bucket) ... Free trial plan not found: no trial activated for user f3f226e4-536b-419a-ad01-318b35926f9e.
+Cannot activate automatic trial for user f3f226e4-536b-419a-ad01-318b35926f9e (validation): ValueError
+ok
+test_at_zero_left_both_places_read_the_other_sentence (billing.tests.test_overage_cap.PurchaseOverageViewCapTests.test_at_zero_left_both_places_read_the_other_sentence) ... Free trial plan not found: no trial activated for user 84045e85-e0a8-444e-b90c-15eb5d3f0b55.
+Cannot activate automatic trial for user 84045e85-e0a8-444e-b90c-15eb5d3f0b55 (validation): ValueError
+FAIL
+test_exceeding_the_cap_answers_the_coded_envelope (billing.tests.test_overage_cap.PurchaseOverageViewCapTests.test_exceeding_the_cap_answers_the_coded_envelope) ... Free trial plan not found: no trial activated for user e53f1b75-4cad-4937-9c88-d0f966f760bd.
+Cannot activate automatic trial for user e53f1b75-4cad-4937-9c88-d0f966f760bd (validation): ValueError
+ok
+test_the_rendered_body_carries_the_sentence_in_both_places (billing.tests.test_overage_cap.PurchaseOverageViewCapTests.test_the_rendered_body_carries_the_sentence_in_both_places)
+F7: the renderer wraps the envelope as `error.field_errors`, so ... Free trial plan not found: no trial activated for user c8a45806-23e7-4068-b6da-0565d65e5e47.
+Cannot activate automatic trial for user c8a45806-23e7-4068-b6da-0565d65e5e47 (validation): ValueError
+ok
+test_a_raiser_that_names_the_variant_still_wins (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_a_raiser_that_names_the_variant_still_wins) ... ok
+test_both_params_reach_the_body_whichever_sentence_shows (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_both_params_reach_the_body_whichever_sentence_shows) ... ok
+test_control_the_caller_named_variant_is_untouched (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_control_the_caller_named_variant_is_untouched)
+INSUFFICIENT_CREDITS_MID_BATCH still chooses "none_finished" at ... ok
+test_every_spec_with_variant_from_params_survives_pickle (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_every_spec_with_variant_from_params_survives_pickle)
+A CodedError whose spec has variant_from_params must be picklable, ... ok
+test_the_spec_chose_it_so_the_args_keep_their_shape (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_the_spec_chose_it_so_the_args_keep_their_shape)
+A spec-chosen variant is re-derived from the same params, so it ... FAIL
+test_with_blocks_left_the_sentence_names_what_is_left (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_with_blocks_left_the_sentence_names_what_is_left) ... ok
+test_with_none_left_the_sentence_sends_them_to_the_next_cycle (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_with_none_left_the_sentence_sends_them_to_the_next_cycle) ... FAIL
+
+======================================================================
+FAIL: test_cap_already_reached_rejects_even_a_single_block (billing.tests.test_overage_cap.CreateOverageCheckoutCapTests.test_cap_already_reached_rejects_even_a_single_block)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h268-overage-cap-wording/billing/tests/test_overage_cap.py", line 130, in test_cap_already_reached_rejects_even_a_single_block
+    self.assertEqual(str(ctx.exception), CAP_REACHED_SENTENCE.format(max_blocks=3))
+AssertionError: 'Purchase limit exceeded — max 3 blocks. Reduce your quan[26 chars]eed.' != 'Purchase limit reached — you have used all 3 blocks for [61 chars]rts.'
+- Purchase limit exceeded — max 3 blocks. Reduce your quantity to 0 or fewer to proceed.
++ Purchase limit reached — you have used all 3 blocks for this billing cycle. You can buy more when your next cycle starts.
+
+
+======================================================================
+FAIL: test_at_zero_left_both_places_read_the_other_sentence (billing.tests.test_overage_cap.PurchaseOverageViewCapTests.test_at_zero_left_both_places_read_the_other_sentence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h268-overage-cap-wording/billing/tests/test_overage_cap.py", line 205, in test_at_zero_left_both_places_read_the_other_sentence
+    self.assertEqual(body["message"], expected)
+AssertionError: 'Purchase limit exceeded — max 3 blocks. Reduce your quan[26 chars]eed.' != 'Purchase limit reached — you have used all 3 blocks for [61 chars]rts.'
+- Purchase limit exceeded — max 3 blocks. Reduce your quantity to 0 or fewer to proceed.
++ Purchase limit reached — you have used all 3 blocks for this billing cycle. You can buy more when your next cycle starts.
+
+
+======================================================================
+FAIL: test_the_spec_chose_it_so_the_args_keep_their_shape (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_the_spec_chose_it_so_the_args_keep_their_shape)
+A spec-chosen variant is re-derived from the same params, so it
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h268-overage-cap-wording/AutoGrader/tests_reason_codes.py", line 672, in test_the_spec_chose_it_so_the_args_keep_their_shape
+    self.assertEqual(str(rebuilt), self.REACHED)
+AssertionError: 'Purchase limit exceeded — max 3 blocks. Reduce your quan[26 chars]eed.' != 'Purchase limit reached — you have used all 3 blocks for [61 chars]rts.'
+- Purchase limit exceeded — max 3 blocks. Reduce your quantity to 0 or fewer to proceed.
++ Purchase limit reached — you have used all 3 blocks for this billing cycle. You can buy more when your next cycle starts.
+
+
+======================================================================
+FAIL: test_with_none_left_the_sentence_sends_them_to_the_next_cycle (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_with_none_left_the_sentence_sends_them_to_the_next_cycle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h268-overage-cap-wording/AutoGrader/tests_reason_codes.py", line 653, in test_with_none_left_the_sentence_sends_them_to_the_next_cycle
+    self.assertEqual(str(error), self.REACHED)
+AssertionError: 'Purchase limit exceeded — max 3 blocks. Reduce your quan[26 chars]eed.' != 'Purchase limit reached — you have used all 3 blocks for [61 chars]rts.'
+- Purchase limit exceeded — max 3 blocks. Reduce your quantity to 0 or fewer to proceed.
++ Purchase limit reached — you have used all 3 blocks for this billing cycle. You can buy more when your next cycle starts.
+
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.646s
+
+FAILED (failures=4)
+Preserving test database for alias 'default' ('test_h268_overage_cap_wording_mut')...
+Found 16 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, djoser, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.

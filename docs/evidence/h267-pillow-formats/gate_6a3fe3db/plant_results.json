@@ -1,0 +1,56 @@
+[
+  {
+    "mutant": "M1",
+    "desc": "Drop formats= at services.py:549",
+    "test": "assignments.tests_h267_pillow_formats.UploadFormatRestrictionTests.test_psd_labelled_as_png_is_refused",
+    "status": "KILLED"
+  },
+  {
+    "mutant": "M2",
+    "desc": "Remove image/webp from PILLOW_FORMATS",
+    "test": "assignments.tests_h267_pillow_formats.FormatMappingTests.test_allowed_formats_match_image_formats",
+    "status": "KILLED"
+  },
+  {
+    "mutant": "M3",
+    "desc": "Drop validator from DirectAddStudentSerializer",
+    "test": "assignments.tests_h267_pillow_formats.ProfileImageFormatTests.test_direct_add_student_rejects_bmp",
+    "status": "KILLED"
+  },
+  {
+    "mutant": "M4",
+    "desc": "Drop validator from StudentRegistrationCompletionSerializer",
+    "test": "assignments.tests_h267_pillow_formats.ProfileImageFormatTests.test_student_registration_completion_rejects_bmp",
+    "status": "KILLED"
+  },
+  {
+    "mutant": "M5",
+    "desc": "Drop validator from SchoolWithAdminSerializer",
+    "test": "assignments.tests_h267_pillow_formats.ProfileImageFormatTests.test_school_with_admin_rejects_bmp",
+    "status": "KILLED"
+  },
+  {
+    "mutant": "M6",
+    "desc": "Drop validator from CustomUserSerializer",
+    "test": "assignments.tests_h267_pillow_formats.ProfileImageFormatTests.test_custom_user_serializer_rejects_bmp",
+    "status": "KILLED"
+  },
+  {
+    "mutant": "M7",
+    "desc": "Drop validate_image_format from admin form",
+    "test": "assignments.tests_h267_pillow_formats.ProfileImageFormatTests.test_admin_form_rejects_bmp",
+    "status": "KILLED"
+  },
+  {
+    "mutant": "M8",
+    "desc": "Validator swallows exception",
+    "test": "assignments.tests_h267_pillow_formats.FormatMappingTests.test_validator_rejects_bmp",
+    "status": "KILLED"
+  },
+  {
+    "mutant": "M9",
+    "desc": "Remove img.verify()",
+    "test": "assignments.tests_h267_pillow_formats.FormatMappingTests.test_validator_rejects_corrupt_png",
+    "status": "KILLED"
+  }
+]

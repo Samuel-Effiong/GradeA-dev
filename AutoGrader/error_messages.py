@@ -33,11 +33,12 @@ def _user_facing_exception_types():
         UploadAlreadyInProgressError,
     )
     from billing.access_control import AIFeatureNotAvailableError
-    from billing.errors import InsufficientCreditsError
+    from billing.errors import BillingRequestError, InsufficientCreditsError
     from billing.license_service import (
         IndividualSubscriptionConflictError,
         LicenseRequestError,
     )
+    from dashboard.query_params import QueryParamError
     from students.exceptions import (
         AssignmentNotOpenError,
         CannotAssociateStudentError,
@@ -63,6 +64,9 @@ def _user_facing_exception_types():
         IndividualSubscriptionConflictError,
         # Written to be shown: a licence request the caller can fix.
         LicenseRequestError,
+        # H-265: a billing request the caller can fix, and a bad query parameter.
+        BillingRequestError,
+        QueryParamError,
     )
 
 

@@ -391,7 +391,7 @@ HTTP 400 · USER · Not retryable
 
 | Field | Detail |
 |----|----|
-| Message | This purchase would go over your plan's limit of `{max_blocks}` block(s) per billing cycle. You have `{remaining}` block(s) left this cycle. |
+| Message | When `remaining` > 0: "Purchase limit exceeded — max `{max_blocks}` blocks. Reduce your quantity to `{remaining}` or fewer to proceed." When `remaining` == 0: "Purchase limit reached — you have used all `{max_blocks}` blocks for this billing cycle. You can buy more when your next cycle starts." The dash is an em dash (U+2014). The sentence is chosen from the params by the spec, not at the raise site (H-268). |
 | What to do | Request fewer blocks, or wait until your next billing cycle, then try again. |
 | Params | `max_blocks`, `remaining` |
 | Returned by | Whole request: `POST subscription/credits/overage/purchase` (an individual teacher buying extra credit blocks beyond their plan). |

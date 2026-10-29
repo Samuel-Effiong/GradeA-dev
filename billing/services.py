@@ -14,12 +14,13 @@ from audit import history
 from audit import metrics as audit_metrics
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.tasks import send_email_task
+from billing.errors import BillingRequestError
 from users.mailerlite_service import queue_sync
 
 from .licence_rollup import roll_up_after_commit
 from .locks import lock_wallet_first
-from .models import (  # CreditUsageLog,; SubscriptionPlan,
-    CONVERSION_FACTOR,
+from .models import CONVERSION_FACTOR  # CreditUsageLog,; SubscriptionPlan,
+from .models import (
     BetaProfile,
     BillingInterval,
     CreditBucket,
@@ -184,7 +185,9 @@ class SubscriptionService:
         """
 
         if plan.name == PlanType.BETA and not user.is_beta_eligible():
-            raise ValueError("The Beta plan is restricted to teacher accounts.")
+            raise BillingRequestError(
+                "The Beta plan is restricted to teacher accounts."
+            )
 
         cycle_start, billing_end, monthly_bucket_expiry = (
             SubscriptionService._resolve_billing_period(
@@ -1052,7 +1055,9 @@ class SubscriptionService:
         )
 
         if not current_sub:
-            raise ValueError("No active subscription to schedule a change for.")
+            raise BillingRequestError(
+                "No active subscription to schedule a change for."
+            )
 
         current_sub.pending_plan = new_plan
         current_sub.pending_change_type = change_type
@@ -1116,7 +1121,7 @@ class SubscriptionService:
         )
 
         if not current_sub:
-            raise ValueError("No active subscription found.")
+            raise BillingRequestError("No active subscription found.")
 
         if current_sub.pending_plan_id:
             previous_pending = current_sub.pending_plan
@@ -2235,17 +2240,17 @@ class ManualCreditService:
         """
 
         if blocks < 1:
-            raise ValueError("Block count must be at least 1.")
+            raise BillingRequestError("Block count must be at least 1.")
 
         plan = ManualCreditService._resolve_plan_for_block_size(target_user)
         if not plan or not plan.overage_block_size:
-            raise ValueError(
+            raise BillingRequestError(
                 f"{target_user.email} has no active plan to determine block size."
             )
 
         raw_amount = blocks * plan.overage_block_size
         if raw_amount > ManualCreditService.MAX_STORABLE_RAW_CREDITS:
-            raise ValueError(
+            raise BillingRequestError(
                 "Grant exceeds the maximum storable credit amount; reduce blocks."
             )
 

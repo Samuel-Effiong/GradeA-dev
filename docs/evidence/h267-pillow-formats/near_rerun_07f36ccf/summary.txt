@@ -1,0 +1,22 @@
+M10 exit=1
+FAIL: test_admin_user_form_cannot_change_the_password_hash (assignments.tests_h267_pillow_formats.AdminUserFormPasswordTests.test_admin_user_form_cannot_change_the_password_hash)
+AssertionError: False is not true
+FAIL: test_admin_user_form_shows_the_password_read_only (assignments.tests_h267_pillow_formats.AdminUserFormPasswordTests.test_admin_user_form_shows_the_password_read_only)
+AssertionError: <django.forms.fields.CharField object at 0x72ece63c6870> is not an instance of <class 'django.contrib.auth.forms.ReadOnlyPasswordHashField'>
+Ran 21 tests in 0.144s
+FAILED (failures=2)
+restored
+own exit=0
+Ran 21 tests in 0.219s
+OK
+assignments exit=0
+Ran 797 tests in 186.026s
+OK (skipped=13)
+classrooms exit=0
+Ran 640 tests in 132.729s
+OK
+users exit=0
+Ran 877 tests in 73.481s
+OK (skipped=4)
+
+[exited with code 0]

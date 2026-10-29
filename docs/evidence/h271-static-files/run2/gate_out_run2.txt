@@ -1,0 +1,10 @@
+== 0. red run: ['Dockerfile', 'AutoGrader/settings.py'] at f870fb0b
+Ran 6 tests in 0.411s FAILED (failures=5, errors=1) blocks ['setUpClass', 'test_collected_files_go_to_their_own_folder', 'test_collectstatic_is_the_staticfiles_command', 'test_production_static_storage_is_whitenoise_manifest', 'test_the_container_collects_static_files_before_gunicorn_starts', 'test_whitenoise_comes_directly_after_the_security_middleware']
+red run as written
+== 1a. makemigrations
+== 1b. seam
+['.gitignore', 'AutoGrader/settings.py', 'Dockerfile', 'requirements.txt']
+== 1. own + near
+Ran 2064 tests in 494.398s FAILED (errors=1, skipped=6)
+STOP: near not Ran 2064 OK
+exit=2

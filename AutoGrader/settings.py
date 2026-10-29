@@ -359,13 +359,17 @@ if ENVIRONMENT == "prod":
 # Application definition
 
 INSTALLED_APPS = [
-    "cloudinary_storage",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # H-271: after staticfiles, so `collectstatic` is Django's own command.
+    # cloudinary_storage ships a collectstatic of its own that reads the
+    # STATICFILES_STORAGE setting Django 5.1 removed, and crashes. It stores
+    # media only here; its docs ask for this order in that case.
+    "cloudinary_storage",
     "cloudinary",
     "django.contrib.humanize",
     "django_filters",
@@ -397,6 +401,10 @@ MIDDLEWARE = [
     # them have returned - see AutoGrader.middleware.RequestIDMiddleware.
     "AutoGrader.middleware.RequestIDMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    # H-271: serves the collected static files (the admin's CSS/JS). Directly
+    # after SecurityMiddleware, as WhiteNoise documents, so a static file is
+    # answered before any middleware below does work for it.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "users.middleware.UserActivityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -1153,13 +1161,16 @@ BEAT_HEALTH_EXPECTATIONS = {
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
+# H-271: collectstatic writes here, and WhiteNoise serves everything in it.
+# Not "static": the repo tracks old files there that must not be served.
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
 
-# Production uses ManifestStaticFilesStorage so outdated JavaScript and CSS
-# assets are never served from a cache after a deploy.
+# Production uses a manifest storage so outdated JavaScript and CSS assets
+# are never served from a cache after a deploy. WhiteNoise's variant adds
+# gzip copies it serves to clients that accept them (H-271).
 # See https://docs.djangoproject.com/en/5.1/ref/contrib/staticfiles/#manifeststaticfilesstorage
 if ENVIRONMENT == "prod":
     STORAGES = {
@@ -1167,7 +1178,7 @@ if ENVIRONMENT == "prod":
             "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
         },
         "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
 else:
@@ -1210,15 +1221,12 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "EXCEPTION_HANDLER": "users.exceptions.custom_exception_handler",
-    # H-263: djangorestframework 3.18.0 changed a `many=True` serializer's
-    # validation errors from a list with one entry per item ([{}, {...}]) to a
-    # dict of the failing items by index ({1: {...}}). The exception handler
-    # passes them through, so the new shape would reach the frontend on four
-    # inputs: a question's `rubric`, `tasks`, `session_breakdown` and the bulk
-    # topic create. False keeps the list shape (DRF warns
-    # RemovedInDRF320Warning); H-266 moves the frontend before DRF 3.20 drops
+    # H-263 / H-266: djangorestframework 3.18.0 changed a `many=True`
+    # serializer's validation errors from a list to a dict keyed by item
+    # index. H-263 kept the list shape; H-266 adopts the dict shape so
+    # the frontend can target individual items, and before DRF 3.20 drops
     # the switch. assignments.tests_h263_list_error_shape pins the shape.
-    "LIST_SERIALIZER_ERRORS_AS_DICT": False,
+    "LIST_SERIALIZER_ERRORS_AS_DICT": True,
     "DEFAULT_ROUTER_TRAILING_SLASH": False,
     # Throttling. Deliberately anonymous-only: `UserRateThrottle` is NOT
     # enabled because the authenticated dashboard and grading views are

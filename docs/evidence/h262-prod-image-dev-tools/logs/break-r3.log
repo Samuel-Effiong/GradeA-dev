@@ -1,0 +1,29 @@
+test_the_checked_in_ignore_file_is_well_formed (AutoGrader.tests_pip_audit_gate.CheckedInFilesTests.test_the_checked_in_ignore_file_is_well_formed) ... ok
+test_the_workflow_runs_the_runner_with_the_pinned_version (AutoGrader.tests_pip_audit_gate.CheckedInFilesTests.test_the_workflow_runs_the_runner_with_the_pinned_version) ... ok
+test_a_wrong_pip_audit_version_is_refused (AutoGrader.tests_pip_audit_gate.CommandTests.test_a_wrong_pip_audit_version_is_refused) ... ok
+test_the_command_audits_the_pinned_requirements_strictly (AutoGrader.tests_pip_audit_gate.CommandTests.test_the_command_audits_the_pinned_requirements_strictly) ... ERROR
+test_an_empty_file_accepts_nothing (AutoGrader.tests_pip_audit_gate.IgnoreFileTests.test_an_empty_file_accepts_nothing) ... ok
+test_an_entry_gives_its_ids (AutoGrader.tests_pip_audit_gate.IgnoreFileTests.test_an_entry_gives_its_ids) ... ok
+test_an_entry_on_its_review_date_still_counts (AutoGrader.tests_pip_audit_gate.IgnoreFileTests.test_an_entry_on_its_review_date_still_counts) ... ok
+test_an_entry_past_its_review_date_is_refused (AutoGrader.tests_pip_audit_gate.IgnoreFileTests.test_an_entry_past_its_review_date_is_refused) ... ok
+test_an_entry_without_a_reason_is_refused (AutoGrader.tests_pip_audit_gate.IgnoreFileTests.test_an_entry_without_a_reason_is_refused) ... ok
+test_an_entry_without_a_review_date_is_refused (AutoGrader.tests_pip_audit_gate.IgnoreFileTests.test_an_entry_without_a_review_date_is_refused) ... ok
+test_an_entry_without_ids_or_package_is_refused (AutoGrader.tests_pip_audit_gate.IgnoreFileTests.test_an_entry_without_ids_or_package_is_refused) ... ok
+test_an_id_listed_twice_is_refused (AutoGrader.tests_pip_audit_gate.IgnoreFileTests.test_an_id_listed_twice_is_refused) ... ok
+
+======================================================================
+ERROR: test_the_command_audits_the_pinned_requirements_strictly (AutoGrader.tests_pip_audit_gate.CommandTests.test_the_command_audits_the_pinned_requirements_strictly)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h262-prod-image-dev-tools/AutoGrader/tests_pip_audit_gate.py", line 122, in test_the_command_audits_the_pinned_requirements_strictly
+    command = self.runner.audit_command(["B-2", "A-1"])
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: audit_command() missing 1 required positional argument: 'ids'
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.017s
+
+FAILED (errors=1)
+Found 12 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).

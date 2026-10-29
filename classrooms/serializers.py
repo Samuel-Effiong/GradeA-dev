@@ -16,6 +16,7 @@ from assignments.serializers import (
     AssignmentListStudentSerializer,
 )
 from assignments.services import get_student_assignment_status
+from AutoGrader.image_formats import validate_image_format
 from AutoGrader.tasks import send_email_task
 from billing.context import (
     clear_license_invitation_context,
@@ -651,7 +652,11 @@ class DirectAddStudentSerializer(serializers.Serializer):
         max_length=150, validators=[MinLengthValidator(2)], required=True
     )
     email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
-    profile_image = serializers.ImageField(required=False, allow_null=True)
+    profile_image = serializers.ImageField(
+        required=False,
+        allow_null=True,
+        validators=[validate_image_format],
+    )
 
     def validate_email(self, value):
         if not value:
@@ -823,7 +828,11 @@ class StudentRegistrationCompletionSerializer(serializers.Serializer):
         validators=[MinLengthValidator(8)],
     )
     token = serializers.CharField(write_only=True)
-    profile_image = serializers.ImageField(required=False, allow_null=True)
+    profile_image = serializers.ImageField(
+        required=False,
+        allow_null=True,
+        validators=[validate_image_format],
+    )
 
 
 class ExpiredTokenSerializer(serializers.Serializer):
@@ -1006,7 +1015,11 @@ class SchoolWithAdminSerializer(serializers.Serializer):
         max_length=150, required=False, allow_blank=True
     )
 
-    admin_profile_image = serializers.ImageField(required=False, allow_null=True)
+    admin_profile_image = serializers.ImageField(
+        required=False,
+        allow_null=True,
+        validators=[validate_image_format],
+    )
 
     def validate_admin_email(self, value):
         from users.utils import is_business_email, is_exempt_email_domain

@@ -43,6 +43,7 @@ from audit.enums import ReasonCode
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_stripe_error, stripe_error_label
 from AutoGrader.reason_codes import CodedError
+from billing.errors import BillingRequestError
 from classrooms.models import School
 from users.models import CustomUser
 
@@ -443,12 +444,14 @@ class StripeCustomerService:
             )
 
         if context.source == SOURCE_LICENSE_TEACHER:
-            raise ValueError(
+            raise BillingRequestError(
                 "Teachers don't manage billing directly — payment methods "
                 "are managed by your school's license admin."
             )
 
-        raise ValueError("No active subscription or license found for this account.")
+        raise BillingRequestError(
+            "No active subscription or license found for this account."
+        )
 
     @staticmethod
     def create_setup_intent_for_request_user(user, set_as_default: bool = False):
@@ -600,7 +603,7 @@ class StripeCheckoutService:
 
         """
         if plan.category != PlanCategory.INDIVIDUAL:
-            raise ValueError("Checkout is only valid for INDIVIDUAL plans.")
+            raise BillingRequestError("Checkout is only valid for INDIVIDUAL plans.")
         if not plan.stripe_price_id:
             raise ValueError(f"Plan {plan.name} has no stripe_price_id configured.")
 
@@ -617,7 +620,7 @@ class StripeCheckoutService:
             .exists()
         )
         if has_chargeable_subscription:
-            raise ValueError(
+            raise BillingRequestError(
                 "User already has a chargeable active subscription. Use the "
                 "upgrade/downgrade flow instead of checkout."
             )
@@ -692,7 +695,7 @@ class StripeCheckoutService:
         """
 
         if plan.is_contact_sales:
-            raise ValueError(
+            raise BillingRequestError(
                 f"Plan {plan.name} is contact-sales only and must be set up "
                 "manually, not through self-serve checkout."
             )
@@ -788,18 +791,18 @@ class StripeCheckoutService:
         here).
         """
         if license_sub.billing_method != LicenseBillingMethod.OFFLINE:
-            raise ValueError("License is not offline; nothing to convert.")
+            raise BillingRequestError("License is not offline; nothing to convert.")
 
         plan = license_sub.plan
         if plan.is_contact_sales:
-            raise ValueError(
+            raise BillingRequestError(
                 f"Plan {plan.name} is contact-sales only and must be set up "
                 "manually in Stripe."
             )
 
         now = timezone.now()
         if license_sub.billing_cycle_end <= now:
-            raise ValueError(
+            raise BillingRequestError(
                 "This license's current billing cycle has already ended. "
                 "Renew it offline first, then convert to Stripe so the new "
                 "cycle end can be used as the billing anchor."
@@ -861,7 +864,7 @@ class StripeCheckoutService:
         return session
 
 
-class SubscriptionExpiredDuringRequest(ValueError):
+class SubscriptionExpiredDuringRequest(BillingRequestError):
     """
     Raised by SubscriptionReactivationService.reactivate_if_cancelling when
     the subscription row is gone/inactive, or its billing cycle has ended,
@@ -934,14 +937,14 @@ class SubscriptionReactivationService:
         try:
             stripe_sub = stripe.Subscription.retrieve(user_sub.stripe_subscription_id)
         except stripe.error.StripeError as exc:
-            raise ValueError(
+            raise BillingRequestError(
                 "Could not verify your subscription with our payment provider: "
                 + describe_stripe_error(exc, fallback_message="Please try again.")
             ) from exc
 
         stripe_status_value = stripe_sub.get("status")
         if stripe_status_value in ("canceled", "incomplete_expired"):
-            raise ValueError(
+            raise BillingRequestError(
                 "This subscription has already been fully canceled with "
                 "our payment provider and cannot be resumed. Please "
                 "subscribe again via select-plan."
@@ -962,7 +965,7 @@ class SubscriptionReactivationService:
 
         if stripe_sub.get("cancel_at_period_end", False):
             if now >= user_sub.billing_cycle_end:
-                raise ValueError(
+                raise BillingRequestError(
                     "This subscription's current billing period has "
                     "already ended. Please subscribe again via select-plan."
                 )
@@ -974,7 +977,7 @@ class SubscriptionReactivationService:
                 )
                 stripe_changed = True
             except stripe.error.StripeError as exc:
-                raise ValueError(
+                raise BillingRequestError(
                     "Could not resume your subscription with our payment "
                     "provider: "
                     + describe_stripe_error(exc, fallback_message="Please try again.")
@@ -1349,7 +1352,7 @@ class StripeSubscriptionMutationService:
         if not new_plan.stripe_price_id:
             raise ValueError(f"Plan {new_plan.name} has no stripe_price_id configured.")
         if not user_sub.stripe_subscription_id:
-            raise ValueError(
+            raise BillingRequestError(
                 "This subscription has no associated Stripe subscription. "
                 "(it may have been granted manually). Contact support to upgrade."
             )
@@ -1357,7 +1360,7 @@ class StripeSubscriptionMutationService:
         try:
             stripe_sub = stripe.Subscription.retrieve(user_sub.stripe_subscription_id)
         except stripe.error.StripeError as exc:
-            raise ValueError(
+            raise BillingRequestError(
                 "Could not retrieve Stripe subscription: "
                 + describe_stripe_error(
                     exc, fallback_message="Please try again in a moment."
@@ -1385,7 +1388,7 @@ class StripeSubscriptionMutationService:
                 },
             )
         except stripe.error.StripeError as exc:
-            raise ValueError(
+            raise BillingRequestError(
                 "Could not preview the upgrade cost: "
                 + describe_stripe_error(
                     exc, fallback_message="Please try again in a moment."
@@ -1478,7 +1481,7 @@ class StripeSubscriptionMutationService:
                 proration_behavior="none",
             )
         except stripe.error.StripeError as exc:
-            raise ValueError(
+            raise BillingRequestError(
                 "Could not apply the upgrade: "
                 + describe_stripe_error(
                     exc, fallback_message="Please try again in a moment."
@@ -1679,10 +1682,10 @@ class StripeSubscriptionMutationService:
             )
         except stripe.error.StripeError as exc:
             license_stripe_mutation.abandon(
-                intent, f"could not read the subscription: {exc}"
+                intent, f"could not read the subscription: {stripe_error_label(exc)}"
             )
             license_stripe_mutation.log_provider_error(intent, exc)
-            raise ValueError(
+            raise BillingRequestError(
                 "Could not retrieve Stripe subscription."
                 + license_stripe_mutation.TRY_AGAIN
             ) from exc
@@ -1721,10 +1724,10 @@ class StripeSubscriptionMutationService:
                 )
             except stripe.error.StripeError as exc:
                 license_stripe_mutation.abandon(
-                    intent, f"could not create the new Price: {exc}"
+                    intent, f"could not create the new Price: {stripe_error_label(exc)}"
                 )
                 license_stripe_mutation.log_provider_error(intent, exc)
-                raise ValueError(
+                raise BillingRequestError(
                     "Custom price creation failed." + license_stripe_mutation.TRY_AGAIN
                 ) from exc
             new_price_id = price.id
@@ -1764,7 +1767,7 @@ class StripeSubscriptionMutationService:
                 ),
                 why,
             ):
-                return ValueError(message)
+                return BillingRequestError(message)
             return license_stripe_mutation.LicenceStripeChangeNotRecorded(
                 "The plan change could not be paid, and undoing it at our "
                 "payment provider failed. It has been flagged for manual "
@@ -1782,13 +1785,13 @@ class StripeSubscriptionMutationService:
         except stripe.error.CardError as exc:
             license_stripe_mutation.log_provider_error(intent, exc)
             raise payment_failed(
-                f"card error: {exc}",
+                f"card error: {stripe_error_label(exc)}",
                 "Card declined. The plan has not been changed; update the "
                 "payment method and try again.",
             ) from exc
         except stripe.error.StripeError as exc:
             license_stripe_mutation.log_provider_error(intent, exc)
-            raise ValueError(
+            raise BillingRequestError(
                 "Stripe error while changing the plan."
                 + license_stripe_mutation.TRY_AGAIN
             ) from exc
@@ -1814,7 +1817,7 @@ class StripeSubscriptionMutationService:
             # may have moved, so nothing is undone automatically.
             license_stripe_mutation.escalate(
                 intent,
-                f"plan upgrade applied, but its invoice could not be read: {exc}",
+                f"plan upgrade applied, but its invoice could not be read: {stripe_error_label(exc)}",
             )
             raise license_stripe_mutation.LicenceStripeChangeNotRecorded(
                 "The plan change was applied at our payment provider but its "
@@ -2042,7 +2045,7 @@ class StripeSubscriptionScheduleService:
                         ],
                     )
                 except stripe.error.StripeError as exc:
-                    raise ValueError(
+                    raise BillingRequestError(
                         "Could not update the existing scheduled change on "
                         "Stripe: "
                         + describe_stripe_error(
@@ -2070,7 +2073,7 @@ class StripeSubscriptionScheduleService:
                 StripeSubscriptionScheduleService._extract_conflicting_schedule_id(exc)
             )
             if not stale_schedule_id:
-                raise ValueError(
+                raise BillingRequestError(
                     "Could not schedule the plan change on Stripe: "
                     + describe_stripe_error(
                         exc, fallback_message="Please try again in a moment."
@@ -2094,7 +2097,7 @@ class StripeSubscriptionScheduleService:
             except stripe.error.StripeError as release_exc:
                 # The schedule's id is in the warning above, not the
                 # client's message (H-255).
-                raise ValueError(
+                raise BillingRequestError(
                     "Could not schedule the plan change on Stripe: a "
                     "stale schedule is attached "
                     "and could not be released automatically: "
@@ -2109,7 +2112,7 @@ class StripeSubscriptionScheduleService:
                     user_sub, new_plan, current_price_id, billing_cycle_end_ts
                 )
             except stripe.error.StripeError as retry_exc:
-                raise ValueError(
+                raise BillingRequestError(
                     "Could not schedule the plan change on Stripe even "
                     "after releasing a stale schedule: "
                     + describe_stripe_error(
@@ -2118,7 +2121,7 @@ class StripeSubscriptionScheduleService:
                     )
                 ) from retry_exc
         except stripe.error.StripeError as exc:
-            raise ValueError(
+            raise BillingRequestError(
                 "Could not schedule the plan change on Stripe: "
                 + describe_stripe_error(
                     exc, fallback_message="Please try again in a moment."
@@ -2235,7 +2238,7 @@ class StripeSubscriptionScheduleService:
                 stripe_error_label(exc),
             )
         except stripe.error.StripeError as exc:
-            raise ValueError(
+            raise BillingRequestError(
                 "Could not release the existing scheduled change on "
                 "Stripe: "
                 + describe_stripe_error(
@@ -2283,11 +2286,13 @@ class StripeOverageService:
             user.subscriptions.filter(is_active=True).select_related("plan").first()
         )
         if not user_sub:
-            raise ValueError("No active subscription found.")
+            raise BillingRequestError("No active subscription found.")
 
         plan = user_sub.plan
         if plan.max_overage_blocks <= 0 or plan.overage_block_price <= 0:
-            raise ValueError("This plan does not support overage credit purchases.")
+            raise BillingRequestError(
+                "This plan does not support overage credit purchases."
+            )
 
         # Per-cycle cap: without this, plan.max_overage_blocks is decorative
         # (the request quantity is client-supplied and otherwise unbounded).
@@ -2337,7 +2342,7 @@ class StripeOverageService:
                 },
             )
         except stripe.error.StripeError as exc:
-            raise ValueError(
+            raise BillingRequestError(
                 "Could not start overage checkout: "
                 + describe_stripe_error(
                     exc, fallback_message="Please try again in a moment."
@@ -2452,14 +2457,14 @@ class IndividualPlanChangeService:
         school = allocation.license_subscription.school
 
         if allocation.is_admin_allocation:
-            raise ValueError(
+            raise BillingRequestError(
                 f"Your account is the license administrator for "
                 f"{school.name}, so it is already covered by that school's "
                 "license. Individual plans are for personal accounts and "
                 "cannot be combined with a school license."
             )
 
-        raise ValueError(
+        raise BillingRequestError(
             f"Your account is covered by {school.name}'s license, so an "
             "individual plan would be charged on top of a seat you already "
             "have. If you want a personal subscription as well, use a "
@@ -2493,7 +2498,7 @@ class IndividualPlanChangeService:
         if not cache.add(
             lock_key, "1", timeout=IndividualPlanChangeService._LOCK_TIMEOUT_SECONDS
         ):
-            raise ValueError(
+            raise BillingRequestError(
                 "A plan change is already being processed for your account. "
                 "Please wait a moment and try again."
             )
@@ -2632,7 +2637,7 @@ class IndividualPlanChangeService:
 
             if branch == "checkout":
                 if not success_url or not cancel_url:
-                    raise ValueError(
+                    raise BillingRequestError(
                         "success_url and cancel_url are required to start checkout."
                     )
                 session = StripeCheckoutService.create_individual_checkout_session(
@@ -2657,7 +2662,7 @@ class IndividualPlanChangeService:
                 )
 
                 if not success_url or not cancel_url:
-                    raise ValueError(
+                    raise BillingRequestError(
                         "success_url and cancel_url are required to complete an upgrade."
                     )
 
@@ -2729,7 +2734,7 @@ class IndividualPlanChangeService:
                 return "checkout", current_sub
 
             if current_sub.stripe_status == StripeSubscriptionStatus.PAST_DUE:
-                raise ValueError(
+                raise BillingRequestError(
                     "Your current subscription has a payment issue. Please "
                     "update your payment method before changing plans."
                 )
@@ -2737,16 +2742,16 @@ class IndividualPlanChangeService:
             if target_plan.id == current_sub.plan_id:
                 if current_sub.pending_plan_id:
                     return "cancel_pending", current_sub
-                raise ValueError("You are already subscribed to this plan.")
+                raise BillingRequestError("You are already subscribed to this plan.")
 
             if current_sub.plan.tier not in PLAN_TIER_HIERARCHY:
-                raise ValueError(
+                raise BillingRequestError(
                     "Your current plan is a custom/contact-sales plan and "
                     "can't be changed through self-serve plan selection. "
                     "Please contact support."
                 )
             if target_plan.tier not in PLAN_TIER_HIERARCHY:
-                raise ValueError(
+                raise BillingRequestError(
                     "This plan isn't available for direct self-serve "
                     "switching right now. Please contact support."
                 )

@@ -23,6 +23,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
+from AutoGrader.error_messages import describe_user_error
 from classrooms.permissions import IsSuperAdmin
 from users.models import CustomUser
 
@@ -140,7 +141,12 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
                 granted_by=request.user,
             )
         except ValueError as e:
-            raise ValidationError(str(e)) from e
+            raise ValidationError(
+                describe_user_error(
+                    e,
+                    fallback_message="We couldn't top up the credits. Please try again.",
+                )
+            ) from e
 
         # Prefetch ledger so the serializer can read metadata without extra queries
         bucket.credit_ledgers.all()

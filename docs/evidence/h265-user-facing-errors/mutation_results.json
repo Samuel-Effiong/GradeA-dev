@@ -1,0 +1,50 @@
+{
+ "M1": {
+  "status": "KILLED",
+  "ran": "Ran 28 tests in 1.304s",
+  "missing": [],
+  "also_failed": []
+ },
+ "M2": {
+  "status": "KILLED",
+  "ran": "Ran 28 tests in 1.419s",
+  "missing": [],
+  "also_failed": [
+   "test_licence_billing_change_in_progress_is_user_facing",
+   "test_overage_price_mismatch_is_user_facing",
+   "test_overage_price_unavailable_is_user_facing",
+   "test_plan_assignment_refused_is_user_facing",
+   "test_subscription_expired_during_request_is_user_facing"
+  ]
+ },
+ "M3": {
+  "status": "KILLED",
+  "ran": "Ran 23 tests in 2.172s",
+  "missing": [],
+  "also_failed": []
+ },
+ "M4": {
+  "status": "KILLED",
+  "ran": "Ran 28 tests in 2.791s",
+  "missing": [],
+  "also_failed": []
+ },
+ "M5": {
+  "status": "KILLED",
+  "ran": "Ran 28 tests in 1.156s",
+  "missing": [],
+  "also_failed": []
+ },
+ "M6": {
+  "status": "KILLED",
+  "ran": "Ran 28 tests in 1.493s",
+  "missing": [],
+  "also_failed": []
+ },
+ "M7": {
+  "status": "KILLED",
+  "ran": "Ran 28 tests in 1.187s",
+  "missing": [],
+  "also_failed": []
+ }
+}

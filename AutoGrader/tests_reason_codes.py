@@ -622,6 +622,131 @@ class MessageVariantTests(SimpleTestCase):
         self.assertEqual(rebuilt.params, error.params)
 
 
+class SpecChosenVariantTests(SimpleTestCase):
+    """H-268: OVERAGE_CAP_EXCEEDED has two sentences (the owner's wording,
+    through the SM, 27 October 2026) and the spec picks between them from
+    the params. No raise site decides the wording, and a raiser that names
+    a variant itself still wins. The dash in both is U+2014.
+    """
+
+    REDUCE = (
+        "Purchase limit exceeded — max 3 blocks. Reduce your quantity "
+        "to 1 or fewer to proceed."
+    )
+    REACHED = (
+        "Purchase limit reached — you have used all 3 blocks for this "
+        "billing cycle. You can buy more when your next cycle starts."
+    )
+
+    def _error(self, remaining, **kwargs):
+        return CodedError(
+            ReasonCode.OVERAGE_CAP_EXCEEDED,
+            params={"max_blocks": 3, "remaining": remaining},
+            **kwargs,
+        )
+
+    def test_with_blocks_left_the_sentence_names_what_is_left(self):
+        self.assertEqual(str(self._error(1)), self.REDUCE)
+
+    def test_with_none_left_the_sentence_sends_them_to_the_next_cycle(self):
+        error = self._error(0)
+        self.assertEqual(str(error), self.REACHED)
+        # H-233 stays cured: never "reduce your quantity to 0 or fewer".
+        self.assertNotIn("or fewer", str(error))
+
+    def test_both_params_reach_the_body_whichever_sentence_shows(self):
+        for remaining in (1, 0):
+            with self.subTest(remaining=remaining):
+                body = coded_response(self._error(remaining)).data
+                self.assertEqual(
+                    body["params"], {"max_blocks": 3, "remaining": remaining}
+                )
+
+    def test_the_spec_chose_it_so_the_args_keep_their_shape(self):
+        """A spec-chosen variant is re-derived from the same params, so it
+        does not ride in `args` and every error that names no variant keeps
+        its 4-tuple."""
+        error = self._error(0)
+        self.assertEqual(len(error.args), 4)
+        rebuilt = CodedError(*error.args)
+        self.assertEqual(str(rebuilt), self.REACHED)
+        self.assertEqual(rebuilt.params, error.params)
+
+    def test_a_raiser_that_names_the_variant_still_wins(self):
+        self.assertEqual(str(self._error(1, variant="cap_reached")), self.REACHED)
+
+    def test_control_the_overage_cap_spec_is_untouched(self):
+        """OVERAGE_CAP_EXCEEDED's variant_from_params (H-268) is unchanged."""
+        spec = REASON_CODES[ReasonCode.OVERAGE_CAP_EXCEEDED]
+        self.assertIsNotNone(spec.variant_from_params)
+
+
+class SpecChosenVariantMidBatchTests(SimpleTestCase):
+    """H-269: INSUFFICIENT_CREDITS_MID_BATCH's "none_finished" is now picked
+    by the spec from the params (completed == 0), the way the overage cap does
+    it for remaining == 0. No raise site decides the wording. The messages and
+    error code are byte-identical.
+    """
+
+    AFTER = "Credits ran out after 2 of 4 items. The finished items are saved."
+    BEFORE = "Credits ran out before any of the 4 items were finished."
+
+    def _error(self, completed, **kwargs):
+        return CodedError(
+            ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH,
+            params={"completed": completed, "total": 4},
+            **kwargs,
+        )
+
+    def test_the_spec_picks_none_finished_from_completed(self):
+        spec = REASON_CODES[ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH]
+        self.assertIsNotNone(spec.variant_from_params)
+        error = self._error(0)
+        self.assertEqual(str(error), self.BEFORE)
+
+    def test_with_items_finished_the_spec_picks_the_default(self):
+        spec = REASON_CODES[ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH]
+        self.assertIsNotNone(spec.variant_from_params)
+        error = self._error(2)
+        self.assertEqual(str(error), self.AFTER)
+
+    def test_boundary_one_finished_is_the_default(self):
+        error = self._error(1)
+        self.assertEqual(
+            str(error),
+            "Credits ran out after 1 of 4 items. The finished items are saved.",
+        )
+
+    def test_a_raiser_that_names_the_variant_still_wins(self):
+        error = self._error(2, variant="none_finished")
+        self.assertEqual(str(error), self.BEFORE)
+
+    def test_args_keep_the_4_tuple(self):
+        """The spec-chosen variant does not ride in args."""
+        error = self._error(0)
+        self.assertEqual(len(error.args), 4)
+        rebuilt = CodedError(*error.args)
+        self.assertEqual(str(rebuilt), self.BEFORE)
+        self.assertEqual(rebuilt.params, error.params)
+
+    def test_every_spec_with_variant_from_params_survives_pickle(self):
+        """A CodedError whose spec has variant_from_params must be picklable,
+        because the error stores self._spec and Celery pickles task results.
+        This covers plain CodedError too, not just subclasses."""
+        import pickle
+
+        for code, spec in REASON_CODES.items():
+            if spec.variant_from_params is None:
+                continue
+            with self.subTest(code=code.name):
+                params = {p: 0 for p in spec.params}
+                error = CodedError(code, params=params)
+                for protocol in range(2, pickle.HIGHEST_PROTOCOL + 1):
+                    rebuilt = pickle.loads(pickle.dumps(error, protocol=protocol))
+                    self.assertEqual(str(rebuilt), str(error))
+                    self.assertEqual(rebuilt.params, error.params)
+
+
 class RemediationChoiceTests(SimpleTestCase):
     """S7d: one code, a remediation per route (TEACHER_LIST_EMPTY), and "none"
     as null."""
