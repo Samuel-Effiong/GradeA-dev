@@ -40,9 +40,11 @@ from django.utils import timezone
 
 from billing.license_service import LicenseSubscriptionService
 from billing.license_stripe_mutation import (
+    LicenceStripe,
     LicenceStripeChangeNotRecorded,
     apply_at_stripe,
     finalise,
+    undo_unpaid_change,
 )
 from billing.models import (
     LicenseBillingMethod,
@@ -55,6 +57,10 @@ from billing.models import (
     PlanTier,
     PlanType,
     SubscriptionPlan,
+)
+from billing.tests.test_h28_cancel_phases import LicencePhaseTestCase
+from billing.tests.test_h28_licence_stripe_divergence import (
+    _make_plan as _make_typed_plan,
 )
 from classrooms.models import School
 from users.models import CustomUser, UserTypes
@@ -278,5 +284,250 @@ class Site3CheckoutTests(TransactionTestCase):
         assert reason is not None
         assert_no_leak(self, reason)
         self.assertIn("Checkout session creation failed:", reason)
+        self.assertIn("AuthenticationError", reason)
+        self.assertIn(REQUEST_ID, reason)
+
+
+# ---------------------------------------------------------------------------
+# Sites 5-6: undo_unpaid_change internal leaks (problems list)
+# ---------------------------------------------------------------------------
+
+
+class Site5UndoRevertTests(MutationIntentFixture):
+    """Line 772: problems.append(f"the revert failed: {exc}")
+    → escalate(787) → failure_reason"""
+
+    def test_failure_reason_has_no_stripe_text(self):
+        def revert(**key):
+            raise leaking_auth_error()
+
+        result = undo_unpaid_change(
+            self.intent, revert, find_invoice=lambda: None, why="test"
+        )
+        self.assertFalse(result)
+        self.intent.refresh_from_db()
+        reason = self.intent.failure_reason
+        assert reason is not None
+        assert_no_leak(self, reason)
+        self.assertIn("the revert failed", reason)
+        self.assertIn("AuthenticationError", reason)
+        self.assertIn(REQUEST_ID, reason)
+
+
+class Site6UndoVoidTests(MutationIntentFixture):
+    """Line 784: problems.append(f"voiding the change's invoice failed: {exc}")
+    → escalate(787) → failure_reason"""
+
+    def test_failure_reason_has_no_stripe_text(self):
+        def revert(**key):
+            pass
+
+        with patch.object(
+            LicenceStripe, "retrieve_invoice", return_value={"status": "open"}
+        ), patch.object(
+            LicenceStripe, "void_invoice", side_effect=leaking_auth_error()
+        ):
+            result = undo_unpaid_change(
+                self.intent,
+                revert,
+                find_invoice=lambda: "in_h261_void",
+                why="test",
+            )
+        self.assertFalse(result)
+        self.intent.refresh_from_db()
+        reason = self.intent.failure_reason
+        assert reason is not None
+        assert_no_leak(self, reason)
+        self.assertIn("voiding", reason)
+        self.assertIn("AuthenticationError", reason)
+        self.assertIn(REQUEST_ID, reason)
+
+
+# ---------------------------------------------------------------------------
+# Sites 7-13: service-level caller-side leaks
+# ---------------------------------------------------------------------------
+
+
+class ServiceLevelFixture(LicencePhaseTestCase):
+    """A licence on the stateful Stripe fake with helpers for the service
+    entry points that create and exercise a mutation intent."""
+
+    SUB_ID = "sub_h261_svc"
+
+    def setUp(self):
+        super().setUp()
+        self.dearer_plan = _make_typed_plan(
+            PlanTier.POWER, PlanType.POWER, "2000.00", "price_h261_svc_power"
+        )
+
+    def update_seats(self):
+        return LicenseSubscriptionService.update_seats(
+            self.licence, self.SEATS + 5, performed_by=self.superadmin
+        )
+
+    def change_plan(self):
+        return LicenseSubscriptionService.change_license_plan(
+            self.licence, self.dearer_plan, performed_by=self.superadmin
+        )
+
+    def _card_error_with_probe(self):
+        fake = self.stripe.subscription_modify
+        self.stripe.card_error_on_modify = True
+
+        def modify(*args, **kwargs):
+            try:
+                return fake(*args, **kwargs)
+            except real_stripe.error.CardError as orig:
+                raise real_stripe.error.CardError(
+                    PROBE,
+                    None,
+                    "card_declined",
+                    http_status=402,
+                    headers={"request-id": REQUEST_ID},
+                ) from orig
+
+        return patch.object(LicenceStripe, "modify_subscription", side_effect=modify)
+
+
+class Site7AbandonSubReadSeatsTests(ServiceLevelFixture):
+    """license_service.py:2829 — abandon(intent,
+    f"could not read the subscription: {exc}")"""
+
+    def test_failure_reason_has_no_stripe_text(self):
+        with patch.object(
+            LicenceStripe,
+            "retrieve_subscription",
+            side_effect=leaking_auth_error(),
+        ):
+            with self.assertRaises(ValueError):
+                self.update_seats()
+        intent = self.only_intent()
+        reason = intent.failure_reason
+        assert reason is not None
+        assert_no_leak(self, reason)
+        self.assertIn("Not attempted", reason)
+        self.assertIn("could not read the subscription", reason)
+        self.assertIn("AuthenticationError", reason)
+        self.assertIn(REQUEST_ID, reason)
+
+
+class Site8CardErrorSeatsTests(ServiceLevelFixture):
+    """license_service.py:2893 — payment_failed(f"card error: {exc}")
+    → undo_unpaid_change why → line 792 failure_reason"""
+
+    def test_failure_reason_has_no_stripe_text(self):
+        with self._card_error_with_probe():
+            with self.assertRaises(ValueError):
+                self.update_seats()
+        intent = self.only_intent()
+        reason = intent.failure_reason
+        assert reason is not None
+        assert_no_leak(self, reason)
+        self.assertIn("Payment not collected", reason)
+        self.assertIn("card error", reason)
+        self.assertIn("CardError", reason)
+        self.assertIn(REQUEST_ID, reason)
+
+
+class Site9EscalateInvoiceSeatsTests(ServiceLevelFixture):
+    """license_service.py:2917 — escalate(intent,
+    f"seat increase applied, but its invoice could not be read: {exc}")"""
+
+    def test_failure_reason_has_no_stripe_text(self):
+        with patch.object(
+            LicenceStripe,
+            "retrieve_invoice",
+            side_effect=leaking_auth_error(),
+        ):
+            with self.assertRaises(LicenceStripeChangeNotRecorded):
+                self.update_seats()
+        intent = self.only_intent()
+        reason = intent.failure_reason
+        assert reason is not None
+        assert_no_leak(self, reason)
+        self.assertIn("seat increase applied", reason)
+        self.assertIn("could not be read", reason)
+        self.assertIn("AuthenticationError", reason)
+        self.assertIn(REQUEST_ID, reason)
+
+
+class Site10AbandonSubReadPlanTests(ServiceLevelFixture):
+    """stripe_service.py:1681 — abandon(intent,
+    f"could not read the subscription: {exc}")"""
+
+    def test_failure_reason_has_no_stripe_text(self):
+        with patch.object(
+            LicenceStripe,
+            "retrieve_subscription",
+            side_effect=leaking_auth_error(),
+        ):
+            with self.assertRaises(ValueError):
+                self.change_plan()
+        intent = self.only_intent()
+        reason = intent.failure_reason
+        assert reason is not None
+        assert_no_leak(self, reason)
+        self.assertIn("Not attempted", reason)
+        self.assertIn("could not read the subscription", reason)
+        self.assertIn("AuthenticationError", reason)
+        self.assertIn(REQUEST_ID, reason)
+
+
+class Site11AbandonPriceTests(ServiceLevelFixture):
+    """stripe_service.py:1723 — abandon(intent,
+    f"could not create the new Price: {exc}")"""
+
+    def test_failure_reason_has_no_stripe_text(self):
+        with patch.object(
+            LicenceStripe, "create_price", side_effect=leaking_auth_error()
+        ):
+            with self.assertRaises(ValueError):
+                self.change_plan()
+        intent = self.only_intent()
+        reason = intent.failure_reason
+        assert reason is not None
+        assert_no_leak(self, reason)
+        self.assertIn("Not attempted", reason)
+        self.assertIn("could not create the new Price", reason)
+        self.assertIn("AuthenticationError", reason)
+        self.assertIn(REQUEST_ID, reason)
+
+
+class Site12CardErrorPlanTests(ServiceLevelFixture):
+    """stripe_service.py:1785 — payment_failed(f"card error: {exc}", …)
+    → undo_unpaid_change why → line 792 failure_reason"""
+
+    def test_failure_reason_has_no_stripe_text(self):
+        with self._card_error_with_probe():
+            with self.assertRaises(ValueError):
+                self.change_plan()
+        intent = self.only_intent()
+        reason = intent.failure_reason
+        assert reason is not None
+        assert_no_leak(self, reason)
+        self.assertIn("Payment not collected", reason)
+        self.assertIn("card error", reason)
+        self.assertIn("CardError", reason)
+        self.assertIn(REQUEST_ID, reason)
+
+
+class Site13EscalateInvoicePlanTests(ServiceLevelFixture):
+    """stripe_service.py:1815 — escalate(intent,
+    f"plan upgrade applied, but its invoice could not be read: {exc}")"""
+
+    def test_failure_reason_has_no_stripe_text(self):
+        with patch.object(
+            LicenceStripe,
+            "retrieve_invoice",
+            side_effect=leaking_auth_error(),
+        ):
+            with self.assertRaises(LicenceStripeChangeNotRecorded):
+                self.change_plan()
+        intent = self.only_intent()
+        reason = intent.failure_reason
+        assert reason is not None
+        assert_no_leak(self, reason)
+        self.assertIn("plan upgrade applied", reason)
+        self.assertIn("could not be read", reason)
         self.assertIn("AuthenticationError", reason)
         self.assertIn(REQUEST_ID, reason)
