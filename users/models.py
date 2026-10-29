@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from encrypted_model_fields.fields import EncryptedCharField
 
+from AutoGrader.image_formats import to_profile_webp
 from users.services import OTPManager
 
 otp_manager = OTPManager()
@@ -326,6 +327,12 @@ class CustomUser(AbstractUser):
 
     def save(self, *args, **kwargs):
         update_fields = kwargs.get("update_fields")
+        # H-270: a newly assigned picture is not in storage yet; store it as
+        # WebP with no metadata. A save that keeps the picture finds it
+        # committed and leaves it alone.
+        if self.profile_image and not self.profile_image._committed:
+            webp = to_profile_webp(self.profile_image)
+            self.profile_image = webp
         if self._epoch_bump_pending and update_fields is not None:
             kwargs["update_fields"] = set(update_fields) | {"token_epoch"}
         super().save(*args, **kwargs)
