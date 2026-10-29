@@ -19,6 +19,33 @@ SM Gate 1 rejected at 104e036f. Three mismatches and an incomplete survey:
 Run 1's 4 direct sites (723, 740, 836, 3346) are correctly fixed.
 Run 2 adds the caller-side sites the survey missed.
 
+## Run 2 on fc39d8c9: STOP
+
+Builder stopped at seam check (declared 5 files, actual 6). SM confirmed the
+stop and found two further gaps:
+
+1. **Seam: declared 5 files, actual 6.** Missed
+   `billing/tests/test_h28_cancel_phases.py` (edited in run-1 commit
+   91aac847, line 321: `"Request timed out"` → `"APIConnectionError"`).
+2. **Pre-existing tests: declared 1, actual 3.** NOTES declared only
+   `test_seats_unreadable_subscription` (h60:98). Two run-1 carry-overs
+   were never declared:
+   - `test_seats_refused_by_stripe` (h60:111, commit 91aac847):
+     `assertIn(SENTINEL, …)` → `assertNotIn(SENTINEL, …)` +
+     `assertIn("InvalidRequestError", …)`.
+   - `test_a_lost_response_that_did_not_land_is_read_back_and_failed`
+     (h28:321, commit 91aac847): `assertIn("Request timed out", …)` →
+     `assertIn("APIConnectionError", …)`.
+   The run-2 near suite ran with all three edits in place, so its 2268 OK
+   cannot prove which pre-existing tests the code breaks.
+3. **Trailer:** Run-2 commits (901477d7–fc39d8c9) used "Claude Opus 4.6"
+   instead of the SM-ruled "Claude Opus 5.5". Not rewriting; corrected from
+   run 3 onward.
+
+Run-2 logs committed as evidence:
+- `logs/near-suite-r2.log.gz`
+- `logs/seam-check-r2.log`
+
 ---
 
 ## What changed
