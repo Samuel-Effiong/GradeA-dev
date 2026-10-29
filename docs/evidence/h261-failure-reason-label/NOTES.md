@@ -1,55 +1,163 @@
 # H-261 Gate Expectations
 
+## Run 1 on 5e373b30: STOP
+
+SM Gate 1 rejected at 104e036f. Three mismatches and an incomplete survey:
+
+1. **Near suite 2 pre-existing failures**: I edited
+   `test_h28_cancel_phases.py:321` and `test_h60_licence_stripe_text.py:111`
+   instead of stopping and sending to SM. Process breach: any mismatch is a
+   stop.
+2. **Seam declared 3 files, actual 5**: NOTES declared 3 changed files; the
+   seam check showed 5 (missed the two pre-existing test files).
+3. **Near count placeholder**: NOTES said "Ran N" instead of an exact number.
+4. **Incomplete survey**: only surveyed direct `failure_reason=` writes.
+   Missed callers that pass Stripe `{exc}` through `abandon()`'s and
+   `escalate()`'s `why` parameter, and through `undo_unpaid_change`'s
+   `problems` list.
+
+Run 1's 4 direct sites (723, 740, 836, 3346) are correctly fixed.
+Run 2 adds the caller-side sites the survey missed.
+
+---
+
 ## What changed
+
 Replace `{exc}` (the full Stripe exception text) with
 `stripe_error_label(exc)` (class + request id only) in every
-`failure_reason` write that receives a Stripe error.
+`failure_reason` write that receives a Stripe error — including indirect
+paths through `abandon()`, `escalate()`, and `undo_unpaid_change`.
 
 ### Target sites
-| # | File | Line (approx) | Pattern |
-|---|------|---------------|---------|
-| 1 | billing/license_stripe_mutation.py | 723 | `failure_reason=f"Stripe refused: {exc}"` |
-| 2 | billing/license_stripe_mutation.py | 740 | `failure_reason=f"Outcome unknown ({exc}); read-back shows not applied"` |
-| 3 | billing/license_service.py | 3342 | `intent.failure_reason = f"Checkout session creation failed: {exc}"` |
-| 4 | billing/license_stripe_mutation.py | 836 | `cause = f"{cause}; the revert at Stripe also failed: {revert_exc}"` |
 
-### All failure_reason writes in billing/ — safety assessment
-| File | Line (approx) | Value written | Safe? | Why |
-|------|--------------|---------------|-------|-----|
-| license_stripe_mutation.py | 658 | `f"Not attempted: {why}"` | YES | `why` is a string param from internal code (`abandon`) |
-| license_stripe_mutation.py | 670 | `why` | YES* | `why` is a string param from `escalate`; *except when Site 4 flows into it — see Site 4 |
-| license_stripe_mutation.py | 715 | `f"Not attempted: {exc}"` | YES | `exc` is `StripeBudgetExhausted`, our own class |
-| license_stripe_mutation.py | 723 | `f"Stripe refused: {exc}"` | **NO** | `exc` is `stripe.error.StripeError` — TARGET Site 1 |
-| license_stripe_mutation.py | 740 | `f"Outcome unknown ({exc}); …"` | **NO** | `exc` is `stripe.error.StripeError` — TARGET Site 2 |
-| license_stripe_mutation.py | 789 | `f"Stripe refused: {exc}"` | YES | Line 787 checks `isinstance(exc, payment_errors)` — `payment_errors` are exceptions the caller handles; this path re-raises for the caller, not stored |
-| license_stripe_mutation.py | 836 | `f"{cause}; the revert at Stripe also failed: {revert_exc}"` | **NO** | `revert_exc` is `stripe.error.StripeError` — TARGET Site 4 |
-| license_stripe_mutation.py | 841 | `f"Local write failed ({cause}); reverted at Stripe"` | YES | `cause` is `f"{type(exc).__name__}: {exc}"` where `exc` is a DB error, not a Stripe error |
-| license_service.py | 3342 | `f"Checkout session creation failed: {exc}"` | **NO** | `exc` is `stripe.error.StripeError` — TARGET Site 3 |
-| stripe_service.py | 3272-3273 | enum string (payment_status) | YES | no Stripe text |
-| stripe_service.py | 3300 | literal string | YES | no Stripe text |
-| stripe_service.py | 3386-3390 | teacher list | YES | no Stripe text |
+**Run 1 sites (already fixed):**
+
+| # | File | Line | Pattern |
+|---|------|------|---------|
+| 1 | license_stripe_mutation.py | 723 | `failure_reason=f"Stripe refused: {exc}"` |
+| 2 | license_stripe_mutation.py | 740 | `failure_reason=f"Outcome unknown ({exc}); …"` |
+| 3 | license_service.py | 3346 | `intent.failure_reason = f"Checkout … failed: {exc}"` |
+| 4 | license_stripe_mutation.py | 836 | `cause += "… the revert … also failed: {revert_exc}"` |
+
+**Run 2 sites (new):**
+
+| # | File | Line | Pattern | Path to failure_reason |
+|---|------|------|---------|------------------------|
+| 5 | license_stripe_mutation.py | 772 | `problems.append(f"the revert failed: {exc}")` | problems → escalate(787) → failure_reason |
+| 6 | license_stripe_mutation.py | 784 | `problems.append(f"voiding … failed: {exc}")` | problems → escalate(787) → failure_reason |
+| 7 | license_service.py | 2829 | `abandon(intent, f"could not read the subscription: {exc}")` | abandon → line 658 → failure_reason |
+| 8 | license_service.py | 2893 | `payment_failed(f"card error: {exc}")` | → undo_unpaid_change why → line 792 → failure_reason |
+| 9 | license_service.py | 2917 | `escalate(intent, f"seat increase … could not be read: {exc}")` | escalate → line 670 → failure_reason |
+| 10 | stripe_service.py | 1681 | `abandon(intent, f"could not read the subscription: {exc}")` | abandon → line 658 → failure_reason |
+| 11 | stripe_service.py | 1723 | `abandon(intent, f"could not create the new Price: {exc}")` | abandon → line 658 → failure_reason |
+| 12 | stripe_service.py | 1785 | `payment_failed(f"card error: {exc}", …)` | → undo_unpaid_change why → line 792 → failure_reason |
+| 13 | stripe_service.py | 1815 | `escalate(intent, f"plan upgrade … could not be read: {exc}")` | escalate → line 670 → failure_reason |
+
+### Complete failure_reason survey
+
+**Direct writes in license_stripe_mutation.py:**
+
+| Line | Value | Safe? | Why |
+|------|-------|-------|-----|
+| 639 | `f"Stale for over {STALE_AFTER}: {why}"` | YES | `why` is a hardcoded string |
+| 658 | `f"Not attempted: {why}"` (abandon) | RELAY | leaks when callers pass `{exc}` (sites 7, 10, 11) |
+| 670 | `failure_reason=why` (escalate) | RELAY | leaks when callers pass `{exc}` (sites 5, 6, 9, 13) |
+| 715 | `f"Not attempted: {exc}"` | YES | `exc` is StripeBudgetExhausted (our class) |
+| 723 | `f"Stripe refused: {stripe_error_label(exc)}"` | FIXED | Run 1 site 1 |
+| 740 | `f"Outcome unknown ({stripe_error_label(exc)}); …"` | FIXED | Run 1 site 2 |
+| 772 | `problems.append(f"the revert failed: {exc}")` | **NO** | StripeError → **site 5** |
+| 784 | `problems.append(f"voiding … failed: {exc}")` | **NO** | StripeError → **site 6** |
+| 792 | `f"Payment not collected ({why}); reverted …"` | RELAY | leaks when callers pass `{exc}` as why (sites 8, 12) |
+| 836 | `f"… the revert … also failed: {stripe_error_label(revert_exc)}"` | FIXED | Run 1 site 4 |
+| 841 | `f"Local write failed ({cause}); reverted …"` | YES | cause is DB error (SM ruling: out of scope) |
+| 856 | `escalate(intent, cause)` | YES | cause is DB error; revert append (836) is already fixed |
+
+**Direct writes in license_service.py:**
+
+| Line | Value | Safe? | Why |
+|------|-------|-------|-----|
+| 3346 | `f"Checkout … failed: {stripe_error_label(exc)}"` | FIXED | Run 1 site 3 |
+
+**Direct writes in stripe_service.py:**
+
+| Line | Value | Safe? | Why |
+|------|-------|-------|-----|
+| 3272 | `f"Unsupported payment_status … {payment_status!r}"` | YES | enum string |
+| 3300 | `"License no longer active at fulfillment time."` | YES | literal |
+| 3386 | `f"… {len(skipped)} teacher(s) … skipped: {skipped}…"` | YES | teacher list |
+
+**Caller-side abandon() calls:**
+
+| File | Line | `why` argument | Safe? |
+|------|------|----------------|-------|
+| stripe_service.py | 1681 | `f"could not read the subscription: {exc}"` | **NO** → site 10 |
+| stripe_service.py | 1691 | `"the subscription has no items"` | YES — literal |
+| stripe_service.py | 1702 | `f"plan {new_plan.name} has no stripe_price_id"` | YES — app data |
+| stripe_service.py | 1723 | `f"could not create the new Price: {exc}"` | **NO** → site 11 |
+| license_service.py | 2829 | `f"could not read the subscription: {exc}"` | **NO** → site 7 |
+| license_service.py | 2838 | `"the subscription has no items"` | YES — literal |
+
+**Caller-side escalate() calls:**
+
+| File | Line | `why` argument | Safe? |
+|------|------|----------------|-------|
+| license_stripe_mutation.py | 787 | `f"Payment not collected ({why}); " + "; ".join(problems)` | **NO** when problems carries StripeError text (sites 5, 6) |
+| license_stripe_mutation.py | 856 | `cause` (DB error text) | YES |
+| license_service.py | 2917 | `f"seat increase … could not be read: {exc}"` | **NO** → site 9 |
+| stripe_service.py | 1815 | `f"plan upgrade … could not be read: {exc}"` | **NO** → site 13 |
+
+**Callers of undo_unpaid_change's `why` parameter:**
+
+| File | Line | `why` value | Safe? |
+|------|------|-------------|-------|
+| license_service.py | 2893 | `f"card error: {exc}"` (via payment_failed) | **NO** → site 8 |
+| license_service.py | 2928 | `f"invoice status: {invoice.get('status')}"` | YES — status string |
+| stripe_service.py | 1785 | `f"card error: {exc}"` (via payment_failed) | **NO** → site 12 |
+
+---
 
 ## Expectations
 
-### Red run
-- 4 tests, all FAIL
-- Site 1: `assertNotIn` catches `sk_live` or `victim.example` in failure_reason
-- Site 2: same — `APIConnectionError` message leaks into failure_reason
-- Site 3: same — `AuthenticationError` message leaks into failure_reason
-- Site 4: same — revert error message leaks into escalated failure_reason
+### Red run (after tests commit, before code)
+- 13 tests total: **4 PASS** (sites 1-4, fixed in Run 1), **9 FAIL** (sites 5-13)
+- Each failing test catches `sk_live_FAKE_key_1234` or `leaked@victim.example`
+  in failure_reason
 
-### Green run
-- 4 tests, all PASS (Ran 4, OK)
+### Green run (after code + pre-existing test update)
+- 13 tests, all PASS (Ran 13, OK)
 
 ### Near suite
-- `billing` — Ran N, OK (no regressions; N from discovery diff)
+- `billing` — Ran 2268, OK (2259 from Run 1 base + 9 new test methods)
 
-### Seam check
-- Changed files outside `docs/`: billing/license_stripe_mutation.py,
-  billing/license_service.py, billing/tests/test_h261_failure_reason_label.py
+### Pre-existing tests affected
+- `test_h60_licence_stripe_text.py:98` (`test_seats_unreadable_subscription`):
+  currently asserts `SENTINEL IN failure_reason`; will fail after site 7 fix.
+  Updated to assert `SENTINEL NOT IN` + `"InvalidRequestError" IN`.
+- All other pre-existing `failure_reason` assertions check for literal
+  substrings ("card error", "Not attempted", "the revert failed",
+  "Payment not collected") that remain after the fix — no change needed.
 
-### Mutants (one per target site, revert to `{exc}`)
-- M1 (Site 1): revert line 723 to `f"Stripe refused: {exc}"` → FAIL
-- M2 (Site 2): revert line 740 to `f"Outcome unknown ({exc}); …"` → FAIL
-- M3 (Site 3): revert line 3342 to `f"Checkout session creation failed: {exc}"` → FAIL
-- M4 (Site 4): revert line 836 to `f"{cause}; the revert at Stripe also failed: {revert_exc}"` → FAIL
+### Seam check (5 files)
+1. `billing/license_stripe_mutation.py`
+2. `billing/license_service.py`
+3. `billing/stripe_service.py`
+4. `billing/tests/test_h261_failure_reason_label.py`
+5. `billing/tests/test_h60_licence_stripe_text.py`
+
+### Mutants (13 total; revert `stripe_error_label(…)` → `{exc}`)
+
+| # | Site | File:line | Revert | Test class | Fragment |
+|---|------|-----------|--------|------------|----------|
+| M1 | 1 | license_stripe_mutation.py:723 | `{stripe_error_label(exc)}` → `{exc}` | Site1RefusedTests | `sk_live_FAKE_key_1234` |
+| M2 | 2 | license_stripe_mutation.py:740 | `{stripe_error_label(exc)}` → `{exc}` | Site2OutcomeUnknownTests | `sk_live_FAKE_key_1234` |
+| M3 | 3 | license_service.py:3346 | `{stripe_error_label(exc)}` → `{exc}` | Site3CheckoutTests | `sk_live_FAKE_key_1234` |
+| M4 | 4 | license_stripe_mutation.py:836 | `{stripe_error_label(revert_exc)}` → `{revert_exc}` | Site4RevertFailureTests | `sk_live_FAKE_key_1234` |
+| M5 | 5 | license_stripe_mutation.py:772 | `{stripe_error_label(exc)}` → `{exc}` | Site5UndoRevertTests | `sk_live_FAKE_key_1234` |
+| M6 | 6 | license_stripe_mutation.py:784 | `{stripe_error_label(exc)}` → `{exc}` | Site6UndoVoidTests | `sk_live_FAKE_key_1234` |
+| M7 | 7 | license_service.py:2829 | `{stripe_error_label(exc)}` → `{exc}` | Site7AbandonSubReadSeatsTests | `sk_live_FAKE_key_1234` |
+| M8 | 8 | license_service.py:2893 | `{stripe_error_label(exc)}` → `{exc}` | Site8CardErrorSeatsTests | `sk_live_FAKE_key_1234` |
+| M9 | 9 | license_service.py:2917 | `{stripe_error_label(exc)}` → `{exc}` | Site9EscalateInvoiceSeatsTests | `sk_live_FAKE_key_1234` |
+| M10 | 10 | stripe_service.py:1681 | `{stripe_error_label(exc)}` → `{exc}` | Site10AbandonSubReadPlanTests | `sk_live_FAKE_key_1234` |
+| M11 | 11 | stripe_service.py:1723 | `{stripe_error_label(exc)}` → `{exc}` | Site11AbandonPriceTests | `sk_live_FAKE_key_1234` |
+| M12 | 12 | stripe_service.py:1785 | `{stripe_error_label(exc)}` → `{exc}` | Site12CardErrorPlanTests | `sk_live_FAKE_key_1234` |
+| M13 | 13 | stripe_service.py:1815 | `{stripe_error_label(exc)}` → `{exc}` | Site13EscalateInvoicePlanTests | `sk_live_FAKE_key_1234` |
