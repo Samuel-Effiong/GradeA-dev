@@ -368,6 +368,13 @@ It is advisory: no endpoint refuses a teacher because of the verdict (D-A8).
 
 The results are reported, not averaged, and the report is committed as evidence.
 
+**Scheduled drift check (owner ruling 2026-10-29).** The same backtest also runs automatically
+as a monthly Celery beat task (beat-locked), over the trailing 90 days. If band coverage
+(actual ≤ p90) falls below **85%** overall, or below 80% for any shape/batch-size cell with at least
+30 batches, it emits `credit_estimate_drift` (NFR-OBS-03) and emails the super admin with the
+failing cells. Each run is stored as a summary row (date, coverage per cell, sample sizes) so the trend
+is visible. It only reports; it never changes estimates by itself. About +0.5 day in B1b.
+
 ### 3.7 Batch jobs and the queue (decision 1, X-8, NFR-REL-02)
 
 **Create.** The grade-batch and grade-all routes (which launch `grade_batch_async`, `assignments/tasks.py:1436`) create the `AIJob` (`BATCH_GRADING`) with the estimate fields filled in. Every `BackgroundProcessingTask` item gets `job` and `item_index`, as now.
@@ -451,6 +458,8 @@ PENDING ─approve─► APPROVED ─intent COMPLETED / offline approved─► G
 Approve and decline are conditional UPDATEs on `status = 'PENDING'`. A double-click gives one effect and one 409.
 
 The admin is notified by email and by the inbox count. The teacher is notified by email when the request is answered.
+
+**No in-app notification bell (owner ruling 2026-10-29).** Notification is email plus the inbox page and its count badge, nothing else.
 
 ### 3.9 Threshold warnings (FR-B-05)
 
