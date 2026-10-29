@@ -2,6 +2,13 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 
 
+class BillingRequestError(ValueError):
+    """A billing request the caller can fix; its text is written to be shown
+    (H-265). A ValueError subclass, so every `except ValueError` keeps
+    working; views show THIS text, and any other ValueError gets a fixed
+    fallback (`AutoGrader.error_messages.describe_user_error`)."""
+
+
 class InsufficientCreditsError(Exception):
     pass
 

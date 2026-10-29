@@ -68,6 +68,7 @@ from classrooms.models import (
 )
 from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
 from dashboard.models import SchoolAtRiskSnapshot
+from dashboard.query_params import QueryParamError
 from dashboard.question_difficulty import (
     LIST_LIMIT,
     minimum_for_class,
@@ -1245,9 +1246,9 @@ def _bounded_int_param(request, name, default):
     try:
         value = int(raw)
     except (TypeError, ValueError):
-        raise ValueError(f"{name} must be a whole number.") from None
+        raise QueryParamError(f"{name} must be a whole number.") from None
     if value < 1:
-        raise ValueError(f"{name} must be at least 1.")
+        raise QueryParamError(f"{name} must be at least 1.")
     return min(value, MAX_DASHBOARD_LIMIT)
 
 
@@ -1259,11 +1260,11 @@ def _percentage_param(request, name, default):
     try:
         value = float(raw)
     except (TypeError, ValueError):
-        raise ValueError(f"{name} must be a number.") from None
+        raise QueryParamError(f"{name} must be a number.") from None
     # `value != value` rejects NaN, which float() accepts and every comparison
     # against it silently fails.
     if value != value or not 0 <= value <= 100:
-        raise ValueError(f"{name} must be between 0 and 100.")
+        raise QueryParamError(f"{name} must be between 0 and 100.")
     return value
 
 
@@ -2512,7 +2513,15 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             mastery_threshold = _percentage_param(request, "mastery_threshold", 70.0)
             reteach_threshold = _percentage_param(request, "reteach_threshold", 75.0)
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        exc,
+                        fallback_message="One of the query parameters is not valid.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Base queryset: assignments belonging to courses in this school
         assignments = Assignment.objects.filter(course__teacher__school=school)
@@ -3583,7 +3592,15 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 _bounded_int_param(request, "question_limit", LIST_LIMIT), LIST_LIMIT
             )
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        exc,
+                        fallback_message="One of the query parameters is not valid.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         cache_key = versioned_key(
             f"teacheradmins:user_id__{request.user.id}"

@@ -9,6 +9,7 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from AutoGrader.error_messages import describe_user_error
 from users.models import CustomUser, UserTypes
 
 from .license_service import LicenseRequestError, LicenseSubscriptionService
@@ -2180,7 +2181,13 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
                     school, candidate
                 )
             except ValueError as exc:
-                raise serializers.ValidationError({"admin_user": str(exc)}) from exc
+                raise serializers.ValidationError(
+                    {
+                        "admin_user": describe_user_error(
+                            exc, fallback_message="This admin user can't be used."
+                        )
+                    }
+                ) from exc
 
         return attrs
 
