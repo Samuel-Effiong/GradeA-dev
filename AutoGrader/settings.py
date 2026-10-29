@@ -359,13 +359,17 @@ if ENVIRONMENT == "prod":
 # Application definition
 
 INSTALLED_APPS = [
-    "cloudinary_storage",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # H-271: after staticfiles, so `collectstatic` is Django's own command.
+    # cloudinary_storage ships a collectstatic of its own that reads the
+    # STATICFILES_STORAGE setting Django 5.1 removed, and crashes. It stores
+    # media only here; its docs ask for this order in that case.
+    "cloudinary_storage",
     "cloudinary",
     "django.contrib.humanize",
     "django_filters",
@@ -397,6 +401,10 @@ MIDDLEWARE = [
     # them have returned - see AutoGrader.middleware.RequestIDMiddleware.
     "AutoGrader.middleware.RequestIDMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    # H-271: serves the collected static files (the admin's CSS/JS). Directly
+    # after SecurityMiddleware, as WhiteNoise documents, so a static file is
+    # answered before any middleware below does work for it.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "users.middleware.UserActivityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -1153,13 +1161,16 @@ BEAT_HEALTH_EXPECTATIONS = {
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
+# H-271: collectstatic writes here, and WhiteNoise serves everything in it.
+# Not "static": the repo tracks old files there that must not be served.
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
 
-# Production uses ManifestStaticFilesStorage so outdated JavaScript and CSS
-# assets are never served from a cache after a deploy.
+# Production uses a manifest storage so outdated JavaScript and CSS assets
+# are never served from a cache after a deploy. WhiteNoise's variant adds
+# gzip copies it serves to clients that accept them (H-271).
 # See https://docs.djangoproject.com/en/5.1/ref/contrib/staticfiles/#manifeststaticfilesstorage
 if ENVIRONMENT == "prod":
     STORAGES = {
@@ -1167,7 +1178,7 @@ if ENVIRONMENT == "prod":
             "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
         },
         "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
 else:

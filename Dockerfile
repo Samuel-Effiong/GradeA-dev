@@ -71,11 +71,11 @@ COPY --chown=appuser:appuser . .
 # Use user "appuser" to run the build commands below and the server itself.
 USER appuser
 
-# Collect static files.
-
 # Runtime command that executes when "docker run" is called, it does the
 # following:
-#   1. Migrate the database.
+#   1. Collect static files (H-271). Not at build time: settings.py needs
+#      SECRET_KEY, Stripe, Cloudinary and Redis values at import, and those
+#      are not passed into the image build. set -e stops the start if it fails.
 #   2. Start the application server.
 # WARNING:
 #   Migrating database at the same time as starting the server IS NOT THE BEST
@@ -90,4 +90,4 @@ USER appuser
 # duplicate non-refundable Stripe side effects).
 # WEB_CONCURRENCY and GUNICORN_THREADS override the worker and thread counts
 # without a rebuild; unset, they default to 9 and 4.
-CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 100 --workers ${WEB_CONCURRENCY:-9} --threads ${GUNICORN_THREADS:-4} --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200
+CMD set -xe; python manage.py collectstatic --noinput; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 100 --workers ${WEB_CONCURRENCY:-9} --threads ${GUNICORN_THREADS:-4} --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200

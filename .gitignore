@@ -45,3 +45,6 @@ htmlcov/
 # name so concurrent sessions do not truncate each other mid-run.
 settings_worktree.py
 .isolated-test-envs/
+
+# H-271: collectstatic output (STATIC_ROOT)
+/staticfiles/
