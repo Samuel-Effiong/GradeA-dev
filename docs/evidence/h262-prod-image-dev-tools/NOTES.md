@@ -1,5 +1,97 @@
 # H-262 notes (Release Builder, a0)
 
+## Run 3: full gate
+
+All results match expectations. No mismatches.
+
+| Step | Expected | Actual |
+|------|----------|--------|
+| Break run | Ran 12, FAILED (errors=1) — `test_the_command_audits_…` with TypeError | Match |
+| Green run | Ran 12, OK | Match |
+| Near suite | Ran 24, OK | Match |
+| Seam check | 11 files | Match |
+
+Logs:
+- `logs/break-r3.log`
+- `logs/green-r3.log`
+- `logs/near-suite-r3.log`
+- `logs/seam-check-r3.log`
+
+---
+
+## Run 3 on f870fb0b: pre-existing test missed
+
+Found by SM during H-271's gate (H-271 is built on H-262 f870fb0b):
+`AutoGrader.tests_pip_audit_gate.CommandTests.test_the_command_audits_the_pinned_requirements_strictly`
+raises `TypeError: audit_command() missing 1 required positional argument: 'ids'`.
+
+**Cause:** H-262 changed `scripts/pip_audit_gate.audit_command(ids)` to
+`audit_command(requirements, ids)` but did not update this pre-existing test.
+H-262's near suite (`ai_processor`) did not include
+`AutoGrader.tests_pip_audit_gate`, so the gate passed with the test broken.
+
+### Survey: callers of `scripts/pip_audit_gate.py` and readers of target files
+
+Grep hits (excluding docs/evidence):
+
+| File | References |
+|------|-----------|
+| `AutoGrader/tests_pip_audit_gate.py` | imports module (L33), calls `audit_command` (L122), `accepted_ids` (L57, L143), `check_version` (L134); reads `.pip-audit-ignore.toml` (L143); asserts `requirements.txt` in command (L126) |
+| `ai_processor/tests_h262_prod_image_dev_tools.py` | imports module (L181); reads `requirements.txt` (L114), `requirements-dev.txt` (L94-95, L121), `Dockerfile` (L131), `.pip-audit-ignore-dev.toml` (L218) |
+| `scripts/pip_audit_gate.py` | defines `audit_command`; reads `requirements.txt`, `requirements-dev.txt`, `.pip-audit-ignore.toml`, `.pip-audit-ignore-dev.toml` |
+| `.github/workflows/audit.yml` | runs `python scripts/pip_audit_gate.py` |
+| `.github/workflows/tests.yml` | installs `requirements-dev.txt` |
+| `.github/workflows/migration-safety.yml` | installs `requirements-dev.txt` |
+| `Dockerfile` | `COPY requirements.txt`, `pip install -r requirements.txt` |
+| `.pip-audit-ignore.toml` | read by pip_audit_gate.py |
+| `.pip-audit-ignore-dev.toml` | read by pip_audit_gate.py |
+| `.pre-commit-config.yaml` | comments reference `requirements.txt` and `Dockerfile` |
+| `scripts/check_gunicorn_timeout_sync.py` | reads `Dockerfile` |
+| `ai_processor/tests_pdf_service_concurrency.py` | comment mentions Dockerfile (L16), does not read it |
+
+No production code needs changing — only the pre-existing test.
+
+### Pre-existing tests affected (1)
+
+| # | File:line | Test id | Old call | Error |
+|---|-----------|---------|----------|-------|
+| 1 | AutoGrader/tests_pip_audit_gate.py:122 | `CommandTests.test_the_command_audits_the_pinned_requirements_strictly` | `self.runner.audit_command(["B-2", "A-1"])` | `TypeError: audit_command() missing 1 required positional argument: 'ids'` |
+
+### Break run
+
+Checkout `AutoGrader/tests_pip_audit_gate.py` at f870fb0b (working-tree only;
+restore after). Run `AutoGrader.tests_pip_audit_gate` against code at tip.
+
+- **Ran 12**, FAILED (errors=1), no failures.
+- Exactly this 1 test errors with the TypeError fragment above.
+
+### Seam check (11 files)
+
+`git diff --name-only a3f5a6a1..HEAD -- ':(exclude)docs/*'` must yield:
+
+1. `.github/workflows/audit.yml`
+2. `.github/workflows/migration-safety.yml`
+3. `.github/workflows/tests.yml`
+4. `.pip-audit-ignore-dev.toml`
+5. `.pip-audit-ignore.toml`
+6. `Dockerfile`
+7. `requirements-dev.txt`
+8. `requirements.txt`
+9. `scripts/pip_audit_gate.py`
+10. `ai_processor/tests_h262_prod_image_dev_tools.py`
+11. `AutoGrader/tests_pip_audit_gate.py`
+
+### Green run
+
+- **Ran 12**, OK (AutoGrader.tests_pip_audit_gate only — the changed module).
+
+### Near suite
+
+Labels: `AutoGrader.tests_pip_audit_gate`, `ai_processor.tests_h262_prod_image_dev_tools`.
+DiscoverRunner count: **Ran 24**, OK. No skips expected (all SimpleTestCase).
+
+---
+
 - **The row**: dev tools (black, flake8, pytest, flower, virtualenv, etc.) out of the
   production Docker image — multi-stage Dockerfile, requirements split, CI and audit
   pipeline updates.
