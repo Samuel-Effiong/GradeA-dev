@@ -94,8 +94,9 @@ class LicenceStripeTextTests(LicencePhaseTestCase):
             self.assert_no_stripe_text(
                 self.update_seats, fixed="Stripe error while updating seats."
             )
-        # Stripe's text is kept where reconciliation reads it.
-        self.assertIn(SENTINEL, self.only_intent().failure_reason)
+        reason = self.only_intent().failure_reason
+        self.assertNotIn(SENTINEL, reason)
+        self.assertIn("InvalidRequestError", reason)
 
     def test_seats_card_declined(self):
         with self.card_error_with_sentinel():
