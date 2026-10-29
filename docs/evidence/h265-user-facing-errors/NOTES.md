@@ -57,3 +57,30 @@ Other failing tests under a mutant are recorded, not hidden.
   sentences written for users, so this is the intended direction; the batch full suite covers it.
 - No status code changes. qa_time_travel.py 906 (Stripe `user_message` in a QA-only tool) is out
   of scope.
+
+## Run 1 on 326eb793 (SM, 2026-10-29): STOP at the near suite
+Red run as written (Ran 23, 20 FAIL); makemigrations clean; seam the 13 files as written.
+Near: Ran 2730 (as written) but FAILED (failures=2, skipped=2; both skips RUN_REAL_AI):
+- billing.tests.test_h255_stripe_error_text ... test_a_price_mismatch_on_overage_purchase_answers_without_the_price_id:
+  shown "We couldn't start the overage checkout. Please try again." where H-255's fixed sentence
+  ("The price of this purchase has changed. ...") is expected.
+- billing.tests.test_h60_licence_stripe_text ... test_the_seats_route_answers_with_the_fixed_text:
+  shown "We couldn't update the seats. ..." where "Seat increase payment failed. ..." is expected.
+Cause (survey defect): the survey only looked for `raise ValueError(`. It missed
+(1) ValueErrors built and raised later: license_service.py 2868 (`return ValueError("Seat increase
+payment failed. ...")`) and stripe_service.py 1770 (`return ValueError(message)`, fixed texts at
+1787/1843/1848), and (2) existing ValueError subclasses whose text is written to be shown:
+OveragePriceUnavailable, OveragePriceMismatch (overage_pricing.py), LicenceBillingChangeInProgress
+(license_stripe_mutation.py), SubscriptionExpiredDuringRequest (stripe_service.py),
+PlanAssignmentRefused (plan_policy.py; its one wrap of another ValueError's text, services.py 432,
+wraps _assert_not_on_the_license_track, which raises only converted user sentences).
+The two failing tests are right; the code is wrong.
+
+SM ruling (as SM; this row is the SM's own): fix in H-265, not in the tests.
+- the 2 built-later ValueErrors become BillingRequestError;
+- the 5 subclasses derive from BillingRequestError (still ValueErrors);
+- a new test pins every user-written ValueError subclass in billing as user-facing
+  (is_user_facing_error and describe_user_error pass its text), red before the fix for the 5;
+- widened survey: `grep -rnE "(return|=|\() *ValueError\("` and every `class X(ValueError)` in
+  billing/ and dashboard/: the 2 above and the 5 above are the complete list.
+Then the whole gate reruns with expectations revised below before the run.
