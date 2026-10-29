@@ -101,7 +101,7 @@ Then the whole gate reruns with expectations revised below before the run.
 ## Run 2 on 333ed425 (SM, 2026-10-29): GREEN, matches the revised expectations
 - red: Ran 28, FAILED (failures=20), the 20 `*_hides_library_error_text` blocks (red_run.txt).
 - own: Ran 28, OK (own.txt).
-- near: Ran 2735, OK (skipped=2), both skips RUN_REAL_AI opt-in (dashboard.tests_real_ai_chat) (near_summary.txt; full log archived, sha256 in the summary).
+- near: Ran 2735, OK (skipped=2), both skips RUN_REAL_AI opt-in (dashboard.tests_real_ai_chat) (near.txt.gz; summary in near_summary.txt).
 - makemigrations: no changes. seam: 16 files, as declared (seam.txt).
 - mutants M1-M7: all KILLED by their declared tests (mutation_results.json, mutant_logs/).
   M2 (BillingRequestError out of the registry) also failed the 5 `UserWrittenValueErrorClassesTests`.
