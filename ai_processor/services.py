@@ -39,6 +39,7 @@ from billing.access_control import (
 from billing.errors import InsufficientCreditsError
 from billing.refunds import billing_refund_scope, record_billing_task_id
 from billing.services import AnalyticsService
+from billing.zero_credit import MODEL_CALL, assert_not_zero_credit
 from classrooms.models import StudentCourse
 from students.exceptions import TaskCancelledError
 from students.task_tracking import ensure_task_not_cancelled
@@ -1272,9 +1273,6 @@ class AIProcessor:
                 latency_ms=int((time.monotonic() - started) * 1000),
                 outcome=outcome,
             )
-
-    def get_ai_model_function(self):
-        return self.__ai_model
 
     def extract_assignment(self, user, text):
         system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
@@ -5501,6 +5499,7 @@ Now, respond to the following teacher's instruction using the rules above
         the call itself. `prompt_version` is required (S5, NFR-OBS-04): every
         AI path names the prompt it sent (e.g. `GRADING_ASSIGNMENT_PROMPT.
         version`), so any result can be traced to the exact prompt text."""
+        assert_not_zero_credit(MODEL_CALL)
         if not prompt_version:
             raise ValueError("execute_graded_task requires a prompt_version")
 
