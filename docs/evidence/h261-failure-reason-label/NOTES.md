@@ -156,20 +156,40 @@ paths through `abandon()`, `escalate()`, and `undo_unpaid_change`.
 ### Near suite
 - `billing` — Ran 2268, OK (2259 from Run 1 base + 9 new test methods)
 
-### Pre-existing tests affected
-- `test_h60_licence_stripe_text.py:98` (`test_seats_unreadable_subscription`):
-  currently asserts `SENTINEL IN failure_reason`; will fail after site 7 fix.
-  Updated to assert `SENTINEL NOT IN` + `"InvalidRequestError" IN`.
-- All other pre-existing `failure_reason` assertions check for literal
-  substrings ("card error", "Not attempted", "the revert failed",
-  "Payment not collected") that remain after the fix — no change needed.
+### Break run (new in run 3)
 
-### Seam check (5 files)
+Checkout `billing/tests/test_h28_cancel_phases.py` and
+`billing/tests/test_h60_licence_stripe_text.py` at a3f5a6a1 (working-tree
+only; restore after). Run those two modules against code at tip.
+
+- **Ran 35**, FAILED (failures=3), no ERROR.
+- Exactly these 3 tests fail, each with its declared fragment:
+
+| # | Module | Test id | Fragment |
+|---|--------|---------|----------|
+| 1 | test_h28_cancel_phases | `CancelPhaseTests.test_a_lost_response_that_did_not_land_is_read_back_and_failed` | `Request timed out` |
+| 2 | test_h60_licence_stripe_text | `LicenceStripeTextTests.test_seats_unreadable_subscription` | `SENTINEL_req_h60_sk_live_param_items[0]` |
+| 3 | test_h60_licence_stripe_text | `LicenceStripeTextTests.test_seats_refused_by_stripe` | `SENTINEL_req_h60_sk_live_param_items[0]` |
+
+### Pre-existing tests affected (3)
+
+| # | File:line (base) | Test id | Old assertion (fails with fragment) | Edit |
+|---|------------------|---------|-------------------------------------|------|
+| 1 | test_h28_cancel_phases.py:321 | `CancelPhaseTests.test_a_lost_response_that_did_not_land_is_read_back_and_failed` | `assertIn("Request timed out", intent.failure_reason)` | → `assertIn("APIConnectionError", …)` |
+| 2 | test_h60_licence_stripe_text.py:98 | `LicenceStripeTextTests.test_seats_unreadable_subscription` | `assertIn(SENTINEL, self.only_intent().failure_reason)` | → `assertNotIn(SENTINEL, …)` + `assertIn("InvalidRequestError", …)` |
+| 3 | test_h60_licence_stripe_text.py:111 | `LicenceStripeTextTests.test_seats_refused_by_stripe` | `assertIn(SENTINEL, self.only_intent().failure_reason)` | → `assertNotIn(SENTINEL, …)` + `assertIn("InvalidRequestError", …)` |
+
+All other pre-existing `failure_reason` assertions check for literal
+substrings ("card error", "Not attempted", "the revert failed",
+"Payment not collected") that remain after the fix — no change needed.
+
+### Seam check (6 files)
 1. `billing/license_stripe_mutation.py`
 2. `billing/license_service.py`
 3. `billing/stripe_service.py`
 4. `billing/tests/test_h261_failure_reason_label.py`
 5. `billing/tests/test_h60_licence_stripe_text.py`
+6. `billing/tests/test_h28_cancel_phases.py`
 
 ### Mutants (13 total; revert `stripe_error_label(…)` → `{exc}`)
 
