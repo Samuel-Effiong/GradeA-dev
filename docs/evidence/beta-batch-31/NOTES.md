@@ -67,3 +67,11 @@ pre-checks, load/memory guards and the 300 s stall watchdog as in the script.
 H-270 run 2 (Gate 1 green at a49b4a0d: per-test media folder, five --parallel 3 runs OK) is merged at
 4b91c643; outside docs it changes only users/tests_h270_profile_webp.py, with the same test names.
 Expected, unchanged: **Ran 8587, OK, skipped=30**. Same runner, venv and settings as run 1.
+
+## Run 2 on 126b5303: GREEN, matches
+- **Ran 8587, OK (skipped=30)**: mypy passed, makemigrations clean, watchdog never fired, no memory
+  stop (min available 8630 MB), 0 blocked outbound calls, wall 532 s (run2_strict_summary.txt).
+- The 30 skip reasons are identical to batch 30's, all opt-in; no Chromium/Playwright skip, so the
+  PDF tests ran (run2_skips.txt).
+- Full log archived at GAP-a0-runs/b31/run2_full_run.txt.gz (668 KB, over the hook limit),
+  sha256 443d4ffdd833392e….
