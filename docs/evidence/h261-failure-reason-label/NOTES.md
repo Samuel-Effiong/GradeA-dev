@@ -1,5 +1,25 @@
 # H-261 Gate Expectations
 
+## Run 3 on 5ee4706e: full gate
+
+All results match expectations. No mismatches.
+
+| Step | Expected | Actual |
+|------|----------|--------|
+| Red run | Ran 13, FAILED (failures=9) — sites 1-4 PASS, sites 5-13 FAIL with `sk_live_FAKE_key_1234` | Match |
+| Green run | Ran 13, OK | Match |
+| Break run | Ran 35, FAILED (failures=3) — `test_a_lost_response…` (`Request timed out`), `test_seats_unreadable_subscription` (`SENTINEL…`), `test_seats_refused_by_stripe` (`SENTINEL…`); no ERROR | Match |
+| Near suite | Ran 2268, OK | Match |
+| Makemigrations | No changes detected | Match |
+| Seam check | 6 files | Match |
+| Mutant battery | 13/13 killed with `sk_live_FAKE_key_1234` | Match |
+
+Logs:
+- `logs/near-suite-r3.log.gz`
+- `logs/seam-check-r3.log`
+
+---
+
 ## Run 1 on 5e373b30: STOP
 
 SM Gate 1 rejected at 104e036f. Three mismatches and an incomplete survey:
