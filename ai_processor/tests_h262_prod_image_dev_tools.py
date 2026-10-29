@@ -5,8 +5,11 @@ packages are in requirements.txt, the Dockerfile is single-stage, the audit
 gate audits only one file, and CI installs only requirements.txt.
 """
 
+import importlib.util
 import pathlib
 import re
+from subprocess import CompletedProcess
+from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
@@ -174,11 +177,41 @@ class DockerfileMultiStageTest(SimpleTestCase):
 class AuditGateTest(SimpleTestCase):
 
     def test_audit_gate_audits_dev_requirements_too(self):
-        script = (REPO / "scripts" / "pip_audit_gate.py").read_text()
+        spec = importlib.util.spec_from_file_location(
+            "pip_audit_gate", REPO / "scripts" / "pip_audit_gate.py"
+        )
+        assert spec is not None and spec.loader is not None
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        calls = []
+
+        def fake_run(argv, **kwargs):
+            calls.append(list(argv))
+            return CompletedProcess(argv, 0)
+
+        with patch("importlib.metadata.version", return_value="2.9.0"), patch.object(
+            mod, "check_version", lambda _: None
+        ), patch.object(mod.subprocess, "run", fake_run):
+            rc = mod.main()
+
+        self.assertEqual(rc, 0, f"main() returned {rc}")
+
+        req_files = []
+        for argv in calls:
+            for i, arg in enumerate(argv):
+                if arg == "-r" and i + 1 < len(argv):
+                    req_files.append(argv[i + 1])
+
+        self.assertIn(
+            "requirements.txt",
+            req_files,
+            f"no -r requirements.txt in subprocess.run calls; got {req_files}",
+        )
         self.assertIn(
             "requirements-dev.txt",
-            script,
-            "pip_audit_gate.py must audit requirements-dev.txt",
+            req_files,
+            f"no -r requirements-dev.txt in subprocess.run calls; got {req_files}",
         )
 
     def test_dev_only_ignores_in_separate_file(self):
