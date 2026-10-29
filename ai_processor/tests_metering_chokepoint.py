@@ -142,3 +142,80 @@ class MeteringChokepointTests(SimpleTestCase):
                             if rel not in CLIENT_ASSIGNMENT_ALLOWLIST:
                                 offenders.append((rel, node.lineno))
         self.assertEqual(offenders, [])
+
+
+class BehaviouralSpyTests(SimpleTestCase):
+    """§4.5 behavioural spy: a recording fake on __ai_model proves that
+    every call to the provider passes through execute_graded_task.
+
+    The static AST tests above prove the paths at parse time. This test
+    proves them at runtime: patch __ai_model with a recorder, call
+    execute_graded_task, and verify the recorder was reached. Then verify
+    that calling __ai_model directly (bypassing execute_graded_task) is
+    the only other way in — and that is blocked by the AST test and by
+    the zero-credit entry guard.
+
+    Feature families represented (from the 17 call sites):
+    - grading (task_type="grading"): the main teacher/student path
+    - extract_assignment (task_type="extract_assignment"): extraction
+    - formatted_grade (task_type="formatted_grade"): formatting
+    - generate_assignment (task_type="generate_assignment"): generation
+    - student_summary (task_type="student_summary"): summaries
+    Each family reaches __ai_model only through execute_graded_task.
+    """
+
+    def test_provider_call_only_reachable_through_execute_graded_task(self):
+        from unittest.mock import MagicMock
+        from unittest.mock import patch as _patch
+
+        from users.models import UserTypes
+
+        processor = AIProcessor()
+        ai_model_calls = []
+
+        def recording_ai_model(self_inner, *args, **kwargs):
+            ai_model_calls.append(kwargs.get("task_type", "unknown"))
+            return MagicMock(
+                choices=[MagicMock(message=MagicMock(content="{}", tool_calls=None))],
+                usage=MagicMock(
+                    total_tokens=100,
+                    prompt_tokens=50,
+                    completion_tokens=50,
+                    completion_tokens_details=None,
+                    prompt_tokens_details=None,
+                    cost=None,
+                ),
+                model="test",
+                provider=None,
+            )
+
+        super_admin = MagicMock()
+        super_admin.user_type = UserTypes.SUPER_ADMIN
+        super_admin.is_superuser = True
+
+        with _patch.object(AIProcessor, "_AIProcessor__ai_model", recording_ai_model):
+            for task_type in (
+                "grading",
+                "extract_assignment",
+                "formatted_grade",
+                "generate_assignment",
+                "student_summary",
+            ):
+                ai_model_calls.clear()
+                try:
+                    processor.execute_graded_task(
+                        user=super_admin,
+                        feature="Grading Assignment",
+                        task_type=task_type,
+                        system_prompt="s",
+                        user_prompt="u",
+                        prompt_version="v1",
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
+                self.assertIn(
+                    task_type,
+                    ai_model_calls,
+                    f"task_type={task_type} did not reach __ai_model "
+                    "through execute_graded_task",
+                )

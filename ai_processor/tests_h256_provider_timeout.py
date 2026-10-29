@@ -97,7 +97,7 @@ def never_answers(request, number):
 
 
 def ask(processor):
-    return processor.get_ai_model_function()(
+    return processor._AIProcessor__ai_model(
         system_prompt="s", user_prompt="u", task_type="grade_assignment"
     )
 

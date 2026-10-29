@@ -8,7 +8,9 @@ or called. Outside a scope everything behaves as before.
 Mutations (B0 plan section 6.2) are recorded in docs/evidence/epic-b0/.
 """
 
+import contextvars
 import threading
+import time
 from unittest.mock import patch
 
 from django.db import connection
@@ -26,6 +28,7 @@ from billing.tests.test_execute_graded_task import (
 )
 from billing.zero_credit import (
     ZeroCreditViolation,
+    assert_not_zero_credit,
     in_zero_credit_scope,
     register_zero_credit_operations,
     zero_credit_scope,
@@ -232,6 +235,7 @@ class ViolationTests(ExecuteGradedTaskTestBase):
                 task_type="grading",
                 system_prompt="s",
                 user_prompt="u",
+                prompt_version="v1",
             ),
         )
         provider.assert_not_called()
@@ -252,6 +256,7 @@ class ViolationTests(ExecuteGradedTaskTestBase):
                 task_type="grading",
                 system_prompt="s",
                 user_prompt="u",
+                prompt_version="v1",
             ),
         )
         provider.assert_not_called()
@@ -265,6 +270,7 @@ class ViolationTests(ExecuteGradedTaskTestBase):
             task_type="grading",
             system_prompt="s",
             user_prompt="u",
+            prompt_version="v1",
         )
         log = CreditUsageLog.objects.get()
         before = self._counts()
@@ -284,6 +290,7 @@ class ViolationTests(ExecuteGradedTaskTestBase):
             task_type="grading",
             system_prompt="s",
             user_prompt="u",
+            prompt_version="v1",
         )
         self.assertEqual(CreditUsageLog.objects.count(), 1)
         CreditLedger.record(
@@ -334,6 +341,7 @@ class ViolationTests(ExecuteGradedTaskTestBase):
                 task_type="grading",
                 system_prompt="s",
                 user_prompt="u",
+                prompt_version="v1",
             )
 
         metered()
@@ -381,7 +389,7 @@ class ThreadIsolationTests(TransactionTestCase):
     """Gate 3: real threads, real Postgres, barrier-synchronised. A scope open
     in one thread must never affect a metered charge in another."""
 
-    ROUNDS = 100
+    ROUNDS = 200
 
     def setUp(self):
         base = ExecuteGradedTaskTestBase("setUp")
@@ -439,4 +447,133 @@ class ThreadIsolationTests(TransactionTestCase):
         self.assertEqual(
             CreditUsageLog.objects.filter(wallet=self.teacher_b.credit_wallet).count(),
             self.ROUNDS,
+        )
+
+    def test_n_threads_each_in_own_scope_all_raise(self):
+        """N threads, each in its own scope, each trying consume_credits.
+        All must raise. Zero cross-thread interference."""
+        n_threads = 8
+        rounds = 50
+        base = ExecuteGradedTaskTestBase("setUp")
+        teachers = []
+        for i in range(n_threads):
+            t = base._make_user(UserTypes.TEACHER, f"nthread-{i}@example.com")
+            base._give_credits(t, 10_000_000)
+            teachers.append(t)
+
+        barrier = threading.Barrier(n_threads)
+        errors = []
+        raised_counts = [0] * n_threads
+
+        def worker(idx):
+            try:
+                wallet = teachers[idx].credit_wallet
+                for _ in range(rounds):
+                    barrier.wait(timeout=30)
+                    with zero_credit_scope(OP):
+                        try:
+                            wallet.consume_credits(amount=1, feature="f")
+                        except ZeroCreditViolation:
+                            raised_counts[idx] += 1
+            except Exception as e:  # noqa: BLE001
+                errors.append(e)
+            finally:
+                connection.close()
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(n_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=120)
+
+        self.assertEqual(errors, [])
+        for idx in range(n_threads):
+            self.assertEqual(raised_counts[idx], rounds, f"thread {idx}")
+        for teacher in teachers:
+            self.assertEqual(
+                CreditUsageLog.objects.filter(wallet=teacher.credit_wallet).count(),
+                0,
+            )
+
+
+class CeleryNonPropagationTests(TestCase):
+    """§9.7: a ContextVar does not cross a Celery hop. The scope set in the
+    calling thread is not visible in the task body."""
+
+    def test_scope_does_not_propagate_across_contextvar_boundary(self):
+        seen = []
+
+        def simulated_task_body():
+            seen.append(in_zero_credit_scope())
+
+        with zero_credit_scope(OP):
+            self.assertEqual(in_zero_credit_scope(), OP)
+            ctx = contextvars.copy_context()
+            ctx.run(
+                lambda: (
+                    zero_credit._active_scopes.set(()),
+                    simulated_task_body(),
+                )
+            )
+
+        self.assertEqual(seen, [None])
+
+    def test_scope_not_inherited_by_thread_simulating_celery_worker(self):
+        seen = []
+        with zero_credit_scope(OP):
+            t = threading.Thread(target=lambda: seen.append(in_zero_credit_scope()))
+            t.start()
+            t.join()
+        self.assertEqual(seen, [None])
+
+
+class AdversarialTests(ExecuteGradedTaskTestBase):
+    """Gate 4: bypass attempts that must not succeed."""
+
+    def setUp(self):
+        super().setUp()
+        self.teacher = self._make_teacher_with_credits(credits=200_000)
+        self.wallet = self.teacher.credit_wallet
+
+    def test_charge_after_nested_scope_exits_succeeds(self):
+        """A nested scope closes; the outer scope is still active. A charge
+        inside the outer scope must still be refused."""
+        register_zero_credit_operations("_inner_adv")
+        try:
+            with zero_credit_scope(OP):
+                with zero_credit_scope("_inner_adv"):
+                    pass
+                with self.assertRaises(ZeroCreditViolation):
+                    self.wallet.consume_credits(amount=1, feature="f")
+        finally:
+            zero_credit.ZERO_CREDIT_OPERATIONS.discard("_inner_adv")
+
+    def test_charge_after_all_scopes_exit_succeeds(self):
+        """After both nested and outer scopes close, charges work."""
+        register_zero_credit_operations("_inner_adv2")
+        try:
+            with zero_credit_scope(OP):
+                with zero_credit_scope("_inner_adv2"):
+                    pass
+            self.wallet.consume_credits(amount=1, feature="f")
+            self.assertEqual(CreditUsageLog.objects.count(), 1)
+        finally:
+            zero_credit.ZERO_CREDIT_OPERATIONS.discard("_inner_adv2")
+
+
+class PerformanceMeasurementTests(TestCase):
+    """Gate 6: measure the cost of the guard check. 100k iterations,
+    reported in ns per call. Measurement only, no pass/fail threshold."""
+
+    ITERATIONS = 100_000
+
+    def test_guard_check_overhead(self):
+        start = time.perf_counter_ns()
+        for _ in range(self.ITERATIONS):
+            assert_not_zero_credit("MODEL_CALL")
+        elapsed = time.perf_counter_ns() - start
+        ns_per_call = elapsed / self.ITERATIONS
+        # Record the measurement; the test always passes.
+        print(
+            f"\nGuard check: {ns_per_call:.1f} ns/call over {self.ITERATIONS} iterations"
         )
