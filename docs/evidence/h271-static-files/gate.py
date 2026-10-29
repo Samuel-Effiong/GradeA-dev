@@ -192,17 +192,45 @@ print("skips", sorted(skips))
 if sorted(skips) != SKIPS:
     stop("skips differ")
 
-print("== 1c. pip-audit")
-with open(E / "pip_audit.txt", "w") as fh:
+print("== 1c. pip-audit (findings at tip must equal findings at BASE)")
+
+
+def audit(cwd, out):
     r = subprocess.run(
         [sys.executable, "scripts/pip_audit_gate.py"],
-        stdout=fh,
-        stderr=subprocess.STDOUT,
+        cwd=cwd,
+        capture_output=True,
+        text=True,
         env=ENV,
     )
-print("pip-audit exit", r.returncode)
-if r.returncode:
-    stop("pip-audit gate not 0")
+    text = "\n".join(
+        x
+        for x in (r.stdout + r.stderr).splitlines()
+        if not x.startswith("WARNING:cachecontrol")
+    )
+    pathlib.Path(out).write_text(text + "\n")
+    rows = sorted(
+        tuple(x.split()[:3])
+        for x in text.splitlines()
+        if re.match(r"^[A-Za-z0-9_.-]+ +\S+ +(GHSA|PYSEC|CVE)-", x)
+    )
+    return r.returncode, rows
+
+
+AB = pathlib.Path("/tmp") / f"h271-audit-base-{os.getpid()}"
+subprocess.run(["git", "worktree", "add", "-q", "--detach", str(AB), BASE], check=True)
+try:
+    base_rc, base_rows = audit(str(AB), E / "pip_audit_base.txt")
+finally:
+    subprocess.run(["git", "worktree", "remove", "--force", str(AB)], check=False)
+tip_rc, tip_rows = audit(".", E / "pip_audit.txt")
+print("base", base_rc, len(base_rows), "tip", tip_rc, len(tip_rows))
+if (
+    tip_rows != base_rows
+    or tip_rc != base_rc
+    or any(r[0].lower() == "whitenoise" for r in tip_rows)
+):
+    stop("pip-audit findings at tip differ from BASE, or name whitenoise")
 
 print("== 2. mutants")
 ST = "AutoGrader/settings.py"

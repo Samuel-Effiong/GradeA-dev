@@ -1,5 +1,20 @@
 # H-271 gate expectations (SM, written and committed before any gate run)
 
+## Run 3 on 6dc4232d: STOP (pip-audit exit 1, not caused by H-271)
+- red, makemigrations, seam: as written. near: Ran 2064, OK (skipped=6), the 6 declared reasons.
+- pip-audit exit 1: 14 advisories beyond the accepted lists, all in production packages already on
+  the base (authlib 1.6.12 x7, filelock 3.19.1 x2, oauthlib 3.3.1, social-auth-core 4.7.0,
+  tornado 6.5.9 x3); none for whitenoise. The same audit run on 7eec85e0 alone gives the same 14
+  and exit 1 (SM check, a temporary worktree). They are advisories published after the accepted
+  lists were written; they go to the owner as their own row.
+- What was wrong: "pip-audit exits 0" depends on the advisory database on the day, not on this
+  change. What this row has to show is that it adds no advisory.
+- Run 4 expectation (replaces the pip-audit line): the gate audits BASE (temporary worktree) and the
+  tip in the same run. The tip's findings (package, version, id) equal BASE's exactly, the exit
+  codes are equal, and no finding names whitenoise. Everything else stands. Run 3 logs: run3/.
+
+## Run 4: tip under test is the commit that adds this record.
+
 ## Run 3 expectations (SM, committed before run 3)
 Everything below the run records stands, with these changes only:
 - Base is now **7eec85e0** (H-262 run 3, which fixes the stale pip-audit test), merged in at
