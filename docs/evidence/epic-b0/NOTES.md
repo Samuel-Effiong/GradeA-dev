@@ -270,7 +270,23 @@ Expected: **Ran 43, OK**.
 Labels: `billing`, `ai_processor`, `assignments`.
 
 DiscoverRunner count at tip (after test commit 1cfb7dfa): **4614**.
-Expected: **Ran 4614, OK** (skipped count may vary).
+Expected: **Ran 4614, OK**.
+
+**Result:** Ran 4614 in 800.589s — **OK (skipped=19)**. GREEN.
+
+Skip analysis — B0 3-app skips vs beta f5d2d577 3-app skips:
+
+| Count | Reason | Beta 3-app | B0 |
+|-------|--------|------------|-----|
+| 9 | Real AI call is opt-in and billed: set RUN_REAL_AI=1 | 9 | 9 |
+| 8 | load tests are opt-in: set RUN_LOAD_TESTS=1 | 8 | 8 |
+| 1 | set RUN_LOAD_TESTS=1 to build the 6,000-student school | 1 | 1 |
+| 1 | Live network check is opt-in: set CI_REQUIRE_NETWORK=1 | 1 | 1 |
+| **19** | | **19** | **19** |
+
+Beta 3-app total: 4571 tests, 19 skips, 4 reasons.
+B0 3-app total: 4614 tests, 19 skips, 4 reasons (identical).
+No new skips introduced by B0. All 43 new B0 tests run without skipping.
 
 ### Makemigrations
 
@@ -279,22 +295,29 @@ changes.
 
 ### Mutant battery (M1–M12)
 
-Each mutant reverts or weakens one protection. The named test must FAIL.
+Each mutant modifies one protection. Run only the killing test(s), not the
+full suite. Restore the file after each mutant.
 
-| # | Mutant | Anchor | Killing test(s) | Expected fragment |
-|---|---|---|---|---|
-| M1 | Remove entry guard in execute_graded_task | `assert_not_zero_credit(MODEL_CALL)` in execute_graded_task (services.py:5502) | test_execute_graded_task_raises_before_any_provider_call | `ZeroCreditViolation not raised` |
-| M2 | Move that guard to after __ai_model | Move the assert_not_zero_credit line to after `response = self.__ai_model(...)` at :5654 | test_execute_graded_task_raises_before_any_provider_call | provider.assert_not_called `AssertionError: Expected call count 0` |
-| M3 | Remove consume_credits guard | `assert_not_zero_credit(WALLET_CONSUME)` in CreditWallet.consume_credits (models.py:925) | test_wallet_consume_raises | `ZeroCreditViolation not raised` |
-| M4 | Skip check before the adding early return in _guard_save | `assert_not_zero_credit(...)` block in _guard_save (immutable.py:201-204) | test_ledger_record_raises, test_ledger_objects_create_raises, test_usage_log_record_raises | `ZeroCreditViolation not raised` |
-| M5 | Remove the bulk_create guard | `assert_not_zero_credit(BULK_INSERT)` in AppendOnlyQuerySet.bulk_create (immutable.py:145) | test_ledger_bulk_create_raises | `ZeroCreditViolation not raised` |
-| M6 | Scope does not reset in finally | Remove `_active_scopes.reset(token)` from zero_credit_scope (zero_credit.py:119) | test_scope_state_is_restored_when_the_block_raises | `assertIsNone` fails (scope still set) |
-| M7 | Scope replaced by set/unset instead of stack | Replace `_active_scopes.set(... + (operation,))` with `_active_scopes.set((operation,))` (zero_credit.py:115) | test_nested_scopes_stack_and_unwind | inner scope unwind shows None instead of OP |
-| M8 | Registry accepts unknown names | Remove the `if operation not in ZERO_CREDIT_OPERATIONS` check (zero_credit.py:107-111) | test_unknown_operation_is_rejected | `ValueError not raised` |
-| M9 | Re-add get_ai_model_function | Re-add `def get_ai_model_function(self): return self.__ai_model` at services.py:1276 (beta definition) | test_escape_hatch_is_gone | `assertTrue` fails (hasattr returns True) |
-| M10 | Add a stray self.client.chat reference | Add `self.client.chat.completions` reference in a new method in AIProcessor | test_self_client_is_only_used_inside___ai_model | offenders list not empty |
-| M11 | Metric emit raises and is not caught | Remove the `except Exception` around audit_metrics.count in _report (zero_credit.py:171-172) | test_violation_still_raises_when_metric_and_logging_helpers_fail | `RuntimeError: metrics down` (instead of ZeroCreditViolation) |
-| M12 | Remove CreditBucket pre_save guard | Remove guard_bucket_save or disconnect the pre_save.connect (models.py:1695-1697) | test_bucket_balance_write_raises_and_bookkeeping_save_does_not | `ZeroCreditViolation not raised` |
+| # | Mutant | File:line | Mutation | Test(s) | Expected |
+|---|---|---|---|---|---|
+| M1 | Remove entry guard | services.py:5502 | Delete `assert_not_zero_credit(MODEL_CALL)` | test_execute_graded_task_raises_before_any_provider_call | FAIL: `ZeroCreditViolation not raised` |
+| M2 | Guard after provider | services.py:5502 | Move `assert_not_zero_credit(MODEL_CALL)` to after `response = self.__ai_model(...)` | test_execute_graded_task_raises_before_any_provider_call | FAIL: `Expected '_AIProcessor__ai_model' to not have been called` (provider.assert_not_called at :241) |
+| M3 | Remove consume guard | models.py:925 | Delete `assert_not_zero_credit(WALLET_CONSUME)` | test_wallet_consume_raises | FAIL: `ZeroCreditViolation not raised` |
+| M4 | Remove _guard_save check | immutable.py:201-204 | Delete the `assert_not_zero_credit(...)` block | test_ledger_record_raises, test_ledger_objects_create_raises, test_usage_log_record_raises | FAIL: `ZeroCreditViolation not raised` |
+| M5 | Remove bulk_create guard | immutable.py:145 | Delete `assert_not_zero_credit(BULK_INSERT)` | test_ledger_bulk_create_raises | FAIL: `ZeroCreditViolation not raised` |
+| M6 | No reset in finally | zero_credit.py:119 | Delete `_active_scopes.reset(token)` | test_scope_state_is_restored_when_the_block_raises | FAIL: `'_selftest' is not None` |
+| M7 | Overwrite instead of stack | zero_credit.py:115 | Replace `_active_scopes.get() + (operation,)` with `(operation,)` | test_nested_scopes_stack_and_unwind | **SURVIVES** (see note) |
+| M8 | Registry accepts unknown | zero_credit.py:107-111 | Delete the `if operation not in ZERO_CREDIT_OPERATIONS` check | test_unknown_operation_is_rejected | FAIL: `ValueError not raised` |
+| M9 | Re-add escape hatch | services.py (after :1276) | Add `def get_ai_model_function(self): return self.__ai_model` | test_escape_hatch_is_gone | FAIL: `True is not false` |
+| M10 | Stray client reference | services.py (new method) | Add `self.client.chat.completions` in a new method | test_self_client_is_only_used_inside___ai_model | FAIL: `Lists differ: [(...)] != []` |
+| M11 | Metric not caught | zero_credit.py:171-172 | Delete `except Exception:` + the pass body | test_violation_still_raises_when_metric_and_logging_helpers_fail | FAIL (ERROR): `RuntimeError: metrics down` |
+| M12 | Remove bucket pre_save | models.py:1695-1697 | Delete or comment `pre_save.connect(guard_bucket_save, ...)` | test_bucket_balance_write_raises_and_bookkeeping_save_does_not | FAIL: `ZeroCreditViolation not raised` |
+
+**M7 note:** `ContextVar.reset(token)` restores the value saved when the
+token was created. With 2-level nesting, overwrite and stack produce the same
+result after inner-scope exit because reset restores the outer value either way.
+A 3-level test or a test that inspects the full stack would kill it. Flagged as
+a known survivor for SM ruling.
 
 ---
 
