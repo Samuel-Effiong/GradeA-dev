@@ -32,6 +32,7 @@ from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_stripe_error, describe_user_error
 from AutoGrader.reason_codes import CodedError, coded_entry
 from AutoGrader.tasks import send_email_task
+from billing.errors import BillingRequestError
 from classrooms.models import School
 from users.admin_power import holds_admin_power
 from users.mailerlite_service import queue_sync
@@ -235,30 +236,30 @@ class LicenseSubscriptionService:
         and the actual grant.
         """
         if not license_sub.is_active:
-            raise ValueError("License is not active.")
+            raise BillingRequestError("License is not active.")
 
         if total_blocks <= 0:
-            raise ValueError("total_blocks must be a positive integer.")
+            raise BillingRequestError("total_blocks must be a positive integer.")
 
         if total_blocks > LicenseSubscriptionService.MAX_BLOCKS_PER_PURCHASE:
-            raise ValueError(
+            raise BillingRequestError(
                 f"total_blocks ({total_blocks}) exceeds the maximum of "
                 f"{LicenseSubscriptionService.MAX_BLOCKS_PER_PURCHASE} blocks "
                 f"per purchase. Split this into multiple purchases if needed."
             )
 
         if not allocations:
-            raise ValueError("allocations cannot be empty.")
+            raise BillingRequestError("allocations cannot be empty.")
 
         for teacher_id, blocks in allocations.items():
             if not isinstance(blocks, int) or blocks <= 0:
-                raise ValueError(
+                raise BillingRequestError(
                     f"Invalid block count for teacher {teacher_id}: {blocks!r}."
                 )
 
         allocated_sum = sum(allocations.values())
         if allocated_sum != total_blocks:
-            raise ValueError(
+            raise BillingRequestError(
                 f"Sum of allocated blocks ({allocated_sum}) must equal "
                 f"total_blocks ({total_blocks})."
             )
@@ -281,7 +282,7 @@ class LicenseSubscriptionService:
         }
         missing = {str(t) for t in teacher_ids} - active_ids
         if missing:
-            raise ValueError(
+            raise BillingRequestError(
                 f"Teachers not active under this license: {', '.join(sorted(missing))}"
             )
 
@@ -1216,14 +1217,14 @@ class LicenseSubscriptionService:
 
         email = email.strip().lower()
         if not email:
-            raise ValueError("Teacher email is required")
+            raise BillingRequestError("Teacher email is required")
 
         # 1. Business email validation
         if not is_exempt_email_domain(email) and not is_business_email(email):
             error_msg = f"Email {email} is not a business email. Only business emails are allowed."
             logger.warning("Not a business email: teacher not enrolled.")
             if raise_on_conflict:
-                raise ValueError(error_msg)
+                raise BillingRequestError(error_msg)
             return None
 
         # Check if user with this email already exists, whatever its case
@@ -1238,7 +1239,7 @@ class LicenseSubscriptionService:
                 error_msg = "This email can't be added as a teacher."
                 logger.warning("User %s is not a teacher: not enrolled.", user.id)
                 if raise_on_conflict:
-                    raise ValueError(error_msg)
+                    raise BillingRequestError(error_msg)
                 return None
 
             # H-203, THE PRINCIPLE (users/admin_power.py): this road sets a
@@ -1257,7 +1258,7 @@ class LicenseSubscriptionService:
                     "User %s may not be invited by licence: not enrolled.", user.id
                 )
                 if raise_on_conflict:
-                    raise ValueError(error_msg)
+                    raise BillingRequestError(error_msg)
                 return None
 
             # 3. School validation. Before the subscription check (H-78): another
@@ -1274,7 +1275,7 @@ class LicenseSubscriptionService:
                     school.id,
                 )
                 if raise_on_conflict:
-                    raise ValueError(error_msg)
+                    raise BillingRequestError(error_msg)
                 return None
 
             # 4. Check for active individual subscription
@@ -1449,7 +1450,7 @@ class LicenseSubscriptionService:
                 license_sub.id,
                 license_sub.school_id,
             )
-            raise ValueError(
+            raise BillingRequestError(
                 f"Teacher {teacher.email} does not belong to school "
                 f"{license_sub.school.name}. Cannot enroll."
             )
@@ -1491,7 +1492,7 @@ class LicenseSubscriptionService:
                     license_sub.max_seats,
                     teacher.id,
                 )
-                raise ValueError(
+                raise BillingRequestError(
                     f"License {license_sub.id!r} for school {license_sub.school.name!r} "
                     f"has reached its seat limit of {license_sub.max_seats!r}. "
                     f"Upgrade the license or remove an existing teacher to enroll a new one."
@@ -2330,9 +2331,9 @@ class LicenseSubscriptionService:
 
         def validate(licence):
             if not licence.is_active:
-                raise ValueError("License is already inactive.")
+                raise BillingRequestError("License is already inactive.")
             if not licence.auto_renew:
-                raise ValueError("License is already scheduled to cancel.")
+                raise BillingRequestError("License is already scheduled to cancel.")
 
         def record_cancellation(licence, log_suffix):
             LicenseBillingRecord.objects.create(
@@ -2411,7 +2412,7 @@ class LicenseSubscriptionService:
             )
         except stripe.error.StripeError as exc:
             license_stripe_mutation.log_provider_error(intent, exc)
-            raise ValueError(
+            raise BillingRequestError(
                 "Failed to schedule Stripe cancellation."
                 + license_stripe_mutation.TRY_AGAIN
             ) from exc
@@ -2603,7 +2604,7 @@ class LicenseSubscriptionService:
                     old_plan.id == new_plan.id
                     and old_effective_price == new_effective_price
                 ):
-                    raise ValueError(
+                    raise BillingRequestError(
                         "License is already on this plan with the same price."
                     )
 
@@ -2750,20 +2751,20 @@ class LicenseSubscriptionService:
         increase is escalated to a human instead of being refunded.
         """
         if new_max_seats <= 0:
-            raise ValueError("max_seats must be a positive integer.")
+            raise BillingRequestError("max_seats must be a positive integer.")
 
         def validate(licence):
             active_teacher_count = licence.allocations.filter(
                 is_active=True, is_admin_allocation=False
             ).count()
             if new_max_seats < active_teacher_count:
-                raise ValueError(
+                raise BillingRequestError(
                     f"Cannot reduce max_seats to {new_max_seats} because there "
                     f"are {active_teacher_count} active teachers. "
                     "Remove some teachers first."
                 )
             if new_max_seats == licence.max_seats:
-                raise ValueError("License already has this many seats.")
+                raise BillingRequestError("License already has this many seats.")
 
         def write_seats(licence, old_seats, proration_behavior):
             licence.max_seats = new_max_seats
@@ -2826,7 +2827,7 @@ class LicenseSubscriptionService:
                 intent, f"could not read the subscription: {exc}"
             )
             license_stripe_mutation.log_provider_error(intent, exc)
-            raise ValueError(
+            raise BillingRequestError(
                 "Stripe error while updating seats." + license_stripe_mutation.TRY_AGAIN
             ) from exc
         items = before.get("items", {}).get("data", [])
@@ -2864,7 +2865,7 @@ class LicenseSubscriptionService:
             ):
                 # `why` (Stripe's text included) is on the intent; the
                 # client gets fixed text (H-60).
-                return ValueError(
+                return BillingRequestError(
                     "Seat increase payment failed. Seats have not been increased."
                 )
             return license_stripe_mutation.LicenceStripeChangeNotRecorded(
@@ -2889,7 +2890,7 @@ class LicenseSubscriptionService:
             raise payment_failed(f"card error: {exc}") from exc
         except stripe.error.StripeError as exc:
             license_stripe_mutation.log_provider_error(intent, exc)
-            raise ValueError(
+            raise BillingRequestError(
                 "Stripe error while updating seats." + license_stripe_mutation.TRY_AGAIN
             ) from exc
 
@@ -3025,7 +3026,7 @@ class LicenseSubscriptionService:
             "1",
             timeout=LicenseSubscriptionService._OVERAGE_LOCK_TIMEOUT_SECONDS,
         ):
-            raise ValueError(
+            raise BillingRequestError(
                 "An overage purchase is already being processed for this "
                 "license. Please wait a moment and try again."
             )
@@ -3046,7 +3047,7 @@ class LicenseSubscriptionService:
             )
 
             if not is_super and not is_school_admin:
-                raise ValueError(
+                raise BillingRequestError(
                     "You are not authorized to purchase overage for this license."
                 )
 
@@ -3065,7 +3066,7 @@ class LicenseSubscriptionService:
                 )
 
             if not success_url or not cancel_url:
-                raise ValueError(
+                raise BillingRequestError(
                     "success_url and cancel_url are required to start checkout."
                 )
 
@@ -3200,7 +3201,7 @@ class LicenseSubscriptionService:
         found_ids = {str(a.user_id) for a in locked_allocations}
         missing = {str(t) for t in teacher_ids} - found_ids
         if missing:
-            raise ValueError(
+            raise BillingRequestError(
                 f"Teachers not active under this license: {', '.join(sorted(missing))}"
             )
 
@@ -3341,7 +3342,7 @@ class LicenseSubscriptionService:
             intent.status = LicenseOveragePurchaseStatus.FAILED
             intent.failure_reason = f"Checkout session creation failed: {exc}"
             intent.save(update_fields=["status", "failure_reason", "updated_at"])
-            raise ValueError(
+            raise BillingRequestError(
                 "Could not start overage checkout: "
                 + describe_stripe_error(
                     exc, fallback_message="Please try again in a moment."
@@ -3463,7 +3464,7 @@ class LicenseSubscriptionService:
             "1",
             timeout=LicenseSubscriptionService._OVERAGE_LOCK_TIMEOUT_SECONDS,
         ):
-            raise ValueError(
+            raise BillingRequestError(
                 "An overage purchase is already being processed for this "
                 "license. Please wait a moment and try again."
             )
@@ -3473,7 +3474,7 @@ class LicenseSubscriptionService:
                 pk=request_obj.pk
             )
             if request_obj.status != LicenseOverageOfflineRequestStatus.PENDING:
-                raise ValueError("This request has already been reviewed.")
+                raise BillingRequestError("This request has already been reviewed.")
 
             license_sub = LicenseSubscription.objects.select_for_update().get(
                 pk=request_obj.license_subscription_id
@@ -3664,7 +3665,7 @@ class LicenseSubscriptionService:
             pk=request_obj.pk
         )
         if request_obj.status != LicenseOverageOfflineRequestStatus.PENDING:
-            raise ValueError("This request has already been reviewed.")
+            raise BillingRequestError("This request has already been reviewed.")
 
         request_obj.status = LicenseOverageOfflineRequestStatus.REJECTED
         request_obj.rejection_reason = rejection_reason
@@ -4077,7 +4078,7 @@ class LicenseSubscriptionService:
         """
 
         if license_sub.billing_method != LicenseBillingMethod.OFFLINE:
-            raise ValueError(
+            raise BillingRequestError(
                 f"License {license_sub.id} is billed via {license_sub.billing_method}, "
                 "not OFFLINE. Use the Stripe renewal path instead."
             )
@@ -4087,11 +4088,13 @@ class LicenseSubscriptionService:
         )
 
         if not license_sub.is_active:
-            raise ValueError("Cannot renew an inactive license. Reactivate it first.")
+            raise BillingRequestError(
+                "Cannot renew an inactive license. Reactivate it first."
+            )
 
         now = timezone.now()
         if new_billing_cycle_end <= now:
-            raise ValueError("new_billing_cycle_end must be in the future.")
+            raise BillingRequestError("new_billing_cycle_end must be in the future.")
 
         previous_cycle_end = license_sub.billing_cycle_end
 
@@ -4267,7 +4270,7 @@ class LicenseSubscriptionService:
                     pk=license_sub.pk
                 )
                 if licence.billing_method == LicenseBillingMethod.OFFLINE:
-                    raise ValueError("License is already billed offline.")
+                    raise BillingRequestError("License is already billed offline.")
 
                 if not licence.stripe_subscription_id:
                     write_offline(licence)
@@ -4312,7 +4315,7 @@ class LicenseSubscriptionService:
             )
         except stripe.error.StripeError as exc:
             license_stripe_mutation.log_provider_error(intent, exc)
-            raise ValueError(
+            raise BillingRequestError(
                 "Failed to cancel Stripe subscription."
                 + license_stripe_mutation.TRY_AGAIN
             ) from exc
@@ -4345,7 +4348,7 @@ class LicenseSubscriptionService:
         notes: Optional[str] = None,
     ) -> CreditBucket:
         if blocks <= 0:
-            raise ValueError("blocks must be a positive integer.")
+            raise BillingRequestError("blocks must be a positive integer.")
 
         allocation = (
             SchoolCreditAllocation.objects.select_for_update()
@@ -4353,7 +4356,7 @@ class LicenseSubscriptionService:
             .first()
         )
         if not allocation:
-            raise ValueError(
+            raise BillingRequestError(
                 f"{teacher.email} is not actively enrolled under this license."
             )
 
@@ -4450,24 +4453,24 @@ class LicenseSubscriptionService:
         )
 
         if not license_sub.is_active:
-            raise ValueError(
+            raise BillingRequestError(
                 "Cannot change the plan of an inactive license. Reactivate it first"
             )
 
         if new_plan.category != PlanCategory.LICENSE:
-            raise ValueError(
+            raise BillingRequestError(
                 f"License subscriptions require a LICENSE plan, not "
                 f"{new_plan.category}."
             )
 
         if not new_plan.is_active:
-            raise ValueError("This plan is no longer available for selection.")
+            raise BillingRequestError("This plan is no longer available for selection.")
 
         if (
             license_sub.billing_method == LicenseBillingMethod.STRIPE
             and license_sub.stripe_status == StripeSubscriptionStatus.PAST_DUE
         ):
-            raise ValueError(
+            raise BillingRequestError(
                 "This license has a payment issue. Please resolve it (or "
                 "convert it to offline billing) before changing plans."
             )

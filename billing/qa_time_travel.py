@@ -82,7 +82,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from AutoGrader.error_messages import describe_stripe_error
+from AutoGrader.error_messages import describe_stripe_error, describe_user_error
+from billing.errors import BillingRequestError
 from classrooms.permissions import IsSuperAdmin
 
 from .imports import stripe
@@ -207,7 +208,7 @@ def new_customer_test_clock_kwargs(email, label=None) -> dict:
         # This runs inside get_or_create_customer, so the message can reach
         # any checkout route's body: Stripe's text only through the
         # classifier (H-255).
-        raise ValueError(
+        raise BillingRequestError(
             "Could not create a Stripe Test Clock for this QA customer. "
             "Refusing to create a clockless customer, since a Test Clock "
             "cannot be attached after the fact. "
@@ -461,7 +462,9 @@ class QATimeTravelService:
         )
 
         if not user_sub.is_active:
-            raise ValueError("Subscription is not active — nothing to simulate.")
+            raise BillingRequestError(
+                "Subscription is not active — nothing to simulate."
+            )
 
         before = {
             "billing_cycle_end": user_sub.billing_cycle_end,
@@ -472,7 +475,7 @@ class QATimeTravelService:
 
         if mode == "trial_expiry":
             if not user_sub.is_trial:
-                raise ValueError(
+                raise BillingRequestError(
                     "Subscription is not a trial. Use mode='full_renewal' instead."
                 )
             user_sub.trial_end = target
@@ -481,14 +484,14 @@ class QATimeTravelService:
 
         elif mode == "full_renewal":
             if user_sub.is_trial:
-                raise ValueError(
+                raise BillingRequestError(
                     "Subscription is currently a trial. Use mode='trial_expiry' "
                     "to simulate trial expiry instead — a trial does not renew "
                     "via invoice.payment_succeeded the same way a paid "
                     "subscription does."
                 )
             if not user_sub.stripe_subscription_id:
-                raise ValueError(
+                raise BillingRequestError(
                     "This subscription has no stripe_subscription_id. Neither "
                     "the invoice.payment_succeeded webhook nor "
                     "reconcile_subscription_renewals (which requires "
@@ -508,18 +511,18 @@ class QATimeTravelService:
 
         elif mode == "mid_cycle_grant":
             if user_sub.is_trial:
-                raise ValueError(
+                raise BillingRequestError(
                     "mid_cycle_grant does not apply to trial subscriptions."
                 )
             if user_sub.plan.interval != BillingInterval.ANNUAL:
-                raise ValueError(
+                raise BillingRequestError(
                     "mid_cycle_grant only applies to ANNUAL-interval plans — "
                     f"this subscription's plan interval is {user_sub.plan.interval}. "
                     "MONTHLY plans have no separate mid-cycle grant concept "
                     "(the renewal IS the credit grant); use full_renewal instead."
                 )
             if user_sub.billing_cycle_end <= timezone.now():
-                raise ValueError(
+                raise BillingRequestError(
                     "This subscription's annual billing_cycle_end has already "
                     "elapsed locally — process_annual_plan_credit_grants "
                     "requires billing_cycle_end to still be in the future "
@@ -578,11 +581,11 @@ class QATimeTravelService:
         )
 
         if not license_sub.is_active:
-            raise ValueError("License is not active — nothing to simulate.")
+            raise BillingRequestError("License is not active — nothing to simulate.")
 
         if mode == "full_renewal":
             if license_sub.billing_method != LicenseBillingMethod.STRIPE:
-                raise ValueError(
+                raise BillingRequestError(
                     "License is billed OFFLINE. Neither the "
                     "invoice.payment_succeeded webhook nor "
                     "process_license_renewals (which excludes "
@@ -591,7 +594,7 @@ class QATimeTravelService:
                     "to test offline renewal instead."
                 )
             if not license_sub.stripe_subscription_id:
-                raise ValueError(
+                raise BillingRequestError(
                     "This license has no stripe_subscription_id — nothing "
                     "to simulate via webhook/Celery here."
                 )
@@ -622,7 +625,7 @@ class QATimeTravelService:
 
         elif mode == "mid_cycle_grant":
             if license_sub.billing_cycle_end <= timezone.now():
-                raise ValueError(
+                raise BillingRequestError(
                     "This license's billing_cycle_end has already elapsed "
                     "locally — process_license_monthly_credit_refreshes "
                     "requires license_subscription__billing_cycle_end__gt=now "
@@ -639,7 +642,7 @@ class QATimeTravelService:
 
             allocations = list(allocations_qs.select_related("user"))
             if not allocations:
-                raise ValueError(
+                raise BillingRequestError(
                     "No active SchoolCreditAllocation found matching this "
                     "request (check allocation_user_id, or that the license "
                     "has active allocations at all)."
@@ -1015,7 +1018,15 @@ class BillingTimeTravelView(APIView):
                     d["allocation_user_id"],
                 )
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        exc,
+                        fallback_message="The time-travel request failed. Please try again.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         stripe_result = None
         if (

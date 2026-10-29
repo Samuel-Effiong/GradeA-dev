@@ -975,7 +975,12 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                         schedule_released = True
                     except ValueError as exc:
                         return Response(
-                            {"detail": str(exc)},
+                            {
+                                "detail": describe_user_error(
+                                    exc,
+                                    fallback_message="We couldn't cancel the scheduled plan change. Please try again.",
+                                )
+                            },
                             status=status.HTTP_400_BAD_REQUEST,
                         )
 
@@ -1175,7 +1180,13 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                 )
             except ValueError as exc:
                 return Response(
-                    {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
+                    {
+                        "detail": describe_user_error(
+                            exc,
+                            fallback_message="We couldn't resume the subscription. Please try again.",
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             stripe_changed = result.stripe_changed
@@ -1292,7 +1303,14 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                 cancel_url=cancel_url,
             )
         except ValueError as exc:
-            raise ValidationError({"detail": str(exc)}) from exc
+            raise ValidationError(
+                {
+                    "detail": describe_user_error(
+                        exc,
+                        fallback_message="We couldn't change your plan. Please try again.",
+                    )
+                }
+            ) from exc
 
         response_serializer = PlanChangeResultSerializer(result)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
@@ -1340,7 +1358,15 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         except CodedError as exc:
             return coded_response(exc)
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        exc,
+                        fallback_message="We couldn't start the overage checkout. Please try again.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except Exception:
             logger.exception(
                 "Unexpected error during overage purchase for user %s",

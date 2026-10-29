@@ -16,6 +16,7 @@ from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
 
+from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from classrooms.permissions import IsSuperAdmin
 
@@ -112,7 +113,15 @@ class LicenseOverageOfflineRequestViewSet(viewsets.ReadOnlyModelViewSet):
                 request_obj, performed_by=request.user, **serializer.validated_data
             )
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        exc,
+                        fallback_message="We couldn't approve this request. Please try again.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response(
             LicenseOverageOfflineRequestListSerializer(result).data,
@@ -140,7 +149,15 @@ class LicenseOverageOfflineRequestViewSet(viewsets.ReadOnlyModelViewSet):
                 request_obj, performed_by=request.user, **serializer.validated_data
             )
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        exc,
+                        fallback_message="We couldn't reject this request. Please try again.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response(
             LicenseOverageOfflineRequestListSerializer(result).data,

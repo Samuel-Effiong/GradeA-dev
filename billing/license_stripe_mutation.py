@@ -66,6 +66,7 @@ from django.db import (
 from django.utils import timezone
 
 from AutoGrader.error_messages import stripe_error_label
+from billing.errors import BillingRequestError
 
 from .imports import stripe
 from .models import (
@@ -106,7 +107,7 @@ FINALISE_BACKOFF_SECONDS = (0.2, 1.0)
 STALE_AFTER = timedelta(minutes=10)
 
 
-class LicenceBillingChangeInProgress(ValueError):
+class LicenceBillingChangeInProgress(BillingRequestError):
     """Another Stripe change to this licence is still in flight, or is
     awaiting reconciliation. A ValueError, so the views' existing contract
     turns it into a 400 the caller can retry later."""

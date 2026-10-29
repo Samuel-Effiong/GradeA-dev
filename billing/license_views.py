@@ -323,7 +323,15 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 carry_forward_teachers=data.get("carry_forward_teachers", True),
             )
         except ValueError as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "error": describe_user_error(
+                        exc,
+                        fallback_message="We couldn't start the checkout. Please try again.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response({"checkout_url": session.url}, status=status.HTTP_200_OK)
 
@@ -666,7 +674,15 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 performed_by=request.user,
             )
         except ValueError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        e,
+                        fallback_message="We couldn't change the license plan. Please try again.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except license_stripe_mutation.LicenceStripeChangeNotRecorded as e:
             return _not_recorded_response(e)
         except Exception as e:
@@ -719,7 +735,15 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 license_sub, new_max_seats, performed_by=request.user
             )
         except ValueError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        e,
+                        fallback_message="We couldn't update the seats. Please try again.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except license_stripe_mutation.LicenceStripeChangeNotRecorded as e:
             return _not_recorded_response(e)
         except Exception as e:
@@ -786,7 +810,15 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 payment_method=d.get("payment_method", "stripe"),
             )
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        exc,
+                        fallback_message="We couldn't start the overage purchase. Please try again.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except stripe.error.StripeError as exc:
             logger.error(
                 "Stripe error during license overage purchase for license %s: %s",
@@ -862,7 +894,15 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 notes=d.get("notes"),
             )
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        exc,
+                        fallback_message="We couldn't renew the license. Please try again.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response(self.get_serializer(updated).data, status=status.HTTP_200_OK)
 
@@ -897,7 +937,15 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 cancel_url=cancel_url,
             )
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        exc,
+                        fallback_message="We couldn't start the switch to card billing. Please try again.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response({"checkout_url": session.url}, status=status.HTTP_200_OK)
 
@@ -925,7 +973,15 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 notes=serializer.validated_data.get("notes"),
             )
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        exc,
+                        fallback_message="We couldn't switch the license to offline billing. Please try again.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except license_stripe_mutation.LicenceStripeChangeNotRecorded as exc:
             return _not_recorded_response(exc)
 
@@ -961,7 +1017,15 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 notes=serializer.validated_data.get("notes"),
             )
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        exc,
+                        fallback_message="We couldn't cancel the license. Please try again.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except license_stripe_mutation.LicenceStripeChangeNotRecorded as exc:
             return _not_recorded_response(exc)
 
@@ -999,7 +1063,15 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 notes=d.get("notes"),
             )
         except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        exc,
+                        fallback_message="We couldn't grant the overage credits. Please try again.",
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response(
             CreditBucketSerializer(bucket).data, status=status.HTTP_201_CREATED
