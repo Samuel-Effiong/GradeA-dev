@@ -1,5 +1,14 @@
 # H-271 gate expectations (SM, written and committed before any gate run)
 
+## Run 1 on ffaf0b6d: STOP (red run, one fragment)
+- Ran 6, FAILED (failures=5, errors=1), the 6 declared blocks, and the guard passed: all as written.
+- test_collected_files_go_to_their_own_folder failed for the declared reason (STATIC_ROOT `static`,
+  not `staticfiles`), but the declared fragment `static') != PosixPath(` is not in the block:
+  unittest shortens long reprs, and the message reads `Posix[45 chars]...-static-files/static') !=
+  Posix[45 chars]...`. The fragment was wrong, not the code or the test.
+- Corrected below to `/static') != Posix` (red and M4, which used the same fragment). Nothing else
+  changed. Run 2 re-runs the whole gate. Run 1 logs: run1/.
+
 Tip under test: 88d08de1 (tests 8297285e + e1f1e254, code 88d08de1), base f870fb0b (H-262 evidence
 tip; this row changes the Dockerfile and requirements.txt H-262 changed).
 Runner: `python -I docs/evidence/h271-static-files/gate.py 88d08de1`, private venv
@@ -27,7 +36,7 @@ whitenoise stays installed (the venv has it), so the tests import and the guard'
     `'django.contrib.staticfiles.storage.ManifestStaticFilesStorage' != 'whitenoise.storage.CompressedManifestStaticFilesStorage'`
   - test_whitenoise_comes_directly_after_the_security_middleware:
     `'whitenoise.middleware.WhiteNoiseMiddleware' not found in [`
-  - test_collected_files_go_to_their_own_folder: `static') != PosixPath(`
+  - test_collected_files_go_to_their_own_folder: `/static') != Posix`
 - The guard `test_the_admin_login_fails_on_the_missing_manifest` passes (no block).
 
 ## Green
@@ -55,7 +64,7 @@ whitenoise stays installed (the venv has it), so the tests import and the guard'
 | M1 | collectstatic removed from the Dockerfile CMD | test_the_container_collects_static_files_before_gunicorn_starts | `-1 == -1` |
 | M2 | WhiteNoiseMiddleware line removed | test_whitenoise_comes_directly_after_the_security_middleware; test_the_admin_login_page_and_its_stylesheet_are_served | `not found in [`; `404 != 200` |
 | M3 | prod backend back to ManifestStaticFilesStorage | test_production_static_storage_is_whitenoise_manifest | `!= 'whitenoise.storage.CompressedManifestStaticFilesStorage'` |
-| M4 | STATIC_ROOT back to `static` | test_collected_files_go_to_their_own_folder | `static') != PosixPath(` |
+| M4 | STATIC_ROOT back to `static` | test_collected_files_go_to_their_own_folder | `/static') != Posix` |
 | M5 | `cloudinary_storage` moved back to first in INSTALLED_APPS | test_collectstatic_is_the_staticfiles_command; setUpClass | `'cloudinary_storage' != 'django.contrib.staticfiles'`; `has no attribute 'STATICFILES_STORAGE'` |
 | M6 | WhiteNoiseMiddleware moved to the end of MIDDLEWARE | test_whitenoise_comes_directly_after_the_security_middleware | `!=` |
 

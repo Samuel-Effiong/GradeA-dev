@@ -127,7 +127,7 @@ RED = {
         "FAIL",
         "'whitenoise.middleware.WhiteNoiseMiddleware' not found in [",
     ),
-    "test_collected_files_go_to_their_own_folder": ("FAIL", "static') != PosixPath("),
+    "test_collected_files_go_to_their_own_folder": ("FAIL", "/static') != Posix"),
 }
 ok = (
     rc != 0
@@ -233,7 +233,7 @@ MUT = {
         ST,
         re.compile(re.escape('STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")')),
         'STATIC_ROOT = os.path.join(BASE_DIR, "static")',
-        {"test_collected_files_go_to_their_own_folder": "static') != PosixPath("},
+        {"test_collected_files_go_to_their_own_folder": "/static') != Posix"},
     ),
     "M5": (
         ST,
