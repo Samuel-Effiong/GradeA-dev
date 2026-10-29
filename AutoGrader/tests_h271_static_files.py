@@ -6,7 +6,9 @@ Dockerfile never ran collectstatic, so {% static %} found no manifest. And
 with a manifest, nothing served /static/ (DEBUG is off, no middleware).
 
 Red as written against the call-site revert (Dockerfile and settings.py at
-the base): the Dockerfile, production-settings and served-CSS tests fail;
+the base): the Dockerfile, collectstatic-command, production-settings and
+served-CSS tests fail (the last in setUpClass, on cloudinary_storage's
+collectstatic);
 the guard (no collectstatic -> the manifest error) passes either way.
 
 The production settings are read in a fresh process, as in
@@ -24,7 +26,7 @@ import sys
 import tempfile
 
 from django.conf import settings
-from django.core.management import call_command
+from django.core.management import call_command, get_commands
 from django.test import SimpleTestCase, TestCase, override_settings
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
@@ -58,6 +60,13 @@ class DockerfileCollectsStaticTests(SimpleTestCase):
         self.assertNotEqual(collect, -1, cmd)
         self.assertLess(collect, cmd.find("gunicorn "), cmd)
         self.assertTrue(cmd.startswith("CMD set -xe;"), cmd)
+
+
+class CollectstaticIsDjangosOwnTests(SimpleTestCase):
+    def test_collectstatic_is_the_staticfiles_command(self):
+        # cloudinary_storage's collectstatic reads the STATICFILES_STORAGE
+        # setting Django 5.1 removed, and crashes before copying anything.
+        self.assertEqual(get_commands()["collectstatic"], "django.contrib.staticfiles")
 
 
 class ProductionStaticSettingsTests(SimpleTestCase):
