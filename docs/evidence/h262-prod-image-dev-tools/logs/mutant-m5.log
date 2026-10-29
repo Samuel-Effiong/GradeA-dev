@@ -1,0 +1,33 @@
+### git diff of mutated file(s)
+diff --git a/Dockerfile b/Dockerfile
+index ab1fa890..90204bd1 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -36,7 +36,7 @@ ENV PYTHONUNBUFFERED=1 \
+ # Runtime system libraries (not headers or compilers).
+ RUN apt-get update --yes --quiet && \
+     apt-get install --yes --quiet --no-install-recommends \
+-        libgl1 \
++        libmariadb-dev libgl1 \
+         libglib2.0-0 \
+         poppler-utils \
+         libpango-1.0-0 \
+
+### test output
+test_no_libmariadb_dev_anywhere (ai_processor.tests_h262_prod_image_dev_tools.DockerfileMultiStageTest.test_no_libmariadb_dev_anywhere) ... FAIL
+
+======================================================================
+FAIL: test_no_libmariadb_dev_anywhere (ai_processor.tests_h262_prod_image_dev_tools.DockerfileMultiStageTest.test_no_libmariadb_dev_anywhere)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h262-prod-image-dev-tools/ai_processor/tests_h262_prod_image_dev_tools.py", line 154, in test_no_libmariadb_dev_anywhere
+    self.assertNotIn(
+AssertionError: 'libmariadb-dev' unexpectedly found in '# --- Build stage: compile C extensions, then discard compilers and headers ---\nFROM python:3.12-slim-bookworm AS build\n\nRUN apt-get update --yes --quiet && \\\n    apt-get install --yes --quiet --no-install-recommends \\\n        build-essential \\\n        libpq-dev \\\n        libjpeg62-turbo-dev \\\n        zlib1g-dev \\\n        libwebp-dev \\\n    && rm -rf /var/lib/apt/lists/*\n\n# Install the application server and project requirements.\nCOPY requirements.txt /\nRUN pip install --no-cache-dir "gunicorn==22.0.0" -r /requirements.txt\n\n# --- Runtime stage: only what the app needs to serve requests ---\nFROM python:3.12-slim-bookworm\n\n# Add user that will be used in the container.\nRUN useradd appuser\n\n# Port used by this container to serve HTTP.\nEXPOSE 8000\n\n# Set environment variables.\n# 1. Force Python stdout and stderr streams to be unbuffered.\n# 2. Set PORT variable that is used by Gunicorn. This should match "EXPOSE"\n#    command.\nENV PYTHONUNBUFFERED=1 \\\n    PORT=8000 \\\n    HOME=/tmp \\\n    TMPDIR=/tmp \\\n    PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/ms-playwright\n\n# Runtime system libraries (not headers or compilers).\nRUN apt-get update --yes --quiet && \\\n    apt-get install --yes --quiet --no-install-recommends \\\n        libmariadb-dev libgl1 \\\n        libglib2.0-0 \\\n        poppler-utils \\\n        libpango-1.0-0 \\\n        libpangoft2-1.0-0 \\\n    && rm -rf /var/lib/apt/lists/*\n\n# Copy the installed Python environment from the build stage.\nCOPY --from=build /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/\nCOPY --from=build /usr/local/bin/ /usr/local/bin/\n\n# Install headless Chromium (used by assignments/pdf_renderer.py to typeset\n# math in downloaded assignment PDFs) plus its OS-level dependencies.\n# --with-deps auto-detects this image\'s OS (Debian bookworm) and installs\n# exactly the apt packages Chromium needs, rather than hand-maintaining a\n# fragile list here. Must run as root (before "USER appuser" below), and\n# PLAYWRIGHT_BROWSERS_PATH (set above) points it at a fixed, non-/tmp\n# location so the browser persists in the image and stays readable by the\n# non-root "appuser" user that actually serves requests.\nRUN playwright install --with-deps chromium && \\\n    chmod -R o+rX /usr/local/share/ms-playwright\n\n# Use /app folder as a directory where the source code is stored.\nWORKDIR /app\n\n# Set this directory to be owned by the "appuser" user, which writes here\n# (media uploads, static collection) at runtime.\nRUN chown appuser:appuser /app\n\n# Copy the source code of the project into the container.\nCOPY --chown=appuser:appuser . .\n\n# Use user "appuser" to run the build commands below and the server itself.\nUSER appuser\n\n# Collect static files.\n\n# Runtime command that executes when "docker run" is called, it does the\n# following:\n#   1. Migrate the database.\n#   2. Start the application server.\n# WARNING:\n#   Migrating database at the same time as starting the server IS NOT THE BEST\n#   PRACTICE. The database should be migrated manually or using the release\n#   phase facilities of your hosting platform.\n# NOTE: --timeout 100 is mirrored by WEBHOOK_REQUEST_HARD_TIMEOUT_SECONDS in\n# billing/webhooks.py, which derives STRIPE_EVENT_CLAIM_STALE_AFTER from it —\n# the point at which a still-running Stripe webhook claim is treated as\n# abandoned by a killed worker and may be stolen by another delivery. If you\n# raise the timeout here, raise that constant too, or a slow-but-alive request\n# can have its claim stolen and run concurrently with the thief (which can\n# duplicate non-refundable Stripe side effects).\n# WEB_CONCURRENCY and GUNICORN_THREADS override the worker and thread counts\n# without a rebuild; unset, they default to 9 and 4.\nCMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 100 --workers ${WEB_CONCURRENCY:-9} --threads ${GUNICORN_THREADS:-4} --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200\n' : libmariadb-dev must be removed entirely (nothing needs it)
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+FAILED (failures=1)
+Found 1 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).

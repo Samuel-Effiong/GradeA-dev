@@ -1,0 +1,20 @@
+WARNING:pip_audit._cli:--no-deps is supported, but users are encouraged to fully hash their pinned dependencies
+WARNING:pip_audit._cli:Consider using a tool like `pip-compile`: https://pip-tools.readthedocs.io/en/latest/#using-hashes
+Found 14 known vulnerabilities, ignored 86 in 5 packages
+Name             Version ID                  Fix Versions
+---------------- ------- ------------------- ------------
+authlib          1.6.12  GHSA-6v38-4h7w-rj9h 1.9.0
+authlib          1.6.12  GHSA-fch4-3c6x-j4gc 1.9.0
+authlib          1.6.12  GHSA-7vr2-2fgp-9w7p 1.9.0
+authlib          1.6.12  GHSA-c5mf-xmp2-59rc 1.9.0
+authlib          1.6.12  GHSA-x4rv-c3wx-4cr8 1.9.0
+authlib          1.6.12  GHSA-jj7h-c3hg-m23x 1.8.0
+authlib          1.6.12  GHSA-8m4g-j4wp-wgcg 1.9.1
+filelock         3.19.1  GHSA-8mx5-7m5m-r77g 4.2.1
+filelock         3.19.1  GHSA-69hj-f68j-2879 4.2.1
+oauthlib         3.3.1   GHSA-3jp2-3mrg-2vxc 4.0.0
+social-auth-core 4.7.0   GHSA-h2r5-x5m7-3935 6.2.0
+tornado          6.5.9   GHSA-pcg2-g6cj-q92c 6.6
+tornado          6.5.9   GHSA-r4j5-9xpp-3985 6.6
+tornado          6.5.9   GHSA-pw9p-v7r6-gx4p 6.6
+pip-audit gate: 86 accepted advisories from .pip-audit-ignore.toml, 19 from .pip-audit-ignore-dev.toml

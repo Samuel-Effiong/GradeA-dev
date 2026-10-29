@@ -119,15 +119,23 @@ class CommandTests(SimpleTestCase):
         self.runner = load_runner()
 
     def test_the_command_audits_the_pinned_requirements_strictly(self):
-        command = self.runner.audit_command(["B-2", "A-1"])
-        self.assertEqual(command[:3], [self.runner.sys.executable, "-m", "pip_audit"])
-        for flag in ("--strict", "--no-deps", "--disable-pip"):
-            self.assertIn(flag, command)
-        self.assertEqual(command[command.index("-r") + 1], "requirements.txt")
-        self.assertEqual(
-            [command[i + 1] for i, a in enumerate(command) if a == "--ignore-vuln"],
-            ["B-2", "A-1"],
-        )
+        for req_file in ("requirements.txt", "requirements-dev.txt"):
+            with self.subTest(requirements=req_file):
+                command = self.runner.audit_command(req_file, ["B-2", "A-1"])
+                self.assertEqual(
+                    command[:3], [self.runner.sys.executable, "-m", "pip_audit"]
+                )
+                for flag in ("--strict", "--no-deps", "--disable-pip"):
+                    self.assertIn(flag, command)
+                self.assertEqual(command[command.index("-r") + 1], req_file)
+                self.assertEqual(
+                    [
+                        command[i + 1]
+                        for i, a in enumerate(command)
+                        if a == "--ignore-vuln"
+                    ],
+                    ["B-2", "A-1"],
+                )
 
     def test_a_wrong_pip_audit_version_is_refused(self):
         with self.assertRaises(self.runner.IgnoreFileError) as caught:

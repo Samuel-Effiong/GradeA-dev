@@ -1,4 +1,20 @@
-# Use an official Python runtime based on Debian 12 "bookworm" as a parent image.
+# --- Build stage: compile C extensions, then discard compilers and headers ---
+FROM python:3.12-slim-bookworm AS build
+
+RUN apt-get update --yes --quiet && \
+    apt-get install --yes --quiet --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        libjpeg62-turbo-dev \
+        zlib1g-dev \
+        libwebp-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install the application server and project requirements.
+COPY requirements.txt /
+RUN pip install --no-cache-dir "gunicorn==22.0.0" -r /requirements.txt
+
+# --- Runtime stage: only what the app needs to serve requests ---
 FROM python:3.12-slim-bookworm
 
 # Add user that will be used in the container.
@@ -17,15 +33,9 @@ ENV PYTHONUNBUFFERED=1 \
     TMPDIR=/tmp \
     PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/ms-playwright
 
-# Install system packages required by Django and the PDF/image pipeline.
+# Runtime system libraries (not headers or compilers).
 RUN apt-get update --yes --quiet && \
     apt-get install --yes --quiet --no-install-recommends \
-        build-essential \
-        libpq-dev \
-        libmariadb-dev \
-        libjpeg62-turbo-dev \
-        zlib1g-dev \
-        libwebp-dev \
         libgl1 \
         libglib2.0-0 \
         poppler-utils \
@@ -33,12 +43,9 @@ RUN apt-get update --yes --quiet && \
         libpangoft2-1.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the application server.
-RUN pip install "gunicorn==22.0.0"
-
-# Install the project requirements.
-COPY requirements.txt /
-RUN pip install -r /requirements.txt
+# Copy the installed Python environment from the build stage.
+COPY --from=build /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
+COPY --from=build /usr/local/bin/ /usr/local/bin/
 
 # Install headless Chromium (used by assignments/pdf_renderer.py to typeset
 # math in downloaded assignment PDFs) plus its OS-level dependencies.
@@ -64,11 +71,11 @@ COPY --chown=appuser:appuser . .
 # Use user "appuser" to run the build commands below and the server itself.
 USER appuser
 
-# Collect static files.
-
 # Runtime command that executes when "docker run" is called, it does the
 # following:
-#   1. Migrate the database.
+#   1. Collect static files (H-271). Not at build time: settings.py needs
+#      SECRET_KEY, Stripe, Cloudinary and Redis values at import, and those
+#      are not passed into the image build. set -e stops the start if it fails.
 #   2. Start the application server.
 # WARNING:
 #   Migrating database at the same time as starting the server IS NOT THE BEST
@@ -83,4 +90,4 @@ USER appuser
 # duplicate non-refundable Stripe side effects).
 # WEB_CONCURRENCY and GUNICORN_THREADS override the worker and thread counts
 # without a rebuild; unset, they default to 9 and 4.
-CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 100 --workers ${WEB_CONCURRENCY:-9} --threads ${GUNICORN_THREADS:-4} --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200
+CMD set -xe; python manage.py collectstatic --noinput; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 100 --workers ${WEB_CONCURRENCY:-9} --threads ${GUNICORN_THREADS:-4} --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200
