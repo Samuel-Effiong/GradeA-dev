@@ -1,5 +1,20 @@
 # H-271 gate expectations (SM, written and committed before any gate run)
 
+## Run 2 on 8a21315c: STOP (near suite, 1 error not caused by H-271)
+- red, makemigrations, seam and own (Ran 7, OK): as written.
+- near: Ran 2064, `FAILED (errors=1, skipped=6)`. The error is
+  `AutoGrader.tests_pip_audit_gate.CommandTests.test_the_command_audits_the_pinned_requirements_strictly`:
+  `TypeError: audit_command() missing 1 required positional argument: 'ids'`.
+  It fails the same way on the base f870fb0b alone (Ran 12, FAILED (errors=1)): H-262 changed
+  `scripts/pip_audit_gate.audit_command(ids)` to `(requirements, ids)` and did not update this test,
+  and H-262's near suite did not include it. An H-262 defect; H-262 is reopened for it.
+- Also wrong in these expectations: 2 of the 6 skips read `a benchmark, run by label with
+  AUDIT_BENCH=1 only` (opt-in, but not `CI_REQUIRE`), so the skip rule would have stopped too.
+  The other 4: `CI_REQUIRE_NETWORK not set`, `CI_REQUIRE_REDIS not set`, and 2 x
+  `live Google contract tests are opt-in: set CI_REQUIRE_NETWORK=1`.
+- Next: H-271 is rebased onto H-262's fixed tip, these expectations are corrected (base, near
+  count and exact skips) in a new commit, and run 3 re-runs the whole gate. Run 2 logs: run2/.
+
 ## Run 1 on ffaf0b6d: STOP (red run, one fragment)
 - Ran 6, FAILED (failures=5, errors=1), the 6 declared blocks, and the guard passed: all as written.
 - test_collected_files_go_to_their_own_folder failed for the declared reason (STATIC_ROOT `static`,
