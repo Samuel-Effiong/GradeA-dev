@@ -1,6 +1,6 @@
-from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.forms import UserChangeForm
 from django.db.models import Case, F, IntegerField, When
 from django.utils.translation import gettext_lazy as _
 
@@ -17,8 +17,10 @@ from .models import (
 from .signals import invalidate_user_caches
 
 
-class _ProfileImageForm(forms.ModelForm):
-    class Meta:
+class _ProfileImageForm(UserChangeForm):
+    # UserChangeForm, not a plain ModelForm: it keeps the password a
+    # read-only hash, as UserAdmin's default form does.
+    class Meta(UserChangeForm.Meta):
         model = CustomUser
         fields = "__all__"
 
