@@ -71,3 +71,11 @@ documents it and fails red.
 - mutants M1-M8: all KILLED by their declared tests and fragments (mutation_results.json, mutant_logs/).
   also_failed is as the design implies: M1/M7 fail every WebP test; M2 also fails the WebP-upload test.
 - Runner output: gate_out_run1.txt (exit=0).
+
+## Run 2 on 5f5dd848 (tests f4da58ff): GREEN, matches every line above
+- red: Ran 15, FAILED (failures=13), the 13 non-guard blocks with the declared fragments.
+- makemigrations: no changes. seam: AutoGrader/image_formats.py, users/models.py.
+- own: Ran 15, OK. parallel: five `--parallel 3` runs, each Ran 15, OK (parallel/).
+- near: Ran 1553, OK (skipped=4), all 4 CI_REQUIRE (near.txt.gz).
+- mutants M1-M8: all KILLED by their declared tests and fragments; also_failed as in run 1.
+- Runner output: gate_out_run2.txt (exit=0). This file set replaces run 1's (history keeps run 1).

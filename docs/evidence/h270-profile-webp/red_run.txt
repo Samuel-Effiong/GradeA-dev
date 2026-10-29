@@ -301,145 +301,145 @@ WARNINGS:
 ?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
 
 System check identified 1 issue (0 silenced).
-test_a_replaced_picture_is_stored_as_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_a_replaced_picture_is_stored_as_webp) ... Free trial plan not found: no trial activated for user 80bf51e7-362b-4d93-9e48-b9985fa303b0.
-Cannot activate automatic trial for user 80bf51e7-362b-4d93-9e48-b9985fa303b0 (validation): ValueError
+test_a_replaced_picture_is_stored_as_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_a_replaced_picture_is_stored_as_webp) ... Free trial plan not found: no trial activated for user 3007fc10-8f22-43c9-b870-21755a4a14b0.
+Cannot activate automatic trial for user 3007fc10-8f22-43c9-b870-21755a4a14b0 (validation): ValueError
 FAIL
-test_direct_add_student_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_direct_add_student_stores_webp) ... Free trial plan not found: no trial activated for user 8adc038f-f71d-449b-bef0-051efc16ca5a.
-Cannot activate automatic trial for user 8adc038f-f71d-449b-bef0-051efc16ca5a (validation): ValueError
+test_direct_add_student_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_direct_add_student_stores_webp) ... Free trial plan not found: no trial activated for user 0feaaa4c-d2c2-40ab-a40f-485768a425bc.
+Cannot activate automatic trial for user 0feaaa4c-d2c2-40ab-a40f-485768a425bc (validation): ValueError
 FAIL
 test_school_with_admin_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_school_with_admin_stores_webp) ... FAIL
-test_the_admin_user_form_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_admin_user_form_stores_webp) ... Free trial plan not found: no trial activated for user a09df4f9-05e4-4a9e-9243-d045c65f2e1f.
-Cannot activate automatic trial for user a09df4f9-05e4-4a9e-9243-d045c65f2e1f (validation): ValueError
+test_the_admin_user_form_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_admin_user_form_stores_webp) ... Free trial plan not found: no trial activated for user 824c4ea9-c09f-4468-8ad0-a489c28c07bc.
+Cannot activate automatic trial for user 824c4ea9-c09f-4468-8ad0-a489c28c07bc (validation): ValueError
 FAIL
-test_the_model_stores_a_new_picture_as_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_model_stores_a_new_picture_as_webp) ... Free trial plan not found: no trial activated for user 8b8efbd8-8805-48c6-89cb-a47448386606.
-Cannot activate automatic trial for user 8b8efbd8-8805-48c6-89cb-a47448386606 (validation): ValueError
+test_the_model_stores_a_new_picture_as_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_model_stores_a_new_picture_as_webp) ... Free trial plan not found: no trial activated for user f584d24c-6d38-4323-b886-16e2db3a4b14.
+Cannot activate automatic trial for user f584d24c-6d38-4323-b886-16e2db3a4b14 (validation): ValueError
 FAIL
-test_the_user_serializer_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_user_serializer_stores_webp) ... Free trial plan not found: no trial activated for user 678361bd-bb8a-4b2d-9afa-a105db7a1777.
-Cannot activate automatic trial for user 678361bd-bb8a-4b2d-9afa-a105db7a1777 (validation): ValueError
+test_the_user_serializer_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_user_serializer_stores_webp) ... Free trial plan not found: no trial activated for user c8e1fed8-6594-4cc2-a02c-3a1be19edf67.
+Cannot activate automatic trial for user c8e1fed8-6594-4cc2-a02c-3a1be19edf67 (validation): ValueError
 FAIL
-test_a_save_that_keeps_the_picture_does_not_re_encode_it (users.tests_h270_profile_webp.SavesThatKeepThePictureTests.test_a_save_that_keeps_the_picture_does_not_re_encode_it) ... Free trial plan not found: no trial activated for user 8b34a9c2-5abd-41d5-a0f9-60a6b2f42156.
-Cannot activate automatic trial for user 8b34a9c2-5abd-41d5-a0f9-60a6b2f42156 (validation): ValueError
+test_a_save_that_keeps_the_picture_does_not_re_encode_it (users.tests_h270_profile_webp.SavesThatKeepThePictureTests.test_a_save_that_keeps_the_picture_does_not_re_encode_it) ... Free trial plan not found: no trial activated for user e5b3002e-9ad9-4ca3-96b3-157d8ea57389.
+Cannot activate automatic trial for user e5b3002e-9ad9-4ca3-96b3-157d8ea57389 (validation): ValueError
 ok
-test_an_old_jpeg_picture_still_loads_unchanged (users.tests_h270_profile_webp.SavesThatKeepThePictureTests.test_an_old_jpeg_picture_still_loads_unchanged) ... Free trial plan not found: no trial activated for user 1de9fdbd-b321-4ac3-b84b-ab2db52c3054.
-Cannot activate automatic trial for user 1de9fdbd-b321-4ac3-b84b-ab2db52c3054 (validation): ValueError
+test_an_old_jpeg_picture_still_loads_unchanged (users.tests_h270_profile_webp.SavesThatKeepThePictureTests.test_an_old_jpeg_picture_still_loads_unchanged) ... Free trial plan not found: no trial activated for user c4206c69-c427-47b9-9129-2fcff5cc81d7.
+Cannot activate automatic trial for user c4206c69-c427-47b9-9129-2fcff5cc81d7 (validation): ValueError
 ok
-test_a_large_picture_is_shrunk_to_1024_on_its_longest_side (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_large_picture_is_shrunk_to_1024_on_its_longest_side) ... Free trial plan not found: no trial activated for user de9c0fc3-c87a-4cc5-a86e-1711e6fab3f1.
-Cannot activate automatic trial for user de9c0fc3-c87a-4cc5-a86e-1711e6fab3f1 (validation): ValueError
+test_a_large_picture_is_shrunk_to_1024_on_its_longest_side (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_large_picture_is_shrunk_to_1024_on_its_longest_side) ... Free trial plan not found: no trial activated for user 3dd88156-7f7e-4b59-b1ab-c45758776d7d.
+Cannot activate automatic trial for user 3dd88156-7f7e-4b59-b1ab-c45758776d7d (validation): ValueError
 FAIL
-test_a_small_picture_is_not_enlarged (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_small_picture_is_not_enlarged) ... Free trial plan not found: no trial activated for user 8781014c-62cc-4f63-a0f8-7319282f5f67.
-Cannot activate automatic trial for user 8781014c-62cc-4f63-a0f8-7319282f5f67 (validation): ValueError
+test_a_small_picture_is_not_enlarged (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_small_picture_is_not_enlarged) ... Free trial plan not found: no trial activated for user e6a03f8a-0dc4-4331-a67b-306bebe96301.
+Cannot activate automatic trial for user e6a03f8a-0dc4-4331-a67b-306bebe96301 (validation): ValueError
 FAIL
-test_a_webp_upload_loses_its_exif_too (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_webp_upload_loses_its_exif_too) ... Free trial plan not found: no trial activated for user 7f515328-c800-44f1-9fe0-20971910826d.
-Cannot activate automatic trial for user 7f515328-c800-44f1-9fe0-20971910826d (validation): ValueError
+test_a_webp_upload_loses_its_exif_too (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_webp_upload_loses_its_exif_too) ... Free trial plan not found: no trial activated for user 7c560700-9229-4e93-a8a8-27560cfe01dc.
+Cannot activate automatic trial for user 7c560700-9229-4e93-a8a8-27560cfe01dc (validation): ValueError
 FAIL
-test_an_animated_gif_is_stored_as_its_first_frame (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_an_animated_gif_is_stored_as_its_first_frame) ... Free trial plan not found: no trial activated for user 1531a04d-8bc7-4e48-b5eb-ba625e99d9ab.
-Cannot activate automatic trial for user 1531a04d-8bc7-4e48-b5eb-ba625e99d9ab (validation): ValueError
+test_an_animated_gif_is_stored_as_its_first_frame (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_an_animated_gif_is_stored_as_its_first_frame) ... Free trial plan not found: no trial activated for user 8771a951-0ebf-48f0-9004-52c501c965be.
+Cannot activate automatic trial for user 8771a951-0ebf-48f0-9004-52c501c965be (validation): ValueError
 FAIL
-test_an_icc_profile_is_not_stored (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_an_icc_profile_is_not_stored) ... Free trial plan not found: no trial activated for user af493371-5e45-4506-8118-f0b399bf01b1.
-Cannot activate automatic trial for user af493371-5e45-4506-8118-f0b399bf01b1 (validation): ValueError
+test_an_icc_profile_is_not_stored (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_an_icc_profile_is_not_stored) ... Free trial plan not found: no trial activated for user a510ff5e-fb40-42d4-b116-4c49cdfe0737.
+Cannot activate automatic trial for user a510ff5e-fb40-42d4-b116-4c49cdfe0737 (validation): ValueError
 FAIL
-test_gps_and_orientation_are_gone_and_the_picture_is_upright (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_gps_and_orientation_are_gone_and_the_picture_is_upright) ... Free trial plan not found: no trial activated for user fee9a30a-4e24-4dfb-a922-bd7d1b79e029.
-Cannot activate automatic trial for user fee9a30a-4e24-4dfb-a922-bd7d1b79e029 (validation): ValueError
+test_gps_and_orientation_are_gone_and_the_picture_is_upright (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_gps_and_orientation_are_gone_and_the_picture_is_upright) ... Free trial plan not found: no trial activated for user a3bb3fc5-8f6e-4433-a496-fa033b4330fa.
+Cannot activate automatic trial for user a3bb3fc5-8f6e-4433-a496-fa033b4330fa (validation): ValueError
 FAIL
-test_transparency_is_kept (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_transparency_is_kept) ... Free trial plan not found: no trial activated for user 3c8030b2-57cc-4e4b-b16b-1ef2035d8c73.
-Cannot activate automatic trial for user 3c8030b2-57cc-4e4b-b16b-1ef2035d8c73 (validation): ValueError
+test_transparency_is_kept (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_transparency_is_kept) ... Free trial plan not found: no trial activated for user f7b7d1d2-6400-4bd9-a773-664a1c710bc6.
+Cannot activate automatic trial for user f7b7d1d2-6400-4bd9-a773-664a1c710bc6 (validation): ValueError
 FAIL
 
 ======================================================================
 FAIL: test_a_replaced_picture_is_stored_as_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_a_replaced_picture_is_stored_as_webp)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 121, in test_a_replaced_picture_is_stored_as_webp
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 126, in test_a_replaced_picture_is_stored_as_webp
     self.assertStoredAsWebP(user)
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 96, in assertStoredAsWebP
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 101, in assertStoredAsWebP
     self.assertTrue(
-AssertionError: False is not true : profile_pics/80bf51e7-362b-4d93-9e48-b9985fa303b0/replace_2026-10-29_.jpg
+AssertionError: False is not true : profile_pics/3007fc10-8f22-43c9-b870-21755a4a14b0/replace_2026-10-29_.jpg
 
 ======================================================================
 FAIL: test_direct_add_student_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_direct_add_student_stores_webp)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 150, in test_direct_add_student_stores_webp
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 155, in test_direct_add_student_stores_webp
     self.assertStoredAsWebP(ser.save())
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 96, in assertStoredAsWebP
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 101, in assertStoredAsWebP
     self.assertTrue(
-AssertionError: False is not true : profile_pics/ab5b9afb-156c-427d-8431-78ed6ff025c1/stu.dent.c830eb579b951cc7_2026-10-29_.jpg
+AssertionError: False is not true : profile_pics/36177065-be66-4c10-b685-132dfec1657a/stu.dent.5f182f85f176d71b_2026-10-29_.jpg
 
 ======================================================================
 FAIL: test_school_with_admin_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_school_with_admin_stores_webp)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 166, in test_school_with_admin_stores_webp
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 171, in test_school_with_admin_stores_webp
     self.assertStoredAsWebP(CustomUser.objects.get(email="admin@h270school.test"))
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 96, in assertStoredAsWebP
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 101, in assertStoredAsWebP
     self.assertTrue(
-AssertionError: False is not true : profile_pics/fcafa463-3525-47eb-8378-ed38292ad155/admin_2026-10-29_.jpg
+AssertionError: False is not true : profile_pics/31783125-82bb-4e1b-a226-5a5ec475ab79/admin_2026-10-29_.jpg
 
 ======================================================================
 FAIL: test_the_admin_user_form_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_admin_user_form_stores_webp)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 194, in test_the_admin_user_form_stores_webp
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 199, in test_the_admin_user_form_stores_webp
     self.assertStoredAsWebP(user)
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 96, in assertStoredAsWebP
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 101, in assertStoredAsWebP
     self.assertTrue(
-AssertionError: False is not true : profile_pics/a09df4f9-05e4-4a9e-9243-d045c65f2e1f/adminform_2026-10-29_.jpg
+AssertionError: False is not true : profile_pics/824c4ea9-c09f-4468-8ad0-a489c28c07bc/adminform_2026-10-29_.jpg
 
 ======================================================================
 FAIL: test_the_model_stores_a_new_picture_as_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_model_stores_a_new_picture_as_webp)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 115, in test_the_model_stores_a_new_picture_as_webp
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 120, in test_the_model_stores_a_new_picture_as_webp
     self.assertStoredAsWebP(user)
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 96, in assertStoredAsWebP
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 101, in assertStoredAsWebP
     self.assertTrue(
-AssertionError: False is not true : profile_pics/8b8efbd8-8805-48c6-89cb-a47448386606/model_2026-10-29_.jpg
+AssertionError: False is not true : profile_pics/f584d24c-6d38-4323-b886-16e2db3a4b14/model_2026-10-29_.jpg
 
 ======================================================================
 FAIL: test_the_user_serializer_stores_webp (users.tests_h270_profile_webp.EveryWritePathStoresWebPTests.test_the_user_serializer_stores_webp)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 132, in test_the_user_serializer_stores_webp
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 137, in test_the_user_serializer_stores_webp
     self.assertStoredAsWebP(user)
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 96, in assertStoredAsWebP
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 101, in assertStoredAsWebP
     self.assertTrue(
-AssertionError: False is not true : profile_pics/678361bd-bb8a-4b2d-9afa-a105db7a1777/serializer_2026-10-29_.jpg
+AssertionError: False is not true : profile_pics/c8e1fed8-6594-4cc2-a02c-3a1be19edf67/serializer_2026-10-29_.jpg
 
 ======================================================================
 FAIL: test_a_large_picture_is_shrunk_to_1024_on_its_longest_side (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_large_picture_is_shrunk_to_1024_on_its_longest_side)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 263, in test_a_large_picture_is_shrunk_to_1024_on_its_longest_side
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 268, in test_a_large_picture_is_shrunk_to_1024_on_its_longest_side
     _, data = self.store(upload)
               ^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 200, in store
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 205, in store
     return user, self.assertStoredAsWebP(user)
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 96, in assertStoredAsWebP
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 101, in assertStoredAsWebP
     self.assertTrue(
-AssertionError: False is not true : profile_pics/de9c0fc3-c87a-4cc5-a86e-1711e6fab3f1/keeps_2026-10-29_.jpg
+AssertionError: False is not true : profile_pics/3dd88156-7f7e-4b59-b1ab-c45758776d7d/keeps_2026-10-29_.jpg
 
 ======================================================================
 FAIL: test_a_small_picture_is_not_enlarged (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_small_picture_is_not_enlarged)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 268, in test_a_small_picture_is_not_enlarged
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 273, in test_a_small_picture_is_not_enlarged
     _, data = self.store(upload)
               ^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 200, in store
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 205, in store
     return user, self.assertStoredAsWebP(user)
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 96, in assertStoredAsWebP
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 101, in assertStoredAsWebP
     self.assertTrue(
-AssertionError: False is not true : profile_pics/8781014c-62cc-4f63-a0f8-7319282f5f67/keeps_2026-10-29_.png
+AssertionError: False is not true : profile_pics/e6a03f8a-0dc4-4331-a67b-306bebe96301/keeps_2026-10-29_.png
 
 ======================================================================
 FAIL: test_a_webp_upload_loses_its_exif_too (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_a_webp_upload_loses_its_exif_too)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 225, in test_a_webp_upload_loses_its_exif_too
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 230, in test_a_webp_upload_loses_its_exif_too
     self.assertNoMetadata(data)
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 105, in assertNoMetadata
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 110, in assertNoMetadata
     self.assertNotIn(fourcc, chunks)
 AssertionError: b'EXIF' unexpectedly found in [b'VP8X', b'VP8 ', b'EXIF']
 
@@ -447,60 +447,60 @@ AssertionError: b'EXIF' unexpectedly found in [b'VP8X', b'VP8 ', b'EXIF']
 FAIL: test_an_animated_gif_is_stored_as_its_first_frame (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_an_animated_gif_is_stored_as_its_first_frame)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 253, in test_an_animated_gif_is_stored_as_its_first_frame
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 258, in test_an_animated_gif_is_stored_as_its_first_frame
     _, data = self.store(upload)
               ^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 200, in store
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 205, in store
     return user, self.assertStoredAsWebP(user)
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 96, in assertStoredAsWebP
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 101, in assertStoredAsWebP
     self.assertTrue(
-AssertionError: False is not true : profile_pics/1531a04d-8bc7-4e48-b5eb-ba625e99d9ab/keeps_2026-10-29_.gif
+AssertionError: False is not true : profile_pics/8771a951-0ebf-48f0-9004-52c501c965be/keeps_2026-10-29_.gif
 
 ======================================================================
 FAIL: test_an_icc_profile_is_not_stored (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_an_icc_profile_is_not_stored)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 232, in test_an_icc_profile_is_not_stored
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 237, in test_an_icc_profile_is_not_stored
     _, data = self.store(upload)
               ^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 200, in store
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 205, in store
     return user, self.assertStoredAsWebP(user)
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 96, in assertStoredAsWebP
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 101, in assertStoredAsWebP
     self.assertTrue(
-AssertionError: False is not true : profile_pics/af493371-5e45-4506-8118-f0b399bf01b1/keeps_2026-10-29_.png
+AssertionError: False is not true : profile_pics/a510ff5e-fb40-42d4-b116-4c49cdfe0737/keeps_2026-10-29_.png
 
 ======================================================================
 FAIL: test_gps_and_orientation_are_gone_and_the_picture_is_upright (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_gps_and_orientation_are_gone_and_the_picture_is_upright)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 211, in test_gps_and_orientation_are_gone_and_the_picture_is_upright
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 216, in test_gps_and_orientation_are_gone_and_the_picture_is_upright
     _, data = self.store(upload)
               ^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 200, in store
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 205, in store
     return user, self.assertStoredAsWebP(user)
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 96, in assertStoredAsWebP
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 101, in assertStoredAsWebP
     self.assertTrue(
-AssertionError: False is not true : profile_pics/fee9a30a-4e24-4dfb-a922-bd7d1b79e029/keeps_2026-10-29_.jpg
+AssertionError: False is not true : profile_pics/a3bb3fc5-8f6e-4433-a496-fa033b4330fa/keeps_2026-10-29_.jpg
 
 ======================================================================
 FAIL: test_transparency_is_kept (users.tests_h270_profile_webp.WhatTheStoredPictureKeepsTests.test_transparency_is_kept)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 239, in test_transparency_is_kept
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 244, in test_transparency_is_kept
     _, data = self.store(_upload(img, "PNG", "logo.png"))
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 200, in store
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 205, in store
     return user, self.assertStoredAsWebP(user)
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 96, in assertStoredAsWebP
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h270-profile-webp/users/tests_h270_profile_webp.py", line 101, in assertStoredAsWebP
     self.assertTrue(
-AssertionError: False is not true : profile_pics/3c8030b2-57cc-4e4b-b16b-1ef2035d8c73/keeps_2026-10-29_.png
+AssertionError: False is not true : profile_pics/f7b7d1d2-6400-4bd9-a773-664a1c710bc6/keeps_2026-10-29_.png
 
 ----------------------------------------------------------------------
-Ran 15 tests in 0.439s
+Ran 15 tests in 0.591s
 
 FAILED (failures=13)
 Destroying test database for alias 'default' ('test_h270_profile_webp')...
