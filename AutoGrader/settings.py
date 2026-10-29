@@ -1210,15 +1210,12 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "EXCEPTION_HANDLER": "users.exceptions.custom_exception_handler",
-    # H-263: djangorestframework 3.18.0 changed a `many=True` serializer's
-    # validation errors from a list with one entry per item ([{}, {...}]) to a
-    # dict of the failing items by index ({1: {...}}). The exception handler
-    # passes them through, so the new shape would reach the frontend on four
-    # inputs: a question's `rubric`, `tasks`, `session_breakdown` and the bulk
-    # topic create. False keeps the list shape (DRF warns
-    # RemovedInDRF320Warning); H-266 moves the frontend before DRF 3.20 drops
+    # H-263 / H-266: djangorestframework 3.18.0 changed a `many=True`
+    # serializer's validation errors from a list to a dict keyed by item
+    # index. H-263 kept the list shape; H-266 adopts the dict shape so
+    # the frontend can target individual items, and before DRF 3.20 drops
     # the switch. assignments.tests_h263_list_error_shape pins the shape.
-    "LIST_SERIALIZER_ERRORS_AS_DICT": False,
+    "LIST_SERIALIZER_ERRORS_AS_DICT": True,
     "DEFAULT_ROUTER_TRAILING_SLASH": False,
     # Throttling. Deliberately anonymous-only: `UserRateThrottle` is NOT
     # enabled because the authenticated dashboard and grading views are

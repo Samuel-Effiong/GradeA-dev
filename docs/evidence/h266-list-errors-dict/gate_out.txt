@@ -1,0 +1,43 @@
+available at start: 9G; cap 7G
+load at start: 4.54 2.20 1.95 4/3054 1799056
+=== 0. the red run: new tests against the code as at aede70b4 (own DB) 09:30:44
+red run exit=1 (non-zero expected)
+red run blocks: 4 (expected 4)
+red run is as written: non-zero exit, no OK line, modules loaded, 4 blocks red for their written reasons
+source restored
+FAIL: test_bulk_topic_errors_are_field_errors_keyed_by_index (assignments.tests_h263_list_error_shape.TopicBulkCreateErrorShapeTests.test_bulk_topic_errors_are_field_errors_keyed_by_index)
+FAIL: test_only_the_failing_item_appears_keyed_by_index (assignments.tests_h263_list_error_shape.RubricErrorShapeTests.test_only_the_failing_item_appears_keyed_by_index)
+FAIL: test_the_dict_shape_is_a_mapping (assignments.tests_h263_list_error_shape.RubricErrorShapeTests.test_the_dict_shape_is_a_mapping)
+FAIL: test_the_failing_item_is_reported_at_its_own_index (assignments.tests_h263_list_error_shape.RubricErrorShapeTests.test_the_failing_item_is_reported_at_its_own_index)
+Ran 6 tests in 0.291s
+FAILED (failures=4)
+dropped test_h266_list_errors_dict_mut
+=== 1a. makemigrations --check 09:31:05
+makemigrations exit=0 (0 = no changes)
+No changes detected
+=== 1b. the seam, by program 09:31:08
+AutoGrader/settings.py
+assignments/tests_h263_list_error_shape.py
+docs/HARDENING_BACKLOG.md
+docs/evidence/h266-list-errors-dict/NOTES.md
+docs/evidence/h266-list-errors-dict/mutate.py
+docs/evidence/h266-list-errors-dict/run_h266_gate.sh.txt
+docs/evidence/h266-list-errors-dict/seam_check.py
+production files changed: 'AutoGrader/settings.py '
+LIST_SERIALIZER_ERRORS_AS_DICT: base=False, tip=True
+SEAM OK: only the setting value changed
+=== 1. own + near + guards at a244c597 09:31:08
+exit=0 09:33:11
+Ran 332 tests in 103.954s
+OK
+=== 2. mutants: 1 (own DB, rules 17, 18 and 22) 09:33:11
+mutants exit=0 09:33:28
+M1 {'what': 'flip True back to False', 'file': 'AutoGrader/settings.py', 'kind': 'keepdb', 'status': 'KILLED', 'exit': 1, 'ran_line': 'Ran 6 tests in 0.265s', 'expected': {'test_only_the_failing_item_appears_keyed_by_index': '!=', 'test_the_failing_item_is_reported_at_its_own_index': '!=', 'test_the
+KILLED: ['M1']
+SURVIVED: []
+BROKEN: []
+source clean after mutants
+dropped test_h266_list_errors_dict_mut
+load at end: 2.44 2.62 2.18 2/3031 1802452
+mutants: 1 results; not killed: none
+gate exit=0
