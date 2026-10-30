@@ -77,11 +77,11 @@ The raw class name is **never stored**. The label vocabulary is a closed constan
 ### §1e Validation error field names
 
 For `ValidationError`, extract sorted list of failing field NAMES only (never messages):
-- `exc.detail` as dict `{field: [errors]}` → sorted keys
+- `exc.detail` as dict `{field: [errors]}` → sorted keys, filtered to `^[A-Za-z_][A-Za-z0-9_]{0,63}$` (SM defect 2: dynamic keys like email addresses are PII), capped at 20
 - `exc.detail` as list → `["non_field_errors"]`
 - `exc.detail` as string → `["non_field_errors"]`
 
-Stored as `metadata["fields"]`.
+Stored as `metadata["fields"]`. If the sanitised list was truncated at 20, `metadata["fields_truncated"] = true`.
 
 ### §1f Ordering: status and exception into the row
 
@@ -192,6 +192,8 @@ If `resolver_match` is None (404 on an unknown URL): `route = None`, `reason_lab
 STATE_CHANGE already records `route` as `match.view_name` (the URL name, e.g. "session-list"). The new field reuses the same key name but in ADMIN_ACTION we record the URL pattern via `resolver_match.route`. For STATE_CHANGE, the existing `route` value (view_name) is kept; we add the URL pattern as well if useful, but since STATE_CHANGE already has view_name, and ADMIN_ACTION had nothing, the primary addition is to ADMIN_ACTION.
 
 **Decision**: for ADMIN_ACTION, add `route` = `resolver_match.route` (URL pattern). For STATE_CHANGE, the existing `route` = view_name stays. Both already have `route` in the allowlist.
+
+**Frontend/API doc note (SM review)**: `metadata.route` means the URL *pattern* (`api/v1/schools/(?P<pk>[^/.]+)$`) on ADMIN_ACTION rows and the URL *name* (`school-detail`) on STATE_CHANGE rows. Consumers must not assume one format; the action column disambiguates.
 
 ### §1j New metadata keys needed (revised)
 
@@ -378,6 +380,12 @@ Kill: test that a denied ADMIN_ACTION row has reason_label=PERMISSION_DENIED and
 
 ### M-H273-18: target_name query count — use per-row query instead of batch
 Kill: assertNumQueries test (directive 7).
+
+### M-H273-19: Restore exc.reason_code.value in coded branch (SM defect 1)
+Kill: a view raising InsufficientCreditsError must not 500 and must write audit row with reason_code INSUFFICIENT_CREDITS.
+
+### M-H273-20: Remove field-name sanitisation regex (SM defect 2)
+Kill: a ValidationError keyed by an email address must not store the email anywhere in the audit row.
 
 ## §5 Red-run plan
 

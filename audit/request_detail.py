@@ -118,6 +118,8 @@ def enrich_request_metadata(request, response, metadata):
     fields = getattr(response, "_audit_fields", None)
     if fields:
         metadata["fields"] = fields
+    if getattr(response, "_audit_fields_truncated", False):
+        metadata["fields_truncated"] = True
 
 
 def enrich_denied_metadata(request, metadata):

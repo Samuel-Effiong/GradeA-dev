@@ -125,6 +125,8 @@ ALLOWED_KEYS = frozenset(
         "reason_label",
         # H-273: failing field names on ValidationError (names only, never messages)
         "fields",
+        # H-273: true when the fields list was truncated at 20 entries
+        "fields_truncated",
     }
 )
 
@@ -227,7 +229,14 @@ METADATA_ALLOWLIST = {
     # lock_triggered: the password-reset guess that spent the budget and set
     # the lock (L2), recorded as the failure it was plus this flag.
     AuditAction.AUTH_LOGIN: frozenset(
-        {"auth_method", "http_status", "lock_triggered", "reason_label", "fields"}
+        {
+            "auth_method",
+            "http_status",
+            "lock_triggered",
+            "reason_label",
+            "fields",
+            "fields_truncated",
+        }
         | _FAILED_AUTH_SUMMARY_KEYS
     ),
     AuditAction.AUTH_LOGOUT: frozenset(),
@@ -308,7 +317,15 @@ METADATA_ALLOWLIST = {
     # H-194: plus the summary keys, for the summary an anonymous admin-route
     # flood leaves when the global cap suppresses its refusals.
     AuditAction.ADMIN_ACTION: frozenset(
-        {"source", "method", "http_status", "route", "reason_label", "fields"}
+        {
+            "source",
+            "method",
+            "http_status",
+            "route",
+            "reason_label",
+            "fields",
+            "fields_truncated",
+        }
         | _FAILED_AUTH_SUMMARY_KEYS
     ),
     AuditAction.DATA_EXPORT: frozenset({"file_count", "file_size_bytes"}),
@@ -316,11 +333,17 @@ METADATA_ALLOWLIST = {
     # Plus S1b's summary keys: a capped anonymous crash (SERVER_ERROR) is
     # summarised under its own action.
     AuditAction.STATE_CHANGE: frozenset(
-        {"route", "method", "http_status", "reason_label", "fields"}
+        {"route", "method", "http_status", "reason_label", "fields", "fields_truncated"}
         | _FAILED_AUTH_SUMMARY_KEYS
     ),
     AuditAction.ACCOUNT_REGISTER: frozenset(
-        {"auth_method", "http_status", "reason_label", "fields"}
+        {
+            "auth_method",
+            "http_status",
+            "reason_label",
+            "fields",
+            "fields_truncated",
+        }
         | _FAILED_AUTH_SUMMARY_KEYS
     ),
     AuditAction.AUDIT_RETENTION_SWEEP: frozenset(

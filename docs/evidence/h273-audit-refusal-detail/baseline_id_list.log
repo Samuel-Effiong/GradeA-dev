@@ -24,4 +24,4 @@ students.tests_async_edit_path.RealProviderEditTest.test_a_real_edit_extracts_th
 === ALL IDS ===
 (5832 test IDs omitted to stay under pre-commit 500KB limit)
 SHA-256 of omitted section: 9bfcd26d1209665deeb6d37d87ad53b72b77376138391d31272b6661072cdd58
-Reproduce: python manage.py test --testrunner=audit.discover.DiscoverRunner audit billing classrooms dashboard students users 2>&1
+Full archive: ~/Documents/Projects/GAP-a0-runs/h273/baseline_id_list_full.log
