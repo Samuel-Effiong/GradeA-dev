@@ -21,6 +21,11 @@ then succeeds or fails isn't known until the response exists, which is
 
 from .emitter import emit
 from .enums import AuditAction, AuditOutcome, ErrorClass
+from .request_detail import (
+    enrich_denied_metadata,
+    enrich_request_metadata,
+    stashed_reason_code,
+)
 
 REQUEST_ATTR = "audit_admin_action_view"
 
@@ -70,6 +75,8 @@ def _outcome_for_status(status_code):
 
 def emit_denied(request, view):
     target_type, target_id = resolve_target(view, request)
+    metadata = {"source": view.__class__.__name__}
+    enrich_denied_metadata(request, metadata)
     emit(
         AuditAction.ADMIN_ACTION,
         actor=request.user,
@@ -78,13 +85,15 @@ def emit_denied(request, view):
         target_id=target_id,
         outcome=AuditOutcome.DENIED,
         error_class=ErrorClass.USER,
-        metadata={"source": view.__class__.__name__},
+        metadata=metadata,
     )
 
 
 def emit_for_response(request, view, response):
     target_type, target_id = resolve_target(view, request)
     outcome, error_class = _outcome_for_status(response.status_code)
+    metadata = {"source": view.__class__.__name__}
+    enrich_request_metadata(request, response, metadata)
     emit(
         AuditAction.ADMIN_ACTION,
         actor=request.user,
@@ -93,5 +102,6 @@ def emit_for_response(request, view, response):
         target_id=target_id,
         outcome=outcome,
         error_class=error_class,
-        metadata={"source": view.__class__.__name__},
+        reason_code=stashed_reason_code(response),
+        metadata=metadata,
     )

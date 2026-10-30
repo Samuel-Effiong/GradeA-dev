@@ -1,6 +1,6 @@
 import logging
 
-from rest_framework.exceptions import AuthenticationFailed, Throttled
+from rest_framework.exceptions import AuthenticationFailed, Throttled, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
@@ -61,6 +61,9 @@ def custom_exception_handler(exc, context):
             response.data["error"] = STUDENT_UPLOAD_NOT_PROCESSED
             response.data["remediation"] = None
         response._drf_handled = True  # marker for renderer
+        # H-273: stash for audit middleware
+        response._audit_exc = exc
+        response._audit_reason_code = exc.reason_code.value
         return response
 
     # ---- Let DRF try to handle it (validation, 404, etc.) ----
@@ -76,6 +79,10 @@ def custom_exception_handler(exc, context):
             drf_response.status_code,
             extra=extra,
         )
+        # H-273: stash for audit middleware (exception ref, never its text)
+        drf_response._audit_exc = exc
+        if isinstance(exc, ValidationError) and isinstance(exc.detail, dict):
+            drf_response._audit_fields = sorted(exc.detail.keys())
         envelope = getattr(exc, "envelope", None)
         if envelope is not None and isinstance(drf_response.data, dict):
             reason_code, code_value = envelope
@@ -111,4 +118,5 @@ def custom_exception_handler(exc, context):
     response = Response(status=500)
     response.exception = True
     response._raw_exc = exc  # for traceback in renderer
+    response._audit_exc = exc  # H-273: stash for audit middleware
     return response
