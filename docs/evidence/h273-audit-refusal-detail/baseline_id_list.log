@@ -1,33 +1,30 @@
-Baseline: f5d2d577, correct label set, rebuilt venv (requirements.txt + requirements-dev.txt)
-Command: python manage.py test audit users classrooms billing students assignments --settings=AutoGrader.settings --verbosity 2 --noinput
+Baseline: f5d2d577, rebuilt venv (requirements.txt + requirements-dev.txt)
+Label set: audit users classrooms billing students assignments AutoGrader (7 apps)
+Command: python manage.py test audit users classrooms billing students assignments AutoGrader --settings=AutoGrader.settings --verbosity 2 --noinput
 Venv: ~/Documents/Virtualenvs/AutoGrader_env_h273 (freeze SHA-256: 52da179f)
 
-Collected: 5885
+Collected: 6690
+
+=== Label set change log ===
+- Original (wrong): audit billing classrooms dashboard students users (archive was wrong-set)
+- Corrected: audit users classrooms billing students assignments (6 apps, NOTES line 295)
+- Expanded: + AutoGrader (SM revised addendum 2026-10-30, for request_context coverage)
 
 === Superseded baselines ===
-- OLD committed baseline (Total 5832, Skipped 16, Ran 5816): collected with a venv missing
-  pytest and freezegun, so test_billing_period_anchoring (21 tests) and test_license_service
-  (34 tests) were masked as 2 _FailedTest entries instead of 55 real tests. 5832 + 53 = 5885.
-- OLD archive ~/Documents/Projects/GAP-a0-runs/h273/baseline_id_list_full.log: collected
-  with wrong label set (dashboard instead of assignments). Renamed to
-  baseline_id_list_full_WRONG_SET.log.
+- 6-app baseline (5885 collected): superseded by this 7-app set per SM addendum.
+  Archive: ~/Documents/Projects/GAP-a0-runs/h273/baseline_f5d2d577_correct_set.txt
+- Old wrong-set archive: ~/Documents/Projects/GAP-a0-runs/h273/baseline_id_list_full_WRONG_SET.log
 
-=== New baseline archive ===
-Full archive: ~/Documents/Projects/GAP-a0-runs/h273/baseline_f5d2d577_correct_set.txt
-SHA-256: 9f94f59c96e654fc68cf375ea4bb814634e80cad6915bfaf99c56e2d8da8ceae
+=== Current baseline archive ===
+Full archive: ~/Documents/Projects/GAP-a0-runs/h273/baseline_f5d2d577_7app.txt
+SHA-256: 42da93cc0739ebf6f8feb5f2bd77be3bce1a336422d54f19cd84d3359c1f1c97
 
-=== Step 3 tip comparison ===
-Tip ID list (at evidence commits on task/h273-audit-refusal-detail, code same as cba462cf):
-Archive: ~/Documents/Projects/GAP-a0-runs/h273/tip_ids_h273.txt
-SHA-256: 9f94f59c96e654fc68cf375ea4bb814634e80cad6915bfaf99c56e2d8da8ceae (IDENTICAL)
-Diff: zero added, zero removed. Byte-identical to baseline.
-Expected: correct — H-273 step 1 added no new test IDs; step 3 tests not yet written.
+=== Tip comparison ===
+Tip (at evidence commits, code same as cba462cf):
+Archive: ~/Documents/Projects/GAP-a0-runs/h273/tip_ids_h273_7app.txt
+SHA-256: 42da93cc0739ebf6f8feb5f2bd77be3bce1a336422d54f19cd84d3359c1f1c97 (IDENTICAL)
+Diff: zero added, zero removed. H-273 step 1 added no test IDs.
 
 === Runtime expectations (step 5 near run) ===
-Total collected: 5885
-Expected skipped: at least 16 (the 16 known from the old committed baseline, all present
-  in the new collection). Additional skips possible from Chromium-dependent tests,
-  CI_REQUIRE_NETWORK, CI_REQUIRE_REDIS, RUN_REAL_AI env checks. Exact count to be
-  determined at runtime.
-Expected Ran: 5885 minus actual skipped count.
-Expected: OK (zero failures, zero errors).
+Total collected: 6690
+Expected: OK (zero failures, zero errors). Skipped count TBD at runtime.
