@@ -8,120 +8,128 @@ Every audit row written for an HTTP request flows through one of these paths:
 
 | Path | File | Line | Action | When | Has exception? | Has status? |
 |------|------|------|--------|------|----------------|-------------|
-| **ADMIN_ACTION denied** | audit/admin_action.py | :73 `emit_denied` | ADMIN_ACTION | IsSuperAdmin.has_permission returns False | No (permission check, not exception) | No (emitted before view runs) |
-| **ADMIN_ACTION response** | audit/admin_action.py | :88 `emit_for_response` | ADMIN_ACTION | Middleware after view completes | No | Yes (`response.status_code`) |
-| **STATE_CHANGE generic** | audit/request_audit.py | :214 `emit_generic_state_change` | STATE_CHANGE | Middleware, authenticated state-changing request with no surviving named event | No | Yes (`response.status_code`) |
-| **Anonymous refusal** | audit/request_audit.py | :185 `emit_anonymous_refusal` | AUTH_LOGIN / STATE_CHANGE | Middleware, anonymous 4xx/5xx with no surviving event | No | Yes (`response.status_code`) |
+| **ADMIN_ACTION denied** | audit/admin_action.py | :73 `emit_denied` | ADMIN_ACTION | IsSuperAdmin.has_permission returns False | No (permission check, not exception) | No (emitted before view runs; status known: 403) |
+| **ADMIN_ACTION response** | audit/admin_action.py | :88 `emit_for_response` | ADMIN_ACTION | Middleware after view completes | Via `response._audit_exc_class` | Yes (`response.status_code`) |
+| **STATE_CHANGE generic** | audit/request_audit.py | :214 `emit_generic_state_change` | STATE_CHANGE | Middleware, authenticated state-changing request with no surviving named event | Via `response._audit_exc_class` | Yes (`response.status_code`) |
+| **Anonymous refusal** | audit/request_audit.py | :185 `emit_anonymous_refusal` | AUTH_LOGIN / STATE_CHANGE | Middleware, anonymous 4xx/5xx with no surviving event | Via `response._audit_exc_class` | Yes (`response.status_code`) |
 | **Named call sites** | Various (see §1b) | — | Various | Explicit call in view/service code | Sometimes (inside except block) | Sometimes |
 
 ### §1b Named emit call sites (non-test, non-evidence)
 
 Counted 38 explicit `emit(` calls across:
-- assignments/tasks.py (4 calls: grading_requested, grading_completed, grading_failed, assignment_copy)
-- assignments/views.py (6 calls: assignment CRUD, data export)
-- audit/admin_action.py (2 calls: denied, response)
-- audit/request_audit.py (2 calls: generic state_change, anonymous refusal)
-- audit/emitter.py (1 call: failed_auth_summary re-emit)
-- audit/history.py (3 calls: create, update, delete via post_save/post_delete)
-- audit/tasks.py (2 calls: retention sweep)
-- billing/license_stripe_mutation.py (1 call: subscription_change)
-- billing/models.py (1 call: credit_transaction)
-- classrooms/views.py (1 call: course-related)
-- students/item_retry.py (1 call: grading_requested)
-- students/services.py (1 call: submission_upload)
-- students/views.py (4 calls: grading_requested, submission_upload, roster)
-- users/auth_audit.py (2 calls: auth_login, auth_logout)
-- users/serializers.py (3 calls: permission_change)
-- users/views.py (5 calls: account_register, permission changes)
+- assignments/tasks.py (4), assignments/views.py (6)
+- audit/admin_action.py (2), audit/request_audit.py (2), audit/emitter.py (1)
+- audit/history.py (3), audit/tasks.py (2)
+- billing/license_stripe_mutation.py (1), billing/models.py (1)
+- classrooms/views.py (1)
+- students/item_retry.py (1), students/services.py (1), students/views.py (4)
+- users/auth_audit.py (2), users/serializers.py (3), users/views.py (5)
 
 ### §1c Where the exception is available
 
-The H-273 requirement is to derive a reason label from the exception type, not its message text. The exception path is:
+**Approach (B)**: stash on the response from `custom_exception_handler`.
 
-1. **DRF `custom_exception_handler`** (users/exceptions.py:34): receives `(exc, context)` — the raw exception. This runs BEFORE the response is returned to middleware. It logs the exception type but does NOT emit audit events. It produces the HTTP response.
+1. `custom_exception_handler` (users/exceptions.py:34) receives `(exc, context)`.
+2. Stash `response._audit_exc_class = type(exc).__name__` before returning.
+3. For `ValidationError` with a dict detail: stash `response._audit_fields = sorted(exc.detail.keys())`.
+4. For `CodedError` / permanent refusal: stash `response._audit_reason_code = exc.reason_code.value` (directive 4).
+5. Middleware reads the stashed values when composing metadata.
 
-2. **`AuditMiddleware.__call__`** (audit/middleware.py:42): runs AFTER the response exists. At this point `response` has `.status_code` but the original exception is **not on the response** (DRF's exception_handler returns a Response, not the exception). The exception IS available as `response._raw_exc` only for unhandled 500s (users/exceptions.py:113). For DRF-handled exceptions (4xx), the exception is gone.
+**Exception class matching** (directive 3): use `isinstance` checks on the actual classes, not name strings, so subclasses map correctly. Include `django.http.Http404` and `django.core.exceptions.PermissionDenied` (DRF converts these, but `exc` in the handler is still the Django class).
 
-**Key insight**: to get the exception type into the audit row, we have two options:
-- (A) Emit/enrich from inside `custom_exception_handler`, where the exception is live
-- (B) Stash the exception class name on the request/response for the middleware to read
+### §1d Reason label derivation — three-tier fallback (directive 2)
 
-Option (B) is cleaner: `custom_exception_handler` already sees every DRF-handled exception. We stash `type(exc).__name__` (never the message) on the response, and the middleware reads it when composing the audit metadata. For unhandled 500s, it's already on `response._raw_exc`.
+For every 4xx/5xx row:
+1. **(a)** If the row already has a `reason_code` → no label needed (keep it).
+2. **(b)** If `_audit_exc_class` is stashed → map via `isinstance` to a label.
+3. **(c)** Status-based fallback from a closed set:
 
-**Chosen approach**: Option (B). In `custom_exception_handler`, set `response._audit_exc_class = type(exc).__name__` before returning. The middleware reads it.
+| Status | Label |
+|--------|-------|
+| 400 | `BAD_REQUEST` |
+| 401 | `NOT_AUTHENTICATED` |
+| 403 | `PERMISSION_DENIED` |
+| 404 | `NOT_FOUND` |
+| 405 | `METHOD_NOT_ALLOWED` |
+| 409 | `CONFLICT` |
+| 413 | `TOO_LARGE` |
+| 415 | `UNSUPPORTED_MEDIA_TYPE` |
+| other 4xx | `CLIENT_ERROR` |
+| 5xx | `SERVER_ERROR` |
 
-### §1d Exception → reason_code mapping
+The class → label mapping (tier b):
 
-These are the DRF exception types we'll encounter and their reason labels:
+| Exception class (isinstance) | Label |
+|------------------------------|-------|
+| `rest_framework.exceptions.NotFound`, `django.http.Http404` | `NOT_FOUND` |
+| `rest_framework.exceptions.MethodNotAllowed` | `METHOD_NOT_ALLOWED` |
+| `rest_framework.exceptions.PermissionDenied`, `django.core.exceptions.PermissionDenied` | `PERMISSION_DENIED` |
+| `rest_framework.exceptions.NotAuthenticated` | `NOT_AUTHENTICATED` |
+| `rest_framework.exceptions.AuthenticationFailed` | `AUTHENTICATION_FAILED` |
+| `rest_framework.exceptions.ValidationError`, `django.core.exceptions.ValidationError` | `VALIDATION_FAILED` |
+| `rest_framework.exceptions.ParseError` | `PARSE_ERROR` |
+| `rest_framework.exceptions.UnsupportedMediaType` | `UNSUPPORTED_MEDIA_TYPE` |
+| `rest_framework.exceptions.NotAcceptable` | `NOT_ACCEPTABLE` |
+| Unknown class | falls through to tier (c) |
 
-| Exception class | Status | Reason label |
-|-----------------|--------|-------------|
-| `NotFound` / `Http404` | 404 | `NOT_FOUND` |
-| `MethodNotAllowed` | 405 | `METHOD_NOT_ALLOWED` |
-| `PermissionDenied` | 403 | `PERMISSION_DENIED` |
-| `NotAuthenticated` | 401 | `NOT_AUTHENTICATED` |
-| `ValidationError` | 400 | `VALIDATION_FAILED` |
-| `ParseError` | 400 | `PARSE_ERROR` |
-| `UnsupportedMediaType` | 415 | `UNSUPPORTED_MEDIA_TYPE` |
-| `NotAcceptable` | 406 | `NOT_ACCEPTABLE` |
-| `Throttled` | 429 | (excluded — 429 is never recorded) |
-| `AuthenticationFailed` | 401 | `AUTHENTICATION_FAILED` |
-| `CodedError` / permanent refusal | varies | (keeps its own reason_code) |
-| Unhandled (5xx) | 500 | `SERVER_ERROR` |
-
-Rules:
-- A coded refusal (`CodedError`, permanent refusal) keeps its own `reason_code` — we do NOT override it.
-- A row that already has a `reason_code` set by the call site keeps it unchanged.
-- The reason_code is only SET when no reason_code is already present.
+The raw class name is **never stored**. The label vocabulary is a closed constant set `REASON_LABELS`, and a test asserts every emitted label is in it.
 
 ### §1e Validation error field names
 
-For `ValidationError`, extract the sorted list of failing field NAMES only (never messages). DRF's `ValidationError` can have:
-- `exc.detail` as a dict `{field_name: [errors]}` → extract sorted keys
-- `exc.detail` as a list → non-field errors, `fields = ["non_field_errors"]`
-- `exc.detail` as a string → `fields = ["non_field_errors"]`
+For `ValidationError`, extract sorted list of failing field NAMES only (never messages):
+- `exc.detail` as dict `{field: [errors]}` → sorted keys
+- `exc.detail` as list → `["non_field_errors"]`
+- `exc.detail` as string → `["non_field_errors"]`
 
-We store `metadata.fields` as the sorted list of field names.
+Stored as `metadata["fields"]`.
 
 ### §1f Ordering: status and exception into the row
 
-The sequence is:
 1. View runs (may raise)
-2. `custom_exception_handler` catches exception → produces Response, stashes `_audit_exc_class`
+2. `custom_exception_handler` catches exception → produces Response, stashes `_audit_exc_class`, `_audit_fields`, `_audit_reason_code`
 3. Middleware sees the Response
-4. If ADMIN_ACTION tagged: `emit_for_response` fires (has `response.status_code` and now `_audit_exc_class`)
-5. If no surviving event: `emit_generic_state_change` fires (same)
-6. If anonymous with no event: `emit_anonymous_refusal` fires (same)
+4. If ADMIN_ACTION tagged: `emit_for_response` fires (enriches metadata)
+5. If no surviving event: `emit_generic_state_change` fires (enriches metadata)
+6. If anonymous with no event: `emit_anonymous_refusal` fires (enriches metadata)
 
-**No ordering problem.** The exception is available (stashed) by the time the middleware runs.
+**No ordering problem.**
+
+### §1f2 Coded refusals (directive 4)
+
+**Verified**: a `CodedError` / permanent refusal is caught by `custom_exception_handler` (users/exceptions.py:45-63). The handler returns a Response with the coded body, but does NOT emit an audit event. If the view itself didn't emit one, the middleware writes a STATE_CHANGE or ADMIN_ACTION row.
+
+**Today**: the middleware-written row carries NO `reason_code` for ADMIN_ACTION (admin_action.py:88 passes none) and NO `reason_code` for STATE_CHANGE (request_audit.py:214 passes none). So a coded refusal's reason_code (e.g. `INSUFFICIENT_CREDITS`, `OVERAGE_CAP_EXCEEDED`) is **lost**.
+
+**Fix**: stash `response._audit_reason_code = exc.reason_code.value` in the exception handler. The middleware passes it as `reason_code` to `emit()`. The emitter already validates it against `ReasonCode.values`, and both ADMIN_ACTION and STATE_CHANGE accept any valid `reason_code` (the emitter's `reason_code` parameter is action-independent). So we write it as `reason_code` (the top-level column), not as `reason_label` in metadata.
+
+When a stashed `_audit_reason_code` is present, `reason_label` is NOT set (tier (a) of the fallback: row already has a reason_code).
+
+### §1f3 emit_denied: exactly one row (directive 5)
+
+**Confirmed**: a denied request produces exactly one ADMIN_ACTION row.
+
+Flow: `IsSuperAdmin.has_permission` returns False → `emit_denied` fires (one row) → `REQUEST_ATTR` is NOT set on the raw_request → middleware's `emit_for_response` does NOT fire (view is None) → `emit_generic_state_change` checks `should_record`: for authenticated denials, the event already survived so `a_surviving_event_names` returns True → no generic row. For anonymous denials: `should_record` requires `is_authenticated` → False → no generic; `emit_anonymous_refusal` sees the surviving denied event → no extra row.
+
+**Result**: exactly one row in all cases (authenticated denial, anonymous denial).
+
+The denied row gets: PERMISSION_DENIED as `reason_label`, 403 as `http_status`, method from request, route from resolver_match.
 
 ### §1g target_types in use
 
 From explicit `target_type=` in emit calls:
-- `"CustomUser"` (31 uses — auth, permissions, admin)
-- `"StudentSubmission"` (16 — grading, grade changes)
-- `"Assignment"` (14 — CRUD, copy, grading)
-- `"AuditEvent"` (8 — retention sweep, in tests)
-- `"Course"` (2 — course operations)
-- `"LicenseStripeMutationIntent"` (2 — subscription mutations)
-- `"CreditLedger"` (1 — credit transactions)
-- `"SchoolCreditAllocation"` (1 — subscription change)
+- `"CustomUser"` (31), `"StudentSubmission"` (16), `"Assignment"` (14), `"AuditEvent"` (8)
+- `"Course"` (2), `"LicenseStripeMutationIntent"` (2), `"CreditLedger"` (1), `"SchoolCreditAllocation"` (1)
 
-From history.py REGISTRY (derived from model name):
-- `"StudentSubmission"` (GRADE_CHANGE)
-- `"StudentCourse"` (ROSTER_CHANGE)
-- `"CustomUser"` (PERMISSION_CHANGE)
-- `"UserSubscription"` (SUBSCRIPTION_CHANGE)
-- `"LicenseSubscription"` (SUBSCRIPTION_CHANGE)
-- `"SchoolCreditAllocation"` (SUBSCRIPTION_CHANGE)
+From history.py REGISTRY (model name after dot):
+- `"StudentSubmission"`, `"StudentCourse"`, `"CustomUser"`, `"UserSubscription"`, `"LicenseSubscription"`, `"SchoolCreditAllocation"`
 
-From dynamic resolution in request_audit._target / admin_action.resolve_target (view class name):
-- `"SchoolViewSet"`, `"CustomUserViewSet"`, `"CourseViewSet"`, `"AssignmentViewSet"`, etc.
-- Every IsSuperAdmin-gated ViewSet: `AdminCreditManagementViewSet`, `BillingTimeTravelView`, `BillingTransactionViewSet`, `CreditBucketViewSet`, `CreditLedgerViewSet`, `CreditUsageLogViewSet`, `CreditWalletViewSet`, `LicenseOverageOfflineRequestViewSet`, `LicenseSubscriptionViewSet`, `PaymentMethodViewSet`, `SchoolCreditAllocationViewSet`, `SettingsViewSet`, `SubscriptionManagementViewSet`, `SubscriptionPlanViewSet`, `WaitlistViewSet`, `BetaProfileViewSet`, `BetaWhitelistViewSet`, `BetaAnalyticViewSet`, `BetaAnaylicChartViewSet`, `SuperAdminDashboardView`
+From dynamic resolution (view class name via admin_action.resolve_target / request_audit._target):
+- Every IsSuperAdmin-gated ViewSet and every state-changing route's view class.
+- SchoolViewSet detail routes carry `target_id = school.pk` via resolve_target reading `kwargs["pk"]` (confirmed: SchoolViewSet is a ModelViewSet using pk-based routing at classrooms/views.py:293).
+
+Missing from original mapping: `"School"` (the model name, which can appear from a future history entry or explicit emit). Added to mapping.
 
 ### §1h target_label mapping
-
-For scope (c), a read-time display field. Covering the production target_types:
 
 | target_type | target_label |
 |-------------|--------------|
@@ -130,6 +138,7 @@ For scope (c), a read-time display field. Covering the production target_types:
 | `Assignment` | "Assignment" |
 | `AuditEvent` | "Audit event" |
 | `Course` | "Course" |
+| `School` | "School" |
 | `LicenseStripeMutationIntent` | "License change intent" |
 | `CreditLedger` | "Credit ledger" |
 | `SchoolCreditAllocation` | "Credit allocation" |
@@ -170,183 +179,241 @@ For scope (c), a read-time display field. Covering the production target_types:
 | `TeacherAdminDashboardView` | "Teacher dashboard" |
 | `SchoolAdminDashboardView` | "School dashboard" |
 | `AuthViewSet` | "Authentication" |
+| `AssignmentGenerationSessionViewSet` | "Assignment generation" |
+| `View` | "View" |
 | (fallback) | raw target_type value |
 
-### §1i Scope (d): successful rows
+### §1i Route, not raw path (directive 1)
 
-Adding method and path to successful rows is safe and useful. `request.path` contains no query string (that's `request.META['QUERY_STRING']`), so it carries only the URL pattern with the pk substituted — which is already visible as the route name + target_id. Adding it provides a human-readable "what endpoint" without needing to reverse-map URL names.
+**Revised**: store `route` = `request.resolver_match.route` (the URL pattern, e.g. `api/v1/sessions$`), NOT `request.path`. The `route` key already exists in ALLOWED_KEYS and STATE_CHANGE's allowlist.
 
-I see **no objection** to adding method and path to successful rows. The path never contains PII in this project (user identifiers are UUIDs in the path, names/emails are never in URLs). I'll add both to all request-scoped audit rows (success and failure alike) rather than splitting the behaviour.
+If `resolver_match` is None (404 on an unknown URL): `route = None`, `reason_label = NOT_FOUND`.
 
-### §1j New metadata keys needed
+STATE_CHANGE already records `route` as `match.view_name` (the URL name, e.g. "session-list"). The new field reuses the same key name but in ADMIN_ACTION we record the URL pattern via `resolver_match.route`. For STATE_CHANGE, the existing `route` value (view_name) is kept; we add the URL pattern as well if useful, but since STATE_CHANGE already has view_name, and ADMIN_ACTION had nothing, the primary addition is to ADMIN_ACTION.
 
-These keys need to be added to `ALLOWED_KEYS` in audit/metadata.py:
-- `http_method` (the HTTP verb: GET, POST, PUT, PATCH, DELETE)
-- `path` (request.path, the URL path without query string)
-- `reason_label` (the derived short label: NOT_FOUND, VALIDATION_FAILED, etc.)
+**Decision**: for ADMIN_ACTION, add `route` = `resolver_match.route` (URL pattern). For STATE_CHANGE, the existing `route` = view_name stays. Both already have `route` in the allowlist.
+
+### §1j New metadata keys needed (revised)
+
+Keys to add to `ALLOWED_KEYS`:
+- `reason_label` (the derived short label from the closed vocabulary)
 - `fields` (sorted list of failing field names on ValidationError)
 
-And the per-action `METADATA_ALLOWLIST` entries that carry request context need widening:
-- `AuditAction.ADMIN_ACTION`: add `http_method`, `path`, `status_code`, `reason_label`, `fields`
-- `AuditAction.STATE_CHANGE`: add `http_method`, `path`, `reason_label`, `fields` (already has `http_status`, `route`, `method`)
+Keys already in `ALLOWED_KEYS` that we reuse:
+- `method` (HTTP verb)
+- `http_status` (response status code)
+- `route` (URL name or pattern)
+- `source` (already in ADMIN_ACTION)
 
-Wait — `STATE_CHANGE` already records `method` and `http_status`. And `ADMIN_ACTION` records `source`. I should reuse `method` and `http_status` rather than inventing `http_method` and `status_code`:
-- `method` already exists in ALLOWED_KEYS and STATE_CHANGE's allowlist
-- `http_status` already exists in ALLOWED_KEYS
-- `path` is new → add to ALLOWED_KEYS
-- `reason_label` is new → add to ALLOWED_KEYS
-- `fields` is new (for validation errors) → add to ALLOWED_KEYS
+Per-action allowlist widening:
+- `AuditAction.ADMIN_ACTION`: add `method`, `http_status`, `route`, `reason_label`, `fields`
+- `AuditAction.STATE_CHANGE`: add `reason_label`, `fields` (already has `method`, `http_status`, `route`)
+- `AuditAction.AUTH_LOGIN`: add `reason_label`, `fields` (already has `auth_method`, `http_status`)
+- `AuditAction.ACCOUNT_REGISTER`: add `reason_label`, `fields` (already has `auth_method`, `http_status`)
 
-Updated plan:
-- ADMIN_ACTION gets: `method`, `http_status`, `path`, `reason_label`, `fields`
-- STATE_CHANGE gets: `path`, `reason_label`, `fields` (already has `method`, `http_status`)
-- AUTH_LOGIN gets: `path`, `reason_label`, `fields` (already has `auth_method`, `http_status`)
-- ACCOUNT_REGISTER gets: `path`, `reason_label`, `fields` (already has `auth_method`, `http_status`)
+### §1k Coded refusal reason_code flow (directive 4 resolution)
 
-### §1k New reason_codes
-
-These are NOT new ReasonCode enum values — they go in `metadata.reason_label`, a metadata field, not the top-level `reason_code` column. This avoids:
-1. Widening the closed ReasonCode vocabulary for labels that are informational, not action-driving
-2. Conflicting with existing reason_codes on the same row
-
-The existing `reason_code` column stays unchanged. The `reason_label` is metadata-only.
+Coded refusals' `reason_code` is written as the top-level `reason_code` column (not as `reason_label` in metadata). The emitter accepts any valid `ReasonCode` on any action. Stashed as `response._audit_reason_code`. When present, the three-tier fallback stops at tier (a) — no `reason_label` is set.
 
 ### §1l Query API changes
 
-Scope (b): add `trace_id` and `target_id` filters to both endpoints.
+**trace_id filter**: already indexed (`audit_trace_ix`). Exact UUID match.
+**target_id filter**: needs new index `audit_target_time_ix`. Built concurrently (directive 6): `AddIndexConcurrently`, `atomic = False`, precedent billing/migrations/0051.
 
-`trace_id`: AuditEvent already has `audit_trace_ix` index on `trace_id` — filter is index-backed.
-`target_id`: NO existing index. Need to add one: `Index(fields=["target_id", "-occurred_at"], name="audit_target_time_ix", condition=Q(target_id__isnull=False))`.
+Both filters: exact UUID, added to `_BaseAuditEventFilter` (shared by both endpoints). School admin queryset scoping still applies.
 
-Both filters are exact UUID match. Add to `_BaseAuditEventFilter` (shared by both endpoints — school admin already scopes to their school at the queryset level, so adding target_id is safe).
+**target_label**: SerializerMethodField, mapping dict in serializers.py, fallback to raw value.
+**target_name**: SerializerMethodField, School only. Resolved with ONE query per page (id→name dict built in serializer context via `get_serializer_context`), never one per row (directive 7). School admin sees only their own school's rows (queryset guarantee); test added anyway.
 
-Scope (c): `target_label` as a read-time SerializerMethodField on `AuditEventSerializer`. The mapping dict lives in the serializer module. `target_name` for School only: resolve at read time from School.name via a prefetch or subquery, never stored.
+### §1m SchoolViewSet target_id verification (directive 7)
+
+Confirmed: `SchoolViewSet` (classrooms/views.py:293) is a `ModelViewSet` with `IsSuperAdmin` permissions. Detail routes use `pk` kwarg. `admin_action.resolve_target` reads `kwargs.get("pk")` → `target_id = school.pk`. List/create routes have no pk → `target_id = None`.
+
+### §1n API schema (directive 9)
+
+The audit endpoints use drf-spectacular annotations (audit/views.py:38-53, :56-66, :75-86). New fields for the frontend handoff:
+
+**New query parameters** (both endpoints):
+- `trace_id` (UUID, exact match) — filter by server trace id
+- `target_id` (UUID, exact match) — filter by target object id
+
+**New response fields** (AuditEventSerializer):
+- `target_label` (string) — human-readable label for target_type, e.g. "School", "User account"
+- `target_name` (string, nullable) — resolved name for School targets only; null for all others
+
+The `metadata` object on 4xx/5xx rows now additionally contains:
+- `method` (string) — HTTP method (on ADMIN_ACTION rows; STATE_CHANGE already had it)
+- `http_status` (integer) — response status code (on ADMIN_ACTION rows; STATE_CHANGE already had it)
+- `route` (string) — URL pattern (on ADMIN_ACTION rows; STATE_CHANGE already had view_name as `route`)
+- `reason_label` (string) — short reason label from closed vocabulary (NOT_FOUND, VALIDATION_FAILED, etc.)
+- `fields` (list of strings) — failing field names on ValidationError responses
+
+The top-level `reason_code` column now carries coded refusal codes (e.g. INSUFFICIENT_CREDITS) on ADMIN_ACTION and STATE_CHANGE rows where the view raised a CodedError.
 
 ## §2 Implementation plan
 
-### Step 1: Metadata enrichment (scope a + d)
+### Step 1: Metadata enrichment + exception stashing (scope a + d)
 
-1a. Add `path`, `reason_label`, `fields` to `ALLOWED_KEYS` in audit/metadata.py.
-1b. Add `method`, `http_status`, `path`, `reason_label`, `fields` to ADMIN_ACTION's METADATA_ALLOWLIST.
-1c. Add `path`, `reason_label`, `fields` to STATE_CHANGE, AUTH_LOGIN, ACCOUNT_REGISTER METADATA_ALLOWLIST entries.
-1d. In users/exceptions.py `custom_exception_handler`: stash `response._audit_exc_class = type(exc).__name__` and, for ValidationError, `response._audit_fields = sorted(exc.detail.keys())` (when detail is a dict).
-1e. Write a helper `audit/request_detail.py` with:
-  - `enrich_request_metadata(request, response, metadata)` → adds method, path, http_status; adds reason_label from `response._audit_exc_class` if present and no reason_code already set; adds fields from `response._audit_fields` if present.
-1f. Call `enrich_request_metadata` from:
-  - `admin_action.emit_for_response` (line 88)
-  - `admin_action.emit_denied` (line 73) — method and path only, no response
-  - `request_audit.emit_generic_state_change` (line 214)
-  - `request_audit.emit_anonymous_refusal` (line 185)
-1g. New ReasonCode enum values: none (reason_label is metadata).
+1a. Add `reason_label`, `fields` to `ALLOWED_KEYS` in audit/metadata.py.
+1b. Widen ADMIN_ACTION's METADATA_ALLOWLIST: add `method`, `http_status`, `route`, `reason_label`, `fields`.
+1c. Widen STATE_CHANGE's METADATA_ALLOWLIST: add `reason_label`, `fields`.
+1d. Widen AUTH_LOGIN and ACCOUNT_REGISTER: add `reason_label`, `fields`.
+1e. In users/exceptions.py `custom_exception_handler`:
+  - Stash `response._audit_exc_class = type(exc).__name__` and the exception object ref `response._audit_exc = exc`
+  - For ValidationError with dict detail: stash `response._audit_fields = sorted(exc.detail.keys())`
+  - For CodedError / permanent refusal: stash `response._audit_reason_code = exc.reason_code.value`
+  - For unhandled 500: already has `response._raw_exc`
+1f. Write `audit/request_detail.py` with:
+  - `REASON_LABELS` closed constant set
+  - `_exc_to_label(exc)` using isinstance matching
+  - `_status_to_label(status_code)` for tier (c)
+  - `enrich_request_metadata(request, response, metadata)` → adds method, http_status, route; derives reason_label; adds fields
+  - `stashed_reason_code(response)` → returns the stashed reason_code or None
+1g. Call from:
+  - `admin_action.emit_for_response` — full enrichment + pass reason_code
+  - `admin_action.emit_denied` — method, route, http_status=403, reason_label=PERMISSION_DENIED (no response needed)
+  - `request_audit.emit_generic_state_change` — full enrichment + pass reason_code
+  - `request_audit.emit_anonymous_refusal` — full enrichment (reason_code already handled by its own logic)
 
-### Step 2: Query API (scope b + c)
+### Step 2: Query API + serializer (scope b + c)
 
-2a. Add `trace_id` (UUIDFilter) and `target_id` (UUIDFilter) to `_BaseAuditEventFilter` in audit/filters.py.
-2b. Add `target_id` index via migration: `Index(fields=["target_id", "-occurred_at"], name="audit_target_time_ix", condition=Q(target_id__isnull=False))`.
-2c. Add `target_label` SerializerMethodField to AuditEventSerializer. Mapping dict in serializer.
-2d. Add `target_name` SerializerMethodField — for School target_type only, resolved from the School model at read time, never stored.
+2a. Add `trace_id` (UUIDFilter) and `target_id` (UUIDFilter) to `_BaseAuditEventFilter`.
+2b. Migration: `AddIndexConcurrently` for `audit_target_time_ix` on `(target_id, -occurred_at)` where target_id IS NOT NULL. `atomic = False`. Precedent: billing/migrations/0051.
+2c. Add `target_label` SerializerMethodField. Mapping dict in audit/serializers.py.
+2d. Add `target_name` SerializerMethodField. School-only resolution with ONE query per page via `get_serializer_context` building `{school_id: name}` dict. `assertNumQueries` test.
+2e. Update drf-spectacular `OpenApiParameter` annotations on both views for `trace_id` and `target_id`.
 
 ### Step 3: Tests
 
-3a. Test `enrich_request_metadata` with each exception type → correct reason_label + fields.
-3b. Test ADMIN_ACTION emit includes method, path, http_status, reason_label on 4xx.
-3c. Test STATE_CHANGE emit includes path, reason_label on 4xx.
-3d. Test anonymous refusal includes path, reason_label.
-3e. Test query API: trace_id filter returns exact match. target_id filter returns exact match.
-3f. Test target_label: each known target_type maps correctly; unknown falls back to raw.
-3g. Test target_name: School resolves to name; non-School is null.
-3h. Test existing metadata tests still pass (scrubbing, volume).
-3i. Break-run expectations for any edited pre-existing test.
-3j. Mutant expectations (see §4).
+See §4 for mutant targets.
 
 ## §3 Near-run expectations
 
-### Modules touched
-audit, users (exceptions.py only), classrooms (no code change but tests may be affected by audit changes).
+### Modules in near run (directive 10)
+audit, users, classrooms, billing, students, assignments (6 apps).
 
-### Near run: audit + users + classrooms
-From DiscoverRunner: Total 1914, Skipped 2, Ran 1912.
+### Baseline (from DiscoverRunner id lists)
+6-app total: 5832, Skipped: 16, **Ran 5816**.
 
-**Expected**: Ran 1912 + new tests, 2 skipped, OK.
+**Expected**: Ran 5816 + new tests, 16 skipped, OK.
 
-The exact count of new tests will be declared after step 3 is written.
+Exact new test count declared after tests are written.
+
+### Pre-existing tests with exact metadata assertions that WILL BREAK
+
+Read before coding (directive 10):
+
+1. **audit/tests_admin_action.py:107** — `assertEqual(event.metadata, {"source": "DummySuccessView"})`. ADMIN_ACTION success on a DummyView run through `_run()` (APIRequestFactory, not full middleware). **WILL BREAK** when `emit_for_response` enriches metadata with method, http_status, route. Must update to superset assertion or exact new dict.
+
+2. **audit/tests_state_change.py:84-87** — `assertEqual(event.metadata, {"route": "session-list", "method": "POST", "http_status": 201})`. STATE_CHANGE success. **WILL BREAK** when enrichment adds reason_label (no — success doesn't get reason_label). Actually re-reading: enrichment only adds reason_label on 4xx/5xx. On success, method/http_status/route are already there. So this **may survive** if we only add keys on failure. But we DO add route to all ADMIN_ACTION rows. Let me re-check: this is STATE_CHANGE, not ADMIN_ACTION. STATE_CHANGE already has route/method/http_status. We only add reason_label/fields on failure. **SURVIVES** on success paths.
+
+3. **audit/tests_route_coverage.py:313** — `assertEqual(event.metadata, {"auth_method": "self_registration"})`. ACCOUNT_REGISTER success via real middleware. Anonymous refusal path already adds `http_status`. Wait — this is a SUCCESS registration. The anonymous refusal path (emit_anonymous_refusal) only fires for 4xx/5xx. This SUCCESS goes through the named auth event in users/views.py, which calls emit directly with its own metadata. **SURVIVES** (named event, not middleware-enriched).
+
+4. **audit/tests_admin_action.py:107** (re-analysis): `_run()` calls `middleware(request)` where middleware = `AdminActionAuditMiddleware(view_class.as_view())`. This IS the middleware. The view returns 200, so `emit_for_response` fires. Currently metadata is `{"source": "DummySuccessView"}`. After enrichment, it will have `method`, `http_status`, `route` added. **WILL BREAK**.
+
+### Edited pre-existing tests
+
+1. `audit/tests_admin_action.py` — update exact metadata assertion at :107 to include new keys.
+
+### Break-run plan
+
+After editing tests_admin_action.py:107, run that single test class:
+```
+python manage.py test audit.tests_admin_action.AutomaticCoverageTests.test_new_view_granted_produces_exactly_one_success_event
+```
+Expected: pass with new metadata dict.
 
 ## §4 Mutant expectations
 
-### M-H273-1: Remove path from enrich_request_metadata
-Kill: test that asserts metadata["path"] is present on a 4xx ADMIN_ACTION event.
+### M-H273-1: Remove route from ADMIN_ACTION enrichment
+Kill: test asserts metadata["route"] present on ADMIN_ACTION event.
 
-### M-H273-2: Remove reason_label derivation
-Kill: test that asserts reason_label == "NOT_FOUND" for a 404 response.
+### M-H273-2: Remove reason_label derivation (all tiers)
+Kill: test asserts reason_label == "NOT_FOUND" for a 404 response.
 
 ### M-H273-3: Remove fields extraction for ValidationError
-Kill: test that asserts metadata["fields"] == ["field_a", "field_b"] on a validation error.
+Kill: test asserts metadata["fields"] == ["field_a", "field_b"] on validation error.
 
 ### M-H273-4: Remove _audit_exc_class stash in custom_exception_handler
-Kill: test that asserts reason_label is populated for a DRF-handled 4xx.
+Kill: test asserts reason_label is populated for a DRF-handled 4xx.
 
 ### M-H273-5: Remove trace_id filter from query API
-Kill: test that filters by trace_id and gets exactly the matching row.
+Kill: test filters by trace_id, gets exactly the matching row.
 
 ### M-H273-6: Remove target_id filter from query API
-Kill: test that filters by target_id and gets exactly the matching row.
+Kill: test filters by target_id, gets exactly the matching row.
 
 ### M-H273-7: Remove target_label from serializer
-Kill: test that asserts "target_label" in response data.
+Kill: test asserts "target_label" in response data.
 
 ### M-H273-8: Change target_label fallback to empty string instead of raw value
 Kill: test that an unknown target_type returns the raw value as label.
 
 ### M-H273-9: Remove target_name resolution for School
-Kill: test that target_name is the school's name when target_type is a School-like type.
+Kill: test that target_name is the school's name when target_type is "SchoolViewSet".
 
-### M-H273-10: Remove method from ADMIN_ACTION metadata
-Kill: test that asserts metadata["method"] is present on ADMIN_ACTION events.
+### M-H273-10: Remove method from ADMIN_ACTION metadata enrichment
+Kill: test asserts metadata["method"] present on ADMIN_ACTION events.
 
-### M-H273-11: Remove http_status from ADMIN_ACTION metadata
-Kill: test that asserts metadata["http_status"] is present on ADMIN_ACTION events.
+### M-H273-11: Remove http_status from ADMIN_ACTION metadata enrichment
+Kill: test asserts metadata["http_status"] present on ADMIN_ACTION events.
 
-### M-H273-12: Include query string in path (violating the "never query string" rule)
-Kill: test that path does NOT contain "?" even when request has a query string.
+### M-H273-12: Store request.path instead of resolver_match.route
+Kill: test uses a route with a UUID segment, asserts the literal UUID value never appears in metadata["route"] (the pattern has `<uuid:pk>` or `(?P<pk>...)`, not the actual id).
 
 ### M-H273-13: Use exc message text instead of exc class name for reason_label
-Kill: test that reason_label is a fixed code (NOT_FOUND, etc.), not a variable string.
+Kill: test asserts reason_label is a fixed code from REASON_LABELS (e.g. "NOT_FOUND"), not a variable string.
 
-### M-H273-14: Remove condition that preserves existing reason_code
-Kill: test that a CodedError's reason_code is unchanged (reason_label doesn't override it).
+### M-H273-14: Remove stashed coded refusal reason_code passthrough
+Kill: test that a CodedError's reason_code appears on the STATE_CHANGE/ADMIN_ACTION row.
+
+### M-H273-15: Remove status-based fallback (tier c)
+Kill: test that a view returning 4xx directly (no exception handler path) still gets a reason_label from status.
+
+### M-H273-16: Label coverage — remove one target_type from the mapping
+Kill: label coverage test enumerates all producible target_types and asserts each has an explicit label (directive 8).
+
+### M-H273-17: emit_denied missing PERMISSION_DENIED label or 403 status
+Kill: test that a denied ADMIN_ACTION row has reason_label=PERMISSION_DENIED and http_status=403.
+
+### M-H273-18: target_name query count — use per-row query instead of batch
+Kill: assertNumQueries test (directive 7).
 
 ## §5 Red-run plan
 
 Revert by call-site:
-1. Revert `enrich_request_metadata` calls in admin_action.py → tests for method/path/reason_label on ADMIN_ACTION fail.
-2. Revert `enrich_request_metadata` calls in request_audit.py → tests for path/reason_label on STATE_CHANGE fail.
-3. Revert `_audit_exc_class` stash in custom_exception_handler → tests for reason_label fail (it's None).
-4. Revert trace_id/target_id filters → query API filter tests fail.
-5. Revert target_label/target_name → serializer output tests fail.
+1. Revert enrichment calls in admin_action.py → tests for method/route/http_status/reason_label on ADMIN_ACTION fail.
+2. Revert enrichment calls in request_audit.py → tests for reason_label on STATE_CHANGE fail.
+3. Revert _audit_exc_class stash in custom_exception_handler → tests for reason_label via exception mapping fail.
+4. Revert trace_id/target_id filters in filters.py → query API filter tests fail.
+5. Revert target_label/target_name in serializers.py → serializer output tests fail.
 
 ## §6 Break-run expectations
 
-Files edited:
-- audit/metadata.py (ALLOWED_KEYS, METADATA_ALLOWLIST) — adding keys only, not editing existing
-- audit/admin_action.py — enriching metadata dict before passing to emit
-- audit/request_audit.py — enriching metadata dict before passing to emit
-- audit/serializers.py — adding fields
-- audit/filters.py — adding filters
-- audit/models.py — adding index
-- users/exceptions.py — stashing exc class on response
+### Files edited
 
-Pre-existing tests edited: **none expected** at this point — new keys are additive, existing metadata is not removed, existing tests should not assert the absence of new keys. If a test asserts exact metadata dict equality (not subset), it would break. I'll verify by reading the relevant test files before coding.
+Production code:
+- audit/metadata.py — adding keys to ALLOWED_KEYS and METADATA_ALLOWLIST (additive)
+- audit/request_detail.py — NEW file (enrichment helper)
+- audit/admin_action.py — enriching metadata before emit, adding reason_code passthrough
+- audit/request_audit.py — enriching metadata before emit, adding reason_code passthrough
+- audit/serializers.py — adding SerializerMethodFields
+- audit/filters.py — adding UUIDFilters
+- audit/models.py — adding target_id index
+- audit/views.py — updating OpenApiParameter annotations
+- users/exceptions.py — stashing exc class, fields, reason_code on response
 
-Existing tests to verify:
-- audit/tests_metadata.py: checks allowed keys and shape rules. Adding keys to ALLOWED_KEYS is safe; the test that refuses "person-naming" keys (`test_pii_keys_refused`) runs against a fixed list and won't match `path`, `reason_label`, or `fields`.
-- audit/tests_admin_action.py: checks that ADMIN_ACTION events are emitted with correct metadata. If it asserts exact `metadata=={"source": "..."}`, adding new keys would break it.
-- audit/tests_state_change.py: checks STATE_CHANGE events.
+### Pre-existing tests edited
+1. `audit/tests_admin_action.py:107` — exact metadata dict updated to include new keys.
 
-**Must read**: audit/tests_admin_action.py, audit/tests_state_change.py, audit/tests_query_api.py before coding to confirm no exact-match assertions.
+### Break-run
+Run: `audit.tests_admin_action.AutomaticCoverageTests.test_new_view_granted_produces_exactly_one_success_event`
+Expected: PASS with updated assertion.
 
 ## §7 Checkpoints
 
-1. After survey + NOTES: commit and send sha to SM.
-2. After step 1 (metadata enrichment): commit and send sha to SM.
-3. After step 2 (query API): commit and send sha to SM.
-4. After step 3 (tests + evidence): commit and send sha to SM.
+1. After survey + NOTES: commit and send sha to SM. ✓ (c2826baf)
+2. After NOTES amendment (this): commit and send sha to SM.
+3. After step 1 (metadata enrichment + stashing): commit and send sha to SM.
+4. After step 2 (query API + serializer + migration): commit and send sha to SM.
+5. After step 3 (tests + expectations + evidence): commit and send sha to SM.
