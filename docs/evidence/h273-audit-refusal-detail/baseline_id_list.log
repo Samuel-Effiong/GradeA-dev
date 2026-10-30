@@ -1,27 +1,33 @@
-Total: 5832
-Skipped: 16
-Ran: 5816
+Baseline: f5d2d577, correct label set, rebuilt venv (requirements.txt + requirements-dev.txt)
+Command: python manage.py test audit users classrooms billing students assignments --settings=AutoGrader.settings --verbosity 2 --noinput
+Venv: ~/Documents/Virtualenvs/AutoGrader_env_h273 (freeze SHA-256: 52da179f)
 
-=== SKIPPED ===
-assignments.tests_course_ownership_scale.SixThousandStudentSchoolTest.test_six_thousand_student_school
-assignments.tests_load.AssignmentReadPathLoadTest.test_a_class_opening_one_assignment_together_stays_healthy
-assignments.tests_load.AssignmentReadPathLoadTest.test_cache_survives_writes_to_other_assignments_under_load
-assignments.tests_load.AssignmentReadPathLoadTest.test_list_query_count_does_not_scale_with_page_size
-assignments.tests_load.AssignmentReadPathLoadTest.test_paging_the_whole_list_returns_every_row_exactly_once
-assignments.tests_load.AssignmentReadPathLoadTest.test_sustained_mixed_traffic_does_not_degrade
-assignments.tests_load.AssignmentReadPathLoadTest.test_the_list_queryset_reports_itself_as_ordered
-assignments.tests_load.RealRendererOverloadTest.test_a_slow_renderer_sheds_through_the_endpoint_and_then_recovers
-assignments.tests_load.RealRendererOverloadTest.test_real_renders_at_production_settings_are_all_served
-assignments.tests_real_extraction.RealAssignmentExtractionTest.test_a_real_extraction_from_a_PDF_upload
-assignments.tests_real_extraction.RealAssignmentExtractionTest.test_a_real_extraction_returns_a_usable_assignment
-assignments.tests_real_extraction.RealAssignmentExtractionTest.test_the_extracted_document_survives_the_prosemirror_round_trip
-assignments.tests_real_upload_billing.RealProviderBatchUploadBillingTest.test_a_real_partly_failed_batch_is_charged_once_and_replays_free
-audit.tests.test_bench_history.HistoryCostBenchmark.test_print_the_cost
-audit.tests.test_bench_volume.BusySchoolDay.test_print_one_busy_day
-students.tests_async_edit_path.RealProviderEditTest.test_a_real_edit_extracts_the_answer_and_charges_once
+Collected: 5885
 
+=== Superseded baselines ===
+- OLD committed baseline (Total 5832, Skipped 16, Ran 5816): collected with a venv missing
+  pytest and freezegun, so test_billing_period_anchoring (21 tests) and test_license_service
+  (34 tests) were masked as 2 _FailedTest entries instead of 55 real tests. 5832 + 53 = 5885.
+- OLD archive ~/Documents/Projects/GAP-a0-runs/h273/baseline_id_list_full.log: collected
+  with wrong label set (dashboard instead of assignments). Renamed to
+  baseline_id_list_full_WRONG_SET.log.
 
-=== ALL IDS ===
-(5832 test IDs omitted to stay under pre-commit 500KB limit)
-SHA-256 of omitted section: 9bfcd26d1209665deeb6d37d87ad53b72b77376138391d31272b6661072cdd58
-Full archive: ~/Documents/Projects/GAP-a0-runs/h273/baseline_id_list_full.log
+=== New baseline archive ===
+Full archive: ~/Documents/Projects/GAP-a0-runs/h273/baseline_f5d2d577_correct_set.txt
+SHA-256: 9f94f59c96e654fc68cf375ea4bb814634e80cad6915bfaf99c56e2d8da8ceae
+
+=== Step 3 tip comparison ===
+Tip ID list (at evidence commits on task/h273-audit-refusal-detail, code same as cba462cf):
+Archive: ~/Documents/Projects/GAP-a0-runs/h273/tip_ids_h273.txt
+SHA-256: 9f94f59c96e654fc68cf375ea4bb814634e80cad6915bfaf99c56e2d8da8ceae (IDENTICAL)
+Diff: zero added, zero removed. Byte-identical to baseline.
+Expected: correct — H-273 step 1 added no new test IDs; step 3 tests not yet written.
+
+=== Runtime expectations (step 5 near run) ===
+Total collected: 5885
+Expected skipped: at least 16 (the 16 known from the old committed baseline, all present
+  in the new collection). Additional skips possible from Chromium-dependent tests,
+  CI_REQUIRE_NETWORK, CI_REQUIRE_REDIS, RUN_REAL_AI env checks. Exact count to be
+  determined at runtime.
+Expected Ran: 5885 minus actual skipped count.
+Expected: OK (zero failures, zero errors).
