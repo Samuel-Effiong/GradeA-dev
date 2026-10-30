@@ -737,7 +737,7 @@ Mutants are identified by function name and exact text; the line number is only 
 | M-B29 | The `GRANTED` hook does not fail the other intent linked to the request | C-9 (double purchase: one grant, the other intent failed) |
 | M-B30 | The pre-call check uses `item_hold_left` (ignores the tally) | U-1 (a unit with its hold used up makes 0 further provider calls) |
 | M-B31 | Unit entry reads `hold_state` and exits instead of the conditional start claim; or the sweep drops `started_at < cutoff` | S-8 (a redelivery that starts after a long backlog is not swept mid-run) |
-| M-B32 | The completed-checkout handler grants on a `FAILED` intent | C-9 (the failed intent's session is paid: no grant, and a refund) |
+| M-B32 | The completed-checkout handler grants on a `SUPERSEDED` intent | C-9 (the superseded intent's session is paid: no grant, and a refund; a re-run of a partial-skip `FAILED` intent does not refund) |
 
 ### 6.3 Gate-specific tests
 
@@ -874,6 +874,13 @@ The metadata allowlist gains `job_id`, `items_left`, `expires_at`, `request_id` 
 `ai_processor/services.py` is 6,383 lines and shared with other streams. B1's edits there are confined to `execute_graded_task` and `grade_student_submission`.
 
 ---
+
+### Review r4 re-check (grade-automator-plus-79, at 87e2e9b0): no blocker or major
+
+R4-1 is verified clean. Two minors on m-3 are folded in here and override the m-3 text above:
+
+- **m3-a.** "Refuse and refund on `FAILED`" is too broad. The existing handler already sets `FAILED` after a partial grant (skipped teachers, `billing/stripe_service.py:~3384-3387`) and on a paid inactive-license intent, and it can be re-invoked (`~:3248`, event replay). So intents superseded or abandoned by the credit-request flow get a distinct status, **`SUPERSEDED`** (a new `LicenseOveragePurchaseStatus` value). The completed handler refuses to grant, and refunds through the §9 item 3 path, **only for `SUPERSEDED` intents with no grants**. Existing `FAILED` handling is unchanged. C-9 also asserts that a re-run of a partial-skip `FAILED` intent does not refund.
+- **m3-b.** The `Session.expire` call runs as a Celery task enqueued on commit, never inline after the webhook's commit. It catches the `StripeError` for an already completed or expired session, which is exactly the race it exists for, and logs it.
 
 ## 9. Open items and unverified claims
 
