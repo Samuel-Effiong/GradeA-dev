@@ -211,6 +211,12 @@ The order is a hard sequence from 1 to 3. Step 4 can start in parallel with step
 | **B1b — jobs, estimate, queue** | 4, 5, 6 | about 7 | FR-B-03/04/05/06/09, X-3, X-8, NFR-REL-02 |
 | **B1c — credit requests** | 1 (`CreditRequest` migration), 7 | about 3.5 | FR-B-11, decision 4 |
 
+**Revised totals after the owner rulings of 2026-10-29/30:**
+- B1a about **9.5 days**: + departed-teacher refund 1.5, + FINANCIAL retention 0.5.
+- B1b about **8.5 days**: + editable expiry 0.5, + drift task 0.5, + cold-start setting 0.5.
+- B1c about **3.5 days**.
+- Total about **21.5 working days** for one engineer.
+
 Each slice gets its own gate on the Epic B branch: NOTES first, red by call-site revert, exact Ran, mutants with fragments, a break run for edited pre-existing tests, and makemigrations. B1b and B1c can run in parallel after B1a if a second engineer is free.
 
 ---
@@ -665,12 +671,16 @@ The metadata allowlist gains `job_id`, `items_left`, `expires_at`, `request_id` 
 3. **Decided (owner, 2026-10-29):** teachers skipped at fulfilment after the school paid. The other teachers are granted as now; the skipped share is **refunded automatically** to the school (Stripe partial refund through the existing `billing/payment_refunds.py` path; for offline payments, an offline refund record for the super admin), and the admin is notified. Added to B1a: about **+1.5 days**, with a test that forces a teacher to leave between checkout and webhook.
 4. **Decided (owner, 2026-10-29):** queue lifetime 14 days, warning 48 hours before, **as editable settings** (`SubscriptionPlan.queue_expiry_days`, `queue_expiry_warning_hours`) (§3.7). Migration adds both with defaults; about +0.5 day in B1b.
 5. **Decided (owner, 2026-10-29):** uploads are not queued (§0.9). Refuse at the door with a hold.
-6. **Cold-start factor** (§3.6): `estimate_messages_cost × 3` is a placeholder until the backtest sets it.
-7. **Notification helper and opt-in flag** for the teacher emails (§3.7, §3.9) **[UNVERIFIED]**.
-8. **Which serializer** carries `balance_status` (§3.9) **[UNVERIFIED]**.
-9. **How many synchronous AI views** have a body that is not a JSON object, for `ai_job_id` (§3.10) **[UNVERIFIED]**.
-10. **`BackgroundProcessingTask` row count in production** (§4), which decides whether its index is built with `AddIndexConcurrently` **[UNVERIFIED]**.
-11. **Retention class of `CREDIT_TRANSACTION`** (§7.1) **[UNVERIFIED]**.
+6. **Settled (SM ruling 2026-10-30): cold-start estimate.**
+   (a) Before the guess, add tier 3b: all papers of any shape, scaled per question (n ≥ 30).
+   (b) The factor is not hard-coded. It lives in a new one-row `BillingSettings` model (`cold_start_cost_factor`, default 3.0), editable in Django admin. The repo has no platform-wide editable-value model yet (billing/models.py has only per-plan and per-license tables), so this is the smallest option. Before launch, `backtest_credit_estimates --cold-start` runs read-only against production to measure the ratio actual / `estimate_messages_cost` (`ai_processor/services.py:5721`), and that value replaces 3.0.
+   (c) The monthly drift task also reports a suggested factor. A person applies it; nothing self-adjusts.
+   (d) Tier-4 estimates carry `source = "rough"` and p90 × 1.5. About +0.5 day in B1b.
+7. **Settled: emails.** The existing billing mails go through `AutoGrader.tasks.send_email_task` (`AutoGrader/tasks.py:90`, retrying; used at `billing/services.py:2198` and in `billing/license_service.py`) and are not gated by any `notify_*` flag. Those flags (`users/models.py:408–424`, read via `users.services.get_opted_in_school_admins`, `users/services.py:202`) cover activity mail only. B1's mails are billing/account mail: queued, expiry warning, promoted, expired, low-balance (one per level per cycle), request received (admin) and request answered (teacher). They follow the billing precedent: `send_email_task`, always sent, with no new opt-out flag.
+8. **Settled: screen.** The teacher credits screen reads `GET credits/wallet` (`billing/views.py:1463`), serialized by `CreditWalletSerializer` (`billing/serializers.py:873`). `balance_status` (and `reserved_credits`, spendable) are added there.
+9. **Moved to the B1b survey.** The count of synchronous AI views with a non-JSON-object body is part of B1b's NOTES survey, written before code (it only affects where `ai_job_id` is exposed). No design depends on it.
+10. **Settled (SM ruling): index built concurrently regardless of size.** `AddIndexConcurrently` in an `atomic = False` migration, following the repo precedent `billing/migrations/0051_creditusagelog_task_id_index.py` and `0061_add_audit_table_time_indexes.py`, and docs/MIGRATIONS.md line 93. The production row count is no longer needed.
+11. **Settled (SM ruling): new FINANCIAL retention class, 7 years.** Today `CREDIT_TRANSACTION` falls in `GENERAL` (365 days: `audit/enums.py:40–45`, `audit/volume.py:55–58`), so the who/when/why of every charge is swept after a year, while the ledger rows themselves are never deleted (NFR-CRD-02). Add `FINANCIAL` (7 × 365 days) to `RetentionClass`, `RETENTION_DAYS` and `retention_class_of`, covering `CREDIT_TRANSACTION` and B1's new credit, purchase, refund and credit-request actions. Rows carry ids and amounts, no student content. Follow-up when Epic B lands: one line in docs/GRADE_A_PLUS_BACKEND_DATA_PRIVACY_SECURITY_COMPLIANCE.md (it states 12 months / 3 years). B1a step 1, about +0.5 day.
 12. **05 Q7, audit vocabulary:** B1 adds its four actions itself unless the Feature Lead rules for one shared task.
-13. **The cost of one `AIJob` row per billed call** (`SINGLE_CALL`). It is comparable to `AICallRecord`'s one row per call, which already exists. Gate 6 measures it. If it is too costly, single calls could use a wallet-counter hold with no row, but the stale-hold sweep then needs a different source.
+13. **Settled: Gate 6 measurement.** Run M = 500 billed single calls with the provider stubbed, flag off and then flag on, on the same DB. Report the median and p95 added wall time per call, and the bytes per `AIJob` row (`pg_total_relation_size` / rows). Project rows per day from `audit/volume.py`'s derived rates. Pass: added p95 ≤ 5 ms per call, with storage per month stated in NOTES. On a fail, use the fallback already described: a wallet-counter hold for `SINGLE_CALL`, with the sweep sourced from the hold counter's timestamp.
 14. **Effort** (about 18 days including gate evidence) assumes one engineer and excludes SM review, staging proof and the Epic B strict run.
