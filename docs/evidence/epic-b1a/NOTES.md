@@ -176,25 +176,45 @@ B1a adds FINANCIAL (7 × 365) to all three.
 
 ---
 
-## 3. Near-run expectation
+## 3. Near-run expectations
+
+### 3a. Flag-off near run (default)
 
 **Apps:** `billing ai_processor assignments students users`
 
-**Baseline (B0 3-app near-run, from NOTES.md):** Ran 4614, OK (skipped=19).
-B1a adds `users` to the near-run apps. The beta full-suite baseline (run2_skips.txt) has 30 skips total; the 3-app B0 baseline has 19 skips. Users tests are expected to have 0 additional skips relevant to our apps.
+**Discovery (DiscoverRunner on 350e2682 + B1a new tests):** 6378 total, 20 skipped.
+B0 3-app baseline: 4633 discovered (4614 run, 19 skipped). Users adds 1745 tests and 1 extra skip.
 
-**Expected:** Ran ≥ 4614 + users test count, OK, with skip count and reasons matching the beta baseline for these 5 apps. The exact Ran count and skip analysis will be written after the break run establishes the test discovery count.
+**Expected:** Ran 6358 + (B1a new test count), OK (skipped=20 + B1a skips if any)
 
-**Skip reasons expected (B0 3-app baseline, carried forward):**
+Exact Ran is the discovery count minus skips, updated after all B1a tests are coded.
+
+**Skip reasons (5-app discovery at 350e2682, exact):**
 
 ```
- 9 skipped 'Real AI call is opt-in and billed: set RUN_REAL_AI=1'
+10 skipped 'Real AI call is opt-in and billed: set RUN_REAL_AI=1'
  8 skipped 'load tests are opt-in: set RUN_LOAD_TESTS=1'
  1 skipped 'set RUN_LOAD_TESTS=1 to build the 6,000-student school'
  1 skipped 'Live network check is opt-in: set CI_REQUIRE_NETWORK=1'
 ```
 
-Plus whatever users adds. To be finalized after discovery.
+### 3b. Flag-on near run (BILLING_HOLDS_ENABLED=True)
+
+Same 5 apps, with `override_settings(BILLING_HOLDS_ENABLED=True)`.
+
+**Not predictable in advance.** Procedure once code is complete:
+1. Exploratory flag-on run, log committed. This is NOT the gate.
+2. Classify every failure:
+   - Real bug → STOP to SM.
+   - Test that legitimately asserts old charge-then-refund behaviour → declared per exact test id.
+3. Once all failures are classified and bugs fixed, declare the flag-on near run with exact Ran, skips, and declared test ids.
+4. The declared flag-on near run is then the gate run.
+
+Both flag-off and flag-on near runs are required for green.
+
+### 3c. Concurrency evidence
+
+R-1 to R-4 run locally on PostgreSQL 18.6. The PG 16 run (`.github/workflows/tests.yml:57`, NFR-TST-11) is pending CI; not claimed here.
 
 ---
 
@@ -204,16 +224,21 @@ Plus whatever users adds. To be finalized after discovery.
 
 B1a = Steps 1, 2, 3, 3b, 8 from §2.1. Mutants from §6.2 in B1a scope:
 
-M-B1, M-B2, M-B3, M-B4, M-B5, M-B6, M-B7, M-B11, M-B13, M-B14, M-B15, M-B16, M-B18, M-B21, M-B22, M-B23, M-B25, M-B26, M-B27, M-B28, M-B30, M-B31.
+M-B1, M-B2, M-B3, M-B4, M-B5, M-B6, M-B7, M-B11, M-B13, M-B14, M-B15, M-B16, M-B18, M-B20 (door path), M-B21, M-B22, M-B23, M-B25, M-B26, M-B27, M-B28, M-B30, M-B31, M-B33 (new, step 3b).
 
 Plus F-1, F-2, F-3 (step 8) and Z-1 (step 2).
 
-**Total: 26 kill targets.**
+**Total: 28 kill targets.**
 
 ### Mutant expectations
 
 Each mutant is identified by function name + exact text. Line numbers are hints only.
-Kill fragments are derived by tracing "what fires next" when the mutant is applied.
+Kill fragments below are derived by tracing "what fires next" when the mutant is applied.
+
+**Fragment refinement (SM directive 5):** Before the first mutant runs, each fragment below will be replaced with ONE exact assertion-message fragment from the coded test. Descriptive fragments (e.g. M-B2 "either … or", M-B25, M-B31) will be settled once:
+- M-B2's EPQ question is settled by R-4 before its fragment is written.
+- All others are taken from the coded test's assertion message.
+These refined fragments are committed before any mutant run.
 
 | # | Mutant | Function + exact text | Killing test | Expected fragment |
 |---|---|---|---|---|
@@ -230,6 +255,7 @@ Kill fragments are derived by tracing "what fires next" when the mutant is appli
 | M-B15 | Release computed as `reserved − consumed` instead of `reserved − hold_drawn − released` | `release()`: use `job.reserved_credits − job.consumed_credits` | H-1: overrun then release | `reserved_credits` does not return to its starting value (overrun charges free balance, so `consumed > hold_drawn`); invariant assertion fails |
 | M-B16 | Entry rule removed: metered_unit without a job opens a tally with no reserve | `metered_unit.__enter__`: skip the entry rule, always open a tally | E-1…E-7: provider mock called with no hold | Provider mock called while the unit's job has `hold_left = 0` and no fit was granted; entry-point test assertion fails |
 | M-B18 | Pre-call fit check removed from the unit | `metered_unit.pre_call_check()`: remove entirely | U-1: unit with hold used up makes 0 further calls | Provider mock called when `item_hold_avail ≤ 0` and no free balance; assertion on 0 further calls fails |
+| M-B20 | Door launch sent inline instead of in `on_commit` | Upload door: send Celery message inline instead of `transaction.on_commit(lambda: ...)` | P-3 (door path): no broker message before commit | A worker starts before the hold commits; assertion that no message exists before commit fires fails |
 | M-B21 | Pre-call check compares without reserving the shortfall | `metered_unit.pre_call_check()`: compare `item_hold_avail ≥ estimate` and proceed, without reserving shortfall | U-2: two units on one free balance | Both units spend from free balance unreserved; total charged exceeds holds + free balance; assertion on sum fails |
 | M-B22 | Sweep returns hold without failing and counting the item | Sweep: return hold but skip `item.status = FAILED` and skip `completed_items += 1` | S-3: item whose message never returns | Job never reaches QUEUED/SETTLED because `completed_items` is short; assertion on terminal state fails |
 | M-B23 | Settlement keyed on job id for an E-1 paper | `settle()`: use `job.id` as `item_id` in settlement key instead of the task row id | D-3: redelivered single-paper grade | Two settlements share one key (both use job id); only one ledger set written, but second delivery's work is lost or the wrong item settles; assertion on per-paper settlement identity fails |
@@ -239,6 +265,7 @@ Kill fragments are derived by tracing "what fires next" when the mutant is appli
 | M-B28 | Settle does not return the item's leftover | `settle()`: skip leftover release (skip `reserved_credits −= leftover`) | P-5: freed credits used before job ends; QUEUED assert | Hold is not freed per item; the move to QUEUED finds non-zero hold left; the assert fires |
 | M-B30 | Pre-call check uses `item_hold_left` (ignores the tally) | `metered_unit.pre_call_check()`: use `item_hold_left` instead of `item_hold_avail` (= `item_hold_left − tally`) | U-1: unit with hold used up, 0 further calls | After the tally consumes the hold, the check still sees `item_hold_left > 0` (before tally subtraction); provider mock called when it should be refused |
 | M-B31 | Entry reads `hold_state` instead of conditional start claim; or sweep drops `started_at < cutoff` | Entry: read `hold_state` and exit if RETURNED, instead of conditional UPDATE `SET started_at WHERE hold_state = 'HELD'` | S-8: barrier, redelivery starts after long backlog | Race: both the run and the sweep see `hold_state = 'HELD'` (no atomic claim); either both win (double work) or the sweep wins and the run doesn't know; assertion on exactly-one-winner fails |
+| M-B33 | Departed teacher's skipped share NOT refunded | `_handle_license_overage_checkout_completed` (step 3b): remove the auto-refund for the skipped teacher | Departure-between-checkout-and-webhook test | The skipped teacher's share is not refunded; assertion on Stripe partial refund (or offline refund record) being created fails |
 
 ### Forced-failure proofs (step 8)
 
@@ -277,23 +304,28 @@ Exact test IDs and fragments will be written once tests are coded. The red-run e
 
 ### 5b. Red-run plan
 
-Red run = B1a tests only, with the production code at each guard site reverted (call-site revert). Each new guard site's revert is tested:
+Red run = B1a tests only, with the production code at each guard site reverted (call-site revert). Guard sites:
 
-1. **reserve()** reverted to no-op → all hold tests fail
+1. **reserve()** reverted to no-op → hold tests fail
 2. **settle()** reverted to direct consume_credits → settlement tests fail
 3. **metered_unit entry rule** reverted to no-op → entry-point tests fail
 4. **pre-call fit check** reverted to no-op → U-tests fail
-5. **BILLING_HOLDS_ENABLED** flag forced off → all held-path tests fail (flag-on tests)
 
-Exact FAIL count and test IDs are committed after test code is written, before the red run.
+Exact FAIL/ERROR count, test IDs, and fragments are committed after tests are coded and before the red run.
+
+**Supplementary check (not red evidence):** `BILLING_HOLDS_ENABLED` flag forced off → all held-path tests exercise the flag-off branch, confirming the flag gates the new code.
 
 ### 5c. Break-run plan
 
-Break run = all pre-existing tests in the 5 apps, after B1a code is committed. Expected: all pass. B1a adds columns and a flag (default off), so existing behaviour is unchanged. Any break is a STOP.
+Break run = pre-existing tests that B1a EDITS, run at their OLD versions against the new code. This proves they fail only for the declared reason.
+
+**Pre-existing tests expected to be edited:** none identified so far. B1a adds new files and new columns (flag default off); existing tests should not need editing. If this changes during implementation, it is a STOP.
+
+If no pre-existing tests are edited, there is no break run.
 
 ### 5d. Near-run plan
 
-Near run = all tests in `billing ai_processor assignments students users`, flag off (default). Expected: same Ran and same skips as B0 3-app baseline plus users tests.
+See §3a (flag-off) and §3b (flag-on). Both are required for green.
 
 ---
 
@@ -317,3 +349,17 @@ From §4, B1a migrations:
 `BILLING_HOLDS_ENABLED = env.bool("BILLING_HOLDS_ENABLED", default=False)` in `AutoGrader/settings.py`, following the pattern at :598/:685/:695.
 
 No `CREDIT_REQUESTS_ENABLED` in B1a (that's B1c).
+
+---
+
+## 8. Checkpoints (SM directive 8)
+
+After each plan step, send SM the sha plus its own tests' result. A checkpoint is a progress report, not a gate run. Mismatches against declared expectations are still stops.
+
+| Step | What | Checkpoint |
+|---|---|---|
+| 1 | Schema (AIJob, settlement key, wallet reserved_credits, BPT columns, audit FINANCIAL) | sha + makemigrations --check + model tests |
+| 2 | billing/holds.py (reserve, settle, release, sweep, invariants) | sha + unit tests for holds |
+| 3 | Wire holds behind BILLING_HOLDS_ENABLED (entry rule, metered unit, pre-call check) | sha + entry-point tests, metered-unit tests |
+| 3b | Departed-teacher share refund | sha + departure-refund test |
+| 8 | FR-B-08 forced-failure proofs (F-1, F-2, F-3) | sha + grant atomicity tests |
