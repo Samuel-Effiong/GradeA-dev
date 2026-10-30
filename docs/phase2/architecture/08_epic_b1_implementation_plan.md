@@ -412,7 +412,7 @@ The hold works like this:
 - **Before each provider call (review r1 M3, review r2 M-b):** the pre-call fit check, against **the item's own hold**, not the job's: `item_hold_avail = hold_credits − hold_drawn − released_credits − this unit's tally` (review r3 R3-1). Under the wallet lock:
   1. if `this_call_estimate ≤ item_hold_avail`, proceed;
   2. otherwise **reserve the shortfall** (`this_call_estimate − item_hold_avail`) through `reserve()`, which extends this item's hold (recorded as an extension on the item); proceed if granted;
-  3. if the shortfall cannot be reserved, raise `InsufficientCreditsError` before the call. **Exception:** a late door job (the new `UPLOAD` job of §3.2) never refuses; it proceeds under the r3-b exemption (review r4 m-1).
+  3. if the shortfall cannot be reserved, raise `InsufficientCreditsError` before the call. This includes a late door job: per the **owner ruling of 2026-10-30, r3-b's exemption is withdrawn**, and a late door upload that cannot reserve is refused (see §3.5).
 
   Free balance is therefore never shared by two units: whatever a unit may spend beyond its hold is reserved first. Two items in one batch cannot draw each other's holds, so a held item never finds its credits gone (§3.7 Fit with S7c). What can still be billed beyond the hold is only the difference between a call's estimate and its actual cost (§3.5).
 - **On a normal exit**, it settles the tally once (§3.2 settle), with one `CreditUsageLog`/`CreditLedger` set per bucket as today. The settlement key is `(item_id, retry_count)` with `item_id` the task row id when one exists (§3.2), so a retry in place (`students/item_retry.py:~143` reuses the row, `retry_count` moves on) gets its own ledger identity, and a later manual `refund_credits` targets one attempt, not all of them (review r1 m4, review r2 M-a).
@@ -446,7 +446,7 @@ The balance never goes below zero, no other job's hold is taken, and the paper i
 
 **Charging free balance beyond the hold is a documented deviation from NFR-CRD-03** ("no process can spend credits that were not reserved"). When a call's actual cost exceeds what the item holds, settlement bills the excess from free balance (capped at what is free, never another hold) and records it in `AIJob.overrun_charged` (metric `credit_overrun_charged`). Only what cannot be billed at all goes to `unbilled_credits` (metric `credit_overrun`). Because every anticipated call's estimate is reserved before it runs (§3.4), the billed excess is bounded by the difference between estimates and actual costs, and at most by the spendable balance at settlement (review r4 m-2). It is kept deliberately: the provider has already been paid, and the alternative is unbilled cost.
 
-**Exemption: a late door upload (review r3 r3-b, SM decision).** A door `UPLOAD` item that comes back after its hold was returned runs under a new `UPLOAD` job (§3.2). If that job cannot reserve, the file is **still processed**, because the file exists only in the Celery message and the public promise is that work is never lost. Its cost goes to `overrun_charged` from free balance, then to `unbilled_credits`, bounded to one file's extraction. Test S-7.
+**Late door upload: refused (owner ruling 2026-10-30, replaces the r3-b exemption).** A door `UPLOAD` item that comes back after its hold was returned runs under a new `UPLOAD` job (§3.2). If that job cannot reserve, the item is **refused before any provider call**. The item is marked `FAILED` with `INSUFFICIENT_CREDITS`, its upload batch records the file as not processed, and the teacher is emailed (billing mail via `send_email_task`, §9 item 7) naming the file and asking them to top up and upload it again. No uncovered provider cost is incurred. The file is lost, because it existed only in the message; the owner accepted this for this rare crash-plus-no-credits case.
 
 Both are listed for the owner in §9 item 15.
 
@@ -780,7 +780,7 @@ These run on real Postgres and real Redis, with barrier-synchronised threads (NF
 | S-4 | A swept upload door item that comes back runs under a new `UPLOAD` job with its own hold and release; the old job's accounting is untouched |
 | S-5 | A broker backlog of more than 90 minutes (items launched, not started): nothing is swept; after X hours with no item started or settled, the backstop fails the unstarted items in one transaction and returns their holds |
 | S-6 | A late grading message for an item of a `SETTLED` job (its hold returned): it exits without a provider call or charge, the paper stays retryable, and the invariant holds |
-| S-7 | A late door item whose new `UPLOAD` job cannot reserve: the pre-call check does not refuse it (m-1), the file is still processed, the cost goes to `overrun_charged` then `unbilled_credits`; nothing is lost |
+| S-7 | A late door item whose new `UPLOAD` job cannot reserve: refused before any provider call (0 calls), item `FAILED` / `INSUFFICIENT_CREDITS`, the teacher email names the file, and no charge, `overrun_charged` or `unbilled_credits` is recorded |
 | S-8 | Barrier: a redelivered item starts (start claim) just as the sweep runs on a stale `started_at`: exactly one wins; if the run won, it is not swept mid-run; if the sweep won, the run exits as late and nothing is double-counted |
 | S-9 | A late door item whose file already settled (settlement row exists): it exits without a provider call or charge |
 | P-5 | A batch item settles under its hold: the leftover is spendable at once, and a queued job on the same wallet is promoted with it before the first job ends |
@@ -882,6 +882,12 @@ R4-1 is verified clean. Two minors on m-3 are folded in here and override the m-
 - **m3-a.** "Refuse and refund on `FAILED`" is too broad. The existing handler already sets `FAILED` after a partial grant (skipped teachers, `billing/stripe_service.py:~3384-3387`) and on a paid inactive-license intent, and it can be re-invoked (`~:3248`, event replay). So intents superseded or abandoned by the credit-request flow get a distinct status, **`SUPERSEDED`** (a new `LicenseOveragePurchaseStatus` value). The completed handler refuses to grant, and refunds through the §9 item 3 path, **only for `SUPERSEDED` intents with no grants**. Existing `FAILED` handling is unchanged. C-9 also asserts that a re-run of a partial-skip `FAILED` intent does not refund.
 - **m3-b.** The `Session.expire` call runs as a Celery task enqueued on commit, never inline after the webhook's commit. It catches the `StripeError` for an already completed or expired session, which is exactly the race it exists for, and logs it.
 
+### Owner approval (2026-10-30)
+
+- Deviation (a), estimate overrun: **confirmed** (charge the excess from free balance, never another hold and never below zero; else absorb; recorded).
+- Deviation (b), the late door upload exemption: **rejected**. Such uploads are refused and the teacher is asked to re-upload (§3.5, S-7). This overrides the r3-b and r4 m-1 rows above. m-5 (exit if already settled) stands.
+- **Go for B1a** given on 2026-10-30.
+
 ## 9. Open items and unverified claims
 
 1. **EPQ behaviour** (§0.3): whether a conditional UPDATE with a bucket subquery over-reserves under READ COMMITTED. The design does not depend on the answer (it takes the wallet lock), but M-B2's killing test does. R-4 settles it on PG 16 and 18.6.
@@ -902,8 +908,8 @@ R4-1 is verified clean. Two minors on m-3 are folded in here and override the m-
 12. **05 Q7, audit vocabulary:** B1 adds its four actions itself unless the Feature Lead rules for one shared task.
 13. **Settled: Gate 6 measurement.** Run M = 500 billed single calls with the provider stubbed, flag off and then flag on, on the same DB. Report the median and p95 added wall time per call, and the bytes per `AIJob` row (`pg_total_relation_size` / rows). Project rows per day from `audit/volume.py`'s derived rates. Pass: added p95 ≤ 5 ms per call, with storage per month stated in NOTES. On a fail, use the fallback already described: a wallet-counter hold for `SINGLE_CALL`, with the sweep sourced from the hold counter's timestamp.
 14. **Effort** (about 39 days including gate evidence, after reviews r1–r4) assumes one engineer and excludes SM review, staging proof and the Epic B strict run.
-15. **For the owner: two documented deviations from NFR-CRD-03** (review r1 m2, rewritten after reviews r2 and r3; §3.5). NFR-CRD-03 says "no process can spend credits that were not reserved".
+15. **Owner-confirmed (2026-10-30): one documented deviation from NFR-CRD-03** (review r1 m2, rewritten after reviews r2 and r3; §3.5). NFR-CRD-03 says "no process can spend credits that were not reserved".
     - **(a) Estimate-versus-actual overrun.** B1 reserves every anticipated call's estimated cost before the call runs, including any shortfall beyond the paper's hold (§3.4). But an AI call's actual cost can exceed its estimate, and the provider has already been paid by then. In that case B1 bills the excess from the teacher's free balance (never another job's or item's hold, never below zero) and records it in `AIJob.overrun_charged` (metric `credit_overrun_charged`). Only what cannot be billed at all, because no free balance is left, goes to `AIJob.unbilled_credits` (metric `credit_overrun`). The billed excess is bounded by the spendable balance at settlement.
-    - **(b) Late door upload, an explicit exemption (SM decision, review r3 r3-b).** A door upload whose message comes back after its hold was returned runs under a new upload job. If that job cannot reserve, the file is still processed, because the file exists only in the message and the public promise is that work is never lost. Its cost goes to `overrun_charged` from free balance, then to `unbilled_credits`, bounded to one file's extraction.
+    - **(b) Withdrawn (owner ruling 2026-10-30).** The late-door-upload exemption was rejected. Such uploads are refused and the teacher is asked to re-upload (§3.5), so there is no second deviation.
 
-    The requirement is met except for these two recorded cases, which are deviations, recorded rather than hidden.
+    The requirement is met except for case (a), which the owner confirmed on 2026-10-30 (charge the excess from free balance, else absorb; recorded). It is a deviation, recorded rather than hidden.
