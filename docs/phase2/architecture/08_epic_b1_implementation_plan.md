@@ -1,13 +1,13 @@
 # 08 — Epic B1 Implementation Plan (credit holds, estimate band, queued work, credit requests)
 
-**Status:** revised after independent reviews r1 and r2 (session grade-automator-plus-79, 2026-10-30); all findings accepted by the SM. Nothing here is implemented.
+**Status:** revised after independent reviews r1, r2 and r3 (session grade-automator-plus-79, 2026-10-30); all findings accepted by the SM. Nothing here is implemented.
 **Companion to:** [05_epics_b_to_i_roadmap.md](05_epics_b_to_i_roadmap.md) (§2.4 B0/B1 split, §3.1 Epic B, §7 plan contents),
 [01a_requirements_specification.md](01a_requirements_specification.md) (FR-B-02…09, FR-B-11; NFR-CRD-01…05; NFR-REL-01/02; NFR-TST-06/07/11; D-01, D-02, D-04, D-A8),
 [03_architecture.md](03_architecture.md) (§2.2, Stage 2, X-3, X-8),
 [03a_data_model.md](03a_data_model.md) (§2.2 `AIJob`, §3.4 `CreditRequest`, §4.5 `BackgroundProcessingTask`),
 [06_epic_b0_implementation_plan.md](06_epic_b0_implementation_plan.md) (style; the zero-credit guards B1 sits beside).
-**Size:** L. About 33 working days for one engineer after reviews r1 and r2, including each slice's gate evidence, in three slices (§2.1). SM review, the staging proof and the Epic B strict run are not included.
-**Code facts are from `task/epic-b0-r2` at d808a9ce** (beta f5d2d577 plus B0); the review r1 and r2 revisions were checked at b8f12291 / 98c064b1 (the same code). Anything I did not
+**Size:** L. About 36.5 working days for one engineer after reviews r1–r3, including each slice's gate evidence, in three slices (§2.1). SM review, the staging proof and the Epic B strict run are not included.
+**Code facts are from `task/epic-b0-r2` at d808a9ce** (beta f5d2d577 plus B0); the review r1–r3 revisions were checked at b8f12291 / 98c064b1 / 610f3252 (the same code). Anything I did not
 confirm is marked **[UNVERIFIED]** and collected in §9.
 
 **Owner decisions (2026-10-29), stated here as decided:**
@@ -53,7 +53,7 @@ The plan at b8f12291 was reviewed independently against the code. Every finding 
 |---|---|---|---|
 | M-a Settlement key does not fence `SINGLE_ITEM` paths; `settled_at` blocks retries; one door job's files share a key | Major | Key on the `BackgroundProcessingTask` id whenever one exists; the job id only on synchronous E-4/E-5; `settled_at` dropped, the unique `(item_id, retry_count)` row is the fence | §3.2, §3.4, §4, §6 (D-1, D-3, D-4) |
 | M-b Pre-call check reserves nothing; batch items share a job-wide hold | Major | A shortfall is reserved by extending the item's hold through `reserve`; the check runs against the item's own hold, not job `hold_left` | §3.4, §3.5, §3.7, §6 (U-2, U-3, M-B21) |
-| M-c Per-item sweep frees holds before Celery redelivers; swept items never count; door files lost | Major | `BackgroundProcessingTask.hold_state` `HELD`/`RETURNED`; sweep only after `visibility_timeout` + time limit; the sweep fails the item (retryable) and counts it in the same transaction; a `RETURNED` item re-reserves at entry; door jobs re-reserve rather than refuse | §3.2, §3.4, §3.7, §4, §6 (S-2, S-3, S-4, M-B22) |
+| M-c Per-item sweep frees holds before Celery redelivers; swept items never count; door files lost | Major | (re-reserve at entry superseded by review r3 R3-3) `BackgroundProcessingTask.hold_state` `HELD`/`RETURNED`; sweep only after `visibility_timeout` + time limit; the sweep fails the item (retryable) and counts it in the same transaction; a `RETURNED` item re-reserves at entry; door jobs re-reserve rather than refuse | §3.2, §3.4, §3.7, §4, §6 (S-2, S-3, S-4, M-B22) |
 | M-d Offline rejection has no transition | Major | Hook in `reject_overage_offline_request` (`billing/license_service.py:3659`) moves `APPROVED → PENDING` | §3.8, §6 (C-7) |
 | M-e Crash during approve leaves `APPROVED` with no link | Major | `credit_request_id` in the checkout metadata and on the offline request; the `GRANTED` hook matches on it; unlinked `APPROVED` requests swept after N minutes | §3.8, §6 (C-8) |
 | M-f Automatic grading gets no `AIJob` or queue | Major | `auto_grade_due_assignment` (`assignments/tasks.py:1668`) and `_relaunch_failed_dispatches` (`:1616`) create a `BATCH_GRADING` job as in §3.7; E-3 citations corrected | §3.4, §3.7, §6 (B-1) |
@@ -65,6 +65,21 @@ The plan at b8f12291 was reviewed independently against the code. Every finding 
 | m-c `SINGLE_ITEM` missing from §3.1; §0.5 stale; E-2 job | Minor | Fixed | §0.5, §3.1, §3.4 |
 | m-d `NOT VALID` needs raw SQL | Minor | `CHECK` and FK via `RunSQL` inside `SeparateDatabaseAndState` | §4 |
 | m-e License cancellation and expiry also end access | Minor | Close requests on those too; added to the B1c survey list | §3.8 |
+
+### Review r3 (grade-automator-plus-79, final pass on 610f3252) dispositions
+
+4 majors (all in the per-item hold accounting), 3 minors, and caveats on M-g. All accepted by the SM (2026-10-30).
+
+| Finding | Severity | Change | Sections |
+|---|---|---|---|
+| R3-1 One name for two quantities | Major | `item_hold_avail` (with the tally, for the pre-call check) and `item_hold_left` (without, for settle); H-1 gains the free-balance-0 case | §3.2, §3.4, §6 (H-1, M-B30) |
+| R3-2 Swept holds not recorded per item | Major | `BackgroundProcessingTask.released_credits`; the sweep, re-reserve and per-item invariant defined; S-3 asserts the wallet invariant | §3.2, §4, §6 (S-3, M-B25) |
+| R3-3 Sweep and late messages | Major | Sweep only started items past start + visibility timeout + time limit; a job-level backstop fails unstarted items after X = 36 h; a late grading message for a `RETURNED`/`FAILED` item exits; a late door item runs under a new `UPLOAD` job | §3.2, §3.4, §3.7, §6 (S-5, S-6, S-7, M-B26, M-B27) |
+| R3-4 Leftovers held until the job ends | Major | Each item's leftover (a failed item's whole hold) is returned in its own settle or fail transaction; the move to `QUEUED` asserts the job's hold left is 0 | §3.2, §3.4, §3.7, §6 (P-5, M-B28) |
+| r3-a Intent has no request id before `Session.create` | Minor | `LicenseOveragePurchaseIntent.credit_request_id` written at intent creation; `initiate_overage_purchase` gains a `credit_request_id` parameter; the `GRANTED` hook accepts `PENDING` or `APPROVED` and fails any other intent linked to the request | §3.8, §4, §6 (C-9, M-B29) |
+| r3-b A re-entered door item that cannot reserve | Minor | Explicit exemption: it runs (the file exists only in the message); cost to `overrun_charged`, then `unbilled_credits`; second deviation in §9 item 15, bounded to one file's extraction | §3.2, §3.4, §9 item 15, §6 (S-7) |
+| r3-c S-1 clause | Minor | Fixed | §6 |
+| M-g caveats | — | §9 item 11 states that history older than 365 days at deploy is already gone; FINANCIAL actions also excluded from the `STUDENT_RECORD` delete; rollback effect recorded; `deleted_financial` in the sweep metadata | §4, §9 item 11, §6 (R-5) |
 
 ---
 
@@ -233,17 +248,17 @@ Decision 1 ("a batch of papers") is about grading, which this covers.
 
 | # | Step | Days |
 |---|---|---|
-| 1 | Schema (additive):<br>• `AIJob` (with `hold_drawn`, `completed_items`)<br>• `CreditWallet.reserved_credits` (`CHECK >= 0`) and the two warning fields<br>• `BackgroundProcessingTask.job` (`db_index=False`, separate concurrent index), `hold_state`, `hold_credits`, `hold_drawn`, and the settlement-key table<br>• `AIJob.overrun_charged`<br>• `SubscriptionPlan.queue_expiry_days` / `queue_expiry_warning_hours`<br>• the FINANCIAL retention class (§9 item 11)<br>Model tests, `makemigrations --check`, migration reversal test | 2.5 |
-| 2 | Hold service `billing/holds.py`:<br>• reserve / settle / release on `hold_drawn`, with `overrun_charged`<br>• per-item settlement keyed on the task row<br>• the pre-call fit check against the item's own hold, reserving any shortfall<br>• `spendable_credits()`<br>• the per-item stale-hold sweep with `hold_state`, after visibility timeout + time limit, failing and counting the item<br>• the invariant check (§3.2–3.5)<br>Unit tests | 5 |
-| 3 | Wire the holds in, behind `BILLING_HOLDS_ENABLED`:<br>• single-call hold in `execute_graded_task`, replacing `:5640–5649`<br>• the metered unit at the five refund-scope sites, with the entry rule (§3.4) covering every entry point in §3.4's table<br>• the pre-call check on every call in a unit<br>• re-reserve at entry for a `RETURNED` item; door items re-reserve, never refuse<br>• hold at the upload door; every launch on commit | 3.5 |
+| 1 | Schema (additive):<br>• `AIJob` (with `hold_drawn`, `completed_items`)<br>• `CreditWallet.reserved_credits` (`CHECK >= 0`) and the two warning fields<br>• `BackgroundProcessingTask.job` (`db_index=False`, separate concurrent index), `hold_state`, `hold_credits`, `hold_drawn`, `released_credits`, and the settlement-key table<br>• `AIJob.overrun_charged`<br>• `SubscriptionPlan.queue_expiry_days` / `queue_expiry_warning_hours`<br>• the FINANCIAL retention class (§9 item 11)<br>Model tests, `makemigrations --check`, migration reversal test | 3 |
+| 2 | Hold service `billing/holds.py`:<br>• reserve / settle / release on `hold_drawn`, with `overrun_charged`<br>• per-item settlement keyed on the task row<br>• the pre-call fit check against the item's own hold, reserving any shortfall<br>• `spendable_credits()`<br>• the per-item stale-hold sweep (started items only) with `hold_state` and `released_credits`, failing and counting the item<br>• leftover returned in each settle or fail transaction; late messages exit, late door items get a new job<br>• the per-item and wallet invariant checks (§3.2–3.5)<br>Unit tests | 6.5 |
+| 3 | Wire the holds in, behind `BILLING_HOLDS_ENABLED`:<br>• single-call hold in `execute_graded_task`, replacing `:5640–5649`<br>• the metered unit at the five refund-scope sites, with the entry rule (§3.4) covering every entry point in §3.4's table<br>• the pre-call check on every call in a unit<br>• late messages: a `RETURNED`/`FAILED` grading item exits; a late door item runs under a new `UPLOAD` job<br>• hold at the upload door; every launch on commit | 3.5 |
 | 3b | Departed-teacher share refund (§9 item 3) | 1.5 |
 | 4 | Estimate band from `AICallRecord`, verdict, the `estimate` endpoint, the backtest command, the cold-start setting and the monthly drift task (§3.6, §9 item 6) | 3 |
-| 5 | Batch jobs:<br>• `grade_batch_async` / grade-all create an `AIJob`<br>• reserve per paper<br>• queue the remainder<br>• atomic promotion and per-item launch claims, launched on commit<br>• atomic last-item transition<br>• expiry sweep with the editable lifetime<br>• promotion triggered from `CreditLedger.record` and `after_bulk_create` credit entries<br>• `auto_grade_due_assignment` and `_relaunch_failed_dispatches` create batch jobs<br>• notifications<br>• fit with S7c (§3.7) | 5.5 |
+| 5 | Batch jobs:<br>• `grade_batch_async` / grade-all create an `AIJob`<br>• reserve per paper<br>• queue the remainder<br>• atomic promotion and per-item launch claims, launched on commit<br>• atomic last-item transition<br>• expiry sweep with the editable lifetime<br>• promotion triggered from `CreditLedger.record` and `after_bulk_create` credit entries<br>• `auto_grade_due_assignment` and `_relaunch_failed_dispatches` create batch jobs<br>• the 36-hour unstarted-items backstop; the zero-hold assert on the move to `QUEUED`<br>• notifications<br>• fit with S7c (§3.7) | 6.5 |
 | 6 | Threshold warnings, actual cost in the job API, the gap metric (§3.9–3.10) | 1 |
-| 7 | `CreditRequest`:<br>• API<br>• admin list with counts<br>• ordered approve (→ `initiate_overage_purchase`) and decline<br>• `checkout.session.expired` handler; `session_expires_at` stored on the intent and the stale-`APPROVED` sweep on it; the unlinked-`APPROVED` sweep<br>• `credit_request_id` in checkout metadata and on the offline request; `GRANTED` matched on it<br>• the offline-rejection hook<br>• `CLOSED` on teacher departure, license cancellation and expiry<br>• audit<br>• role matrix rows (§3.8) | 6 |
+| 7 | `CreditRequest`:<br>• API<br>• admin list with counts<br>• ordered approve (→ `initiate_overage_purchase`) and decline<br>• `checkout.session.expired` handler; `session_expires_at` stored on the intent and the stale-`APPROVED` sweep on it; the unlinked-`APPROVED` sweep<br>• `credit_request_id` on the intent (before `Session.create`), in checkout metadata and on the offline request; `GRANTED` matched on it, accepting `PENDING`/`APPROVED` and failing duplicate intents<br>• the offline-rejection hook<br>• `CLOSED` on teacher departure, license cancellation and expiry<br>• audit<br>• role matrix rows (§3.8) | 6.5 |
 | 8 | FR-B-08 forced-failure proofs on the three grant paths (§6.3 F-1 to F-3) | 0.5 |
 | 9 | Gate evidence: mutation matrix, barrier concurrency (local, then the PG 16 CI job), adversarial and failure runs, NOTES | B1a 2, B1b 1.5, B1c 1, so 4.5 |
-| | **Total** | **about 33 days** |
+| | **Total** | **about 36.5 days** |
 
 The order is a hard sequence from 1 to 3. Step 4 can start in parallel with step 3. Step 7 depends only on step 1 and the existing purchase service. Steps 3b and 8 are independent.
 
@@ -251,11 +266,11 @@ The order is a hard sequence from 1 to 3. Step 4 can start in parallel with step
 
 | Slice | Steps | Days (gate included) | What it proves |
 |---|---|---|---|
-| **B1a — holds** | 1 (all schema except `CreditRequest`), 2, 3, 3b, 8 | about **15** | FR-B-07, NFR-CRD-03/04, FR-B-08 atomicity, every billed entry point held |
-| **B1b — jobs, estimate, queue** | 4, 5, 6 | about **11** | FR-B-03/04/05/06/09, X-3, X-8, NFR-REL-02 |
-| **B1c — credit requests** | 1 (`CreditRequest` migration), 7 | about **7** | FR-B-11, decision 4 |
+| **B1a — holds** | 1 (all schema except `CreditRequest`), 2, 3, 3b, 8 | about **17** | FR-B-07, NFR-CRD-03/04, FR-B-08 atomicity, every billed entry point held |
+| **B1b — jobs, estimate, queue** | 4, 5, 6 | about **12** | FR-B-03/04/05/06/09, X-3, X-8, NFR-REL-02 |
+| **B1c — credit requests** | 1 (`CreditRequest` migration), 7 | about **7.5** | FR-B-11, decision 4 |
 
-Total about **33 working days** for one engineer. Review r2 added about 5.5 days: item-keyed settlement (M-a), reserving shortfalls against the item's own hold (M-b), the `hold_state` sweep and re-reserve (M-c), batch jobs for automatic grading (M-f), and the request-recovery paths (M-d, M-e, TTL). Review r1 had added about 6 days: the entry-point rule and its tests (B2), per-item settlement and sweep (M1, M2), the pre-call check (M3), atomic promotion and on-commit launches (M4, M5, ALSO), and the request-lifecycle fixes (B3, M6, M7). The owner rulings of 2026-10-29/30 had already added 3.5 days.
+Total about **36.5 working days** for one engineer. Review r3 added about 3.5 days: per-item release accounting and leftover return (R3-2, R3-4), the started-only sweep, job backstop and late-message handling (R3-3), and the request-id fixes (r3-a). Review r2 had added about 5.5 days: item-keyed settlement (M-a), reserving shortfalls against the item's own hold (M-b), the `hold_state` sweep and re-reserve (M-c), batch jobs for automatic grading (M-f), and the request-recovery paths (M-d, M-e, TTL). Review r1 had added about 6 days: the entry-point rule and its tests (B2), per-item settlement and sweep (M1, M2), the pre-call check (M3), atomic promotion and on-commit launches (M4, M5, ALSO), and the request-lifecycle fixes (B3, M6, M7). The owner rulings of 2026-10-29/30 had already added 3.5 days.
 
 Each slice gets its own gate on the Epic B branch: NOTES first, red by call-site revert, exact Ran, mutants with fragments, a break run for edited pre-existing tests, and makemigrations. B1b and B1c can run in parallel after B1a if a second engineer is free.
 
@@ -314,7 +329,11 @@ There is **no network I/O inside this transaction.** `n` can be smaller than ask
 
 Here `job_hold_left = job.reserved_credits − job.hold_drawn − job.released_credits`.
 
-**Per-item hold accounting (review r2 M-b, M-c).** An item with a task row carries its own hold on `BackgroundProcessingTask`: `hold_credits` (`held_per_item` plus any shortfall extensions), `hold_drawn` (what its settlement took) and `hold_state`. `item_hold_left = hold_credits − hold_drawn − the open unit's tally`. The job's `reserved_credits`, `hold_drawn` and `released_credits` are the sums over its items, updated in the same transactions. For paths with no task row (E-4, E-5, `SINGLE_CALL`) the job has exactly one item, so the item's hold is the job's.
+**Per-item hold accounting (review r2 M-b, M-c).** An item with a task row carries its own hold on `BackgroundProcessingTask`: `hold_credits` (`held_per_item` plus any shortfall extensions and re-reserves), `hold_drawn` (what its settlement took), `released_credits` (what was returned to the wallet counter: leftover at settle, the whole hold on failure, or by the sweep) and `hold_state`. Two derived amounts (review r3 R3-1):
+- `item_hold_left = hold_credits − hold_drawn − released_credits`, used by settle;
+- `item_hold_avail = item_hold_left − the open unit's tally`, used by the pre-call check.
+
+**Per-item invariant (review r3 R3-2):** `hold_credits − hold_drawn − released_credits ≥ 0` for every item, and the job's `reserved_credits`, `hold_drawn` and `released_credits` equal the sums over its items, updated in the same transactions. For paths with no task row (E-4, E-5, `SINGLE_CALL`) the job has exactly one item, so the item's hold is the job's.
 
 **Settle** (`settle(job, item, actual)`). One `transaction.atomic()`:
 1. `lock_wallet_first`.
@@ -326,19 +345,22 @@ Here `job_hold_left = job.reserved_credits − job.hold_drawn − job.released_c
 4. `consume_credits(chargeable, …)`: the existing method, ledger and usage log unchanged, so B0's guards apply. `task_id` is the settlement key, so each attempt has its own ledger identity.
 5. `drawn = min(item_hold_left, chargeable)`, where `item_hold_left` is the item's own hold (§3.4); `reserved_credits −= drawn`; `job.hold_drawn += drawn`.
 6. `job.consumed_credits += chargeable`; `job.overrun_charged += chargeable − drawn` (billed from free balance beyond the hold; metric `credit_overrun_charged`); `job.unbilled_credits += actual − chargeable` (only what could not be billed; metric `credit_overrun`).
+7. **Return the leftover in the same transaction (review r3 R3-4):** `leftover = item_hold_left` after step 5; `reserved_credits −= leftover`; `item.released_credits += leftover`, and the job's the same. A failed item returns its **whole** remaining hold in its fail transaction, with no charge. Freed credits are therefore spendable as soon as each paper finishes, not when the job ends.
 
-**Release** (`release(job)`). It returns `job.reserved_credits − job.hold_drawn − job.released_credits` to the wallet counter, adds it to `released_credits`, and is idempotent through the status transition. The amount is never negative, because `hold_drawn ≤ reserved_credits` by construction (review r1 B1).
+**Release** (`release(job)`). With R3-4 every item returns its own leftover, so release is a backstop at terminal transitions. It returns `job.reserved_credits − job.hold_drawn − job.released_credits` (0 in normal operation) to the wallet counter, adds it to `released_credits`, and is idempotent through the status transition. The amount is never negative, because `hold_drawn ≤ reserved_credits` by construction (review r1 B1).
 
 **Never negative.** `CreditWallet` gets `CHECK (reserved_credits >= 0)`. A bookkeeping error then fails loudly in the transaction instead of drifting.
 
 **Stale-hold sweep (per item; review r1 M1, review r2 M-c).** Every 5 minutes, under `AutoGrader/beat_locks.py`'s decorator. Each held item carries `BackgroundProcessingTask.hold_state` (`HELD`/`RETURNED`).
-- **When:** a launched item is swept only after the broker's `visibility_timeout` (3600 s, `AutoGrader/settings.py:575`) **plus** `GRADING_TASK_TIME_LIMIT` plus a margin have passed since it was launched, with no settlement row. Before that, Celery may still redeliver it (`CELERY_TASK_ACKS_LATE`, `:899`), so its hold stays. The 30-minute grading claim (`students/services.py:306`) is not the sweep's clock.
-- **What, in one transaction:** set `hold_state = RETURNED` (conditional on `HELD`), return the item's own hold to the wallet counter, mark the item `FAILED` with a retryable reason, and increment `completed_items`. The job can therefore always reach `QUEUED`/`SETTLED` even if the message never returns.
-- **If the message does return later:** the unit's entry sees `hold_state = RETURNED` and **re-reserves** the item's hold (§3.4). It refuses only if that does not fit.
-- `SINGLE_CALL` jobs (no broker message) are released after `GRADING_TASK_TIME_LIMIT` plus a margin with no settlement.
-- `UPLOAD` door jobs: their files exist only inside the Celery message, so a swept door item that comes back **re-reserves rather than refuses**. If the re-reserve does not fit, the file is processed and the overrun rules (§3.5) apply, rather than losing the file.
+- **Which items (review r3 R3-3a):** only items that have **started** (`started_at` set), and only once `started_at + visibility_timeout` (3600 s, `AutoGrader/settings.py:575`) `+ GRADING_TASK_TIME_LIMIT_SECONDS` (25 min, `students/services.py:297`) `+` a margin has passed with no settlement row. Before that, Celery may still redeliver it (`CELERY_TASK_ACKS_LATE`, `:899`). Launched-but-unstarted items are **never** swept one by one: a broker backlog is normal. The 30-minute grading claim (`students/services.py:306`) is not the sweep's clock.
+- **What, in one transaction (review r3 R3-2):** conditional `hold_state HELD → RETURNED`; `amount = hold_credits − hold_drawn − released_credits`; `reserved_credits −= amount`; `item.released_credits += amount` and the job's the same; mark the item `FAILED` with a retryable reason; increment `completed_items`. The job can therefore always reach `QUEUED`/`SETTLED` even if the message never returns.
+- **Job-level backstop for unstarted items (review r3 R3-3a):** when no item of a `RESERVED`/`RUNNING` batch job has started or settled for **X = 36 hours**, one transaction fails all its unstarted items (retryable), returns their holds as above, and counts them. Justification: the stall it must not mistake for an outage is this job's items waiting behind other work. The worst case the plan sizes for is a 300-paper batch ahead of it (the Gate 6 batch; the code has no batch cap, confirmed in the B1b survey) with every paper hitting the 25-minute time limit on the default 4 worker slots (`scripts/start-worker.sh:9`): 300 × 25 min / 4 ≈ 31 h, plus margin = 36 h. X is a `BillingSettings` field (`unstarted_backstop_hours`, default 36); if the survey finds larger batches, X = largest batch × 25 min / concurrency + 5 h.
+- **A late message (review r3 R3-3b, R3-3c):**
+  - a **grading** item whose `hold_state` is `RETURNED`, or which is already `FAILED`, **exits without running** at unit entry. The paper stays retryable through item retry (E-2), which re-reserves on the same task row (`hold_credits += n`, `hold_state → HELD`);
+  - a **door `UPLOAD`** item whose hold was returned runs under a **new `UPLOAD` job** with its own hold and its own release, never against the old job. If that new hold cannot be reserved, the file still runs: the explicit exemption in §3.5 and §9 item 15 (review r3 r3-b), because the file exists only in the message.
+- `SINGLE_CALL` jobs (no broker message) are released after `GRADING_TASK_TIME_LIMIT_SECONDS` plus a margin with no settlement.
 
-**Invariant.** `wallet.reserved_credits = Σ(open jobs' reserved_credits − hold_drawn − released_credits)`. It is checked:
+**Invariant.** `wallet.reserved_credits = Σ(open jobs' reserved_credits − hold_drawn − released_credits)`, together with the per-item invariant above. It is checked:
 - by a test after every concurrency run, and after the overrun-then-release test H-1;
 - daily, by a beat task that emits `credit_ledger_anomaly{kind="hold_drift"}` on any mismatch. That task reports and does not repair.
 
@@ -369,15 +391,15 @@ The hold works like this:
 ### 3.4 The metered unit, replacing `billing_refund_scope` (decision 2)
 
 `metered_unit(job, item)` is a context manager:
-- **On entry: the entry rule (review r1 B2).** If `job` is supplied, it must be an open job with a hold for this item. If the item's `hold_state` is `RETURNED` (it was swept, §3.2), the unit **re-reserves** the item's hold first and refuses only if that does not fit; for an `UPLOAD` door item it re-reserves and never refuses (review r2 M-c). If **no job is supplied**, the unit creates a per-item `AIJob` (`SINGLE_ITEM`, `total_items = 1`) and reserves the paper's p90 (§3.6) under the wallet lock **before the first provider call**. If the reserve does not fit, it raises `InsufficientCreditsError` with reason `INSUFFICIENT_CREDITS` before any provider call. Batch paths supply their job and queue as in §3.7; every other path goes through this rule. Then it opens the tally.
-- **Before each provider call (review r1 M3, review r2 M-b):** the pre-call fit check, against **the item's own hold**, not the job's: `item_hold_left = held_per_item + extensions − this unit's tally`. Under the wallet lock:
-  1. if `this_call_estimate ≤ item_hold_left`, proceed;
-  2. otherwise **reserve the shortfall** (`this_call_estimate − item_hold_left`) through `reserve()`, which extends this item's hold (recorded as an extension on the item); proceed if granted;
+- **On entry: the entry rule (review r1 B2).** If `job` is supplied, it must be an open job with a hold for this item. If the item's `hold_state` is `RETURNED` or the item is `FAILED`, a grading unit **exits without running** (the paper stays retryable), and a door `UPLOAD` item opens a **new `UPLOAD` job** with its own hold (review r3 R3-3b/c, superseding r2 M-c's re-reserve at entry). If **no job is supplied**, the unit creates a per-item `AIJob` (`SINGLE_ITEM`, `total_items = 1`) and reserves the paper's p90 (§3.6) under the wallet lock **before the first provider call**. If the reserve does not fit, it raises `InsufficientCreditsError` with reason `INSUFFICIENT_CREDITS` before any provider call. Batch paths supply their job and queue as in §3.7; every other path goes through this rule. Then it opens the tally.
+- **Before each provider call (review r1 M3, review r2 M-b):** the pre-call fit check, against **the item's own hold**, not the job's: `item_hold_avail = hold_credits − hold_drawn − released_credits − this unit's tally` (review r3 R3-1). Under the wallet lock:
+  1. if `this_call_estimate ≤ item_hold_avail`, proceed;
+  2. otherwise **reserve the shortfall** (`this_call_estimate − item_hold_avail`) through `reserve()`, which extends this item's hold (recorded as an extension on the item); proceed if granted;
   3. if the shortfall cannot be reserved, raise `InsufficientCreditsError` before the call.
 
   Free balance is therefore never shared by two units: whatever a unit may spend beyond its hold is reserved first. Two items in one batch cannot draw each other's holds, so a held item never finds its credits gone (§3.7 Fit with S7c). What can still be billed beyond the hold is only the difference between a call's estimate and its actual cost (§3.5).
 - **On a normal exit**, it settles the tally once (§3.2 settle), with one `CreditUsageLog`/`CreditLedger` set per bucket as today. The settlement key is `(item_id, retry_count)` with `item_id` the task row id when one exists (§3.2), so a retry in place (`students/item_retry.py:~143` reuses the row, `retry_count` moves on) gets its own ledger identity, and a later manual `refund_credits` targets one attempt, not all of them (review r1 m4, review r2 M-a).
-- **On an exception**, it settles nothing and leaves the hold to the job's next item or to release.
+- **On an exception**, it charges nothing and returns the item's whole remaining hold in the fail transaction (review r3 R3-4).
 
 **Entry points that reach a unit site** (all go through the entry rule; each has a test E-n that asserts the provider mock is not called when the reserve is refused, and that a granted reserve is drawn and the rest released):
 
@@ -389,7 +411,7 @@ The hold works like this:
 | E-4 | Synchronous student upload, `students/views.py:~610` → `upload_answers_engine` | `students/services.py:962` / `:1365` |
 | E-5 | Synchronous raw-text edit, `students/views.py:~794` → `update_submission_from_raw_text` | `students/services.py:1709` |
 | E-6 | Async raw-text edit, `assignments/tasks.py:~450` → `update_submission_from_raw_text` | `students/services.py:1709` |
-| E-7 | The three upload-async routes behind the upload door (`assignments/upload_door.py:1-5`) | `assignments/file_uploads.py:132`; the door's hold is the supplied job; a swept door item re-reserves and never refuses (§3.2) |
+| E-7 | The three upload-async routes behind the upload door (`assignments/upload_door.py:1-5`) | `assignments/file_uploads.py:132`; the door's hold is the supplied job; a late door item runs under a new `UPLOAD` job (§3.2) |
 
 The B1a NOTES survey re-derives this table from the code before any test is written. Any further entry point found is added, with a test.
 
@@ -405,7 +427,11 @@ The per-paper hold is the paper's p90 (§3.6). If the actual usage exceeds hold 
 
 The balance never goes below zero, no other job's hold is taken, and the paper is not failed: the work was done. The metric threshold is in §7.
 
-**Charging free balance beyond the hold is a documented deviation from NFR-CRD-03** ("no process can spend credits that were not reserved"). When a call's actual cost exceeds what the item holds, settlement bills the excess from free balance (capped at what is free, never another hold) and records it in `AIJob.overrun_charged` (metric `credit_overrun_charged`). Only what cannot be billed at all goes to `unbilled_credits` (metric `credit_overrun`). Because every anticipated call's estimate is reserved before it runs (§3.4), the billed excess is bounded by the difference between estimates and actual costs, and at most by the spendable balance at check time. It is kept deliberately: the provider has already been paid, and the alternative is unbilled cost. The deviation is listed for the owner in §9 item 15.
+**Charging free balance beyond the hold is a documented deviation from NFR-CRD-03** ("no process can spend credits that were not reserved"). When a call's actual cost exceeds what the item holds, settlement bills the excess from free balance (capped at what is free, never another hold) and records it in `AIJob.overrun_charged` (metric `credit_overrun_charged`). Only what cannot be billed at all goes to `unbilled_credits` (metric `credit_overrun`). Because every anticipated call's estimate is reserved before it runs (§3.4), the billed excess is bounded by the difference between estimates and actual costs, and at most by the spendable balance at check time. It is kept deliberately: the provider has already been paid, and the alternative is unbilled cost.
+
+**Exemption: a late door upload (review r3 r3-b, SM decision).** A door `UPLOAD` item that comes back after its hold was returned runs under a new `UPLOAD` job (§3.2). If that job cannot reserve, the file is **still processed**, because the file exists only in the Celery message and the public promise is that work is never lost. Its cost goes to `overrun_charged` from free balance, then to `unbilled_credits`, bounded to one file's extraction. Test S-7.
+
+Both are listed for the owner in §9 item 15.
 
 ### 3.6 Estimate band (X-3, FR-B-03/04, D-A8)
 
@@ -471,7 +497,7 @@ is visible. It only reports; it never changes estimates by itself. About +0.5 da
 - Items `k+1..n` stay `PENDING` and are **not launched**: no Celery message exists for them.
 
 **Run.** Each item runs inside `metered_unit(job, item)`. Every finished item (settled or failed) increments `completed_items` with one conditional UPDATE. **Only the UPDATE that brings `completed_items` up to the number of launched items** moves the job on (review r1 ALSO), exactly once:
-- if unheld items remain → `QUEUED_PENDING_CREDITS`, with `stopped_at_item`, `queued_at` and `expires_at`;
+- if unheld items remain → `QUEUED_PENDING_CREDITS`, with `stopped_at_item`, `queued_at` and `expires_at`. The transition **asserts the job's hold left is 0** (`reserved_credits − hold_drawn − released_credits = 0`), because every item returned its leftover in its own transaction (review r3 R3-4); a non-zero value raises and emits `hold_drift`;
 - otherwise → `SETTLED`.
 
 **Fit with S7c.** `credits_exhausted_at` stays as it is for the flag-off path. With the flag on, an item can no longer find the wallet empty mid-call, because it holds its own credits and reserves any shortfall before a call (§3.4). S7c's stop then fires only for items without a hold, which do not exist. The guard stays as defence in depth.
@@ -517,7 +543,7 @@ The channel is email through `send_email_task`, always sent, as billing mail (§
 | `purchase_intent` | FK → `LicenseOveragePurchaseIntent`, SET_NULL, null | Set on approve (Stripe route) |
 | `offline_request` | FK → `LicenseOverageOfflineRequest`, SET_NULL, null | Set on approve (offline route) |
 
-`credit_request_id` is also written **into the Stripe checkout metadata** (`initiate_overage_purchase` already passes metadata, `billing/license_service.py:~3336`) and **onto the `LicenseOverageOfflineRequest`** (new nullable column), so fulfilment can find the request even if the link in step 4 of approve was never written (review r2 M-e).
+`credit_request_id` is also written **onto the `LicenseOveragePurchaseIntent` when the intent row is created, before `Session.create`** (new nullable column, review r3 r3-a), **into the Stripe checkout metadata** (`billing/license_service.py:~3336`) and **onto the `LicenseOverageOfflineRequest`** (new nullable column), so fulfilment can find the request even if the link in step 4 of approve was never written (review r2 M-e). `initiate_overage_purchase` gains an optional `credit_request_id` parameter for this; it is otherwise unchanged.
 | `decided_by_id`, `decided_at`, `decline_reason` (CharField 500) | | |
 | `created_at`, `updated_at` | | |
 
@@ -547,10 +573,10 @@ PENDING ─approve─► APPROVED ─intent COMPLETED / offline approved─► G
 
 **Approve, ordered (review r1 M6):**
 1. conditional UPDATE `PENDING → APPROVED` on `(id, status)`, committed. Zero rows → 409;
-2. call `initiate_overage_purchase(license_sub, admin, total_blocks, {teacher_id: blocks}, payment_method=…)` unchanged, **outside any transaction**. It makes a network call to Stripe (`billing/license_service.py:~3326`);
+2. call `initiate_overage_purchase(license_sub, admin, total_blocks, {teacher_id: blocks}, payment_method=…, credit_request_id=request.id)`, **outside any transaction**. Its only change is the new optional parameter (review r3 r3-a). It makes a network call to Stripe (`billing/license_service.py:~3326`);
 3. on any exception from step 2, conditional UPDATE `APPROVED → PENDING` with the error noted, and return the error;
 4. on success, link the intent or offline request to the request.
-- `GRANTED` is set when the webhook or offline approval fulfils the intent. A hook goes after `_handle_license_overage_checkout_completed` and `approve_overage_offline_request`, in the same transaction. It **matches the request by `credit_request_id`** from the session metadata or the offline request, not only by the link, so a crash between approve's steps 1 and 4 still ends in `GRANTED` (review r2 M-e).
+- `GRANTED` is set when the webhook or offline approval fulfils the intent. A hook goes after `_handle_license_overage_checkout_completed` and `approve_overage_offline_request`, in the same transaction. It **matches the request by `credit_request_id`** from the intent, the session metadata or the offline request, not only by the link, so a crash between approve's steps 1 and 4 still ends in `GRANTED` (review r2 M-e). It accepts a request in `PENDING` or `APPROVED` (an unlinked sweep may have reverted it), and **fails any other open intent linked to the same request**, so one request never buys twice (review r3 r3-a).
 - Credits landing then trigger queue promotion (§3.7).
 - A super admin's immediate grant goes straight to `GRANTED`.
 
@@ -608,12 +634,12 @@ So a zero-credit operation can neither hold nor charge, and B0's helper `assert_
 | `billing`: create the settlement-key table (unique `(item_id, retry_count)`; `item_id` is the task row id, or the job id on E-4/E-5/`SINGLE_CALL`) | Additive | Yes, drop | New table; it is the only settlement fence |
 | `billing`: `CreditWallet.reserved_credits` (int, default 0, `db_default=0`), `low_balance_warned_level`, `low_balance_warned_cycle_start` (null) | Additive | Yes, with a condition | `db_default` so code that is rolled back still inserts (H-56 rule). Reverse **only with `BILLING_HOLDS_ENABLED` off and every `reserved_credits` at 0**; the reverse migration asserts that and refuses otherwise, because reversing with holds open throws away hold state |
 | `billing`: `CHECK (reserved_credits >= 0)` | Additive | Yes | Django's `AddConstraint` has no `NOT VALID` option, so it is `RunSQL` (`ADD CONSTRAINT … NOT VALID`, then `VALIDATE CONSTRAINT` in a separate migration) inside `SeparateDatabaseAndState`, with the model `Meta.constraints` as the state side (review r2 m-d) |
-| `students`: `BackgroundProcessingTask.job` FK, null, SET_NULL, **`db_index=False`**, plus `hold_state` (null), `hold_credits`, `hold_drawn` | Additive | Yes | On Django 5.2, `AddField` of an FK would build its index inline and take SHARE ROW EXCLUSIVE while validating. So: the column via `SeparateDatabaseAndState` with `RunSQL` (`ADD COLUMN`, then `ADD CONSTRAINT … FOREIGN KEY … NOT VALID`, then `VALIDATE CONSTRAINT` separately), `db_index=False` on the state side; `hold_credits` and `hold_drawn` (int, `db_default=0`) are plain additive columns; and the index built by a separate `AddIndexConcurrently` in an `atomic = False` migration (precedent `billing/migrations/0051_creditusagelog_task_id_index.py`, `0061`) (review r2 m-d). There is no `settled_at` (review r2 M-a) |
-| `billing`: `AIJob.overrun_charged`; `LicenseOveragePurchaseIntent.session_expires_at` (null); `LicenseOverageOfflineRequest.credit_request_id` (null) | Additive | Yes | The last two in slice B1c |
+| `students`: `BackgroundProcessingTask.job` FK, null, SET_NULL, **`db_index=False`**, plus `hold_state` (null), `hold_credits`, `hold_drawn`, `released_credits` | Additive | Yes | On Django 5.2, `AddField` of an FK would build its index inline and take SHARE ROW EXCLUSIVE while validating. So: the column via `SeparateDatabaseAndState` with `RunSQL` (`ADD COLUMN`, then `ADD CONSTRAINT … FOREIGN KEY … NOT VALID`, then `VALIDATE CONSTRAINT` separately), `db_index=False` on the state side; `hold_credits`, `hold_drawn` and `released_credits` (int, `db_default=0`) are plain additive columns; and the index built by a separate `AddIndexConcurrently` in an `atomic = False` migration (precedent `billing/migrations/0051_creditusagelog_task_id_index.py`, `0061`) (review r2 m-d). There is no `settled_at` (review r2 M-a) |
+| `billing`: `AIJob.overrun_charged`; `BillingSettings.unstarted_backstop_hours` (default 36); `LicenseOveragePurchaseIntent.session_expires_at` (null) and `.credit_request_id` (null); `LicenseOverageOfflineRequest.credit_request_id` (null) | Additive | Yes | The intent and offline-request columns in slice B1c |
 | `billing`: `SubscriptionPlan.queue_expiry_days` (default 14), `queue_expiry_warning_hours` (default 48), with `db_default` | Additive | Yes | Slice B1a schema, used in B1b |
 | `billing`: create `BillingSettings` (one row, `cold_start_cost_factor` default 3.0) | Additive | Yes, drop | Slice B1b |
 | `billing`: create the drift-summary table (run date, coverage per cell, sample sizes) | Additive | Yes, drop | Slice B1b |
-| `audit`: `RetentionClass` gains `FINANCIAL` (choices only, no schema change beyond the choices state) | Additive | Yes | **No retag migration** (review r2 M-g): `AuditEvent` is append-only (`audit/models.py:~10–12`; `AppendOnlyQuerySet.update` raises, `billing/immutable.py:114`). New rows store `FINANCIAL`; `sweep_audit_retention` (`audit/tasks.py:48`) excludes the FINANCIAL actions by action from the `GENERAL` cutoff, so old `GENERAL`-tagged credit rows are kept too, and applies the 7-year cutoff to them |
+| `audit`: `RetentionClass` gains `FINANCIAL` (choices only, no schema change beyond the choices state) | Additive | Yes | **No retag migration** (review r2 M-g): `AuditEvent` is append-only (`audit/models.py:~10–12`; `AppendOnlyQuerySet.update` raises, `billing/immutable.py:114`). New rows store `FINANCIAL`; `sweep_audit_retention` (`audit/tasks.py:48`) excludes the FINANCIAL actions by action from the `GENERAL` cutoff, so old `GENERAL`-tagged credit rows are kept too, and applies the 7-year cutoff to them. It excludes FINANCIAL actions from the `STUDENT_RECORD` delete too (an event raised to `STUDENT_RECORD` must not lose its 7 years), and records `deleted_financial` in its `AUDIT_RETENTION_SWEEP` metadata (allowlist key added). **Rollback effect:** if B1 code is rolled back, the old sweep filters only `GENERAL` and `STUDENT_RECORD`, so `FINANCIAL`-tagged rows are never deleted (kept, not lost), while old credit rows still tagged `GENERAL` fall back to the 365-day cutoff (review r3 M-g caveats) |
 | `billing`: create `CreditRequest` (partial unique index on `status IN ('PENDING','APPROVED')`) | Additive | Yes | Slice B1c |
 
 There is **no contract step**, so no three-deploy schedule is needed. Turning the flag off leaves the new columns unused and harmless. `makemigrations --check` is part of each slice gate.
@@ -687,6 +713,12 @@ Mutants are identified by function name and exact text; the line number is only 
 | M-B22 | The sweep returns a hold without failing and counting the item | S-3 (job reaches `QUEUED`/`SETTLED` after an item's message never returns) |
 | M-B23 | Settlement keyed on the job id for an E-1 paper | D-3 (a redelivered single-paper grade settles once) |
 | M-B24 | The `GRANTED` hook matches only by link, not by `credit_request_id` | C-8 (crash between approve steps 1 and 4 still ends `GRANTED`) |
+| M-B25 | The sweep does not add to the item's `released_credits` | S-3 (wallet and per-item invariants after the sweep and the terminal release) |
+| M-B26 | The sweep also takes launched-but-unstarted items | S-5 (a broker backlog older than 90 minutes is not swept) |
+| M-B27 | A late grading message for a `RETURNED` item runs instead of exiting | S-6 (a late item for a `SETTLED` job leaves the invariant intact and charges nothing) |
+| M-B28 | Settle does not return the item's leftover | P-5 (promotion uses the freed credits before the job ends; the `QUEUED` assert holds) |
+| M-B29 | The `GRANTED` hook does not fail the other intent linked to the request | C-9 (double purchase: one grant, the other intent failed) |
+| M-B30 | The pre-call check uses `item_hold_left` (ignores the tally) | U-1 (a unit with its hold used up makes 0 further provider calls) |
 
 ### 6.3 Gate-specific tests
 
@@ -702,12 +734,12 @@ These run on real Postgres and real Redis, with barrier-synchronised threads (NF
 | Z-1 | The zero-credit scope inside a held unit: `reserve` and `consume` both raise `ZeroCreditViolation` |
 | Adversarial | A teacher reserving against another teacher's job id (404); a forged `reservation_claimed_at`; approving a request from another license (404); withdrawing someone else's request (404) |
 | Failure | Redis down during promotion (the beat lock fails closed, nothing launched twice); the provider times out inside a unit (nothing charged, hold kept for the next item); a worker killed between reserve and settle (the sweep releases) |
-| H-1 | Overrun then release: a `SINGLE_CALL` holds 50, actual is 80, free balance is 200. After settle and release, `reserved_credits` equals its value before the job, `hold_drawn = 50`, the invariant holds, and the `CHECK` never fires |
+| H-1 | (a) Overrun then release: a `SINGLE_CALL` holds 50, actual is 80, free balance is 200. After settle and release, `reserved_credits` equals its value before the job, `hold_drawn = 50`, `overrun_charged = 30`, the invariant holds, and the `CHECK` never fires. (b) Free balance 0: hold 100, actual 80 → charge 80, `unbilled_credits = 0`, leftover 20 returned in the settle transaction (review r3 R3-1) |
 | E-1…E-7 | One test per entry point in §3.4: with the reserve refused, the provider mock is not called and `INSUFFICIENT_CREDITS` is returned; with it granted, the hold is drawn and the rest released |
 | U-1 | A unit whose hold and spendable are used up: the next provider call is refused by the pre-call check (0 further calls), including a chunked extraction (`_extract_answers_chunked`) |
 | D-1 | Same item redelivered (settle, worker killed before the ack, redelivery after the claim goes stale): one settlement, one ledger set |
 | D-2 | Retry in place of an item: each attempt has its own settlement key; a manual `refund_credits` on one attempt refunds that attempt only |
-| S-1 | Batch with items waiting in the broker longer than `GRADING_CLAIM_STALE_AFTER`: the sweep keeps their holds; an item past its own stale clock with no settlement has its hold returned |
+| S-1 | Batch with items waiting in the broker longer than `GRADING_CLAIM_STALE_AFTER`: the sweep keeps their holds; a **started** item past `started_at + visibility_timeout + time limit` with no settlement has its hold returned (review r3 r3-c) |
 | P-1 | Promotion by the sweep and by the grant hook on a barrier: each item launched once, one hold per item |
 | P-2 | Promotion vs expiry on a barrier: exactly one wins; no reserve is left without a running job; the invariant holds |
 | P-3 | Every launch (batch, promotion, door) is sent on commit: no broker message exists before the transaction commits |
@@ -724,11 +756,16 @@ These run on real Postgres and real Redis, with barrier-synchronised threads (NF
 | D-4 | Two files under one upload door job each settle once; a retry in place of a task row settles again with its new `retry_count` |
 | U-2 | Barrier: two units on one wallet with free balance S, both needing beyond their holds: the shortfalls are reserved, the sum charged ≤ S + their holds, and nothing beyond is unbilled except actual-vs-estimate differences |
 | U-3 | Barrier: two items in one batch: neither draws the other's hold; a held item started after them still has its full hold |
-| S-2 | An item killed and redelivered after `visibility_timeout`: before the sweep window its hold is untouched; after a sweep it re-reserves at entry |
-| S-3 | An item whose message never returns: the sweep fails it (retryable), counts it, and the job moves to `QUEUED`/`SETTLED` |
-| S-4 | A swept upload door item that comes back re-reserves and is processed, never refused |
+| S-2 | An item killed and redelivered after `visibility_timeout`: before the sweep window its hold is untouched and the redelivery settles normally; after a sweep, the late message exits (S-6) |
+| S-3 | An item whose message never returns: the sweep fails it (retryable), adds its hold to `released_credits`, counts it, and the job moves to `QUEUED`/`SETTLED`; the wallet and per-item invariants hold after the sweep and after the terminal release |
+| S-4 | A swept upload door item that comes back runs under a new `UPLOAD` job with its own hold and release; the old job's accounting is untouched |
+| S-5 | A broker backlog of more than 90 minutes (items launched, not started): nothing is swept; after X hours with no item started or settled, the backstop fails the unstarted items in one transaction and returns their holds |
+| S-6 | A late grading message for an item of a `SETTLED` job (its hold returned): it exits without a provider call or charge, the paper stays retryable, and the invariant holds |
+| S-7 | A late door item whose new `UPLOAD` job cannot reserve: the file is still processed; the cost goes to `overrun_charged` then `unbilled_credits`; nothing is lost |
+| P-5 | A batch item settles under its hold: the leftover is spendable at once, and a queued job on the same wallet is promoted with it before the first job ends |
+| C-9 | Double purchase: two intents carry the same `credit_request_id`; the first completed grants and moves the request to `GRANTED`; the other intent is failed and grants nothing |
 | B-1 | An automatic run (`auto_grade_due_assignment`) on 30 papers exhausts credits: the remainder is queued with `expires_at`, the teacher is emailed, and promotion resumes it after a top-up |
-| R-5 | `sweep_audit_retention` keeps FINANCIAL-action rows (including old `GENERAL`-tagged ones) past 365 days and deletes them after 7 years |
+| R-5 | `sweep_audit_retention` keeps FINANCIAL-action rows (including old `GENERAL`-tagged and any `STUDENT_RECORD`-raised ones) past 365 days and past 3 years, deletes them after 7 years, and reports `deleted_financial` |
 | Gate 6 | Added latency of reserve and settle per call, measured as p50/p95 (§9 item 13); the estimate endpoint's cost on 90 days of `AICallRecord` (index check: `processing_task_id`, `created_at`) |
 
 ---
@@ -759,7 +796,7 @@ The metadata allowlist gains `job_id`, `items_left`, `expires_at`, `request_id` 
 | Gate | Applies | Basis |
 |---|---|---|
 | 1 Baseline / regression | Yes | `billing ai_processor assignments students` with the flag on and off, exact Ran per slice |
-| 2 Mutation | Yes | §6.2, 24 mutants |
+| 2 Mutation | Yes | §6.2, 30 mutants |
 | 3 Concurrency | Yes | R-1 to R-4, real threads, PG 18.6 and PG 16 (CI) |
 | 4 Adversarial | Yes | §6.3 |
 | 5 Failure / recovery | Yes | Worker kill, Redis down, provider timeout, grant-path forced failures |
@@ -798,7 +835,7 @@ The metadata allowlist gains `job_id`, `items_left`, `expires_at`, `request_id` 
 | `billing/zero_credit.py` | New code `CREDIT_RESERVE` |
 | `billing/tasks.py` | Promotion/expiry sweep, stale-hold sweep, daily invariant check |
 | `billing/views.py`, `billing/serializers.py`, `billing/urls.py` | Estimate, jobs and credit-request endpoints |
-| `billing/license_service.py`, `billing/stripe_service.py` | The `CreditRequest` `GRANTED`/`CLOSED` hooks after fulfilment; `CLOSED` on teacher departure; departed-teacher refund |
+| `billing/license_service.py`, `billing/stripe_service.py` | `initiate_overage_purchase`'s `credit_request_id` parameter; the `CreditRequest` `GRANTED`/`CLOSED` hooks after fulfilment; `CLOSED` on teacher departure; departed-teacher refund |
 | `billing/webhooks.py`, `billing/event_replay.py` | Dispatch `checkout.session.expired`; its replay allowlist entry only with the written idempotency proof |
 | `billing/models.py` `CreditLedger.record` (`:1505`) and `after_bulk_create` (`:~1515`) | On-commit promotion task for credit entries |
 | `ai_processor/services.py` | `execute_graded_task` holds; the unit at `:4635` |
@@ -807,7 +844,7 @@ The metadata allowlist gains `job_id`, `items_left`, `expires_at`, `request_id` 
 | `assignments/tasks.py` | Batch routes, `auto_grade_due_assignment` and `_relaunch_failed_dispatches` create the `AIJob`, reserve, claim items and launch on commit; promotion |
 | `assignments/upload_door.py` | Hold at the door |
 | `students/models.py` | `BackgroundProcessingTask.job` |
-| `audit/enums.py`, `audit/metadata.py`, `audit/volume.py`, `audit/tasks.py` | Four actions, the allowlist keys, the FINANCIAL class and its sweep cutoff |
+| `audit/enums.py`, `audit/metadata.py`, `audit/volume.py`, `audit/tasks.py` | Four actions, the allowlist keys (including `deleted_financial`), the FINANCIAL class and its sweep cutoffs |
 | `AutoGrader/settings.py` | Two flags and three beat entries |
 | Tests: `billing/tests/test_holds*.py`, `test_estimates.py`, `test_credit_requests.py`, `test_grant_atomicity.py`, `test_entry_points.py`, `ai_processor/tests_metering_holds.py` | New |
 | `docs/evidence/epic-b1a/`, `-b1b/`, `-b1c/` | Evidence |
@@ -832,8 +869,12 @@ The metadata allowlist gains `job_id`, `items_left`, `expires_at`, `request_id` 
 8. **Settled: screen.** The teacher credits screen reads `GET credits/wallet` (`billing/views.py:1463`), serialized by `CreditWalletSerializer` (`billing/serializers.py:873`). `balance_status` (and `reserved_credits`, spendable) are added there.
 9. **Moved to the B1b survey.** The count of synchronous AI views with a non-JSON-object body is part of B1b's NOTES survey, written before code (it only affects where `ai_job_id` is exposed). No design depends on it.
 10. **Settled (SM ruling): index built concurrently regardless of size.** `AddIndexConcurrently` in an `atomic = False` migration, following the repo precedent `billing/migrations/0051_creditusagelog_task_id_index.py` and `0061_add_audit_table_time_indexes.py`, and docs/MIGRATIONS.md line 93. The production row count is no longer needed. This works only with the FK declared `db_index=False` and its constraint added `NOT VALID` then validated (review r1 m1; §4).
-11. **Settled (SM ruling): new FINANCIAL retention class, 7 years.** Today `CREDIT_TRANSACTION` falls in `GENERAL` (365 days: `audit/enums.py:40–45`, `audit/volume.py:55–58`), so the who/when/why of every charge is swept after a year, while the ledger rows themselves are never deleted (NFR-CRD-02). Add `FINANCIAL` (7 × 365 days) to `RetentionClass`, `RETENTION_DAYS` and `retention_class_of`, covering `CREDIT_TRANSACTION` and B1's new credit, purchase, refund and credit-request actions. Rows carry ids and amounts, no student content. Follow-up when Epic B lands: one line in docs/GRADE_A_PLUS_BACKEND_DATA_PRIVACY_SECURITY_COMPLIANCE.md (it states 12 months / 3 years). B1a step 1, about +0.5 day. No retag migration of existing rows: the sweep keeps FINANCIAL actions by action (review r2 M-g; §4).
+11. **Settled (SM ruling): new FINANCIAL retention class, 7 years.** Today `CREDIT_TRANSACTION` falls in `GENERAL` (365 days: `audit/enums.py:40–45`, `audit/volume.py:55–58`), so the who/when/why of every charge is swept after a year, while the ledger rows themselves are never deleted (NFR-CRD-02). Add `FINANCIAL` (7 × 365 days) to `RetentionClass`, `RETENTION_DAYS` and `retention_class_of`, covering `CREDIT_TRANSACTION` and B1's new credit, purchase, refund and credit-request actions. Rows carry ids and amounts, no student content. Follow-up when Epic B lands: one line in docs/GRADE_A_PLUS_BACKEND_DATA_PRIVACY_SECURITY_COMPLIANCE.md (it states 12 months / 3 years). B1a step 1, about +0.5 day. No retag migration of existing rows: the sweep keeps FINANCIAL actions by action (review r2 M-g; §4). **History older than 365 days at deploy is already gone**: the current sweep will have deleted those credit events, so the 7 years start from what still exists on the deploy date (the ledger rows themselves are complete). The rollback effect is in §4 (review r3).
 12. **05 Q7, audit vocabulary:** B1 adds its four actions itself unless the Feature Lead rules for one shared task.
 13. **Settled: Gate 6 measurement.** Run M = 500 billed single calls with the provider stubbed, flag off and then flag on, on the same DB. Report the median and p95 added wall time per call, and the bytes per `AIJob` row (`pg_total_relation_size` / rows). Project rows per day from `audit/volume.py`'s derived rates. Pass: added p95 ≤ 5 ms per call, with storage per month stated in NOTES. On a fail, use the fallback already described: a wallet-counter hold for `SINGLE_CALL`, with the sweep sourced from the hold counter's timestamp.
-14. **Effort** (about 33 days including gate evidence, after reviews r1 and r2) assumes one engineer and excludes SM review, staging proof and the Epic B strict run.
-15. **For the owner: a documented deviation from NFR-CRD-03** (review r1 m2, rewritten after review r2; §3.5). NFR-CRD-03 says "no process can spend credits that were not reserved". B1 reserves every anticipated call's estimated cost before the call runs, including any shortfall beyond the paper's hold (§3.4). But an AI call's actual cost can exceed its estimate, and the provider has already been paid by then. In that case B1 bills the excess from the teacher's free balance (never another job's or item's hold, never below zero) and records it in `AIJob.overrun_charged` (metric `credit_overrun_charged`). Only what cannot be billed at all, because no free balance is left, goes to `AIJob.unbilled_credits` (metric `credit_overrun`). The billed excess is bounded by the gap between estimates and actual costs, and never more than the spendable balance at check time. So the requirement is met except for these recorded estimate-versus-actual overruns, which are a deviation, recorded rather than hidden.
+14. **Effort** (about 36.5 days including gate evidence, after reviews r1–r3) assumes one engineer and excludes SM review, staging proof and the Epic B strict run.
+15. **For the owner: two documented deviations from NFR-CRD-03** (review r1 m2, rewritten after reviews r2 and r3; §3.5). NFR-CRD-03 says "no process can spend credits that were not reserved".
+    - **(a) Estimate-versus-actual overrun.** B1 reserves every anticipated call's estimated cost before the call runs, including any shortfall beyond the paper's hold (§3.4). But an AI call's actual cost can exceed its estimate, and the provider has already been paid by then. In that case B1 bills the excess from the teacher's free balance (never another job's or item's hold, never below zero) and records it in `AIJob.overrun_charged` (metric `credit_overrun_charged`). Only what cannot be billed at all, because no free balance is left, goes to `AIJob.unbilled_credits` (metric `credit_overrun`). The billed excess is bounded by the spendable balance at settlement.
+    - **(b) Late door upload, an explicit exemption (SM decision, review r3 r3-b).** A door upload whose message comes back after its hold was returned runs under a new upload job. If that job cannot reserve, the file is still processed, because the file exists only in the message and the public promise is that work is never lost. Its cost goes to `overrun_charged` from free balance, then to `unbilled_credits`, bounded to one file's extraction.
+
+    The requirement is met except for these two recorded cases, which are deviations, recorded rather than hidden.
