@@ -469,6 +469,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     # message so a locked account gets an explanation instead of looking
     # like a wrong password forever.
     LOCKED_MESSAGE = "Too many failed login attempts. Please try again later."
+    INVALID_CREDENTIALS_MESSAGE = (
+        "That email and password don't match. "
+        "Check them and try again, or reset your password."
+    )
 
     def validate(self, attrs):
         if "email" in attrs:
@@ -528,7 +532,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                     "WRONG_PASSWORD" if wrong_password else "INVALID_CREDENTIALS"
                 ),
             )
-            raise
+            raise EnvelopedAuthenticationFailed(
+                self.INVALID_CREDENTIALS_MESSAGE,
+                "invalid_credentials",
+                reason_code="INVALID_CREDENTIALS",
+                code_value="invalid_credentials",
+            ) from None
 
         if user:
             user.reset_login_lockout()

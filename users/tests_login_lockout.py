@@ -103,9 +103,7 @@ UNREACHABLE_LOGIN_BUDGET = 10_000
 # The two rejections the login path actually produces, read from the code
 # rather than retyped, so a wording change cannot make this test lie.
 LOCKED_MESSAGE = CustomTokenObtainPairSerializer.LOCKED_MESSAGE
-WRONG_PASSWORD_MESSAGE = str(
-    CustomTokenObtainPairSerializer.default_error_messages["no_active_account"]
-)
+WRONG_PASSWORD_MESSAGE = CustomTokenObtainPairSerializer.INVALID_CREDENTIALS_MESSAGE
 
 
 def make_user(**overrides):

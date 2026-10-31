@@ -354,6 +354,14 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "Wait a few minutes and try again, or reset your password.",
         retryable=True,
     ),
+    ReasonCode.INVALID_CREDENTIALS: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_401_UNAUTHORIZED,
+        "That email and password don't match. "
+        "Check them and try again, or reset your password.",
+        "Check your email and password, or reset your password.",
+        retryable=False,
+    ),
     # ------------------------------------------------------------------
     # QA catalogue additions, sections B-F (Epic A S7d). Approved AS WRITTEN
     # by the founder acting as QA, 2026-09-30:
@@ -572,7 +580,6 @@ AUDIT_ONLY_CODES = frozenset(
     {
         ReasonCode.ACCOUNT_DEACTIVATED,
         ReasonCode.WRONG_PASSWORD,
-        ReasonCode.INVALID_CREDENTIALS,
         ReasonCode.INVALID_CODE,
         ReasonCode.CODE_EXPIRED,
         ReasonCode.CODE_MISSING,
