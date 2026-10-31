@@ -20,12 +20,13 @@ filter combination in §8.1 hits one of the indexes already defined on
 AuditEvent (audit/models.py).
 """
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import generics
 
+from classrooms.models import School
 from classrooms.permissions import IsSchoolAdmin, IsSuperAdmin
 
 from .filters import SchoolAdminAuditEventFilter, SuperAdminAuditEventFilter
@@ -43,6 +44,12 @@ _QUERY_PARAMETERS = [
     OpenApiParameter("outcome", str, description="Filter by outcome."),
     OpenApiParameter("reason_code", str, description="Filter by reason code."),
     OpenApiParameter(
+        "trace_id",
+        str,
+        description="Filter by trace UUID (dashed or undashed, any case).",
+    ),
+    OpenApiParameter("target_id", str, description="Filter by target UUID."),
+    OpenApiParameter(
         "time_from", str, description="ISO-8601 lower bound on occurred_at."
     ),
     OpenApiParameter(
@@ -51,6 +58,41 @@ _QUERY_PARAMETERS = [
     OpenApiParameter("page", int, description="Page number to retrieve."),
     OpenApiParameter("page_size", int, description="Results per page (max 100)."),
 ]
+
+
+def _school_names_for_page(page):
+    """One query for School names referenced by a page of audit events."""
+    school_ids = {
+        e.target_id for e in page if e.target_type == "School" and e.target_id
+    }
+    if not school_ids:
+        return {}
+    return dict(School.objects.filter(pk__in=school_ids).values_list("pk", "name"))
+
+
+class _SchoolNamesMixin:
+    # Mypy cannot see that this is always mixed with ListAPIView.
+    filter_queryset: Any
+    get_queryset: Any
+    paginate_queryset: Any
+    get_serializer_context: Any
+    get_serializer: Any
+    get_paginated_response: Any
+
+    def list(self, request, *args, **kwargs):
+        from rest_framework.response import Response
+
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            school_names = _school_names_for_page(page)
+            ctx = {**self.get_serializer_context(), "school_names": school_names}
+            serializer = self.get_serializer(page, many=True, context=ctx)
+            return self.get_paginated_response(serializer.data)
+        school_names = _school_names_for_page(queryset)
+        ctx = {**self.get_serializer_context(), "school_names": school_names}
+        serializer = self.get_serializer(queryset, many=True, context=ctx)
+        return Response(serializer.data)
 
 
 @extend_schema_view(
@@ -64,7 +106,7 @@ _QUERY_PARAMETERS = [
         ],
     )
 )
-class SuperAdminAuditEventListView(generics.ListAPIView):
+class SuperAdminAuditEventListView(_SchoolNamesMixin, generics.ListAPIView):
     serializer_class = AuditEventSerializer
     permission_classes = [IsSuperAdmin]
     queryset = AuditEvent.objects.all().order_by("-occurred_at")
@@ -84,7 +126,7 @@ class SuperAdminAuditEventListView(generics.ListAPIView):
         parameters=_QUERY_PARAMETERS,
     )
 )
-class SchoolAdminAuditEventListView(generics.ListAPIView):
+class SchoolAdminAuditEventListView(_SchoolNamesMixin, generics.ListAPIView):
     serializer_class = AuditEventSerializer
     permission_classes = [IsSchoolAdmin]
     filter_backends = [DjangoFilterBackend]

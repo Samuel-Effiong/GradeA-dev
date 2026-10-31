@@ -38,14 +38,13 @@ REQUEST_ID_HEADER = "X-Request-ID"
 # other is a plain dict key used by the Celery signal handlers.
 CELERY_HEADER_KEY = "request_id"
 
-# A generated id is a bare uuid4 hex (32 lowercase hex chars, no dashes) -
-# short, URL-safe, and cheap to generate. An inbound, client- or
-# proxy-supplied id is accepted too, but only if it is a plausible token:
-# this value is logged verbatim and echoed back on the response, so it must
-# never be allowed to contain characters that could break log parsing or be
-# used to inject its way into anything (headers, log lines are newline-
-# delimited; commas/pipes are common log-field separators in this codebase's
-# aggregation tooling).
+# A generated id is a dashed uuid4 (8-4-4-4-12 lowercase, 36 chars). An
+# inbound, client- or proxy-supplied id is accepted too, but only if it is a
+# plausible token: this value is logged verbatim and echoed back on the
+# response, so it must never be allowed to contain characters that could
+# break log parsing or be used to inject its way into anything (headers, log
+# lines are newline-delimited; commas/pipes are common log-field separators
+# in this codebase's aggregation tooling).
 _VALID_INBOUND_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 
 _request_id_var: ContextVar[Optional[str]] = ContextVar("request_id", default=None)
@@ -60,7 +59,7 @@ _client_request_id_var: ContextVar[Optional[str]] = ContextVar(
 
 
 def generate_request_id() -> str:
-    return uuid.uuid4().hex
+    return str(uuid.uuid4())
 
 
 def is_valid_request_id(value: Optional[str]) -> bool:

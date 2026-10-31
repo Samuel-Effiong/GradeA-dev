@@ -1,7 +1,18 @@
+import uuid
+
 import django_filters
+from rest_framework.exceptions import ValidationError
 
 from .enums import ActorRole, AuditOutcome
 from .models import AuditEvent
+
+
+def _normalise_uuid(value):
+    """Accept dashed or undashed, any case, trimmed.  Garbage → 400."""
+    try:
+        return uuid.UUID(value.strip())
+    except (ValueError, AttributeError) as exc:
+        raise ValidationError({"trace_id": "Not a valid UUID."}) from exc
 
 
 class _BaseAuditEventFilter(django_filters.FilterSet):
@@ -27,6 +38,11 @@ class _BaseAuditEventFilter(django_filters.FilterSet):
     # Plan 08 D1: a STATE_CHANGE event names its route in metadata, so the
     # route is searchable without widening the closed action vocabulary.
     route = django_filters.CharFilter(field_name="metadata__route")
+    trace_id = django_filters.CharFilter(method="filter_trace_id")
+    target_id = django_filters.UUIDFilter(field_name="target_id")
+
+    def filter_trace_id(self, queryset, name, value):
+        return queryset.filter(trace_id=_normalise_uuid(value))
 
     class Meta:
         model = AuditEvent

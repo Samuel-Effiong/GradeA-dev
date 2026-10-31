@@ -60,10 +60,10 @@ def item_result(task, context):
         "remediation": spec.remediation if spec is not None else None,
         "retryable": bool(spec.retryable) if spec is not None else False,
         "retry_count": task.retry_count,
-        # The same form as X-Request-ID and a sync body's `reference` (the
-        # server id as hex), so a client matches them as strings. It is the
-        # item's audit trace_id (uuid.UUID(reference) == AuditEvent.trace_id).
-        "reference": task.trace_id.hex if task.trace_id else None,
+        # Dashed UUID, same form as X-Request-ID and a sync body's `reference`,
+        # so a client matches them as strings. It is the item's audit trace_id
+        # (uuid.UUID(reference) == AuditEvent.trace_id).
+        "reference": str(task.trace_id) if task.trace_id else None,
         "replaced_existing": bool(replaced) if replaced is not None else None,
     }
 
