@@ -90,7 +90,8 @@ class DirectAddAnswersTests(APITestCase):
         # refusal in validate().
         self.assertEqual(len(response.data), 1)
         self.assertEqual(
-            str(response.data[0]), "Student is already enrolled in this course."
+            str(response.data[0]),
+            "A student with this email is already enrolled in this course.",
         )
         self.assertEqual(
             StudentCourse.objects.filter(student=account, course=self.course).count(),

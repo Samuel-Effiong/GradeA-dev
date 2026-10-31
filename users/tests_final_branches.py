@@ -234,7 +234,9 @@ class ChangePasswordSerializerRuleTests(APITestCase):
         )
 
         self.assertFalse(serializer.is_valid())
-        self.assertIn("same as the old", str(serializer.errors).lower())
+        self.assertIn(
+            "different from your current password", str(serializer.errors).lower()
+        )
 
     def test_a_genuinely_new_password_validates(self):
         serializer = ChangePasswordSerializer(

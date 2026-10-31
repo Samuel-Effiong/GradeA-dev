@@ -733,7 +733,7 @@ class DirectAddStudentSerializer(serializers.Serializer):
                     student=student, course=course
                 ).exists():
                     raise serializers.ValidationError(
-                        "Student is already enrolled in this course."
+                        "A student with this email is already enrolled in this course."
                     )
 
                 # This path attaches an EXISTING account, so it needs the

@@ -10,8 +10,9 @@ No new existence oracle (SM condition):
 - The login and reset-password locks exist only for real accounts. That is
   pre-existing (a distinct 401 message and `account_locked` code; the
   informative RESET_LOCKED answer, a founder decision of 2026-09-28). The
-  added keys only restate the code those answers already carry. An unknown
-  address's answers gain nothing.
+  added keys only restate the code those answers already carry.
+- H-274 item (a): an unknown address's login now also returns the
+  INVALID_CREDENTIALS coded envelope (same message as wrong password).
 """
 
 from datetime import timedelta
@@ -200,14 +201,15 @@ class LoginLockedTests(LockBase):
             response.json()["message"], CustomTokenObtainPairSerializer.LOCKED_MESSAGE
         )
 
-    def test_an_unknown_address_gains_nothing(self):
-        """Only a real account can be locked (pre-existing); an unknown
-        address's 401 is unchanged - no code, no envelope."""
+    def test_an_unknown_address_gets_invalid_credentials_envelope(self):
+        """An unknown email now gets the INVALID_CREDENTIALS coded envelope
+        (H-274 item (a)) — same as a wrong password, no account enumeration."""
         response = self.login("nobody.login@example.com")
 
         self.assertEqual(response.status_code, 401)
-        self.assertFalse(ADDED & set(self.body(response)))
-        self.assertNotIn("code", self.body(response))
+        body = self.body(response)
+        self.assertEqual(body.get("reason_code"), "INVALID_CREDENTIALS")
+        self.assertEqual(body.get("code"), "invalid_credentials")
 
 
 class CatalogueTests(APITestCase):

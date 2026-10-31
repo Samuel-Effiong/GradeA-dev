@@ -634,7 +634,8 @@ class ChangePasswordSerializer(serializers.Serializer):
     def validate(self, data):
         if data["current_password"] == data["new_password"]:
             raise serializers.ValidationError(
-                "New password cannot be the same as the old one"
+                "Your new password must be different from your current password. "
+                "Please choose a different one."
             )
         return data
 
