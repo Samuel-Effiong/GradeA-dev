@@ -276,7 +276,7 @@ class RequestContextTest(TestCase):
     def test_an_inbound_uuid_is_kept_as_untrusted_context(self):
         client_id = uuid.uuid4()
         event = call(
-            actor=self.teacher, request=request(HTTP_X_REQUEST_ID=client_id.hex)
+            actor=self.teacher, request=request(HTTP_X_REQUEST_ID=str(client_id))
         )
         self.assertEqual(event.client_correlation_id, str(client_id))
 
@@ -288,7 +288,7 @@ class RequestContextTest(TestCase):
     def test_the_client_id_the_middleware_attached_is_used(self):
         """Never the server's request id - that is the trace id."""
         req = request()
-        req.request_id = uuid.uuid4().hex
+        req.request_id = str(uuid.uuid4())
         req.client_request_id = "c2f1a8e4-0000-4000-8000-000000000001"
         self.assertEqual(
             call(actor=self.teacher, request=req).client_correlation_id,
@@ -317,7 +317,7 @@ class TraceIdTest(TestCase):
         """Sending another action's trace id as X-Request-ID must not make this
         event part of that action's trail."""
         victim = call()
-        forged = request(HTTP_X_REQUEST_ID=victim.trace_id.hex)
+        forged = request(HTTP_X_REQUEST_ID=str(victim.trace_id))
         event = call(request=forged)
         self.assertNotEqual(event.trace_id, victim.trace_id)
         self.assertEqual(event.client_correlation_id, str(victim.trace_id))
@@ -356,7 +356,7 @@ class TraceIdTest(TestCase):
         already carries across this request and its Celery tasks - not a
         disconnected random id - so one id reconstructs the whole action."""
         known = uuid.uuid4()
-        token = set_request_id(known.hex)
+        token = set_request_id(str(known))
         try:
             self.assertIsNone(current_trace_id())  # no explicit context open
             self.assertEqual(call().trace_id, known)
@@ -364,7 +364,7 @@ class TraceIdTest(TestCase):
             reset_request_id(token)
 
     def test_an_explicit_trace_context_still_wins_over_the_requests_own_id(self):
-        token = set_request_id(uuid.uuid4().hex)
+        token = set_request_id(str(uuid.uuid4()))
         try:
             with trace_context() as joined:
                 self.assertEqual(call().trace_id, joined)

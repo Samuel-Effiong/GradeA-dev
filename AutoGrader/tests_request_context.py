@@ -13,10 +13,13 @@ from AutoGrader.request_context import (
 
 
 class GenerateRequestIdTests(SimpleTestCase):
-    def test_generates_32_char_lowercase_hex(self):
+    def test_generates_36_char_dashed_uuid4(self):
         value = generate_request_id()
-        self.assertEqual(len(value), 32)
-        self.assertRegex(value, r"^[0-9a-f]{32}$")
+        self.assertEqual(len(value), 36)
+        self.assertRegex(
+            value,
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+        )
 
     def test_generates_unique_values(self):
         values = {generate_request_id() for _ in range(1000)}

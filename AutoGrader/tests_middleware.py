@@ -52,7 +52,7 @@ class RequestIDMiddlewareTests(SimpleTestCase):
         request = self.factory.get("/", HTTP_X_REQUEST_ID=client_id)
         response = self._middleware(get_response)(request)
 
-        self.assertNotEqual(seen["request_id"], uuid.UUID(client_id).hex)
+        self.assertNotEqual(seen["request_id"], str(uuid.UUID(client_id)))
         self.assertEqual(response[REQUEST_ID_HEADER], seen["request_id"])
         self.assertEqual(seen["client_request_id"], client_id)
         self.assertIsNone(get_client_request_id())
