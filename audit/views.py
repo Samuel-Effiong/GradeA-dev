@@ -60,11 +60,17 @@ _QUERY_PARAMETERS = [
 ]
 
 
-def _school_names_for_page(page):
-    """One query for School names referenced by a page of audit events."""
+def _school_names_for_page(page, *, allowed_school_ids=None):
+    """One query for School names referenced by a page of audit events.
+
+    When *allowed_school_ids* is set, only those schools are resolved (school-
+    admin scope: never leak another school's name).
+    """
     school_ids = {
         e.target_id for e in page if e.target_type == "School" and e.target_id
     }
+    if allowed_school_ids is not None:
+        school_ids &= set(allowed_school_ids)
     if not school_ids:
         return {}
     return dict(School.objects.filter(pk__in=school_ids).values_list("pk", "name"))
@@ -79,17 +85,25 @@ class _SchoolNamesMixin:
     get_serializer: Any
     get_paginated_response: Any
 
+    _allowed_school_ids: frozenset | None = None
+
+    def _school_names_ctx(self, events):
+        return _school_names_for_page(
+            events, allowed_school_ids=self._allowed_school_ids
+        )
+
     def list(self, request, *args, **kwargs):
         from rest_framework.response import Response
 
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         if page is not None:
-            school_names = _school_names_for_page(page)
+            school_names = self._school_names_ctx(page)
             ctx = {**self.get_serializer_context(), "school_names": school_names}
             serializer = self.get_serializer(page, many=True, context=ctx)
             return self.get_paginated_response(serializer.data)
-        school_names = _school_names_for_page(queryset)
+        # Unreachable: DEFAULT_PAGINATION_CLASS is set project-wide.
+        school_names = self._school_names_ctx(queryset)
         ctx = {**self.get_serializer_context(), "school_names": school_names}
         serializer = self.get_serializer(queryset, many=True, context=ctx)
         return Response(serializer.data)
@@ -142,4 +156,5 @@ class SchoolAdminAuditEventListView(_SchoolNamesMixin, generics.ListAPIView):
             # (individual teachers, system, anonymous ones, failed sign-ins
             # with the address and the IP). They are shown nothing.
             return AuditEvent.objects.none()
+        self._allowed_school_ids = frozenset({school_id})
         return AuditEvent.objects.filter(school_id=school_id).order_by("-occurred_at")

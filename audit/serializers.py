@@ -92,6 +92,4 @@ class AuditEventSerializer(serializers.ModelSerializer):
             "after",
             "metadata",
         ]
-        read_only_fields = [
-            f for f in fields if f not in ("target_label", "target_name")
-        ]
+        read_only_fields = fields
