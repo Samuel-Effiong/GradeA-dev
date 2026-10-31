@@ -67,6 +67,63 @@ All opt-in gated; none H-273 related.
 ### Redis (1)
 20. Redis load tests — CI_REQUIRE_REDIS
 
+## Wall-time investigation
+
+**Observed**: log file birth 20:24:39 UTC, last write 03:07:21 UTC → 6h42m wall clock.
+**Django reported**: Ran 6690 tests in 1666.588s (~27m46s).
+
+### (1) What held test_AutoGrader before the run started?
+
+The log opens with:
+```
+Creating test database for alias 'default' ('test_AutoGrader')...
+Got an error creating the test database: database "test_AutoGrader" already exists
+Destroying old test database for alias 'default' ('test_AutoGrader')...
+```
+
+The leftover `test_AutoGrader` DB was from this session's own earlier runs (the
+BETA_CREDITS probe and/or the aborted wrong-set near run). Both used `--noinput`
+which auto-destroys on exit, but a killed process (SIGKILL, context loss) leaves
+the DB behind. No other session was running a test suite against `test_AutoGrader`
+at that time:
+- `grade-automator-plus-0c` was idle or running mypy (PID 2888742), not tests.
+- The `Vezi` project sessions use a different DB (`vezi_dev` / `test_vezi_dev`).
+- No `manage.py test` processes were running at run start besides ours (PID 2837149).
+
+**No concurrent suite violation.** The stale DB was our own orphan, not another
+session's active test DB.
+
+### (2) Where did the ~6h go?
+
+System suspend (s2idle). `journalctl -k` shows:
+
+| Time (WAT = UTC+1)    | Event                          |
+|------------------------|--------------------------------|
+| Oct 30 21:45:21 WAT   | PM: suspend entry (s2idle)     |
+| Oct 31 03:59:45 WAT   | PM: suspend exit               |
+
+Timeline (all UTC):
+- 20:24:39 — run starts, DB drop/create/migrate (~35s)
+- 20:25:14 — first test begins
+- 20:45:21 — **system suspends** (~20 min into tests)
+- 02:59:45 — **system wakes** (6h14m later)
+- 03:07:18 — last test finishes (~7.5 min of remaining tests after wake)
+- Total active test time: ~20 + ~7.5 = ~27.5 min ≈ 1666s ✓
+
+Python's `unittest.TextTestRunner` uses `time.perf_counter()` (CLOCK_MONOTONIC),
+which does **not** advance during s2idle suspend. Wall clock (CLOCK_REALTIME)
+advanced by 6h14m but was invisible to the test timer.
+
+**No test execution anomaly.** The 6h42m wall time is explained entirely by system
+suspend. Active test execution was 1666s.
+
+### Mitigation: run-unique test DB name
+
+To avoid orphan `test_AutoGrader` collisions and enable concurrent-safe runs,
+future runs from this worktree will use a settings shim that sets
+`DATABASES["default"]["TEST"]["NAME"] = "test_AutoGrader_h273"`.
+This is a venv-local change, not committed.
+
 ## Log archive
 
 ~/Documents/Projects/GAP-a0-runs/h273/near_run_step5_7app.log
