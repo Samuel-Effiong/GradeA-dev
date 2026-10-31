@@ -292,14 +292,16 @@ See §4 for mutant targets.
 ## §3 Near-run expectations
 
 ### Modules in near run (directive 10)
-audit, users, classrooms, billing, students, assignments (6 apps).
+audit, users, classrooms, billing, students, assignments, AutoGrader (7 apps).
 
 ### Baseline (from DiscoverRunner id lists)
-6-app total: 5832, Skipped: 16, **Ran 5816**.
+7-app total: 6690 at f5d2d577. Tip identical (zero diff).
 
-**Expected**: Ran 5816 + new tests, 16 skipped, OK.
+**Expected**: Ran 6690 + new tests, ~20 skipped, OK.
 
 Exact new test count declared after tests are written.
+
+(Superseded: original 6-app baseline was 5832; see baseline_id_list.log for history.)
 
 ### Pre-existing tests with exact metadata assertions that WILL BREAK
 
@@ -386,6 +388,105 @@ Kill: a view raising InsufficientCreditsError must not 500 and must write audit 
 
 ### M-H273-20: Remove field-name sanitisation regex (SM defect 2)
 Kill: a ValidationError keyed by an email address must not store the email anywhere in the audit row.
+
+### M-H273-21: generate_request_id back to .hex
+Kill: byte-identical test (X-Request-ID header = body reference = audit trace_id, all dashed 8-4-4-4-12).
+
+### M-H273-22: item_results reference back to .hex
+Kill: per-item reference = audit trace_id (both dashed).
+
+### M-H273-23: drop dash-tolerant normalisation in trace_id filter
+Kill: filter test with undashed input returns the expected row.
+
+## §4b Dashed-reference addendum (SM revised addendum 2026-10-30)
+
+Owner wants the DASHED UUID form (8-4-4-4-12) as the canonical reference format
+everywhere. `str(uuid.uuid4())` produces this form.
+
+### Code changes
+
+**1. `AutoGrader/request_context.py:63`**
+```python
+# Before
+return uuid.uuid4().hex
+# After
+return str(uuid.uuid4())
+```
+Comment on line 41 ("bare uuid4 hex (32 lowercase hex chars, no dashes)") must be
+updated to reflect dashed form.
+
+**2. `students/item_results.py:66`**
+```python
+# Before
+"reference": task.trace_id.hex if task.trace_id else None,
+# After
+"reference": str(task.trace_id) if task.trace_id else None,
+```
+Comment on lines 63-65 ("server id as hex") must be updated.
+
+**3. `audit/filters.py` — trace_id filter**
+`trace_id` filter must accept dashed or undashed, any case, trimmed.
+Garbage → 400. Implementation: custom `CharFilter` with a `method` that
+normalises the input through `uuid.UUID(value.strip())` and filters by
+the resulting UUID. django_filters.UUIDFilter alone rejects undashed input.
+
+**4. `_VALID_INBOUND_ID_RE` (request_context.py:49)**
+Already accepts dashes (`[A-Za-z0-9._-]{1,128}`). No change needed.
+
+### Repo grep: .hex / undashed formatting of request_id, trace_id, reference
+
+Sites using `.hex` on UUIDs that represent request_id/trace_id/reference:
+
+| File | Line | Usage | Action |
+|------|------|-------|--------|
+| `AutoGrader/request_context.py` | 63 | `uuid.uuid4().hex` | **CHANGE** to `str(uuid.uuid4())` |
+| `students/item_results.py` | 66 | `task.trace_id.hex` | **CHANGE** to `str(task.trace_id)` |
+| `audit/tests_trace_server_owned.py` | 66,70,75,81,109 | `victim.trace_id.hex`, `event.trace_id.hex` | **BREAK-RUN EDIT**: change to `str(...)` |
+| `audit/tests_emitter.py` | 279,291,320,359,367 | `.hex` in test setup | **BREAK-RUN EDIT**: change to `str(...)` |
+| `students/tests_batch_item_results.py` | 277 | `item.trace_id.hex` | **BREAK-RUN EDIT**: change to `str(...)` |
+| `AutoGrader/tests_request_context.py` | 18-19 | `assertEqual(len(value), 32)` + `^[0-9a-f]{32}$` | **BREAK-RUN EDIT**: change to dashed UUID pattern |
+| `AutoGrader/tests_middleware.py` | 55 | `uuid.UUID(client_id).hex` | **BREAK-RUN EDIT**: change to `str(uuid.UUID(client_id))` |
+| `classrooms/tests_h71_student_add_role.py` | 43 | `REFERENCE = re.compile(rb'"reference":"[0-9a-f]{32}"')` | **BREAK-RUN EDIT**: change to dashed UUID regex |
+| `audit/tests_failed_auth_cap.py` | 363 | `.hex[:8]` for email generation | **NO CHANGE** (not a reference/trace_id) |
+| `docs/evidence/epic-a-s7a/mutate.py` | 52 | `.hex` in evidence script | **NO CHANGE** (historical evidence) |
+
+Sites using `.hex` for non-reference purposes (email generation, run IDs, queue names,
+passwords, stripe IDs, tags): **NO CHANGE** — these use `.hex[:N]` for short unique
+strings, not for trace/reference formatting.
+
+### Regex/length checks assuming 32 chars
+
+| File | Line | Pattern | Action |
+|------|------|---------|--------|
+| `AutoGrader/tests_request_context.py` | 18-19 | `len(value), 32` + `^[0-9a-f]{32}$` | **BREAK-RUN EDIT**: `len(value), 36` + `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$` |
+| `classrooms/tests_h71_student_add_role.py` | 43 | `[0-9a-f]{32}` | **BREAK-RUN EDIT**: `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}` |
+| `_VALID_INBOUND_ID_RE` | 49 | `[A-Za-z0-9._-]{1,128}` | **NO CHANGE** — already accepts dashes |
+
+### Celery signals propagation
+
+`AutoGrader/celery_signals.py` propagates `request_id` as a string through Celery
+headers. `_extract_request_id()` reads it as a string. `_stamp_request_id_on_publish()`
+stamps it as a string. No `.hex` or length check. **NO CHANGE** needed — dashed form
+passes through transparently.
+
+### Sentry tagging
+
+`AutoGrader/middleware.py:64`: `sentry_sdk.set_tag("request_id", request_id)` — tags
+with the string as-is. `celery_signals.py:101`: same. **NO CHANGE** — Sentry accepts
+any string tag. Dashed form works. Sentry queries using the old undashed form will stop
+matching after the change (noted in frontend-facing NOTES below).
+
+### Log filters
+
+`RequestIDLogFilter` injects `record.request_id = get_request_id() or "-"`. No format
+check. **NO CHANGE** — dashed form logged as-is.
+
+### Frontend-facing NOTES
+
+- References returned by the API are now in dashed UUID form (8-4-4-4-12).
+- The trace_id search box should accept whatever the user pastes (dashed or undashed).
+- Sentry search for `request_id` tag must use the new dashed form for new events.
+  Old events retain their undashed tags.
 
 ## §5 Red-run plan
 
