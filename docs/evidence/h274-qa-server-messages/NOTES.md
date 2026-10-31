@@ -135,18 +135,36 @@ database. Causes:
 
 When a `stripe.checkout.Session.create` (or any downstream Stripe call using
 the stored customer id) raises `InvalidRequestError` with
-`exc.code == "resource_missing"`, the checkout helper:
+`exc.code == "resource_missing"` **AND `exc.param == "customer"`**, the
+checkout helper:
 
-1. Clears the stored customer id (`wallet.stripe_customer_id = ""` /
-   `license_sub.stripe_customer_id = ""`).
-2. Calls `get_or_create_customer` / `get_or_create_license_customer` again
-   to create a fresh Stripe customer.
-3. Retries the `Session.create` once with the new customer id.
-4. Uses a **new idempotency key** that includes the stale id (or a generation
-   counter), because the old key replays the deleted customer for 24 hours.
-5. If the retry also fails, raises `BillingRequestError` with user-friendly
+1. Saves the stale id, then clears it with a **conditional update**:
+   `CreditWallet.objects.filter(pk=…, stripe_customer_id=stale).update(stripe_customer_id="")`.
+   Re-reads the row. If another request already stored a new id (update
+   returned 0 rows affected), uses that id instead of creating another.
+2. If the id was successfully cleared, calls `get_or_create_customer` /
+   `get_or_create_license_customer` again to create a fresh Stripe customer
+   with a **new idempotency key** that includes the stale id:
+   `customer-for-user-{id}-replacing-{stale_id}` (or the licence equivalent).
+   The new key is needed because the old key (`customer-for-user-{id}`)
+   replays the deleted customer for 24 hours.
+3. Retries the `Session.create` once with the new customer id. The
+   `Session.create` retry uses its own key scheme (different from the failed
+   attempt's key).
+4. If the retry also fails, raises `BillingRequestError` with user-friendly
    text (no Stripe text leaked).
-6. Logs the stale and new customer ids (ids only, no email/name).
+5. Logs the stale and new customer ids (ids only, no email/name) and the
+   user/licence pk.
+
+**Only heals a missing CUSTOMER.** A `resource_missing` with
+`exc.param != "customer"` (e.g. a missing price) goes straight to the
+fallback — no customer recreation, no retry.
+
+**Concurrency:** The conditional update (step 1) plus the shared
+idempotency key on `Customer.create` (step 2) ensure that two requests
+hitting the same stale id don't create two customers. If request A clears
+the id and request B's conditional update finds it already cleared, B
+re-reads the row and picks up A's new customer id.
 
 Capped at one retry — a second consecutive `resource_missing` means a deeper
 issue and falls through to the coded 4xx.
@@ -178,34 +196,62 @@ redirect, not at creation.)
 - Stub `stripe.checkout.Session.create` to raise
   `InvalidRequestError("No such customer: cus_stale123", param="customer", code="resource_missing")`
   on first call, return a mock session on second call.
+- Stub `stripe.Customer.create` to return a mock customer with a new id.
 - Assert status is 200 (checkout session created).
 - Assert `wallet.stripe_customer_id` changed (stale id cleared, new id stored).
-- Assert the retry used a different idempotency key than the first attempt.
+- Assert `Customer.create` was called with an idempotency key that includes
+  the stale id (e.g. `customer-for-user-{id}-replacing-{stale_id}`).
+- Assert the `Session.create` retry used a different idempotency key than
+  the failed attempt.
 
 **Self-healing (license path):**
 
 - Same as above, for `create_license_session` and
   `create_license_conversion_session`.
 - Assert `license_sub.stripe_customer_id` changed.
+- Assert `Customer.create` idempotency key includes the stale id.
 
 **Double failure gives coded 4xx:**
 
-- Stub `Session.create` to raise `resource_missing` on BOTH calls.
+- Stub `Session.create` to raise `resource_missing` (param="customer") on
+  BOTH calls.
 - Assert status is 400 (not 500).
 - Assert response body contains the user-friendly fallback text.
 - Assert response body does NOT contain `"cus_"` or `"No such customer"`.
+
+**Non-customer resource_missing gives fallback (no retry):**
+
+- Stub `Session.create` to raise `resource_missing` with
+  `param="price"` (not "customer").
+- Assert status is 400 with user-friendly fallback text.
+- Assert `wallet.stripe_customer_id` is unchanged (stale id still stored).
+- Assert `stripe.Customer.create` was NOT called.
 
 **Non-resource-missing StripeError gives coded 4xx:**
 
 - Stub `Session.create` to raise a generic `StripeError`.
 - Assert status is 400 with user-friendly text.
 
+**Concurrency (individual + licence):**
+
+- Use `run_concurrently` from `AutoGrader/tests_concurrency_harness`.
+- Two parallel requests with the same stale customer id.
+- Assert both succeed (or one succeeds and one gets the new customer).
+- Assert only ONE `Customer.create` call was made (or both used the same
+  idempotency key, so Stripe returns the same customer).
+- Assert `wallet.stripe_customer_id` ends at a single new value.
+- Same test on the licence row.
+
 **Mutants:**
 
 - M1: Remove the retry → stale-id test fails (gets 400 instead of 200).
-- M2: Reuse the same idempotency key → idempotency-key assertion fails.
+- M2: Reuse the original `Customer.create` idempotency key →
+  idempotency-key assertion on `Customer.create` kwargs fails.
 - M3: Remove the customer id clear → retry also gets `resource_missing`.
-- M4: Let Stripe text through in the fallback → "No such customer" assertion fails.
+- M4: Let Stripe text through in the fallback → "No such customer"
+  assertion fails.
+- M5: Drop the `exc.param == "customer"` check → non-customer
+  resource_missing test fails (customer id changed when it shouldn't have).
 
 ---
 
