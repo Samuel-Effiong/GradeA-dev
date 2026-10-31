@@ -75,17 +75,29 @@ that reaches a `Response` or `ValidationError`. Findings:
 
 **Sites that CAN echo provider text (StripeError → response body):**
 
-None found. Every `except StripeError` handler in the billing views uses
-either `describe_stripe_error(exc, fallback_message=...)` (which only passes
-through `user_message` for `CardError`, and returns the fallback for all
-others including `InvalidRequestError`), or `stripe_error_label(exc)` (which
-only logs the class name and request id, never sent to the client).
+None found on the non-staff path. Every `except StripeError` handler in the
+billing views uses either `describe_stripe_error(exc, fallback_message=...)`
+(which only passes through `user_message` for `CardError`, and returns the
+fallback for all others including `InvalidRequestError`), or
+`stripe_error_label(exc)` (which only logs the class name and request id,
+never sent to the client).
 
 `stripe.error.InvalidRequestError("No such customer: cus_...")` confirmed:
+
 - `str(exc)` → `"No such customer: cus_..."` — provider text.
 - `exc.user_message` → `"No such customer: cus_..."` — Stripe fills
   `user_message` for ALL error types, not just CardError (confirmed by test).
 - `describe_stripe_error` does NOT pass it through (not a CardError).
+
+**Known leads (not in scope for fix):**
+
+1. `billing/qa_time_travel.py:904–907` — returns raw Stripe text by design
+   (`f"Stripe error: {getattr(exc, 'user_message', None) or str(exc)}"`).
+   Staff-only endpoint. Leave as-is.
+2. `billing/views.py` ValueError `except` handlers at several sites use
+   `describe_user_error(exc, fallback_message=...)` — safe, because
+   `ValueError` text is always app-authored (from `BillingRequestError` or
+   `IndividualPlanChangeService` validation). Not a Stripe text leak path.
 
 **Sites that use `str(exc)` in responses (non-Stripe exceptions):**
 
@@ -104,6 +116,41 @@ observation of "No such customer" may have been: (1) from a Sentry alert
 forwarded to the teacher, (2) from browser dev-tools on a local environment,
 or (3) before H-255/H-227 hardened the error handling.
 
+### Root cause: stale customer id
+
+`StripeCustomerService.get_or_create_customer` (`billing/stripe_service.py:333`)
+returns `wallet.stripe_customer_id` without checking that the customer still
+exists at Stripe. Any stale id makes every later checkout call fail with
+`InvalidRequestError("No such customer: cus_...")` until someone edits the
+database. Causes:
+
+- A QA test-clock customer was deleted with its clock.
+- A database was copied between environments (staging → local, or vice versa).
+- A test/live key switch made all stored customer ids point at nothing.
+
+`get_or_create_license_customer` (~line 364) has the same problem: it returns
+`license_sub.stripe_customer_id` without verification.
+
+### Fix: self-healing retry on resource_missing
+
+When a `stripe.checkout.Session.create` (or any downstream Stripe call using
+the stored customer id) raises `InvalidRequestError` with
+`exc.code == "resource_missing"`, the checkout helper:
+
+1. Clears the stored customer id (`wallet.stripe_customer_id = ""` /
+   `license_sub.stripe_customer_id = ""`).
+2. Calls `get_or_create_customer` / `get_or_create_license_customer` again
+   to create a fresh Stripe customer.
+3. Retries the `Session.create` once with the new customer id.
+4. Uses a **new idempotency key** that includes the stale id (or a generation
+   counter), because the old key replays the deleted customer for 24 hours.
+5. If the retry also fails, raises `BillingRequestError` with user-friendly
+   text (no Stripe text leaked).
+6. Logs the stale and new customer ids (ids only, no email/name).
+
+Capped at one retry — a second consecutive `resource_missing` means a deeper
+issue and falls through to the coded 4xx.
+
 ### Four uncaught Session.create calls (still need wrapping)
 
 | # | File:line | Method | Caller |
@@ -113,22 +160,52 @@ or (3) before H-255/H-227 hardened the error handling.
 | 3 | `billing/stripe_service.py:840` | `create_license_conversion_session` | `billing/license_views.py:933` |
 | 4 | `billing/stripe_service.py:1411` | `create_upgrade_checkout_session` | `IndividualPlanChangeService.select_plan` → `billing/views.py:1299` |
 
-An unwrapped `StripeError` is a 500 — opaque but still wrong status. Fix:
-wrap each in `try/except StripeError`, raising `BillingRequestError` with a
-user-friendly message. `BillingRequestError` is a `ValueError` subclass, so
-the existing `except ValueError` in each view catches it. No view changes.
+Each gets the self-healing retry wrapper. An unwrapped `StripeError` that is
+NOT `resource_missing` (or a second consecutive one) raises
+`BillingRequestError` with a user-friendly message. `BillingRequestError` is a
+`ValueError` subclass, so the existing `except ValueError` in each view
+catches it. No view changes needed.
 
-**Proposed text:**
+**Proposed text (non-recoverable fallback):**
 `"We couldn't start checkout for your account. You haven't been charged. Please contact support."`
 ("You haven't been charged" is true — checkout sessions collect payment on
 redirect, not at creation.)
 
-**Tests for each of the four sites:**
+### Tests
+
+**Self-healing (individual path):**
+
 - Stub `stripe.checkout.Session.create` to raise
-  `stripe.error.InvalidRequestError("No such customer: cus_test123", param="customer")`.
+  `InvalidRequestError("No such customer: cus_stale123", param="customer", code="resource_missing")`
+  on first call, return a mock session on second call.
+- Assert status is 200 (checkout session created).
+- Assert `wallet.stripe_customer_id` changed (stale id cleared, new id stored).
+- Assert the retry used a different idempotency key than the first attempt.
+
+**Self-healing (license path):**
+
+- Same as above, for `create_license_session` and
+  `create_license_conversion_session`.
+- Assert `license_sub.stripe_customer_id` changed.
+
+**Double failure gives coded 4xx:**
+
+- Stub `Session.create` to raise `resource_missing` on BOTH calls.
 - Assert status is 400 (not 500).
-- Assert response body contains the user-friendly text.
+- Assert response body contains the user-friendly fallback text.
 - Assert response body does NOT contain `"cus_"` or `"No such customer"`.
+
+**Non-resource-missing StripeError gives coded 4xx:**
+
+- Stub `Session.create` to raise a generic `StripeError`.
+- Assert status is 400 with user-friendly text.
+
+**Mutants:**
+
+- M1: Remove the retry → stale-id test fails (gets 400 instead of 200).
+- M2: Reuse the same idempotency key → idempotency-key assertion fails.
+- M3: Remove the customer id clear → retry also gets `resource_missing`.
+- M4: Let Stripe text through in the fallback → "No such customer" assertion fails.
 
 ---
 
