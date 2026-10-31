@@ -195,6 +195,14 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         # The message shows them formatted, through `display` ("63.2 MB").
         params=_FILE | {"actual", "limit", "dimension"},
     ),
+    ReasonCode.FILE_EMPTY: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_400_BAD_REQUEST,
+        "'{file_name}' is empty. Choose another file.",
+        "Select a file that has content, then upload it again.",
+        retryable=False,
+        params=_FILE,
+    ),
     ReasonCode.SUBMISSION_EMPTY: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_422_UNPROCESSABLE_ENTITY,

@@ -30,6 +30,14 @@ class PayloadTooLarge(CodedError, APIException):
     default_code = "file_too_large"
 
 
+class PayloadEmpty(CodedError, APIException):
+    """FILE_EMPTY (400): an upload whose size is exactly 0 bytes."""
+
+    reason_code = ReasonCode.FILE_EMPTY
+    status_code = 400
+    default_code = "file_empty"
+
+
 # A scanned assignment PDF is the largest legitimate upload this project
 # handles; 50 MB comfortably covers a multi-page scan at print resolution
 # without leaving room for the kind of upload that only makes sense as
@@ -54,8 +62,9 @@ def file_name_of(uploaded_file):
 
 
 def validate_upload_size(uploaded_file, max_size_bytes=None):
-    """Raise PayloadTooLarge if uploaded_file exceeds max_size_bytes
-    (MAX_UPLOAD_SIZE_BYTES unless given, read at call time)."""
+    """Raise PayloadEmpty or PayloadTooLarge based on uploaded_file's size."""
+    if uploaded_file.size == 0:
+        raise PayloadEmpty(params={"file_name": file_name_of(uploaded_file)})
     if max_size_bytes is None:
         max_size_bytes = MAX_UPLOAD_SIZE_BYTES
     if uploaded_file.size > max_size_bytes:

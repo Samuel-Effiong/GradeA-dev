@@ -3,6 +3,7 @@ from django.test import SimpleTestCase
 
 from AutoGrader.uploads import (
     MAX_UPLOAD_SIZE_BYTES,
+    PayloadEmpty,
     PayloadTooLarge,
     validate_upload_size,
 )
@@ -30,3 +31,26 @@ class ValidateUploadSizeTests(SimpleTestCase):
         oversized_file = SimpleUploadedFile("medium.pdf", b"x" * 2000)
         with self.assertRaises(PayloadTooLarge):
             validate_upload_size(oversized_file, max_size_bytes=1000)
+
+    def test_rejects_zero_byte_file(self):
+        empty_file = SimpleUploadedFile("empty.pdf", b"")
+        with self.assertRaises(PayloadEmpty) as ctx:
+            validate_upload_size(empty_file)
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertIn("empty.pdf", str(ctx.exception.detail))
+
+    def test_zero_byte_message_names_the_file(self):
+        empty_file = SimpleUploadedFile("my-essay.pdf", b"")
+        with self.assertRaises(PayloadEmpty) as ctx:
+            validate_upload_size(empty_file)
+        self.assertIn("my-essay.pdf", str(ctx.exception.detail))
+        self.assertIn("empty", str(ctx.exception.detail).lower())
+
+    def test_zero_byte_is_not_payload_too_large(self):
+        empty_file = SimpleUploadedFile("empty.pdf", b"")
+        with self.assertRaises(PayloadEmpty):
+            validate_upload_size(empty_file)
+
+    def test_one_byte_file_is_accepted(self):
+        tiny_file = SimpleUploadedFile("tiny.pdf", b"x")
+        validate_upload_size(tiny_file)  # should not raise
