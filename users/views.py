@@ -52,6 +52,7 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.token_blacklist.models import (
     BlacklistedToken,
     OutstandingToken,
@@ -147,7 +148,7 @@ from users.throttling import (
     verify_budget_spent,
     verify_lock_until,
 )
-from users.tokens import EpochRefreshToken
+from users.tokens import EpochRefreshToken, revoke_session, session_id_of
 
 logger = logging.getLogger(__name__)
 
@@ -1802,11 +1803,24 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             raise ParseError("Invalid or expired token") from TokenError
 
         # AUTHZ-T1: blacklisting the refresh token never touched the access
-        # token, which stayed valid for up to a day. Bumping the session epoch
-        # kills the access token AND every other device's tokens at once
-        # (logging out anywhere signs the user out everywhere).
+        # token, which stayed valid for up to a day. H-276 (owner decision
+        # 2026-11-02): logout ends THIS browser/device only - the session id
+        # on the caller's tokens is revoked, so its access token dies at once
+        # while the user's other browsers and devices stay signed in. A token
+        # minted before H-276 carries no session id: fall back to the old
+        # sign-out-everywhere so a logged-out token never stays alive.
         try:
-            request.user.revoke_all_sessions()
+            own_sid = session_id_of(request.auth) if request.auth is not None else None
+            if own_sid is None:
+                request.user.revoke_all_sessions()
+            else:
+                revoke_session(request.user, own_sid)
+                refresh_sid = session_id_of(token)
+                same_user = str(token.get(api_settings.USER_ID_CLAIM)) == str(
+                    request.user.pk
+                )
+                if refresh_sid is not None and refresh_sid != own_sid and same_user:
+                    revoke_session(request.user, refresh_sid)
         except Exception:
             emit(
                 AuditAction.AUTH_LOGOUT,

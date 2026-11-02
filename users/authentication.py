@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, cast
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from users.tokens import token_epoch_of
+from users.tokens import REVOKED_MESSAGE, is_session_revoked, token_epoch_of
 
 if TYPE_CHECKING:
     from users.models import CustomUser
@@ -44,8 +44,10 @@ class MustChangePasswordJWTAuthentication(JWTAuthentication):
     Name kept because AutoGrader/settings.py and users/schema.py reference it
     by dotted path (see module docstring). It no longer enforces
     must_change_password. A token is rejected when its epoch claim differs
-    from the user's `token_epoch`, i.e. after logout or any credential change.
-    No extra query: JWTAuthentication.get_user already loaded the user row.
+    from the user's `token_epoch` (any credential change), or when its session
+    id was signed out (H-276: logout ends one browser/device only). The epoch
+    check costs no query (get_user already loaded the row); the session check
+    is one primary-key lookup.
     """
 
     def authenticate(self, request):
@@ -56,7 +58,8 @@ class MustChangePasswordJWTAuthentication(JWTAuthentication):
         # simplejwt types the user as AbstractBaseUser; AUTH_USER_MODEL is
         # CustomUser, which carries token_epoch.
         if token_epoch_of(token) != cast("CustomUser", user).token_epoch:
-            raise AuthenticationFailed(
-                "Token has been revoked. Please log in again.", code="token_revoked"
-            )
+            raise AuthenticationFailed(REVOKED_MESSAGE, code="token_revoked")
+        # H-276: this one browser/device was signed out.
+        if is_session_revoked(token):
+            raise AuthenticationFailed(REVOKED_MESSAGE, code="token_revoked")
         return result
