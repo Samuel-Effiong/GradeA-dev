@@ -37,3 +37,11 @@ Anything else = STOP, no push.
    First runner attempt exited 4 before any pre-check ("another GAP test run is active": the H-278 worker's
    targeted run); nothing ran. Retried when clear.
 Matches the committed expectation exactly. Owner approved the push on green (2026-11-02).
+
+## Co-author lines stripped before push (owner decision 2026-11-02)
+53 commit messages (from the H-273 and H-274 branches) carried `Co-Authored-By: Claude ...` lines, against the
+standing repo rule. Owner chose "strip the lines, then push". Done with
+`git filter-branch --msg-filter 'sed "/^Co-Authored-By: Claude/d" | git stripspace' -- f5d2d577..beta-batch-32`.
+Messages only: all 72 commits keep their exact tree (verified pairwise, same order), author and date.
+The tested commit e12a2397 is now ce1a0d70 (same tree). Every old -> new id: strip_sha_map.txt.
+SHAs quoted earlier in this NOTES and in the ticket evidence refer to the pre-strip ids; use the map.
