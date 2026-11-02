@@ -40,7 +40,9 @@ PROBE_PASSWORD = "Str0ng-h71-pass!"  # pragma: allowlist secret
 
 # Epic A: a coded error carries a support reference that is new for every
 # response, so two identical refusals differ only there.
-REFERENCE = re.compile(rb'"reference":"[0-9a-f]{32}"')
+REFERENCE = re.compile(
+    rb'"reference":"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"'
+)
 
 
 def without_reference(content):

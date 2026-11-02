@@ -32,6 +32,7 @@ import uuid
 from .admin_action import _outcome_for_status
 from .emitter import emit
 from .enums import AuditAction, AuditOutcome, ErrorClass, ReasonCode
+from .request_detail import enrich_request_metadata, stashed_reason_code
 
 logger = logging.getLogger(__name__)
 
@@ -182,6 +183,7 @@ def emit_anonymous_refusal(request, response) -> None:
                 "method": request.method,
                 "http_status": status_code,
             }
+        enrich_request_metadata(request, response, metadata)
         emit(
             action,
             actor=user,
@@ -211,6 +213,12 @@ def emit_generic_state_change(request, response) -> None:
         target_type, target_id = _target(match)
         outcome, error_class = _outcome_for_status(response.status_code)
         user = request.user
+        metadata = {
+            "route": match.view_name,
+            "method": request.method,
+            "http_status": response.status_code,
+        }
+        enrich_request_metadata(request, response, metadata)
         emit(
             AuditAction.STATE_CHANGE,
             actor=user,
@@ -219,11 +227,8 @@ def emit_generic_state_change(request, response) -> None:
             target_id=target_id,
             outcome=outcome,
             error_class=error_class,
-            metadata={
-                "route": match.view_name,
-                "method": request.method,
-                "http_status": response.status_code,
-            },
+            reason_code=stashed_reason_code(response),
+            metadata=metadata,
             # A student's own actions are part of their record (A6, 3 years).
             touches_student_record=getattr(user, "user_type", None) == "STUDENT",
         )

@@ -121,6 +121,12 @@ ALLOWED_KEYS = frozenset(
         # events for an escalation and for a manual close. A status, never
         # the free-text reason or note.
         "intent_status",
+        # H-273: reason label derived from exception class or status code
+        "reason_label",
+        # H-273: failing field names on ValidationError (names only, never messages)
+        "fields",
+        # H-273: true when the fields list was truncated at 20 entries
+        "fields_truncated",
     }
 )
 
@@ -223,7 +229,15 @@ METADATA_ALLOWLIST = {
     # lock_triggered: the password-reset guess that spent the budget and set
     # the lock (L2), recorded as the failure it was plus this flag.
     AuditAction.AUTH_LOGIN: frozenset(
-        {"auth_method", "http_status", "lock_triggered"} | _FAILED_AUTH_SUMMARY_KEYS
+        {
+            "auth_method",
+            "http_status",
+            "lock_triggered",
+            "reason_label",
+            "fields",
+            "fields_truncated",
+        }
+        | _FAILED_AUTH_SUMMARY_KEYS
     ),
     AuditAction.AUTH_LOGOUT: frozenset(),
     AuditAction.GRADING_REQUESTED: frozenset(
@@ -302,16 +316,35 @@ METADATA_ALLOWLIST = {
     AuditAction.LIBRARY_COPY: frozenset(),
     # H-194: plus the summary keys, for the summary an anonymous admin-route
     # flood leaves when the global cap suppresses its refusals.
-    AuditAction.ADMIN_ACTION: frozenset({"source"} | _FAILED_AUTH_SUMMARY_KEYS),
+    AuditAction.ADMIN_ACTION: frozenset(
+        {
+            "source",
+            "method",
+            "http_status",
+            "route",
+            "reason_label",
+            "fields",
+            "fields_truncated",
+        }
+        | _FAILED_AUTH_SUMMARY_KEYS
+    ),
     AuditAction.DATA_EXPORT: frozenset({"file_count", "file_size_bytes"}),
     AuditAction.PERMISSION_CHANGE: frozenset({"changed_fields", "source"}),
     # Plus S1b's summary keys: a capped anonymous crash (SERVER_ERROR) is
     # summarised under its own action.
     AuditAction.STATE_CHANGE: frozenset(
-        {"route", "method", "http_status"} | _FAILED_AUTH_SUMMARY_KEYS
+        {"route", "method", "http_status", "reason_label", "fields", "fields_truncated"}
+        | _FAILED_AUTH_SUMMARY_KEYS
     ),
     AuditAction.ACCOUNT_REGISTER: frozenset(
-        {"auth_method", "http_status"} | _FAILED_AUTH_SUMMARY_KEYS
+        {
+            "auth_method",
+            "http_status",
+            "reason_label",
+            "fields",
+            "fields_truncated",
+        }
+        | _FAILED_AUTH_SUMMARY_KEYS
     ),
     AuditAction.AUDIT_RETENTION_SWEEP: frozenset(
         {"deleted_general", "deleted_student_record", "scrubbed"}

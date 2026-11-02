@@ -104,7 +104,10 @@ class AutomaticCoverageTests(_Users):
         self.assertIsNone(event.error_class)
         self.assertEqual(event.actor_id, self.superadmin.id)
         self.assertEqual(event.target_type, "DummySuccessView")
-        self.assertEqual(event.metadata, {"source": "DummySuccessView"})
+        self.assertEqual(
+            event.metadata,
+            {"source": "DummySuccessView", "method": "GET", "http_status": 200},
+        )
 
     def test_new_view_denied_produces_exactly_one_denied_event(self):
         response = _run(DummySuccessView, self.teacher)

@@ -1,0 +1,6 @@
+16 KILLED | Ran 148 tests in 10.555s FAILED (failures=1) | restore sha OK
+18 KILLED | Ran 148 tests in 10.162s FAILED (errors=1) | restore sha OK
+
+SUMMARY
+M-H273-16: KILLED | Ran 148 tests in 10.555s FAILED (failures=1) | restore sha OK
+M-H273-18: KILLED | Ran 148 tests in 10.162s FAILED (errors=1) | restore sha OK

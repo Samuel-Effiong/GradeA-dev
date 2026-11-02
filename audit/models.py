@@ -89,6 +89,11 @@ class AuditEvent(AppendOnlyModel):
                 fields=["retention_class", "occurred_at"], name="audit_retention_ix"
             ),
             models.Index(fields=["trace_id"], name="audit_trace_ix"),
+            models.Index(
+                fields=["target_id", "-occurred_at"],
+                name="audit_target_time_ix",
+                condition=Q(target_id__isnull=False),
+            ),
         ]
         constraints = [
             # A student is an actor whose identity, address and browser are

@@ -63,22 +63,22 @@ class TraceIdIsServerOwnedTests(APITestCase):
     def test_a_client_cannot_join_another_actions_trail(self):
         _, victim = self.failed_login()
 
-        response, event = self.failed_login(HTTP_X_REQUEST_ID=victim.trace_id.hex)
+        response, event = self.failed_login(HTTP_X_REQUEST_ID=str(victim.trace_id))
 
         self.assertNotEqual(event.trace_id, victim.trace_id)
         self.assertEqual(event.client_correlation_id, str(victim.trace_id))
-        self.assertNotEqual(response[REQUEST_ID_HEADER], victim.trace_id.hex)
+        self.assertNotEqual(response[REQUEST_ID_HEADER], str(victim.trace_id))
 
     def test_the_response_header_is_the_server_trace_id(self):
         response, event = self.failed_login(HTTP_X_REQUEST_ID=str(uuid.uuid4()))
 
-        self.assertEqual(response[REQUEST_ID_HEADER], event.trace_id.hex)
+        self.assertEqual(response[REQUEST_ID_HEADER], str(event.trace_id))
 
     def test_an_inbound_id_that_is_not_a_uuid_is_dropped(self):
         response, event = self.failed_login(HTTP_X_REQUEST_ID="support-ticket-42")
 
         self.assertIsNone(event.client_correlation_id)
-        self.assertEqual(response[REQUEST_ID_HEADER], event.trace_id.hex)
+        self.assertEqual(response[REQUEST_ID_HEADER], str(event.trace_id))
 
     def test_log_lines_carry_the_server_id_and_the_client_id_apart(self):
         """A line logged inside the request (here, by the login's own audit
@@ -106,7 +106,7 @@ class TraceIdIsServerOwnedTests(APITestCase):
             response, event = self.failed_login(HTTP_X_REQUEST_ID=client_id)
 
         self.assertEqual(len(records), 1)
-        self.assertEqual(records[0].request_id, event.trace_id.hex)
+        self.assertEqual(records[0].request_id, str(event.trace_id))
         self.assertEqual(records[0].client_request_id, client_id)
 
 
