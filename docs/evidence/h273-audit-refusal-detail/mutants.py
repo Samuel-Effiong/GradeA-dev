@@ -179,8 +179,11 @@ def sha(p):
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
 
+ONLY = set(sys.argv[1:])
 results, bad = [], False
 for mid, path, old, new in M:
+    if ONLY and mid not in ONLY:
+        continue
     p = pathlib.Path(path)
     orig = p.read_bytes()
     h = sha(p)

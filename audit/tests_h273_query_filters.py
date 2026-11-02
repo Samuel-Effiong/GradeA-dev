@@ -215,6 +215,41 @@ class TargetLabelTests(_Fixtures):
                 self.assertIsInstance(label, str)
                 self.assertTrue(len(label) > 0)
 
+    def test_every_target_type_the_code_writes_has_a_label(self):
+        """M-H273-16: every explicit target_type="X" in production code and
+        every history REGISTRY model is in the mapping (scanned, not pinned,
+        so a new emit site without a label fails here)."""
+        import pathlib
+        import re
+
+        from django.conf import settings
+
+        root = pathlib.Path(settings.BASE_DIR)
+        literal = re.compile(r'target_type="([A-Za-z]+)"')
+        written = set()
+        for app in (
+            "assignments",
+            "audit",
+            "billing",
+            "classrooms",
+            "dashboard",
+            "students",
+            "users",
+            "AutoGrader",
+        ):
+            for path in (root / app).rglob("*.py"):
+                name = path.name
+                if (
+                    "migrations" in path.parts
+                    or "tests" in path.parts
+                    or name.startswith(("tests", "test_"))
+                ):
+                    continue
+                written.update(literal.findall(path.read_text()))
+        written.update(t.model.rsplit(".", 1)[1] for t in history.REGISTRY)
+        self.assertIn("Assignment", written)  # the scan itself works
+        self.assertEqual(sorted(written - set(_TARGET_LABEL)), [])
+
 
 # ── target_name (School-only, scoped) ────────────────────────────────────
 
@@ -320,6 +355,23 @@ class TargetNameQueryCountTests(_Fixtures):
             target_id=self.school_a.id,
         )
         self.assertEqual(self._school_query_count(), 1)
+
+    def test_two_schools_both_named_from_one_query(self):
+        """M-H273-18: the batch resolves EVERY school on the page."""
+        _make_event(
+            school_id=self.school_a.id,
+            target_type="School",
+            target_id=self.school_a.id,
+        )
+        _make_event(
+            school_id=self.school_b.id,
+            target_type="School",
+            target_id=self.school_b.id,
+        )
+        self.assertEqual(self._school_query_count(), 1)
+        rows = rows_of(self.client.get(SUPER_ADMIN_URL))
+        names = sorted(r["target_name"] for r in rows if r["target_type"] == "School")
+        self.assertEqual(names, ["Alpha School H273", "Bravo School H273"])
 
     def test_five_school_events_still_one_school_query(self):
         for _ in range(5):
