@@ -524,6 +524,42 @@ removes the photo and will keep doing so. Not knowable from this repo: which
 of the two the frontend's remove button sends. If it sends multipart `""`,
 (e.2a) will break that button until the frontend switches to JSON `null`.
 
+**SM ruling (2026-11-02):** go. In multipart only, an empty `""`
+`profile_image` is ignored (200, photo kept). JSON `{"profile_image": null}`
+stays the removal path. **Frontend risk (SM is telling the owner):** if the
+remove button sends multipart `profile_image=""`, it stops removing the photo
+until the frontend sends JSON `null`.
+
+#### (e.2a) Expectations (written before the red run)
+
+Tests: `users/tests_h274_blank_photo_form_value.py`, class
+`BlankPhotoFormValueTests` (5 tests, PATCH `/users/<id>` with a real JWT, a
+photo stored in `setUp`).
+
+Red run, on the tip before the fix (no source change):
+`Ran 5 tests`, `FAILED (failures=2)`, no errors. The two failures are
+`test_an_empty_form_value_keeps_the_photo` and
+`test_an_empty_form_value_beside_other_fields_keeps_the_photo`, each with
+`'' != 'profile_pics/` (the photo name was cleared). The other three pass:
+`test_json_null_still_removes_the_photo`,
+`test_a_new_photo_in_a_form_still_replaces_the_old_one`,
+`test_a_json_empty_string_is_still_refused`.
+
+Fix: `CustomUserSerializer.to_internal_value` in `users/serializers.py`. When
+the input is a form (`rest_framework.utils.html.is_html_input`) and its only
+`profile_image` value is `""`, drop `profile_image` from the validated data.
+Seam: `users/serializers.py` only.
+
+Green: `Ran 5 tests`, `OK`; the (e.2) module stays `Ran 8 tests`, `OK`.
+
+Mutants (one per guard, disposable worktree, each must be KILLED):
+
+| Id | Mutation | Must fail |
+|---|---|---|
+| M-e2a.1 | `if blank_photo:` → `if False:` (never drop) | both empty-form-value tests, `'' != 'profile_pics/` |
+| M-e2a.2 | `== [""]` → `!= []` (drop any form photo) | `test_a_new_photo_in_a_form_still_replaces_the_old_one` |
+| M-e2a.3 | `html.is_html_input(data)` → `True` (JSON too) | `test_json_null_still_removes_the_photo` (ERROR, `AttributeError` on a dict's `getlist`) and `test_a_json_empty_string_is_still_refused` |
+
 ### (e.3) New password equal to current not refused (BUG-029)
 
 **Already checked** at `users/serializers.py:626`. Reword only.
