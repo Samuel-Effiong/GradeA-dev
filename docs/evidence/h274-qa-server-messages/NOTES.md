@@ -955,6 +955,28 @@ Expected on the fix: `Ran 20 tests`, `OK`. Expected on the pre-fix source
 (f8d28a64 tree with this test file, disposable worktree): the 4 Gate 5 tests
 FAIL with `500 != 400`, and the 2 concurrency tests FAIL on `errors != []`.
 
+### (b) Gate 3 and Gate 5 additions: results
+
+- **On the fix** (c9f61251): `Ran 20 tests`, `OK` (10.2 s). Log
+  `b/gate35_on_fix_c9f61251.txt`, sha256
+  `4f123ec02df301d4b434033c87419e8b0bf3d9e486a81b4e248afa545c77468a`.
+- **On the pre-fix source** (f8d28a64 tree plus the c9f61251 test file,
+  disposable worktree, removed afterwards, DB `test_h274_prefix_b` dropped
+  by the runner): `Ran 20 tests`, `FAILED (failures=33, errors=5)`. As
+  expected:
+  - the 4 Gate 5 tests FAIL with `500 != 400`;
+  - both concurrency tests FAIL in all 10 rounds (20 subtests) on
+    `errors != []` (`InvalidRequestError: No such customer`);
+  - the other 14 fail as in the first red run.
+
+  Log `b/gate35_on_prefix_f8d28a64.txt`, sha256
+  `84a928294d285fe5f4b1c52711d8405a3aca2e97e2ca512c6d479daaeadcce00`. That is the hash as committed; the pre-commit
+  trailing-whitespace hook stripped line ends from this log (raw before
+  the strip: `3616ff92cd1b34bf96f30fe30582006525936ff3d385a27dbd9d125f23634dde`).
+- No guard changed after the mutant battery (`billing/stripe_service.py` is
+  byte-identical, blob `0929e020…f453`), so per H3.4 the battery is not
+  rerun.
+
 ## Full regression (expectations, written before the run, 2026-11-02)
 
 Tip: c0bc0864 (branch `task/h274-qa-server-messages`, base beta f5d2d577).
