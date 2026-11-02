@@ -42,3 +42,26 @@ After the fix: OK (30).
 This red commit is made with SKIP=mypy (mypy: `is_active` is not a field
 yet), as SM accepted for a red commit only. Every later commit and the tip
 pass the full pre-commit with no SKIP.
+
+## Red results and a test correction (fixes-worker, 2026-11-02)
+
+Red run on 41d355d5: `Ran 30`, FAILED (failures=5, errors=43); all 30 tests
+appear among the 48 FAIL/ERROR headers (subtests add the rest). Kinds: 32
+FieldError, 5 TypeError, 5 KeyError, 5 wrong action ('STATE_CHANGE'), as
+written.
+
+The first green attempt showed two mistakes in the tests, not the code:
+- `Session.save()` runs `full_clean()`, which checks the new constraints in
+  Python (ValidationError) before the database is reached. The two DB-rule
+  tests now set the flag with `QuerySet.update()`, so they prove the database
+  constraint itself.
+- The concurrency test assumed 20 events per round. From round 2 on, the
+  previous round's winner is a no-op (no event) when it happens to run first,
+  and it can be seen twice as "previous" when it is marked again mid-round.
+  The test now asserts the exact chain: the previous ids are the last round's
+  winner plus every target, minus this round's winner, as a multiset; one
+  event per request that changed the flag.
+
+Expectation for the corrected tests on the pre-fix code (this commit, run in
+a detached worktree): every one of the 30 tests FAILs or ERRORs, none passes.
+This commit is made with SKIP=mypy (red only; `is_active` is not a field yet).

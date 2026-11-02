@@ -16,6 +16,7 @@ g. Every change of active session is one SESSION_ACTIVE_CHANGE event,
 """
 
 import threading
+from collections import Counter
 from datetime import timedelta
 
 from django.core.cache import cache
@@ -162,15 +163,19 @@ class TheFieldAndTheDatabaseRule(World, TestCase):
         self.assertIs(Session.objects.get(pk=self.fall.pk).is_active, False)
         self.assertEqual(self.active(), set())
 
+    # Session.save() runs full_clean(), which checks the constraints in
+    # Python first; .update() goes past it, so these reach the database.
     def test_two_active_sessions_in_one_school_are_refused(self):
         school_session(self.school_a, "Summer", is_active=True)
+        winter = school_session(self.school_a, "Winter")
         with self.assertRaises(IntegrityError), transaction.atomic():
-            school_session(self.school_a, "Winter", is_active=True)
+            Session.objects.filter(pk=winter.pk).update(is_active=True)
 
     def test_two_active_sessions_of_one_teacher_are_refused(self):
         own_session(self.solo, "Mine A", is_active=True)
+        mine_b = own_session(self.solo, "Mine B")
         with self.assertRaises(IntegrityError), transaction.atomic():
-            own_session(self.solo, "Mine B", is_active=True)
+            Session.objects.filter(pk=mine_b.pk).update(is_active=True)
 
     def test_each_scope_has_its_own_active_session(self):
         school_session(self.school_a, "A active", is_active=True)
@@ -496,23 +501,30 @@ class ConcurrentSwitchesEndWithExactlyOneActive(World, TransactionTestCase):
                 active = self.active(school=self.school_a)
                 self.assertEqual(len(active), 1)
                 changes = [e for e in _new_events(before) if e.action == CHANGE]
-                # Every request changed the flag (each marked a session that
-                # was inactive when it ran), so each is one event...
                 targets = {e.target_id for e in changes}
                 previous_ids = [
                     e.metadata["previous_active_session_id"] for e in changes
                 ]
-                self.assertEqual(len(changes), self.THREADS)
-                self.assertEqual(targets, self.term_ids)
-                # ...and they ran one after another: each saw a different
-                # previous session, the chain starts at the last round's
-                # winner and ends at this round's.
-                self.assertEqual(len(set(previous_ids)), self.THREADS)
-                self.assertEqual(
-                    set(previous_ids) | {str(next(iter(active)))},
-                    {str(pk) for pk in targets}
-                    | {str(previous.pk) if previous else None},
-                )
+                # One event per request that changed the flag: all 20, except
+                # that the last round's winner is a no-op when it runs first
+                # (it is still active then), so 19.
+                self.assertEqual(len(targets), len(changes))
+                if previous is None:
+                    self.assertEqual(targets, self.term_ids)
+                else:
+                    self.assertIn(
+                        targets, (self.term_ids, self.term_ids - {previous.pk})
+                    )
+                # They ran one after another, as a chain: the first saw the
+                # last round's winner, each later one the session marked just
+                # before it, and this round's winner is seen by none. So the
+                # previous ids are exactly that winner plus every target,
+                # minus this round's winner (the old winner twice when it is
+                # marked again mid-round).
+                expected = Counter(str(pk) for pk in targets)
+                expected[str(previous.pk) if previous else None] += 1
+                expected[str(next(iter(active)))] -= 1
+                self.assertEqual(Counter(previous_ids), +expected)
                 previous = Session.objects.get(pk=next(iter(active)))
 
     def test_individual_switches(self):
