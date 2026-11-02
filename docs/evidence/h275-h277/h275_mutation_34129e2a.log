@@ -1,0 +1,18 @@
+1 KILLED | Ran 27 tests in 4.921s FAILED (failures=9) | restore sha OK
+2 KILLED | Ran 27 tests in 5.176s FAILED (failures=21) | restore sha OK
+3 KILLED | Ran 27 tests in 5.284s FAILED (failures=5) | restore sha OK
+4 KILLED | Ran 27 tests in 5.409s FAILED (failures=1) | restore sha OK
+5 KILLED | Ran 27 tests in 4.720s FAILED (failures=1) | restore sha OK
+6 KILLED | Ran 27 tests in 5.193s FAILED (failures=1) | restore sha OK
+7 KILLED | Ran 27 tests in 7.090s FAILED (failures=1) | restore sha OK
+8 KILLED | Ran 27 tests in 4.857s FAILED (failures=5) | restore sha OK
+
+SUMMARY
+M-H275-1: KILLED | Ran 27 tests in 4.921s FAILED (failures=9) | restore sha OK
+M-H275-2: KILLED | Ran 27 tests in 5.176s FAILED (failures=21) | restore sha OK
+M-H275-3: KILLED | Ran 27 tests in 5.284s FAILED (failures=5) | restore sha OK
+M-H275-4: KILLED | Ran 27 tests in 5.409s FAILED (failures=1) | restore sha OK
+M-H275-5: KILLED | Ran 27 tests in 4.720s FAILED (failures=1) | restore sha OK
+M-H275-6: KILLED | Ran 27 tests in 5.193s FAILED (failures=1) | restore sha OK
+M-H275-7: KILLED | Ran 27 tests in 7.090s FAILED (failures=1) | restore sha OK
+M-H275-8: KILLED | Ran 27 tests in 4.857s FAILED (failures=5) | restore sha OK
