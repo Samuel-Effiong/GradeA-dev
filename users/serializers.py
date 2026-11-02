@@ -5,6 +5,7 @@ from django.core.validators import MinLengthValidator
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.utils import html
 from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
@@ -148,6 +149,18 @@ class CustomUserSerializer(serializers.ModelSerializer):
         invitation lookups) assumes stored emails are lowercase.
         """
         return value.lower().strip()
+
+    def to_internal_value(self, data):
+        # H-274 (e.2a), owner decision 2026-11-02: a form that sends an
+        # empty profile_image value keeps the stored photo. DRF would map
+        # "" to None (the model field is null=True) and so remove it. JSON
+        # {"profile_image": null} stays the way to remove the photo, and a
+        # 0-byte file is still refused (code "empty").
+        blank_photo = html.is_html_input(data) and data.getlist("profile_image") == [""]
+        attrs = super().to_internal_value(data)
+        if blank_photo:
+            attrs.pop("profile_image", None)
+        return attrs
 
     def get_is_system_generated_email(self, obj) -> bool:
         return bool(obj.email and str(obj.email).endswith("@student.local"))
