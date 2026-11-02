@@ -7,6 +7,10 @@ These tests keep that true. Each write path is driven through its own entry
 point, as in users/tests_h270_profile_webp.py: the user endpoint over HTTP
 with a real JWT, DirectAddStudentSerializer, SchoolWithAdminSerializer,
 StudentRegistrationCompletionSerializer and the admin user form.
+
+H-274 (e.2b): the refusal now reads the FILE_EMPTY text, "'{file_name}' is
+empty. Choose another file." (AutoGrader/reason_codes.py), at every door,
+in place of Django's "The submitted file is empty." The code stays "empty".
 """
 
 from io import BytesIO
@@ -22,6 +26,10 @@ from rest_framework.test import APIClient
 from users.tests_h270_profile_webp import ProfileWebPTestCase
 from users.tests_patch_password import make
 from users.tokens import EpochRefreshToken
+
+
+def _said_empty(name="face.png"):
+    return "'" + name + "' is empty. Choose another file."
 
 
 def _empty(name="face.png", content_type="image/png"):
@@ -51,21 +59,27 @@ class EmptyPhotoOverHttpTests(ProfileWebPTestCase):
             self.url, {"profile_image": upload}, format="multipart"
         )
 
-    def assertRefused(self, response):
+    def assertRefused(self, response, text=None):
         self.assertEqual(
             response.status_code, status.HTTP_400_BAD_REQUEST, response.content
         )
         body = response.json()
         self.assertIs(body["success"], False)
-        self.assertTrue(body["error"]["field_errors"]["profile_image"])
+        errors = body["error"]["field_errors"]["profile_image"]
+        self.assertTrue(errors)
+        if text is not None:
+            self.assertEqual(errors, [text])
 
     def test_a_zero_byte_photo_is_refused_and_nothing_is_stored(self):
-        self.assertRefused(self.patch(_empty()))
+        self.assertRefused(self.patch(_empty()), _said_empty())
         self.teacher.refresh_from_db()
         self.assertFalse(self.teacher.profile_image)
 
     def test_a_zero_byte_file_without_an_image_type_is_refused(self):
-        self.assertRefused(self.patch(_empty("face", "application/octet-stream")))
+        self.assertRefused(
+            self.patch(_empty("face", "application/octet-stream")),
+            _said_empty("face"),
+        )
         self.teacher.refresh_from_db()
         self.assertFalse(self.teacher.profile_image)
 
@@ -76,7 +90,7 @@ class EmptyPhotoOverHttpTests(ProfileWebPTestCase):
         before = self.teacher.profile_image.name
         self.assertTrue(default_storage.exists(before))
 
-        self.assertRefused(self.patch(_empty()))
+        self.assertRefused(self.patch(_empty()), _said_empty())
         self.teacher.refresh_from_db()
         self.assertEqual(self.teacher.profile_image.name, before)
         self.assertTrue(default_storage.exists(before))
@@ -91,6 +105,7 @@ class EmptyPhotoOverHttpTests(ProfileWebPTestCase):
 class EmptyPhotoAtEveryOtherDoorTests(ProfileWebPTestCase):
     def assertEmptyCode(self, errors):
         self.assertEqual([e.code for e in errors], ["empty"], errors)
+        self.assertEqual([str(e) for e in errors], [_said_empty()], errors)
 
     def test_direct_add_student_refuses_it(self):
         from classrooms.models import Course, Session
@@ -138,6 +153,6 @@ class EmptyPhotoAtEveryOtherDoorTests(ProfileWebPTestCase):
             files=MultiValueDict({"profile_image": [_empty()]}),
         )
         self.assertFalse(form.is_valid())
-        self.assertEqual(
-            [e.code for e in form.errors.as_data()["profile_image"]], ["empty"]
-        )
+        errors = form.errors.as_data()["profile_image"]
+        self.assertEqual([e.code for e in errors], ["empty"])
+        self.assertEqual([m for e in errors for m in e.messages], [_said_empty()])

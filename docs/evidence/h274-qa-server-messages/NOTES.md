@@ -499,6 +499,57 @@ removes it, is killed.
 (e.2b) will add an app-owned refusal with the FILE_EMPTY text. Its mutant
 will remove that new guard, and the text assertion will catch it.
 
+#### (e.2b) Expectations (written before the red run, 2026-11-02)
+
+Goal: a 0-byte profile photo is still refused (400) at all 5 doors, but the
+text is now (e.1)'s FILE_EMPTY message, "'{file_name}' is empty. Choose
+another file." (`AutoGrader/reason_codes.py`), in place of Django's "The
+submitted file is empty." The error code stays `empty`. This reuses (e.1)'s
+approved text; there is no new wording. It is a field error, not the coded
+FILE_EMPTY envelope, because these doors report per-field errors.
+
+Tests: the 8 (e.2) tests in `users/tests_h274_empty_profile_photo.py` now
+assert the exact text. The 3 zero-byte HTTP tests check
+`field_errors["profile_image"] == [text]`. The 4 serializer/form doors check
+code `["empty"]` and messages `[text]`. The non-image test is unchanged.
+
+Red run, on the tip with only the test change: `Ran 8 tests`,
+`FAILED (failures=7)`, no errors. Each failure shows
+`The submitted file is empty.` against the new text. Only
+`test_bytes_that_are_not_an_image_are_refused` passes.
+
+Fix (seam: `AutoGrader/image_formats.py`, `users/serializers.py`,
+`classrooms/serializers.py`, `users/admin.py`):
+
+- `ProfileImageField(serializers.ImageField)`: `to_internal_value` refuses
+  `size == 0` with the FILE_EMPTY text, code `empty`, before DRF's and
+  Django's own checks.
+- `ProfileImageFormField(forms.ImageField)`: the same in `to_python`, for
+  the admin form.
+- Wiring:
+  - `CustomUserSerializer.serializer_field_mapping` maps
+    `models.ImageField` to `ProfileImageField`.
+  - The 3 declared fields in `classrooms/serializers.py` (DirectAdd,
+    RegistrationCompletion, SchoolWithAdmin `admin_profile_image`) use
+    `ProfileImageField`.
+  - `_ProfileImageForm.Meta.field_classes` sets `profile_image` to
+    `ProfileImageFormField`.
+
+Green: `Ran 8 tests`, `OK`, and (e.2a) stays `Ran 5`, `OK`.
+
+Mutants (one per guard, disposable worktree, each must be KILLED; "old
+text" = `The submitted file is empty.`):
+
+| Id | Mutation | Must fail |
+|---|---|---|
+| M-e2b.1 | DRF guard `size == 0` → `False` | 3 zero-byte HTTP tests + 3 serializer doors, old text |
+| M-e2b.2 | form guard `size == 0` → `False` | `test_the_admin_user_form_refuses_it`, old text |
+| M-e2b.3 | drop `serializer_field_mapping` from `CustomUserSerializer` | the 3 zero-byte HTTP tests, old text |
+| M-e2b.4 | DirectAdd `ProfileImageField` → `serializers.ImageField` | `test_direct_add_student_refuses_it` |
+| M-e2b.5 | RegistrationCompletion → `serializers.ImageField` | `test_student_registration_completion_refuses_it` |
+| M-e2b.6 | SchoolWithAdmin → `serializers.ImageField` | `test_school_with_admin_refuses_it` |
+| M-e2b.7 | drop `field_classes` from `_ProfileImageForm.Meta` | `test_the_admin_user_form_refuses_it` |
+
 #### (e.2a) Owner decision and remove-photo survey (2026-11-02, read-only)
 
 Owner decision (via SM): an empty form value `profile_image=""` must leave the
