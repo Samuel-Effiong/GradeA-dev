@@ -2,7 +2,7 @@ import logging
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.validators import MinLengthValidator
-from django.db import transaction
+from django.db import models, transaction
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.utils import html
@@ -15,7 +15,7 @@ from rest_framework_simplejwt.serializers import (
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ErrorClass
 from AutoGrader.error_messages import describe_user_error
-from AutoGrader.image_formats import validate_image_format
+from AutoGrader.image_formats import ProfileImageField, validate_image_format
 from billing.serializers import CreditWalletSerializer
 from billing.services import AnalyticsService
 from classrooms.models import School
@@ -80,6 +80,12 @@ class CustomUserSerializer(serializers.ModelSerializer):
     # register_student, register_school_admin, license_service - assign
     # them on the model directly and never go through this serializer.
     PRIVILEGED_FIELDS = ("user_type", "school")
+
+    # H-274 (e.2b): profile_image refuses a 0-byte file with the FILE_EMPTY text.
+    serializer_field_mapping = {
+        **serializers.ModelSerializer.serializer_field_mapping,
+        models.ImageField: ProfileImageField,
+    }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -16,7 +16,7 @@ from assignments.serializers import (
     AssignmentListStudentSerializer,
 )
 from assignments.services import get_student_assignment_status
-from AutoGrader.image_formats import validate_image_format
+from AutoGrader.image_formats import ProfileImageField, validate_image_format
 from AutoGrader.tasks import send_email_task
 from billing.context import (
     clear_license_invitation_context,
@@ -652,7 +652,7 @@ class DirectAddStudentSerializer(serializers.Serializer):
         max_length=150, validators=[MinLengthValidator(2)], required=True
     )
     email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
-    profile_image = serializers.ImageField(
+    profile_image = ProfileImageField(
         required=False,
         allow_null=True,
         validators=[validate_image_format],
@@ -828,7 +828,7 @@ class StudentRegistrationCompletionSerializer(serializers.Serializer):
         validators=[MinLengthValidator(8)],
     )
     token = serializers.CharField(write_only=True)
-    profile_image = serializers.ImageField(
+    profile_image = ProfileImageField(
         required=False,
         allow_null=True,
         validators=[validate_image_format],
@@ -1015,7 +1015,7 @@ class SchoolWithAdminSerializer(serializers.Serializer):
         max_length=150, required=False, allow_blank=True
     )
 
-    admin_profile_image = serializers.ImageField(
+    admin_profile_image = ProfileImageField(
         required=False,
         allow_null=True,
         validators=[validate_image_format],
