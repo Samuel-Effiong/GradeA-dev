@@ -920,6 +920,36 @@ Remediation:
 
 ---
 
+## Full regression (expectations, written before the run, 2026-11-02)
+
+Tip: c0bc0864 (branch `task/h274-qa-server-messages`, base beta f5d2d577).
+
+Count without running: the Django runner's `build_suite([])` has 8587 tests
+at f5d2d577 (equal to batch 31 run 2's `Ran 8587`) and **8633** at c0bc0864,
+with 0 `_FailedTest`. The +46 are all in H-274 test modules:
+
+| Module | base | tip |
+|---|---|---|
+| `AutoGrader.tests_uploads` | 4 | 8 |
+| `billing.tests_h274_checkout_stale_customer` | 0 | 16 |
+| `classrooms.tests_h274_session_empty` | 0 | 7 |
+| `users.tests_h274_blank_photo_form_value` | 0 | 5 |
+| `users.tests_h274_empty_profile_photo` | 0 | 8 |
+| `users.tests_h274_sign_in_message` | 0 | 6 |
+
+`AutoGrader.tests_cache_invalidation_coverage` (20 tests) is in the default
+discovery, so the full run includes it.
+
+Command: batch 31's, run from the worktree root with the private `.venv`
+(requirements-dev now installed, see `venv.md`):
+`manage.py test --noinput --settings=settings_worktree --parallel 4`
+(DB `test_h274_qa_server_messages`, apart from SM's `test_AutoGrader_h276`),
+plus `mypy` and `makemigrations --check --dry-run`.
+
+Expected: **Ran 8633, OK, skipped=30.** None of the H-274 tests skips. The
+30 skip reasons are batch 31's (`beta-batch-31/run2_skips.txt`), all opt-in.
+mypy passes and makemigrations reports no changes.
+
 ## Summary table
 
 | Item | Touches RB files? | Scope | Status |
