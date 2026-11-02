@@ -143,3 +143,15 @@ Expected: **Ran 1079, OK**; skips only the opt-in reasons (real AI, load,
 network, the Redis fork tests); none of the H-278 tests skips. Plus
 `makemigrations --check` "No changes detected" and mypy (pre-commit, all
 files) Passed.
+
+## Mutant results (fixes-worker, 2026-11-02)
+
+**M-h278.1-12: 12/12 KILLED**, each by the tests named in the table (logs in
+`mutants/`); every file restored and its sha256 matched the committed blob.
+- M-h278.3 / .4 (no lock): the concurrency test failed in all 10 rounds
+  (no re-run needed).
+- M-h278.5 also kills the concurrency tests (a switch without the clear is
+  refused by `full_clean`).
+- M-h278.12 also kills `test_an_individual_switch`: with the sentinel branch
+  disabled, the emitter rejects the non-UUID `school_id` and writes no event.
+- Three logs are committed as `gzip -n -9` (over the large-file limit): M-h278.3 raw sha256 662ee577…d6cb, gz 91bbde16…7dc4; M-h278.4 raw 1dd4f19f…9bef, gz f81a6675…c620; M-h278.5 raw d7f08c21…1e7b, gz b81c4aa1…8622.
