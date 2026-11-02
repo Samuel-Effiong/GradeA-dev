@@ -920,6 +920,41 @@ Remediation:
 
 ---
 
+## (b) Gate 3 and Gate 5 additions (expectations, written before the run)
+
+Re-reading DOCTRINE H4 and H6 before the evidence turned up two gaps in the
+(b) tests. H4 asks for at least 20 simultaneous operations for at least 10
+rounds; I had 2 threads for 1 round. H6 asks for a failure injected at each
+step of the external calls. The tests change; the fix (1ec54b6c) does not.
+
+- `StaleCustomerConcurrencyTests` replaces the 2-thread tests:
+  - sites 1 and 3, **20 threads × 10 rounds** each, real PostgreSQL
+    (TransactionTestCase), `run_concurrently` (closes each thread's
+    connection and fails on a live thread after the join);
+  - each round sets its own stale id, and `FakeStripe(meet=20)` holds all
+    20 first attempts until every thread has failed on it;
+  - each round asserts: no errors; 20 sessions; 20 failed attempts on the
+    stale id plus 20 retries on the one new id; every `Customer.create` uses
+    that round's replacing key; the row ends on that one customer.
+- Gate 5, on sites 1 and 3, 2 tests each:
+  - `test_a_failed_replacement_gives_the_fallback_and_the_next_one_recovers`.
+    `Customer.create` fails, giving the fallback 400 and the row id `None`
+    (intentional). Then the next click hits the worst case: the plain key
+    replays the deleted customer. That attempt fails as missing, the heal
+    runs under the replacing key, and the result is 200 with keys
+    `[plain, replacing]`.
+  - `test_a_retry_timeout_gives_the_fallback_and_keeps_the_new_customer`.
+    The retry times out, giving the fallback 400, with the new id stored
+    (intentional, because it exists at Stripe). The next click gives 200 in
+    one session on that id, with no `Customer.create`.
+
+The module goes from 16 to **20** tests, and the full count from 8633 to
+**8637**.
+
+Expected on the fix: `Ran 20 tests`, `OK`. Expected on the pre-fix source
+(f8d28a64 tree with this test file, disposable worktree): the 4 Gate 5 tests
+FAIL with `500 != 400`, and the 2 concurrency tests FAIL on `errors != []`.
+
 ## Full regression (expectations, written before the run, 2026-11-02)
 
 Tip: c0bc0864 (branch `task/h274-qa-server-messages`, base beta f5d2d577).
@@ -946,7 +981,9 @@ Command: batch 31's, run from the worktree root with the private `.venv`
 (DB `test_h274_qa_server_messages`, apart from SM's `test_AutoGrader_h276`),
 plus `mypy` and `makemigrations --check --dry-run`.
 
-Expected: **Ran 8633, OK, skipped=30.** None of the H-274 tests skips. The
+Expected: **Ran 8633, OK, skipped=30.** (Superseded below: the Gate 3/5
+additions make it 8637; the run on 8b70c8b6 stands as a regression signal
+for the fix only.) None of the H-274 tests skips. The
 30 skip reasons are batch 31's (`beta-batch-31/run2_skips.txt`), all opt-in.
 mypy passes and makemigrations reports no changes.
 

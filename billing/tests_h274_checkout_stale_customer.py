@@ -85,14 +85,27 @@ class FakeStripe:
     ids are a function of the idempotency key, as Stripe's replay is.
     `meet` holds the first failure of each thread until `meet` threads have
     failed, so concurrent requests really do see the stale id together.
+    Failure injection (Gate 5): `customer_error` is raised by Customer.create,
+    `retry_error` by a Session.create whose customer is not missing, and
+    `replay` maps an idempotency key to the id Stripe would replay for it.
     """
 
     def __init__(
-        self, missing_customers=(STALE,), missing_all=False, error=None, meet=0
+        self,
+        missing_customers=(STALE,),
+        missing_all=False,
+        error=None,
+        meet=0,
+        customer_error=None,
+        retry_error=None,
+        replay=None,
     ):
         self.missing_customers = set(missing_customers)
         self.missing_all = missing_all
         self.error = error
+        self.customer_error = customer_error
+        self.retry_error = retry_error
+        self.replay = dict(replay or {})
         self.sessions = []
         self.customers = []
         self.lock = threading.Lock()
@@ -113,19 +126,29 @@ class FakeStripe:
                 self.met.add(me)
                 self.barrier.wait(timeout=30)
             raise missing("customer", customer)
+        if self.retry_error is not None:
+            raise self.retry_error
         return SimpleNamespace(id="cs_h274", url="https://checkout.stripe.test/cs_h274")
 
     def customer_create(self, **kwargs):
         with self.lock:
             self.customers.append(kwargs)
-        return SimpleNamespace(id=new_id_for(kwargs["idempotency_key"]))
+        if self.customer_error is not None:
+            raise self.customer_error
+        key = kwargs["idempotency_key"]
+        return SimpleNamespace(id=self.replay.get(key) or new_id_for(key))
+
+    def patches(self):
+        return [
+            patch.object(target, "create", side_effect=fn)
+            for target, fn in (
+                (stripe.checkout.Session, self.session_create),
+                (stripe.Customer, self.customer_create),
+            )
+        ]
 
     def start(self, test):
-        for target, fn in (
-            (stripe.checkout.Session, self.session_create),
-            (stripe.Customer, self.customer_create),
-        ):
-            p = patch.object(target, "create", side_effect=fn)
+        for p in self.patches():
             p.start()
             test.addCleanup(p.stop)
         return self
@@ -259,6 +282,48 @@ class IndividualCheckoutTests(Body):
         self.assertEqual(self.wallet_id(), STALE)
         self.assertEqual(len(fake.sessions), 1)
 
+    # Gate 5: failure injected at each step of the heal.
+
+    def test_a_failed_replacement_gives_the_fallback_and_the_next_one_recovers(self):
+        FakeStripe(
+            customer_error=stripe.error.APIConnectionError(f"timeout {STALE}")
+        ).start(self)
+
+        self.assertFallback(self.post())
+        # Intentional: the stale id is gone, no new one is stored.
+        self.assertIsNone(self.wallet_id())
+
+        # Worst case on the next click: the plain key replays the deleted
+        # customer (Stripe keeps a key for 24 hours). That attempt fails as
+        # missing, and the heal replaces it under the replacing key.
+        plain = f"customer-for-user-{self.user.id}"
+        fake = FakeStripe(replay={plain: STALE}).start(self)
+
+        response = self.post()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        key = f"{plain}-replacing-{STALE}"
+        self.assertEqual([c["idempotency_key"] for c in fake.customers], [plain, key])
+        self.assertEqual(self.wallet_id(), new_id_for(key))
+
+    def test_a_retry_timeout_gives_the_fallback_and_keeps_the_new_customer(self):
+        FakeStripe(
+            retry_error=stripe.error.APIConnectionError(f"timeout {STALE}")
+        ).start(self)
+
+        self.assertFallback(self.post())
+        # Intentional: the replacement exists at Stripe and is stored, so the
+        # next checkout uses it directly.
+        key = f"customer-for-user-{self.user.id}-replacing-{STALE}"
+        self.assertEqual(self.wallet_id(), new_id_for(key))
+
+        fake = FakeStripe().start(self)
+        response = self.post()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.assertEqual([s["customer"] for s in fake.sessions], [new_id_for(key)])
+        self.assertEqual(fake.customers, [])
+
 
 # ----------------------------------------------------------------------
 # Site 3: create_license_conversion_session, over HTTP (convert-to-stripe)
@@ -340,6 +405,40 @@ class LicenseConversionTests(Body):
 
         self.assertFallback(self.post())
         self.assertEqual(self.license_id(), STALE)
+
+    def test_a_failed_replacement_gives_the_fallback_and_the_next_one_recovers(self):
+        FakeStripe(
+            customer_error=stripe.error.APIConnectionError(f"timeout {STALE}")
+        ).start(self)
+
+        self.assertFallback(self.post())
+        self.assertIsNone(self.license_id())
+
+        plain = f"customer-for-license-{self.license_sub.id}"
+        fake = FakeStripe(replay={plain: STALE}).start(self)
+
+        response = self.post()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        key = f"{plain}-replacing-{STALE}"
+        self.assertEqual([c["idempotency_key"] for c in fake.customers], [plain, key])
+        self.assertEqual(self.license_id(), new_id_for(key))
+
+    def test_a_retry_timeout_gives_the_fallback_and_keeps_the_new_customer(self):
+        FakeStripe(
+            retry_error=stripe.error.APIConnectionError(f"timeout {STALE}")
+        ).start(self)
+
+        self.assertFallback(self.post())
+        key = f"customer-for-license-{self.license_sub.id}-replacing-{STALE}"
+        self.assertEqual(self.license_id(), new_id_for(key))
+
+        fake = FakeStripe().start(self)
+        response = self.post()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.assertEqual([s["customer"] for s in fake.sessions], [new_id_for(key)])
+        self.assertEqual(fake.customers, [])
 
 
 # ----------------------------------------------------------------------
@@ -483,45 +582,59 @@ class UpgradeCheckoutTests(TestCase):
 
 
 class StaleCustomerConcurrencyTests(TransactionTestCase):
-    def assertOneReplacement(self, fake, key, stored, results, errors):
-        self.assertEqual(errors, [])
-        self.assertEqual([r.id for r in results], ["cs_h274", "cs_h274"])
-        # Each request: one failed attempt on the stale id, one retry.
-        self.assertEqual(
-            sorted(s["customer"] for s in fake.sessions),
-            sorted([STALE, STALE, new_id_for(key), new_id_for(key)]),
-        )
-        # However many Customer.create calls, one key, so one customer.
-        self.assertTrue(fake.customers)
-        self.assertEqual({c["idempotency_key"] for c in fake.customers}, {key})
-        # No lost update: the row ends on that one customer.
-        self.assertEqual(stored(), new_id_for(key))
+    """DOCTRINE H4: 20 simultaneous checkouts on one stale id, 10 rounds, a
+    single outcome asserted every round. Each round uses its own stale id,
+    so its replacing key, and so its new customer, is its own."""
 
-    def test_two_individual_checkouts_replace_the_customer_once(self):
+    THREADS = 20
+    ROUNDS = 10
+
+    def run_rounds(self, reset, attempt, key_for, stored):
+        for r in range(self.ROUNDS):
+            stale = f"{STALE}r{r}"
+            reset(stale)
+            fake = FakeStripe(missing_customers=(stale,), meet=self.THREADS)
+            patches = fake.patches()
+            for p in patches:
+                p.start()
+            try:
+                results, errors = run_concurrently(attempt, self.THREADS, test=self)
+            finally:
+                for p in patches:
+                    p.stop()
+            key = key_for(stale)
+            with self.subTest(round=r):
+                self.assertEqual(errors, [])
+                self.assertEqual([x.id for x in results], ["cs_h274"] * self.THREADS)
+                # Each request: one failed attempt on the stale id, one retry
+                # on the one new customer.
+                self.assertEqual(
+                    sorted(s["customer"] for s in fake.sessions),
+                    sorted([stale] * self.THREADS + [new_id_for(key)] * self.THREADS),
+                )
+                # However many Customer.create calls, one key, so one customer.
+                self.assertTrue(fake.customers)
+                self.assertEqual({c["idempotency_key"] for c in fake.customers}, {key})
+                # No lost update: the row ends on that one customer.
+                self.assertEqual(stored(), new_id_for(key))
+
+    def test_twenty_individual_checkouts_replace_the_customer_once(self):
         user = make_user("h274-race@example.com", UserTypes.TEACHER)
         plan = make_individual_plan(PlanType.PRO, PlanTier.PRO, 2999, "price_h274")
-        CreditWallet.objects.update_or_create(
-            user=user, defaults={"stripe_customer_id": STALE}
-        )
-        fake = FakeStripe(meet=2).start(self)
+        CreditWallet.objects.get_or_create(user=user)
 
-        results, errors = run_concurrently(
+        self.run_rounds(
+            lambda stale: CreditWallet.objects.filter(user=user).update(
+                stripe_customer_id=stale
+            ),
             lambda i: StripeCheckoutService.create_individual_checkout_session(
                 CustomUser.objects.get(pk=user.pk), plan, **URLS
             ),
-            2,
-            test=self,
-        )
-
-        self.assertOneReplacement(
-            fake,
-            f"customer-for-user-{user.id}-replacing-{STALE}",
+            lambda stale: f"customer-for-user-{user.id}-replacing-{stale}",
             lambda: CreditWallet.objects.get(user=user).stripe_customer_id,
-            results,
-            errors,
         )
 
-    def test_two_license_conversions_replace_the_customer_once(self):
+    def test_twenty_license_conversions_replace_the_customer_once(self):
         school = School.objects.create(name="H274 Race School")
         admin = make_user("admin@h274-race.edu", UserTypes.SCHOOL_ADMIN, school=school)
         license_sub = LicenseSubscription.objects.create(
@@ -533,24 +646,17 @@ class StaleCustomerConcurrencyTests(TransactionTestCase):
             billing_cycle_start=timezone.now(),
             billing_cycle_end=timezone.now() + timedelta(days=30),
             is_active=True,
-            stripe_customer_id=STALE,
         )
-        fake = FakeStripe(meet=2).start(self)
 
-        results, errors = run_concurrently(
+        self.run_rounds(
+            lambda stale: LicenseSubscription.objects.filter(pk=license_sub.pk).update(
+                stripe_customer_id=stale
+            ),
             lambda i: StripeCheckoutService.create_license_conversion_session(
                 LicenseSubscription.objects.get(pk=license_sub.pk), None, **URLS
             ),
-            2,
-            test=self,
-        )
-
-        self.assertOneReplacement(
-            fake,
-            f"customer-for-license-{license_sub.id}-replacing-{STALE}",
+            lambda stale: f"customer-for-license-{license_sub.id}-replacing-{stale}",
             lambda: LicenseSubscription.objects.get(
                 pk=license_sub.pk
             ).stripe_customer_id,
-            results,
-            errors,
         )
