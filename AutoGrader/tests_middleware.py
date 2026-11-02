@@ -34,7 +34,7 @@ class RequestIDMiddlewareTests(SimpleTestCase):
         response = self._middleware(get_response)(request)
 
         self.assertIsNotNone(seen["request_id"])
-        self.assertEqual(len(seen["request_id"]), 32)
+        self.assertEqual(len(seen["request_id"]), 36)
         self.assertEqual(seen["contextvar_during_request"], seen["request_id"])
         self.assertEqual(response[REQUEST_ID_HEADER], seen["request_id"])
 
@@ -80,7 +80,7 @@ class RequestIDMiddlewareTests(SimpleTestCase):
         returned = response[REQUEST_ID_HEADER]
         self.assertNotIn("\n", returned)
         self.assertNotEqual(returned, "has a space\nand a newline")
-        self.assertEqual(len(returned), 32)
+        self.assertEqual(len(returned), 36)
 
     def test_generates_new_id_when_inbound_header_is_empty(self):
         def get_response(request):
@@ -89,7 +89,7 @@ class RequestIDMiddlewareTests(SimpleTestCase):
         request = self.factory.get("/", HTTP_X_REQUEST_ID="")
         response = self._middleware(get_response)(request)
 
-        self.assertEqual(len(response[REQUEST_ID_HEADER]), 32)
+        self.assertEqual(len(response[REQUEST_ID_HEADER]), 36)
 
     def test_contextvar_is_reset_after_response(self):
         def get_response(request):
@@ -141,4 +141,4 @@ class RequestIDMiddlewareTests(SimpleTestCase):
             request = self.factory.get("/")
             response = self._middleware(get_response)(request)
 
-        self.assertEqual(len(response[REQUEST_ID_HEADER]), 32)
+        self.assertEqual(len(response[REQUEST_ID_HEADER]), 36)

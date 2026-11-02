@@ -111,6 +111,8 @@ def custom_exception_handler(exc, context):
                 str(drf_response.data.get("detail", "")),
                 code_value=code_value,
             )
+            # H-273: the coded envelope's reason reaches the audit row too
+            drf_response._audit_reason_code = ReasonCode(reason_code).value
         elif isinstance(exc, Throttled) and isinstance(drf_response.data, dict):
             # The generic catch-all: every OTHER throttle (the global
             # defaults, the named AnonRateThrottle buckets in
@@ -127,6 +129,7 @@ def custom_exception_handler(exc, context):
                 str(drf_response.data.get("detail", "")),
                 params={"wait_seconds": round(exc.wait) if exc.wait is not None else 0},
             )
+            drf_response._audit_reason_code = ReasonCode.RATE_LIMITED.value
         drf_response._drf_handled = True  # marker for renderer
         return drf_response
 
