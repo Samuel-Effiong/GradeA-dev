@@ -1195,6 +1195,22 @@ Expected, for EACH of run 1 and run 2:
 - No migrations in the branch (`git diff f5d2d577 --stat -- '*/migrations/*'`
   empty): migration safety holds trivially.
 
+### Gate 10 on hold, and the runner copy (2026-11-02)
+
+- New owner rule (via SM grade-automator-plus-39): no full suite without the
+  owner's explicit go-ahead. A waiting loop of mine that would have started
+  run 1 was killed (pid 36603) before it started anything; no Gate 10 run has
+  happened. Its busy() check matched its own command line ("manage.py test")
+  and is not reused; the runner is started by hand.
+- `GAP-a0-runs/h274/strict_bundle.sh`, sha256
+  `8f7f21022f63876561e9213ce94e687032b57dc15e672e1ca7c180d2c4cf42f1`, was
+  written into an existing `GAP-a0-runs/h274/` folder without first looking
+  for an older `strict_bundle.sh` there; if one existed it was overwritten.
+  SM: a b31-identical copy (venv path and log folder only) is fine.
+- This note is a docs-only commit after e60d3769. Gate 10's two runs are on
+  the branch tip when the owner says go (docs-only after e60d3769; the code
+  under test is unchanged), not on e60d3769 itself.
+
 ## Summary table
 
 | Item | Touches RB files? | Scope | Status |
