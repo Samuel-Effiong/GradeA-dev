@@ -30,7 +30,7 @@ from users.models import (
     Waitlist,
 )
 from users.services import send_user_activation_email, stamp_last_login
-from users.tokens import EpochRefreshToken, assert_epoch_current
+from users.tokens import EpochRefreshToken, assert_epoch_current, assert_session_live
 
 logger = logging.getLogger(__name__)
 
@@ -605,6 +605,7 @@ class EpochTokenRefreshSerializer(TokenRefreshSerializer):
         if user is None:
             raise InvalidToken("Token contained no recognizable user identification")
         assert_epoch_current(refresh, user)
+        assert_session_live(refresh)
         return super().validate(attrs)
 
 

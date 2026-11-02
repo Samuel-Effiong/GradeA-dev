@@ -44,6 +44,7 @@ from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_stripe_error, stripe_error_label
 from AutoGrader.reason_codes import CodedError
 from billing.errors import BillingRequestError
+from billing.invoice_wording import invoice_description
 from classrooms.models import School
 from users.models import CustomUser
 
@@ -4034,7 +4035,9 @@ class StripeWebhookHandler:
                 stripe_invoice_id=invoice.get("id"),
                 stripe_subscription_id=stripe_subscription_id,
                 receipt_url=invoice.get("hosted_invoice_url"),
-                description=f"License Stripe invoice paid ({billing_reason})",
+                description=invoice_description(
+                    billing_reason=billing_reason, paid=True, license=True
+                ),
             )
 
             # Only act on actual renewal invoices, and never on a license
@@ -4127,7 +4130,9 @@ class StripeWebhookHandler:
                 stripe_invoice_id=invoice.get("id"),
                 stripe_subscription_id=stripe_subscription_id,
                 receipt_url=invoice.get("hosted_invoice_url"),
-                description=f"Subscription invoice paid ({billing_reason})",
+                description=invoice_description(
+                    billing_reason=billing_reason, paid=True, license=False
+                ),
             )
 
         # Does this invoice pay for time beyond the cycle we have already
@@ -4304,7 +4309,9 @@ class StripeWebhookHandler:
                 user_subscription=user_sub,
                 stripe_invoice_id=invoice.get("id"),
                 stripe_subscription_id=stripe_subscription_id,
-                description=f"Subscription invoice payment failed ({billing_reason})",
+                description=invoice_description(
+                    billing_reason=billing_reason, paid=False, license=False
+                ),
             )
 
             if user_sub.is_trial:
@@ -4352,7 +4359,9 @@ class StripeWebhookHandler:
                 license_subscription=license_sub,
                 stripe_invoice_id=invoice.get("id"),
                 stripe_subscription_id=stripe_subscription_id,
-                description=f"License invoice payment failed ({billing_reason})",
+                description=invoice_description(
+                    billing_reason=billing_reason, paid=False, license=True
+                ),
             )
 
             license_sub.stripe_status = StripeSubscriptionStatus.PAST_DUE
