@@ -1112,6 +1112,29 @@ the 8b70c8b6 full run, of the 85b0239c red run and of the pre-e.1 probe are
 gone. Their results are recorded above as read at the time; the 85b0239c red
 run is re-run at that exact commit in a detached worktree and committed.
 
+### (e.1a) Mutants (expectations, on 5f2be549, before any mutant run)
+
+Supersedes the three-mutant list under "(e.1a) Expectations" above (the
+scope grew). One mutant per opt-out and per new except, each run in a
+disposable detached worktree at 5f2be549, restored by sha256 against the
+committed blob. Labels for every mutant: `assignments.tests_h274_empty_upload_doors`,
+`students.tests_h274_empty_student_answer_doors`,
+`assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode`.
+
+| Mutant | Change | Expected killer(s) |
+|---|---|---|
+| M-e1a.1 | students/views.py upload: drop `allow_empty=True` | the 2 S6 tests FAIL |
+| M-e1a.2 | students/views.py upload-async: drop `allow_empty=True` | `TheAsyncStudentUploadKeepsS6` (2) FAIL |
+| M-e1a.3 | students/views.py batch-upload: drop `allow_empty=True` | `AnEmptyFileInABatchFailsAsItsItem` (2) FAIL |
+| M-e1a.4 | uploads.py: `if uploaded_file.size == 0:` (ignore allow_empty) | the 2 S6 + 4 student-door tests + `test_a_caller_may_leave...` FAIL/ERROR |
+| M-e1a.5 | uploads.py: default `allow_empty=True` | `test_by_default...` FAIL, plus the 4 teacher-door tests FAIL |
+| M-e1a.6 | assignments/views.py:942: `except PayloadTooLarge` only | `TheSyncTeacherUpload...` (2) FAIL |
+| M-e1a.7 | assignments/views.py:1134: `except PayloadTooLarge` only | `TheAsyncTeacherUpload...` (2) FAIL |
+
+Blob sha256 at 5f2be549: uploads.py `c40eef96dae938fa431bc3ba0c69d877abac784e237e0d8010ff1f24af900bcf`,
+students/views.py `404badf638f32228a1709d856a0073f716e4a6dc17214cd782b68814534ece6b`,
+assignments/views.py `132b98870a514f487e857abd6932b070e28ce9281d698b59a5106c26a43bf615`.
+
 ## Summary table
 
 | Item | Touches RB files? | Scope | Status |
