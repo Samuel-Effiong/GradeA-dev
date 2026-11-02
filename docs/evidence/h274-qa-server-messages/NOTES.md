@@ -322,6 +322,32 @@ and it is only used when `code == "resource_missing"` and
 - Site 2 heals per B2.
 - Site 4 passes no heal.
 
+### (b) Mutants (written before the mutant run, fix at 1ec54b6c)
+
+One line of `billing/stripe_service.py` changes per mutant. Each runs in a
+disposable worktree against `billing.tests_h274_checkout_stale_customer`
+only, and must be KILLED.
+
+| Id | Line | Mutation | Must fail (at least) |
+|---|---|---|---|
+| M1 | 346 | retry → `raise BillingRequestError(CHECKOUT_FAILED_MESSAGE)` (no retry) | heal tests, sites 1, 2, 3; both concurrency tests |
+| M2 | 316 | `_customer_key` → `return base` (reuse the original key) | site 1 and 3 heal key assertions; both concurrency tests |
+| M3 | 455 | wallet clear matches nothing (`stripe_customer_id="__never__"`) | site 1 heal + logging tests; individual concurrency test |
+| M3b | 471 | licence clear matches nothing | site 3 heal test; licence concurrency test |
+| M3c | 878 | site 2 row clear matches nothing | site 2 heal test (row not `None`) |
+| M4 | 329 | fallback carries Stripe's text (`+ " " + str(exc)`) | every fallback test (text and `cus_`/`No such` checks) |
+| M5 | 323 | `param == "customer"` check → `True` | the 3 missing-price tests |
+| M6 | 756 | site 1 `heal=heal` → `heal=None` | site 1 heal + logging tests; individual concurrency test |
+| M7 | 986 | site 3 `heal=heal` → `heal=None` | site 3 heal test; licence concurrency test |
+| M8 | 895 | site 2 heal → `None` | site 2 heal test |
+| M9 | 889 | site 2 retry `customer_email` → `None` | site 2 heal test |
+| M10 | 1545 | site 4 unwrapped (call `Session.create` directly) | both site 4 tests (ERROR, raw Stripe error) |
+
+Site 4 has no heal mutant. Under B1 it has no heal to break: "site 4 never
+heals" is the absence of a `heal=` argument, and
+`test_a_missing_customer_is_not_healed_here` pins it with 1 session, no
+`Customer.create` and the wallet unchanged.
+
 ---
 
 ## (c) Invoice descriptions — backfill command (BUG-013)
