@@ -153,3 +153,17 @@ class PruneTests(_Base):
         RevokedSession.objects.update(revoked_at=timezone.now() - timedelta(days=30))
         self.logout(self.login())
         self.assertEqual(RevokedSession.objects.count(), 1)
+
+
+class RefreshGuardTests(_Base):
+    def test_a_revoked_session_cannot_refresh_even_with_an_unblacklisted_token(self):
+        """Two refreshes racing on one token can leave a second, never
+        blacklisted refresh token for the same session. Once that session is
+        signed out, the refresh endpoint itself must refuse it."""
+        from users.tokens import revoke_session, session_id_of
+
+        tokens = self.login()
+        revoke_session(self.user, session_id_of(claims(tokens["refresh"])))
+        self.assertEqual(
+            self.refresh(tokens["refresh"]).status_code, status.HTTP_401_UNAUTHORIZED
+        )

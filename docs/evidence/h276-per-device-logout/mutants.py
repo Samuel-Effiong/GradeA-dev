@@ -112,5 +112,5 @@ for mid, path, old, new in M:
     print(mid, results[-1][1], flush=True)
 print("\nSUMMARY")
 for mid, v in results:
-    print(f"M-H273-{mid}: {v}")
+    print(f"M-H276-{mid}: {v}")
 sys.exit(1 if bad or any("SURVIVED" in v for _, v in results) else 0)
