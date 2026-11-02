@@ -585,7 +585,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
             )
 
-        validate_upload_size(uploaded_file)
+        # S6: an unsupported type is refused first (415), then an empty
+        # answer (422 SUBMISSION_EMPTY), so the 0-byte check is left to them.
+        validate_upload_size(uploaded_file, allow_empty=True)
 
         # Refuse before any file processing or AI spend when the student is
         # already locked out of this assignment (graded, or out of
