@@ -44,7 +44,7 @@ from rest_framework.response import Response
 
 from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
-from audit.emitter import emit
+from audit.emitter import NO_SCHOOL, emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
 from AutoGrader.cache_generation import (
     SCOPE_COURSE,
@@ -2112,7 +2112,9 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         or the teacher's user row) is locked first, so concurrent switches
         run one after another and the database's one-active constraint is
         never hit. A change of the flag is one SESSION_ACTIVE_CHANGE event,
-        which stands in for the request's generic STATE_CHANGE row.
+        which stands in for the request's generic STATE_CHANGE row. The
+        INDIVIDUAL lock (the teacher's user row) also makes any other write
+        that locks that row wait for the switch.
         """
         wanted = serializer.validated_data.get("is_active")
         if wanted is None:
@@ -2148,7 +2150,13 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 request=self.request,
                 target_type="Session",
                 target_id=session.pk,
-                school_id=session.school_id,
+                # SM ruling: a SCHOOL session's school; an INDIVIDUAL
+                # session belongs to none (never the actor's school).
+                school_id=(
+                    session.school_id
+                    if session.owner_type == SessionOwnerType.SCHOOL
+                    else NO_SCHOOL
+                ),
                 metadata={
                     "changed_fields": ["is_active"],
                     "is_active": bool(wanted),
