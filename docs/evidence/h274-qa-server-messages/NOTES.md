@@ -1135,6 +1135,21 @@ Blob sha256 at 5f2be549: uploads.py `c40eef96dae938fa431bc3ba0c69d877abac784e237
 students/views.py `404badf638f32228a1709d856a0073f716e4a6dc17214cd782b68814534ece6b`,
 assignments/views.py `132b98870a514f487e857abd6932b070e28ce9281d698b59a5106c26a43bf615`.
 
+### (e.1a) Results (fixes-worker, 2026-11-02)
+
+- Red at 85b0239c (re-run there in a detached worktree after the scratchpad
+  loss; `e1a/red_run_85b0239c.txt`): FAILED (failures=2, errors=2), as written.
+- Fix e241c9c0 (588): the two S6 tests green.
+- Red at 786f9e11 (`e1a/red_run_786f9e11.txt`): FAILED (failures=4), as written.
+  Fix 219550e0 (692, 1464): green.
+- Red at fcf4308f (`e1a/red_run_fcf4308f.txt`): FAILED (failures=4), the three
+  unit tests pass, as written. Fix 5f2be549 (942, 1134): green; 67 tests over
+  the touched modules (upload doors, batch billing, S6, S7a, uploads) OK.
+- Mutants M-e1a.1-7 at 5f2be549: **7/7 KILLED**, each by exactly the tests
+  named in the table (logs in `e1a/mutants/`); every file restored and its
+  sha256 matched the committed blob.
+- Commits after 85b0239c pass the full pre-commit, no SKIP.
+
 ## Summary table
 
 | Item | Touches RB files? | Scope | Status |
@@ -1143,7 +1158,7 @@ assignments/views.py `132b98870a514f487e857abd6932b070e28ce9281d698b59a5106c26a4
 | (b) checkout Stripe errors | No | `billing/stripe_service.py` (4 sites) | Sites 1/3 heal, site 2 heals by email (B2), site 4 wrapped (B1); red as written; M1–M10 (12) KILLED |
 | (c) invoice descriptions | No | — | **Owner: won't change** (BUG-013 closed for backfilled rows); no code change; Q4 with owner |
 | (d) session 500 | No | — | **Cannot reproduce** (all 400); no code change |
-| (e.1) empty PDF | No | `AutoGrader/uploads.py` + new ReasonCode | Ready to code |
+| (e.1) empty PDF | No | `AutoGrader/uploads.py` + new ReasonCode | FILE_EMPTY 400; (e.1a) per SM ruling A: student doors keep S6/S7a (`allow_empty=True`), teacher doors fail it per item; M-e1a.1-7 KILLED |
 | (e.2) empty photo | No | test only: `users/tests_h274_empty_profile_photo.py` | **Refused server-side** (0-byte → 400 at all 5 doors); no code change; `""` clears photo — open for SM |
 | (e.2a) empty form photo value | No | `users/serializers.py` | Owner: `""` keeps the photo, JSON `null` removes; red as written, M-e2a.1–3 KILLED; frontend risk with owner |
 | (e.2b) empty-photo text | No | `AutoGrader/image_formats.py`, `users/serializers.py`, `classrooms/serializers.py`, `users/admin.py` | FILE_EMPTY text at all 5 doors (code `empty`); red as written, M-e2b.1–7 KILLED |

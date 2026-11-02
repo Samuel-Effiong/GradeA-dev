@@ -1,0 +1,185 @@
+M-e1a.2: students/views.py
+- 'validate_upload_size(uploaded_file, allow_empty=True)\n\n        # Same early refusal'
++ 'validate_upload_size(uploaded_file)\n\n        # Same early refusal'
+rc=1
+
+Found 26 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user fa34e821-7cf1-4f51-9ed6-4dd5efb94969.
+Cannot activate automatic trial for user fa34e821-7cf1-4f51-9ed6-4dd5efb94969 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/.venv/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+Upload door could not estimate blank.pdf: PayloadEmpty
+Upload door could not estimate blank2.pdf: PayloadEmpty
+
+
+students.task_tracking ERROR 2026-11-02 16:57:23,069 task_tracking 26457 123382686260160 [request_id=88e166dee10b4265ad9cdcd411f4daf9 client_request_id=-] Background task 2649186f-9551-4dbd-9337-e7c10d496e7a failed: error=PayloadEmpty frames=views.py:1134:upload_assignment_async <- uploads.py:70:validate_upload_size
+
+
+
+
+students.task_tracking ERROR 2026-11-02 16:57:23,078 task_tracking 26457 123382686260160 [request_id=88e166dee10b4265ad9cdcd411f4daf9 client_request_id=-] Background task 0ef76f16-fcbd-4b86-b997-104541a81a5e failed: error=PayloadEmpty frames=views.py:1134:upload_assignment_async <- uploads.py:70:validate_upload_size
+
+
+Upload door could not estimate big.pdf: PayloadTooLarge
+Upload door could not estimate big2.pdf: PayloadTooLarge
+
+
+students.task_tracking ERROR 2026-11-02 16:57:23,109 task_tracking 26457 123382686260160 [request_id=9d7c4c0cdbc14b28956a18307104b05a client_request_id=-] Background task 1e33d927-3197-4ae8-95c2-bf895edfd90a failed: error=PayloadTooLarge frames=views.py:1134:upload_assignment_async <- uploads.py:74:validate_upload_size
+
+
+
+
+students.task_tracking ERROR 2026-11-02 16:57:23,117 task_tracking 26457 123382686260160 [request_id=9d7c4c0cdbc14b28956a18307104b05a client_request_id=-] Background task 64948278-cc5d-44bf-b9a1-8389db5fcbd1 failed: error=PayloadTooLarge frames=views.py:1134:upload_assignment_async <- uploads.py:74:validate_upload_size
+
+
+.Free trial plan not found: no trial activated for user 97210e78-19aa-436e-a598-833442ddbeee.
+Cannot activate automatic trial for user 97210e78-19aa-436e-a598-833442ddbeee (validation): ValueError
+Upload door could not estimate blank.pdf: PayloadEmpty
+
+
+students.task_tracking ERROR 2026-11-02 16:57:23,784 task_tracking 26457 123382686260160 [request_id=abefdcc043004f9a94cd4820827f2ed2 client_request_id=-] Background task 50d0a3b8-4eb6-41cc-b11e-379508e98b81 failed: error=PayloadEmpty frames=views.py:1134:upload_assignment_async <- uploads.py:70:validate_upload_size
+
+
+.Free trial plan not found: no trial activated for user 5091ff1c-0235-4979-ad6c-4fae6ec0ada7.
+Cannot activate automatic trial for user 5091ff1c-0235-4979-ad6c-4fae6ec0ada7 (validation): ValueError
+Upload door could not estimate blank.png: PayloadEmpty
+
+
+students.task_tracking ERROR 2026-11-02 16:57:24,319 task_tracking 26457 123382686260160 [request_id=6d27f85e100e4a6cbc9862a53ded17cb client_request_id=-] Background task e6fa3223-6d42-48a5-a54a-25fe842b3db1 failed: error=SubmissionEmptyError frames=tasks.py:1048:upload_answers_engine_async <- services.py:598:prepare_ai_content
+
+
+.Free trial plan not found: no trial activated for user a9e88f52-ad4d-4fca-9ea0-0b9dd24548f4.
+Cannot activate automatic trial for user a9e88f52-ad4d-4fca-9ea0-0b9dd24548f4 (validation): ValueError
+Upload door could not estimate blank.txt: PayloadEmpty
+
+
+students.task_tracking ERROR 2026-11-02 16:57:24,810 task_tracking 26457 123382686260160 [request_id=15346930ad06457791596262c547f0af client_request_id=-] Background task 3bf549eb-50ab-4ed9-ae8c-27aa5c33cdbe failed: error=FileTypeUnsupportedError frames=tasks.py:1048:upload_answers_engine_async <- services.py:590:prepare_ai_content
+
+
+.Free trial plan not found: no trial activated for user a2c135f7-e94a-4307-8599-428e155febb3.
+Cannot activate automatic trial for user a2c135f7-e94a-4307-8599-428e155febb3 (validation): ValueError
+API request failed with FILE_EMPTY: 'blank.png' is empty. Choose another file.
+FFree trial plan not found: no trial activated for user 4cec5e5b-83ea-4875-b2b6-ed89e6f2f9a3.
+Cannot activate automatic trial for user 4cec5e5b-83ea-4875-b2b6-ed89e6f2f9a3 (validation): ValueError
+API request failed with FILE_EMPTY: 'blank.txt' is empty. Choose another file.
+FFree trial plan not found: no trial activated for user f5c1e39d-c0e7-493e-b56f-d4c7e08257c1.
+Cannot activate automatic trial for user f5c1e39d-c0e7-493e-b56f-d4c7e08257c1 (validation): ValueError
+Free trial plan not found: no trial activated for user 8e4ca664-aa2e-4478-bdf6-d7f1bdcb1a2e.
+Cannot activate automatic trial for user 8e4ca664-aa2e-4478-bdf6-d7f1bdcb1a2e (validation): ValueError
+API request failed with FILE_UNREADABLE: We couldn't read answers.pdf. It may be damaged, password-protected or incomplete.
+.Free trial plan not found: no trial activated for user 84919716-e4b0-4628-9e93-580ca9303ab8.
+Cannot activate automatic trial for user 84919716-e4b0-4628-9e93-580ca9303ab8 (validation): ValueError
+Free trial plan not found: no trial activated for user 8df73166-0575-4e05-926f-9eb772f65f5d.
+Cannot activate automatic trial for user 8df73166-0575-4e05-926f-9eb772f65f5d (validation): ValueError
+API request failed with FILE_UNREADABLE: We couldn't read answers.pdf. It may be damaged, password-protected or incomplete.
+.Free trial plan not found: no trial activated for user 926bc30a-c95d-49df-9290-bf683b8c44c5.
+Cannot activate automatic trial for user 926bc30a-c95d-49df-9290-bf683b8c44c5 (validation): ValueError
+Free trial plan not found: no trial activated for user 93a92f7f-05af-4961-ba44-87aafcebc2a3.
+Cannot activate automatic trial for user 93a92f7f-05af-4961-ba44-87aafcebc2a3 (validation): ValueError
+API request failed with SUBMISSION_EMPTY: blank.pdf has no student answers to grade.
+.Free trial plan not found: no trial activated for user 9edd6b9e-bf1f-4f10-9c86-688f1cf18f17.
+Cannot activate automatic trial for user 9edd6b9e-bf1f-4f10-9c86-688f1cf18f17 (validation): ValueError
+Free trial plan not found: no trial activated for user 47762ca8-7089-45e5-a79d-1f05bb4b8e54.
+Cannot activate automatic trial for user 47762ca8-7089-45e5-a79d-1f05bb4b8e54 (validation): ValueError
+API request failed with FILE_NOT_A_PDF: photo.pdf is not a PDF. If it is a photo or scan, upload it as an image instead.
+.Free trial plan not found: no trial activated for user 384c5434-8775-4a13-9d7a-65b3fb4628db.
+Cannot activate automatic trial for user 384c5434-8775-4a13-9d7a-65b3fb4628db (validation): ValueError
+Free trial plan not found: no trial activated for user 19f4e76a-65c0-4d86-8692-9c51303b3643.
+Cannot activate automatic trial for user 19f4e76a-65c0-4d86-8692-9c51303b3643 (validation): ValueError
+API request failed with FILE_TYPE_UNSUPPORTED: notes.txt is a TXT file, which isn't supported. Accepted types: PDF, JPEG, PNG, GIF, WebP.
+.Free trial plan not found: no trial activated for user 09b8c839-3271-4edc-ac1f-8557116ee0dc.
+Cannot activate automatic trial for user 09b8c839-3271-4edc-ac1f-8557116ee0dc (validation): ValueError
+Free trial plan not found: no trial activated for user 2ed9934a-5e53-4ee9-af46-5ce79f739f69.
+Cannot activate automatic trial for user 2ed9934a-5e53-4ee9-af46-5ce79f739f69 (validation): ValueError
+API request failed with FILE_UNREADABLE: We couldn't read answers.pdf. It may be damaged, password-protected or incomplete.
+.Free trial plan not found: no trial activated for user 712ace5e-3a03-4931-bd0d-9900d7cfebc4.
+Cannot activate automatic trial for user 712ace5e-3a03-4931-bd0d-9900d7cfebc4 (validation): ValueError
+Free trial plan not found: no trial activated for user 7c42b704-ff8c-4c6e-ab92-81bfc19078b3.
+Cannot activate automatic trial for user 7c42b704-ff8c-4c6e-ab92-81bfc19078b3 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/.venv/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request failed with FILE_TYPE_UNSUPPORTED: answers is a application/zip file, which isn't supported. Accepted types: PDF, JPEG, PNG, GIF, WebP.
+.Free trial plan not found: no trial activated for user 784a322c-e67f-4199-b1b9-d5ccd2ac9614.
+Cannot activate automatic trial for user 784a322c-e67f-4199-b1b9-d5ccd2ac9614 (validation): ValueError
+Free trial plan not found: no trial activated for user 57805019-7c8e-4564-a446-4194f5ab58c3.
+Cannot activate automatic trial for user 57805019-7c8e-4564-a446-4194f5ab58c3 (validation): ValueError
+API request failed with SUBMISSION_EMPTY: blank.png has no student answers to grade.
+.Free trial plan not found: no trial activated for user 2c339426-e9b5-49db-88ea-0578aae1778f.
+Cannot activate automatic trial for user 2c339426-e9b5-49db-88ea-0578aae1778f (validation): ValueError
+Free trial plan not found: no trial activated for user 72e9a04f-b4b7-4674-bc08-520221e9ce41.
+Cannot activate automatic trial for user 72e9a04f-b4b7-4674-bc08-520221e9ce41 (validation): ValueError
+API request failed with FILE_TYPE_UNSUPPORTED: blank.txt is a TXT file, which isn't supported. Accepted types: PDF, JPEG, PNG, GIF, WebP.
+.Free trial plan not found: no trial activated for user fc0c921a-f026-45eb-b306-ba46d585dadd.
+Cannot activate automatic trial for user fc0c921a-f026-45eb-b306-ba46d585dadd (validation): ValueError
+Free trial plan not found: no trial activated for user 46d9c366-1dea-4309-ac7f-fcaf4328f969.
+Cannot activate automatic trial for user 46d9c366-1dea-4309-ac7f-fcaf4328f969 (validation): ValueError
+API request failed with FILE_TOO_LARGE: scan.png is 6.5 MB even after compression and the limit is 5 MB.
+API request failed with FILE_TOO_LARGE: scan.pdf is 6.5 MB even after compression and the limit is 5 MB.
+.Free trial plan not found: no trial activated for user dbff1084-5318-4d44-b258-e5f0b716ffa4.
+Cannot activate automatic trial for user dbff1084-5318-4d44-b258-e5f0b716ffa4 (validation): ValueError
+Free trial plan not found: no trial activated for user 21203b01-794a-40dc-8c75-93518ea65e32.
+Cannot activate automatic trial for user 21203b01-794a-40dc-8c75-93518ea65e32 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/.venv/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request failed with FILE_UNREADABLE: We couldn't read scan.png. It may be damaged, password-protected or incomplete.
+.Free trial plan not found: no trial activated for user 0a4d0322-8cae-421f-bef8-0116fd0080eb.
+Cannot activate automatic trial for user 0a4d0322-8cae-421f-bef8-0116fd0080eb (validation): ValueError
+Free trial plan not found: no trial activated for user 7fbb23a8-ef41-4009-b10a-c1f00034728e.
+Cannot activate automatic trial for user 7fbb23a8-ef41-4009-b10a-c1f00034728e (validation): ValueError
+API request failed with FILE_TOO_LARGE: scan.png is too large even after compression and the limit is 4 MB.
+.Free trial plan not found: no trial activated for user 0c4dd803-2cd8-4b2e-b32d-1faca2037fd3.
+Cannot activate automatic trial for user 0c4dd803-2cd8-4b2e-b32d-1faca2037fd3 (validation): ValueError
+Free trial plan not found: no trial activated for user 28a23b63-cafe-4676-9a31-2b34fdeb78dc.
+Cannot activate automatic trial for user 28a23b63-cafe-4676-9a31-2b34fdeb78dc (validation): ValueError
+API request failed with FILE_TOO_LARGE: big.pdf is 3.0 MB and the limit is 1 MB.
+.Free trial plan not found: no trial activated for user 7d610379-a9b9-41e8-b2b1-c7a13e9924ff.
+Cannot activate automatic trial for user 7d610379-a9b9-41e8-b2b1-c7a13e9924ff (validation): ValueError
+Free trial plan not found: no trial activated for user 35083443-2f65-4e9b-b3b2-bedc56028f83.
+Cannot activate automatic trial for user 35083443-2f65-4e9b-b3b2-bedc56028f83 (validation): ValueError
+API request failed with FILE_TOO_LARGE: long.pdf is 3 pages and the limit is 2 pages.
+.Free trial plan not found: no trial activated for user 6feb3a5f-15f6-4ae7-bcc8-7cfa5a9ed267.
+Cannot activate automatic trial for user 6feb3a5f-15f6-4ae7-bcc8-7cfa5a9ed267 (validation): ValueError
+Free trial plan not found: no trial activated for user 1a5ff88d-05f0-43ec-8ac4-ec0d6c83e8ca.
+Cannot activate automatic trial for user 1a5ff88d-05f0-43ec-8ac4-ec0d6c83e8ca (validation): ValueError
+API request failed with FILE_TOO_LARGE: huge.png is 200x120 px and the limit is 0.02 MP.
+....Free trial plan not found: no trial activated for user 7dc711ec-89fe-436f-94bb-43286b4ec14d.
+Cannot activate automatic trial for user 7dc711ec-89fe-436f-94bb-43286b4ec14d (validation): ValueError
+.Free trial plan not found: no trial activated for user a89d5771-5bfa-400a-8f52-440cac08be9b.
+Cannot activate automatic trial for user a89d5771-5bfa-400a-8f52-440cac08be9b (validation): ValueError
+.
+======================================================================
+FAIL: test_a_zero_byte_answer_is_submission_empty (students.tests_h274_empty_student_answer_doors.TheAsyncStudentUploadKeepsS6.test_a_zero_byte_answer_is_submission_empty)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/students/tests_h274_empty_student_answer_doors.py", line 43, in test_a_zero_byte_answer_is_submission_empty
+    self.assertTaskFailedWith(
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/students/tests_h274_empty_student_answer_doors.py", line 37, in assertTaskFailedWith
+    self.assertEqual(response.status_code, 200, response.content[:400])
+AssertionError: 400 != 200 : b'{"success":false,"message":"\'blank.png\' is empty. Choose another file.","error":{"field_errors":{"error":"\'blank.png\' is empty. Choose another file.","reason_code":"FILE_EMPTY","error_class":"USER","remediation":"Select a file that has content, then upload it again.","retryable":false,"params":{"file_name":"blank.png"},"reference":"87cb55ea1f544c1592a1fdb119e2a44c"}}}'
+
+======================================================================
+FAIL: test_an_empty_file_of_an_unsupported_type_is_the_type_first (students.tests_h274_empty_student_answer_doors.TheAsyncStudentUploadKeepsS6.test_an_empty_file_of_an_unsupported_type_is_the_type_first)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/students/tests_h274_empty_student_answer_doors.py", line 48, in test_an_empty_file_of_an_unsupported_type_is_the_type_first
+    self.assertTaskFailedWith(
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/students/tests_h274_empty_student_answer_doors.py", line 37, in assertTaskFailedWith
+    self.assertEqual(response.status_code, 200, response.content[:400])
+AssertionError: 400 != 200 : b'{"success":false,"message":"\'blank.txt\' is empty. Choose another file.","error":{"field_errors":{"error":"\'blank.txt\' is empty. Choose another file.","reason_code":"FILE_EMPTY","error_class":"USER","remediation":"Select a file that has content, then upload it again.","retryable":false,"params":{"file_name":"blank.txt"},"reference":"4a44e14d7fef41f3ab0c99e279864e17"}}}'
+
+----------------------------------------------------------------------
+Ran 26 tests in 8.550s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...
