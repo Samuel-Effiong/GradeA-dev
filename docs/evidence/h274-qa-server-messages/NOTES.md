@@ -887,6 +887,20 @@ response text.
 
 ---
 
+### (f) Gap in d297ddbf: one test kept an old text (found 2026-11-02)
+
+d297ddbf reworded (e.3), (f.1), (f.2) and (f.3) in source but left
+`billing/tests/test_refusal_handling.py:78` `GENERIC_CREDITS_MESSAGE` on the
+old (f.2) text, so 26 subtests failed (D10, D11, D2D3, D4) in a billing run.
+With SM's approval, a test-only commit sets it to the approved (f.2) text. No
+source change. After it, `billing.tests.test_refusal_handling`: `Ran 19`,
+`OK`.
+
+A `git grep` of every file for the four old texts found no other test.
+The only other hit is `users/views.py:1619`, the OpenAPI description
+"Incorrect current password, or invalid/expired OTP". That is schema
+documentation, not a response text, so it is left as is.
+
 ## (g) Credit-limit text (H-268) — confirm only, NO CHANGE
 
 **Code path:** `AutoGrader/reason_codes.py:280–301`

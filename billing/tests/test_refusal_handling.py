@@ -76,8 +76,8 @@ PAYMENT_REQUIRED, CREDITS_CODE = (
     "insufficient_credits",
 )
 GENERIC_CREDITS_MESSAGE = (
-    "There aren't enough AI credits available for this. The credit wallet "
-    "needs to be topped up before it can run."
+    "There aren't enough AI credits to do this. Top up your credits or ask "
+    "your school administrator, then try again."
 )
 
 # Fragments of every InsufficientCreditsError text on b744c9f that carry
