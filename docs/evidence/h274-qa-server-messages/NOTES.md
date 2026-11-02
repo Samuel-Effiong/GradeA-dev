@@ -464,6 +464,31 @@ removes it, is killed.
 (e.2b) will add an app-owned refusal with the FILE_EMPTY text. Its mutant
 will remove that new guard, and the text assertion will catch it.
 
+#### (e.2a) Owner decision and remove-photo survey (2026-11-02, read-only)
+
+Owner decision (via SM): an empty form value `profile_image=""` must leave the
+stored photo untouched (200, photo kept). SM condition: before shipping, find
+whether an explicit remove-photo path exists, and STOP if `""` is the only one.
+
+Survey at d0f4be8e (code search + a throwaway HTTP probe, deleted after):
+
+- No dedicated endpoint or `@action` removes a photo. `users/views.py` has
+  none; `CustomUserViewSet.partial_update` (line 356) only adds the
+  own-account check. `profile_image_url` (Google picture) is read-only.
+- PATCH `/users/<id>` behaviour with a stored photo:
+
+| Request | Status | Photo |
+|---|---|---|
+| JSON `{"profile_image": null}` | 200 | **removed** (`allow_null`, from the model's `null=True`) |
+| multipart `profile_image=""` | 200 | **removed** (DRF maps an empty form value to `None` when `allow_null`) |
+| JSON `{"profile_image": ""}` | 400 | kept ("The submitted data was not a file…") |
+| multipart without `profile_image` (e.g. only `bio`) | 200 | kept |
+
+**Finding:** `""` is not the only server-side removal path. JSON `null`
+removes the photo and will keep doing so. Not knowable from this repo: which
+of the two the frontend's remove button sends. If it sends multipart `""`,
+(e.2a) will break that button until the frontend switches to JSON `null`.
+
 ### (e.3) New password equal to current not refused (BUG-029)
 
 **Already checked** at `users/serializers.py:626`. Reword only.
