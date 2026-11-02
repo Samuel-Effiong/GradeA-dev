@@ -93,3 +93,53 @@ example the student upload-async door's lock on its own user row, and any
 
 Also in this commit: a typing annotation on the concurrency test's Counter (mypy
 found it once mypy ran again; 3eadf679 had skipped it). No behaviour change.
+
+## Fix results (2026-11-02)
+
+- a1332fc0: the switch; module 30/30 OK (then 32/32 with the two tests above).
+- ddb8ec06 red: `Ran 32`, FAILED (failures=1): only the former-licence test
+  (`school_id` was school A), as written (`logs/red_run_ddb8ec06.txt`).
+- b7438964: `NO_SCHOOL`; module + `audit.tests_emitter`: Ran 100, OK.
+
+## Mutants (expectations, on b7438964, before any mutant run)
+
+One per guard; each in a disposable detached worktree at b7438964, restored
+by sha256 against the committed blob. Label: `classrooms.tests_h278_session_active`.
+
+| Mutant | Change | Expected killer(s) |
+|---|---|---|
+| M-h278.1 | migration 0017: drop the `one_active_session_per_school` AddConstraint | `test_two_active_sessions_in_one_school_are_refused` |
+| M-h278.2 | migration 0017: drop the `one_active_session_per_teacher` AddConstraint | `test_two_active_sessions_of_one_teacher_are_refused` |
+| M-h278.3 | views: no `select_for_update` on the School row | `ConcurrentSwitches...test_school_switches` (a non-200 or two active) |
+| M-h278.4 | views: no `select_for_update` on the teacher's user row | `ConcurrentSwitches...test_individual_switches` |
+| M-h278.5 | views: the previous active session is not cleared | the switch tests (school, individual, create-that-switches) |
+| M-h278.6 | views: no `filterset_fields` | `test_the_list_filters_on_is_active` |
+| M-h278.7 | serializer: `is_active` not in fields | the API tests (create/patch/list/retrieve) |
+| M-h278.8 | views: emit on every flag-carrying request (`if True:`) | `test_no_ops_leave_only_the_generic_row` |
+| M-h278.9 | views: `previous_active_session_id` always None | the switch and clear event tests |
+| M-h278.10 | views: a SCHOOL session's event passes `school_id=None` (actor fallback) | `test_a_super_admins_switch_is_filed_under_the_school` |
+| M-h278.11 | views: an INDIVIDUAL session's event passes `school_id=None` (actor fallback) | `test_a_former_licence_teachers_own_switch...` |
+| M-h278.12 | emitter: `NO_SCHOOL` handled like None | `test_a_former_licence_teachers_own_switch...` |
+
+M-h278.3/4 are races: a survivor is re-run once and, if it survives again,
+reported as a survivor, not explained away.
+
+Blob sha256 at b7438964: views.py 27a97238…4b11, models.py 0b221354…8fbd,
+serializers.py de2dc0d8…7456, migrations/0017 bb67275f…caf0,
+audit/emitter.py 4cb06816…37e8.
+
+## Near run (expectations, written before the run; held until SM says the Batch 32 run is done)
+
+Labels: `classrooms audit AutoGrader.tests_cache_matrix_selftest
+AutoGrader.tests_cache_matrix_measurement
+AutoGrader.tests_cache_matrix_tenant_isolation
+AutoGrader.tests_cache_invalidation_coverage` (the AutoGrader modules read
+`session-list` through the cache). Counted with `build_suite` on the tip:
+**1079 tests** (classrooms + audit: 1017 on beta f5d2d577, + 32 new = 1049).
+Command: `manage.py test --settings=settings_worktree --parallel 4 --noinput`
+with the venv above, DB `test_AutoGrader_h278`, fresh (no --keepdb).
+
+Expected: **Ran 1079, OK**; skips only the opt-in reasons (real AI, load,
+network, the Redis fork tests); none of the H-278 tests skips. Plus
+`makemigrations --check` "No changes detected" and mypy (pre-commit, all
+files) Passed.
