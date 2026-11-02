@@ -1150,6 +1150,51 @@ assignments/views.py `132b98870a514f487e857abd6932b070e28ce9281d698b59a5106c26a4
   sha256 matched the committed blob.
 - Commits after 85b0239c pass the full pre-commit, no SKIP.
 
+## Gate 10 (expectations, written before run 1, 2026-11-02)
+
+Supersedes the "Full regression" expectation above (8633, then 8637): the
+(e.1a) tests add 11, so the suite at the tip counts **8648** (Django's
+`build_suite`, counted at bed95a2f7).
+
+Code under test: bed95a2f7f5041afa4b4a1d88e748015a09904bd (last commit before this docs-only one). Both runs
+are on the commit that adds this text (docs-only), with no commit between
+them.
+
+Environment (SM ruling 1):
+- Private venv outside the worktree:
+  `/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/h274_g10_env`,
+  Python 3.12.10, `pip install -r requirements-dev.txt` (which includes
+  requirements.txt). Freeze: `g10_venv_freeze.txt` (226 lines, sorted),
+  sha256 `52da179f36d7e0c59f01407641a3221fc8d16ee6b93170c6127ac26388cc147e`;
+  identical to the in-worktree venv's freeze.
+- The in-worktree `.venv` is moved out (not deleted) to the scratchpad;
+  `g10_worktree_root_ls_a.txt` is `ls -a` of the worktree root: no venv.
+  A scan of `*/**/*.py` under the root finds no non-UTF-8 file.
+- Test DB `test_h274_g10` (only this worktree's settings name it), created
+  fresh by each run, no `--keepdb`.
+
+Runner: `GAP-a0-runs/h274/strict_bundle.sh`, a copy of
+`GAP-a0-runs/b31/strict_bundle.sh` (sha256 f4ae5a74…9d0) with only the venv
+path and the log folder changed (sha256 8f7f2102…42f1). It runs the whole
+script under systemd-inhibit, checks branch, HEAD and a clean tree, refuses
+while another GAP run is active, runs mypy (pre-commit, all files) and
+makemigrations --check, then `manage.py test --parallel 4 --verbosity 2`
+with the stall watchdog and memory guard. It runs in the branch worktree
+(it checks the branch), as batch 31 did, not in a detached one: the
+fingerprint below stands in for that.
+
+Before run 1, by hand: `manage.py check` with no issues; a fingerprint of
+`git rev-parse HEAD`, `git status --porcelain` (empty) and
+`git ls-files -s | sha256sum`, taken again after run 2 and equal.
+
+Expected, for EACH of run 1 and run 2:
+- mypy Passed; makemigrations "No changes detected".
+- **Ran 8648, OK, skipped=30**; FAIL/ERROR headers 0.
+- The 30 skip reasons are batch 31's (`beta-batch-31/run2_skips.txt`).
+- blocked_outbound=0, watchdog stalled=0, memstop=0, suspends 0.
+- No migrations in the branch (`git diff f5d2d577 --stat -- '*/migrations/*'`
+  empty): migration safety holds trivially.
+
 ## Summary table
 
 | Item | Touches RB files? | Scope | Status |
