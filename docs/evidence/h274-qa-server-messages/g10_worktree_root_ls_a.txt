@@ -1,0 +1,74 @@
+.
+..
+.claude
+.codex
+.coveragerc
+.env
+.example.env
+.git
+.github
+.gitignore
+.idea
+.mypy_cache
+.pip-audit-ignore-dev.toml
+.pip-audit-ignore.toml
+.pre-commit-config.yaml
+.pytest_cache
+.secrets.baseline
+API_DOCUMENTATION_LICENSE.md
+API_LAYER_SUMMARY.md
+AutoGrader
+AutoGrader flow.svg
+AutoGrader.code-workspace
+BILLING_SERVICE_REVIEW.md
+Dockerfile
+FINAL_VERIFICATION_REPORT.md
+FUTURE_ROADMAP.md
+Files
+GRADING_FLOW.md
+GRADING_FLOW.pdf
+GRADING_HANDBOOK.md
+Grade A+ Subscription model.pdf
+IMPLEMENTATION_SUMMARY.md
+LICENSE
+QA_SERVER_SETUP.md
+SPECIFICATION_V2.md
+STUDENT_IDENTITY_RULES.pdf
+SUBSCRIPTION_FLOW_DIAGRAMS.md
+SUBSCRIPTION_FLOW_PLAIN_LANGUAGE.md
+Stripe Implementation.pdf
+URL Structure.pdf
+__pycache__
+ai_processor
+assignent.html
+assignments
+audit
+billing
+branching-system.png
+celerybeat-schedule.bak
+celerybeat-schedule.dat
+celerybeat-schedule.dir
+classrooms
+dashboard
+docs
+elf):
+google auth test.html
+google-auth-test.html
+google_auth_test.html
+manage.py
+media
+pyproject.toml
+requieremnt update
+requirements-dev.txt
+requirements.txt
+sample_student.pdf
+sample_teacher.pdf
+scripts
+settings_worktree.py
+static
+stripe commands.txt
+students
+team
+templates
+users
+uv.lock

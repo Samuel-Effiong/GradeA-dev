@@ -1631,7 +1631,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         if not user.check_password(current_password):
             sign_in_failed(request, user, "password_change", "WRONG_PASSWORD")
-            raise ParseError("Incorrect current password. Please try again.")
+            raise ParseError(
+                "Your current password is incorrect. Please check it and try again."
+            )
 
         # Dual-mode by design: the frontend does not send `otp` yet, so a
         # request without one must keep working exactly as it did. When one

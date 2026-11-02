@@ -44,7 +44,7 @@ from audit.enums import AuditAction, AuditOutcome, ReasonCode
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.reason_codes import CodedError, coded_entry
-from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
+from AutoGrader.uploads import PayloadEmpty, PayloadTooLarge, validate_upload_size
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
 from classrooms.models import (
@@ -940,7 +940,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
             try:
                 validate_upload_size(uploaded_file)
-            except PayloadTooLarge as exc:
+            except (PayloadTooLarge, PayloadEmpty) as exc:
                 failed.append({"file_name": file_name, "error": str(exc.detail)})
                 continue
 
@@ -1132,7 +1132,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             else:
                 try:
                     validate_upload_size(uploaded_file)
-                except PayloadTooLarge as exc:
+                except (PayloadTooLarge, PayloadEmpty) as exc:
                     refusal = exc
             if refusal is None and item_index - 1 in parked_items:
                 # H-223: parked (recorded above); uploaded again after a top-up.

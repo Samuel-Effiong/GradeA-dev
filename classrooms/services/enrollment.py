@@ -432,7 +432,9 @@ def enroll_student_by_email(
             return student, True
 
         if StudentCourse.objects.filter(student=student, course=course).exists():
-            raise EnrollmentError("Student is already enrolled in this course.")
+            raise EnrollmentError(
+                "A student with this email is already enrolled in this course."
+            )
 
         # Same gate as bulk import and direct add - see
         # check_existing_account_may_join.

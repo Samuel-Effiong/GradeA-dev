@@ -585,7 +585,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
             )
 
-        validate_upload_size(uploaded_file)
+        # S6: an unsupported type is refused first (415), then an empty
+        # answer (422 SUBMISSION_EMPTY), so the 0-byte check is left to them.
+        validate_upload_size(uploaded_file, allow_empty=True)
 
         # Refuse before any file processing or AI spend when the student is
         # already locked out of this assignment (graded, or out of
@@ -689,7 +691,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
             )
 
-        validate_upload_size(uploaded_file)
+        # S6, as the synchronous upload: the type check, then
+        # SUBMISSION_EMPTY, answer a 0-byte file (in the task).
+        validate_upload_size(uploaded_file, allow_empty=True)
 
         # Same early refusal as the synchronous upload. The Celery task
         # re-checks under a row lock, so a replay that slips past this
@@ -1461,7 +1465,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # the whole batch is never refused, nor left half-queued.
         for item_index, uploaded_file in enumerate(files, start=1):
             try:
-                validate_upload_size(uploaded_file)
+                # S6: a 0-byte file fails as its item in the task (type
+                # first, then SUBMISSION_EMPTY), like any other file.
+                validate_upload_size(uploaded_file, allow_empty=True)
             except PayloadTooLarge as exc:
                 refused = record_refused_item(
                     requested_by=request.user,

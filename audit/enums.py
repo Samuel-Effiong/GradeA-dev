@@ -135,6 +135,7 @@ class ReasonCode(models.TextChoices):
     FILE_UNREADABLE = "FILE_UNREADABLE", "File unreadable"
     FILE_TYPE_UNSUPPORTED = "FILE_TYPE_UNSUPPORTED", "File type not supported"
     FILE_TOO_LARGE = "FILE_TOO_LARGE", "File too large"
+    FILE_EMPTY = "FILE_EMPTY", "File is empty"
     SUBMISSION_EMPTY = "SUBMISSION_EMPTY", "Submission empty"
     RUBRIC_MISSING = "RUBRIC_MISSING", "Rubric missing"
     DUPLICATE_SUBMISSION = "DUPLICATE_SUBMISSION", "Duplicate submission"

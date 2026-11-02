@@ -195,6 +195,14 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         # The message shows them formatted, through `display` ("63.2 MB").
         params=_FILE | {"actual", "limit", "dimension"},
     ),
+    ReasonCode.FILE_EMPTY: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_400_BAD_REQUEST,
+        "'{file_name}' is empty. Choose another file.",
+        "Select a file that has content, then upload it again.",
+        retryable=False,
+        params=_FILE,
+    ),
     ReasonCode.SUBMISSION_EMPTY: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -353,6 +361,14 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "Too many failed login attempts. Please try again later.",
         "Wait a few minutes and try again, or reset your password.",
         retryable=True,
+    ),
+    ReasonCode.INVALID_CREDENTIALS: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_401_UNAUTHORIZED,
+        "That email and password don't match. "
+        "Check them and try again, or reset your password.",
+        "Check your email and password, or reset your password.",
+        retryable=False,
     ),
     # ------------------------------------------------------------------
     # QA catalogue additions, sections B-F (Epic A S7d). Approved AS WRITTEN
@@ -572,7 +588,6 @@ AUDIT_ONLY_CODES = frozenset(
     {
         ReasonCode.ACCOUNT_DEACTIVATED,
         ReasonCode.WRONG_PASSWORD,
-        ReasonCode.INVALID_CREDENTIALS,
         ReasonCode.INVALID_CODE,
         ReasonCode.CODE_EXPIRED,
         ReasonCode.CODE_MISSING,

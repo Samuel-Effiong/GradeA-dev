@@ -35,6 +35,6 @@ class StudentEmptyWalletError(EmptyWalletError):
 # chargeback/refund deficit - internal billing state that belongs in server
 # logs, never in an API error body or a polled task error.
 INSUFFICIENT_CREDITS_MESSAGE = (
-    "There aren't enough AI credits available for this. The credit wallet "
-    "needs to be topped up before it can run."
+    "There aren't enough AI credits to do this. Top up your credits or ask "
+    "your school administrator, then try again."
 )

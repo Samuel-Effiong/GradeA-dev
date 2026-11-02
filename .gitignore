@@ -48,3 +48,4 @@ settings_worktree.py
 
 # H-271: collectstatic output (STATIC_ROOT)
 /staticfiles/
+.venv-h274/

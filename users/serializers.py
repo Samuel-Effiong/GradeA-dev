@@ -2,9 +2,10 @@ import logging
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.validators import MinLengthValidator
-from django.db import transaction
+from django.db import models, transaction
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.utils import html
 from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
@@ -14,7 +15,7 @@ from rest_framework_simplejwt.serializers import (
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ErrorClass
 from AutoGrader.error_messages import describe_user_error
-from AutoGrader.image_formats import validate_image_format
+from AutoGrader.image_formats import ProfileImageField, validate_image_format
 from billing.serializers import CreditWalletSerializer
 from billing.services import AnalyticsService
 from classrooms.models import School
@@ -79,6 +80,12 @@ class CustomUserSerializer(serializers.ModelSerializer):
     # register_student, register_school_admin, license_service - assign
     # them on the model directly and never go through this serializer.
     PRIVILEGED_FIELDS = ("user_type", "school")
+
+    # H-274 (e.2b): profile_image refuses a 0-byte file with the FILE_EMPTY text.
+    serializer_field_mapping = {
+        **serializers.ModelSerializer.serializer_field_mapping,
+        models.ImageField: ProfileImageField,
+    }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -148,6 +155,18 @@ class CustomUserSerializer(serializers.ModelSerializer):
         invitation lookups) assumes stored emails are lowercase.
         """
         return value.lower().strip()
+
+    def to_internal_value(self, data):
+        # H-274 (e.2a), owner decision 2026-11-02: a form that sends an
+        # empty profile_image value keeps the stored photo. DRF would map
+        # "" to None (the model field is null=True) and so remove it. JSON
+        # {"profile_image": null} stays the way to remove the photo, and a
+        # 0-byte file is still refused (code "empty").
+        blank_photo = html.is_html_input(data) and data.getlist("profile_image") == [""]
+        attrs = super().to_internal_value(data)
+        if blank_photo:
+            attrs.pop("profile_image", None)
+        return attrs
 
     def get_is_system_generated_email(self, obj) -> bool:
         return bool(obj.email and str(obj.email).endswith("@student.local"))
@@ -469,6 +488,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     # message so a locked account gets an explanation instead of looking
     # like a wrong password forever.
     LOCKED_MESSAGE = "Too many failed login attempts. Please try again later."
+    INVALID_CREDENTIALS_MESSAGE = (
+        "That email and password don't match. "
+        "Check them and try again, or reset your password."
+    )
 
     def validate(self, attrs):
         if "email" in attrs:
@@ -528,7 +551,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                     "WRONG_PASSWORD" if wrong_password else "INVALID_CREDENTIALS"
                 ),
             )
-            raise
+            raise EnvelopedAuthenticationFailed(
+                self.INVALID_CREDENTIALS_MESSAGE,
+                "invalid_credentials",
+                reason_code="INVALID_CREDENTIALS",
+                code_value="invalid_credentials",
+            ) from None
 
         if user:
             user.reset_login_lockout()
@@ -625,7 +653,8 @@ class ChangePasswordSerializer(serializers.Serializer):
     def validate(self, data):
         if data["current_password"] == data["new_password"]:
             raise serializers.ValidationError(
-                "New password cannot be the same as the old one"
+                "Your new password must be different from your current password. "
+                "Please choose a different one."
             )
         return data
 

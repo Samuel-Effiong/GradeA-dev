@@ -5,7 +5,7 @@ from django.db.models import Case, F, IntegerField, When
 from django.utils.translation import gettext_lazy as _
 
 from audit import history
-from AutoGrader.image_formats import validate_image_format
+from AutoGrader.image_formats import ProfileImageFormField, validate_image_format
 
 from .models import (
     BetaWhitelist,
@@ -23,6 +23,8 @@ class _ProfileImageForm(UserChangeForm):
     class Meta(UserChangeForm.Meta):
         model = CustomUser
         fields = "__all__"
+        # H-274 (e.2b): a 0-byte picture is refused with the FILE_EMPTY text.
+        field_classes = {"profile_image": ProfileImageFormField}
 
     def clean_profile_image(self):
         img = self.cleaned_data.get("profile_image")
