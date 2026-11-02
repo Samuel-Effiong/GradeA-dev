@@ -65,3 +65,31 @@ The first green attempt showed two mistakes in the tests, not the code:
 Expectation for the corrected tests on the pre-fix code (this commit, run in
 a detached worktree): every one of the 30 tests FAILs or ERRORs, none passes.
 This commit is made with SKIP=mypy (red only; `is_active` is not a field yet).
+
+## school_id of the event (SM ruling, 2026-11-02) and one added guard
+
+SM: `school_id` must NOT fall back to the actor's school. SCHOOL session:
+the session's school; INDIVIDUAL session: None. (A teacher whose licence
+ended keeps `school_id`; the fallback would file their own switches in that
+school's admin log.) `emit()` falls back whenever `school_id` is None, so
+the fix adds a sentinel `audit.emitter.NO_SCHOOL` that stores None; no other
+caller changes.
+
+New tests (on a1332fc0, before the fix):
+- `test_a_former_licence_teachers_own_switch_is_not_filed_under_a_school`:
+  a teacher with `school_id` set, not under licence, switches an INDIVIDUAL
+  session. Expected before the fix: **FAIL** (`school_id` is school A, not
+  None). After: OK, and the row is absent from `school-admin-audit-events`.
+- `test_a_super_admins_switch_is_filed_under_the_school` (added at mutant
+  planning: no test noticed a `school_id` that fell back to the actor's
+  school, because a school admin's school is the session's). Expected before
+  the fix: PASS (it is a guard; its mutant is M-h278.10 below).
+
+INDIVIDUAL-scope lock (SM note): `select_for_update` on the teacher's
+`CustomUser` row, inside the switch's transaction and only for its length.
+It serialises with any other write that locks the same user row (for
+example the student upload-async door's lock on its own user row, and any
+`select_for_update` of that teacher), which wait for the switch to finish.
+
+Also in this commit: a typing annotation on the concurrency test's Counter (mypy
+found it once mypy ran again; 3eadf679 had skipped it). No behaviour change.

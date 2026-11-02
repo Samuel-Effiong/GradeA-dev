@@ -422,6 +422,37 @@ class EveryChangeIsOneAuditEvent(World, TestCase):
             self.only_event(before), Session.objects.get(name="Summer"), True, self.fall
         )
 
+    def test_a_super_admins_switch_is_filed_under_the_school(self):
+        # The super admin has no school of their own: the row still carries
+        # the session's school, so the School Admin's activity log shows it.
+        before = self.snapshot()
+        self.patch(self.root, self.fall, is_active=True)
+        event = self.only_event(before)
+        self.assertChange(event, self.fall, True, None)
+        self.assertEqual(event.school_id, self.school_a.pk)
+        self.assertEqual(event.actor_id, self.root.pk)
+
+    def test_a_former_licence_teachers_own_switch_is_not_filed_under_a_school(self):
+        # SM ruling: an INDIVIDUAL session's event has no school. A teacher
+        # whose licence ended keeps school_id, so falling back to the
+        # actor's school would show their own switches in that school's log.
+        former = make_user("former@h278.test", UserTypes.TEACHER, self.school_a)
+        self.assertFalse(former.is_under_license())
+        theirs = own_session(former, "Their own term")
+        before = self.snapshot()
+        response = self.patch(former, theirs, is_active=True)
+        self.assertEqual(response.status_code, 200, response.content)
+        event = self.only_event(before)
+        self.assertChange(event, theirs, True, None)
+        self.assertIsNone(event.school_id)
+        log = self.as_(self.admin_a).get(
+            reverse("school-admin-audit-events"), {"action": CHANGE}
+        )
+        self.assertEqual(log.status_code, 200, log.content)
+        payload = log.json()["data"]
+        rows = payload["results"] if isinstance(payload, dict) else payload
+        self.assertNotIn(str(theirs.pk), [row["target_id"] for row in rows])
+
     def test_a_clear(self):
         self.patch(self.admin_a, self.fall, is_active=True)
         before = self.snapshot()
@@ -521,7 +552,7 @@ class ConcurrentSwitchesEndWithExactlyOneActive(World, TransactionTestCase):
                 # previous ids are exactly that winner plus every target,
                 # minus this round's winner (the old winner twice when it is
                 # marked again mid-round).
-                expected = Counter(str(pk) for pk in targets)
+                expected: Counter[str | None] = Counter(str(pk) for pk in targets)
                 expected[str(previous.pk) if previous else None] += 1
                 expected[str(next(iter(active)))] -= 1
                 self.assertEqual(Counter(previous_ids), +expected)
