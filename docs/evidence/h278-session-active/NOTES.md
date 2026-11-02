@@ -155,3 +155,17 @@ files) Passed.
 - M-h278.12 also kills `test_an_individual_switch`: with the sentinel branch
   disabled, the emitter rejects the non-UUID `school_id` and writes no event.
 - Three logs are committed as `gzip -n -9` (over the large-file limit): M-h278.3 raw sha256 662ee577…d6cb, gz 91bbde16…7dc4; M-h278.4 raw 1dd4f19f…9bef, gz f81a6675…c620; M-h278.5 raw d7f08c21…1e7b, gz b81c4aa1…8622.
+
+## Near run result (fixes-worker, 2026-11-02, after SM's go: Batch 32 run done)
+
+Tip f3ab44fa (docs-only after b7438964), 19:06:58-19:10:16, under
+systemd-inhibit; no other GAP test run active; load 5.30 at start.
+Pre-checks: mypy (pre-commit, all files) Passed; makemigrations "No changes
+detected".
+
+**Ran 1079 tests in 157.188s, OK (skipped=2)**, rc=0. Count as expected.
+The 2 skips are one opt-in reason, "a benchmark, run by label with
+AUDIT_BENCH=1 only" (audit). That reason was not in the list I wrote
+(real AI, load, network, Redis fork); it is opt-in, and none of the H-278
+tests skips. No test_AutoGrader_h278* DB is left.
+Log: `logs/near_run_f3ab44fa.txt.gz` (raw sha256 143adcd7cd6e1ab565e12b015b440fbb73050059ab831a231eee8783feca0a2b, gz a855880e05c88fe06e77683497c6ef04b2b6f19e1575cb83f0c6b6227de88a87).
