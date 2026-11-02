@@ -312,6 +312,41 @@ ORDER BY n DESC;
 
 **Touches Release Builder files?** No.
 
+### (c) Owner decision (2026-11-02, via SM): won't change
+
+The owner decided: "ignore backfilled data". **BUG-013 is closed as
+won't-change for backfilled rows.** There is no code change for (c): no
+mapping and no serializer change. Backfilled rows keep their stored text, and
+live rows keep theirs. The mapping above is **superseded** and must not be
+built.
+
+Reasons (fixes-worker findings, read-only, at d0f4be8e):
+
+- **F1. Plan drift.** Plans are changed in place on the same subscription row
+  (`billing/services.py:641` `user_sub.plan = new_plan`, and `:1899`;
+  `billing/license_service.py:2246` and `:2528`). A transaction's
+  `user_subscription.plan` / `license_subscription.plan` is therefore the
+  CURRENT plan, not the plan at charge time. Under the table above, a January
+  "Basic" charge would read "Subscription – Pro" after a March upgrade, which
+  is wrong money history. Backfilled rows link the current subscription too
+  (`backfill_billing_transactions.py:160`, `:227`), so they drift the same way.
+- **F2. Live rows already carry accurate, at-the-time text and operational
+  notes.** An AST walk of all 25 `BillingTransactionService.record` call
+  sites found, for example, "New subscription — {plan}", "Trial converted to
+  {plan}", "…credits NOT granted, needs manual refund."
+  (`stripe_service.py:3152`) and "…needs manual review." (`:3501`). Applying
+  the type table to every row would replace them with drifting plan names and
+  hide those notes.
+- **F3. Gaps in the table.** `LICENSE_SEAT_CHANGE_CHARGE`,
+  `LICENSE_OVERAGE_PURCHASE`, `LICENSE_OFFLINE_OVERAGE_PURCHASE` and `OTHER`
+  are not listed. The "plan missing" and "credits unknown" cases have no
+  approved text. A credits count can't be derived honestly, because the
+  plan's block size is today's value and individual rows have no snapshot.
+
+**Q4 (with the owner, out of scope here):** live invoice rows still show raw
+Stripe terms, e.g. "Subscription invoice paid (subscription_cycle)". Not to be
+touched in H-274 unless the owner decides otherwise.
+
 ---
 
 ## (d) Creating a session gives 500 when session name is empty
@@ -597,7 +632,7 @@ Remediation:
 |------|-------------------|-------|--------|
 | (a) sign-in text | No | `users/serializers.py` only | Ready to code |
 | (b) checkout Stripe errors | No | `billing/stripe_service.py` (4 sites) | Corrected; ready to code |
-| (c) invoice descriptions | No | new helper + serializer in `billing/` | Mapping approach updated; ready to code |
+| (c) invoice descriptions | No | — | **Owner: won't change** (BUG-013 closed for backfilled rows); no code change; Q4 with owner |
 | (d) session 500 | No | — | **Cannot reproduce** (all 400); no code change |
 | (e.1) empty PDF | No | `AutoGrader/uploads.py` + new ReasonCode | Ready to code |
 | (e.2) empty photo | No | test only: `users/tests_h274_empty_profile_photo.py` | **Refused server-side** (0-byte → 400 at all 5 doors); no code change; `""` clears photo — open for SM |
