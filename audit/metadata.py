@@ -62,6 +62,8 @@ ALLOWED_KEYS = frozenset(
         "lesson_id",
         "tag_id",
         "session_id",
+        # H-278: the scope's active session before the change
+        "previous_active_session_id",
         "submission_id",
         "student_id",
         # short labels and versions
@@ -323,6 +325,9 @@ METADATA_ALLOWLIST = {
     # intent belongs to (the event's target is the intent).
     AuditAction.SUBSCRIPTION_CHANGE: frozenset(
         {"changed_fields", "source", "license_id"}
+    ),
+    AuditAction.SESSION_ACTIVE_CHANGE: frozenset(
+        {"changed_fields", "is_active", "previous_active_session_id", "source"}
     ),
 }
 

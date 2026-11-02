@@ -63,6 +63,10 @@ class Session(models.Model):
         help_text="Set only when owner_type=SCHOOL.",
     )
 
+    # H-278: THE active session of its school (SCHOOL) or of its teacher
+    # (INDIVIDUAL). At most one per scope, enforced below; none is fine.
+    is_active = models.BooleanField(default=False)
+
     created_by = models.ForeignKey(
         "users.CustomUser",
         null=True,
@@ -90,6 +94,16 @@ class Session(models.Model):
                 fields=["name", "school"],
                 condition=models.Q(owner_type="SCHOOL"),
                 name="unique_session_name_per_school",
+            ),
+            UniqueConstraint(
+                fields=["school"],
+                condition=models.Q(owner_type="SCHOOL", is_active=True),
+                name="one_active_session_per_school",
+            ),
+            UniqueConstraint(
+                fields=["teacher"],
+                condition=models.Q(owner_type="INDIVIDUAL", is_active=True),
+                name="one_active_session_per_teacher",
             ),
         ]
 

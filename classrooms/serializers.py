@@ -58,6 +58,7 @@ class SessionSerializer(serializers.ModelSerializer):
             "owner_type",
             "teacher",
             "school",
+            "is_active",
             "created_by",
             "created_at",
         ]

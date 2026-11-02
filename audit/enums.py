@@ -96,6 +96,9 @@ class AuditAction(models.TextChoices):
     # Epic A completion S4: a plan, status, period or seat change on a
     # subscription or a school licence.
     SUBSCRIPTION_CHANGE = "SUBSCRIPTION_CHANGE", "Subscription changed"
+    # H-278: a session marked as, or cleared from being, THE active session
+    # of its school or teacher (the previous one is in the metadata).
+    SESSION_ACTIVE_CHANGE = "SESSION_ACTIVE_CHANGE", "Active session changed"
 
 
 # Actions that always touch a student's record, so they are kept 3 years.
