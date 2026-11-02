@@ -253,6 +253,75 @@ redirect, not at creation.)
 - M5: Drop the `exc.param == "customer"` check → non-customer
   resource_missing test fails (customer id changed when it shouldn't have).
 
+### (b) SM rulings B1–B3 (2026-11-02), replacing parts of the plan above
+
+- **B1, site 4 `create_upgrade_checkout_session`: wrap only.** Its customer
+  id comes from `stripe.Subscription.retrieve(...)["customer"]`, the owner of
+  the live subscription, not from the wallet, so a stale wallet id can't
+  reach it. Healing would make the upgrade payer a different customer from
+  the subscription owner. Any StripeError becomes `BillingRequestError` with
+  the approved text. No clear, no `Customer.create`, no retry.
+- **B2, site 2 `create_license_session`: clear that row, retry with
+  `customer_email`.** This path has no `Customer.create`: the customer is
+  `existing_license.stripe_customer_id` from the school's latest licence row
+  with a non-null id. On `resource_missing` with `param == "customer"`:
+  - `LicenseSubscription.objects.filter(pk=existing.pk, stripe_customer_id=stale).update(stripe_customer_id=None)`;
+  - retry once with `customer_email=admin_user.email` and no `customer`, the
+    path a school with no billing history takes.
+
+  **This replaces the test line "Assert `Customer.create` idempotency key
+  includes the stale id" for site 2**, because no customer is created here.
+  The site 2 test asserts instead that the row's id is cleared and that the
+  retry sends `customer_email` and no `customer`.
+- **B3 (i): clear to `None`, not `""`.** The fields are `null=True`, and site
+  2's query is `stripe_customer_id__isnull=False`, which `""` would still
+  match (and then send `customer=""`).
+- **B3 (ii): no new idempotency keys on `Session.create`.** None of the 4
+  calls has one today. The tests assert the retry carries none, so no key is
+  reused.
+
+### (b) Expectations (written before the red run)
+
+Tests: `billing/tests_h274_checkout_stale_customer.py`, 16 tests. Stripe is
+always mocked by `FakeStripe`, which patches `stripe.checkout.Session.create`
+and `stripe.Customer.create`, and also `Subscription.retrieve` and
+`Invoice.create_preview` for site 4. `FakeStripe` derives a customer id from
+its idempotency key, as Stripe's replay does.
+
+| Class | Door | Tests |
+|---|---|---|
+| `IndividualCheckoutTests` | site 1, HTTP `select-plan` | stale replaced → 200 (key `customer-for-user-{id}-replacing-{stale}`, wallet updated, sessions `[stale, new]`, no session key); replacement logged with ids and no email; second missing → fallback 400, no `cus_`/`No such`; missing price → fallback, not healed; other StripeError → fallback |
+| `LicenseConversionTests` | site 3, HTTP `convert-to-stripe` | stale replaced → 200 (licence key, row updated); second missing → fallback; missing price → not healed; other error → fallback |
+| `LicenseCreateSessionTests` | site 2, service | stale → row cleared to `None`, retry with `customer_email`, no `customer`, no `Customer.create`; missing price → not healed; other error → fallback |
+| `UpgradeCheckoutTests` | site 4, service | missing customer → fallback, 1 session, no `Customer.create`, wallet unchanged; other error → fallback |
+| `StaleCustomerConcurrencyTests` (TransactionTestCase, `run_concurrently`) | sites 1 and 3 | two requests meet on the stale id: no errors, each makes one failed attempt and one retry, every `Customer.create` uses the one replacing key, and the row ends on that one customer (no lost update) |
+
+Red run, on the tip before the fix (tests only): `Ran 16 tests`,
+`FAILED (failures=11, errors=5)`.
+
+- 9 HTTP tests (sites 1 and 3) FAIL with `500 != 200` or `500 != 400`,
+  except the logging test, which FAILs on no WARNING from
+  `billing.stripe_service`. Today the exception is uncaught and the app's
+  handler answers with the generic 500 envelope.
+- 5 service tests (sites 2 and 4) ERROR with the raw
+  `InvalidRequestError` / `APIConnectionError`.
+- 2 concurrency tests FAIL on `errors != []`.
+
+Fix: `billing/stripe_service.py` only. A helper runs `Session.create` and
+turns any StripeError into `BillingRequestError(FALLBACK)`, logging only
+`stripe_error_label`. An optional `heal(stale_id)` gives the retry kwargs,
+and it is only used when `code == "resource_missing"` and
+`param == "customer"`.
+
+- Sites 1 and 3 heal through new
+  `StripeCustomerService.replace_stale_customer` /
+  `replace_stale_license_customer`. Each does a conditional clear to `None`
+  and logs the stale id and the pk, then calls `get_or_create_*` (which
+  re-reads the row) with `replacing=stale`, giving the key suffix
+  `-replacing-{stale}`. The new id is then logged.
+- Site 2 heals per B2.
+- Site 4 passes no heal.
+
 ---
 
 ## (c) Invoice descriptions — backfill command (BUG-013)
