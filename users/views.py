@@ -1776,6 +1776,11 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         try:
             refresh_token = request.data["refresh"]
             token = RefreshToken(refresh_token)
+            # H-277: only the caller's OWN refresh token may be blacklisted.
+            # Someone else's is refused exactly like an invalid one, so the
+            # answer never reveals whose token it was.
+            if str(token.get(api_settings.USER_ID_CLAIM)) != str(request.user.pk):
+                raise TokenError("refresh token belongs to another user")
             token.blacklist()
         except KeyError:
             emit(
@@ -1815,11 +1820,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 request.user.revoke_all_sessions()
             else:
                 revoke_session(request.user, own_sid)
+                # The refresh token is the caller's own (H-277 check above).
                 refresh_sid = session_id_of(token)
-                same_user = str(token.get(api_settings.USER_ID_CLAIM)) == str(
-                    request.user.pk
-                )
-                if refresh_sid is not None and refresh_sid != own_sid and same_user:
+                if refresh_sid is not None and refresh_sid != own_sid:
                     revoke_session(request.user, refresh_sid)
         except Exception:
             emit(
