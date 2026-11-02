@@ -348,6 +348,39 @@ heals" is the absence of a `heal=` argument, and
 `test_a_missing_customer_is_not_healed_here` pins it with 1 session, no
 `Customer.create` and the wallet unchanged.
 
+### (b) Results (fixes-worker, 2026-11-02)
+
+- **Red run** at f8d28a64 (tests only): `Ran 16 tests`,
+  `FAILED (failures=11, errors=5)`, test by test as expected. Log
+  `b/red_run_f8d28a64.txt` (committed in 1ec54b6c), sha256
+  `e1183905dc0f7e0af5706042f89fe7719f920f007a2496f21fb5c0024daba293`.
+- **Fix** at 1ec54b6c, `billing/stripe_service.py` only. On the committed
+  tip, `billing.tests_h274_checkout_stale_customer` plus
+  `billing.tests_h265_user_facing_errors`: `Ran 44 tests`, `OK`.
+- **Mutants**, run in a disposable worktree at 84a42d52. The committed blob
+  of `billing/stripe_service.py` (sha256
+  `0929e020d8141443cce1369393b8bc63f68429358f97475389c2a22ef842f453`) was
+  restored after each mutant and checked with sha256. The worktree was then
+  removed, and no `test_h274*` DB is left. **12/12 KILLED**, each with at
+  least the failures expected and no `_FailedTest`. The logs were committed
+  in a2ddc95a, without this NOTES text: my NOTES script failed on a path
+  error and the commit ran anyway. This commit adds the text.
+
+| Id | Result | Failed | vs expectations | Log sha256 (`b/mutants/`) |
+|---|---|---|---|---|
+| M1 | KILLED | 8 (7 F, 1 E): heal tests sites 1, 2, 3; logging; both second-missing tests (they count 2 sessions); both concurrency tests | as expected, plus the second-missing and logging tests | `b467b2ee0743810066da8804489d3159ec5952890436e2096746a7664dc4f49a` |
+| M2 | KILLED | 5: site 1 and 3 heal; logging (new id is derived from the key); both concurrency tests | as expected, plus logging | `b3752abd114a7dec61c204741befa030ef78ee5a61b6bfc20b96c5291cf6078e` |
+| M3 | KILLED | 4: site 1 heal, logging, second-missing (2 `Customer.create` → 0), individual concurrency | as expected, plus second-missing | `ecdff3be64bc6eae96a095469f5f2243c07443fde8bcca6f6faa9a2b08e04658` |
+| M3b | KILLED | 2: site 3 heal, licence concurrency | as expected | `43a69ef6536dc0ca5b1abdaa334230354bedbac8667f88e60b3efcb7aa59f55a` |
+| M3c | KILLED | 1: site 2 heal | as expected | `298599008ef5027dda4921caf919d4ca17ae7d07683b4c3a88268d32c5860148` |
+| M4 | KILLED | 9: all fallback tests except site 2 missing-price | **differs**: site 2's `test_a_missing_price_is_not_healed` survives, because `assertRaisesMessage` checks containment and the appended text still contains the fallback. Killed by the other 9. | `a0fdc22bca79efac40f998280616e027fa285bdd019b3599e236e38fd4c8f580` |
+| M5 | KILLED | 3: the 3 missing-price tests | as expected | `72babb73034e544aed0191623523e8feb734061fc4bd6c037244dd803d005bd2` |
+| M6 | KILLED | 4: site 1 heal, logging, second-missing, individual concurrency | as expected, plus second-missing | `d3d667e194667cf7d400397c7c06bf6039f517e8f41d4543c6aedb2a0e75c2e5` |
+| M7 | KILLED | 3: site 3 heal, second-missing, licence concurrency | as expected, plus second-missing | `05a9817791a91929a590ae600ba9946aad4fb9db64fefd059055e84f7d661b7e` |
+| M8 | KILLED | 1 ERROR: site 2 heal (the fallback BillingRequestError is raised) | as expected (ERROR, not FAIL) | `f4a35acb7f90975ea92284366ab13dc3f4fe763bef69b9c2481ec16e9de0fa57` |
+| M9 | KILLED | 1: site 2 heal | as expected | `562a7a60b22e2a37d578278550432de17a5eff0f6fe8a37cfaa48efb6e5c2219` |
+| M10 | KILLED | 2 ERROR: both site 4 tests (raw Stripe error) | as expected | `bccb72a33f46db1bc14ccf25642123bbc6d691800df53b005a37518d6646c5d2` |
+
 ---
 
 ## (c) Invoice descriptions — backfill command (BUG-013)
@@ -878,7 +911,7 @@ Remediation:
 | Item | Touches RB files? | Scope | Status |
 |------|-------------------|-------|--------|
 | (a) sign-in text | No | `users/serializers.py` only | Ready to code |
-| (b) checkout Stripe errors | No | `billing/stripe_service.py` (4 sites) | Corrected; ready to code |
+| (b) checkout Stripe errors | No | `billing/stripe_service.py` (4 sites) | Sites 1/3 heal, site 2 heals by email (B2), site 4 wrapped (B1); red as written; M1–M10 (12) KILLED |
 | (c) invoice descriptions | No | — | **Owner: won't change** (BUG-013 closed for backfilled rows); no code change; Q4 with owner |
 | (d) session 500 | No | — | **Cannot reproduce** (all 400); no code change |
 | (e.1) empty PDF | No | `AutoGrader/uploads.py` + new ReasonCode | Ready to code |
