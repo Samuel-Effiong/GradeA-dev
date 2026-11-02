@@ -560,6 +560,29 @@ Mutants (one per guard, disposable worktree, each must be KILLED):
 | M-e2a.2 | `== [""]` → `!= []` (drop any form photo) | `test_a_new_photo_in_a_form_still_replaces_the_old_one` |
 | M-e2a.3 | `html.is_html_input(data)` → `True` (JSON too) | `test_json_null_still_removes_the_photo` (ERROR, `AttributeError` on a dict's `getlist`) and `test_a_json_empty_string_is_still_refused` |
 
+#### (e.2a) Results (fixes-worker, 2026-11-02)
+
+- **Red run** at d201c586 (tests only, no fix): `Ran 5 tests`,
+  `FAILED (failures=2)`. The two empty-form-value tests failed with
+  `'' != 'profile_pics/…'`, and the other three passed. This matches the
+  expectations.
+  Log: `e2a/red_run_d201c586.txt`, sha256
+  `d6fc861507a9f17c3dc28fd179649cd0fb9f83a9d6f823679da235272eaf4ac4`.
+- **Fix** at 937c0050: `users/serializers.py` only (+13 lines,
+  `CustomUserSerializer.to_internal_value`). Green on the working tree:
+  this module `Ran 5 tests`, `OK`; (e.2) module `Ran 8 tests`, `OK`.
+- **Mutants**, run in a disposable worktree at 937c0050. The committed blob
+  of `users/serializers.py` (sha256
+  `b92bdf9c173425b0062a4ae2cf80bbc8a228ae647aea6429c3d6ef2180b2213f`) was
+  restored after each mutant and checked with sha256. The worktree was then
+  removed, and no `test_h274*` DB is left.
+
+| Id | Result | What failed | Log sha256 (`e2a/mutants/`) |
+|---|---|---|---|
+| M-e2a.1 | KILLED | both empty-form-value tests, `'' != 'profile_pics/…'`, as expected | `5136a2cb9ec0cc07c7b3a66981644f934a629a6e1653101b712de64b3ed17218` |
+| M-e2a.2 | KILLED | all 5. **Differs from expectations:** the mutant also drops the photo that `setUp` uploads, so every test fails at `setUp`'s `assertTrue(self.photo)` (`'' is not true`), the replace test included. The guard is still pinned, because any form upload being dropped fails the suite. | `a17f00ea74e5cf5cf60391c7864a980895ba85c75f4709421a2ef30e30f8d121` |
+| M-e2a.3 | KILLED | both JSON tests. **Differs from expectations:** they FAIL with a 500 envelope (`500 != 200`, `500 != 400`), not ERROR. The `AttributeError: 'dict' object has no attribute 'getlist'` is caught by the app's exception handler and logged. | `87d9aee808b6293be4e673f2fc4a315fa212922fb516bd058ce7b5edf0e2f580` |
+
 ### (e.3) New password equal to current not refused (BUG-029)
 
 **Already checked** at `users/serializers.py:626`. Reword only.
@@ -672,6 +695,7 @@ Remediation:
 | (d) session 500 | No | — | **Cannot reproduce** (all 400); no code change |
 | (e.1) empty PDF | No | `AutoGrader/uploads.py` + new ReasonCode | Ready to code |
 | (e.2) empty photo | No | test only: `users/tests_h274_empty_profile_photo.py` | **Refused server-side** (0-byte → 400 at all 5 doors); no code change; `""` clears photo — open for SM |
+| (e.2a) empty form photo value | No | `users/serializers.py` | Owner: `""` keeps the photo, JSON `null` removes; red as written, M-e2a.1–3 KILLED; frontend risk with owner |
 | (e.3) password reuse | No, **already checked** | reword only: `users/serializers.py` | Ready to code |
 | (f.1) already enrolled | No | `classrooms/services/enrollment.py` | Ready to code |
 | (f.2) insufficient credits | No | `billing/errors.py` | Proposed text above; ready to code |
