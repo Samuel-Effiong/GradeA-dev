@@ -1062,6 +1062,30 @@ Mutants (each killed by the named test):
 - M-e1a.3 default `allow_empty=True`: `test_by_default...` and
   `ATeacherDoorStillAnswersFileEmpty` FAIL.
 
+### (e.1a) Scope widened by SM (2026-11-02): all five e.1 sites
+
+SM put in scope, same mechanism: students/views.py:692 (upload-async) and
+:1464 (batch-upload) pass `allow_empty=True`; assignments/views.py:942
+(assignment-upload) and :1134 (assignment-upload-async) catch
+`(PayloadTooLarge, PayloadEmpty)` per item, so FILE_EMPTY stays but one empty
+file no longer refuses or half-queues the request. The 1-file guard test in
+85b0239c (`ATeacherDoorStillAnswersFileEmpty`, whole request 400) is rewritten
+to the per-item form. SKIP=mypy on 85b0239c is for that red commit only; every
+later commit and the tip pass the full pre-commit with no SKIP.
+
+### (e.1a) Student doors 692/1464: expectations
+
+Test: `students.tests_h274_empty_student_answer_doors` (4 tests).
+
+**Order slip, recorded:** before this text was committed I ran the 4 tests
+once on the pre-e.1 commit 187ed3cd (`Ran 4, OK`: they describe the old
+behaviour) and once on e241c9c0 (FAILED, failures=4: 400 != 200 twice on
+upload-async, 400 != 202 twice on batch-upload, every body FILE_EMPTY). The
+recorded red run below repeats it after this commit.
+
+Before the fix (on this commit): FAILED (failures=4), the same four
+assertions. After the fix: OK.
+
 ## Summary table
 
 | Item | Touches RB files? | Scope | Status |
