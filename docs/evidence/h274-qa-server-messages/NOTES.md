@@ -1086,6 +1086,32 @@ recorded red run below repeats it after this commit.
 Before the fix (on this commit): FAILED (failures=4), the same four
 assertions. After the fix: OK.
 
+### (e.1a) Teacher doors 942/1134: expectations (on 219550e0, before the fix)
+
+`assignments.tests_h274_empty_upload_doors` rewritten: the 1-file whole-request
+guard of 85b0239c is replaced by per-item tests. The all-empty case is asserted
+by comparison with an all-too-large request at the same door (status and
+response shape), no new outcome. Today, all-413 at 942 is 400 with the list of
+`failed` entries; at 1134 it is 202 with every file a refused item. Neither is
+the whole request refused.
+
+Before the fix:
+- `TheSyncTeacherUploadFailsAnEmptyFileAsItsOwnEntry.test_one_empty_file_fails_only_itself`
+  FAIL (400 != 207: the whole request answers FILE_EMPTY).
+- `...test_an_all_empty_request_answers_like_an_all_too_large_one` FAIL at the
+  shape comparison (both 400, but a coded refusal vs the `failed` list).
+- `TheAsyncTeacherUploadIsNeverHalfQueued.test_one_empty_file_fails_as_its_item_and_the_rest_are_queued`
+  FAIL (400 != 202; a.png already dispatched: half-queued).
+- `...test_an_all_empty_request_answers_like_an_all_too_large_one` FAIL (400 != 202).
+- `TheEmptyCheckIsTheCallersChoice` (3) PASS.
+
+After the fix: OK.
+
+Scratchpad note: the scratchpad was cleared between sessions; the raw logs of
+the 8b70c8b6 full run, of the 85b0239c red run and of the pre-e.1 probe are
+gone. Their results are recorded above as read at the time; the 85b0239c red
+run is re-run at that exact commit in a detached worktree and committed.
+
 ## Summary table
 
 | Item | Touches RB files? | Scope | Status |
