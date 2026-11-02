@@ -436,6 +436,34 @@ Also not changed: the refusal text is DRF's default, "The submitted file is
 empty.", not the owner style used for (e.1) ("'{file_name}' is empty. Choose
 another file."). Rewording it would be new user-facing text, so it waits for SM.
 
+#### (e.2) Mutation (SM-requested, 2026-11-02)
+
+Disposable worktree detached at d1221597, own test DB `test_h274_mut_e2`
+(destroyed by each run). Mutated file `users/serializers.py`, restored each
+time from `git cat-file blob HEAD:users/serializers.py`, sha256
+`6952b12923c1375db4584983d90b0819046c128605a5d757ddd4317f1156e4f7` confirmed
+after every restore. Worktree removed after. Logs in `e2/mutants/`.
+
+| Mutant | Change (CustomUserSerializer.profile_image) | Expected to catch | Result |
+|---|---|---|---|
+| M-e2.1 | extra_kwargs `allow_empty_file=True` | the 4 HTTP tests | **Survived** (Ran 8, OK). Log sha256 `6e0d27743eb6293a34ebc1cf92090121f66a3c4c20d8759cfa85d72edb187ae9` |
+| M-e2.2 | M-e2.1 plus `validators=[]` (drops validate_image_format) | the 4 HTTP tests | **Survived** (Ran 8, OK). Log sha256 `035e1c288a04161049c06e0b9a484bcce9152e137e6b3c1a5ef38122d45dfb33` |
+| M-e2.3 | field replaced by `serializers.FileField(allow_empty_file=True)`, no validators | the 4 HTTP tests | **Killed**: 4 errors, `KeyError: 'field_errors'`; the save hook `to_profile_webp` raises `PIL.UnidentifiedImageError` on the empty file, so the request is no longer a clean 400. Log sha256 `0b01b7ace09f14240f10ce5c2c195ac5c7bf69bb4e5a5a96c844c0bcc87367d1` |
+
+Why M-e2.1 and M-e2.2 survive (equivalent, argued for SM acceptance): DRF's
+`ImageField.to_internal_value` hands the file to Django's
+`forms.ImageField`, which keeps its **own** `allow_empty_file=False` and its
+own Pillow `verify()`. The DRF flag and `validate_image_format` are layers
+two and four of four. Under M-e2.1 the response is still
+`["The submitted file is empty."]`, code `empty` (checked directly in the
+mutant worktree). Removing one layer leaves the refusal and its text
+unchanged, so no test that only watches the HTTP outcome can tell them apart.
+The guard that matters is "the field is an ImageField", and M-e2.3, which
+removes it, is killed.
+
+(e.2b) will add an app-owned refusal with the FILE_EMPTY text. Its mutant
+will remove that new guard, and the text assertion will catch it.
+
 ### (e.3) New password equal to current not refused (BUG-029)
 
 **Already checked** at `users/serializers.py:626`. Reword only.
