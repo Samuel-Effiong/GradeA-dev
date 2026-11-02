@@ -25,3 +25,15 @@ plus 5 repeated runs of its concurrency module (the reason Gate 10 asked for two
    (--parallel 4, -v 2, b31 runner with only the folder path changed). Expected: **Ran 8737, OK (skipped=30)**, the same
    30 skip reasons as Batch 31.
 Anything else = STOP, no push.
+
+## Results (on e12a2397)
+1. Concurrency repeat: 5/5 runs `Ran 20, OK` (log GAP-a0-runs/b32/concurrency_5x_e12a2397.log,
+   sha256 aa9d38821592eb8cbd9470408f730598d394fc8359c23fd1c9e43b190a823a73).
+2. Full run (strict_bundle.sh, --parallel 4, -v 2): **Ran 8737, OK (skipped=30)**, rc=0, wall 1139 s, watchdog never
+   fired, memory guard never fired, 0 FAIL/ERROR headers. The 30 skip reasons are identical to Batch 31's (diff empty).
+   mypy Passed, makemigrations clean (runner pre-checks). Summary: full_run_summary_e12a2397.txt.
+   Log archived outside the repo (5.9 MB): GAP-a0-runs/b32/strict_b32.log,
+   sha256 4251722e72ab55b12a361cf03a6525ff4d67f2533040a944a97abac60a16eda7.
+   First runner attempt exited 4 before any pre-check ("another GAP test run is active": the H-278 worker's
+   targeted run); nothing ran. Retried when clear.
+Matches the committed expectation exactly. Owner approved the push on green (2026-11-02).
