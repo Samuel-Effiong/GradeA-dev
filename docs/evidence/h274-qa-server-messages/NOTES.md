@@ -1009,6 +1009,59 @@ for the fix only.) None of the H-274 tests skips. The
 30 skip reasons are batch 31's (`beta-batch-31/run2_skips.txt`), all opt-in.
 mypy passes and makemigrations reports no changes.
 
+## Full regression on 8b70c8b6: result (2026-11-02)
+
+`Ran 8633 tests in 707.809s`, **FAILED (failures=2, errors=3, skipped=30)**, rc=1.
+The 30 skip reasons are batch 31's.
+
+- 3 ERRORs (UnicodeDecodeError), from the environment: two source-scanning tests
+  (`ai_processor.tests_grading_run_pipeline.NoGradeShapingSettingIsReadLiveTest`,
+  `students.tests_grading_label_written.TheTwoPlacesThatEmitTheEntryTest` x2)
+  glob `BASE_DIR/*/**/*.py`, which reached the in-worktree `.venv` and its
+  non-UTF-8 `joblib/test/test_func_inspect_special_encoding.py` (joblib 1.5.2,
+  requirements.txt). Batch 29/31 venvs live outside the repo. SM ruling: a
+  private venv outside the worktree, and no venv inside it for Gate 10.
+- 2 FAILs, from the branch: (e.1) 8168a0d3b put the 0-byte check at the top of
+  `validate_upload_size`, so the student answer route answered FILE_EMPTY 400
+  where S6 wants 415 FILE_TYPE_UNSUPPORTED (empty .txt) and 422
+  SUBMISSION_EMPTY (empty .png). Fixed in (e.1a) below.
+- The teardown `database "test_h274_qa_server_messages" does not exist`: a
+  module run of mine with the same TEST NAME during the full run created and
+  dropped it. Gate 10 uses a unique DB name and no concurrent runs.
+
+## (e.1a) The student answer route keeps S6 (SM ruling A, 2026-11-02)
+
+Ruling: on `students/views.py` upload (line 588) the S6 contract holds
+exactly; FILE_EMPTY 400 stays at the other doors. Mechanism:
+`validate_upload_size(uploaded_file, max_size_bytes=None, *, allow_empty=False)`;
+the student route passes `allow_empty=True`; no route names in the function.
+No new wording. upload-async (692) and batch-upload (1464) are asked of SM.
+
+### (e.1a) Expectations (written before the red run, on 3757e0aa)
+
+Labels: `assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode`
+and `assignments.tests_h274_empty_upload_doors`.
+
+Before the fix:
+- `test_a_zero_byte_file_is_empty` FAIL (400 != 422).
+- `test_an_empty_file_of_an_unsupported_type_is_the_type_first` FAIL (400 != 415).
+- `test_a_caller_may_leave_the_empty_check_to_its_own_rules` and
+  `test_the_byte_cap_still_applies_when_empty_is_allowed` ERROR (TypeError:
+  unexpected keyword `allow_empty`).
+- `test_by_default_a_zero_byte_file_is_file_empty` and
+  `ATeacherDoorStillAnswersFileEmpty` PASS (e.1 is already there; they are the
+  guards against regressing it).
+- Every other test in the S6 class PASS.
+
+After the fix: all OK.
+
+Mutants (each killed by the named test):
+- M-e1a.1 drop `allow_empty=True` at students/views.py:588: the two S6 tests FAIL.
+- M-e1a.2 ignore `allow_empty` in uploads.py (`if size == 0:`): the two S6
+  tests and `test_a_caller_may_leave...` FAIL.
+- M-e1a.3 default `allow_empty=True`: `test_by_default...` and
+  `ATeacherDoorStillAnswersFileEmpty` FAIL.
+
 ## Summary table
 
 | Item | Touches RB files? | Scope | Status |
