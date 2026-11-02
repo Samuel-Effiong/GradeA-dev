@@ -399,6 +399,43 @@ calls `Image.open(BytesIO(value.read()))` which should raise
 Will write a test that uploads a 0-byte image as `profile_image` to confirm.
 If the server refuses it, BUG-028 is frontend-only — no code change.
 
+#### (e.2) Reproduction result (fixes-worker, 2026-11-02, tip d297ddbf, no code change)
+
+Test: `users/tests_h274_empty_profile_photo.py`, 8 tests. Run on the unchanged
+tip: `Ran 8 tests ... OK`. Log: `e2/repro_run_d297ddbf.txt` (336 lines,
+sha256 `9d9d8483f3a3b20fd9200f769869496158b46c5ecc44b90be26d3fbf953d36cd`).
+Test DB `test_h274_qa_server_messages` destroyed by the runner, 0 connections after.
+
+Every door refuses a 0-byte file before `validate_image_format` runs. The
+refusal comes from DRF's `FileField` / Django's `forms.FileField`
+(`allow_empty_file=False`, code `empty`), not from app code:
+
+| Door | How driven | Result |
+|---|---|---|
+| `PATCH /users/<id>` (CustomUserSerializer), 0-byte `face.png` | HTTP, real JWT, multipart | 400, `field_errors.profile_image = ["The submitted file is empty."]`, nothing stored |
+| same, 0-byte `face` (`application/octet-stream`) | HTTP | 400, same |
+| same, 0-byte upload over an existing photo | HTTP | 400, existing photo name and file unchanged |
+| same, 12 non-image bytes as `face.png` | HTTP | 400 (Pillow/DRF "Upload a valid image…") |
+| DirectAddStudentSerializer | serializer | invalid, code `empty` |
+| SchoolWithAdminSerializer (`admin_profile_image`) | serializer | invalid, code `empty` |
+| StudentRegistrationCompletionSerializer | serializer | invalid, code `empty` |
+| Admin `_ProfileImageForm` | form | invalid, code `empty` |
+
+**Conclusion:** a 0-byte photo is refused server-side, so BUG-028 as a 0-byte
+upload is frontend-only. No server code change. The tests stay as permanent
+regression coverage.
+
+**Open for SM (not changed, not tested as a rule):** a multipart PATCH with
+`profile_image=""` (an empty form value, not a file) returns **200 and removes
+the stored photo** (`profile_image` → null), because the model field is
+`blank=True, null=True`. This may be what QA saw as "empty photo accepted" if
+the frontend sends an empty value when no file is picked. Whether that is the
+intended "remove photo" path is a product decision.
+
+Also not changed: the refusal text is DRF's default, "The submitted file is
+empty.", not the owner style used for (e.1) ("'{file_name}' is empty. Choose
+another file."). Rewording it would be new user-facing text, so it waits for SM.
+
 ### (e.3) New password equal to current not refused (BUG-029)
 
 **Already checked** at `users/serializers.py:626`. Reword only.
@@ -510,7 +547,7 @@ Remediation:
 | (c) invoice descriptions | No | new helper + serializer in `billing/` | Mapping approach updated; ready to code |
 | (d) session 500 | No | — | **Cannot reproduce** (all 400); no code change |
 | (e.1) empty PDF | No | `AutoGrader/uploads.py` + new ReasonCode | Ready to code |
-| (e.2) empty photo | — | needs reproduction | Pending test |
+| (e.2) empty photo | No | test only: `users/tests_h274_empty_profile_photo.py` | **Refused server-side** (0-byte → 400 at all 5 doors); no code change; `""` clears photo — open for SM |
 | (e.3) password reuse | No, **already checked** | reword only: `users/serializers.py` | Ready to code |
 | (f.1) already enrolled | No | `classrooms/services/enrollment.py` | Ready to code |
 | (f.2) insufficient credits | No | `billing/errors.py` | Proposed text above; ready to code |
