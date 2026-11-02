@@ -550,6 +550,48 @@ text" = `The submitted file is empty.`):
 | M-e2b.6 | SchoolWithAdmin → `serializers.ImageField` | `test_school_with_admin_refuses_it` |
 | M-e2b.7 | drop `field_classes` from `_ProfileImageForm.Meta` | `test_the_admin_user_form_refuses_it` |
 
+#### (e.2b) Results (fixes-worker, 2026-11-02)
+
+- **Red run** at faac76bb (tests only, no fix): `Ran 8 tests`,
+  `FAILED (failures=7)`, no errors. Each failure was
+  `['The submitted file is empty.'] != ["'face.png' is empty. Choose another file."]`
+  (`'face'` for the octet-stream test). This matches the expectations.
+  Log: `e2b/red_run_faac76bb.txt`, sha256
+  `44d69e15e5a9f8e1e5bbee2a6bb05320a97e21b070efdf5e7158a26041c24d1b`.
+- **Fix** at 0ed07dc8, 4 source files (the seam as written):
+  - `AutoGrader/image_formats.py`: +34 lines, the two field classes and
+    `_empty_upload_message`, which renders `REASON_CODES[FILE_EMPTY]`.
+  - `users/serializers.py`: `serializer_field_mapping`.
+  - `classrooms/serializers.py`: 3 fields.
+  - `users/admin.py`: `field_classes`.
+
+  Green on the working tree: (e.2) `Ran 8`, `OK`; (e.2a) `Ran 5`, `OK`;
+  `makemigrations --check` reports no changes.
+- **Mutants**, run in a disposable worktree at 0ed07dc8. Each mutated file
+  was restored from its committed blob and checked with sha256:
+  - `AutoGrader/image_formats.py`
+    `41a14131473d4476e76e97b6dfb10b1fa64abb3048d6332d644762b0f63e6bf7`
+  - `users/serializers.py`
+    `af36b6200053d7608917a4675055a0486b8c173b5711e123dec375664d8648d1`
+  - `classrooms/serializers.py`
+    `7a9fb85ae475c0397f2a17b1d8e08051ed48b044a41f923b82e9cebc5cb3a86d`
+  - `users/admin.py`
+    `ef7e24ec9d859c3c9d129da066c081bff10486c1b5423d2ff095ab4e26cad1e1`
+
+  The worktree was then removed, and no `test_h274*` DB is left. All 7 were
+  KILLED, each with the failures that were expected and no others. Every
+  failure shows the old text.
+
+| Id | Result | Failures | Log sha256 (`e2b/mutants/`) |
+|---|---|---|---|
+| M-e2b.1 | KILLED | 6 (3 HTTP + 3 serializer doors) | `43d0bf26f200a1c0da44b3cbbec2e5b1ae6b5d76648de566e837bb5cf3fbd51d` |
+| M-e2b.2 | KILLED | 1 (admin form) | `f4c5539794a9a2a4eceec528616c4148f4fb677ca64af8acf293ed088e671639` |
+| M-e2b.3 | KILLED | 3 (HTTP) | `9790eced2a843a84170b2a4006c9e3c6e338aab415deb8173bb078f93fa3a939` |
+| M-e2b.4 | KILLED | 1 (DirectAdd) | `f4eead649d768e3fb27d4cd224e774a433617471d7f9aad6d320ff84f5a9e39e` |
+| M-e2b.5 | KILLED | 1 (RegistrationCompletion) | `ad18b50a9fac5c9c6ae4ea0cbac9eb0ba384e03147222de23595403d88611c5c` |
+| M-e2b.6 | KILLED | 1 (SchoolWithAdmin) | `ba67ca0f3d8aca494ec6712caa5551f010292f9a06ca12b9e9cada85bbf4264d` |
+| M-e2b.7 | KILLED | 1 (admin form) | `7d73b229301b9e9590ca35eb17695a900b9327f2195654c060b38f45b6dafeec` |
+
 #### (e.2a) Owner decision and remove-photo survey (2026-11-02, read-only)
 
 Owner decision (via SM): an empty form value `profile_image=""` must leave the
@@ -747,6 +789,7 @@ Remediation:
 | (e.1) empty PDF | No | `AutoGrader/uploads.py` + new ReasonCode | Ready to code |
 | (e.2) empty photo | No | test only: `users/tests_h274_empty_profile_photo.py` | **Refused server-side** (0-byte → 400 at all 5 doors); no code change; `""` clears photo — open for SM |
 | (e.2a) empty form photo value | No | `users/serializers.py` | Owner: `""` keeps the photo, JSON `null` removes; red as written, M-e2a.1–3 KILLED; frontend risk with owner |
+| (e.2b) empty-photo text | No | `AutoGrader/image_formats.py`, `users/serializers.py`, `classrooms/serializers.py`, `users/admin.py` | FILE_EMPTY text at all 5 doors (code `empty`); red as written, M-e2b.1–7 KILLED |
 | (e.3) password reuse | No, **already checked** | reword only: `users/serializers.py` | Ready to code |
 | (f.1) already enrolled | No | `classrooms/services/enrollment.py` | Ready to code |
 | (f.2) insufficient credits | No | `billing/errors.py` | Proposed text above; ready to code |
