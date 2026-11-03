@@ -44,3 +44,4 @@ the set comparison already covers a baseline session ending.
 - H4: M1 killed by R1 and R2. M2 killed by test_a_clean_run_leaves_no_extra_backends and also by R3 (R3 was not predicted; it's a superset). M3 killed by R3. All restored by sha256 bbe5ec25 (h4_mutants.txt). MET.
 - mypy passed; makemigrations "No changes detected".
 - H5 expectation, recorded before the run: the labels in h5_labels.txt (13 modules), --parallel 4, give Ran 353, OK.
+- H5: Ran 353, OK, rc=0, --parallel 4 (h5_near_run.log.gz, sha256 4d0d4a4159bb75f4). MET. All expectations met; H2 has one disclosed addition (the clean-run test now compares pids).
