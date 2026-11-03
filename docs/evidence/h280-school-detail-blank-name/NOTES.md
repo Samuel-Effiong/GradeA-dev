@@ -191,3 +191,38 @@ Each mutant is expected to give `Ran 8` with failures = the number of
 killers: 3, 1, 1 and 1.
 
 **E6, near run.** Held until the SM says B33 is finished.
+
+## Results at 0541972c2
+
+**E8/E9: met.** The 4 E3 modules in one serial run gave `Ran 58`, `OK`.
+That includes all 8 H-280 tests. Log: `logs/targeted_run_0541972c.txt.gz`.
+
+**E4: NOT met as written. The miss is in my expectation, not in the
+schema.** The two YAMLs are not byte-identical: 22 changed lines, all
+example values (`id`, `created_at`, `due_date`, `student_submission_id`).
+The schema generator fills these with a fresh `uuid4()` and `now()` on
+every run.
+- Proof: two runs at the same commit (e11e56536) also differ by 22 lines.
+- With every UUID masked as `<UUID>` and every
+  `YYYY-MM-DD HH:MM:SS.ffffff+00:00` masked as `<NOW>`, base and fix are
+  **identical**: sha256 `ec5816248a3d35ff…` for both.
+- `SchoolDetail` itself is unchanged.
+- Files: `schema/*.yaml.gz` and `schema/SHA256SUMS`.
+
+**E5: met, 4 of 4 killed**, each by exactly the predicted tests and nothing
+else, with `Ran 8` every time. Disposable detached worktree at 0541972c2,
+DB `test_AutoGrader_h280_mut`. `classrooms/views.py` was restored after
+each mutant, sha256 matched the committed blob. Logs and SHA256SUMS are in
+`mutants_0541972c/`.
+
+| Mutant | Result | Killers |
+|---|---|---|
+| M-h280.1 teacher map without fallback | failures=3 | T1, T2, T3 |
+| M-h280.2 detail admin without fallback | failures=1 | T4 |
+| M-h280.3 `is_valid` restored | failures=1 | T6 |
+| M-h280.4 list admin without fallback | failures=1 | T7 |
+
+The mutant worktree has been removed, and no `test_AutoGrader_h28*` DB is
+left.
+
+**E6, near run:** held until the SM says B33 is finished.
