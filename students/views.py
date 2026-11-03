@@ -114,6 +114,7 @@ from .services import (
     notify_student_of_graded_submission,
     printable_answers,
     promote_pending,
+    refresh_student_summary,
     student_submission_to_html,
     take_held_result,
     unreadable_answers_log_line,
@@ -1323,6 +1324,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 # review tier...) and the emptied hold.
                 fields += [name for name in PROMOTION_FIELDS if name not in fields]
             submission.save(update_fields=fields)
+            if held:
+                # Owner ruling, 2026-11-03: releasing a held result by hand
+                # refreshes the AI summary once, as a publish approval does
+                # (only once the edit has committed).
+                released, by = submission, request.user
+                transaction.on_commit(lambda: refresh_student_summary(released, by))
 
         if submission.is_published:
             notify_student_of_graded_submission(submission, is_update=True)

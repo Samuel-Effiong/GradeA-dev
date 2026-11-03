@@ -539,6 +539,14 @@ def _after_promotion(row, actor, tell):
                 "Failed to notify student of a released re-grade",
                 extra={"submission_id": str(row.id)},
             )
+    refresh_student_summary(row, actor)
+
+
+def refresh_student_summary(row, actor):
+    """The AI student summary, refreshed once for a released re-grade
+    (H-279: one per approval, from publish, publish-all or a hand edit).
+    Called after the release has committed; a dispatch failure is logged,
+    never raised: the grade is already released."""
     try:
         student_summary_async.delay(
             str(row.student_id),
