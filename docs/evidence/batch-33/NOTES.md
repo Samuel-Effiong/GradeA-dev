@@ -39,3 +39,9 @@ Batch 32. (8839 = DiscoverRunner.build_suite count at 8a1d4a18; Batch 32 was 873
 - Not pushed. Fix goes back to H-278: `db_default=False` on the field plus a generated AlterField migration, red test first, then a re-run.
 - Process gap: the H-278 near run did not include AutoGrader.tests_migration_rollback_defaults. Any branch that adds a migration must include that module in its near run.
 - Files: e3_5c1e12a5_summary.txt, e3_failures.txt.
+
+## B33-E4 expectation (committed before the run): full re-run after the H-278 db_default fix
+- Merged H-278 follow-up at 0131db92 (5fc519031): Session.is_active gets db_default=False, generated AlterField classrooms/0018. Worker evidence: F1 red, F2 green (guard Ran 12 OK), near run Ran 1091 OK (skipped=2), mutants M-h278.13 (killed by makemigrations --check) and M-h278.14 (killed by the guard).
+- makemigrations --check: "No changes detected". Discovered test count: 8839 (unchanged; no tests added).
+- Prediction: `Ran 8839 tests`, `OK (skipped=30)`, with skip reasons identical to Batch 32 / B33-E3. The 2 rollback-guard failures from E3 are gone.
+- Owner approval 2026-11-03 ("ye"): re-run and push to origin and backup if green.
