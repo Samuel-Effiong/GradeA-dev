@@ -65,8 +65,10 @@ def is_individual_teacher(user):
     such a teacher tops up on their own."""
     from users.models import UserTypes
 
+    # An anonymous request user (require_ai_access) is never individual.
+    if user is None or not getattr(user, "is_authenticated", False):
+        return False
     return (
-        user is not None
-        and user.user_type == UserTypes.TEACHER
+        getattr(user, "user_type", None) == UserTypes.TEACHER
         and not user.is_under_license()
     )

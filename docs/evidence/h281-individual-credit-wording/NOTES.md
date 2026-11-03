@@ -180,3 +180,16 @@ New test: `WhoIsAnIndividualTeacher.test_an_anonymous_user_is_not_individual`
 (the module now has 43 tests). Serial, that one test only. Expect `Ran 1`,
 `FAILED (errors=1)`, with
 `AttributeError: 'AnonymousUser' object has no attribute 'user_type'`.
+
+**E4 result (8591f89be): met.** `Ran 1`, `FAILED (errors=1)`, with
+`AttributeError: 'AnonymousUser' object has no attribute 'user_type'`.
+
+## Predicate fix and existing-test diffs: expectations (written before the run)
+
+- `is_individual_teacher`: `False` for `None` and for any user that is not
+  authenticated, and it reads `user_type` with `getattr`.
+- The existing-test diffs X1–X8 are in `EVIDENCE.md`.
+
+**E3b.** The same E3 labels, serial: **306 tests** (305 + the new anonymous
+test). Expect `Ran 306`, `OK`, including both RequireAiAccess subtests with
+their expectations unchanged.
