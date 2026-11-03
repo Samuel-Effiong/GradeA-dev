@@ -112,6 +112,14 @@ from .tasks import student_summary_async
 logger = logging.getLogger(__name__)
 
 
+def _name_or_email(user):
+    """A user's name, or their email when they have none (H-280).
+
+    Used for the school list and detail pages, so a nameless teacher or admin
+    never shows a blank name. Same fallback as billing/stripe_service.py."""
+    return user.get_full_name() or user.email
+
+
 def _validate_uuid_query_param(value, param_name):
     """Validate a query-param string is a well-formed UUID.
 
@@ -653,7 +661,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "phone": school.phone,
                     "website": school.website,
                     "admin_id": str(admin.id) if admin else None,
-                    "admin_name": admin.get_full_name() if admin else None,
+                    "admin_name": _name_or_email(admin) if admin else None,
                     "admin_email": admin.email if admin else None,
                     "teachers": school.teachers,
                     "students": school.students,
@@ -793,9 +801,8 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             for s in sessions
             if s.owner_type == SessionOwnerType.INDIVIDUAL
         )
-        # A teacher with no name shows their email (H-280).
         teacher_names = {
-            u.id: u.get_full_name() or u.email
+            u.id: _name_or_email(u)
             for u in CustomUser.objects.filter(id__in=all_teacher_ids)
         }
 
@@ -848,7 +855,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "phone": school.phone,
             "website": school.website,
             "admin_id": str(admin.id) if admin else None,
-            "admin_name": (admin.get_full_name() or admin.email) if admin else None,
+            "admin_name": _name_or_email(admin) if admin else None,
             "admin_email": admin.email if admin else None,
             "teachers": teachers_count,
             "students": students_count,

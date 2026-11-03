@@ -156,3 +156,38 @@ Serial, the H-280 module only. Expect `Ran 8`, `FAILED (failures=1)`.
 - T8 passes, and T1–T6 still pass, since the detail fix is in.
 - Gate: ≥ 4000 MB available. Batch 33 re-run in progress: small serial
   runs only.
+
+**E7 result (3241a7659): met.** `Ran 8`, `FAILED (failures=1)`. Only T7
+failed, with `AssertionError: '' != 'h280-list-admin@x.test'`. Log:
+`logs/red_run_3241a765.txt`.
+
+## List fix commit: expectations (written before the runs)
+
+The fix adds `_name_or_email(user)` to `classrooms/views.py` and uses it at
+the list `admin_name`, the detail `admin_name` and the detail
+`teacher_names`. Ordering the list by `admin_name` still sorts on the name
+columns, so a nameless admin sorts as blank. That is unchanged and out of
+scope.
+
+**E8, green.** The H-280 module, serial: `Ran 8`, `OK`.
+
+**E9, targeted.** The same 4 modules as E3, serial: `Ran 58` (56 + 2), `OK`.
+
+**E4, schema.** `manage.py spectacular` at e11e56536 (beta) and at this fix
+gives byte-identical YAML.
+
+**E5, mutants, one per guard.** Serial, one module, disposable detached
+worktree, restored by sha256. Allowed during the B33 re-run as small serial
+runs.
+
+| Mutant | Change | Expected killers (all others pass) |
+|---|---|---|
+| M1 | `u.id: _name_or_email(u)` → `u.id: u.get_full_name()` | T1, T2, T3 |
+| M2 | detail `_name_or_email(admin) if admin` → `admin.get_full_name() if admin` | T4 |
+| M3 | `return Response(SchoolDetailSerializer(data).data)` → the `data=data` plus `is_valid(raise_exception=True)` form | T6 |
+| M4 | list `_name_or_email(admin) if admin` → `admin.get_full_name() if admin` | T7 |
+
+Each mutant is expected to give `Ran 8` with failures = the number of
+killers: 3, 1, 1 and 1.
+
+**E6, near run.** Held until the SM says B33 is finished.
