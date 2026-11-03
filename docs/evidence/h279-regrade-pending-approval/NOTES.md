@@ -252,3 +252,89 @@ today.
   `--parallel 4`): `Ran 341 tests`, `OK`, so **E2 is met** (N = 341,
   including X1–X10). Raw sha256 aebc81f1…ddeb16b, gz (gzip -n -9) sha256
   c397230b…5e07bf.
+
+## Implementation (cca16b03c)
+
+What it is:
+- **Migration:** `students/migrations/0036_studentsubmission_pending_result.py`.
+  It adds two nullable columns with no backfill.
+- **students/services.py:**
+  - `HELD_RESULT_FIELDS`, `holds_a_released_grade`, `held_values`,
+    `held_view`, `held_result_stamp`, `_hold_if_released` (called in
+    `_populate_and_save_grade`'s final save, under the row lock),
+    `take_held_result`, `promote_pending(submission_id, *, actor,
+    notify=True)`, `promote_all_pending` and `_after_promotion` (on_commit:
+    the update email when the row is released, and the AI summary).
+  - The pipeline queues the formatting task with the held stamp and skips the
+    summary for a held result.
+  - `emit_grading_completed` reads the model and label from the held result
+    and adds `held_for_approval: true`.
+- **audit/metadata.py:** `held_for_approval` is allowed on GRADING_COMPLETED.
+- **students/views.py:**
+  - publish calls `promote_pending` before the first-release flip.
+  - `update_grade` is split. `_save_hand_grade` runs under
+    `select_for_update` in one atomic block: `take_held_result`, then the
+    edit, then ONE save. `_after_hand_grade` runs after the commit (email,
+    formatting task, answer).
+  - `has_pending_result` is a teacher-only filter.
+- **assignments/views.py:** publish-all calls `promote_all_pending` before its
+  snapshot. The count is unchanged.
+- **assignments/tasks.py:** `formatted_grade_async` uses the three stamp rules
+  under the lock. The released write re-reads the row's numbers under the
+  lock, so a result approved during the AI call is worded with its own
+  numbers.
+- **students/serializers.py:** the teacher detail serializer gets both
+  fields. `StudentUploadAnswerSerializer` gets both as `SentAs(None)`.
+- **One test added** after E1:
+  `TheHeldResultsWording::test_approved_during_its_ai_call_the_task_words_the_approved_numbers`
+  (the guard for M-h279.10). It was not in E1's red run. On e11e56536 it
+  would error on `held_result_stamp`.
+- **Hand edit and the AI summary.** `update_grade` does not dispatch the AI
+  summary, as before H-279. A hand edit of a held row therefore releases it
+  without a summary refresh. This is flagged to SM: Q3 named "approval", and
+  the hand edit is an approval by the SM default. I did not add a new charge
+  to the hand-edit route without a ruling.
+
+X1–X10 amended in cca16b03c. In each, the old score or wording is asserted
+first as the held (pre-approval) half, then the teacher approves through the
+publish route, then the original after-assertion is checked. The diffs are
+listed in EVIDENCE after the runs.
+
+## Expectations for cca16b03c (committed before any run)
+
+**E3. Green run.** Both new modules: `Ran 60 tests`, `OK`.
+
+**E4. Migration check.** `manage.py makemigrations --check --dry-run`: no
+changes.
+
+**E5. Near run.** The 53 existing modules that touch the changed code (the
+list is in logs/near_modules.txt, committed here) plus both new modules,
+`--parallel 4`: `OK`, with N recorded from the run.
+- X1–X10 pass in their amended form.
+- Any failure is **unpredicted**. It is reported to SM before anything is
+  amended.
+
+**E6. Mutants.** One per guard, each in a disposable detached worktree at
+cca16b03c, the file restored and checked by sha256 against the committed
+blob. Each runs the two new modules. Expected: every mutant is killed by at
+least the listed test.
+
+| Mutant | Change | Expected killer(s) |
+|---|---|---|
+| M-h279.1 | the hold is decided from the instance loaded before the run, not the locked row | test_a_publish_landing_mid_run_still_holds_the_result |
+| M-h279.2 | `holds_a_released_grade` drops the graded_at condition | test_a_first_grading_of_a_published_row_is_not_held |
+| M-h279.3 | the held save writes the new result into the released columns too | test_every_released_column_is_left_as_it_was (+ "nothing moves") |
+| M-h279.4 | single publish does not promote | test_single_publish_promotes_it, N1 |
+| M-h279.5 | publish-all does not promote | test_publish_all_promotes_it, N4 |
+| M-h279.6 | publish promotes only an already published row (the unpublished-held guard) | test_an_unreleased_row_that_somehow_holds_a_result_is_released_with_it |
+| M-h279.7 | the hand edit does not take the held result | test_the_edit_applies_on_top_of_the_held_result |
+| M-h279.8 | a second re-grade keeps the first held result | test_a_second_regrade_replaces_the_held_one, test_the_newest_held_result_is_the_one_released |
+| M-h279.9 | the task for a held result writes the released text | test_its_task_words_the_held_result_and_leaves_the_released_text |
+| M-h279.10 | the released write does not re-read the numbers under the lock | test_approved_during_its_ai_call_the_task_words_the_approved_numbers |
+| M-h279.11 | the AI summary is dispatched at the held save | test_no_email_and_no_ai_summary_at_the_held_save, test_the_ai_summary_is_dispatched_once_per_approval |
+| M-h279.12 | the promotion does not empty the hold | N2 (double click), N3 |
+| M-h279.13 | the student detail serializer names pending_result | test_no_serializer_but_the_teachers_page_reads_them |
+| M-h279.14 | `has_pending_result` is not teacher-only | test_a_student_cannot_filter_on_it |
+| M-h279.15 | no `held_for_approval` key | test_grading_completed_says_held_and_changes_nothing_released |
+| M-h279.16 | the promotion is a queryset update (no post_save) | test_the_final_grade_follows, test_the_student_reads_it_at_once_though_cached, test_one_grade_change_from_the_released_to_the_promoted |
+| M-h279.17 | `promote_pending` reads the row without `select_for_update` | N3 / N6 (threads). **Not guaranteed**: a race may not show in a given run. A survivor is reported as such, not argued away. |
