@@ -1,0 +1,15 @@
+.......................F.
+======================================================================
+FAIL: test_only_0027_has_since_been_acknowledged (AutoGrader.tests_migration_safety_check.TheRealMigrationsTheNewRuleReportsForTheFirstTime.test_only_0027_has_since_been_acknowledged) (migration='students/migrations/0027_alter_studentsubmission_ai_grading_completed_at.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h286/AutoGrader/tests_migration_safety_check.py", line 579, in test_only_0027_has_since_been_acknowledged
+    self.assertTrue(check.has_ack(path))
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 25 tests in 0.503s
+
+FAILED (failures=1)
+Found 25 test(s).
+System check identified no issues (0 silenced).
