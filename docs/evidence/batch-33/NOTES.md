@@ -24,3 +24,10 @@ Same module: OK, same test count as E1.
 ### B33-E2 result: MET
 `"Session": "Session"` added to `_TARGET_LABEL` (audit/serializers.py) as the
 H-278 merge note asked. `Ran 32`, `OK`. Log e2.log.
+
+## B33-E3 full run expectation (committed before the run)
+Owner go-ahead 2026-11-03: "Yes, and push if green".
+Run: GAP-a0-runs/b33/strict_bundle.sh (--parallel 4 -v 2, mypy + makemigrations
+pre-checks, watchdog, memory guard) on this commit.
+Expected: `Ran 8839 tests`, `OK (skipped=30)`, skip reasons identical to
+Batch 32. (8839 = DiscoverRunner.build_suite count at 8a1d4a18; Batch 32 was 8737.)
