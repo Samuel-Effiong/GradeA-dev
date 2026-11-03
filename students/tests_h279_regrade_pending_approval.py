@@ -28,7 +28,6 @@ from unittest.mock import patch
 
 from django.conf import settings as django_settings
 from django.core.cache import cache
-from django.core.exceptions import ValidationError
 from django.urls import reverse
 from rest_framework import serializers, status
 
@@ -856,8 +855,18 @@ class TheStudentIsToldOncePerApproval(HeldBase):
             pending_result=broken
         )
 
-        with self.assertRaises(ValidationError):
-            self.publish()
+        self.client.force_authenticate(self.teacher)
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse(
+                    "student-submission-publish-grade",
+                    kwargs={"pk": self.submission.pk},
+                )
+            )
+
+        # the route's error answer (not a raised exception: the API's
+        # handler answers for it); nothing was released or sent
+        self.assertEqual(response.status_code, 500)
 
         self.assertEqual(self.emails, [])
         self.assertEqual(self.released_columns(), self.released_before)

@@ -490,6 +490,11 @@ def take_held_result(row) -> bool:
         return False
     for name, value in held_values(row.pending_result).items():
         setattr(row, name, value)
+    # The JSON copy of a time is cut to milliseconds (DjangoJSONEncoder);
+    # the column is whole. The released grading time must be the held
+    # stamp's exactly, or the held result's formatting task, queued with
+    # that stamp, would find itself superseded once the result is released.
+    row.graded_at = row.pending_graded_at
     row.pending_result = None
     row.pending_graded_at = None
     return True

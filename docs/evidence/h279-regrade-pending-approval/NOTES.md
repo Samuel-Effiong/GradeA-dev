@@ -338,3 +338,28 @@ least the listed test.
 | M-h279.15 | no `held_for_approval` key | test_grading_completed_says_held_and_changes_nothing_released |
 | M-h279.16 | the promotion is a queryset update (no post_save) | test_the_final_grade_follows, test_the_student_reads_it_at_once_though_cached, test_one_grade_change_from_the_released_to_the_promoted |
 | M-h279.17 | `promote_pending` reads the row without `select_for_update` | N3 / N6 (threads). **Not guaranteed**: a race may not show in a given run. A survivor is reported as such, not argued away. |
+
+## E3 at cca16b03c: NOT met (logs/green_run_cca16b03.txt)
+
+`Ran 60 tests`, `FAILED (failures=2, errors=2)`. E4 met (`No changes
+detected`, rc=0).
+
+- **Code bug (3 tests), with one cause.**
+  - The failing tests:
+    - test_single_publish_promotes_it: `graded_at` 08:33:00.265000 !=
+      `pending_graded_at` 08:33:00.265740;
+    - test_approved_before_its_task_ran_the_task_writes_the_released_row;
+    - test_approved_during_its_ai_call_the_task_words_the_approved_numbers.
+  - The cause: `DjangoJSONEncoder` cuts a time to milliseconds, and the
+    promotion took `graded_at` from that JSON copy. The released stamp then
+    differed from the held stamp, so the held result's formatting task was
+    superseded after approval. Students would have read no formatted grade.
+  - Fixed in the next commit: `take_held_result` sets `graded_at :=
+    pending_graded_at`, which is the whole-precision column.
+- **Test defect (1 test).** test_n10_a_promotion_that_fails_sends_none_and_changes_nothing
+  expected the ValidationError to reach the test. The API's error handler
+  answers 500 instead. The guarantees under test are unchanged: no email,
+  released columns unchanged, the held result kept. The test now posts and
+  asserts 500, then checks the same three things.
+- E3 is re-run on the fix commit. The expectation is unchanged: `Ran 60`,
+  `OK`. E5 and E6 then run on the fix commit, not cca16b03c.
