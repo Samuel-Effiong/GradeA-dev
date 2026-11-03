@@ -16,3 +16,11 @@ test_every_target_type_the_code_writes_has_a_label, listing exactly ['Session'].
 
 ### Expectation B33-E2 (after adding "Session": "Session")
 Same module: OK, same test count as E1.
+
+### B33-E1 result at 34cf7af3: MET
+`Ran 32`, `FAILED (failures=1)`: test_every_target_type_the_code_writes_has_a_label,
+`['Session'] != []`. Log e1_34cf7af3.log.
+
+### B33-E2 result: MET
+`"Session": "Session"` added to `_TARGET_LABEL` (audit/serializers.py) as the
+H-278 merge note asked. `Ran 32`, `OK`. Log e2.log.

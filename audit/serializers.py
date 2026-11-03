@@ -9,6 +9,7 @@ _TARGET_LABEL = {
     "AuditEvent": "Audit event",
     "Course": "Course",
     "School": "School",
+    "Session": "Session",
     "LicenseStripeMutationIntent": "License change intent",
     "CreditLedger": "Credit ledger",
     "SchoolCreditAllocation": "Credit allocation",
