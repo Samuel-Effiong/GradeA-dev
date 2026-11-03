@@ -1,0 +1,87 @@
+import hashlib
+import pathlib
+import subprocess
+import sys
+
+S = pathlib.Path(sys.argv[1])
+W = S / "mut_h279"
+PY = sys.argv[2]
+ONLY = sys.argv[3:]
+COMMIT = "7bcec03d4"
+SV = "students/services.py"
+VW = "students/views.py"
+AV = "assignments/views.py"
+TK = "assignments/tasks.py"
+SR = "students/serializers.py"
+
+M = {
+    "M-h279.1": [(SV, "    if not holds_a_released_grade(stored):\n", "    if not holds_a_released_grade(submission):\n")],
+    "M-h279.2": [(SV, "return bool(row.is_published) and row.graded_at is not None", "return bool(row.is_published)")],
+    "M-h279.3": [
+        (SV, "        setattr(submission, name, getattr(stored, name))\n", "        pass\n"),
+        (SV, "    submission.save(update_fields=HELD_SAVE_FIELDS)\n", "    submission.save(update_fields=(*HELD_SAVE_FIELDS, *HELD_RESULT_FIELDS))\n"),
+    ],
+    "M-h279.4": [(VW, "promoted = promote_pending(submission.pk, actor=request.user)", "promoted = None")],
+    "M-h279.5": [(AV, "        promote_all_pending(graded_submissions, actor=request.user)\n", "        pass\n")],
+    "M-h279.6": [(VW, "promoted = promote_pending(submission.pk, actor=request.user)", "promoted = promote_pending(submission.pk, actor=request.user) if submission.is_published else None")],
+    "M-h279.7": [(VW, "            held = take_held_result(submission)\n", "            held = False\n")],
+    "M-h279.8": [(SV, "    if not holds_a_released_grade(stored):\n        return False\n", "    if not holds_a_released_grade(stored):\n        return False\n    if stored.pending_result is not None:\n        submission._held = True\n        return True\n")],
+    "M-h279.9": [(TK, "            if for_held:\n", "            if False:\n")],
+    "M-h279.10": [(TK, '                submission.refresh_from_db(\n                    fields=["score", "score_percentage", "max_points", "feedback"]\n                )\n', "")],
+    "M-h279.11": [(SV, "            if not held:\n", "            if True:\n")],
+    "M-h279.12": [(SV, "    row.pending_result = None\n    row.pending_graded_at = None\n    return True\n", "    return True\n")],
+    "M-h279.13": [(SR, '            "upload_mismatch",\n            "flagged_for_review",\n        ]\n\n        read_only_fields = [\n            "assignment",\n            "assignment_title",', '            "upload_mismatch",\n            "flagged_for_review",\n            "pending_result",\n        ]\n\n        read_only_fields = [\n            "assignment",\n            "assignment_title",')],
+    "M-h279.14": [(VW, 'TEACHER_ONLY_QUERY_PARAMS = ("has_pending_result",)', "TEACHER_ONLY_QUERY_PARAMS = ()")],
+    "M-h279.15": [(SV, '            **({"held_for_approval": True} if held else {}),\n', "")],
+    "M-h279.16": [(SV, "        row.save(update_fields=PROMOTION_FIELDS)\n", "        StudentSubmission.objects.filter(pk=row.pk).update(\n            **{f: getattr(row, f) for f in PROMOTION_FIELDS}\n        )\n")],
+    "M-h279.17": [(SV, "        row = StudentSubmission.objects.select_for_update().get(pk=submission_id)\n", "        row = StudentSubmission.objects.get(pk=submission_id)\n")],
+    "M-h279.18": [(VW, "                transaction.on_commit(lambda: refresh_student_summary(released, by))\n", "                pass\n")],
+}
+LABELS = [
+    "students.tests_h279_regrade_pending_approval",
+    "students.tests_h279_regrade_pending_concurrency",
+]
+out = S / "mutants_h279"
+out.mkdir(exist_ok=True)
+files = sorted({p for edits in M.values() for p, _, _ in edits})
+committed = {
+    p: subprocess.run(["git", "-C", str(W), "show", f"{COMMIT}:{p}"], capture_output=True, check=True).stdout
+    for p in files
+}
+SHA = {p: hashlib.sha256(b).hexdigest() for p, b in committed.items()}
+
+
+def sha(p):
+    return hashlib.sha256((W / p).read_bytes()).hexdigest()
+
+
+for p in files:
+    assert sha(p) == SHA[p], p
+print("committed sha256:", SHA)
+for name, edits in M.items():
+    if ONLY and name not in ONLY:
+        continue
+    touched = sorted({p for p, _, _ in edits})
+    try:
+        for p, old, new in edits:
+            src = (W / p).read_text()
+            assert src.count(old) == 1, (name, p, src.count(old))
+            (W / p).write_text(src.replace(old, new, 1))
+        r = subprocess.run(
+            [PY, "manage.py", "test", "--noinput", "--settings=settings_worktree", "-v", "2", *LABELS],
+            cwd=W, capture_output=True, text=True, timeout=1800,
+        )
+        log = r.stdout + r.stderr
+        rc = r.returncode
+    finally:
+        for p in touched:
+            (W / p).write_bytes(committed[p])
+    for p in touched:
+        assert sha(p) == SHA[p], "restore failed " + p
+    head = "".join(f"{name}: {p}\n- {old!r}\n+ {new!r}\n" for p, old, new in edits)
+    suffix = "_rerun" if ONLY else ""
+    (out / f"{name}{suffix}.txt").write_text(f"{head}rc={rc}\n\n" + log)
+    hits = sorted({l.split(" (")[0] for l in log.splitlines() if l.startswith(("FAIL:", "ERROR:"))})
+    tail = [l for l in log.splitlines() if l.startswith(("Ran ", "OK", "FAILED"))]
+    print(name, "rc=%d" % rc, "restored ok", tail, flush=True)
+    print("  " + "\n  ".join(hits), flush=True)

@@ -84,6 +84,9 @@ ALLOWED_KEYS = frozenset(
         "models_reused",
         "models_second_opinion",
         "fresh_backup_used",
+        # H-279: an AI re-grade of a released grade, held for the teacher
+        # (GRADING_COMPLETED only).
+        "held_for_approval",
         "feature",
         "task_type",
         "file_type",
@@ -263,6 +266,7 @@ METADATA_ALLOWLIST = {
             "models_reused",
             "models_second_opinion",
             "fresh_backup_used",
+            "held_for_approval",
         }
     ),
     AuditAction.GRADING_FAILED: frozenset(

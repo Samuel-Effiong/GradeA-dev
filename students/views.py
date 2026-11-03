@@ -103,6 +103,7 @@ from .serializers import (
     StudentUploadAnswerSerializer,
 )
 from .services import (
+    PROMOTION_FIELDS,
     SUBMITTED_TEXT,
     emit_grading_completed,
     ensure_no_active_extraction,
@@ -112,7 +113,10 @@ from .services import (
     grading_result_stamp,
     notify_student_of_graded_submission,
     printable_answers,
+    promote_pending,
+    refresh_student_summary,
     student_submission_to_html,
+    take_held_result,
     unreadable_answers_log_line,
     update_submission_from_raw_text,
     upload_answers_engine,
@@ -310,6 +314,10 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     # H-133: `grading_state` too. Before release a student is shown IDLE
     # whatever the state is, and a filter on the real value would tell.
     TEACHER_ONLY_FILTERS = ("needs_review", "review_tier", "grading_state")
+    # H-279: not a filterset field (it is applied in filter_queryset), and
+    # teacher-only as well: a student who could filter on it would learn
+    # that a re-grade of a released grade is waiting.
+    TEACHER_ONLY_QUERY_PARAMS = ("has_pending_result",)
     TEACHER_ONLY_ORDERINGS = ("review_severity",)
 
     def _refuse_review_queue_query_from_a_student(self):
@@ -318,9 +326,10 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         params = self.request.query_params
         ordering = params.get(api_settings.ORDERING_PARAM) or ""
         ordered_by = {term.strip().lstrip("-") for term in ordering.split(",")}
-        if any(name in params for name in self.TEACHER_ONLY_FILTERS) or (
-            ordered_by & set(self.TEACHER_ONLY_ORDERINGS)
-        ):
+        if any(
+            name in params
+            for name in (*self.TEACHER_ONLY_FILTERS, *self.TEACHER_ONLY_QUERY_PARAMS)
+        ) or (ordered_by & set(self.TEACHER_ONLY_ORDERINGS)):
             raise PermissionDenied(
                 "This filter or ordering is not available for your account."
             )
@@ -328,6 +337,13 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def filter_queryset(self, queryset):
         self._refuse_review_queue_query_from_a_student()
         queryset = super().filter_queryset(queryset)
+        # H-279: ?has_pending_result=true lists the re-grades held for the
+        # teacher (pending_graded_at is indexed for it).
+        held = self.request.query_params.get("has_pending_result")
+        if held is not None:
+            queryset = queryset.filter(
+                pending_graded_at__isnull=held.strip().lower() not in ("true", "1")
+            )
         # Postgres sorts NULLs FIRST on a DESC ordering, so an unqualified
         # ?ordering=-review_severity returned every un-flagged submission
         # (severity NULL) ahead of the actual review queue. Force NULLs
@@ -1156,128 +1172,142 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def update_grade(self, request, pk=None):
         submission = self.get_object()
-        serializer = StudentSubmissionGradeUpdateSerializer(
-            submission, data=request.data, partial=True
-        )
-        serializer.is_valid(raise_exception=True)
-
-        feedback = submission.feedback
-
-        if not feedback:
-            return Response(
-                "Submission has not be graded yet", status=HTTP_400_BAD_REQUEST
+        # H-279: a hand edit of a row holding a re-grade is the teacher's
+        # approval of it: the held result is released and the edit applied
+        # on top, in ONE save under the row lock (so a re-grade saved
+        # meanwhile is not lost, and one GRADE_CHANGE goes from the released
+        # grade to the edited one). What follows the save (the student's
+        # notice, the formatting task) runs after the commit.
+        with transaction.atomic():
+            submission = StudentSubmission.objects.select_for_update().get(
+                pk=submission.pk
             )
-
-        # partial=True makes every serializer field optional, so a PATCH
-        # without "score" passes validation with empty validated_data —
-        # guard explicitly instead of KeyError-500ing.
-        if "score" not in serializer.validated_data:
-            return Response(
-                {"error": "A 'score' value is required."},
-                status=HTTP_400_BAD_REQUEST,
+            held = take_held_result(submission)
+            serializer = StudentSubmissionGradeUpdateSerializer(
+                submission, data=request.data, partial=True
             )
+            serializer.is_valid(raise_exception=True)
 
-        try:
-            score = float(serializer.validated_data["score"])
-        except (TypeError, ValueError):
-            return Response(
-                {"error": "Score must be a number."},
-                status=HTTP_400_BAD_REQUEST,
-            )
+            feedback = submission.feedback
 
-        try:
-            max_total_points = float(feedback["grading_summary"]["max_total_points"])
-        except (KeyError, TypeError, ValueError):
-            max_total_points = float(submission.max_points or 0)
+            if not feedback:
+                return Response(
+                    "Submission has not be graded yet", status=HTTP_400_BAD_REQUEST
+                )
 
-        if max_total_points <= 0:
-            return Response(
-                {
-                    "error": (
-                        "This submission has no recorded maximum points, so "
-                        "a percentage cannot be calculated. Re-grade the "
-                        "submission first."
+            # partial=True makes every serializer field optional, so a PATCH
+            # without "score" passes validation with empty validated_data —
+            # guard explicitly instead of KeyError-500ing.
+            if "score" not in serializer.validated_data:
+                return Response(
+                    {"error": "A 'score' value is required."},
+                    status=HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                score = float(serializer.validated_data["score"])
+            except (TypeError, ValueError):
+                return Response(
+                    {"error": "Score must be a number."},
+                    status=HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                max_total_points = float(
+                    feedback["grading_summary"]["max_total_points"]
+                )
+            except (KeyError, TypeError, ValueError):
+                max_total_points = float(submission.max_points or 0)
+
+            if max_total_points <= 0:
+                return Response(
+                    {
+                        "error": (
+                            "This submission has no recorded maximum points, so "
+                            "a percentage cannot be calculated. Re-grade the "
+                            "submission first."
+                        )
+                    },
+                    status=HTTP_400_BAD_REQUEST,
+                )
+
+            # A manual override must stay within the assignment's bounds — an
+            # unclamped PATCH could store 500/10 (and a percentage >= 1000
+            # crashes at save time on the 5-digit decimal column).
+            if score < 0 or score > max_total_points:
+                return Response(
+                    {
+                        "error": (
+                            f"Score must be between 0 and "
+                            f"{max_total_points:g} for this assignment."
+                        )
+                    },
+                    status=HTTP_400_BAD_REQUEST,
+                )
+
+            percentage = round((score / max_total_points) * 100, 2)
+
+            feedback.setdefault("grading_summary", {})
+            feedback["grading_summary"]["total_score"] = score
+            feedback["grading_summary"]["percentage"] = percentage
+            feedback["grading_summary"].setdefault("max_total_points", max_total_points)
+
+            submission.score = float(score)
+            submission.score_percentage = percentage
+            submission.max_points = int(max_total_points)
+
+            submission.feedback = feedback
+            submission.was_regraded = True
+            submission.regraded_at = timezone.now()
+
+            # A manual override IS the teacher's resolution of any pending
+            # grader-disagreement review — clear the queue flag and record
+            # how it was resolved (labeled data for the eval loop).
+            if submission.needs_review:
+                submission.review_reasons = (submission.review_reasons or []) + [
+                    {
+                        "resolved": "overridden",
+                        "by": str(request.user.id),
+                        "at": timezone.now().isoformat(),
+                    }
+                ]
+            submission.needs_review = False
+
+            # The stored answer document prints the score in its header, and a
+            # released student reads the stored document: rebuild it from the
+            # row as it now is, as grading does, or the paper keeps the old
+            # score beside the new one.
+            #
+            # A second line behind H-165's builder (which never raises on a shape
+            # of `answers`): the teacher's grade must never fail to save because
+            # a document builder raised. Around the BUILD only, never around the
+            # save. On a fault the stored document is left as it was (it is the
+            # paper the student reads; a stale printed score is a lesser harm
+            # than a paper that vanishes), the answer carries that old document
+            # (it claims no refresh), and the fault is logged by submission id and
+            # exception type only: no answer text, no names.
+            try:
+                submission.raw_input = (
+                    AssignmentProcessingService.html_to_prosemirror_text(
+                        student_submission_to_html(submission)
                     )
-                },
-                status=HTTP_400_BAD_REQUEST,
-            )
+                )
+            except Exception as exc:  # noqa: BLE001 - see the comment above
+                logger.error(
+                    "Manual grade: the answer document could not be rebuilt: "
+                    "submission=%s error=%s",
+                    submission.pk,
+                    type(exc).__name__,
+                )
 
-        # A manual override must stay within the assignment's bounds — an
-        # unclamped PATCH could store 500/10 (and a percentage >= 1000
-        # crashes at save time on the 5-digit decimal column).
-        if score < 0 or score > max_total_points:
-            return Response(
-                {
-                    "error": (
-                        f"Score must be between 0 and "
-                        f"{max_total_points:g} for this assignment."
-                    )
-                },
-                status=HTTP_400_BAD_REQUEST,
-            )
+            # The formatted grade words the OLD result, and its first sentence
+            # states the old score. Clear it in the same save as the new score:
+            # until the task queued below has worded the new result, and for
+            # good if that task fails, a student reads no formatted grade
+            # rather than a wrong one (H-144).
+            submission.formatted_grade = None
 
-        percentage = round((score / max_total_points) * 100, 2)
-
-        feedback.setdefault("grading_summary", {})
-        feedback["grading_summary"]["total_score"] = score
-        feedback["grading_summary"]["percentage"] = percentage
-        feedback["grading_summary"].setdefault("max_total_points", max_total_points)
-
-        submission.score = float(score)
-        submission.score_percentage = percentage
-        submission.max_points = int(max_total_points)
-
-        submission.feedback = feedback
-        submission.was_regraded = True
-        submission.regraded_at = timezone.now()
-
-        # A manual override IS the teacher's resolution of any pending
-        # grader-disagreement review — clear the queue flag and record
-        # how it was resolved (labeled data for the eval loop).
-        if submission.needs_review:
-            submission.review_reasons = (submission.review_reasons or []) + [
-                {
-                    "resolved": "overridden",
-                    "by": str(request.user.id),
-                    "at": timezone.now().isoformat(),
-                }
-            ]
-        submission.needs_review = False
-
-        # The stored answer document prints the score in its header, and a
-        # released student reads the stored document: rebuild it from the
-        # row as it now is, as grading does, or the paper keeps the old
-        # score beside the new one.
-        #
-        # A second line behind H-165's builder (which never raises on a shape
-        # of `answers`): the teacher's grade must never fail to save because
-        # a document builder raised. Around the BUILD only, never around the
-        # save. On a fault the stored document is left as it was (it is the
-        # paper the student reads; a stale printed score is a lesser harm
-        # than a paper that vanishes), the answer carries that old document
-        # (it claims no refresh), and the fault is logged by submission id and
-        # exception type only: no answer text, no names.
-        try:
-            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
-                student_submission_to_html(submission)
-            )
-        except Exception as exc:  # noqa: BLE001 - see the comment above
-            logger.error(
-                "Manual grade: the answer document could not be rebuilt: "
-                "submission=%s error=%s",
-                submission.pk,
-                type(exc).__name__,
-            )
-
-        # The formatted grade words the OLD result, and its first sentence
-        # states the old score. Clear it in the same save as the new score:
-        # until the task queued below has worded the new result, and for
-        # good if that task fails, a student reads no formatted grade
-        # rather than a wrong one (H-144).
-        submission.formatted_grade = None
-
-        submission.save(
-            update_fields=[
+            fields = [
                 "score",
                 "score_percentage",
                 "max_points",
@@ -1289,7 +1319,17 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "raw_input",
                 "formatted_grade",
             ]
-        )
+            if held:
+                # The released result's other columns (its grading time, label,
+                # review tier...) and the emptied hold.
+                fields += [name for name in PROMOTION_FIELDS if name not in fields]
+            submission.save(update_fields=fields)
+            # Owner ruling, 2026-11-03: every successful hand edit refreshes
+            # the teacher's AI summary once, held result or not, published or
+            # not, and only once the edit has committed. Registered after the
+            # save, so a refused or rolled-back edit dispatches nothing.
+            edited, by = submission, request.user
+            transaction.on_commit(lambda: refresh_student_summary(edited, by))
 
         if submission.is_published:
             notify_student_of_graded_submission(submission, is_update=True)
@@ -1585,6 +1625,16 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             # Catalogue F (Epic A S7d): coded SUBMISSION_NOT_GRADED, still a
             # 400.
             return coded_response(CodedError(ReasonCode.SUBMISSION_NOT_GRADED))
+
+        # H-279: publishing is the teacher's approval of a held re-grade.
+        # The newest held result is released (owner, 2026-11-03), under the
+        # row lock, so of two clicks one promotes; the student gets the
+        # update email from the promotion. A row released by this same
+        # request (it cannot hold a result, but if it did) is told once, by
+        # the release below.
+        promoted = promote_pending(submission.pk, actor=request.user)
+        if promoted is not None:
+            submission = promoted
 
         # Conditional UPDATE as an atomic claim: two concurrent publish
         # requests both saw is_published=False above, but only one matches

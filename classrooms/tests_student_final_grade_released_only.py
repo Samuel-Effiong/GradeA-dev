@@ -174,13 +174,20 @@ class ReleaseIsWhatMovesTheStudentsNumber(StudentFinalGradeBase):
         self.assert_grade(self.detail(self.student, fresh=False), "50.00", "F")
         self.assert_grade(self.listed(self.student, fresh=False), "50.00", "F")
 
-    def test_a_regrade_after_release_moves_the_number_at_once(self):
-        """Intended: the work is released, so its new score is too."""
+    def test_a_regrade_after_release_moves_the_number_once_approved(self):
+        """H-279 (owner, 2026-11-02): an AI re-grade of released work is held
+        for the teacher, and the number moves when the teacher approves it
+        (the publish route). It was "at once" before H-279."""
         self.grade_by_ai(self.first, 10)
         self.release(self.first)
         self.assert_grade(self.detail(self.student), "100.00", "A+")
 
         self.grade_by_ai(self.first, 0)
+
+        # held: the released number stands
+        self.assert_grade(self.detail(self.student, fresh=False), "100.00", "A+")
+
+        self.release(self.first)
 
         self.assert_grade(self.detail(self.student, fresh=False), "0.00", "F")
 

@@ -411,6 +411,9 @@ class StudentSubmissionDetailSerializer(
             "is_grading_scheduled",
             "upload_mismatch",
             "flagged_for_review",
+            # H-279: a re-grade held for the teacher (staff only).
+            "pending_result",
+            "pending_graded_at",
         ]
 
         read_only_fields = [
@@ -701,6 +704,9 @@ class StudentUploadAnswerSerializer(SubmissionFlagsMixin, serializers.ModelSeria
     scheduled_grading_at = SentAs(None)
     grading_task_name = SentAs(None)
     is_grading_scheduled = SentAs(False)
+    # H-279: the teacher's page shows a held re-grade; a student never does.
+    pending_result = SentAs(None)
+    pending_graded_at = SentAs(None)
 
     class Meta:
         model = StudentSubmission
@@ -738,6 +744,9 @@ class StudentUploadAnswerSerializer(SubmissionFlagsMixin, serializers.ModelSeria
             "is_grading_scheduled",
             "upload_mismatch",
             "flagged_for_review",
+            # H-279: a re-grade held for the teacher (staff only).
+            "pending_result",
+            "pending_graded_at",
         ]
         read_only_fields = fields
 
