@@ -1,0 +1,31 @@
+FAIL: test_a_worker_that_leaves_its_connection_open_fails_the_run (AutoGrader.tests_concurrency_harness.RunConcurrentlyTests.test_a_worker_that_leaves_its_connection_open_fails_the_run)
+The guard that a GC-dependent teardown error cannot be trusted to
+----------------------------------------------------------------------
+AssertionError: 2 database session(s) still open after all 3 workers finished: a worker did not close its own connection.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 58, in testPartExecutor
+    yield
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 634, in run
+    self._callTestMethod(testMethod)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 589, in _callTestMethod
+    if method() is not None:
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-beta-batch-33/AutoGrader/tests_concurrency_harness.py", line 100, in test_a_worker_that_leaves_its_connection_open_fails_the_run
+    with self.assertRaisesRegex(
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 276, in __exit__
+    self._raiseFailure('"{}" does not match "{}"'.format(
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/case.py", line 200, in _raiseFailure
+    raise self.test_case.failureException(msg)
+    ^^^^^^^^^^^^^^^^^
+AssertionError: "3 database session\(s\) still open after all 3 workers" does not match "2 database session(s) still open after all 3 workers finished: a worker did not close its own connection."
+
+----------------------------------------------------------------------
+Ran 8839 tests in 637.049s
+
+FAILED (failures=1, skipped=30)

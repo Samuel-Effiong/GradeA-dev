@@ -45,3 +45,10 @@ Batch 32. (8839 = DiscoverRunner.build_suite count at 8a1d4a18; Batch 32 was 873
 - makemigrations --check: "No changes detected". Discovered test count: 8839 (unchanged; no tests added).
 - Prediction: `Ran 8839 tests`, `OK (skipped=30)`, with skip reasons identical to Batch 32 / B33-E3. The 2 rollback-guard failures from E3 are gone.
 - Owner approval 2026-11-03 ("ye"): re-run and push to origin and backup if green.
+
+## B33-E4 result (full re-run on dc3d4604): RED, expectation missed
+- Ran 8839 (as predicted), FAILED (failures=1, skipped=30). Skip reasons are identical to E3. The memory guard and watchdog did not fire. The E3 rollback-guard failures are gone, so the H-278 fix works.
+- The one failure is AutoGrader.tests_concurrency_harness.RunConcurrentlyTests.test_a_worker_that_leaves_its_connection_open_fails_the_run: the harness reported "2 database session(s) still open", but the test demands exactly "3".
+- Not caused by this batch: B33 does not touch AutoGrader/testing/ or the test module, and the same code passed in E3 and Batch 32. This is its first recorded failure in any archived run log.
+- Likely cause (reading only, not proven): `run_concurrently` counts leaks as other_backends() minus a baseline taken before the run. If a backend counted in the baseline closes during the run, 3 real leaks show as 2. The test's exact-count regex is then flaky.
+- Not pushed. The rule is: anything other than the expectation = STOP.
