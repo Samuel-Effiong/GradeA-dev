@@ -193,3 +193,53 @@ New test: `WhoIsAnIndividualTeacher.test_an_anonymous_user_is_not_individual`
 **E3b.** The same E3 labels, serial: **306 tests** (305 + the new anonymous
 test). Expect `Ran 306`, `OK`, including both RequireAiAccess subtests with
 their expectations unchanged.
+
+**E3b result (635200b64): met.** `Ran 306`, `OK`. Log:
+`logs/targeted_run_635200b6.txt.gz`.
+
+## Before the planted bugs: two code tidies and one guard test
+
+- **The predicate is simplified to the `getattr` form.** The
+  `user is None or not is_authenticated` early return was redundant:
+  `getattr(user, "user_type", None)` already makes `None` and an
+  anonymous user non-individual. Leaving it would have left a guard that no
+  planted bug can catch.
+- **New guard test:**
+  `WhatAPolledItemSays.test_the_mid_batch_refusal_never_takes_the_individual_variant`.
+  `InsufficientCreditsMidBatchError` is a `CodedError` and an
+  `InsufficientCreditsError`. The `not isinstance(error, CodedError)`
+  clause in `credit_refusal_variant` keeps it out of the individual variant,
+  so its item never stores `message_variant`. The module now has 44 tests.
+
+## E5: planted bugs (expectations, written before the sweep)
+
+**Baseline.** At this commit, the E3 labels, serial: **307 tests**. Expect
+`Ran 307`, `OK`.
+
+**Sweep.** One planted bug at a time, in a disposable detached worktree at
+this commit, DB `test_AutoGrader_h281_mut`, the same 307-test label set,
+serial. The file is restored and checked by sha256 after each one. Every
+planted bug must be **killed**. "At least" means other tests in the set may
+also fail; any extra killer is listed in the results.
+
+| Bug | Change | Expected killers (at least) |
+|---|---|---|
+| M1 | predicate: drop `and not user.is_under_license()` | `test_a_licensed_teacher_is_not`; the licensed R1/R2/R3/R4/R7/R10 tests; S1/S2/S5 licensed |
+| M2 | predicate: `getattr(user, "user_type", None)` → `user.user_type` | `test_no_billed_user_is_not_individual`, `test_an_anonymous_user_is_not_individual`, RequireAiAccess (2 subtests) |
+| M3 | R1 (models, blocked) `individual=False` | `test_r1_consume_credits_blocked_individual` |
+| M4 | R2 (models, balance) | `test_r2_consume_credits_balance_individual` |
+| M5 | R3 (models, defensive) | `test_r3_consume_credits_defensive_recheck_individual` |
+| M6 | R4 (HasCreditBalance) | `test_r4_has_credit_balance_individual`, S1 individual and removed, X1 (D11) |
+| M7 | R5 (require_ai_access) | `test_r5_require_ai_access_individual` |
+| M8 | R6 (execute_graded_task access gate) | `test_r6_…` |
+| M9 | R7 (below the estimate) | `test_r7_…_individual`, `test_s2_custom_ai_prompt_individual`, X2, X3, X4 |
+| M10 | R8 (nothing left) | `test_r8_…` |
+| M11 | R9 (single door) | `test_s5_the_single_upload_door_for_a_teacher_individual` |
+| M12 | R10 (parked file) | `test_r10_a_parked_file_is_tagged_from_the_billed_teacher` |
+| M13 | `batch_refusal_response` tag | `test_s5_a_whole_batch_refusal_individual`, X7 (h223 t4/t6) |
+| M14 | `_passthrough_message` → `credit_refusal_message(None)` | S1/S2/S4/S6 individual |
+| M15 | `coded_response` remediation → `None` | S1/S2 individual (remediation), X5, X6 |
+| M16 | `mark_processing_task_failure`: no `message_variant` written | `test_s6_s7_an_individual_refusal_is_stored_and_read_back` |
+| M17 | `item_results._remediation` ignores the variant | the same S6/S7 test |
+| M18 | `credit_refusal_variant` without `not isinstance(error, CodedError)` | `test_the_mid_batch_refusal_never_takes_the_individual_variant` |
+| M19 | spec `"individual"` message → the school message | every individual-message test: S1, S2, S4, S6 (and X1–X4) |

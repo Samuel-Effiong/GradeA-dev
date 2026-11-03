@@ -639,6 +639,20 @@ class WhatAPolledItemSays(TestCase):
         self.assertEqual(entry["remediation"], SCHOOL_REMEDIATION)
         self.assertNotIn("message_variant", task.meta or {})
 
+    def test_the_mid_batch_refusal_never_takes_the_individual_variant(self):
+        """INSUFFICIENT_CREDITS_MID_BATCH is a CodedError AND an
+        InsufficientCreditsError: it keeps its own catalogue message and
+        remediation, and its item never stores the individual variant."""
+        from AutoGrader.reason_codes import credit_refusal_variant
+        from students.exceptions import InsufficientCreditsMidBatchError
+
+        error = InsufficientCreditsMidBatchError(params={"completed": 1, "total": 3})
+        error.individual = True
+        self.assertIsNone(credit_refusal_variant(error))
+        task = self.failed_item(individual_teacher(), error)
+        self.assertEqual(task.reason_code, "INSUFFICIENT_CREDITS_MID_BATCH")
+        self.assertNotIn("message_variant", task.meta or {})
+
     def test_s6_a_student_requested_task_keeps_the_student_sentence(self):
         """The task turns a student's credit refusal into the student
         sentence before it is stored (H-216), even when the billed teacher
