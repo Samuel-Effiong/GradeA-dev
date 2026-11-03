@@ -251,3 +251,30 @@ from the one I named.
   `FAILED (failures=2)`: the same 2 tests as F1, with
   `classrooms.session.is_active` reported against
   `('classrooms.0017_session_is_active',)`. Restore by sha256.
+
+### F4 re-run results (on 504c28ede code, in a disposable detached worktree, DB `test_AutoGrader_h278_mut`)
+
+- **M-h278.13 (model mutant): KILLED by `makemigrations --check --dry-run`.**
+  rc=1, "Migrations for 'classrooms': ~ Alter field is_active on session".
+  Restored, sha256 919de26f…05f0c1. Log: `mutants/M-h278.13_rerun.txt`.
+- **M-h278.14 (`db_default` removed from 0018): KILLED by the guard.**
+  `Ran 12`, `FAILED (failures=2)`, the same 2 tests as F1, with
+  `{'classrooms.session.is_active': ('classrooms.0017_session_is_active',)} != {}`.
+  Restored, sha256 91aadc26…6f7a7. Log: `mutants/M-h278.14.txt`.
+
+The mutant worktree has been removed, and no `test_AutoGrader_h2*` DB is
+left.
+
+### F3 result: met (tip b4ef2b16e, docs-only after 504c28ede)
+
+10:51:06–10:52:51 under systemd-inhibit, with `--parallel 4` and a fresh
+`test_AutoGrader_h278` DB. Before the run: 12492 MB available, load 2.01.
+
+**`Ran 1091 tests in 84.342s`, `OK (skipped=2)`**, rc=0, the expected
+count. The run was at verbosity 1, so the log does not name the skip
+reasons. The count matches the earlier near run, where both skips were the
+AUDIT_BENCH opt-in.
+
+Log: `logs/followup_near_run_b4ef2b16.txt.gz`
+- raw sha256 5fec6f1166e609ed887d1ef6d35d444589d0fb45a9041a7bfc6145b0f1d9c194
+- gz sha256 f587de484dcac54d0dece44054b533bcfd35505ef7911bc6f5bcc2663490e804

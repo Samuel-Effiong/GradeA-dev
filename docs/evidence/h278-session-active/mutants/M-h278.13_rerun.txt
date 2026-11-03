@@ -1,0 +1,10 @@
+M-h278.13_rerun: classrooms/models.py
+- '    is_active = models.BooleanField(default=False, db_default=False)\n'
++ '    is_active = models.BooleanField(default=False)\n'
+cmd=manage.py makemigrations --check --dry-run --settings=settings_worktree
+rc=1
+restored sha256 919de26fd9ff9be1e44d49270945360bcf10100ed9666da290e9445d6905f0c1
+
+Migrations for 'classrooms':
+  classrooms/migrations/0019_alter_session_is_active.py
+    ~ Alter field is_active on session
