@@ -52,3 +52,16 @@ Batch 32. (8839 = DiscoverRunner.build_suite count at 8a1d4a18; Batch 32 was 873
 - Not caused by this batch: B33 does not touch AutoGrader/testing/ or the test module, and the same code passed in E3 and Batch 32. This is its first recorded failure in any archived run log.
 - Likely cause (reading only, not proven): `run_concurrently` counts leaks as other_backends() minus a baseline taken before the run. If a backend counted in the baseline closes during the run, 3 real leaks show as 2. The test's exact-count regex is then flaky.
 - Not pushed. The rule is: anything other than the expectation = STOP.
+
+## Batch 34 folded in (owner 2026-11-03: "merge batch 34 into 33 and do it as 1 full suite")
+| Merge | Ticket | Branch tip |
+|---|---|---|
+| 3abddf96c | H-280 school detail/list blank name | a5a5067e (near run Ran 698 OK) |
+| 44676a73a | H-283 harness leak count by pid set (SM-built) | 343b7482 (near run Ran 353 OK, 5/5, 3/3 mutants) |
+| c6ec941d5 | H-281 individual-teacher credit wording | 29f6a8b8 (near run Ran 2468 OK, 19/19 mutants) |
+All merges clean. makemigrations --check: "No changes detected". mypy passed. Co-Authored-By lines on the batch: 8 (all from H-278), stripped before push.
+
+## B33-E5 expectation (committed before the run)
+- Discovered count 8894 = 8839 + 7 (H-280) + 3 (H-283) + 45 (H-281).
+- Prediction: `Ran 8894 tests`, `OK (skipped=30)`, skip reasons identical to E3/E4.
+- Owner approval: push to origin and backup if green. Anything else means STOP, no push.
