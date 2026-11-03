@@ -140,3 +140,43 @@ remediation, plus the gate and permission modules, serial: **305 tests**.
   H-225) and the mid-batch tests.
 - No test outside that pattern fails. If one does, it is a finding and is
   reported, not adjusted.
+
+## E2 result (49eb48436): met
+
+`Ran 42`, `OK`. Log: `logs/green_run_49eb4843.txt`.
+
+## E3 result (c1821c3a4): 32 intended changes and 1 real finding
+
+Got `Ran 305`, `FAILED (failures=34)`, counting subtests.
+
+**32 are the intended change.** Each one is
+`"…your credits, then try again." != "…your credits or ask your school administrator, then try again."`,
+because the fixture teacher is unlicensed and so individual:
+- `billing.tests.test_refusal_handling`:
+  - D11 `test_every_credit_guarded_endpoint_answers_402_with_a_code`, 12 TEACHER subtests;
+  - D2D3 `test_teacher_chat_refusals_are_402_or_403_never_500` [credits];
+  - D4 `test_sync_assignment_create_refusal_is_402_or_403` [credits].
+- `billing.tests.test_refusal_handling_gates.ConcurrentRefusalTest.test_twenty_simultaneous_refusals_charge_nothing_and_persist_nothing`, 10 rounds.
+- `students.tests_h216_student_credit_sentence…test_c1_a_teacher_asking_for_the_same_edit_keeps_the_generic_body`
+- `students.tests_h225_student_empty_wallet…test_c1_a_teacher_at_an_empty_wallet_keeps_the_generic_body`
+- `students.tests_h223_batch_runs_what_fits`: t4 and t6 on both routes, 4 tests (the shared `assertRefusedWhole`).
+- `students.tests_upload_credit_door`: `AssignmentUploadDoorTest` and `TeacherBatchDoorTest` `test_a_poor_teacher_is_refused_and_nothing_is_queued`.
+
+**1 real finding, in 2 subtests.**
+`AutoGrader.tests_reason_codes.RequireAiAccessTests.test_a_balance_reason_gets_the_credits_refusal`
+gave `500 != 402`.
+- Cause: the test's request user is anonymous (a `SimpleTestCase`), and
+  `is_individual_teacher(request.user)` at R5 read `.user_type`, which an
+  AnonymousUser does not have.
+- This is a bug in my predicate, not an intended change. That test keeps
+  its expectation as it is: an anonymous user is not individual, so it
+  reads the school sentence.
+
+Log: `logs/targeted_run_c1821c3a.txt.gz`.
+
+### E4: red for the finding (expectations, written before the run)
+
+New test: `WhoIsAnIndividualTeacher.test_an_anonymous_user_is_not_individual`
+(the module now has 43 tests). Serial, that one test only. Expect `Ran 1`,
+`FAILED (errors=1)`, with
+`AttributeError: 'AnonymousUser' object has no attribute 'user_type'`.

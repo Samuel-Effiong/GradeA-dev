@@ -238,6 +238,14 @@ class WhoIsAnIndividualTeacher(TestCase):
     def test_no_billed_user_is_not_individual(self):
         self.assertIs(self.predicate(None), False)
 
+    def test_an_anonymous_user_is_not_individual(self):
+        """require_ai_access tags with request.user, which can be anonymous
+        (AutoGrader.tests_reason_codes.RequireAiAccessTests, E3 on c1821c3a:
+        a 500)."""
+        from django.contrib.auth.models import AnonymousUser
+
+        self.assertIs(self.predicate(AnonymousUser()), False)
+
 
 # ------------------------------------------- (b) each raise site tags it
 
