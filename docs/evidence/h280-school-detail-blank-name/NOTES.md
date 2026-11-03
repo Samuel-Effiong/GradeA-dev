@@ -226,3 +226,21 @@ The mutant worktree has been removed, and no `test_AutoGrader_h28*` DB is
 left.
 
 **E6, near run:** held until the SM says B33 is finished.
+
+## E6: near run (expectations, written before the run; SM's go: B33 finished)
+
+Labels are everything that reaches `SchoolViewSet` or the school routes:
+- `classrooms` (the whole app, which includes the H-280 module and `test_views`);
+- `users.tests_superadmin_both_flags`;
+- `users.tests_superadmin_tenancy`;
+- `billing.tests.test_execute_graded_task` (it references the view's school
+  scoping).
+
+The AutoGrader cache modules don't touch the school routes, so they are left
+out. Counted with `build_suite` at 070514a45: **698 tests**. Command:
+`manage.py test --settings=settings_worktree --parallel 4 --noinput`, fresh
+DB `test_AutoGrader_h280`, with the `free -m` gate at ≥ 4000 MB.
+
+Expect `Ran 698`, `OK`. The only skips allowed are opt-in reasons. No
+migration is touched, so `AutoGrader.tests_migration_rollback_defaults` is
+not needed.
