@@ -87,3 +87,43 @@ Command, serial, own DB:
 - T1, T2, T3, T4 and T6 fail on the status assertion: 400, not 200.
 - T5 passes. With real names nothing is blank, so the old code gives 200.
 - Gate: `free -m` available ≥ 4000 MB before the run.
+
+## E1 result (853d2f121)
+
+**Met.** `Ran 6`, `FAILED (failures=5)`. T1, T2, T3, T4 and T6 failed with
+`400 != 200`, and T5 passed. The bodies show the live bug:
+- `teacher_name` gave "This field may not be blank." for T1, T2 and T3;
+- `admin_name` gave the same for T4;
+- `school_name` gave the same for T6.
+
+Log: `logs/red_run_853d2f12.txt`.
+
+## Fix commit: expectations (written before the runs)
+
+**E2, green.** The same module, serial: expect `Ran 6`, `OK`.
+
+**E3, targeted.** Serial, own DB, 4 modules (56 tests), each of which
+touches `SchoolViewSet`:
+
+- `classrooms.tests_h280_school_detail_blank_name` (6)
+- `classrooms.test_views` (36)
+- `classrooms.tests_course_roster_scope_sweep` (4)
+- `users.tests_superadmin_both_flags` (10)
+
+Expect `Ran 56`, `OK`. No existing test changes: instance-mode output equals
+the old `validated → .data` output for every value that used to pass. The
+only difference is that `CharField` no longer trims whitespace on output,
+which no current test depends on.
+
+**E4, schema.** `manage.py spectacular` at 853d2f121 and at the fix commit
+gives byte-identical YAML, because the serializers are unchanged.
+
+**E5, mutants.** One per guard, held until the SM says Batch 33 is finished:
+
+| Mutant | Change | Expected killers |
+|---|---|---|
+| M1 | `u.get_full_name() or u.email` → `u.get_full_name()` | T1, T2, T3 (blank name, 200) |
+| M2 | `(admin.get_full_name() or admin.email)` → `admin.get_full_name()` | T4 |
+| M3 | back to `SchoolDetailSerializer(data=data)` plus `is_valid(raise_exception=True)` | T6 (the fallbacks keep T1–T4 green) |
+
+**E6, near run.** Held until the SM says Batch 33 is finished.
