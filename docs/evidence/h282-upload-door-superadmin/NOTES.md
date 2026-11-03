@@ -116,3 +116,30 @@ are the pre-rebase ones:
 
 E4 and E5 now run at the commit that records this note. Its code is the same
 as at `037afed7e`.
+
+## E4 result (6cbb9bdb9): met, 6 of 6 killed
+
+The baseline is `Ran 73`, `OK`. Every bug was killed by exactly its
+expected tests, with no extra killers. Each file was restored and checked by
+sha256 ("restored ok" for all 6).
+
+| Bug | Failed | Killers |
+|---|---|---|
+| M1 | 5 | `test_a_half_set_up_super_admin_is_not`, a1, a2, a3, a4 |
+| M2 | 1 | `test_a_teacher_with_is_superuser_ticked_is_not` |
+| M3 | 2 | a1, a2 |
+| M4 | 2 | a3, a4 |
+| M5 | 2 | b1, `tests_upload_credit_door.TheDoorFunctionTest` |
+| M6 | 1 | b2 |
+
+The logs are in `mutants_6cbb9bdb/`: `summary.txt`, the gzipped runner,
+baseline and per-bug logs, and `SHA256SUMS`.
+
+## E5 result (6cbb9bdb9): met
+
+`Ran 220 tests`, `OK (skipped=2)`, serial, exit 0. Both skips are opt-in
+real-AI tests (`RUN_REAL_AI=1`):
+- `ai_processor.tests_real_superadmin_unmetered.RealProviderSuperadminBothFlagsTest.test_true_superadmin_real_call_is_unmetered_and_type_only_never_calls`
+- `assignments.tests_real_upload_billing.RealProviderBatchUploadBillingTest.test_a_real_partly_failed_batch_is_charged_once_and_replays_free`
+
+The log is `logs/near_run_6cbb9bdb.txt.gz`, raw sha256 19c617c9270b172d63d716159b3de16959c0c79621718197d7b96179aec77b77.
