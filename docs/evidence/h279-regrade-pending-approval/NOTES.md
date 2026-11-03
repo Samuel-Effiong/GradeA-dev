@@ -435,3 +435,41 @@ The mutant changes are against these anchors:
 | .15 | students/services.py | the `held_for_approval` line is removed |
 | .16 | students/services.py | the promotion save becomes a queryset `.update()` |
 | .17 | students/services.py | `select_for_update()` is removed from promote_pending |
+
+## E5 at 339da92e: met
+
+`Ran 847 tests`, `OK` (logs/near_run_339da92e.txt.gz, gzip -n -9; raw
+sha256 0dbaf6ba285b3aa3a031cbd091e1da34bf3661d97471b613c184228a2b0dafa8, gz sha256 c77d0c61c894e2751d799d8fee1cd767fa7e446e41211ed86daf7a1aa6d10933).
+
+## Owner ruling, 2026-11-03: the hand-edit approval refreshes the summary
+
+This reverses the Q3 edge recorded above ("KEEP AS IS"). When
+`update_grade` releases a held result, it dispatches `student_summary_async`
+exactly once:
+- on commit;
+- only when the row read under the lock held a result.
+
+So there is one summary charge per approval, whichever route gives it
+(publish, publish-all or hand edit), and none at the held save. A hand edit
+of a row with nothing held stays as before, with no summary. The SM is
+asking the owner whether to extend that; it is not built.
+
+Red tests (this commit; code unchanged from 339da92e), class
+`AHandEditApprovalRefreshesTheSummary`:
+- test_a_hand_edit_of_a_held_row_refreshes_the_summary_once
+- test_a_hand_edit_with_nothing_held_dispatches_no_summary
+- test_a_refused_hand_edit_of_a_held_row_dispatches_none (400, the result is
+  still held)
+- test_a_rolled_back_hand_edit_of_a_held_row_dispatches_none (the save
+  raises DatabaseError, 500, the result is still held and the released
+  columns are unchanged)
+
+**E7. Red run** of that class at this commit: `Ran 4`, `FAILED`. Only
+test_a_hand_edit_of_a_held_row_refreshes_the_summary_once fails (no
+dispatch). The other three pass: they are guards, and must stay true.
+
+After the code commit:
+- **E3:** `Ran 64` (60 + 4), OK.
+- **E5:** `Ran 851` (847 + 4), OK.
+- **E6:** 18 mutants. **M-h279.18** removes the hand-edit dispatch; its
+  killer is test_a_hand_edit_of_a_held_row_refreshes_the_summary_once.

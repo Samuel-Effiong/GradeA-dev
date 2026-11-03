@@ -28,6 +28,7 @@ from unittest.mock import patch
 
 from django.conf import settings as django_settings
 from django.core.cache import cache
+from django.db import DatabaseError
 from django.urls import reverse
 from rest_framework import serializers, status
 
@@ -655,6 +656,57 @@ class AHandEditIsAnApproval(HeldBase):
         self.assertEqual(len(new), 1)
         self.assertEqual(Decimal(str(new[0].before["score"])), Decimal("7"))
         self.assertEqual(Decimal(str(new[0].after["score"])), Decimal("4"))
+
+
+class AHandEditApprovalRefreshesTheSummary(HeldBase):
+    """Owner ruling, 2026-11-03: releasing a held result by hand edit
+    dispatches the AI student summary once, as a publish approval does. A
+    hand edit of a row with nothing held stays as before (none)."""
+
+    def patch_grade_after_commit(self, score):
+        with (
+            patch("students.views.formatted_grade_async") as task,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            task.delay.return_value.id = "h279-summary-task"
+            return self.patch_grade(score)
+
+    def test_a_hand_edit_of_a_held_row_refreshes_the_summary_once(self):
+        self.regrade(3)
+
+        self.hand_edit(4)
+
+        self.summary.delay.assert_called_once_with(
+            str(self.student.pk), str(self.teacher.pk), str(self.course.pk)
+        )
+
+    def test_a_hand_edit_with_nothing_held_dispatches_no_summary(self):
+        self.hand_edit(4)
+
+        self.summary.delay.assert_not_called()
+
+    def test_a_refused_hand_edit_of_a_held_row_dispatches_none(self):
+        self.regrade(3)
+
+        response = self.patch_grade_after_commit(11)  # above the maximum
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.summary.delay.assert_not_called()
+        self.assertIsNotNone(self.row().pending_result)
+
+    def test_a_rolled_back_hand_edit_of_a_held_row_dispatches_none(self):
+        self.regrade(3)
+        self.client.force_authenticate(self.teacher)
+
+        with patch.object(
+            StudentSubmission, "save", side_effect=DatabaseError("refused")
+        ):
+            response = self.patch_grade_after_commit(4)
+
+        self.assertEqual(response.status_code, 500)
+        self.summary.delay.assert_not_called()
+        self.assertIsNotNone(self.row().pending_result)
+        self.assertEqual(self.released_columns(), self.released_before)
 
 
 class WhatDoesNotApprove(HeldBase):
