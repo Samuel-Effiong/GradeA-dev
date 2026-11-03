@@ -485,3 +485,31 @@ After the code commit:
   sha256 d4d92451a45a2165057244c2dadf78396111c23ea44b6d1167b33b8fa906b918): `Ran 851 tests`, `OK`. **Met.**
 - **E6:** 18 mutants on 7bcec03d, in a disposable detached worktree (test DB
   test_AutoGrader_h279_mut). The results follow.
+
+### E6 at 7bcec03d: met, 18 of 18 killed (mutants_7bcec03d/)
+
+Each mutant ran both H-279 modules (`Ran 64`). Every file was restored by
+sha256 against the 7bcec03d blob after each mutant ("restored ok" in
+runner_summary.txt). The logs are gzipped; the hashes are in SHA256SUMS.raw
+and SHA256SUMS.gz. The runner is mutate_h279.py.txt.
+
+| Mutant | Change | Result | Killed by |
+|---|---|---|---|
+| M-h279.1 | the hold check reads the instance, not the locked row | killed (`FAILED (failures=1, errors=1)`) | test_a_publish_landing_mid_run_still_holds_the_result, test_a_first_grading_of_a_published_row_is_not_held |
+| M-h279.2 | holds_a_released_grade ignores graded_at | killed (`FAILED (failures=1)`) | test_a_first_grading_of_a_published_row_is_not_held |
+| M-h279.3 | the held save writes the new result over the released columns | killed (`FAILED (failures=29, errors=3)`) | test_a_replaced_held_results_task_writes_nothing, test_the_released_results_own_task_still_words_the_released_result, … (29 tests) |
+| M-h279.4 | publish_grade promotes nothing | killed (`FAILED (failures=17, errors=1)`) | test_an_approval_racing_a_held_save_releases_each_result_at_most_once, test_an_unreleased_row_that_somehow_holds_a_result_is_released_with_it, … (18 tests) |
+| M-h279.5 | publish-all promotes nothing | killed (`FAILED (failures=4)`) | test_each_student_is_told_once_with_the_right_email, test_n5_publish_all_twice_sends_one, … (4 tests) |
+| M-h279.6 | publish_grade promotes only an already published row | killed (`FAILED (failures=1)`) | test_an_unreleased_row_that_somehow_holds_a_result_is_released_with_it |
+| M-h279.7 | a hand edit does not take the held result | killed (`FAILED (failures=1, errors=1)`) | test_the_edit_applies_on_top_of_the_held_result, test_a_hand_edit_of_a_held_row_refreshes_the_summary_once |
+| M-h279.8 | a second re-grade does not replace the held one | killed (`FAILED (failures=4)`) | test_a_replaced_held_results_task_writes_nothing, test_a_second_regrade_replaces_the_held_one, … (4 tests) |
+| M-h279.9 | the formatted-grade task never words a held result | killed (`FAILED (errors=2)`) | test_its_task_words_the_held_result_and_leaves_the_released_text, test_the_wording_is_released_with_the_result |
+| M-h279.10 | the task does not re-read the numbers before wording | killed (`FAILED (failures=1)`) | test_approved_during_its_ai_call_the_task_words_the_approved_numbers |
+| M-h279.11 | the summary is dispatched at the held save | killed (`FAILED (failures=2)`) | test_no_email_and_no_ai_summary_at_the_held_save, test_the_ai_summary_is_dispatched_once_per_approval |
+| M-h279.12 | promotion leaves the pending columns set | killed (`FAILED (failures=13)`) | test_an_approval_racing_a_held_save_releases_each_result_at_most_once, test_an_unreleased_row_that_somehow_holds_a_result_is_released_with_it, … (13 tests) |
+| M-h279.13 | the student's serializer sends pending_result | killed (`FAILED (failures=2)`) | test_no_serializer_but_the_teachers_page_reads_them, test_the_students_own_page_and_list |
+| M-h279.14 | a student may filter on has_pending_result | killed (`FAILED (failures=2)`) | test_a_student_cannot_filter_on_it |
+| M-h279.15 | GRADING_COMPLETED drops held_for_approval | killed (`FAILED (failures=1)`) | test_grading_completed_says_held_and_changes_nothing_released |
+| M-h279.16 | promotion saves by queryset .update() (no signals) | killed (`FAILED (failures=8)`) | test_an_approval_racing_a_held_save_releases_each_result_at_most_once, test_n2_a_double_click_sends_one, … (8 tests) |
+| M-h279.17 | promote_pending reads without the row lock | killed (`FAILED (failures=3)`) | test_an_approval_racing_a_held_save_releases_each_result_at_most_once, test_n3_concurrent_single_publishes_tell_the_student_once, test_n6_publish_all_racing_single_publish_tells_the_student_once |
+| M-h279.18 | the hand-edit summary dispatch is removed | killed (`FAILED (failures=1)`) | test_a_hand_edit_of_a_held_row_refreshes_the_summary_once |
