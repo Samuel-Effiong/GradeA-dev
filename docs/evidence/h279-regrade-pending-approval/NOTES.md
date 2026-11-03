@@ -587,3 +587,46 @@ seven", but the class has 8 tests: 4 before plus 4 new, matching the
 8-item list above. It was a counting error in the expectation, not a test
 that went missing. E3 (`Ran 68`) and E5 (`Ran 855`) were computed as +4 and
 stand unchanged. Nothing was re-run to fit the count.
+
+## Runs at 7159395e (every hand edit refreshes the summary)
+
+- **E3** at 7159395e (logs/green_run_7159395e.txt): `Ran 68 tests`, `OK`.
+  **Met.**
+- **E5** at 7159395e (logs/near_run_7159395e.txt.gz; raw sha256
+  8a4cdcb60eb1a8ec2055398ac19b8b7b091503d8c3fc3b89182c6507e2eabbba, gz sha256
+  cb97f06279cf167194ca6f9a64f111970ac75ace2b1d0c5c516d1c0e04dbbde5): the 53
+  near modules plus both H-279 modules, `Ran 855 tests`, `OK`. **Met.**
+  - The first E5 invocation at this commit wrongly left out the two H-279
+    modules. It gave `Ran 787`, `OK` (787 + 68 = 855). That run is kept as
+    logs/near_run_7159395e_without_h279_modules.txt.gz (raw sha256
+    15d9a3434ae70497e99bf0fcfee2dc9d73688ed91abb4ccc970f908d9a2378f7, gz sha256
+    8ee358ba2b7c73b8fc4b25ce5cdf06d9d9c2c2dbe87eaf5f2fccef7b033fa56b).
+  - The error was in the command, not a test result. E5 was re-run with
+    the defined set at the same commit, with no code change.
+- **E6** at 7159395e (mutants_7159395e/): **met, 18 of 18 killed.**
+  - Each mutant ran both H-279 modules (`Ran 68`) and was restored by sha256
+    against the 7159395e blob.
+  - M-h279.18 is re-anchored to the unconditional dispatch line. It is
+    killed by exactly the three predicted tests (held row, plain row,
+    unpublished row), so the plain-row case needs no second mutant.
+
+| Mutant | Change | Result | Killed by |
+|---|---|---|---|
+| M-h279.1 | the hold check reads the instance, not the locked row | killed (`FAILED (failures=1, errors=1)`) | test_a_publish_landing_mid_run_still_holds_the_result, test_a_first_grading_of_a_published_row_is_not_held |
+| M-h279.2 | holds_a_released_grade ignores graded_at | killed (`FAILED (failures=1)`) | test_a_first_grading_of_a_published_row_is_not_held |
+| M-h279.3 | the held save writes the new result over the released columns | killed (`FAILED (failures=29, errors=3)`) | test_a_replaced_held_results_task_writes_nothing, test_the_released_results_own_task_still_words_the_released_result, … (29 tests) |
+| M-h279.4 | publish_grade promotes nothing | killed (`FAILED (failures=17, errors=1)`) | test_an_approval_racing_a_held_save_releases_each_result_at_most_once, test_an_unreleased_row_that_somehow_holds_a_result_is_released_with_it, … (18 tests) |
+| M-h279.5 | publish-all promotes nothing | killed (`FAILED (failures=4)`) | test_each_student_is_told_once_with_the_right_email, test_n5_publish_all_twice_sends_one, … (4 tests) |
+| M-h279.6 | publish_grade promotes only an already published row | killed (`FAILED (failures=1)`) | test_an_unreleased_row_that_somehow_holds_a_result_is_released_with_it |
+| M-h279.7 | a hand edit does not take the held result | killed (`FAILED (errors=1)`) | test_the_edit_applies_on_top_of_the_held_result |
+| M-h279.8 | a second re-grade does not replace the held one | killed (`FAILED (failures=4)`) | test_a_replaced_held_results_task_writes_nothing, test_a_second_regrade_replaces_the_held_one, … (4 tests) |
+| M-h279.9 | the formatted-grade task never words a held result | killed (`FAILED (errors=2)`) | test_its_task_words_the_held_result_and_leaves_the_released_text, test_the_wording_is_released_with_the_result |
+| M-h279.10 | the task does not re-read the numbers before wording | killed (`FAILED (failures=1)`) | test_approved_during_its_ai_call_the_task_words_the_approved_numbers |
+| M-h279.11 | the summary is dispatched at the held save | killed (`FAILED (failures=2)`) | test_no_email_and_no_ai_summary_at_the_held_save, test_the_ai_summary_is_dispatched_once_per_approval |
+| M-h279.12 | promotion leaves the pending columns set | killed (`FAILED (failures=13)`) | test_an_approval_racing_a_held_save_releases_each_result_at_most_once, test_an_unreleased_row_that_somehow_holds_a_result_is_released_with_it, … (13 tests) |
+| M-h279.13 | the student's serializer sends pending_result | killed (`FAILED (failures=2)`) | test_no_serializer_but_the_teachers_page_reads_them, test_the_students_own_page_and_list |
+| M-h279.14 | a student may filter on has_pending_result | killed (`FAILED (failures=2)`) | test_a_student_cannot_filter_on_it |
+| M-h279.15 | GRADING_COMPLETED drops held_for_approval | killed (`FAILED (failures=1)`) | test_grading_completed_says_held_and_changes_nothing_released |
+| M-h279.16 | promotion saves by queryset .update() (no signals) | killed (`FAILED (failures=8)`) | test_an_approval_racing_a_held_save_releases_each_result_at_most_once, test_n2_a_double_click_sends_one, … (8 tests) |
+| M-h279.17 | promote_pending reads without the row lock | killed (`FAILED (failures=3)`) | test_an_approval_racing_a_held_save_releases_each_result_at_most_once, test_n3_concurrent_single_publishes_tell_the_student_once, test_n6_publish_all_racing_single_publish_tells_the_student_once |
+| M-h279.18 | the hand-edit summary dispatch (now unconditional) is removed | killed (`FAILED (failures=3)`) | test_a_hand_edit_of_a_held_row_refreshes_the_summary_once, test_a_hand_edit_of_a_plain_row_refreshes_the_summary_once, test_a_hand_edit_of_an_unpublished_row_refreshes_the_summary_once |
