@@ -35,3 +35,8 @@ the set comparison already covers a baseline session ending.
 - H5, near run: every module that imports AutoGrader.testing.concurrency (13 modules), --parallel 4. Ran N, OK, where N is the
   discovered count, recorded before the run.
 - mypy passes. makemigrations is clean, and there's no migration.
+
+## Results
+- H1 (c059e5e4): Ran 10, FAILED (failures=2), exactly the tests predicted. R1 reproduced the B33 message verbatim ("2 database session(s) still open after all 3 workers"). R2: "AssertionError not raised", so a single real leak passed silently on the old code. MET.
+- Addition not in the expectations, disclosed: test_a_clean_run_leaves_no_extra_backends also compared counts (`other_backends() == before`), which is the same drift. It now asserts no new pids. `other_backends()` had no other users and is removed.
+- H2 (fix commit): Ran 10, OK. MET.

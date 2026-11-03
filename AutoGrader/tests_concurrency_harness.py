@@ -16,7 +16,7 @@ import threading
 from django.db import connection, connections
 from django.test import TransactionTestCase
 
-from AutoGrader.testing.concurrency import other_backends, run_concurrently
+from AutoGrader.testing.concurrency import other_backend_pids, run_concurrently
 
 
 class RunConcurrentlyTests(TransactionTestCase):
@@ -119,13 +119,14 @@ class RunConcurrentlyTests(TransactionTestCase):
                 cursor.execute("SELECT %s", [i])
                 return cursor.fetchone()[0]
 
-        before = other_backends()
+        before = other_backend_pids()
 
         results, errors = run_concurrently(query, 6, test=self)
 
         self.assertEqual(errors, [])
         self.assertEqual(results, [0, 1, 2, 3, 4, 5])
-        self.assertEqual(other_backends(), before)
+        # No session that was not open before (H-283: by pid, not by count).
+        self.assertEqual(other_backend_pids() - before, set())
 
     def test_workers_that_never_touch_the_database_need_no_connection(self):
         results, errors = run_concurrently(lambda i: i + 1, 4, test=self, uses_db=False)
