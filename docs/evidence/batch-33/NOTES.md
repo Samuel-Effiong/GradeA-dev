@@ -65,3 +65,8 @@ All merges clean. makemigrations --check: "No changes detected". mypy passed. Co
 - Discovered count 8894 = 8839 + 7 (H-280) + 3 (H-283) + 45 (H-281).
 - Prediction: `Ran 8894 tests`, `OK (skipped=30)`, skip reasons identical to E3/E4.
 - Owner approval: push to origin and backup if green. Anything else means STOP, no push.
+
+## B33-E5 result (full run on 162a43e6): GREEN, expectation met exactly
+- Ran 8894, OK (skipped=30), rc=0, wall 815 s. Watchdog and memory guard quiet (min available 7846 MB). 0 FAIL/ERROR headers.
+- Skip reasons are identical to E4 (diff empty). Log archived outside the repo: GAP-a0-runs/b33/strict_b33.log, sha256 cf78f72c12c12e626a627430bf0aaad9a22036df44a18826612ac080a01b6c2c.
+- Owner approval: push if green. Next: strip the Co-Authored-By lines (message-only rewrite, trees verified), then push to origin and backup.
