@@ -659,9 +659,16 @@ class AHandEditIsAnApproval(HeldBase):
 
 
 class AHandEditApprovalRefreshesTheSummary(HeldBase):
-    """Owner ruling, 2026-11-03: releasing a held result by hand edit
-    dispatches the AI student summary once, as a publish approval does. A
-    hand edit of a row with nothing held stays as before (none)."""
+    """Owner ruling, 2026-11-03 ("hand edit should refresh summary too"):
+    every successful hand edit dispatches the AI student summary once, on
+    commit, whether or not a result was held and whether or not the row is
+    published (the summary is the teacher's StudentCourse.ai_summary). A
+    refused, invalid or rolled-back edit dispatches none."""
+
+    def assert_one_summary(self):
+        self.summary.delay.assert_called_once_with(
+            str(self.student.pk), str(self.teacher.pk), str(self.course.pk)
+        )
 
     def patch_grade_after_commit(self, score):
         with (
@@ -680,10 +687,56 @@ class AHandEditApprovalRefreshesTheSummary(HeldBase):
             str(self.student.pk), str(self.teacher.pk), str(self.course.pk)
         )
 
-    def test_a_hand_edit_with_nothing_held_dispatches_no_summary(self):
+    def test_a_hand_edit_of_a_plain_row_refreshes_the_summary_once(self):
         self.hand_edit(4)
 
+        self.assert_one_summary()
+
+    def test_a_hand_edit_of_an_unpublished_row_refreshes_the_summary_once(self):
+        StudentSubmission.objects.filter(pk=self.submission.pk).update(
+            is_published=False
+        )
+
+        self.hand_edit(4)
+
+        self.assert_one_summary()
+        self.assertFalse(self.row().is_published)
+
+    def test_a_refused_hand_edit_of_a_plain_row_dispatches_none(self):
+        response = self.patch_grade_after_commit(11)  # above the maximum
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.summary.delay.assert_not_called()
+
+    def test_an_invalid_hand_edit_of_a_plain_row_dispatches_none(self):
+        self.client.force_authenticate(self.teacher)
+        with (
+            patch("students.views.formatted_grade_async"),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = self.client.patch(
+                reverse(
+                    "student-submission-update-grade",
+                    kwargs={"pk": self.submission.pk},
+                ),
+                {"teacher_comment": "no score"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.summary.delay.assert_not_called()
+
+    def test_a_rolled_back_hand_edit_of_a_plain_row_dispatches_none(self):
+        self.client.force_authenticate(self.teacher)
+
+        with patch.object(
+            StudentSubmission, "save", side_effect=DatabaseError("refused")
+        ):
+            response = self.patch_grade_after_commit(4)
+
+        self.assertEqual(response.status_code, 500)
+        self.summary.delay.assert_not_called()
+        self.assertEqual(self.released_columns(), self.released_before)
 
     def test_a_refused_hand_edit_of_a_held_row_dispatches_none(self):
         self.regrade(3)

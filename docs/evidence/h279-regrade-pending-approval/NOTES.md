@@ -513,3 +513,64 @@ and SHA256SUMS.gz. The runner is mutate_h279.py.txt.
 | M-h279.16 | promotion saves by queryset .update() (no signals) | killed (`FAILED (failures=8)`) | test_an_approval_racing_a_held_save_releases_each_result_at_most_once, test_n2_a_double_click_sends_one, … (8 tests) |
 | M-h279.17 | promote_pending reads without the row lock | killed (`FAILED (failures=3)`) | test_an_approval_racing_a_held_save_releases_each_result_at_most_once, test_n3_concurrent_single_publishes_tell_the_student_once, test_n6_publish_all_racing_single_publish_tells_the_student_once |
 | M-h279.18 | the hand-edit summary dispatch is removed | killed (`FAILED (failures=1)`) | test_a_hand_edit_of_a_held_row_refreshes_the_summary_once |
+
+## Owner ruling, 2026-11-03: "hand edit should refresh summary too"
+
+This widens the ruling above; there is no separate ticket. `update_grade`
+dispatches `student_summary_async` exactly once per successful grade edit,
+on commit. It does not matter whether a result was held, or whether the row
+is published. The summary is the teacher-facing `StudentCourse.ai_summary`,
+so publish state does not gate it (the same as the dispatch after grading
+today). The open question recorded above ("The SM is asking the owner
+whether to extend that") is answered: yes.
+
+Each hand edit is one summary charge to the editing teacher. It uses the
+same charging path as today's refresh after grading: the untracked
+`student_summary_async.delay(student_id, actor_id, course_id)`, through
+`refresh_student_summary`. A dispatch failure is logged, never raised.
+
+What does not change:
+- A publish approval still gives 1.
+- The held save still gives 0 (test_the_ai_summary_is_dispatched_once_per_approval,
+  test_no_email_and_no_ai_summary_at_the_held_save).
+- The student's email on a hand edit is unchanged.
+
+Red tests (this commit; code unchanged from 7bcec03d), class
+`AHandEditApprovalRefreshesTheSummary`, now 9 tests:
+- test_a_hand_edit_of_a_held_row_refreshes_the_summary_once (as before)
+- test_a_hand_edit_of_a_plain_row_refreshes_the_summary_once. This replaces
+  test_a_hand_edit_with_nothing_held_dispatches_no_summary, whose contract
+  the ruling reverses. Released, nothing held: 1.
+- test_a_hand_edit_of_an_unpublished_row_refreshes_the_summary_once (new).
+  Unpublished, nothing held: 1, and the row stays unpublished.
+- test_a_refused_hand_edit_of_a_held_row_dispatches_none (as before; 400)
+- test_a_refused_hand_edit_of_a_plain_row_dispatches_none (new; score above
+  the maximum, 400)
+- test_an_invalid_hand_edit_of_a_plain_row_dispatches_none (new; no
+  "score", 400)
+- test_a_rolled_back_hand_edit_of_a_held_row_dispatches_none (as before;
+  the save raises, 500)
+- test_a_rolled_back_hand_edit_of_a_plain_row_dispatches_none (new; the
+  save raises, 500, the released columns are unchanged)
+
+### Expectations (committed before any run)
+
+**E7b. Red run** of that class at this commit: `Ran 9`,
+`FAILED (failures=2)`. The two failures are
+test_a_hand_edit_of_a_plain_row_refreshes_the_summary_once and
+test_a_hand_edit_of_an_unpublished_row_refreshes_the_summary_once, because
+the code still dispatches only when a result was held. The other seven pass;
+they are guards and must stay true.
+
+The code commit that follows makes the dispatch unconditional. It is
+registered inside the atomic block after the save, so every early 400
+return and every rolled-back save registers nothing. After it:
+- **E3:** both H-279 modules, `Ran 68` (64 + 4 new), OK.
+- **E5:** near run of the same 53 modules (logs/near_modules.txt),
+  `Ran 855` (851 + 4), OK. Nothing outside H-279 pins "no summary on a
+  hand edit" (checked by grep), so no other test is predicted to change.
+- **E6:** the same 18 mutants on the code commit. M-h279.18 is re-anchored
+  to the new, unconditional dispatch line and removes it. Its predicted
+  killers: the held-row, plain-row and unpublished-row tests. That one
+  mutant covers the plain-row case, so no second mutant is added (E6 = 18).
+  M-h279.1–17 are unchanged; all are predicted killed.
