@@ -384,3 +384,54 @@ detected`, rc=0).
 E5 is re-run, whole, on the commit that settles #6–8. E6 (mutants) runs on that commit too, against the expectations above. The code is now 495d74ea; if SM accepts the proposal, only tests change.
 
 - near_run_590f6237.txt is kept gzipped (gzip -n -9): raw sha256 11cb3099387ca1da2549a3e4a14cb3346347ca8bf7edfdf8131c4f73f80340e7, gz sha256 3ffcaf57a9b4f5a81432531bb785510b929ee449e3636626dda60d3f92ba97c6.
+
+## SM rulings on the E5 report (2026-11-03)
+
+1. **H-141 pins: the proposal is approved.** Committed as its own commit, 339da92e:
+   - KEYS goes from 30 to 32, with `pending_result` and `pending_graded_at`
+     appended. The order of the original 30 is unchanged.
+   - CONSTANTS gains both as None, so every `assert_constants` on an upload
+     answer checks them.
+   - Two tests are added in OnlyTheAnswerProtectsTest:
+     - test_a_student_upload_over_a_held_result_says_nothing_of_it
+     - test_built_for_a_teacher_over_a_held_result_it_says_nothing_of_it
+   - The upload route is a student's only (`IsStudent`; a teacher is refused
+     it). So "a teacher upload" is asserted by building the route's
+     serializer with a teacher's request over the held row.
+2. **Q3 edge: KEEP AS IS.** Releasing a held result by hand edit does not
+   refresh the AI summary, the same as any hand edit before H-279.
+   `update_grade` dispatches no summary and gets no new charge. The SM tells
+   the owner.
+3. **Accepted:** the guard fixes in code (`update_grade` inline in one locked
+   atomic block, `TEACHER_ONLY_QUERY_PARAMS`) and the X7 fix.
+
+## Expectations for 339da92e (committed before the runs)
+
+**E5 (re-run).** The same 53 + 2 modules, `--parallel 4`: `OK`. The test
+count is 845 + 2 (the two H-141 tests added) = **847**.
+
+**E6.** The 17 mutants in the table above, run on 339da92e against the two new
+modules. Each is expected to be killed by the listed test(s). M-h279.17 is
+not guaranteed.
+
+The mutant changes are against these anchors:
+
+| Mutant | File | Change |
+|---|---|---|
+| .1 | students/services.py | `holds_a_released_grade(stored)` becomes `(submission)` |
+| .2 | students/services.py | the `and row.graded_at is not None` condition is dropped |
+| .3 | students/services.py | the restore loop becomes `pass`, and the held save writes HELD_RESULT_FIELDS too |
+| .4 | students/views.py | `promoted = None` |
+| .5 | assignments/views.py | `promote_all_pending(...)` becomes `pass` |
+| .6 | students/views.py | promote only `if submission.is_published` |
+| .7 | students/views.py | `held = False` |
+| .8 | students/services.py | an existing hold is kept (early return) |
+| .9 | assignments/tasks.py | `if for_held:` becomes `if False:` |
+| .10 | assignments/tasks.py | the refresh_from_db before the released write is removed |
+| .11 | students/services.py | `if not held:` becomes `if True:` |
+| .12 | students/services.py | take_held_result does not empty the hold |
+| .13 | students/serializers.py | StudentSubmissionDetailStudentVersionSerializer names `pending_result` |
+| .14 | students/views.py | `TEACHER_ONLY_QUERY_PARAMS = ()` |
+| .15 | students/services.py | the `held_for_approval` line is removed |
+| .16 | students/services.py | the promotion save becomes a queryset `.update()` |
+| .17 | students/services.py | `select_for_update()` is removed from promote_pending |
