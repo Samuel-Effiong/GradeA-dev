@@ -130,7 +130,11 @@ class ARegradeClearsTheOldWording(SupersededBase):
                 query["sql"]
                 for query in held
                 if query["sql"].startswith(this_table)
-                and ('"formatted_grade"' in query["sql"] or '"score"' in query["sql"])
+                # a column written, not a key inside the held result's
+                # JSON (the captured SQL carries its parameters)
+                and (
+                    '"formatted_grade" =' in query["sql"] or '"score" =' in query["sql"]
+                )
             ],
             [],
         )
