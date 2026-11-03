@@ -1324,12 +1324,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 # review tier...) and the emptied hold.
                 fields += [name for name in PROMOTION_FIELDS if name not in fields]
             submission.save(update_fields=fields)
-            if held:
-                # Owner ruling, 2026-11-03: releasing a held result by hand
-                # refreshes the AI summary once, as a publish approval does
-                # (only once the edit has committed).
-                released, by = submission, request.user
-                transaction.on_commit(lambda: refresh_student_summary(released, by))
+            # Owner ruling, 2026-11-03: every successful hand edit refreshes
+            # the teacher's AI summary once, held result or not, published or
+            # not, and only once the edit has committed. Registered after the
+            # save, so a refused or rolled-back edit dispatches nothing.
+            edited, by = submission, request.user
+            transaction.on_commit(lambda: refresh_student_summary(edited, by))
 
         if submission.is_published:
             notify_student_of_graded_submission(submission, is_update=True)

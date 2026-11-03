@@ -543,10 +543,10 @@ def _after_promotion(row, actor, tell):
 
 
 def refresh_student_summary(row, actor):
-    """The AI student summary, refreshed once for a released re-grade
-    (H-279: one per approval, from publish, publish-all or a hand edit).
-    Called after the release has committed; a dispatch failure is logged,
-    never raised: the grade is already released."""
+    """The AI student summary, refreshed once per approval of a held
+    re-grade (publish or publish-all) and once per successful hand edit
+    (H-279). Called after the change has committed; a dispatch failure is
+    logged, never raised: the grade is already saved."""
     try:
         student_summary_async.delay(
             str(row.student_id),
@@ -555,7 +555,7 @@ def refresh_student_summary(row, actor):
         )
     except Exception as exc:
         logger.error(
-            "Failed to dispatch the AI summary after a released re-grade: "
+            "Failed to dispatch the AI summary after a grade change: "
             "submission=%s %s",
             row.id,
             describe_error_for_log(exc),
