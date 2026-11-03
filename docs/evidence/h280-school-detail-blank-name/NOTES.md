@@ -244,3 +244,17 @@ DB `test_AutoGrader_h280`, with the `free -m` gate at ≥ 4000 MB.
 Expect `Ran 698`, `OK`. The only skips allowed are opt-in reasons. No
 migration is touched, so `AutoGrader.tests_migration_rollback_defaults` is
 not needed.
+
+**E6 result: met (tip 47610db43, docs-only after 0541972c2).**
+
+11:07:46–11:08:53 under systemd-inhibit, with `--parallel 4`, `-v 2` and a
+fresh DB. Before the run: 11247 MB available.
+
+**`Ran 698 tests in 47.329s`, `OK`**, rc=0. That is the expected count,
+with no skips.
+
+Log: `logs/near_run_47610db4.txt.gz`
+- raw sha256 d8d1202b3e20cf22bf8e08a8ac0cedea668838ec5db6daa39aff3b1cf1531061
+- gz sha256 fb18082dc2b90ff46988714ce7372c5c2e52ae43297ae169e72556c37eff1606
+
+H-280 is complete.
