@@ -1,0 +1,13 @@
+WARNING:pip_audit._cli:--no-deps is supported, but users are encouraged to fully hash their pinned dependencies
+WARNING:pip_audit._cli:Consider using a tool like `pip-compile`: https://pip-tools.readthedocs.io/en/latest/#using-hashes
+Found 7 known vulnerabilities, ignored 76 in 1 package
+Name             Version ID                  Fix Versions
+---------------- ------- ------------------- ------------
+social-auth-core 4.7.0   PYSEC-2026-4167     5.0.0
+social-auth-core 4.7.0   PYSEC-2026-4169     5.0.0
+social-auth-core 4.7.0   PYSEC-2026-4165     5.0.0
+social-auth-core 4.7.0   PYSEC-2026-4166     5.0.0
+social-auth-core 4.7.0   PYSEC-2026-4168     5.0.0
+social-auth-core 4.7.0   GHSA-526j-582w-7fm9 5.0.2
+social-auth-core 4.7.0   GHSA-h2r5-x5m7-3935 6.2.0
+pip-audit gate: 78 accepted advisories from .pip-audit-ignore.toml, 19 from .pip-audit-ignore-dev.toml

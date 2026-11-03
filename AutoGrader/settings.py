@@ -373,7 +373,6 @@ INSTALLED_APPS = [
     "cloudinary",
     "django.contrib.humanize",
     "django_filters",
-    "djoser",
     "anymail",
     "corsheaders",
     "rest_framework",
@@ -1325,25 +1324,6 @@ SIMPLE_JWT = {
     # fires post_save -> clear_user_cache and bumps the global cache
     # generation on every login. last_login is stamped instead by
     # users.services.stamp_last_login, a queryset update that sends no signal.
-}
-
-DJOSER = {
-    "LOGIN_FIELD": "email",
-    "USER_ID_FIELD": "id",
-    "HIDE_USERS": True,
-    "TOKEN_MODEL": None,
-    "SEND_ACTIVATION_EMAIL": True,
-    "SEND_CONFIRMATION_EMAIL": True,
-    "ACTIVATION_URL": "activate/{uid}/{token}",
-    "USERNAME_CHANGED_EMAIL_CONFIRMATION": False,
-    "LOGOUT_ON_PASSWORD_CHANGE": True,
-    "EMAIL": {},
-    # NOTE: djoser's URLs are not wired up - AutoGrader/urls.py never includes
-    # them - so authentication is served by users.views.AuthViewSet
-    # instead. A commented-out "PERMISSIONS" block used to sit here and read
-    # like live access control, including an AllowAny entry; it was removed
-    # because nothing in it was ever in effect. Authorization for the real
-    # endpoints lives on the viewsets in users/views.py.
 }
 
 SPECTACULAR_SETTINGS = {
