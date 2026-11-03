@@ -16,7 +16,7 @@ from audit.context import current_request_actor
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome
 
-from .errors import InsufficientCreditsError
+from .errors import InsufficientCreditsError, is_individual_teacher
 from .immutable import AppendOnlyModel, register_append_only_guards
 
 # Create your models here.
@@ -929,7 +929,8 @@ class CreditWallet(models.Model):
                 f"payment left an unsettled deficit of "
                 f"{locked.total_deficit_credits} credits "
                 f"({locked.dispute_deficit_credits} from chargebacks, "
-                f"{locked.refund_deficit_credits} from refunds)."
+                f"{locked.refund_deficit_credits} from refunds).",
+                individual=is_individual_teacher(self.user),
             )
 
         total_available = self.total_remaining_credits()
@@ -937,7 +938,8 @@ class CreditWallet(models.Model):
         if total_available < amount:
             raise InsufficientCreditsError(
                 f"Insufficient credits. "
-                f"Requested: {amount}, Available: {total_available}"
+                f"Requested: {amount}, Available: {total_available}",
+                individual=is_individual_teacher(self.user),
             )
 
         now = timezone.now()
@@ -1042,7 +1044,8 @@ class CreditWallet(models.Model):
             # as consumed.
             raise InsufficientCreditsError(
                 f"Insufficient credits. Requested: {amount}, "
-                f"Available: {amount - remaining}"
+                f"Available: {amount - remaining}",
+                individual=is_individual_teacher(self.user),
             )
 
         CreditUsageLog.objects.bulk_create(usage_log)

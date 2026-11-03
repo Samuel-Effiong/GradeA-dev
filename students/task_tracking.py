@@ -18,7 +18,7 @@ from AutoGrader.error_messages import (
     DEFAULT_ERROR_MESSAGE,
     describe_background_task_error,
 )
-from AutoGrader.reason_codes import CodedError, reason_of
+from AutoGrader.reason_codes import CodedError, credit_refusal_variant, reason_of
 from AutoGrader.safe_logging import describe_error_for_log
 from billing.errors import InsufficientCreditsError
 from billing.refusals import is_permanent_refusal, log_refusal
@@ -249,6 +249,11 @@ def mark_processing_task_failure(
     # FR-A-07 (S7c): a credit refusal after part of the batch already ran is
     # the mid-batch code, and it stops the rest of the batch.
     error = batch_credit_refusal(processing_task_id, error)
+    # H-281: session-results re-derives the remediation from the stored code
+    # alone, so an individual teacher's credit refusal stores its variant.
+    variant = credit_refusal_variant(error)
+    if variant is not None:
+        meta = merge_task_meta(meta, {"message_variant": variant})
     if is_permanent_refusal(error):
         log_refusal(logger, f"Background task {processing_task_id}", error)
     elif isinstance(error, BaseException):

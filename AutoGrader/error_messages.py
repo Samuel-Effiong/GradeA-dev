@@ -73,9 +73,10 @@ def _user_facing_exception_types():
 def _passthrough_message(error):
     """The verbatim message for a known user-authored exception, or None.
     InsufficientCreditsError is the exception: its text can carry internal
-    billing state, so every one gets the same fixed message."""
-    from AutoGrader.reason_codes import CodedError
-    from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
+    billing state, so every one gets a fixed message (the individual-teacher
+    variant when the refusal says so, H-281)."""
+    from AutoGrader.reason_codes import CodedError, credit_refusal_message
+    from billing.errors import InsufficientCreditsError
     from students.exceptions import StudentUploadNotProcessedError
 
     if isinstance(error, CodedError):
@@ -87,7 +88,8 @@ def _passthrough_message(error):
     if isinstance(error, StudentUploadNotProcessedError):
         return str(error)
     if isinstance(error, InsufficientCreditsError):
-        return INSUFFICIENT_CREDITS_MESSAGE
+        # H-281: the individual-teacher sentence when the refusal says so.
+        return credit_refusal_message(error)
     if isinstance(error, _user_facing_exception_types()):
         message = str(error).strip()
         if message:

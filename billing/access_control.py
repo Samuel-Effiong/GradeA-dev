@@ -46,7 +46,7 @@ from django.utils import timezone
 
 from AutoGrader.reason_codes import coded_response
 
-from .errors import InsufficientCreditsError
+from .errors import InsufficientCreditsError, is_individual_teacher
 from .models import PlanFeature, PlanFeatureKey
 
 logger = logging.getLogger(__name__)
@@ -596,7 +596,9 @@ def require_ai_access(view_func=None, *, feature: Optional[str] = None):
                     NO_CREDITS_REMAINING_REASON,
                     TRIAL_CREDITS_EXHAUSTED_REASON,
                 ):
-                    refusal: Exception = InsufficientCreditsError(reason)
+                    refusal: Exception = InsufficientCreditsError(
+                        reason, individual=is_individual_teacher(request.user)
+                    )
                 else:
                     refusal = AIFeatureNotAvailableError()
                 return coded_response(refusal)

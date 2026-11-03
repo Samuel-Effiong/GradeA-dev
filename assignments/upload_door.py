@@ -39,8 +39,9 @@ from rest_framework.response import Response
 
 from ai_processor.services import ai_processor
 from assignments.services import AssignmentProcessingService
+from AutoGrader.reason_codes import credit_refusal_message
 from AutoGrader.uploads import validate_upload_size
-from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
+from billing.errors import InsufficientCreditsError, is_individual_teacher
 from billing.refusals import log_refusal
 from students.exceptions import STUDENT_UPLOAD_NOT_PROCESSED
 from users.models import UserTypes
@@ -94,17 +95,15 @@ def upload_refusal_if_unaffordable(request_user, assignment, uploaded_files, pro
         estimate = _estimate_for(uploaded_file, prompt)
         if estimate is None or balance >= estimate:
             continue
-        log_refusal(
-            logger,
-            "Upload door",
-            InsufficientCreditsError(
-                f"Upload needs ~{estimate} credits, balance {balance}"
-            ),
+        refusal = InsufficientCreditsError(
+            f"Upload needs ~{estimate} credits, balance {balance}",
+            individual=is_individual_teacher(billed),
         )
+        log_refusal(logger, "Upload door", refusal)
         if request_user.user_type == UserTypes.STUDENT:
             message = STUDENT_UPLOAD_NOT_PROCESSED
         else:
-            message = INSUFFICIENT_CREDITS_MESSAGE
+            message = credit_refusal_message(refusal)
         return Response(
             {"error": message, "code": "insufficient_credits"},
             status=status.HTTP_402_PAYMENT_REQUIRED,
@@ -137,16 +136,19 @@ def parked_files(request_user, assignment, uploaded_files, prompt):
             left -= estimate
             continue
         parked[index] = InsufficientCreditsError(
-            f"Upload needs ~{estimate} credits, {left} left in the batch"
+            f"Upload needs ~{estimate} credits, {left} left in the batch",
+            individual=is_individual_teacher(billed),
         )
         log_refusal(logger, "Upload door (parked)", parked[index])
     return parked
 
 
-def batch_refusal_response():
+def batch_refusal_response(billed_user):
     """The 402 a teacher reads when no file of the batch fits (H-223): the
-    usual generic credit message, as before."""
+    usual credit message, or the individual-teacher one when `billed_user`
+    (whose wallet the batch would be billed to) is one (H-281)."""
+    refusal = InsufficientCreditsError(individual=is_individual_teacher(billed_user))
     return Response(
-        {"error": INSUFFICIENT_CREDITS_MESSAGE, "code": "insufficient_credits"},
+        {"error": credit_refusal_message(refusal), "code": "insufficient_credits"},
         status=status.HTTP_402_PAYMENT_REQUIRED,
     )

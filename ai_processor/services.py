@@ -36,7 +36,7 @@ from billing.access_control import (
     can_ai_be_used_for_assignment,
     can_user_access_ai,
 )
-from billing.errors import InsufficientCreditsError
+from billing.errors import InsufficientCreditsError, is_individual_teacher
 from billing.refunds import billing_refund_scope, record_billing_task_id
 from billing.services import AnalyticsService
 from classrooms.models import StudentCourse
@@ -5589,7 +5589,10 @@ Now, respond to the following teacher's instruction using the rules above
                     NO_CREDITS_REMAINING_REASON,
                     TRIAL_CREDITS_EXHAUSTED_REASON,
                 ):
-                    raise InsufficientCreditsError("Refill your wallet to continue")
+                    raise InsufficientCreditsError(
+                        "Refill your wallet to continue",
+                        individual=is_individual_teacher(user),
+                    )
                 raise AIFeatureNotAvailableError(f"AI access denied: {reason}")
 
             wallet = user.credit_wallet
@@ -5643,11 +5646,15 @@ Now, respond to the following teacher's instruction using the rules above
         if balance < estimated_cost:
             raise InsufficientCreditsError(
                 f"Task requires ~{estimated_cost} credits, but you only have {balance} credits. "
-                f"Please refill your wallet to continue"
+                f"Please refill your wallet to continue",
+                individual=is_individual_teacher(target_teacher),
             )
 
         if balance <= 0:
-            raise InsufficientCreditsError("Refill your wallet to continue")
+            raise InsufficientCreditsError(
+                "Refill your wallet to continue",
+                individual=is_individual_teacher(target_teacher),
+            )
 
         ensure_task_not_cancelled(processing_task_id)
         task_id = str(uuid.uuid4())

@@ -41,7 +41,10 @@ from rest_framework.response import Response
 
 from audit.enums import ErrorClass, ReasonCode
 from AutoGrader.request_context import get_request_id
-from billing.errors import INSUFFICIENT_CREDITS_MESSAGE
+from billing.errors import (
+    INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE,
+    INSUFFICIENT_CREDITS_MESSAGE,
+)
 
 #: The keys a coded body adds next to "error". The renderer hides them from
 #: the display message (users/renderers.py).
@@ -271,6 +274,13 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         INSUFFICIENT_CREDITS_MESSAGE,
         "Top up credits, or ask your school administrator, then try again.",
         retryable=False,
+        # H-281 (owner-approved 2026-11-03): an individual teacher has no
+        # school administrator to ask. Picked by credit_refusal_variant
+        # from the refusal's `individual` flag.
+        alternative_messages={
+            "individual": INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE,
+        },
+        alternative_remediations=("Top up credits, then try again.",),
     ),
     ReasonCode.AI_FEATURE_NOT_AVAILABLE: ReasonSpec(
         ErrorClass.USER,
@@ -726,6 +736,38 @@ class CodedError(Exception):
         return self._spec.remediation or None
 
 
+INDIVIDUAL_CREDITS_VARIANT = "individual"
+
+
+def credit_refusal_variant(error):
+    """H-281: "individual" for a plain credit refusal whose billed user is
+    an individual teacher (InsufficientCreditsError.individual), else None.
+    A coded refusal (the mid-batch one) carries its own message."""
+    from billing.errors import InsufficientCreditsError
+
+    if (
+        isinstance(error, InsufficientCreditsError)
+        and not isinstance(error, CodedError)
+        and getattr(error, "individual", False)
+    ):
+        return INDIVIDUAL_CREDITS_VARIANT
+    return None
+
+
+def credit_refusal_message(error):
+    """The fixed sentence a client reads for a plain credit refusal."""
+    spec = REASON_CODES[ReasonCode.INSUFFICIENT_CREDITS]
+    return spec.template(credit_refusal_variant(error))
+
+
+def credit_refusal_remediation(variant):
+    """The remediation for a credit refusal of `variant`; None for the
+    spec's own (the school sentence)."""
+    if variant == INDIVIDUAL_CREDITS_VARIANT:
+        return REASON_CODES[ReasonCode.INSUFFICIENT_CREDITS].alternative_remediations[0]
+    return None
+
+
 def _refusal_reason(error):
     """(code, message) for the two refusals that predate CodedError, or
     None. Their shown message is unchanged (describe_user_error)."""
@@ -800,7 +842,10 @@ def coded_response(error):
         return None
     code, params, message = reason
     spec = REASON_CODES[code]
-    remediation = error.remediation if isinstance(error, CodedError) else None
+    if isinstance(error, CodedError):
+        remediation = error.remediation
+    else:
+        remediation = credit_refusal_remediation(credit_refusal_variant(error))
     response = Response(
         coded_body(code, params, message, remediation), status=spec.http_status
     )

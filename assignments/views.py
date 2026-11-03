@@ -1096,7 +1096,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # left to the loop below, which refuses it as its own item.
         parked = parked_files(request.user, None, files, prompt_text)
         if parked and len(parked) == len(files):
-            return batch_refusal_response()
+            # A teacher-only route: the batch is billed to the caller.
+            return batch_refusal_response(request.user)
 
         session = BatchUploadSession.objects.create(
             teacher=request.user,

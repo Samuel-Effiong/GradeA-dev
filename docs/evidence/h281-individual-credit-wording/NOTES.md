@@ -82,3 +82,61 @@ School admins are still covered at R2 (`consume_credits`). Still 42 tests.
 Expect **`Ran 42`, `FAILED (failures=5, errors=26)`**, with 11 passing.
 That is E1 as written, with the new S2 control passing: a licensed teacher
 reads the school sentence on the old code.
+
+**E1b result (6a1fc7f83): met.** `Ran 42`, `FAILED (failures=5, errors=26)`.
+The failures are exactly the 5 named in E1. Log: `logs/red_run_6a1fc7f8.txt`.
+
+## Fix commit: what changed
+
+- **billing/errors.py**
+  - `InsufficientCreditsError(*args, individual=False)`; the attribute
+    survives pickle (checked for `EmptyWalletError` too);
+  - `INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE`;
+  - `is_individual_teacher(user)`, the only place the rule lives.
+- **AutoGrader/reason_codes.py**
+  - The INSUFFICIENT_CREDITS spec gets
+    `alternative_messages={"individual": …}` and
+    `alternative_remediations=("Top up credits, then try again.",)`.
+  - New `credit_refusal_variant`, `credit_refusal_message` and
+    `credit_refusal_remediation`.
+  - `coded_response` uses the variant's remediation for a plain refusal.
+- **AutoGrader/error_messages._passthrough_message**:
+  `credit_refusal_message(error)`. That covers `describe_user_error`,
+  `describe_task_error` and `_refusal_reason`.
+- **Raise sites:**
+  - R1–R3 in `billing/models.py` (`self.user`);
+  - R4 in `users/permissions.py` (`target_user`);
+  - R5 in `billing/access_control.py` (`request.user`);
+  - R6 in `ai_processor/services.py` (`user`); R7 and R8 there
+    (`target_teacher`);
+  - R9 and R10 in `assignments/upload_door.py` (`billed`).
+- **upload_door**
+  - The single door's teacher message is `credit_refusal_message` of its
+    tagged refusal; the student branch is unchanged.
+  - `batch_refusal_response(billed_user)`. Both callers are teacher-only
+    batch routes and pass `request.user`, which is `_billed_user` for a
+    teacher.
+- **S7**
+  - `mark_processing_task_failure` merges `{"message_variant": "individual"}`
+    into `meta`;
+  - `item_results._remediation` reads it.
+- No migration.
+
+## E2/E3 expectations (written before the runs)
+
+**E2.** `billing.tests_h281_individual_credit_wording`, serial: `Ran 42`,
+`OK`.
+
+**E3, targeted.** Every module that names the credit sentence or
+remediation, plus the gate and permission modules, serial: **305 tests**.
+- Labels: AutoGrader.tests_error_messages AutoGrader.tests_reason_codes ai_processor.tests_answer_chunk_merge assignments.tests_edit_refusal_student_sentence billing.tests.test_refusal_handling billing.tests.test_refusal_handling_gates billing.tests_h281_individual_credit_wording students.tests_h216_student_credit_sentence students.tests_h223_batch_runs_what_fits students.tests_h225_student_empty_wallet students.tests_task_tracking students.tests_upload_credit_door billing.tests.test_execute_graded_task users.tests_credit_balance_permission
+- Expected: every test that reads the credit refusal **as a non-licensed
+  teacher** and asserts the school sentence or remediation now FAILS. Their
+  fixture teacher is individual under the approved rule, so these are
+  intended changes. Each one is listed in EVIDENCE.md as an existing-test
+  diff, and its expectation is moved to the individual sentence. The diff is
+  committed before the re-run.
+- Every other test passes, in particular the student-sentence tests (H-216,
+  H-225) and the mid-batch tests.
+- No test outside that pattern fails. If one does, it is a finding and is
+  reported, not adjusted.
