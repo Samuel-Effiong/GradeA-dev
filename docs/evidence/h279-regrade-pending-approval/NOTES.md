@@ -363,3 +363,24 @@ detected`, rc=0).
   asserts 500, then checks the same three things.
 - E3 is re-run on the fix commit. The expectation is unchanged: `Ran 60`,
   `OK`. E5 and E6 then run on the fix commit, not cca16b03c.
+
+## E3 re-run at 590f6237: met (logs/green_run_590f6237.txt)
+
+`Ran 60 tests`, `OK`.
+
+## E5 near run at 590f6237: NOT met (logs/near_run_590f6237.txt)
+
+`Ran 845 tests`, `FAILED (failures=8)`.
+
+| # | Test | Predicted? | Cause | Action |
+|---|------|-----------|-------|--------|
+| 1 | students.tests_regrade_formatted_grade::test_it_is_cleared_by_the_same_update_as_the_score (X7, amended) | X7 yes; the failure of the amendment no | my amendment's held-save check matched `"score"` inside the held result's JSON (captured SQL carries its parameters) | test defect in my own amendment: it now checks for a written column (`"score" =`). Fixed in 495d74ea |
+| 2 | AutoGrader.tests_submission_audience_guard::test_rule_2… (action=update_grade) | no | I moved the serializer builds out of `update_grade` into helpers; the guard reads the action's own body | **code** changed back: the body is inline in `update_grade`, inside one atomic block. No test change. 495d74ea |
+| 3 | AutoGrader.tests_student_feedback_guard::test_rule_1_every_raw_read_is_a_named_one | no | the same move: the raw `feedback` read sat in `_save_hand_grade`, not the named `update_grade` | **code**, as #2 |
+| 4 | AutoGrader.tests_student_feedback_guard::test_the_scan_covered_the_repository | no | as #3 | **code**, as #2 |
+| 5 | AutoGrader.tests_student_feedback_guard::test_rule_3_a_student_is_refused_every_review_queue_filter | no | the guard holds `TEACHER_ONLY_FILTERS` equal to the filterset's review-queue fields; `has_pending_result` is not a filterset field | **code**: it is refused through its own `TEACHER_ONLY_QUERY_PARAMS`, and `TEACHER_ONLY_FILTERS` is unchanged. No test change. 495d74ea |
+| 6–8 | students.tests_student_upload_answer: AFirstUploadTest::test_the_keys_are_the_thirty_the_route_always_answered_with, OnlyTheAnswerProtectsTest::test_a_graded_paper_answers_with_every_staff_field_the_constant, TheTeacherStillReadsEverythingTest::test_the_teachers_page_of_a_graded_paper | **no** | H-141 pins the teacher page's keys, and the student upload answer's (the same keys in the same order), at 30. H-279 adds `pending_result` and `pending_graded_at` to the teacher page, and as `SentAs(None)` to the upload answer | **held for SM.** Not amended. Proposal: KEYS becomes 32, with the two names appended, and the constant-check test also asserts both are None on a student's upload |
+
+E5 is re-run, whole, on the commit that settles #6–8. E6 (mutants) runs on that commit too, against the expectations above. The code is now 495d74ea; if SM accepts the proposal, only tests change.
+
+- near_run_590f6237.txt is kept gzipped (gzip -n -9): raw sha256 11cb3099387ca1da2549a3e4a14cb3346347ca8bf7edfdf8131c4f73f80340e7, gz sha256 3ffcaf57a9b4f5a81432531bb785510b929ee449e3636626dda60d3f92ba97c6.
