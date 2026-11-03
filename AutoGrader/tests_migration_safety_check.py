@@ -558,10 +558,25 @@ class TheRealMigrationsTheNewRuleReportsForTheFirstTime(SimpleTestCase):
             with self.subTest(migration=path):
                 self.assertEqual(kinds(check.classify(path)), expected)
 
+    # H-286 (owner 2026-11-03): students/0027 had already shipped to
+    # production (main since 2026-10-08) when this rule first reported it, so
+    # it is acknowledged as a contract step. The others still need a decision.
+    ACKNOWLEDGED_SINCE = {
+        "students/migrations/0027_alter_studentsubmission_ai_grading_completed_at.py": "H-286",
+    }
+
     def test_none_of_them_is_acknowledged(self):
         for path in NEWLY_REPORTED:
+            if path in self.ACKNOWLEDGED_SINCE:
+                continue
             with self.subTest(migration=path):
                 self.assertFalse(check.has_ack(path))
+
+    def test_only_0027_has_since_been_acknowledged(self):
+        self.assertLessEqual(set(self.ACKNOWLEDGED_SINCE), set(NEWLY_REPORTED))
+        for path in self.ACKNOWLEDGED_SINCE:
+            with self.subTest(migration=path):
+                self.assertTrue(check.has_ack(path))
 
     def test_the_pull_request_goes_from_thirteen_red_files_to_twelve(self):
         """Seven of the thirteen clear, six remain, and these six are new."""
