@@ -506,10 +506,11 @@ class WhatEachSurfaceSays(APITestCase):
             )
         self.assertReads(response, INDIVIDUAL_MESSAGE, INDIVIDUAL_REMEDIATION)
 
-    def test_s2_custom_ai_prompt_school_admin_keeps_the_school_sentence(self):
-        admin = school_admin()
-        _fund(admin, 1_000)
-        self.client.force_authenticate(user=admin)
+    def test_s2_custom_ai_prompt_licensed_teacher_keeps_the_school_sentence(self):
+        # The route is teacher-only (403 for a school admin; E1 on e02721c5).
+        teacher = licensed_teacher()
+        _fund(teacher, 1_000)
+        self.client.force_authenticate(user=teacher)
         with patch(
             "ai_processor.services.can_user_access_ai", return_value=(True, None)
         ), spied_gate():

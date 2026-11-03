@@ -52,3 +52,33 @@ Expect **`Ran 42`, `FAILED (failures=5, errors=26)`**, with 11 passing.
     change.
 
 Gate: ≥ 4000 MB available. B33 is finished, so normal runs are allowed.
+
+## E1 result (e02721c5d): NOT met, a test-fixture error of mine
+
+Got `Ran 42`, `FAILED (failures=6, errors=26)`, with 10 passing.
+
+- **The 26 errors are exactly the ones predicted:**
+  - 7 `ImportError` (`is_individual_teacher`);
+  - 14 `AttributeError` on `InsufficientCreditsError` plus 2 on
+    `EmptyWalletError` (`.individual`); R6 was among them, with no other
+    refusal;
+  - 3 `TypeError` (`individual=`).
+- **The 5 predicted failures failed**, each on
+  `"…your credits or ask your school administrator…" != "…your credits, then try again."`.
+- **One extra failure:**
+  `test_s2_custom_ai_prompt_school_admin_keeps_the_school_sentence` gave
+  `403 != 402`, "You must be a teacher to access this endpoint." The
+  custom-ai-prompt route is teacher-only, so a school admin can't reach the
+  credit gate there. The test was wrong, not the code.
+
+Log: `logs/red_run_e02721c5.txt`.
+
+**Correction.** The S2 control is now a licensed teacher:
+`test_s2_custom_ai_prompt_licensed_teacher_keeps_the_school_sentence`.
+School admins are still covered at R2 (`consume_credits`). Still 42 tests.
+
+## E1b: red re-run of the corrected module (expectations, written before the run)
+
+Expect **`Ran 42`, `FAILED (failures=5, errors=26)`**, with 11 passing.
+That is E1 as written, with the new S2 control passing: a licensed teacher
+reads the school sentence on the old code.
