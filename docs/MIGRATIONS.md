@@ -246,10 +246,13 @@ into `main`, even though every one of those migrations already shipped
 safely. That's not a bug in the check; it's correctly describing history it
 wasn't there to review at the time.
 
-**When that merge happens, follow
-[BETA_TO_MAIN_MIGRATION_ACK.md](BETA_TO_MAIN_MIGRATION_ACK.md)** — it has
-the exact file list, the commands to acknowledge them, and which ones are
-worth a closer look before waving through. This is a one-time backlog
+**When that merge happens**, the rule for a migration that is already
+applied in production is: don't rewrite it; acknowledge it by adding
+`# expand-contract-step: contract` as its first line, because it is the
+final, already-landed state (billing/0030 and students/0027 follow this).
+Look closer before acknowledging anything that is not yet applied in
+production. (This rule used to live in BETA_TO_MAIN_MIGRATION_ACK.md, which
+was removed in 8a208f6ed; it is restated here, H-286.) This is a one-time backlog
 cleanup; going forward from that merge, every *new* migration goes through
 the real process in section 3.
 
