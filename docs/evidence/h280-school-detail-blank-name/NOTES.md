@@ -135,3 +135,24 @@ includes all 6 H-280 tests, so E2 is met as well. Log:
 `logs/targeted_run_f07ec58a.txt.gz`.
 
 E4–E6 are still to do. H-280 is queued behind the H-278 follow-up, per the SM.
+
+## The school list gets the same fallback (SM, 2026-11-03)
+
+SM: the school **list** `admin_name` falls back to `get_full_name() or email`,
+using the same helper as the detail view. Red test first.
+
+The helper: a nameless user's name. One module-level function in
+`classrooms/views.py` returns `user.get_full_name() or user.email`. It is
+used for the list admin, the detail admin and the detail teachers. It
+replaces the two inline `or email` expressions from f07ec58aa.
+
+New tests:
+- T7 `test_the_school_list_shows_a_nameless_admin_by_email`
+- T8 `test_the_school_list_still_shows_a_named_admin_by_name`
+
+**E7, red at this commit (expectations, written before the run).**
+Serial, the H-280 module only. Expect `Ran 8`, `FAILED (failures=1)`.
+- Only T7 fails: `'' != 'h280-list-admin@x.test'`.
+- T8 passes, and T1–T6 still pass, since the detail fix is in.
+- Gate: ≥ 4000 MB available. Batch 33 re-run in progress: small serial
+  runs only.

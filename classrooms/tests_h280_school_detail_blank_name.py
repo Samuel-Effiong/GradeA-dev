@@ -159,3 +159,31 @@ class SchoolDetailWithBlankNames(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertEqual(response.data["school_name"], "")
         self.assertEqual(response.data["id"], str(self.school.id))
+
+    def list_row(self):
+        response = self.client.get(reverse("school-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        rows = [r for r in response.data["results"] if r["id"] == str(self.school.id)]
+        self.assertEqual(len(rows), 1)
+        return rows[0]
+
+    def test_the_school_list_shows_a_nameless_admin_by_email(self):
+        admin = make_user(
+            "h280-list-admin@x.test", UserTypes.SCHOOL_ADMIN, school=self.school
+        )
+
+        row = self.list_row()
+
+        self.assertEqual(row["admin_id"], str(admin.id))
+        self.assertEqual(row["admin_name"], "h280-list-admin@x.test")
+
+    def test_the_school_list_still_shows_a_named_admin_by_name(self):
+        make_user(
+            "h280-list-named@x.test",
+            UserTypes.SCHOOL_ADMIN,
+            "Ada",
+            "Admin",
+            school=self.school,
+        )
+
+        self.assertEqual(self.list_row()["admin_name"], "Ada Admin")
