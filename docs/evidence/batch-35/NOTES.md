@@ -9,3 +9,6 @@ Near run at 4ea2073f: Ran 997, OK (skipped=4). An earlier near run at f352897f w
 Count: DiscoverRunner(...).countTestCases() = 8911. That is B34 8906, + 4 (H-285), + 1 (H-286).
 
 - B35-E1 (committed before the run): full run Ran 8911, OK (skipped=30).
+
+## Result
+B35-E1 MET: full run on a64c8416 gives Ran 8911, OK (skipped=30), with 0 FAIL/ERROR headers and 0 suspends. See e1_a64c8416_summary.txt.
