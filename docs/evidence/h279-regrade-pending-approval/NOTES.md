@@ -241,3 +241,14 @@ today.
   expectation is unchanged: 59 tests, the same 13 pass, and N4's two now
   fail for the expected cause (no email for the held row / no
   pending_result attribute), not in setUp.
+- E1 re-run at d7e54398 (logs/red_run_d7e54398.txt): `Ran 59 tests`,
+  `FAILED (failures=26, errors=24)`. 46 failed and the same 13 passed, so
+  **E1 is met**. N4 now fails for the expected causes: in
+  test_each_student_is_told_once_with_the_right_email, the held row's
+  "Updated grade" email is missing; in
+  test_the_held_row_is_promoted_and_the_count_is_as_today, there is no
+  `pending_result` attribute.
+- E2 baseline near run at d7e54398 (logs/baseline_near_d7e54398.txt.gz,
+  `--parallel 4`): `Ran 341 tests`, `OK`, so **E2 is met** (N = 341,
+  including X1–X10). Raw sha256 aebc81f1…ddeb16b, gz (gzip -n -9) sha256
+  c397230b…5e07bf.
