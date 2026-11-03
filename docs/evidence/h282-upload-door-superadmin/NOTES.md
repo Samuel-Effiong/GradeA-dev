@@ -98,3 +98,21 @@ DB `test_AutoGrader_h282`. It runs serially, or with `--parallel` only if the
 SM allows it after B33. There is no migration in the branch diff, so
 `AutoGrader.tests_migration_rollback_defaults` is not required. Expect
 `Ran 220`, `OK` (skips are allowed if they are listed).
+
+## Rebase onto origin/beta e71e710bc (SM, 2026-11-03, after B33 went green)
+
+`git rebase --onto e71e710bc 162a43e66`. The old base `162a43e66` and its
+stripped twin `ad090bf30` have the same tree (`2188b2c6`). `e71e710bc` adds
+only the B33 docs (sha map, E5 summary). The branch diff is byte-identical
+before and after the rebase. The shas named above and in the log file names
+are the pre-rebase ones:
+
+| Before | After | Commit |
+|---|---|---|
+| dff9b2d7a | df10fe9dc | red |
+| 4906b192f | 4b13253ff | fix |
+| 037afed7e | 7ba31e475 | E1 result |
+| c865c3b96 | bc344094d | E2/E3 results, E4/E5 expectations |
+
+E4 and E5 now run at the commit that records this note. Its code is the same
+as at `037afed7e`.
