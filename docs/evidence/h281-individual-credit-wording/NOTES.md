@@ -279,3 +279,12 @@ session-results modules. DB `test_AutoGrader_h281`, `--parallel 4`.
 There is no migration in the branch diff (`git diff e11e56536 --
 '*/migrations/*'` is empty), so `AutoGrader.tests_migration_rollback_defaults`
 is not required. Expect `Ran 2468`, `OK` (skips are allowed if they are listed).
+
+## E6 result (d0843712a): met
+
+`Ran 2468 tests`, `OK (skipped=2)`, exit 0. Both skips are opt-in by design:
+- `audit.tests.test_bench_volume.BusySchoolDay.test_print_one_busy_day` (AUDIT_BENCH=1 only);
+- `students.tests_async_edit_path.RealProviderEditTest.test_a_real_edit_extracts_the_answer_and_charges_once` (RUN_REAL_AI=1 only).
+
+The log is `logs/near_run_d0843712.txt.gz`, raw sha256 b04ba4db1d709f8d71c28a22b744b0d4a0472b86edcaf1dac9c4abf1ea0e61bb.
+The parallel test DBs were destroyed by the runner.
