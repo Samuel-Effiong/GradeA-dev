@@ -243,3 +243,39 @@ also fail; any extra killer is listed in the results.
 | M17 | `item_results._remediation` ignores the variant | the same S6/S7 test |
 | M18 | `credit_refusal_variant` without `not isinstance(error, CodedError)` | `test_the_mid_batch_refusal_never_takes_the_individual_variant` |
 | M19 | spec `"individual"` message → the school message | every individual-message test: S1, S2, S4, S6 (and X1–X4) |
+
+## E5 result (3bbc3c199): met, 19 of 19 killed
+
+The baseline is `Ran 307`, `OK`. Every planted bug was killed by at least
+its expected tests, and each file was restored and checked by sha256
+("restored ok" for all 19). The logs are in `mutants_3bbc3c19/`
+(`summary.txt`, one gzipped log per bug, the runner `mutate_h281.py.gz`, the baseline `baseline_3bbc3c19.txt.gz`,
+`SHA256SUMS`).
+
+| Bug | Failed | Extra killers beyond the expected set |
+|---|---|---|
+| M1 | 11 | none |
+| M2 | 2 failures, 2 errors | none |
+| M3, M4, M5 | 1 each | none |
+| M6 | 16 (D11 counts its 12 TEACHER subtests) | `h225` c1 (X6): a teacher at 0 goes through HasCreditBalance |
+| M7, M8 | 1 each | none |
+| M9 | 15 (with subtests and rounds) | `h216` c1 (X5): the teacher edit is refused below the estimate |
+| M10, M11, M12 | 1 each | none |
+| M13 | 7 | X8: the 2 `upload_credit_door` poor-teacher tests use the batch refusal |
+| M14 | 31 | X1–X6: every individual message reached through `_passthrough_message` |
+| M15 | 5 | S1 removed-from-license (the remediation as well) |
+| M16, M17 | 1 each | none |
+| M18 | 1 | none |
+| M19 | 39 | S5 single door and batch, X7, X8 (all of them read the spec message) |
+
+No bug survived.
+
+## E6: near run (expectations, written before the run)
+
+At the commit that records this note, the label list in
+`logs/near_labels.txt`: 134 modules, **2468 tests**. That is the touched
+modules plus the credit, refusal, reason-code, upload, task and
+session-results modules. DB `test_AutoGrader_h281`, `--parallel 4`.
+There is no migration in the branch diff (`git diff e11e56536 --
+'*/migrations/*'` is empty), so `AutoGrader.tests_migration_rollback_defaults`
+is not required. Expect `Ran 2468`, `OK` (skips are allowed if they are listed).
