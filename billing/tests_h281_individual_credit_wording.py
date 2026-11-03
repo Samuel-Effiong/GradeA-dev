@@ -75,11 +75,10 @@ SCHOOL_MESSAGE = (
 )
 SCHOOL_REMEDIATION = "Top up credits, or ask your school administrator, then try again."
 
-# OWNER DECISION PENDING (SM, 2026-11-03): a teacher removed from their
-# school's license, or whose license lapsed, still has `school_id` set.
-# Built with the SM's rule (`is_under_license()`): they read the INDIVIDUAL
-# sentence. If the owner rules "school_id present = school sentence",
-# flip this to False; the predicate and both removed-teacher tests follow.
+# OWNER RULING (2026-11-03, via the SM): a teacher who still has a school_id
+# but no active license (lapsed, or removed from the license) reads the
+# INDIVIDUAL sentence. So is_under_license() is the final rule, and this
+# constant pins it.
 REMOVED_FROM_LICENSE_IS_INDIVIDUAL = True
 REMOVED_MESSAGE, REMOVED_REMEDIATION = (
     (INDIVIDUAL_MESSAGE, INDIVIDUAL_REMEDIATION)

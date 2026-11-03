@@ -164,3 +164,11 @@ pin it with characterization tests rather than assert it:
    modules. No migration is expected; if one appears, the run includes
    `AutoGrader.tests_migration_rollback_defaults`. The run is held until
    B33 is finished.
+
+## Owner decision (2026-11-03, via the SM): (a) is final
+
+A teacher who still has a `school_id` but no active license (the license
+lapsed, or they were removed from it) gets the **INDIVIDUAL** wording. So
+`is_under_license()` is confirmed, and `billing.errors.is_individual_teacher`
+is final. `REMOVED_FROM_LICENSE_IS_INDIVIDUAL = True` in the test module now
+pins the ruling; it is no longer a pending switch.
