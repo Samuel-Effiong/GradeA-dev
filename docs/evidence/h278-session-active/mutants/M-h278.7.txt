@@ -1,0 +1,713 @@
+M-h278.7: classrooms/serializers.py
+- '            "school",\n            "is_active",\n            "created_by",\n            "created_at",\n        ]\n        read_only_fields'
++ '            "school",\n            "created_by",\n            "created_at",\n        ]\n        read_only_fields'
+rc=1
+
+Found 32 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 8ee013d1-8196-4abb-a77a-99548e108926.
+Cannot activate automatic trial for user 8ee013d1-8196-4abb-a77a-99548e108926 (validation): ValueError
+Free trial plan not found: no trial activated for user a039756e-ff8c-48c2-90f6-fe06e69ad362.
+Cannot activate automatic trial for user a039756e-ff8c-48c2-90f6-fe06e69ad362 (validation): ValueError
+Free trial plan not found: no trial activated for user 41c99b16-aefc-4bf8-8a3b-37bcab333365.
+Cannot activate automatic trial for user 41c99b16-aefc-4bf8-8a3b-37bcab333365 (validation): ValueError
+Free trial plan not found: no trial activated for user 9fda1ee2-e863-4453-b670-f12ab1ed1717.
+Cannot activate automatic trial for user 9fda1ee2-e863-4453-b670-f12ab1ed1717 (validation): ValueError
+Free trial plan not found: no trial activated for user 9c791ed3-353b-4f33-aade-de8feb4c205b.
+Cannot activate automatic trial for user 9c791ed3-353b-4f33-aade-de8feb4c205b (validation): ValueError
+/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/h274_g10_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/staticfiles/
+  mw_instance = middleware(adapted_handler)
+FFree trial plan not found: no trial activated for user 2ef530f0-293b-4b7c-a4bc-35bbaab9f8b8.
+Cannot activate automatic trial for user 2ef530f0-293b-4b7c-a4bc-35bbaab9f8b8 (validation): ValueError
+Free trial plan not found: no trial activated for user 27fab081-1272-4a3f-8364-5ed2ec6e4f7a.
+Cannot activate automatic trial for user 27fab081-1272-4a3f-8364-5ed2ec6e4f7a (validation): ValueError
+Free trial plan not found: no trial activated for user db7e63dc-a1bd-4e5e-ac11-7a2cc362a324.
+Cannot activate automatic trial for user db7e63dc-a1bd-4e5e-ac11-7a2cc362a324 (validation): ValueError
+Free trial plan not found: no trial activated for user b9840b7e-54f9-46b5-8bfd-fddb46515b93.
+Cannot activate automatic trial for user b9840b7e-54f9-46b5-8bfd-fddb46515b93 (validation): ValueError
+Free trial plan not found: no trial activated for user b296299a-5839-4175-bf72-48da3c3dd0cf.
+Cannot activate automatic trial for user b296299a-5839-4175-bf72-48da3c3dd0cf (validation): ValueError
+FFree trial plan not found: no trial activated for user 32ce8ce9-345e-412d-bed9-4b0ecfe051c2.
+Cannot activate automatic trial for user 32ce8ce9-345e-412d-bed9-4b0ecfe051c2 (validation): ValueError
+Free trial plan not found: no trial activated for user 8da893bc-17a9-4bc6-ad11-8b6bbc3ef631.
+Cannot activate automatic trial for user 8da893bc-17a9-4bc6-ad11-8b6bbc3ef631 (validation): ValueError
+Free trial plan not found: no trial activated for user 25a5ef21-3b87-4b27-aef5-75f410e28926.
+Cannot activate automatic trial for user 25a5ef21-3b87-4b27-aef5-75f410e28926 (validation): ValueError
+Free trial plan not found: no trial activated for user 0ae83370-b71b-4ed1-8890-6d212486a50c.
+Cannot activate automatic trial for user 0ae83370-b71b-4ed1-8890-6d212486a50c (validation): ValueError
+Free trial plan not found: no trial activated for user 13c4bda7-ac5e-482e-9eb4-6ddb9f9d55fb.
+Cannot activate automatic trial for user 13c4bda7-ac5e-482e-9eb4-6ddb9f9d55fb (validation): ValueError
+Free trial plan not found: no trial activated for user c095029e-4b5c-41a8-a1ce-32af355d89aa.
+Cannot activate automatic trial for user c095029e-4b5c-41a8-a1ce-32af355d89aa (validation): ValueError
+FFree trial plan not found: no trial activated for user 78be32bf-72ee-4084-90ab-20718d576133.
+Cannot activate automatic trial for user 78be32bf-72ee-4084-90ab-20718d576133 (validation): ValueError
+Free trial plan not found: no trial activated for user e14e22aa-1611-4dee-871e-b3902c26fac8.
+Cannot activate automatic trial for user e14e22aa-1611-4dee-871e-b3902c26fac8 (validation): ValueError
+Free trial plan not found: no trial activated for user a4f555e3-cf49-430a-9a2e-f1aa13f572bc.
+Cannot activate automatic trial for user a4f555e3-cf49-430a-9a2e-f1aa13f572bc (validation): ValueError
+Free trial plan not found: no trial activated for user 5813e1c1-265b-4d13-b403-9a02e3ca620a.
+Cannot activate automatic trial for user 5813e1c1-265b-4d13-b403-9a02e3ca620a (validation): ValueError
+Free trial plan not found: no trial activated for user 356f1da4-fe8e-4133-b44e-a0e42b3f69db.
+Cannot activate automatic trial for user 356f1da4-fe8e-4133-b44e-a0e42b3f69db (validation): ValueError
+FFree trial plan not found: no trial activated for user 2f1039ca-433f-47b8-abfc-48204d72f699.
+Cannot activate automatic trial for user 2f1039ca-433f-47b8-abfc-48204d72f699 (validation): ValueError
+Free trial plan not found: no trial activated for user 70a6c170-93c6-4de0-9935-e9f65c49e906.
+Cannot activate automatic trial for user 70a6c170-93c6-4de0-9935-e9f65c49e906 (validation): ValueError
+Free trial plan not found: no trial activated for user 9110b9df-799d-41e3-9734-53cdc2b8a68f.
+Cannot activate automatic trial for user 9110b9df-799d-41e3-9734-53cdc2b8a68f (validation): ValueError
+Free trial plan not found: no trial activated for user 82c45cd1-f60c-4364-8fa1-ec68f174110b.
+Cannot activate automatic trial for user 82c45cd1-f60c-4364-8fa1-ec68f174110b (validation): ValueError
+Free trial plan not found: no trial activated for user 7c27400e-b9e0-4f82-ad2d-846f32e9831a.
+Cannot activate automatic trial for user 7c27400e-b9e0-4f82-ad2d-846f32e9831a (validation): ValueError
+FFree trial plan not found: no trial activated for user 07109ef8-a814-4ae9-b12f-e1f244a95766.
+Cannot activate automatic trial for user 07109ef8-a814-4ae9-b12f-e1f244a95766 (validation): ValueError
+Free trial plan not found: no trial activated for user 2eff4f8a-fd5a-4066-a8d9-01577ebc31e2.
+Cannot activate automatic trial for user 2eff4f8a-fd5a-4066-a8d9-01577ebc31e2 (validation): ValueError
+Free trial plan not found: no trial activated for user effbd81f-0b12-4686-8c14-e7d9f7258c87.
+Cannot activate automatic trial for user effbd81f-0b12-4686-8c14-e7d9f7258c87 (validation): ValueError
+Free trial plan not found: no trial activated for user 12820d65-6f71-4dc7-874f-77d6b4a1aee3.
+Cannot activate automatic trial for user 12820d65-6f71-4dc7-874f-77d6b4a1aee3 (validation): ValueError
+Free trial plan not found: no trial activated for user cb3ee6eb-d14b-401b-a566-675cc583c6de.
+Cannot activate automatic trial for user cb3ee6eb-d14b-401b-a566-675cc583c6de (validation): ValueError
+FFree trial plan not found: no trial activated for user a1632608-4ea1-40c2-a50d-9986a77fd105.
+Cannot activate automatic trial for user a1632608-4ea1-40c2-a50d-9986a77fd105 (validation): ValueError
+Free trial plan not found: no trial activated for user b83302b2-33e1-49af-82e1-d4e95a01d76e.
+Cannot activate automatic trial for user b83302b2-33e1-49af-82e1-d4e95a01d76e (validation): ValueError
+Free trial plan not found: no trial activated for user 288433e7-cb29-49b1-a220-4d21e7e37d7b.
+Cannot activate automatic trial for user 288433e7-cb29-49b1-a220-4d21e7e37d7b (validation): ValueError
+Free trial plan not found: no trial activated for user 01bf8c1a-f767-4818-a02f-82dc65e819f0.
+Cannot activate automatic trial for user 01bf8c1a-f767-4818-a02f-82dc65e819f0 (validation): ValueError
+Free trial plan not found: no trial activated for user 986d30dc-dd53-4e07-bcb8-ba51fa7d259c.
+Cannot activate automatic trial for user 986d30dc-dd53-4e07-bcb8-ba51fa7d259c (validation): ValueError
+FFree trial plan not found: no trial activated for user b0fc4108-5cd7-41e3-a69a-50f70ef01815.
+Cannot activate automatic trial for user b0fc4108-5cd7-41e3-a69a-50f70ef01815 (validation): ValueError
+Free trial plan not found: no trial activated for user 7096e916-6de0-40e7-b363-bf96ea766c73.
+Cannot activate automatic trial for user 7096e916-6de0-40e7-b363-bf96ea766c73 (validation): ValueError
+Free trial plan not found: no trial activated for user 8120a011-c571-4c4c-8bd2-8c181f0309da.
+Cannot activate automatic trial for user 8120a011-c571-4c4c-8bd2-8c181f0309da (validation): ValueError
+Free trial plan not found: no trial activated for user 371517a2-1d63-4d6e-8a72-0f720b3be5d1.
+Cannot activate automatic trial for user 371517a2-1d63-4d6e-8a72-0f720b3be5d1 (validation): ValueError
+Free trial plan not found: no trial activated for user 5f54b097-ecce-461d-b7af-fadc9aec0845.
+Cannot activate automatic trial for user 5f54b097-ecce-461d-b7af-fadc9aec0845 (validation): ValueError
+FFree trial plan not found: no trial activated for user ce8e5dba-5453-4ad8-88c4-485611caac4d.
+Cannot activate automatic trial for user ce8e5dba-5453-4ad8-88c4-485611caac4d (validation): ValueError
+Free trial plan not found: no trial activated for user cc7ce14e-3991-40b3-ab78-eb071206c361.
+Cannot activate automatic trial for user cc7ce14e-3991-40b3-ab78-eb071206c361 (validation): ValueError
+Free trial plan not found: no trial activated for user a0877402-5e7f-4811-8bc0-9f3f5ad8d24e.
+Cannot activate automatic trial for user a0877402-5e7f-4811-8bc0-9f3f5ad8d24e (validation): ValueError
+Free trial plan not found: no trial activated for user 80f0b8eb-7375-42de-b755-c3924dc4b2d2.
+Cannot activate automatic trial for user 80f0b8eb-7375-42de-b755-c3924dc4b2d2 (validation): ValueError
+Free trial plan not found: no trial activated for user a700d9c8-6c63-44dc-999e-83d0c03c00ea.
+Cannot activate automatic trial for user a700d9c8-6c63-44dc-999e-83d0c03c00ea (validation): ValueError
+.Free trial plan not found: no trial activated for user ecedc2a6-d7e4-4d43-81f6-3dcdf6a2df98.
+Cannot activate automatic trial for user ecedc2a6-d7e4-4d43-81f6-3dcdf6a2df98 (validation): ValueError
+Free trial plan not found: no trial activated for user 193e9ce1-47df-4bc8-b8b1-8d5ca8e6afdf.
+Cannot activate automatic trial for user 193e9ce1-47df-4bc8-b8b1-8d5ca8e6afdf (validation): ValueError
+Free trial plan not found: no trial activated for user ac5ec651-7e1f-46f7-93b2-76398cd91252.
+Cannot activate automatic trial for user ac5ec651-7e1f-46f7-93b2-76398cd91252 (validation): ValueError
+Free trial plan not found: no trial activated for user ce916afa-0d61-43c0-b2b3-0316814aaefd.
+Cannot activate automatic trial for user ce916afa-0d61-43c0-b2b3-0316814aaefd (validation): ValueError
+Free trial plan not found: no trial activated for user 854eb7d0-1804-40bc-99e4-cdabc29b6ef3.
+Cannot activate automatic trial for user 854eb7d0-1804-40bc-99e4-cdabc29b6ef3 (validation): ValueError
+.Free trial plan not found: no trial activated for user a9905a10-3d09-4158-98f9-b84be8a4365c.
+Cannot activate automatic trial for user a9905a10-3d09-4158-98f9-b84be8a4365c (validation): ValueError
+Free trial plan not found: no trial activated for user f3f3c723-b998-43f6-9266-32bcf437d3cc.
+Cannot activate automatic trial for user f3f3c723-b998-43f6-9266-32bcf437d3cc (validation): ValueError
+Free trial plan not found: no trial activated for user 0237b286-ecd3-4ed2-968e-076fb91af74f.
+Cannot activate automatic trial for user 0237b286-ecd3-4ed2-968e-076fb91af74f (validation): ValueError
+Free trial plan not found: no trial activated for user 1f0b2d69-d3bd-46b3-882c-62a9af396113.
+Cannot activate automatic trial for user 1f0b2d69-d3bd-46b3-882c-62a9af396113 (validation): ValueError
+Free trial plan not found: no trial activated for user d1b7edf7-fba9-4017-9ac1-5f246b3529ca.
+Cannot activate automatic trial for user d1b7edf7-fba9-4017-9ac1-5f246b3529ca (validation): ValueError
+.Free trial plan not found: no trial activated for user b080e6e9-2f39-475b-b46b-46d27afd61e4.
+Cannot activate automatic trial for user b080e6e9-2f39-475b-b46b-46d27afd61e4 (validation): ValueError
+Free trial plan not found: no trial activated for user 9f8adcce-a776-4d6b-812c-f99bb49b32c4.
+Cannot activate automatic trial for user 9f8adcce-a776-4d6b-812c-f99bb49b32c4 (validation): ValueError
+Free trial plan not found: no trial activated for user 22b3d126-cb55-4326-8503-ba324b10563c.
+Cannot activate automatic trial for user 22b3d126-cb55-4326-8503-ba324b10563c (validation): ValueError
+Free trial plan not found: no trial activated for user 560f9422-4e0e-4129-83b9-b327b61622a2.
+Cannot activate automatic trial for user 560f9422-4e0e-4129-83b9-b327b61622a2 (validation): ValueError
+Free trial plan not found: no trial activated for user 2340bf7c-d083-47bf-a7bf-6e592d1b8835.
+Cannot activate automatic trial for user 2340bf7c-d083-47bf-a7bf-6e592d1b8835 (validation): ValueError
+.Free trial plan not found: no trial activated for user d5394068-201d-4e70-a619-25f67e04ff96.
+Cannot activate automatic trial for user d5394068-201d-4e70-a619-25f67e04ff96 (validation): ValueError
+Free trial plan not found: no trial activated for user 8cfdb641-de1e-40ff-8297-78af70f9f352.
+Cannot activate automatic trial for user 8cfdb641-de1e-40ff-8297-78af70f9f352 (validation): ValueError
+Free trial plan not found: no trial activated for user 82edb1ef-2b83-4508-806e-6d7ae7bbff57.
+Cannot activate automatic trial for user 82edb1ef-2b83-4508-806e-6d7ae7bbff57 (validation): ValueError
+Free trial plan not found: no trial activated for user b59a9565-fd97-490c-ae4a-2352a07f8dbb.
+Cannot activate automatic trial for user b59a9565-fd97-490c-ae4a-2352a07f8dbb (validation): ValueError
+Free trial plan not found: no trial activated for user d73e0c0b-e2a2-461b-9e82-30880fa3cf0e.
+Cannot activate automatic trial for user d73e0c0b-e2a2-461b-9e82-30880fa3cf0e (validation): ValueError
+.Free trial plan not found: no trial activated for user ab51ec1b-f072-4db0-98e4-3328ab29ca00.
+Cannot activate automatic trial for user ab51ec1b-f072-4db0-98e4-3328ab29ca00 (validation): ValueError
+Free trial plan not found: no trial activated for user 9d7a4b21-d56f-4b53-a1c2-2c7ca3bcddea.
+Cannot activate automatic trial for user 9d7a4b21-d56f-4b53-a1c2-2c7ca3bcddea (validation): ValueError
+Free trial plan not found: no trial activated for user 5c6c92cd-6b8c-415a-ba0f-2f5a3fdf2fb3.
+Cannot activate automatic trial for user 5c6c92cd-6b8c-415a-ba0f-2f5a3fdf2fb3 (validation): ValueError
+Free trial plan not found: no trial activated for user bd4d9e14-ae13-4d51-a8be-171872ae1c68.
+Cannot activate automatic trial for user bd4d9e14-ae13-4d51-a8be-171872ae1c68 (validation): ValueError
+Free trial plan not found: no trial activated for user 5a5593e8-bea8-48c3-896b-53782ac26a9d.
+Cannot activate automatic trial for user 5a5593e8-bea8-48c3-896b-53782ac26a9d (validation): ValueError
+FFree trial plan not found: no trial activated for user c162873f-0e2d-487a-9422-401195d189a0.
+Cannot activate automatic trial for user c162873f-0e2d-487a-9422-401195d189a0 (validation): ValueError
+Free trial plan not found: no trial activated for user 4ab5431d-6a95-4f4d-ad06-26933afd29bb.
+Cannot activate automatic trial for user 4ab5431d-6a95-4f4d-ad06-26933afd29bb (validation): ValueError
+Free trial plan not found: no trial activated for user cfed8265-4ca0-415f-8170-3f7fa771d348.
+Cannot activate automatic trial for user cfed8265-4ca0-415f-8170-3f7fa771d348 (validation): ValueError
+Free trial plan not found: no trial activated for user b84873ab-4bb9-4d81-b8b0-1e98b2022483.
+Cannot activate automatic trial for user b84873ab-4bb9-4d81-b8b0-1e98b2022483 (validation): ValueError
+Free trial plan not found: no trial activated for user fc80834c-095e-419b-b9ea-a09120640ae2.
+Cannot activate automatic trial for user fc80834c-095e-419b-b9ea-a09120640ae2 (validation): ValueError
+FFree trial plan not found: no trial activated for user 78d0a7b9-0ffd-4756-9049-25ae134b2671.
+Cannot activate automatic trial for user 78d0a7b9-0ffd-4756-9049-25ae134b2671 (validation): ValueError
+Free trial plan not found: no trial activated for user 237e31be-86b4-4cfc-a57f-85895c462eca.
+Cannot activate automatic trial for user 237e31be-86b4-4cfc-a57f-85895c462eca (validation): ValueError
+Free trial plan not found: no trial activated for user c480cd8e-29d2-4966-8c04-6be01397900f.
+Cannot activate automatic trial for user c480cd8e-29d2-4966-8c04-6be01397900f (validation): ValueError
+Free trial plan not found: no trial activated for user 33f36c0d-d829-4124-b668-ef2865788e30.
+Cannot activate automatic trial for user 33f36c0d-d829-4124-b668-ef2865788e30 (validation): ValueError
+Free trial plan not found: no trial activated for user 584246bb-c987-4d3d-ad13-ae72fd281f16.
+Cannot activate automatic trial for user 584246bb-c987-4d3d-ad13-ae72fd281f16 (validation): ValueError
+FFree trial plan not found: no trial activated for user 2ee1a285-1a20-4f8f-b517-075c8acd539d.
+Cannot activate automatic trial for user 2ee1a285-1a20-4f8f-b517-075c8acd539d (validation): ValueError
+Free trial plan not found: no trial activated for user ef2d3694-249d-4964-9761-5fe146ab0897.
+Cannot activate automatic trial for user ef2d3694-249d-4964-9761-5fe146ab0897 (validation): ValueError
+Free trial plan not found: no trial activated for user e118f1d5-29e3-4ef9-a768-37a83d663140.
+Cannot activate automatic trial for user e118f1d5-29e3-4ef9-a768-37a83d663140 (validation): ValueError
+Free trial plan not found: no trial activated for user f52c15de-2dd8-4cc9-ac9f-8b8e6e3e739b.
+Cannot activate automatic trial for user f52c15de-2dd8-4cc9-ac9f-8b8e6e3e739b (validation): ValueError
+Free trial plan not found: no trial activated for user 979178c7-00f1-415f-b103-13ca0bb4e2c7.
+Cannot activate automatic trial for user 979178c7-00f1-415f-b103-13ca0bb4e2c7 (validation): ValueError
+API request refused: PermissionDenied (403)
+.Free trial plan not found: no trial activated for user 88660612-c800-453d-b01d-ccdf3ec09f55.
+Cannot activate automatic trial for user 88660612-c800-453d-b01d-ccdf3ec09f55 (validation): ValueError
+Free trial plan not found: no trial activated for user 9bbb3e29-6995-4ba2-8477-09e9b7be5274.
+Cannot activate automatic trial for user 9bbb3e29-6995-4ba2-8477-09e9b7be5274 (validation): ValueError
+Free trial plan not found: no trial activated for user 310a74db-e427-4105-a032-c70256ec13f6.
+Cannot activate automatic trial for user 310a74db-e427-4105-a032-c70256ec13f6 (validation): ValueError
+Free trial plan not found: no trial activated for user 473976a8-b533-490e-9720-6b6058636c02.
+Cannot activate automatic trial for user 473976a8-b533-490e-9720-6b6058636c02 (validation): ValueError
+Free trial plan not found: no trial activated for user 2c26042e-8856-4ac4-8efd-541a937d7e53.
+Cannot activate automatic trial for user 2c26042e-8856-4ac4-8efd-541a937d7e53 (validation): ValueError
+API request refused: PermissionDenied (403)
+.Free trial plan not found: no trial activated for user a3bc747f-5ba8-4183-a538-2b583cecd8aa.
+Cannot activate automatic trial for user a3bc747f-5ba8-4183-a538-2b583cecd8aa (validation): ValueError
+Free trial plan not found: no trial activated for user 71553287-97dc-41c0-994b-be198ba690dc.
+Cannot activate automatic trial for user 71553287-97dc-41c0-994b-be198ba690dc (validation): ValueError
+Free trial plan not found: no trial activated for user 11e50689-2474-417e-999b-3bb5993df1c1.
+Cannot activate automatic trial for user 11e50689-2474-417e-999b-3bb5993df1c1 (validation): ValueError
+Free trial plan not found: no trial activated for user e1912345-60dc-45fe-aa61-8ec181f529f6.
+Cannot activate automatic trial for user e1912345-60dc-45fe-aa61-8ec181f529f6 (validation): ValueError
+Free trial plan not found: no trial activated for user a677cafe-989a-4b32-a339-3fd7282ca118.
+Cannot activate automatic trial for user a677cafe-989a-4b32-a339-3fd7282ca118 (validation): ValueError
+EFree trial plan not found: no trial activated for user 8b31f6a7-96bb-4e96-b7e4-7080f968a9ee.
+Cannot activate automatic trial for user 8b31f6a7-96bb-4e96-b7e4-7080f968a9ee (validation): ValueError
+Free trial plan not found: no trial activated for user 6668a22e-89d2-4369-862a-f656fe1cfec6.
+Cannot activate automatic trial for user 6668a22e-89d2-4369-862a-f656fe1cfec6 (validation): ValueError
+Free trial plan not found: no trial activated for user f5c26d73-c7ef-4168-8058-42a48b08045b.
+Cannot activate automatic trial for user f5c26d73-c7ef-4168-8058-42a48b08045b (validation): ValueError
+Free trial plan not found: no trial activated for user 8708764c-4b63-4a89-8195-c1b8f5d7dd4c.
+Cannot activate automatic trial for user 8708764c-4b63-4a89-8195-c1b8f5d7dd4c (validation): ValueError
+Free trial plan not found: no trial activated for user dbc0c26e-61ce-4755-b102-012491343c52.
+Cannot activate automatic trial for user dbc0c26e-61ce-4755-b102-012491343c52 (validation): ValueError
+EFree trial plan not found: no trial activated for user 2e0bb834-5c92-4141-ac4a-74dd56b4da7b.
+Cannot activate automatic trial for user 2e0bb834-5c92-4141-ac4a-74dd56b4da7b (validation): ValueError
+Free trial plan not found: no trial activated for user a04a7303-b7f7-417e-9230-bcaf548cf788.
+Cannot activate automatic trial for user a04a7303-b7f7-417e-9230-bcaf548cf788 (validation): ValueError
+Free trial plan not found: no trial activated for user d525b8b0-ba55-4fa2-bdc5-0107f2512b15.
+Cannot activate automatic trial for user d525b8b0-ba55-4fa2-bdc5-0107f2512b15 (validation): ValueError
+Free trial plan not found: no trial activated for user 41571ada-a3ce-4643-a4b3-1b348e8cd6cd.
+Cannot activate automatic trial for user 41571ada-a3ce-4643-a4b3-1b348e8cd6cd (validation): ValueError
+Free trial plan not found: no trial activated for user 668aecfb-14f5-451b-afcb-82165b2b6b87.
+Cannot activate automatic trial for user 668aecfb-14f5-451b-afcb-82165b2b6b87 (validation): ValueError
+FFree trial plan not found: no trial activated for user f7766b56-9b03-4c37-bdb5-b19df91068f2.
+Cannot activate automatic trial for user f7766b56-9b03-4c37-bdb5-b19df91068f2 (validation): ValueError
+Free trial plan not found: no trial activated for user a27b3dde-3a80-44d0-adc5-d7e48f32ae28.
+Cannot activate automatic trial for user a27b3dde-3a80-44d0-adc5-d7e48f32ae28 (validation): ValueError
+Free trial plan not found: no trial activated for user 74b1f4b1-1d3b-4def-9921-d6508c08e961.
+Cannot activate automatic trial for user 74b1f4b1-1d3b-4def-9921-d6508c08e961 (validation): ValueError
+Free trial plan not found: no trial activated for user 2a2e18bb-3741-4e02-bce7-5418e78f8d1e.
+Cannot activate automatic trial for user 2a2e18bb-3741-4e02-bce7-5418e78f8d1e (validation): ValueError
+Free trial plan not found: no trial activated for user c059c8c5-2b9a-4f3a-84ff-66c8716b18dd.
+Cannot activate automatic trial for user c059c8c5-2b9a-4f3a-84ff-66c8716b18dd (validation): ValueError
+FFree trial plan not found: no trial activated for user 7d30e621-ec58-41af-868a-fd0424bde520.
+Cannot activate automatic trial for user 7d30e621-ec58-41af-868a-fd0424bde520 (validation): ValueError
+Free trial plan not found: no trial activated for user 7a552e25-4478-4ccb-b733-9851ff823032.
+Cannot activate automatic trial for user 7a552e25-4478-4ccb-b733-9851ff823032 (validation): ValueError
+Free trial plan not found: no trial activated for user 8c7dc1cf-5b88-4a54-9dd9-3b54cf084413.
+Cannot activate automatic trial for user 8c7dc1cf-5b88-4a54-9dd9-3b54cf084413 (validation): ValueError
+Free trial plan not found: no trial activated for user 559700ba-e2f3-4acf-bb93-cf7483867f1e.
+Cannot activate automatic trial for user 559700ba-e2f3-4acf-bb93-cf7483867f1e (validation): ValueError
+Free trial plan not found: no trial activated for user 6f4f9b1c-9b7e-446c-b963-a77073123334.
+Cannot activate automatic trial for user 6f4f9b1c-9b7e-446c-b963-a77073123334 (validation): ValueError
+EFree trial plan not found: no trial activated for user c53ab83d-91f6-4736-a7c1-233947a9891f.
+Cannot activate automatic trial for user c53ab83d-91f6-4736-a7c1-233947a9891f (validation): ValueError
+Free trial plan not found: no trial activated for user 5ac589fb-ff57-44a4-b347-4363375a4960.
+Cannot activate automatic trial for user 5ac589fb-ff57-44a4-b347-4363375a4960 (validation): ValueError
+Free trial plan not found: no trial activated for user 927e3e5c-c331-43ed-b291-2bcc4247b8c6.
+Cannot activate automatic trial for user 927e3e5c-c331-43ed-b291-2bcc4247b8c6 (validation): ValueError
+Free trial plan not found: no trial activated for user 3aad67f1-baef-493e-b7b2-6a8708899b74.
+Cannot activate automatic trial for user 3aad67f1-baef-493e-b7b2-6a8708899b74 (validation): ValueError
+Free trial plan not found: no trial activated for user 72db5d52-7b2c-4f54-b60e-3641c70bee0d.
+Cannot activate automatic trial for user 72db5d52-7b2c-4f54-b60e-3641c70bee0d (validation): ValueError
+FFree trial plan not found: no trial activated for user 95ee41dc-bf4e-42f4-9dfc-bfa14a0d95b0.
+Cannot activate automatic trial for user 95ee41dc-bf4e-42f4-9dfc-bfa14a0d95b0 (validation): ValueError
+Free trial plan not found: no trial activated for user b2e4043c-2604-4f63-9184-a9489adc9246.
+Cannot activate automatic trial for user b2e4043c-2604-4f63-9184-a9489adc9246 (validation): ValueError
+Free trial plan not found: no trial activated for user 8d907f8f-b58d-4e8f-846d-231c6eefa83f.
+Cannot activate automatic trial for user 8d907f8f-b58d-4e8f-846d-231c6eefa83f (validation): ValueError
+Free trial plan not found: no trial activated for user 59c41200-41ec-4dfe-b7c0-6a038cd869eb.
+Cannot activate automatic trial for user 59c41200-41ec-4dfe-b7c0-6a038cd869eb (validation): ValueError
+Free trial plan not found: no trial activated for user fd245c00-c0d0-4c9a-bce7-3ce61db1adef.
+Cannot activate automatic trial for user fd245c00-c0d0-4c9a-bce7-3ce61db1adef (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 84c0482c-f20d-400d-b808-713536e50d19.
+Cannot activate automatic trial for user 84c0482c-f20d-400d-b808-713536e50d19 (validation): ValueError
+Free trial plan not found: no trial activated for user a658162c-985d-4f2a-ac15-1d21619951b5.
+Cannot activate automatic trial for user a658162c-985d-4f2a-ac15-1d21619951b5 (validation): ValueError
+Free trial plan not found: no trial activated for user dcc68d9d-3b98-4af6-8c98-7a185e0e9dc2.
+Cannot activate automatic trial for user dcc68d9d-3b98-4af6-8c98-7a185e0e9dc2 (validation): ValueError
+Free trial plan not found: no trial activated for user 74b34b13-3b3b-470f-b5c1-66ab9c780831.
+Cannot activate automatic trial for user 74b34b13-3b3b-470f-b5c1-66ab9c780831 (validation): ValueError
+Free trial plan not found: no trial activated for user c767f50c-afb1-4bfa-bc94-c5e9b605fddd.
+Cannot activate automatic trial for user c767f50c-afb1-4bfa-bc94-c5e9b605fddd (validation): ValueError
+.Free trial plan not found: no trial activated for user 14336dda-168c-4a55-8bd7-dcfc4479376e.
+Cannot activate automatic trial for user 14336dda-168c-4a55-8bd7-dcfc4479376e (validation): ValueError
+Free trial plan not found: no trial activated for user ee954acf-3a48-4d04-a647-99935f368018.
+Cannot activate automatic trial for user ee954acf-3a48-4d04-a647-99935f368018 (validation): ValueError
+Free trial plan not found: no trial activated for user fa8ad4de-16c4-451d-9a6b-b30026563355.
+Cannot activate automatic trial for user fa8ad4de-16c4-451d-9a6b-b30026563355 (validation): ValueError
+Free trial plan not found: no trial activated for user c451cab5-0d18-460c-8f7a-ff16b6cc576b.
+Cannot activate automatic trial for user c451cab5-0d18-460c-8f7a-ff16b6cc576b (validation): ValueError
+Free trial plan not found: no trial activated for user d80ae3d3-c009-48c5-afd9-56838b2cc87b.
+Cannot activate automatic trial for user d80ae3d3-c009-48c5-afd9-56838b2cc87b (validation): ValueError
+.Free trial plan not found: no trial activated for user 0115aa89-b4c0-40ae-ad23-46634235fd66.
+Cannot activate automatic trial for user 0115aa89-b4c0-40ae-ad23-46634235fd66 (validation): ValueError
+Free trial plan not found: no trial activated for user 1f21e699-5e31-4347-baa6-a49ab2d6b242.
+Cannot activate automatic trial for user 1f21e699-5e31-4347-baa6-a49ab2d6b242 (validation): ValueError
+Free trial plan not found: no trial activated for user 8b3be758-9e59-4ad8-a41a-f1e19f4169ba.
+Cannot activate automatic trial for user 8b3be758-9e59-4ad8-a41a-f1e19f4169ba (validation): ValueError
+Free trial plan not found: no trial activated for user 72b56c83-8ae8-49be-95c8-1d39dd56dce3.
+Cannot activate automatic trial for user 72b56c83-8ae8-49be-95c8-1d39dd56dce3 (validation): ValueError
+Free trial plan not found: no trial activated for user e8319d4d-9969-4ef4-aa8c-4216e419aeca.
+Cannot activate automatic trial for user e8319d4d-9969-4ef4-aa8c-4216e419aeca (validation): ValueError
+EFree trial plan not found: no trial activated for user f338847e-e0a8-4955-afc7-054376c5df1c.
+Cannot activate automatic trial for user f338847e-e0a8-4955-afc7-054376c5df1c (validation): ValueError
+Free trial plan not found: no trial activated for user 1966dd3e-af0f-4c8a-b0d4-862f10c19f55.
+Cannot activate automatic trial for user 1966dd3e-af0f-4c8a-b0d4-862f10c19f55 (validation): ValueError
+Free trial plan not found: no trial activated for user 9a57915a-038e-42c5-97ba-4227bae5d764.
+Cannot activate automatic trial for user 9a57915a-038e-42c5-97ba-4227bae5d764 (validation): ValueError
+Free trial plan not found: no trial activated for user e1efaff7-c5f2-458d-9dab-d204621674a0.
+Cannot activate automatic trial for user e1efaff7-c5f2-458d-9dab-d204621674a0 (validation): ValueError
+Free trial plan not found: no trial activated for user 62811e91-6054-4343-96d2-0add01e2dc09.
+Cannot activate automatic trial for user 62811e91-6054-4343-96d2-0add01e2dc09 (validation): ValueError
+FFree trial plan not found: no trial activated for user 51ea14a2-95db-4b95-a774-c74b2e7e9873.
+Cannot activate automatic trial for user 51ea14a2-95db-4b95-a774-c74b2e7e9873 (validation): ValueError
+Free trial plan not found: no trial activated for user b563512d-a41c-4037-85ea-714576a47faa.
+Cannot activate automatic trial for user b563512d-a41c-4037-85ea-714576a47faa (validation): ValueError
+Free trial plan not found: no trial activated for user 83924728-5f6a-4393-ae01-fdabb10a9f05.
+Cannot activate automatic trial for user 83924728-5f6a-4393-ae01-fdabb10a9f05 (validation): ValueError
+Free trial plan not found: no trial activated for user 7cc8ef87-e4e3-4a82-9408-7c93a231dd2e.
+Cannot activate automatic trial for user 7cc8ef87-e4e3-4a82-9408-7c93a231dd2e (validation): ValueError
+Free trial plan not found: no trial activated for user 3dd283a4-0978-4309-b412-2ae440c29a64.
+Cannot activate automatic trial for user 3dd283a4-0978-4309-b412-2ae440c29a64 (validation): ValueError
+.Free trial plan not found: no trial activated for user 16291779-b563-4e04-bb96-455677cca89c.
+Cannot activate automatic trial for user 16291779-b563-4e04-bb96-455677cca89c (validation): ValueError
+Free trial plan not found: no trial activated for user eb56ee45-8e2c-49aa-b8e0-8502574dd783.
+Cannot activate automatic trial for user eb56ee45-8e2c-49aa-b8e0-8502574dd783 (validation): ValueError
+Free trial plan not found: no trial activated for user 17503c37-6db3-4aab-a438-d4be9f59ecda.
+Cannot activate automatic trial for user 17503c37-6db3-4aab-a438-d4be9f59ecda (validation): ValueError
+Free trial plan not found: no trial activated for user 38271f70-dd67-4848-af18-93d59a070dfd.
+Cannot activate automatic trial for user 38271f70-dd67-4848-af18-93d59a070dfd (validation): ValueError
+Free trial plan not found: no trial activated for user 563798be-2a8e-4d9f-99aa-1e6dc5e9b00b.
+Cannot activate automatic trial for user 563798be-2a8e-4d9f-99aa-1e6dc5e9b00b (validation): ValueError
+FFFFFFFFFFFree trial plan not found: no trial activated for user 69ec112a-2cac-4a85-ba6b-f710fa56b4b0.
+Cannot activate automatic trial for user 69ec112a-2cac-4a85-ba6b-f710fa56b4b0 (validation): ValueError
+Free trial plan not found: no trial activated for user f2809b22-8c61-4ecf-9e87-af10550d0d0b.
+Cannot activate automatic trial for user f2809b22-8c61-4ecf-9e87-af10550d0d0b (validation): ValueError
+Free trial plan not found: no trial activated for user 5e4d9ba7-c249-4dcc-a93e-e5b6286bd32c.
+Cannot activate automatic trial for user 5e4d9ba7-c249-4dcc-a93e-e5b6286bd32c (validation): ValueError
+Free trial plan not found: no trial activated for user c6394f4f-7784-472a-b9d4-1b589ed93761.
+Cannot activate automatic trial for user c6394f4f-7784-472a-b9d4-1b589ed93761 (validation): ValueError
+Free trial plan not found: no trial activated for user 174cdecd-05e2-45c8-9181-3d5bfb6cb99d.
+Cannot activate automatic trial for user 174cdecd-05e2-45c8-9181-3d5bfb6cb99d (validation): ValueError
+FFFFFFFFFF
+======================================================================
+ERROR: test_every_session_shows_the_flag_and_the_switch_is_seen (classrooms.tests_h278_session_active.TheLicensedTeacherReadsIt.test_every_session_shows_the_flag_and_the_switch_is_seen)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 331, in test_every_session_shows_the_flag_and_the_switch_is_seen
+    before = self.ids(client.get(reverse("session-list")))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 313, in ids
+    return {str(row["id"]): row["is_active"] for row in rows}
+                            ~~~^^^^^^^^^^^^^
+KeyError: 'is_active'
+
+======================================================================
+ERROR: test_retrieve_shows_the_flag (classrooms.tests_h278_session_active.TheLicensedTeacherReadsIt.test_retrieve_shows_the_flag)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 357, in test_retrieve_shows_the_flag
+    self.assertIs(response.data["is_active"], True)
+                  ~~~~~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'is_active'
+
+======================================================================
+ERROR: test_a_patch_switches_the_active_session (classrooms.tests_h278_session_active.TheSchoolAdminMarksTheActiveSession.test_a_patch_switches_the_active_session)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 233, in test_a_patch_switches_the_active_session
+    self.assertIs(response.data["is_active"], True)
+                  ~~~~~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'is_active'
+
+======================================================================
+ERROR: test_create_as_active (classrooms.tests_h278_session_active.TheSchoolAdminMarksTheActiveSession.test_create_as_active)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 210, in test_create_as_active
+    self.assertIs(response.data["is_active"], True)
+                  ~~~~~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'is_active'
+
+======================================================================
+FAIL: test_a_clear (classrooms.tests_h278_session_active.EveryChangeIsOneAuditEvent.test_a_clear)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 460, in test_a_clear
+    self.assertChange(self.only_event(before), self.fall, False, self.fall)
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 379, in assertChange
+    self.assertEqual(event.action, CHANGE)
+AssertionError: 'STATE_CHANGE' != 'SESSION_ACTIVE_CHANGE'
+- STATE_CHANGE
++ SESSION_ACTIVE_CHANGE
+
+
+======================================================================
+FAIL: test_a_create_that_switches_records_the_previous_session (classrooms.tests_h278_session_active.EveryChangeIsOneAuditEvent.test_a_create_that_switches_records_the_previous_session)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 421, in test_a_create_that_switches_records_the_previous_session
+    self.assertChange(
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 379, in assertChange
+    self.assertEqual(event.action, CHANGE)
+AssertionError: 'STATE_CHANGE' != 'SESSION_ACTIVE_CHANGE'
+- STATE_CHANGE
++ SESSION_ACTIVE_CHANGE
+
+
+======================================================================
+FAIL: test_a_former_licence_teachers_own_switch_is_not_filed_under_a_school (classrooms.tests_h278_session_active.EveryChangeIsOneAuditEvent.test_a_former_licence_teachers_own_switch_is_not_filed_under_a_school)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 446, in test_a_former_licence_teachers_own_switch_is_not_filed_under_a_school
+    self.assertChange(event, theirs, True, None)
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 379, in assertChange
+    self.assertEqual(event.action, CHANGE)
+AssertionError: 'STATE_CHANGE' != 'SESSION_ACTIVE_CHANGE'
+- STATE_CHANGE
++ SESSION_ACTIVE_CHANGE
+
+
+======================================================================
+FAIL: test_a_super_admins_switch_is_filed_under_the_school (classrooms.tests_h278_session_active.EveryChangeIsOneAuditEvent.test_a_super_admins_switch_is_filed_under_the_school)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 431, in test_a_super_admins_switch_is_filed_under_the_school
+    self.assertChange(event, self.fall, True, None)
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 379, in assertChange
+    self.assertEqual(event.action, CHANGE)
+AssertionError: 'STATE_CHANGE' != 'SESSION_ACTIVE_CHANGE'
+- STATE_CHANGE
++ SESSION_ACTIVE_CHANGE
+
+
+======================================================================
+FAIL: test_a_switch_records_the_previous_session (classrooms.tests_h278_session_active.EveryChangeIsOneAuditEvent.test_a_switch_records_the_previous_session)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 410, in test_a_switch_records_the_previous_session
+    self.assertChange(event, self.spring, True, self.fall)
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 379, in assertChange
+    self.assertEqual(event.action, CHANGE)
+AssertionError: 'STATE_CHANGE' != 'SESSION_ACTIVE_CHANGE'
+- STATE_CHANGE
++ SESSION_ACTIVE_CHANGE
+
+
+======================================================================
+FAIL: test_an_individual_switch (classrooms.tests_h278_session_active.EveryChangeIsOneAuditEvent.test_an_individual_switch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 467, in test_an_individual_switch
+    self.assertChange(event, self.mine2, True, self.mine)
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 379, in assertChange
+    self.assertEqual(event.action, CHANGE)
+AssertionError: 'STATE_CHANGE' != 'SESSION_ACTIVE_CHANGE'
+- STATE_CHANGE
++ SESSION_ACTIVE_CHANGE
+
+
+======================================================================
+FAIL: test_create_active (classrooms.tests_h278_session_active.EveryChangeIsOneAuditEvent.test_create_active)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 401, in test_create_active
+    self.assertChange(event, Session.objects.get(name="Summer"), True, None)
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 379, in assertChange
+    self.assertEqual(event.action, CHANGE)
+AssertionError: 'STATE_CHANGE' != 'SESSION_ACTIVE_CHANGE'
+- STATE_CHANGE
++ SESSION_ACTIVE_CHANGE
+
+
+======================================================================
+FAIL: test_no_ops_leave_only_the_generic_row (classrooms.tests_h278_session_active.EveryChangeIsOneAuditEvent.test_no_ops_leave_only_the_generic_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 490, in test_no_ops_leave_only_the_generic_row
+    self.assertEqual(self.active(school=self.school_a), {self.fall.pk})
+AssertionError: Items in the second set but not the first:
+UUID('43ead98c-b54d-4509-afbf-1790d904add0')
+
+======================================================================
+FAIL: test_create_as_active_clears_their_previous_one (classrooms.tests_h278_session_active.TheIndividualTeacherMarksTheirOwn.test_create_as_active_clears_their_previous_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 294, in test_create_as_active_clears_their_previous_one
+    self.assertEqual(
+AssertionError: Items in the second set but not the first:
+UUID('bccf27d6-b4b4-4997-8cba-ef3cd18a965a')
+
+======================================================================
+FAIL: test_switch_between_their_own_sessions (classrooms.tests_h278_session_active.TheIndividualTeacherMarksTheirOwn.test_switch_between_their_own_sessions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 284, in test_switch_between_their_own_sessions
+    self.assertEqual(self.active(teacher=self.solo), {self.mine2.pk})
+AssertionError: Items in the second set but not the first:
+UUID('8f75de89-1c02-47ef-a0fd-3e2adbaa8fc9')
+
+======================================================================
+FAIL: test_their_switch_does_not_touch_a_school (classrooms.tests_h278_session_active.TheIndividualTeacherMarksTheirOwn.test_their_switch_does_not_touch_a_school)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 301, in test_their_switch_does_not_touch_a_school
+    self.assertEqual(self.active(school=self.school_a), {self.fall.pk})
+AssertionError: Items in the second set but not the first:
+UUID('560da2bf-cef4-4419-bd69-bc915d36ba8f')
+
+======================================================================
+FAIL: test_the_list_filters_on_is_active (classrooms.tests_h278_session_active.TheLicensedTeacherReadsIt.test_the_list_filters_on_is_active)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 342, in test_the_list_filters_on_is_active
+    self.assertEqual(
+AssertionError: {} != {'dc39961e-88f0-4cf3-84d4-e7839393e387': True}
+- {}
++ {'dc39961e-88f0-4cf3-84d4-e7839393e387': True}
+
+======================================================================
+FAIL: test_a_name_edit_leaves_the_flag_alone (classrooms.tests_h278_session_active.TheSchoolAdminMarksTheActiveSession.test_a_name_edit_leaves_the_flag_alone)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 269, in test_a_name_edit_leaves_the_flag_alone
+    self.assertEqual(self.active(school=self.school_a), {self.fall.pk})
+AssertionError: Items in the second set but not the first:
+UUID('2a264863-ccd4-49ed-b04d-86b26e8ff42f')
+
+======================================================================
+FAIL: test_a_super_admin_may_mark_a_school_session (classrooms.tests_h278_session_active.TheSchoolAdminMarksTheActiveSession.test_a_super_admin_may_mark_a_school_session)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 263, in test_a_super_admin_may_mark_a_school_session
+    self.assertEqual(self.active(school=self.school_a), {self.fall.pk})
+AssertionError: Items in the second set but not the first:
+UUID('0a581b41-9f0b-4df6-9481-5d86b4e016f6')
+
+======================================================================
+FAIL: test_creating_an_active_session_clears_the_previous_one (classrooms.tests_h278_session_active.TheSchoolAdminMarksTheActiveSession.test_creating_an_active_session_clears_the_previous_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 223, in test_creating_an_active_session_clears_the_previous_one
+    self.assertEqual(
+AssertionError: Items in the second set but not the first:
+UUID('50c9e5ea-55fa-4359-b188-6b26e4bf626f')
+
+======================================================================
+FAIL: test_individual_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_individual_switches) (round=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 567, in test_individual_switches
+    self.assertEqual(len(self.active(teacher=self.solo)), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_individual_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_individual_switches) (round=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 567, in test_individual_switches
+    self.assertEqual(len(self.active(teacher=self.solo)), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_individual_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_individual_switches) (round=2)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 567, in test_individual_switches
+    self.assertEqual(len(self.active(teacher=self.solo)), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_individual_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_individual_switches) (round=3)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 567, in test_individual_switches
+    self.assertEqual(len(self.active(teacher=self.solo)), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_individual_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_individual_switches) (round=4)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 567, in test_individual_switches
+    self.assertEqual(len(self.active(teacher=self.solo)), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_individual_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_individual_switches) (round=5)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 567, in test_individual_switches
+    self.assertEqual(len(self.active(teacher=self.solo)), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_individual_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_individual_switches) (round=6)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 567, in test_individual_switches
+    self.assertEqual(len(self.active(teacher=self.solo)), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_individual_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_individual_switches) (round=7)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 567, in test_individual_switches
+    self.assertEqual(len(self.active(teacher=self.solo)), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_individual_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_individual_switches) (round=8)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 567, in test_individual_switches
+    self.assertEqual(len(self.active(teacher=self.solo)), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_individual_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_individual_switches) (round=9)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 567, in test_individual_switches
+    self.assertEqual(len(self.active(teacher=self.solo)), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_school_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_school_switches) (round=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 533, in test_school_switches
+    self.assertEqual(len(active), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_school_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_school_switches) (round=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 533, in test_school_switches
+    self.assertEqual(len(active), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_school_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_school_switches) (round=2)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 533, in test_school_switches
+    self.assertEqual(len(active), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_school_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_school_switches) (round=3)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 533, in test_school_switches
+    self.assertEqual(len(active), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_school_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_school_switches) (round=4)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 533, in test_school_switches
+    self.assertEqual(len(active), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_school_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_school_switches) (round=5)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 533, in test_school_switches
+    self.assertEqual(len(active), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_school_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_school_switches) (round=6)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 533, in test_school_switches
+    self.assertEqual(len(active), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_school_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_school_switches) (round=7)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 533, in test_school_switches
+    self.assertEqual(len(active), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_school_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_school_switches) (round=8)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 533, in test_school_switches
+    self.assertEqual(len(active), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_school_switches (classrooms.tests_h278_session_active.ConcurrentSwitchesEndWithExactlyOneActive.test_school_switches) (round=9)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 533, in test_school_switches
+    self.assertEqual(len(active), 1)
+AssertionError: 0 != 1
+
+----------------------------------------------------------------------
+Ran 32 tests in 30.813s
+
+FAILED (failures=35, errors=4)
+Destroying test database for alias 'default'...

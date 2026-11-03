@@ -4,6 +4,7 @@ import uuid
 from dateutil.relativedelta import relativedelta
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from django.db.models import (
     CharField,
     Count,
@@ -43,7 +44,7 @@ from rest_framework.response import Response
 
 from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
-from audit.emitter import emit
+from audit.emitter import NO_SCHOOL, emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
 from AutoGrader.cache_generation import (
     SCOPE_COURSE,
@@ -1994,6 +1995,8 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     filter_backends = (DjangoFilterBackend, SearchFilter, OrderingFilter)
+    # H-278: ?is_active=true answers with the viewer's active session(s).
+    filterset_fields = ["is_active"]
     ordering_fields = [
         "name",
         "created_at",
@@ -2053,7 +2056,8 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             school = admin_schools.first()
             if not school:
                 raise ParseError("You are not assigned as an admin for any school.")
-            serializer.save(
+            self._save_session(
+                serializer,
                 owner_type=SessionOwnerType.SCHOOL,
                 school=school,
                 teacher=None,
@@ -2067,7 +2071,8 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "Sessions for your school are managed by your school "
                     "admin. Contact them to add or update academic sessions."
                 )
-            serializer.save(
+            self._save_session(
+                serializer,
                 owner_type=SessionOwnerType.INDIVIDUAL,
                 teacher=user,
                 school=None,
@@ -2085,7 +2090,8 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "on a teacher's behalf."
                 )
             school = get_object_or_404(School, pk=school_id)
-            serializer.save(
+            self._save_session(
+                serializer,
                 owner_type=SessionOwnerType.SCHOOL,
                 school=school,
                 teacher=None,
@@ -2094,6 +2100,86 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             return
 
         raise PermissionDenied("You do not have permission to create sessions.")
+
+    def perform_update(self, serializer):
+        self._save_session(serializer)
+
+    def _save_session(self, serializer, **save_kwargs):
+        """Save, keeping at most one active session per school / teacher.
+
+        H-278: marking a session active clears its scope's previous active
+        session in the same transaction. The scope's owner row (the School,
+        or the teacher's user row) is locked first, so concurrent switches
+        run one after another and the database's one-active constraint is
+        never hit. A change of the flag is one SESSION_ACTIVE_CHANGE event,
+        which stands in for the request's generic STATE_CHANGE row. The
+        INDIVIDUAL lock (the teacher's user row) also makes any other write
+        that locks that row wait for the switch.
+        """
+        wanted = serializer.validated_data.get("is_active")
+        if wanted is None:
+            serializer.save(**save_kwargs)
+            return
+        instance = serializer.instance
+        if instance is not None:
+            owner_type = instance.owner_type
+            school_id, teacher_id = instance.school_id, instance.teacher_id
+        else:
+            owner_type = save_kwargs["owner_type"]
+            school_id = getattr(save_kwargs.get("school"), "pk", None)
+            teacher_id = getattr(save_kwargs.get("teacher"), "pk", None)
+
+        with transaction.atomic():
+            previous = self._lock_scope_and_find_active(
+                owner_type, school_id, teacher_id
+            )
+            was_active = (
+                instance is not None
+                and previous is not None
+                and previous.pk == instance.pk
+            )
+            if wanted and previous is not None and not was_active:
+                previous.is_active = False
+                previous.save(update_fields=["is_active"])
+            session = serializer.save(**save_kwargs)
+
+        if bool(wanted) != was_active:
+            emit(
+                AuditAction.SESSION_ACTIVE_CHANGE,
+                actor=self.request.user,
+                request=self.request,
+                target_type="Session",
+                target_id=session.pk,
+                # SM ruling: a SCHOOL session's school; an INDIVIDUAL
+                # session belongs to none (never the actor's school).
+                school_id=(
+                    session.school_id
+                    if session.owner_type == SessionOwnerType.SCHOOL
+                    else NO_SCHOOL
+                ),
+                metadata={
+                    "changed_fields": ["is_active"],
+                    "is_active": bool(wanted),
+                    "previous_active_session_id": (
+                        str(previous.pk) if previous is not None else None
+                    ),
+                    "source": "api",
+                },
+            )
+
+    @staticmethod
+    def _lock_scope_and_find_active(owner_type, school_id, teacher_id):
+        """Lock the scope's owner row; return its active session, if any."""
+        if owner_type == SessionOwnerType.SCHOOL:
+            list(School.objects.select_for_update().filter(pk=school_id))
+            scope = {"owner_type": SessionOwnerType.SCHOOL, "school_id": school_id}
+        else:
+            list(CustomUser.objects.select_for_update().filter(pk=teacher_id))
+            scope = {
+                "owner_type": SessionOwnerType.INDIVIDUAL,
+                "teacher_id": teacher_id,
+            }
+        return Session.objects.filter(is_active=True, **scope).first()
 
 
 @extend_schema_view(

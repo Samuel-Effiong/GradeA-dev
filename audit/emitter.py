@@ -82,6 +82,11 @@ _TARGET_TYPE = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,63}")
 _CLIENT_ID = re.compile(r"[A-Za-z0-9._-]{1,64}")
 _SAFE_ACTION = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
 
+#: Pass as `school_id` to store no school at all. Plain None means "the
+#: actor's school" (the default). H-278: an INDIVIDUAL session's event
+#: belongs to no school, even when its teacher's account still names one.
+NO_SCHOOL = object()
+
 MAX_USER_AGENT = 512
 MAX_EMAIL = 254
 
@@ -401,9 +406,13 @@ def _build(
         actor_role=role,
         actor_email=actor_email,
         school_id=(
-            _uuid_or_none(school_id, "school_id")
-            if school_id is not None
-            else actor_school
+            None
+            if school_id is NO_SCHOOL
+            else (
+                _uuid_or_none(school_id, "school_id")
+                if school_id is not None
+                else actor_school
+            )
         ),
         department_id=_uuid_or_none(department_id, "department_id"),
         action=action.value,
