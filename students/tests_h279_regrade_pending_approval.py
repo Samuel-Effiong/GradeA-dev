@@ -860,6 +860,10 @@ class N4PublishAllOverAMix(HeldBase):
         self.others = {}
         for kind in ("new", "released", "ungraded"):
             student = make_user(f"h279-{kind}@x.test", "STUDENT")
+            # make_user names every user "Test Student", and a course
+            # refuses a second student of the same name.
+            student.first_name, student.last_name = kind.title(), "Pupil"
+            student.save(update_fields=["first_name", "last_name"])
             StudentCourse.objects.create(
                 student=student, course=self.course, enrollment_status="ENROLLED"
             )

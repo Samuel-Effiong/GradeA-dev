@@ -228,3 +228,16 @@ today.
 - d8e5adcbd: DESIGN.md (step 1).
 - this commit: NOTES, red tests, expectations E1 and E2 (SKIP=mypy: the red
   tests name `held_result_stamp`, which does not exist yet; red commit only).
+- E1 red run at 452a0f04 (logs/red_run_452a0f04.txt): `Ran 59 tests`,
+  `FAILED (failures=25, errors=25)`. Failures and errors are counted per
+  subtest. 46 tests failed, and the 13 that passed are exactly the 13
+  listed in E1. The causes are as expected: no attribute
+  pending_result/pending_graded_at/held_result_stamp, KeyError
+  'pending_result', and assertion failures. There was **one test defect**:
+  N4PublishAllOverAMix.setUp (both of its tests) errored with
+  `ValidationError: A student with the exact name 'Test Student' is
+  already enrolled`. make_user gives every user the same name. It is fixed
+  in the next red commit (distinct names), and E1 is re-run there. The
+  expectation is unchanged: 59 tests, the same 13 pass, and N4's two now
+  fail for the expected cause (no email for the held row / no
+  pending_result attribute), not in setUp.
