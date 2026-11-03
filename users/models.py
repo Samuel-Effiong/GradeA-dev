@@ -189,6 +189,12 @@ class CustomUser(AbstractUser):
         """Love God"""
         return self.user_type == UserTypes.TEACHER
 
+    def is_real_super_admin(self):
+        """H-19: a super admin has BOTH user_type SUPER_ADMIN and is_superuser.
+        A half-set-up account (is_superuser unticked) is not one: it is metered
+        and refused like any other non-student."""
+        return bool(self.is_superuser and self.user_type == UserTypes.SUPER_ADMIN)
+
     def is_beta_eligible(self):
         """Beta access is restricted to teacher accounts."""
         return self.user_type == UserTypes.TEACHER

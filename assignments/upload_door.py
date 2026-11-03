@@ -84,7 +84,7 @@ def upload_refusal_if_unaffordable(request_user, assignment, uploaded_files, pro
     """None when every file may be queued; otherwise the 402 Response, with
     the sentence the caller may read: the fixed one for a student, the usual
     generic credit message for a teacher. Nothing is queued by this function."""
-    if request_user.user_type == UserTypes.SUPER_ADMIN:
+    if request_user.is_real_super_admin():
         return None
     billed = _billed_user(request_user, assignment)
     wallet = getattr(billed, "credit_wallet", None)
@@ -118,7 +118,7 @@ def parked_files(request_user, assignment, uploaded_files, prompt):
     file may be queued; a file the door cannot read or estimate, a missing
     wallet and a super admin are left to the task, as above. Nothing is
     queued by this function."""
-    if request_user.user_type == UserTypes.SUPER_ADMIN:
+    if request_user.is_real_super_admin():
         return {}
     billed = _billed_user(request_user, assignment)
     wallet = getattr(billed, "credit_wallet", None)
