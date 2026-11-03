@@ -1896,7 +1896,10 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # Local import: students.services reaches back into assignments
         # (models/tasks), so importing it at module level here would create
         # an import cycle.
-        from students.services import notify_student_of_graded_submission
+        from students.services import (
+            notify_student_of_graded_submission,
+            promote_all_pending,
+        )
         from students.signals import invalidate_submission_caches_bulk
 
         assignment = self.get_object()
@@ -1924,6 +1927,14 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 },
                 status=status.HTTP_200_OK,
             )
+
+        # H-279: publishing is the teacher's approval of every held re-grade
+        # here. Each is released under its own row lock (one email per
+        # release, from promote_pending), before the snapshot below, so a
+        # row this call also releases for the first time is told once, by
+        # that release, with the released result. The count is unchanged: a
+        # held row is a graded row, counted as before.
+        promote_all_pending(graded_submissions, actor=request.user)
 
         # Snapshot who is being published for the FIRST time before the
         # bulk write, so we can notify exactly those students. .update()

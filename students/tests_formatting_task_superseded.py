@@ -39,7 +39,7 @@ from students.models import (
     BackgroundTaskType,
     StudentSubmission,
 )
-from students.services import grade_engine, grading_result_stamp
+from students.services import grade_engine, grading_result_stamp, held_result_stamp
 from students.task_tracking import create_processing_task
 from students.tests_formatter_input import grading_result as a_grading_result
 from students.tests_formatter_input import make_people_and_submission
@@ -137,19 +137,35 @@ class AnOlderTaskDoesNotWriteOverAManualGrade(SupersededBase):
 
 
 class ARegradeSupersedesTheFirstGradingsTask(SupersededBase):
+    """H-279 (owner, 2026-11-02): the paper is released, so the AI re-grade
+    is held for the teacher; it is the released result once approved (here:
+    the publish route)."""
+
     def test_the_first_gradings_task_writes_nothing_after_a_regrade(self):
         first = self.stamp_now()
         self.grade_by_ai(self.submission, 3)
 
+        # held: the first grading's result is still the released one, and
+        # its task still words it
+        self.run_task(first)
+        self.assertIn(WORDED_BY_THIS_RUN, self.stored_formatted())
+        self.assertIn("You scored 7 out of 10 points", self.stored_formatted())
+
+        self.release()
         self.run_task(first)
 
-        # the regrade cleared the text (H-146); the older task wrote nothing
+        # the approval cleared the text (H-146); the older task wrote nothing
         self.assertIsNone(self.stored_formatted())
 
     def test_the_regrades_own_task_writes(self):
         self.grade_by_ai(self.submission, 3)
 
-        self.run_task(self.stamp_now())
+        self.run_task(held_result_stamp(self.row()))
+
+        # held: its wording is kept with the held result, not released
+        self.assertNotIn("You scored 3 out of 10 points", self.stored_formatted())
+
+        self.release()
 
         self.assertIn("You scored 3 out of 10 points", self.stored_formatted())
 
@@ -229,8 +245,13 @@ class GradingPassesTheStamp(TransactionTestCase):
 
 class TheStamp(SupersededBase):
     def test_it_changes_with_a_regrade_and_with_a_manual_grade(self):
+        """H-279: the paper is released, so the re-grade is held, and the
+        stamp changes when the teacher approves it."""
         first = self.stamp_now()
         self.grade_by_ai(self.submission, 7)
+        # held: the released result, and its stamp, are as they were
+        self.assertEqual(self.stamp_now(), first)
+        self.release()
         second = self.stamp_now()
         self.override(7)
         third = self.stamp_now()

@@ -748,6 +748,18 @@ class TheHeldResultsWording(HeldBase):
 
         self.assertIn("You scored 3 out of 10 points", self.stored_formatted())
 
+    def test_approved_during_its_ai_call_the_task_words_the_approved_numbers(self):
+        """The task loaded the row while the result was held; the teacher
+        approved it during the AI call. The task writes the released row,
+        with the numbers the row holds under the lock: the approved ones."""
+        self.regrade(3)
+        stamp = services.held_result_stamp(self.row())
+
+        self.run_task(stamp, meanwhile=self.publish)
+
+        self.assertIn("You scored 3 out of 10 points", self.stored_formatted())
+        self.assertNotIn("You scored 7 out of 10 points", self.stored_formatted())
+
     def test_a_replaced_held_results_task_writes_nothing(self):
         self.regrade(3)
         first = services.held_result_stamp(self.row())

@@ -103,6 +103,7 @@ from .serializers import (
     StudentUploadAnswerSerializer,
 )
 from .services import (
+    PROMOTION_FIELDS,
     SUBMITTED_TEXT,
     emit_grading_completed,
     ensure_no_active_extraction,
@@ -112,7 +113,9 @@ from .services import (
     grading_result_stamp,
     notify_student_of_graded_submission,
     printable_answers,
+    promote_pending,
     student_submission_to_html,
+    take_held_result,
     unreadable_answers_log_line,
     update_submission_from_raw_text,
     upload_answers_engine,
@@ -309,7 +312,14 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     #: the list serializer hides from them.
     # H-133: `grading_state` too. Before release a student is shown IDLE
     # whatever the state is, and a filter on the real value would tell.
-    TEACHER_ONLY_FILTERS = ("needs_review", "review_tier", "grading_state")
+    # H-279: `has_pending_result` too: a student who could filter on it
+    # would learn that a re-grade of a released grade is waiting.
+    TEACHER_ONLY_FILTERS = (
+        "needs_review",
+        "review_tier",
+        "grading_state",
+        "has_pending_result",
+    )
     TEACHER_ONLY_ORDERINGS = ("review_severity",)
 
     def _refuse_review_queue_query_from_a_student(self):
@@ -328,6 +338,13 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def filter_queryset(self, queryset):
         self._refuse_review_queue_query_from_a_student()
         queryset = super().filter_queryset(queryset)
+        # H-279: ?has_pending_result=true lists the re-grades held for the
+        # teacher (pending_graded_at is indexed for it).
+        held = self.request.query_params.get("has_pending_result")
+        if held is not None:
+            queryset = queryset.filter(
+                pending_graded_at__isnull=held.strip().lower() not in ("true", "1")
+            )
         # Postgres sorts NULLs FIRST on a DESC ordering, so an unqualified
         # ?ordering=-review_severity returned every un-flagged submission
         # (severity NULL) ahead of the actual review queue. Force NULLs
@@ -1156,6 +1173,22 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def update_grade(self, request, pk=None):
         submission = self.get_object()
+        # H-279: a hand edit of a row holding a re-grade is the teacher's
+        # approval of it: the held result is released and the edit applied
+        # on top, in ONE save under the row lock (so a re-grade saved
+        # meanwhile is not lost, and one GRADE_CHANGE goes from the released
+        # grade to the edited one). The student is told once, below.
+        with transaction.atomic():
+            locked = StudentSubmission.objects.select_for_update().get(pk=submission.pk)
+            refusal = self._save_hand_grade(request, locked)
+        if refusal is not None:
+            return refusal
+        return self._after_hand_grade(request, locked)
+
+    def _save_hand_grade(self, request, submission):
+        """Validate and save a hand grade on the locked row. Returns a
+        refusal, or None once saved."""
+        held = take_held_result(submission)
         serializer = StudentSubmissionGradeUpdateSerializer(
             submission, data=request.data, partial=True
         )
@@ -1276,21 +1309,28 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # rather than a wrong one (H-144).
         submission.formatted_grade = None
 
-        submission.save(
-            update_fields=[
-                "score",
-                "score_percentage",
-                "max_points",
-                "feedback",
-                "was_regraded",
-                "regraded_at",
-                "needs_review",
-                "review_reasons",
-                "raw_input",
-                "formatted_grade",
-            ]
-        )
+        fields = [
+            "score",
+            "score_percentage",
+            "max_points",
+            "feedback",
+            "was_regraded",
+            "regraded_at",
+            "needs_review",
+            "review_reasons",
+            "raw_input",
+            "formatted_grade",
+        ]
+        if held:
+            # The released result's other columns (its grading time, label,
+            # review tier...) and the emptied hold.
+            fields += [name for name in PROMOTION_FIELDS if name not in fields]
+        submission.save(update_fields=fields)
+        return None
 
+    def _after_hand_grade(self, request, submission):
+        """What follows a saved hand grade: the student's notice, the
+        formatted grade's task, the answer."""
         if submission.is_published:
             notify_student_of_graded_submission(submission, is_update=True)
 
@@ -1585,6 +1625,16 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             # Catalogue F (Epic A S7d): coded SUBMISSION_NOT_GRADED, still a
             # 400.
             return coded_response(CodedError(ReasonCode.SUBMISSION_NOT_GRADED))
+
+        # H-279: publishing is the teacher's approval of a held re-grade.
+        # The newest held result is released (owner, 2026-11-03), under the
+        # row lock, so of two clicks one promotes; the student gets the
+        # update email from the promotion. A row released by this same
+        # request (it cannot hold a result, but if it did) is told once, by
+        # the release below.
+        promoted = promote_pending(submission.pk, actor=request.user)
+        if promoted is not None:
+            submission = promoted
 
         # Conditional UPDATE as an atomic claim: two concurrent publish
         # requests both saw is_published=False above, but only one matches

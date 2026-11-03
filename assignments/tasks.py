@@ -62,6 +62,8 @@ from students.services import (
     emit_grading_completed,
     grade_engine,
     grading_result_stamp,
+    held_result_stamp,
+    held_view,
     update_submission_from_raw_text,
     upload_answers_engine,
 )
@@ -1201,9 +1203,6 @@ def formatted_grade_async(
             assignment_model=submission.assignment,
             processing_task_id=processing_task_id,
         )
-        submission.formatted_grade = _reconcile_formatted_grade_numbers(
-            formatted_grade, submission
-        )
         with cancellable_final_save(processing_task_id):
             # The prompt was built from the grading result as it was when
             # this task was queued, and the AI call takes seconds. If the
@@ -1213,15 +1212,46 @@ def formatted_grade_async(
             # this moment back until this has written, or lets it finish
             # first. A message with no stamp was queued before H-145 and
             # writes as it always did.
-            superseded = result_stamp is not None and (
-                grading_result_stamp(
-                    StudentSubmission.objects.select_for_update()
-                    .only("graded_at", "regraded_at")
-                    .get(id=submission_id)
-                )
-                != result_stamp
+            #
+            # H-279: a task queued for a held re-grade carries the held
+            # result's stamp. While the result is held its wording goes into
+            # the held result, never over the released text; once approved
+            # the released stamp is that stamp, and it writes the row.
+            row = (
+                StudentSubmission.objects.select_for_update()
+                .only("graded_at", "regraded_at", "pending_result", "pending_graded_at")
+                .get(id=submission_id)
             )
-            if not superseded:
+            for_held = (
+                result_stamp is not None
+                and grading_result_stamp(row) != result_stamp
+                and row.pending_result is not None
+                and held_result_stamp(row) == result_stamp
+            )
+            superseded = (
+                result_stamp is not None
+                and not for_held
+                and grading_result_stamp(row) != result_stamp
+            )
+            if for_held:
+                submission.pending_result = row.pending_result
+                worded = _reconcile_formatted_grade_numbers(
+                    formatted_grade, held_view(submission)
+                )
+                row.pending_result = {
+                    **row.pending_result,
+                    "formatted_grade": str(worded),
+                }
+                row.save(update_fields=["pending_result"])
+            elif not superseded:
+                # The numbers as the row holds them now, under the lock: a
+                # held result approved during the AI call is this result.
+                submission.refresh_from_db(
+                    fields=["score", "score_percentage", "max_points", "feedback"]
+                )
+                submission.formatted_grade = _reconcile_formatted_grade_numbers(
+                    formatted_grade, submission
+                )
                 submission.save(update_fields=["formatted_grade"])
 
         if superseded:

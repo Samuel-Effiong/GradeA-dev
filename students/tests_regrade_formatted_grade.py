@@ -23,20 +23,34 @@ from django.test.utils import CaptureQueriesContext
 
 from assignments.tasks import formatted_grade_async
 from students.models import StudentSubmission
+from students.services import held_result_stamp
 from students.tests_answer_document_before_release import AnswerDocumentBase
 from students.tests_formatting_task_superseded import FORMATTER, SupersededBase
 from students.tests_manual_grade_formatted_grade import OLD_STATEMENT
 
 
 class ARegradeClearsTheOldWording(SupersededBase):
-    """A released paper graded 7, with the wording of that result stored."""
+    """A released paper graded 7, with the wording of that result stored.
+
+    H-279 (owner, 2026-11-02): an AI re-grade of a released paper is held for
+    the teacher. Until the teacher approves it (here: the publish route) the
+    released score and its wording stand; the approval releases the new
+    score, and with it no old wording (H-146's rule, at the approval)."""
+
+    def held_stamp(self):
+        return held_result_stamp(self.row())
 
     def test_before_the_regrade_the_student_reads_the_old_statement(self):
         """The control: the fixture's text does reach the student."""
         self.assertIn(OLD_STATEMENT, str(self.student_reads()["formatted_grade"]))
 
-    def test_the_regrade_clears_the_stored_formatted_grade(self):
+    def test_the_regrade_clears_the_stored_formatted_grade_once_approved(self):
         self.grade_by_ai(self.submission, 3)
+
+        # held: the released wording stands
+        self.assertIn(OLD_STATEMENT, self.stored_formatted())
+
+        self.release()
 
         self.assertIsNone(self.stored_formatted())
 
@@ -45,6 +59,13 @@ class ARegradeClearsTheOldWording(SupersededBase):
 
         self.grade_by_ai(self.submission, 3)
 
+        # held: the student reads the released score and its wording
+        held = self.student_reads()
+        self.assertEqual(Decimal(str(held["score"])), Decimal("7"))
+        self.assertIn(OLD_STATEMENT, str(held["formatted_grade"]))
+
+        self.release()
+
         after = self.student_reads()
         self.assertEqual(Decimal(str(after["score"])), Decimal("3"))
         self.assertIsNone(after["formatted_grade"])
@@ -52,7 +73,12 @@ class ARegradeClearsTheOldWording(SupersededBase):
     def test_the_regrades_own_task_fills_it(self):
         self.grade_by_ai(self.submission, 3)
 
-        self.run_task(self.stamp_now())
+        self.run_task(self.held_stamp())
+
+        # held: the task worded the held result; the student reads the old
+        self.assertIn(OLD_STATEMENT, str(self.student_reads()["formatted_grade"]))
+
+        self.release()
 
         text = str(self.student_reads()["formatted_grade"])
         self.assertIn("You scored 3 out of 10 points", text)
@@ -66,8 +92,13 @@ class ARegradeClearsTheOldWording(SupersededBase):
             self.assertRaises(RuntimeError),
         ):
             formatted_grade_async(
-                str(self.submission.pk), "a prompt", result_stamp=self.stamp_now()
+                str(self.submission.pk), "a prompt", result_stamp=self.held_stamp()
             )
+
+        # held: the released wording stands
+        self.assertIn(OLD_STATEMENT, self.stored_formatted())
+
+        self.release()
 
         self.assertIsNone(self.stored_formatted())
         self.assertIsNone(self.student_reads()["formatted_grade"])
@@ -76,17 +107,37 @@ class ARegradeClearsTheOldWording(SupersededBase):
         first = self.stamp_now()
         self.grade_by_ai(self.submission, 3)
 
+        # held: the first grading's result is still the released one, so
+        # its task still words it
+        self.run_task(first)
+        self.assertIn("You scored 7 out of 10 points", self.stored_formatted())
+
+        self.release()
         self.run_task(first)
 
         self.assertIsNone(self.stored_formatted())
 
     def test_it_is_cleared_by_the_same_update_as_the_score(self):
         """Not a second write after the grade's: one UPDATE, so no moment
-        has the new score and the old wording."""
-        with CaptureQueriesContext(connection) as queries:
-            self.grade_by_ai(self.submission, 3)
-
+        has the new score and the old wording. H-279: that UPDATE is the
+        approval's; the held save writes neither."""
         this_table = 'UPDATE "' + StudentSubmission._meta.db_table + '"'
+
+        with CaptureQueriesContext(connection) as held:
+            self.grade_by_ai(self.submission, 3)
+        self.assertEqual(
+            [
+                query["sql"]
+                for query in held
+                if query["sql"].startswith(this_table)
+                and ('"formatted_grade"' in query["sql"] or '"score"' in query["sql"])
+            ],
+            [],
+        )
+
+        with CaptureQueriesContext(connection) as queries:
+            self.release()
+
         clearing = [
             query["sql"]
             for query in queries
