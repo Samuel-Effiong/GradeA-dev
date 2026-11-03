@@ -46,8 +46,6 @@ pydocstyle==6.3.0
 pyflakes==3.4.0
 pytest==9.1.1
 restructuredtext_lint==1.4.0
-safety==3.6.1
-safety-schemas==0.0.14
 snowballstemmer==3.0.1
 stevedore==5.5.0
 # django's --parallel test runner needs this to pickle a worker's traceback
@@ -65,4 +63,4 @@ types-python-dateutil==2.9.0.20250822
 types-pytz==2025.2.0.20250809
 types-PyYAML==6.0.12.20250915
 types-requests==2.32.4.20250913
-virtualenv==20.34.0
+virtualenv==21.14.5
