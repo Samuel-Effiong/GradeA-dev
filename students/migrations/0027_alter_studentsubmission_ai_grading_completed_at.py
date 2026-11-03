@@ -1,3 +1,4 @@
+# expand-contract-step: contract
 """
 ai_grading_completed_at: DateField -> DateTimeField.
 
@@ -24,8 +25,12 @@ passes it, so it ships as one migration rather than expand/contract):
 * Previous-release READS: DateField has no from_db_value, so the model
   attribute simply becomes the datetime psycopg returns. The only reader
   is the dashboard subtraction, which works on either type.
-* The column stays nullable; no default is introduced;
-  scripts/check_migration_safety.py classifies this as additive.
+* The column stays nullable; no default is introduced. When this was
+  written, scripts/check_migration_safety.py classified it as additive.
+  H-120 (2026-10-06) made the check judge an AlterField by the column's
+  previous state, so it now counts as a type change. It had already
+  shipped (on main since 2026-10-08), so it carries the contract
+  acknowledgement above: this is the final, already-landed state (H-286).
 
 Reverse: Django alters the column back to DATE, truncating the time part.
 That is lossy but correct - it is exactly the state the column was in.
