@@ -473,3 +473,15 @@ After the code commit:
 - **E5:** `Ran 851` (847 + 4), OK.
 - **E6:** 18 mutants. **M-h279.18** removes the hand-edit dispatch; its
   killer is test_a_hand_edit_of_a_held_row_refreshes_the_summary_once.
+
+## Runs at 7bcec03d (the hand-edit summary dispatch)
+
+- **E7** red run at 6efe3014 (logs/red_run_6efe3014.txt): `Ran 4`,
+  `FAILED (failures=1)`, and the one failure is
+  test_a_hand_edit_of_a_held_row_refreshes_the_summary_once. **Met.**
+- **E3** at 7bcec03d (logs/green_run_7bcec03d.txt): `Ran 64 tests`, `OK`.
+  **Met.**
+- **E5** at 7bcec03d (logs/near_run_7bcec03d.txt.gz; raw sha256 d8f35d85052c274898ca0204937d75b43c266377f7f020fd4547f75820f423e6, gz
+  sha256 d4d92451a45a2165057244c2dadf78396111c23ea44b6d1167b33b8fa906b918): `Ran 851 tests`, `OK`. **Met.**
+- **E6:** 18 mutants on 7bcec03d, in a disposable detached worktree (test DB
+  test_AutoGrader_h279_mut). The results follow.
