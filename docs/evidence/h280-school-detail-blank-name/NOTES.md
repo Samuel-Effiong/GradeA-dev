@@ -127,3 +127,11 @@ gives byte-identical YAML, because the serializers are unchanged.
 | M3 | back to `SchoolDetailSerializer(data=data)` plus `is_valid(raise_exception=True)` | T6 (the fallbacks keep T1–T4 green) |
 
 **E6, near run.** Held until the SM says Batch 33 is finished.
+
+## E2/E3 result (f07ec58aa)
+
+**Met.** One serial run of the 4 E3 modules gave `Ran 56`, `OK`. That
+includes all 6 H-280 tests, so E2 is met as well. Log:
+`logs/targeted_run_f07ec58a.txt.gz`.
+
+E4–E6 are still to do. H-280 is queued behind the H-278 follow-up, per the SM.
