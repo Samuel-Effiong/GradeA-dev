@@ -38,11 +38,12 @@ from django.core.cache import cache
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.test import APITestCase
+from rest_framework.test import APIRequestFactory, APITestCase
 
 from ai_processor.extraction_flags import answers_with_flags
 from assignments.models import Assignment, AssignmentStatus
 from students.models import GradingState, StudentSubmission
+from students.serializers import StudentUploadAnswerSerializer
 from students.services import (
     GRADING_CLAIM_STALE_AFTER,
     _mark_grading_claim_failed,
@@ -94,6 +95,10 @@ KEYS = [
     # own facts, not a staff constant: a student is shown them.
     "upload_mismatch",
     "flagged_for_review",
+    # H-279 (SM ruling, 2026-11-03): a re-grade held for the teacher. On the
+    # teacher's page, the held result; on an upload answer, always null.
+    "pending_result",
+    "pending_graded_at",
 ]
 
 #: What a student is sent in place of every staff field, whatever the row
@@ -115,6 +120,9 @@ CONSTANTS = {
     "scheduled_grading_at": None,
     "grading_task_name": None,
     "is_grading_scheduled": False,
+    # H-279: whoever uploads, whatever the row holds.
+    "pending_result": None,
+    "pending_graded_at": None,
 }
 
 #: What may differ between two of the student's upload answers: the paper,
@@ -388,6 +396,43 @@ class OnlyTheAnswerProtectsTest(UploadAnswerBase):
         answer = self.answer_for(self.grade())
         self.assertEqual(list(answer), KEYS)
         self.assert_constants(answer)
+
+    def held(self):
+        """The graded paper, released, then re-graded by the AI: the new
+        result is held for the teacher (H-279)."""
+        self.grade()
+        StudentSubmission.objects.filter(pk=self.submission.pk).update(
+            is_published=True
+        )
+        _populate_and_save_grade(self.row(self.submission), VALID_GRADE, None)
+        row = self.row(self.submission)
+        self.assertIsNotNone(row.pending_result)
+        self.assertIsNotNone(row.pending_graded_at)
+        return row
+
+    def test_a_student_upload_over_a_held_result_says_nothing_of_it(self):
+        """H-279 (SM ruling): the held result's keys are null on the upload
+        answer."""
+        answer = self.answer_for(self.held())
+
+        self.assertEqual(list(answer), KEYS)
+        self.assertIsNone(answer["pending_result"])
+        self.assertIsNone(answer["pending_graded_at"])
+
+    def test_built_for_a_teacher_over_a_held_result_it_says_nothing_of_it(self):
+        """H-279 (SM ruling): the same for a teacher's request. The upload
+        route is a student's only (a teacher is refused it), so this builds
+        the route's serializer with a teacher's request: it reads no column
+        of the held result, whoever asks."""
+        row = self.held()
+        request = APIRequestFactory().get("/")
+        request.user = self.teacher
+
+        data = StudentUploadAnswerSerializer(row, context={"request": request}).data
+
+        self.assertEqual(list(data), KEYS)
+        self.assertIsNone(data["pending_result"])
+        self.assertIsNone(data["pending_graded_at"])
 
     def test_a_graded_paper_shows_the_assignments_total_not_the_graders(self):
         self.assertEqual(self.answer_for(self.grade())["max_points"], 20)
