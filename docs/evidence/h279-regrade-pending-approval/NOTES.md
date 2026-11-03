@@ -574,3 +574,16 @@ return and every rolled-back save registers nothing. After it:
   killers: the held-row, plain-row and unpublished-row tests. That one
   mutant covers the plain-row case, so no second mutant is added (E6 = 18).
   M-h279.1–17 are unchanged; all are predicted killed.
+
+### E7b at cd9d3f6d: NOT met as written (logs/red_run_cd9d3f6d.txt)
+
+The red run gave `Ran 8 tests`, `FAILED (failures=2)`. The two failures are
+exactly the predicted ones: test_a_hand_edit_of_a_plain_row_refreshes_the_summary_once
+and test_a_hand_edit_of_an_unpublished_row_refreshes_the_summary_once. The
+other six pass.
+
+The miss is in the count. The expectation said `Ran 9` and "the other
+seven", but the class has 8 tests: 4 before plus 4 new, matching the
+8-item list above. It was a counting error in the expectation, not a test
+that went missing. E3 (`Ran 68`) and E5 (`Ran 855`) were computed as +4 and
+stand unchanged. Nothing was re-run to fit the count.
