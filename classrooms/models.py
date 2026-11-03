@@ -65,7 +65,7 @@ class Session(models.Model):
 
     # H-278: THE active session of its school (SCHOOL) or of its teacher
     # (INDIVIDUAL). At most one per scope, enforced below; none is fine.
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False, db_default=False)
 
     created_by = models.ForeignKey(
         "users.CustomUser",
