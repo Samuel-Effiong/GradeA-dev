@@ -40,3 +40,7 @@ the set comparison already covers a baseline session ending.
 - H1 (c059e5e4): Ran 10, FAILED (failures=2), exactly the tests predicted. R1 reproduced the B33 message verbatim ("2 database session(s) still open after all 3 workers"). R2: "AssertionError not raised", so a single real leak passed silently on the old code. MET.
 - Addition not in the expectations, disclosed: test_a_clean_run_leaves_no_extra_backends also compared counts (`other_backends() == before`), which is the same drift. It now asserts no new pids. `other_backends()` had no other users and is removed.
 - H2 (fix commit): Ran 10, OK. MET.
+- H3: 5/5 runs Ran 10, OK (h3_5x.txt). MET.
+- H4: M1 killed by R1 and R2. M2 killed by test_a_clean_run_leaves_no_extra_backends and also by R3 (R3 was not predicted; it's a superset). M3 killed by R3. All restored by sha256 bbe5ec25 (h4_mutants.txt). MET.
+- mypy passed; makemigrations "No changes detected".
+- H5 expectation, recorded before the run: the labels in h5_labels.txt (13 modules), --parallel 4, give Ran 353, OK.
