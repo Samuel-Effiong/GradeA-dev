@@ -1,0 +1,27 @@
+avail=8677 after wait 180s
+mypy: mypy.....................................................................Passed
+makemigrations: No changes detected
+memory: available 8856 MB at start; cap 6G (available - 2 GB); scope gap-strict-b33-175723; guard stops it under 1500 MB available
+bundle b33 strict full run start 2026-11-03 10:34:28 WAT sha=5c1e12a5 load=1.06 2.18 3.20
+watchdog: stalled=0 (300 s silence rule; 0 = never fired)
+memory guard: memstop=0 (1 = this run was STOPPED for memory, not a red); min available 8980 MB
+exit=1 end 2026-11-03 10:45:42 WAT wall=674s
+load at end: 9.57 8.50 5.95
+Ran 8839 tests in 630.941s
+FAILED (failures=2, skipped=30)
+blocked_outbound=0
+per-app test counts:
+  ai_processor 1467
+  assignments 812
+  audit 439
+  AutoGrader 809
+  billing 2330
+  classrooms 679
+  dashboard 430
+  students 941
+  users 932
+FAIL/ERROR headers: 2
+FAIL: test_every_not_null_field_added_since_production_has_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_every_not_null_field_added_since_production_has_a_db_default)
+FAIL: test_the_guard_flags_a_not_null_field_without_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_flags_a_not_null_field_without_a_db_default)
+suspends during run: 0
+rc=0

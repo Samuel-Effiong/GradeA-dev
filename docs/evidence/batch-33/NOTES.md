@@ -31,3 +31,11 @@ Run: GAP-a0-runs/b33/strict_bundle.sh (--parallel 4 -v 2, mypy + makemigrations
 pre-checks, watchdog, memory guard) on this commit.
 Expected: `Ran 8839 tests`, `OK (skipped=30)`, skip reasons identical to
 Batch 32. (8839 = DiscoverRunner.build_suite count at 8a1d4a18; Batch 32 was 8737.)
+
+## B33-E3 result (full run on 5c1e12a5): RED, expectation missed
+
+- Ran 8839 (as predicted), FAILED (failures=2, skipped=30). Memory guard and watchdog did not fire; this is a real red.
+- Both failures are in AutoGrader.tests_migration_rollback_defaults (the rollback-default guard): `classrooms.session.is_active` (added by H-278, migration classrooms.0017_session_is_active) is a NOT NULL field with no `db_default`. Code older than the migration would omit the column from INSERT, so a code-only rollback would break every Session insert.
+- Not pushed. Fix goes back to H-278: `db_default=False` on the field plus a generated AlterField migration, red test first, then a re-run.
+- Process gap: the H-278 near run did not include AutoGrader.tests_migration_rollback_defaults. Any branch that adds a migration must include that module in its near run.
+- Files: e3_5c1e12a5_summary.txt, e3_failures.txt.
