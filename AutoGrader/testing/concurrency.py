@@ -27,8 +27,10 @@ RULES THIS ENFORCES
 3. A worker still alive at the deadline is a FAILURE, never a state to
    assert on.
 4. Every worker closes its own DB connection in `finally`.
-5. After the joins, the test database must hold no extra backends: the
-   count has to return to its pre-run baseline.
+5. After the joins, the test database must hold no extra backends: no
+   session may be open that was not open before the run. Sessions are
+   compared by pid, not counted (H-283): a pre-run session ending during
+   the run, an autovacuum worker for example, used to cancel out a leak.
 
 USAGE
 -----
@@ -61,14 +63,14 @@ BACKEND_SETTLE_TIMEOUT = 10
 REAP_TIMEOUT = 120
 
 
-def other_backends():
-    """Connections to this test database other than the caller's own."""
+def other_backend_pids():
+    """Pids of the sessions on this test database other than the caller's."""
     with connection.cursor() as cursor:
         cursor.execute(
-            "SELECT count(*) FROM pg_stat_activity "
+            "SELECT pid FROM pg_stat_activity "
             "WHERE datname = current_database() AND pid <> pg_backend_pid()"
         )
-        return cursor.fetchone()[0]
+        return {row[0] for row in cursor.fetchall()}
 
 
 def reap(threads, timeout=REAP_TIMEOUT):
@@ -120,7 +122,7 @@ def run_concurrently(
         threading.Thread(target=worker, args=(i,), name=f"{name}-{i}")
         for i in range(count)
     ]
-    backends_before = other_backends() if uses_db else 0
+    backends_before = other_backend_pids() if uses_db else set()
     if test is not None:
         test.addCleanup(reap, threads)
 
@@ -143,7 +145,7 @@ def run_concurrently(
 
         if uses_db:
             settle_by = time.monotonic() + BACKEND_SETTLE_TIMEOUT
-            while (leaked := other_backends() - backends_before) > 0:
+            while leaked := len(other_backend_pids() - backends_before):
                 if time.monotonic() > settle_by:
                     raise AssertionError(
                         f"{leaked} database session(s) still open after all "
