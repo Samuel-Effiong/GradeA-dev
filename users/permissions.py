@@ -1,7 +1,11 @@
 from django.apps import apps
 from rest_framework import permissions
 
-from billing.errors import EmptyWalletError, StudentEmptyWalletError
+from billing.errors import (
+    EmptyWalletError,
+    StudentEmptyWalletError,
+    is_individual_teacher,
+)
 from users.models import UserTypes
 
 
@@ -49,7 +53,10 @@ class HasCreditBalance(permissions.BasePermission):
             if is_student:
                 # H-225: told as the student sentence (users.exceptions).
                 raise StudentEmptyWalletError("Credit wallet is empty")
-            raise EmptyWalletError("Credit wallet is empty")
+            raise EmptyWalletError(
+                "Credit wallet is empty",
+                individual=is_individual_teacher(target_user),
+            )
 
         return True
 

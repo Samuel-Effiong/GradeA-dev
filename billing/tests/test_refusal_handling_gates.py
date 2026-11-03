@@ -26,7 +26,10 @@ from rest_framework.test import APIClient, APITestCase
 from ai_processor.models import ChatMessage
 from ai_processor.services import STUDENT_AI_UNAVAILABLE_MESSAGE, AIProcessor
 from billing.access_control import AIFeatureNotAvailableError
-from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
+from billing.errors import (
+    INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE,
+    InsufficientCreditsError,
+)
 from billing.models import CreditLedger, CreditUsageLog, CreditWallet
 from billing.tests.test_refusal_handling import (
     CREDIT_DETAIL_FRAGMENTS,
@@ -123,7 +126,10 @@ class ConcurrentRefusalTest(TransactionTestCase):
                 for code, body in results:
                     self.assertEqual(code, PAYMENT_REQUIRED, body)
                     self.assertEqual(body["code"], CREDITS_CODE)
-                    self.assertEqual(body["error"], INSUFFICIENT_CREDITS_MESSAGE)
+                    # H-281: an underfunded individual teacher.
+                    self.assertEqual(
+                        body["error"], INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE
+                    )
                 self.assertEqual(gate.call_count, THREADS)
                 # One logical outcome: refused, and nothing else happened.
                 self.assertEqual(

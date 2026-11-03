@@ -13,7 +13,7 @@ from __future__ import annotations
 from collections import Counter
 
 from audit.enums import ErrorClass, ReasonCode
-from AutoGrader.reason_codes import REASON_CODES
+from AutoGrader.reason_codes import REASON_CODES, credit_refusal_remediation
 
 from .models import BackgroundTaskStatus
 
@@ -27,6 +27,18 @@ def _spec(code):
         return REASON_CODES.get(ReasonCode(code))
     except ValueError:
         return None
+
+
+def _remediation(spec, code, meta):
+    """The spec's remediation, or (H-281) the individual-teacher one when
+    the stored credit refusal says so (meta["message_variant"])."""
+    if spec is None:
+        return None
+    if code == ReasonCode.INSUFFICIENT_CREDITS.value:
+        chosen = credit_refusal_remediation(meta.get("message_variant"))
+        if chosen is not None:
+            return chosen
+    return spec.remediation
 
 
 def item_result(task, context):
@@ -57,7 +69,7 @@ def item_result(task, context):
         "reason_code": code,
         "error_class": error_class,
         "message": task.error if failed else None,
-        "remediation": spec.remediation if spec is not None else None,
+        "remediation": _remediation(spec, code, meta),
         "retryable": bool(spec.retryable) if spec is not None else False,
         "retry_count": task.retry_count,
         # Dashed UUID, same form as X-Request-ID and a sync body's `reference`,

@@ -1471,7 +1471,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # (it is that file's own item below, FR-A-07).
         parked = parked_files(request.user, assignment, files, prompt)
         if parked and len(parked) == len(files):
-            return batch_refusal_response()
+            # A teacher-only route: the batch is billed to the caller.
+            return batch_refusal_response(request.user)
 
         session = BatchUploadSession.objects.create(
             teacher=request.user,
