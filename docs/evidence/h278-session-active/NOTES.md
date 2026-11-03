@@ -169,3 +169,44 @@ AUDIT_BENCH=1 only" (audit). That reason was not in the list I wrote
 (real AI, load, network, Redis fork); it is opt-in, and none of the H-278
 tests skips. No test_AutoGrader_h278* DB is left.
 Log: `logs/near_run_f3ab44fa.txt.gz` (raw sha256 143adcd7cd6e1ab565e12b015b440fbb73050059ab831a231eee8783feca0a2b, gz a855880e05c88fe06e77683497c6ef04b2b6f19e1575cb83f0c6b6227de88a87).
+
+## Follow-up: `Session.is_active` needs a `db_default` (SM, 2026-11-03)
+
+The Batch 33 full run was red, with 2 failures, both in
+`AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests`:
+
+- `test_every_not_null_field_added_since_production_has_a_db_default`:
+  `{'classrooms.session.is_active': ('classrooms.0017_session_is_active',)} != {}`
+- `test_the_guard_flags_a_not_null_field_without_a_db_default`: extra item
+  `classrooms.session.is_active`
+
+Cause: `0017` adds `BooleanField(default=False)`, which is NOT NULL, with no
+`db_default`. A code-only rollback to code older than `0017` leaves the
+column out of its INSERT, and that INSERT then fails. My near run missed the
+guard module. Process rule from the SM: any branch that adds or changes a
+migration includes `AutoGrader.tests_migration_rollback_defaults` in its
+near run.
+
+Fix: `BooleanField(default=False, db_default=False)`. The AlterField
+migration is generated with `makemigrations`; `0017` is not hand-edited.
+
+### Expectations (written before any run)
+
+**F1, red at af67b4da2** (no code change). Command:
+`manage.py test --noinput --settings=settings_worktree -v 2 AutoGrader.tests_migration_rollback_defaults`,
+serial. Expect `Ran 12`, `FAILED (failures=2)`, and exactly the 2 tests
+above, with the same messages.
+
+**F2, green at the fix commit.** The same command: expect `Ran 12`, `OK`.
+`makemigrations --check` says "No changes detected". mypy (pre-commit, all
+files) passes. `sqlmigrate classrooms 0018` sets a DEFAULT on `is_active`.
+
+**F3, near run at the fix commit.** The earlier near-run labels plus
+`AutoGrader.tests_migration_rollback_defaults`, counted with `build_suite`:
+**1091** (1079 + 12). Expect `Ran 1091`, `OK (skipped=2)`. The 2 skips are
+the AUDIT_BENCH opt-in, as before. Run with `--parallel 4`, fresh DB
+`test_AutoGrader_h278`, with the `free -m` gate at ≥ 4000 MB available.
+
+**F4, mutant M-h278.13.** Remove `db_default=False` from the model; the
+migration stays. Restore by sha256. Expected killers are the 2 guard tests
+above, which are red again. Expect `Ran 12`, `FAILED (failures=2)`.
