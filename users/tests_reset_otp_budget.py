@@ -394,7 +394,9 @@ class LockedReset429Tests(Base):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(
-            response.json()["message"], "Invalid email, OTP code, or new password."
+            response.json()["message"],
+            "We couldn't reset your password. Check the code we emailed you "
+            "(it may have expired) and try again.",
         )
 
 
@@ -426,5 +428,5 @@ class StructuredRefusalRenderingTests(APITestCase):
 
         self.assertEqual(
             flatten_errors({"message": ["Too long."], "title": ["Required."]}),
-            "1. Message: Too long.\n 2. Title: Required.\n",
+            "Message: Too long. Title: Required.",
         )

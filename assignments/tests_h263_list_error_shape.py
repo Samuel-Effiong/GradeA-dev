@@ -95,4 +95,5 @@ class TopicBulkCreateErrorShapeTests(ClassroomTenancyBase):
 
     def test_bulk_topic_error_message_is_unchanged(self):
         body = self.post_topics(["Algebra", ""])
-        self.assertEqual(body["message"], "Name: This field may not be blank.")
+        # H-296: the owner-approved form wording.
+        self.assertEqual(body["message"], "Enter name.")

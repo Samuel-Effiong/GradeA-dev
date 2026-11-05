@@ -302,18 +302,18 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         # sentences, picked from the params by variant_from_params:
         # remaining > 0 gets the default; remaining == 0 gets
         # "cap_reached". H-233's rule holds: the zero sentence never says
-        # "reduce your quantity to 0 or fewer". The dash is U+2014.
-        "Purchase limit exceeded — max {max_blocks} blocks. Reduce "
-        "your quantity to {remaining} or fewer to proceed.",
-        "Request fewer blocks, or wait until your next billing cycle, then "
-        "try again.",
+        # "reduce the quantity to 0 or fewer". H-296: owner reworded both
+        # sentences 2026-11-05 ("credit packs", "billing period").
+        "You can buy up to {max_blocks} credit packs per billing period. "
+        "Reduce the quantity to {remaining} or fewer.",
+        "Choose fewer credit packs, or wait until your next billing period.",
         retryable=False,
         params=frozenset({"max_blocks", "remaining"}),
         alternative_messages={
             "cap_reached": (
-                "Purchase limit reached — you have used all "
-                "{max_blocks} blocks for this billing cycle. You can buy "
-                "more when your next cycle starts."
+                "You've bought the maximum of {max_blocks} credit packs "
+                "for this billing period. You can buy more when your next "
+                "period starts."
             ),
         },
         variant_from_params=_overage_cap_variant,
@@ -368,7 +368,7 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
     ReasonCode.ACCOUNT_LOCKED: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_401_UNAUTHORIZED,
-        "Too many failed login attempts. Please try again later.",
+        "Too many failed sign-in attempts. Please try again later.",
         "Wait a few minutes and try again, or reset your password.",
         retryable=True,
     ),
@@ -521,8 +521,8 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
     ReasonCode.LICENCE_INACTIVE: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_400_BAD_REQUEST,
-        "This licence isn't active, so teachers can't be added to it.",
-        "Renew the licence, or contact us.",
+        "This license isn't active, so teachers can't be added to it.",
+        "Renew the license, or contact us.",
         retryable=False,
     ),
     # The approved text has two forms: "{remaining} seats left, but you're
@@ -532,7 +532,7 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
     ReasonCode.LICENCE_SEATS_EXCEEDED: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_400_BAD_REQUEST,
-        "Your licence has {availability} ({in_use} of {max_seats} in use).",
+        "Your license has {availability} ({in_use} of {max_seats} in use).",
         "Add fewer teachers, remove a teacher, or ask us to add seats.",
         retryable=False,
         params=frozenset(
@@ -564,12 +564,12 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "Contact support if the teacher has moved schools.",
     ),
     ReasonCode.TEACHER_ALREADY_ON_LICENCE: _item_spec(
-        "{email} is already on this licence.",
+        "{email} is already on this license.",
         "",
         params={"email"},
     ),
     ReasonCode.TEACHER_NOT_ON_LICENCE: _item_spec(
-        "This teacher isn't an active teacher on this licence.",
+        "This teacher isn't an active teacher on this license.",
         "",
     ),
     ReasonCode.TEACHER_ADD_FAILED: _item_spec(

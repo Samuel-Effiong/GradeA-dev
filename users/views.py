@@ -165,7 +165,15 @@ NAME_HELD_ELSEWHERE_MESSAGE = "This name cannot be used for this student."
 # H-43: the ONE reply /auth/otp gives for every 202 - an unknown address, a
 # sent code, and a locked reset alike - so its text says nothing about
 # whether an account exists.
-OTP_SENT_DETAIL = "An OTP has been sent if an account with that email exists."
+RESET_FAILED_MESSAGE = (
+    "We couldn't reset your password. Check the code we emailed you "
+    "(it may have expired) and try again."
+)
+GOOGLE_NO_SIGN_IN = (
+    "We couldn't sign you in with Google. Try again, or sign in with your "
+    "email and password."
+)
+OTP_SENT_DETAIL = "If an account exists for that email, we've sent it a 6-digit code."
 GOOGLE_SIGN_IN_FAILED = "Google sign-in failed. Please try again."
 #: H-256: (connect, read) seconds for the Google token exchange.
 GOOGLE_TOKEN_EXCHANGE_TIMEOUT = (5, 10)
@@ -468,8 +476,7 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     raise ValidationError(
                         {
                             "detail": (
-                                f"A student with the exact name {full_name!r} "
-                                "is already enrolled in this course."
+                                f"{full_name} is already enrolled " "in this course."
                             )
                         }
                     )
@@ -933,7 +940,8 @@ address with no account is locked and answered exactly the same way.
                 description="Missing fields, wrong code or email, or an expired code. Show `message`.",
                 examples=[
                     _auth_error_example(
-                        "Missing fields", "Email and Token are required."
+                        "Missing fields",
+                        "This link is incomplete. Open the link from your email again, or request a new one.",
                     ),
                     _auth_error_example(
                         "Wrong email or code", "Invalid email or token."
@@ -1002,7 +1010,9 @@ address with no account is locked and answered exactly the same way.
             sign_in_failed(
                 request, account_for_email(email), "email_verification", "CODE_MISSING"
             )
-            raise ParseError("Email and Token are required.")
+            raise ParseError(
+                "This link is incomplete. Open the link from your email again, or request a new one."
+            )
 
         # H-53: a per-address budget of attempts. While locked, every
         # attempt is refused - a correct code and a re-sent one included - and
@@ -1326,7 +1336,7 @@ returns a fresh JWT pair.
 - The code is valid for **15 minutes**.
 
 **Wrong code handling.** Every wrong email / code / expired code gives the same
-400 "Invalid email, OTP code, or new password." After **5 wrong codes** the reset
+400 "We couldn't reset your password. Check the code ..." After **5 wrong codes** the reset
 is locked for **30 minutes**: the answer becomes **429** with
 `error.field_errors.code == "RESET_LOCKED"`, plus `locked_until` (UTC ISO time),
 `retry_after_seconds` and a `Retry-After` header. Show `message` as is; it tells
@@ -1376,7 +1386,7 @@ the plain rate limit (10 requests/hour per IP) does not.
                 examples=[
                     _auth_error_example(
                         "Wrong or expired code",
-                        "Invalid email, OTP code, or new password.",
+                        RESET_FAILED_MESSAGE,
                     ),
                     OpenApiExample(
                         "Weak password",
@@ -1453,7 +1463,7 @@ the plain rate limit (10 requests/hour per IP) does not.
             sign_in_failed(
                 request, account_for_email(email), "password_reset", "INVALID_CODE"
             )
-            raise ParseError("Invalid email, OTP code, or new password.") from Exception
+            raise ParseError(RESET_FAILED_MESSAGE) from Exception
 
         # H-164: a switched-off account that never verified its email is not
         # reset or stamped, whatever code exists (one issued while it was
@@ -1466,7 +1476,7 @@ the plain rate limit (10 requests/hour per IP) does not.
             not user.is_active or _holds_admin_power(user)
         ):
             sign_in_failed(request, user, "password_reset", "INVALID_CODE")
-            raise ParseError("Invalid email, OTP code, or new password.")
+            raise ParseError(RESET_FAILED_MESSAGE)
 
         # H-202: what is left inactive here is verified. A switched-off person
         # sets no password and is not told it worked: the generic refusal,
@@ -1479,7 +1489,7 @@ the plain rate limit (10 requests/hour per IP) does not.
             sign_in_failed(
                 request, user, "password_reset", "ACCOUNT_DEACTIVATED", denied=True
             )
-            raise ParseError("Invalid email, OTP code, or new password.")
+            raise ParseError(RESET_FAILED_MESSAGE)
 
         if otp_obj.is_locked():
             # Merge of batch-2a (L2) into Epic A: L2's 429 answer, and the
@@ -1490,7 +1500,7 @@ the plain rate limit (10 requests/hour per IP) does not.
         if not otp_obj.is_valid():
             otp_obj.delete()
             sign_in_failed(request, user, "password_reset", "CODE_EXPIRED")
-            raise ParseError("Invalid email, OTP code, or new password.")
+            raise ParseError(RESET_FAILED_MESSAGE)
 
         # Constant-time compare so the response latency does not leak how
         # much of the code was correct. Every non-lockout failure returns
@@ -1511,7 +1521,7 @@ the plain rate limit (10 requests/hour per IP) does not.
                 )
                 return _reset_locked_response(otp_obj)
             sign_in_failed(request, user, "password_reset", "INVALID_CODE")
-            raise ParseError("Invalid email, OTP code, or new password.")
+            raise ParseError(RESET_FAILED_MESSAGE)
 
         user.set_password(new_password)
         # H-164: the code proves control of the mailbox exactly as the verify
@@ -1598,7 +1608,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         )
 
         return Response(
-            {"detail": "An OTP code has been sent to your email"},
+            {
+                "detail": "We've emailed you a 6-digit code to confirm your password change."
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -1669,7 +1681,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             # plain == leaks how much of the code was correct via timing.
             if not constant_time_compare(str(otp_obj.code), str(otp)):
                 sign_in_failed(request, user, "password_change", "INVALID_CODE")
-                raise ParseError("Invalid password change code. Please try again.")
+                raise ParseError(
+                    "That code isn't right or has expired. Request a new code and try again."
+                )
 
             # Single-use: a code that has completed a change must not be
             # replayable for a second one.
@@ -1807,7 +1821,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 error_class=ErrorClass.USER,
                 reason_code="REFRESH_TOKEN_INVALID",
             )
-            raise ParseError("Invalid or expired token") from TokenError
+            raise ParseError(
+                "Your session has expired. Please sign in again."
+            ) from TokenError
 
         # AUTHZ-T1: blacklisting the refresh token never touched the access
         # token, which stayed valid for up to a day. H-276 (owner decision
@@ -2059,7 +2075,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 if not user or _holds_admin_power(user):
                     audit_failure = (account_for_email(email), "INVALID_CODE")
                     audit_options = spent()
-                    raise ParseError("Invalid or expired activation token.")
+                    raise ParseError(
+                        "This activation link is invalid or has expired. Request a new one."
+                    )
 
                 if user.activation_expires and timezone.now() > user.activation_expires:
                     audit_failure = (user, "CODE_EXPIRED")
@@ -2247,7 +2265,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
             if not id_token_str:
                 self._audit_reason = "GOOGLE_TOKEN_INVALID"
-                raise ParseError("Google did not return an ID token")
+                raise ParseError(GOOGLE_NO_SIGN_IN)
 
             id_info = id_token.verify_oauth2_token(
                 id_token_str,
@@ -2469,7 +2487,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         except ValueError as e:
             self._audit_reason = "GOOGLE_TOKEN_INVALID"
-            raise ParseError("Invalid Google token signature") from e
+            raise ParseError(GOOGLE_NO_SIGN_IN) from e
 
 
 @extend_schema(

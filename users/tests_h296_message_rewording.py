@@ -8,6 +8,7 @@ gone from the code and the approved text is there.
 """
 
 import os
+import re
 import uuid
 from unittest.mock import patch
 
@@ -437,7 +438,7 @@ SWEEP = [
         "users/tokens.py",
     ),
     (
-        '"Invalid or expired token"',
+        'ParseError("Invalid or expired token")',
         "Your session has expired. Please sign in again.",
         "users/views.py",
     ),
@@ -477,7 +478,7 @@ SWEEP = [
         "billing/stripe_service.py",
     ),
     (
-        "Please subscribe again via select-plan",
+        "subscribe again via select-plan",
         "This subscription has ended and can't be resumed. Choose a plan to subscribe again.",
         "billing/stripe_service.py",
     ),
@@ -539,7 +540,7 @@ SWEEP = [
         "AutoGrader/reason_codes.py",
     ),
     (
-        "active teacher on this licence",
+        "teacher on this licence",
         "This teacher isn't an active teacher on this license.",
         "billing/license_service.py",
     ),
@@ -581,13 +582,10 @@ class SweepTests(SimpleTestCase):
         self.assertEqual(left, [])
 
     def test_approved_texts_are_in_place(self):
-        missing = [
-            (new, f)
-            for _, new, f in SWEEP
-            if new
-            not in open(os.path.join(ROOT, f), encoding="utf-8")
-            .read()
-            .replace('"\n', "")
-            .replace('" "', "")
-        ]
+        def joined(path):
+            # Adjacent string pieces split over lines read as one string.
+            src = open(os.path.join(ROOT, path), encoding="utf-8").read()
+            return re.sub(r"[\"']\s*\n?\s*f?[\"']", "", src)
+
+        missing = [(new, f) for _, new, f in SWEEP if new not in joined(f)]
         self.assertEqual(missing, [])

@@ -31,9 +31,9 @@ from users.models import CustomUser, UserTypes
 
 # Epic A S7d (QA catalogue E1): LICENCE_SEATS_EXCEEDED. The approved message
 # ends at the counts; what to do next is the envelope's remediation.
-FULL = "Your licence has no seats left (2 of 2 in use)."
+FULL = "Your license has no seats left (2 of 2 in use)."
 ONE_LEFT_ADDING_TWO = (
-    "Your licence has 1 seat left, but you're adding 2 teachers (1 of 2 in use)."
+    "Your license has 1 seat left, but you're adding 2 teachers (1 of 2 in use)."
 )
 SEATS_REMEDIATION = "Add fewer teachers, remove a teacher, or ask us to add seats."
 GENERIC_ADD = (
@@ -152,7 +152,7 @@ class LicenseTeacherChangesTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(
             response.json()["message"],
-            "This licence isn't active, so teachers can't be added to it.",
+            "This license isn't active, so teachers can't be added to it.",
         )
         self.assertEqual(
             response.json()["error"]["field_errors"]["reason_code"], "LICENCE_INACTIVE"
@@ -194,6 +194,6 @@ class LicenseTeacherChangesTest(APITestCase):
         self.assertEqual((data["successful"], data["failed"]), (0, 1))
         self.assertEqual(
             data["errors"][0]["error"],
-            "This teacher isn't an active teacher on this licence.",
+            "This teacher isn't an active teacher on this license.",
         )
         self.assertEqual(data["errors"][0]["reason_code"], "TEACHER_NOT_ON_LICENCE")

@@ -712,7 +712,8 @@ class DirectAddStudentSerializer(serializers.Serializer):
                     "  ", " "
                 ).strip()
                 raise serializers.ValidationError(
-                    f"A student with the exact name {full_name!r} is already enrolled in this course."
+                    f"{full_name} is already enrolled in this course.",
+                    code="name_clash",
                 )
 
         return attrs

@@ -136,7 +136,8 @@ class PublishAllTests(GradingFixtureMixin, APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
-            response.data["message"], "No graded submissions found to publish."
+            response.data["message"],
+            "No graded submissions to publish yet. Grade them first, then publish.",
         )
         [entry] = response.data["skipped"]
         self.assert_skipped(entry, never)

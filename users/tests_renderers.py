@@ -77,7 +77,8 @@ class APIJSONRendererTests(TestCase):
         self.assertFalse(payload["success"])
         self.assertEqual(payload["message"], "Could not generate assignment")
 
-    def test_validation_errors_keep_numbered_message_and_field_errors(self):
+    def test_validation_errors_read_as_plain_sentences_and_keep_field_errors(self):
+        # H-296: no numbers or line breaks; plain strings keep "Label: text".
         response = Response(
             {"email": ["This field is required."], "password": ["Too short."]},
             status=status.HTTP_400_BAD_REQUEST,
@@ -87,8 +88,9 @@ class APIJSONRendererTests(TestCase):
         payload = self.render_payload(response)
 
         self.assertFalse(payload["success"])
-        self.assertIn("1. Email: This field is required.", payload["message"])
-        self.assertIn("2. Password: Too short.", payload["message"])
+        self.assertEqual(
+            payload["message"], "Email: This field is required. Password: Too short."
+        )
         self.assertEqual(payload["error"]["field_errors"], response.data)
 
     def test_refusal_code_beside_the_message_is_not_shown_as_text(self):
@@ -112,11 +114,11 @@ class APIJSONRendererTests(TestCase):
         cases = [
             (
                 {"code": ["Invalid code."], "email": ["This field is required."]},
-                ("1. Code: Invalid code.", "2. Email: This field is required."),
+                ("Code: Invalid code.", "Email: This field is required."),
             ),
             (
                 {"error": ["Bad."], "code": ["Invalid code."]},
-                ("1. Error: Bad.", "2. Code: Invalid code."),
+                ("Error: Bad.", "Code: Invalid code."),
             ),
             ({"code": "only a code"}, ("Code: only a code",)),
         ]

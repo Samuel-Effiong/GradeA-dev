@@ -97,8 +97,8 @@ _CACHE_PREFIX = "billing:stripe-overage-price:"
 
 
 OVERAGE_PRICE_UNAVAILABLE_MESSAGE = (
-    "We couldn't confirm the overage price with our payment provider. "
-    "Please try again in a moment."
+    "We couldn't get the price for extra credits right now. "
+    "You haven't been charged. Try again in a moment."
 )
 
 

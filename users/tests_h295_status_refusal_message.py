@@ -59,11 +59,11 @@ class StatusRefusalApiTests(TestCase):
     def test_cancel_with_no_subscription(self):
         self._assert(
             self.client.post(reverse("subscription-cancel"), {}, format="json"),
-            "No active subscription found to cancel",
+            "You don't have an active subscription to cancel.",
         )
 
     def test_status_with_no_subscription(self):
         self._assert(
             self.client.get(reverse("subscription-status")),
-            "No active subscription found",
+            "You don't have an active subscription.",
         )

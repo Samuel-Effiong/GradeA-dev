@@ -58,7 +58,7 @@ class VerifyEndpointInputTests(APITestCase):
         response = self.client.post(self.url, {}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("required", str(response.data).lower())
+        self.assertIn("this link is incomplete", str(response.data).lower())
 
     def test_missing_email_only_is_a_400_not_a_500(self):
         response = self.client.post(self.url, {"token": "123456"}, format="json")

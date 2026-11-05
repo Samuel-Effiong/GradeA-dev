@@ -1,4 +1,5 @@
 import logging
+import re
 import traceback
 from collections.abc import Mapping
 
@@ -36,6 +37,44 @@ logger = logging.getLogger(__name__)
 
 SUCCESS_MESSAGE_KEYS = ("message", "detail")
 
+# H-296: owner-approved form-error wording. A field error the framework
+# raised (it carries a `code`) is rewritten into one plain sentence that
+# names the field; anything else keeps the "Label: text" form. Only the
+# top-level `message` changes; `error.field_errors` is untouched.
+_FIELD_LABELS = {
+    "raw_input": "assignment content",
+    "schedule_time": "grading date and time",
+    "current_password": "your current password",  # pragma: allowlist secret
+}
+
+
+def _field_label(field) -> str:
+    return _FIELD_LABELS.get(str(field), str(field).replace("_", " ").lower())
+
+
+def _reworded_field_error(text, field):
+    code = getattr(text, "code", None)
+    if code is None:
+        return None
+    label = _field_label(field)
+    if code in ("required", "blank"):
+        return f"Enter {label}."
+    if code == "min_length":
+        number = re.search(r"at least (\d+)", text)
+        if number:
+            return f"{label[:1].upper()}{label[1:]} needs at least {number.group(1)} characters."
+    if code == "max_length":
+        number = re.search(r"no more than (\d+)", text)
+        if number:
+            return f"Use {number.group(1)} characters or fewer for {label}."
+    if code == "invalid" and str(text) == "Enter a valid email address.":
+        return "Enter a valid email address, like name@school.edu."
+    if code == "unique" and str(field) == "email":
+        return (
+            "An account with this email already exists. Sign in or reset your password."
+        )
+    return None
+
 
 def get_response_message(data, default: str) -> str:
     if not isinstance(data, Mapping):
@@ -62,8 +101,8 @@ def flatten_errors(data) -> str:
     formats them into a single string.
 
     - Single error  → plain string,  e.g. "This field is required."
-    - Multiple errors → numbered list string, e.g.
-        "1. Email: This field is required. 2. Password: This field may not be blank."
+    - Multiple errors → plain sentences one after another (H-296), e.g.
+        "Enter email. Enter password."
 
     Handles:
       • {"detail": "Not found."}
@@ -73,13 +112,17 @@ def flatten_errors(data) -> str:
     """
     messages = []
 
-    def _collect(obj, prefix=""):
+    def _collect(obj, prefix="", field=None):
         if isinstance(obj, str):
-            messages.append(f"{prefix}{obj}" if prefix else obj)
+            reworded = _reworded_field_error(obj, field) if field is not None else None
+            if reworded is not None:
+                messages.append(reworded)
+            else:
+                messages.append(f"{prefix}{obj}" if prefix else obj)
 
         elif isinstance(obj, list):
             for item in obj:
-                _collect(item, prefix)
+                _collect(item, prefix, field)
 
         elif isinstance(obj, Mapping):
             # A structured refusal (machine `code` + human `message`, plus
@@ -126,7 +169,7 @@ def flatten_errors(data) -> str:
                 else:
                     # Turn snake_case / CamelCase field names into readable labels
                     label = str(field).replace("_", " ").capitalize()
-                    _collect(value, prefix=f"{label}: ")
+                    _collect(value, prefix=f"{label}: ", field=field)
 
     _collect(data)
 
@@ -136,9 +179,9 @@ def flatten_errors(data) -> str:
     if len(messages) == 1:
         return messages[0]
 
-    # Multiple errors → numbered list embedded in a single string
-    numbered = " ".join(f"{i}. {msg}\n" for i, msg in enumerate(messages, start=1))
-    return numbered
+    # H-296: several errors read as plain sentences, one after another
+    # (was a numbered list with line breaks).
+    return " ".join(messages)
 
 
 class APIJSONRenderer(JSONRenderer):

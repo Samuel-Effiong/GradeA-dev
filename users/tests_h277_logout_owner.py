@@ -47,7 +47,9 @@ class LogoutOwnerTests(_Base):
     def test_someone_elses_refresh_is_refused_like_an_invalid_token(self):
         r = self._post_victims_refresh()
         self.assertEqual(r.status_code, 400, r.content)
-        self.assertIn("Invalid or expired token", r.content.decode())
+        self.assertIn(
+            "Your session has expired. Please sign in again.", r.content.decode()
+        )
         self.assertNotIn(self.victim.email, r.content.decode())
 
     def test_the_victims_refresh_token_still_works(self):

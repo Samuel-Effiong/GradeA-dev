@@ -365,7 +365,7 @@ class DefensiveFallthroughTests(APITestCase):
             )
 
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
-        self.assertIn("otp has been sent", str(response.data).lower())
+        self.assertIn("we've sent it a 6-digit code", str(response.data).lower())
 
 
 class FlattenErrorsNonStringTests(APITestCase):

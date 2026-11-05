@@ -311,6 +311,15 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     and are used to assess student knowledge.
     """
 
+    def finalize_response(self, request, response, *args, **kwargs):
+        # H-296: owner-approved success message (was "Request Successful").
+        if (
+            self.action in ("update", "partial_update")
+            and 200 <= response.status_code < 300
+        ):
+            response.message = "Assignment saved."
+        return super().finalize_response(request, response, *args, **kwargs)
+
     queryset = Assignment.objects.all()
     serializer_class = AssignmentSerializer
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
@@ -801,7 +810,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         topic_id = request.query_params.get("topic_id")
 
         if not topic_id:
-            raise ParseError("Topic ID is required.")
+            raise ParseError("Choose a topic first.")
 
         topic = get_object_or_404(Topic, id=topic_id)
 
@@ -869,14 +878,14 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def upload_assignment(self, request, *args, **kwargs):
         course_id = request.data.get("course")
         if not course_id:
-            raise ParseError("Course ID is required.")
+            raise ParseError("Choose a course first.")
 
         # Validate course exists and user has access to it
         try:
             course = get_object_or_404(reachable_courses(request.user), id=course_id)
         except (ValueError, ValidationError):
             raise ParseError(
-                "Invalid Course ID format. Must be with a valid UUID"
+                "We couldn't find that course. Go back and select it again."
             ) from Exception
         except Http404:
             raise NotFound(
@@ -1054,7 +1063,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def upload_assignment_async(self, request, *args, **kwargs):
         course_id = request.data.get("course")
         if not course_id:
-            raise ParseError("Course ID is required.")
+            raise ParseError("Choose a course first.")
 
         # Validate course exists and user has access to it
         course = get_object_or_404(reachable_courses(request.user), id=course_id)
@@ -1921,9 +1930,17 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         total_graded = graded_submissions.count()
         if total_graded == 0:
             # "Nothing to publish" stays a normal answer, as before.
+            # H-296 (owner 2026-11-05): still 200, reworded, and the same
+            # counts as a real publish so a client can tell "nothing
+            # published" apart from a success.
             return Response(
                 {
-                    "message": "No graded submissions found to publish.",
+                    "message": (
+                        "No graded submissions to publish yet. "
+                        "Grade them first, then publish."
+                    ),
+                    "total_graded": 0,
+                    "ungraded_count": assignment.submissions.count(),
                     "skipped": skipped,
                 },
                 status=status.HTTP_200_OK,

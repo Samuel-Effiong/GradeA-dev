@@ -273,7 +273,11 @@ class NamedThrottleEnvelopeTests(APITestCase):
         # exchange and the exchange handed back no id_token, so nothing a real
         # network answer (or its failure) produced shaped this response.
         self.assertEqual(first.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(str(first.data["detail"]), "Google did not return an ID token")
+        self.assertEqual(
+            str(first.data["detail"]),
+            "We couldn't sign you in with Google. Try again, or sign in with your "
+            "email and password.",
+        )
 
     def test_the_google_throttle_probe_never_calls_google(self):
         """users/views.py logs "Google OAuth token exchange failed" at ERROR

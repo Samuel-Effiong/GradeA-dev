@@ -199,7 +199,7 @@ class WholeRequestTests(LicenceFixture):
         envelope = self.envelope(self.add(["new@s7d-lic.school.edu"]))
 
         self.assertEqual(envelope["reason_code"], "LICENCE_INACTIVE")
-        self.assertEqual(envelope["remediation"], "Renew the licence, or contact us.")
+        self.assertEqual(envelope["remediation"], "Renew the license, or contact us.")
 
     def test_teachers_already_on_the_licence_need_no_seat(self):
         licence = self.make_licence(["t1@s7d-lic.school.edu"], max_seats=2)
@@ -218,7 +218,7 @@ class WholeRequestTests(LicenceFixture):
         self.assertEqual(skipped["status"], "skipped")
         self.assertEqual(skipped["params"], {"email": "t1@s7d-lic.school.edu"})
         self.assertEqual(
-            skipped["message"], "t1@s7d-lic.school.edu is already on this licence."
+            skipped["message"], "t1@s7d-lic.school.edu is already on this license."
         )
         self.assertIsNone(skipped["remediation"])
 
@@ -235,7 +235,7 @@ class WholeRequestTests(LicenceFixture):
         )
         self.assertEqual(
             response.json()["message"],
-            "Your licence has no seats left (1 of 1 in use).",
+            "Your license has no seats left (1 of 1 in use).",
         )
         self.assertFalse(
             CustomUser.objects.filter(email="new@s7d-lic.school.edu").exists()
@@ -459,5 +459,5 @@ class RemovalTests(LicenceFixture):
             self.assertEqual(item, items[0])
         self.assertEqual(items[0]["reason_code"], "TEACHER_NOT_ON_LICENCE")
         self.assertEqual(
-            items[0]["message"], "This teacher isn't an active teacher on this licence."
+            items[0]["message"], "This teacher isn't an active teacher on this license."
         )

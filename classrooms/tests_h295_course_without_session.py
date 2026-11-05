@@ -16,7 +16,8 @@ from classrooms.models import Course, Session
 from users.models import UserTypes
 
 URL = reverse("course-list")
-REQUIRED = "Session: This field is required."
+# H-296 rewords the framework's "required" text (owner-approved).
+REQUIRED = "Enter session."
 
 
 class CourseWithoutSessionTests(TestCase):

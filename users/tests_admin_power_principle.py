@@ -48,7 +48,9 @@ User = get_user_model()
 
 LOCMEM = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 GOOGLE_FAILED = "Google sign-in failed. Please try again."
-INVALID_INVITATION = "Invalid or expired activation token."
+INVALID_INVITATION = (
+    "This activation link is invalid or has expired. Request a new one."
+)
 STRONG = "a-strong-passphrase-for-h203-only"  # pragma: allowlist secret
 
 
