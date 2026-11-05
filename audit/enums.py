@@ -175,6 +175,7 @@ class ReasonCode(models.TextChoices):
     # D1: roster import, whole request.
     ROSTER_NO_INPUT = "ROSTER_NO_INPUT", "Roster: no input"
     ROSTER_EMPTY = "ROSTER_EMPTY", "Roster: no student rows"
+    NOTHING_TO_GRADE = "NOTHING_TO_GRADE", "Grading: no ungraded submissions"
     ROSTER_FILE_UNREADABLE = "ROSTER_FILE_UNREADABLE", "Roster: file unreadable"
     ROSTER_TOO_MANY_ROWS = "ROSTER_TOO_MANY_ROWS", "Roster: too many rows"
     # D2: roster import, per row.

@@ -418,6 +418,15 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "Choose a CSV file, or paste rows copied from your spreadsheet.",
         retryable=False,
     ),
+    # H-292: "Grade all" with nothing left to grade (was a ParseError,
+    # logged as PARSE_ERROR). Owner-approved text; no remediation.
+    ReasonCode.NOTHING_TO_GRADE: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_400_BAD_REQUEST,
+        "No ungraded submissions to process.",
+        "",
+        retryable=False,
+    ),
     ReasonCode.ROSTER_EMPTY: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_400_BAD_REQUEST,

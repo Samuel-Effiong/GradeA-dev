@@ -1,0 +1,77 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 9d6c6318-7410-4230-92d0-519b0640a9f6.
+Cannot activate automatic trial for user 9d6c6318-7410-4230-92d0-519b0640a9f6 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user 890be0d2-9a64-4b9d-bbf0-1bad1fe7e78d.
+Cannot activate automatic trial for user 890be0d2-9a64-4b9d-bbf0-1bad1fe7e78d (validation): ValueError
+API request refused: ParseError (400)
+EFree trial plan not found: no trial activated for user 4c86089e-0b56-42d0-84bf-68466516cfb8.
+Cannot activate automatic trial for user 4c86089e-0b56-42d0-84bf-68466516cfb8 (validation): ValueError
+API request refused: ParseError (400)
+EFree trial plan not found: no trial activated for user c9f15e77-e847-4076-b145-7d5243429c2b.
+Cannot activate automatic trial for user c9f15e77-e847-4076-b145-7d5243429c2b (validation): ValueError
+API request refused: ParseError (400)
+FFree trial plan not found: no trial activated for user 371303a5-4d08-4158-9286-cd6576fba364.
+Cannot activate automatic trial for user 371303a5-4d08-4158-9286-cd6576fba364 (validation): ValueError
+E
+======================================================================
+ERROR: test_every_submission_already_graded_is_nothing_to_grade (assignments.tests_h292_nothing_to_grade.NothingToGradeTests.test_every_submission_already_graded_is_nothing_to_grade)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/assignments/tests_h292_nothing_to_grade.py", line 86, in test_every_submission_already_graded_is_nothing_to_grade
+    self._assert_coded_refusal(response)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/assignments/tests_h292_nothing_to_grade.py", line 67, in _assert_coded_refusal
+    self.assertEqual(envelope["reason_code"], "NOTHING_TO_GRADE")
+                     ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'reason_code'
+
+======================================================================
+ERROR: test_no_submissions_at_all_is_nothing_to_grade (assignments.tests_h292_nothing_to_grade.NothingToGradeTests.test_no_submissions_at_all_is_nothing_to_grade)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/assignments/tests_h292_nothing_to_grade.py", line 74, in test_no_submissions_at_all_is_nothing_to_grade
+    self._assert_coded_refusal(response)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/assignments/tests_h292_nothing_to_grade.py", line 67, in _assert_coded_refusal
+    self.assertEqual(envelope["reason_code"], "NOTHING_TO_GRADE")
+                     ~~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'reason_code'
+
+======================================================================
+ERROR: test_the_catalogue_entry_is_the_approved_text (assignments.tests_h292_nothing_to_grade.NothingToGradeTests.test_the_catalogue_entry_is_the_approved_text)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/assignments/tests_h292_nothing_to_grade.py", line 98, in test_the_catalogue_entry_is_the_approved_text
+    spec = REASON_CODES[ReasonCode("NOTHING_TO_GRADE")]
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/enum.py", line 751, in __call__
+    return cls.__new__(cls, value)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/enum.py", line 1170, in __new__
+    raise ve_exc
+ValueError: 'NOTHING_TO_GRADE' is not a valid ReasonCode
+
+======================================================================
+FAIL: test_the_activity_log_row_carries_the_reason_code (assignments.tests_h292_nothing_to_grade.NothingToGradeTests.test_the_activity_log_row_carries_the_reason_code)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/assignments/tests_h292_nothing_to_grade.py", line 94, in test_the_activity_log_row_carries_the_reason_code
+    self.assertEqual(row.reason_code, "NOTHING_TO_GRADE")
+AssertionError: None != 'NOTHING_TO_GRADE'
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.428s
+
+FAILED (failures=1, errors=3)
+Destroying test database for alias 'default'...
+Found 5 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
