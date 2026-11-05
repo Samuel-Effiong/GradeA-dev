@@ -1,0 +1,3 @@
+FAIL: test_individual_session_lists_only_its_teacher (classrooms.test_views.TeacherSummarySessionScopeTest.test_individual_session_lists_only_its_teacher)
+Ran 16 tests in 4.923s
+FAILED (failures=1)
