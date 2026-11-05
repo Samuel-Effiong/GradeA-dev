@@ -89,6 +89,16 @@ def flatten_errors(data) -> str:
                 _collect(obj["message"])
                 return
 
+            # H-295: a status refusal ({"status": "inactive", "message": ...},
+            # billing/views.py) reads as its message, not as two "fields".
+            if (
+                set(obj) == {"status", "message"}
+                and isinstance(obj["status"], str)
+                and isinstance(obj["message"], str)
+            ):
+                _collect(obj["message"])
+                return
+
             # DRF/manual top-level error keys (auth, 404, throttled, etc.)
             top_level_message_keys = ("detail", "error", "message")
             matching_keys = [key for key in top_level_message_keys if key in obj]

@@ -1,0 +1,14 @@
+FAIL: test_session_empty_string_is_a_400 (classrooms.tests_h295_course_without_session.CourseWithoutSessionTests.test_session_empty_string_is_a_400)
+AssertionError: 500 != 400 : b'{"success":false,"message":"An unexpected error occurred. Please try again.","error":{}}'
+FAIL: test_session_null_is_a_400 (classrooms.tests_h295_course_without_session.CourseWithoutSessionTests.test_session_null_is_a_400)
+AssertionError: 500 != 400 : b'{"success":false,"message":"An unexpected error occurred. Please try again.","error":{}}'
+FAIL: test_session_omitted_is_a_400 (classrooms.tests_h295_course_without_session.CourseWithoutSessionTests.test_session_omitted_is_a_400)
+AssertionError: 500 != 400 : b'{"success":false,"message":"An unexpected error occurred. Please try again.","error":{}}'
+FAIL: test_cancel_with_no_subscription (users.tests_h295_status_refusal_message.StatusRefusalApiTests.test_cancel_with_no_subscription)
+AssertionError: '1. Status: inactive\n 2. Message: No active subscription found to cancel\n' != 'No active subscription found to cancel'
+FAIL: test_status_with_no_subscription (users.tests_h295_status_refusal_message.StatusRefusalApiTests.test_status_with_no_subscription)
+AssertionError: '1. Status: inactive\n 2. Message: No active subscription found\n' != 'No active subscription found'
+FAIL: test_status_and_message_reads_as_the_message (users.tests_h295_status_refusal_message.FlattenStatusMessageTests.test_status_and_message_reads_as_the_message)
+AssertionError: '1. Status: inactive\n 2. Message: No subscription found\n' != 'No subscription found'
+Ran 11 tests in 0.378s
+FAILED (failures=6)
