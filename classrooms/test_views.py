@@ -450,17 +450,118 @@ class TeacherSummaryEndpointTest(ClassroomBaseAPITest):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["results"], [])
 
-    def test_well_formed_but_nonexistent_session_id_returns_empty_stats(self):
+    def test_well_formed_but_nonexistent_session_id_returns_empty_page(self):
+        # H-288: a session that doesn't exist has no teachers, so the list
+        # is empty (a list filter, not an error - same as school_id above).
+        # Before H-288 every teacher on the platform was listed with zeros.
         self.authenticate(self.superadmin)
         response = self.client.get(
             self.url, {"session_id": "00000000-0000-0000-0000-000000000000"}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        row = self._row_for(response, self.teacher1)
-        self.assertEqual(row["assignments"], 0)
-        self.assertEqual(row["students"], 0)
-        self.assertEqual(row["tokens_used"], 0)
-        self.assertEqual(row["tokens_used_outside_session"], 1800)
+        self.assertEqual(response.data["results"], [])
+
+
+class TeacherSummarySessionScopeTest(ClassroomBaseAPITest):
+    """H-288: session_id alone decides whose teachers are listed.
+
+    The school page sent only session_id and got every teacher on the
+    platform (other schools' teachers with zero counts). The session's
+    owner now scopes the list: a SCHOOL session lists that school's current
+    teachers, an INDIVIDUAL session lists its one teacher. school_id still
+    narrows further, so a school_id from another school gives an empty page.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.other_school = School.objects.create(name="Other High")
+        self.teacher1.school = self.school
+        self.teacher1.save()
+        self.teacher2.school = self.other_school
+        self.teacher2.save()
+        self.teacher3 = User.objects.create_user(
+            email="teacher3.scope@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="Teacher",
+            last_name="Three",
+        )
+        self.teacher3.user_type = UserTypes.TEACHER
+        self.teacher3.is_active = True
+        self.teacher3.school = self.school
+        self.teacher3.save()
+
+        self.school_session = Session.objects.create(
+            name="2026/2027", owner_type="SCHOOL", school=self.school
+        )
+        course = Course.objects.create(
+            name="Biology", teacher=self.teacher1, session=self.school_session
+        )
+        Assignment.objects.create(course=course)
+        self.url = reverse("school-teacher-summary")
+        self.authenticate(self.superadmin)
+
+    def _ids(self, params):
+        response = self.client.get(self.url, params)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return {row["id"] for row in response.data["results"]}
+
+    def test_school_session_alone_lists_only_that_schools_teachers(self):
+        self.assertEqual(
+            self._ids({"session_id": str(self.school_session.id)}),
+            {str(self.teacher1.id), str(self.teacher3.id)},
+        )
+
+    def test_teacher_with_no_work_in_the_session_is_still_listed_with_zeros(self):
+        response = self.client.get(
+            self.url, {"session_id": str(self.school_session.id)}
+        )
+        rows = {row["id"]: row for row in response.data["results"]}
+        self.assertEqual(rows[str(self.teacher1.id)]["assignments"], 1)
+        self.assertEqual(rows[str(self.teacher3.id)]["assignments"], 0)
+
+    def test_teacher_who_left_the_school_is_not_listed(self):
+        self.teacher3.school = None
+        self.teacher3.save()
+        self.assertEqual(
+            self._ids({"session_id": str(self.school_session.id)}),
+            {str(self.teacher1.id)},
+        )
+
+    def test_individual_session_lists_only_its_teacher(self):
+        own = Session.objects.create(
+            name="My term", owner_type="INDIVIDUAL", teacher=self.teacher3
+        )
+        self.assertEqual(
+            self._ids({"session_id": str(own.id)}), {str(self.teacher3.id)}
+        )
+
+    def test_matching_school_id_and_session_id_lists_that_school(self):
+        self.assertEqual(
+            self._ids(
+                {
+                    "session_id": str(self.school_session.id),
+                    "school_id": str(self.school.id),
+                }
+            ),
+            {str(self.teacher1.id), str(self.teacher3.id)},
+        )
+
+    def test_school_id_from_another_school_gives_empty_page(self):
+        self.assertEqual(
+            self._ids(
+                {
+                    "session_id": str(self.school_session.id),
+                    "school_id": str(self.other_school.id),
+                }
+            ),
+            set(),
+        )
+
+    def test_without_session_id_all_teachers_are_listed_as_before(self):
+        self.assertEqual(
+            self._ids({}),
+            {str(self.teacher1.id), str(self.teacher2.id), str(self.teacher3.id)},
+        )
 
 
 class MonthlyTokenUsageEndpointTest(ClassroomBaseAPITest):
