@@ -330,6 +330,12 @@ APPROVED_ADDITIONS = {
         "Upload a roster file or paste your student list.",
         "Choose a CSV file, or paste rows copied from your spreadsheet.",
     ),
+    # H-292, owner-approved 2026-11-05 (typo corrected from "submissons").
+    "NOTHING_TO_GRADE": (
+        400,
+        "No ungraded submissions to process.",
+        "",
+    ),
     "ROSTER_EMPTY": (
         400,
         "This roster has no student rows.",

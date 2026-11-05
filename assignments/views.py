@@ -1761,7 +1761,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         ungraded_submissions = assignment.submissions.filter(Q(graded_at__isnull=True))
 
         if not ungraded_submissions.exists():
-            raise ParseError("No ungraded submissons to process")
+            # H-292: a coded refusal, not a ParseError (PARSE_ERROR in the log).
+            raise CodedError(ReasonCode.NOTHING_TO_GRADE)
 
         session = BatchUploadSession.objects.create(
             teacher=request.user,
