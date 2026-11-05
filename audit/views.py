@@ -29,6 +29,7 @@ from rest_framework import generics
 from classrooms.models import School
 from classrooms.permissions import IsSchoolAdmin, IsSuperAdmin
 
+from .enums import ErrorClass
 from .filters import SchoolAdminAuditEventFilter, SuperAdminAuditEventFilter
 from .models import AuditEvent
 from .serializers import AuditEventSerializer
@@ -42,6 +43,12 @@ _QUERY_PARAMETERS = [
     OpenApiParameter("action", str, description="Filter by AuditAction value."),
     OpenApiParameter("department_id", str, description="Filter by department UUID."),
     OpenApiParameter("outcome", str, description="Filter by outcome."),
+    OpenApiParameter(
+        "error_class",
+        str,
+        enum=ErrorClass.values,
+        description="Filter by error class (SYSTEM = server errors, also in Sentry).",
+    ),
     OpenApiParameter("reason_code", str, description="Filter by reason code."),
     OpenApiParameter(
         "trace_id",

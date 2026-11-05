@@ -74,6 +74,7 @@ class ErrorClassFilterTests(TestCase):
         self.user_a = _event(self.school_a.id, ErrorClass.USER)
         self.success_a = _event(self.school_a.id)
         self.system_b = _event(self.school_b.id, ErrorClass.SYSTEM)
+        self.user_b = _event(self.school_b.id, ErrorClass.USER)
 
     def _ids(self, url, params):
         response = self.client.get(url, params)
@@ -91,7 +92,7 @@ class ErrorClassFilterTests(TestCase):
         self.client.force_authenticate(user=self.superadmin)
         self.assertEqual(
             self._ids(SUPER_ADMIN_URL, {"error_class": "USER"}),
-            {str(self.user_a.id)},
+            {str(self.user_a.id), str(self.user_b.id)},
         )
 
     def test_school_admin_filter_stays_inside_their_school(self):
@@ -122,7 +123,7 @@ class ErrorClassFilterTests(TestCase):
 
     def test_no_filter_still_returns_everything(self):
         self.client.force_authenticate(user=self.superadmin)
-        self.assertEqual(len(self._ids(SUPER_ADMIN_URL, {})), 4)
+        self.assertEqual(len(self._ids(SUPER_ADMIN_URL, {})), 5)
 
     def test_documented_in_the_openapi_schema(self):
         from drf_spectacular.generators import SchemaGenerator
