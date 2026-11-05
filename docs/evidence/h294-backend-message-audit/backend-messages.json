@@ -1,0 +1,3633 @@
+[
+ {
+  "file": "assignments/views.py",
+  "line": 545,
+  "kind": "dict:message",
+  "text": "Assignment extraction started",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1193,
+  "kind": "dict:message",
+  "text": "Batch processing started for {\u2026} files",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1813,
+  "kind": "dict:message",
+  "text": "Batch processing started for {\u2026} submissions",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1872,
+  "kind": "dict:message",
+  "text": "Batch grading scheduled successfully",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1970,
+  "kind": "dict:message",
+  "text": "Successfully published {\u2026} submissions.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 757,
+  "kind": "dict:message",
+  "text": "Assignment update and re-extraction started",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 804,
+  "kind": "ParseError",
+  "text": "Topic ID is required.",
+  "flags": [
+   "\\bID\\b"
+  ]
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 809,
+  "kind": "ParseError",
+  "text": "Topic must belong to the same course as the assignment.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 872,
+  "kind": "ParseError",
+  "text": "Course ID is required.",
+  "flags": [
+   "\\bID\\b"
+  ]
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 907,
+  "kind": "ParseError",
+  "text": "No files were uploaded.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1057,
+  "kind": "ParseError",
+  "text": "Course ID is required.",
+  "flags": [
+   "\\bID\\b"
+  ]
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1083,
+  "kind": "ParseError",
+  "text": "No files were uploaded. Please try again",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1764,
+  "kind": "ParseError",
+  "text": "No ungraded submissons to process",
+  "flags": [
+   "submisson"
+  ]
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1846,
+  "kind": "ParseError",
+  "text": "Scheduled time cannot be in the past",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 603,
+  "kind": "PermissionDenied",
+  "text": "Insufficient credits to re-process this assignment edit.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 878,
+  "kind": "ParseError",
+  "text": "Invalid Course ID format. Must be with a valid UUID",
+  "flags": [
+   "\\bID\\b",
+   "\\bUUID\\b",
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 882,
+  "kind": "NotFound",
+  "text": "Course not found or you don't have access to it.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1676,
+  "kind": "ParseError",
+  "text": "This message is not an unsaved AI assignment draft.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1679,
+  "kind": "ParseError",
+  "text": "Draft assignment content is missing.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1925,
+  "kind": "dict:message",
+  "text": "No graded submissions found to publish.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 2021,
+  "kind": "dict:error",
+  "text": "This assignment has no questions to display.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 2033,
+  "kind": "PermissionDenied",
+  "text": "Only the course teacher can download the teacher version.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 930,
+  "kind": "dict:error",
+  "text": "The uploaded file appears to be malformed or corrupted. Please ensure it is a valid, readable file and try uploading again.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 851,
+  "kind": "dict:error",
+  "text": "No files were uploaded.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 855,
+  "kind": "dict:error",
+  "text": "File 'unsupported.txt' has an unsupported format. Only images and PDFs are allowed.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1036,
+  "kind": "dict:error",
+  "text": "No files were uploaded.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1040,
+  "kind": "dict:error",
+  "text": "File 'unsupported.txt' has an unsupported format. Only images and PDFs are allowed.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1591,
+  "kind": "dict:error",
+  "text": "That generation session no longer exists. Start a new session.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 2040,
+  "kind": "PermissionDenied",
+  "text": "You can only download published assignments.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 2061,
+  "kind": "dict:error",
+  "text": "The server is busy generating PDFs right now. Please try again in a moment.",
+  "flags": []
+ },
+ {
+  "file": "assignments/views.py",
+  "line": 1388,
+  "kind": "dict:detail",
+  "text": "You do not have permission to submit to this assignment",
+  "flags": []
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 89,
+  "kind": "ValidationError",
+  "text": "Invalid question_type `{\u2026}`. Allowed types: {\u2026}",
+  "flags": [
+   "\\bInvalid\\b",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 102,
+  "kind": "ValidationError",
+  "text": "Invalid blooms_level `{\u2026}`. Allow types: {\u2026}",
+  "flags": [
+   "\\bInvalid\\b",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 164,
+  "kind": "ValidationError",
+  "text": "Total points must be greater than 0",
+  "flags": []
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 169,
+  "kind": "ValidationError",
+  "text": "Question count must be greater than 0",
+  "flags": []
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 178,
+  "kind": "ValidationError",
+  "text": "Topic must belong to the same course as the assignment",
+  "flags": []
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 714,
+  "kind": "ValidationError",
+  "text": "Due date cannot be in the past.",
+  "flags": []
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 722,
+  "kind": "ValidationError",
+  "text": "Topic must belong to the selected course.",
+  "flags": []
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 764,
+  "kind": "ValidationError",
+  "text": "Due date cannot be in the past.",
+  "flags": []
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 787,
+  "kind": "ValidationError",
+  "text": "You do not have access to this course.",
+  "flags": []
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 797,
+  "kind": "ValidationError",
+  "text": "You do not have access to this course.",
+  "flags": []
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 802,
+  "kind": "ParseError",
+  "text": "Assignment content cannot be empty",
+  "flags": []
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 808,
+  "kind": "ValidationError",
+  "text": "Invalid status `{\u2026}`. Allowed statuses: {\u2026}",
+  "flags": [
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 822,
+  "kind": "ValidationError",
+  "text": "Topic must belong to the selected course.",
+  "flags": []
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 191,
+  "kind": "ValidationError",
+  "text": "Two questions have the same number ({\u2026}). Each question needs its own number.",
+  "flags": []
+ },
+ {
+  "file": "assignments/serializers.py",
+  "line": 208,
+  "kind": "ValidationError",
+  "text": "assignment_type `{\u2026}` requires all questions to have question_type `{\u2026}`. Question {\u2026} has question_type `{\u2026}`.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "assignments/tasks.py",
+  "line": 297,
+  "kind": "dict:message",
+  "text": "Assignment extracted successfully",
+  "flags": []
+ },
+ {
+  "file": "assignments/tasks.py",
+  "line": 376,
+  "kind": "dict:message",
+  "text": "Assignment updated and re-extracted successfully",
+  "flags": []
+ },
+ {
+  "file": "assignments/tasks.py",
+  "line": 463,
+  "kind": "dict:message",
+  "text": "Answers extracted successfully",
+  "flags": []
+ },
+ {
+  "file": "assignments/tasks.py",
+  "line": 738,
+  "kind": "dict:message",
+  "text": "Grading completed successfully",
+  "flags": []
+ },
+ {
+  "file": "assignments/tasks.py",
+  "line": 987,
+  "kind": "dict:message",
+  "text": "Grade formatted successfully",
+  "flags": []
+ },
+ {
+  "file": "assignments/tasks.py",
+  "line": 1099,
+  "kind": "dict:message",
+  "text": "Answers extracted successfully",
+  "flags": []
+ },
+ {
+  "file": "assignments/tasks.py",
+  "line": 1278,
+  "kind": "dict:message",
+  "text": "Grade formatted successfully",
+  "flags": []
+ },
+ {
+  "file": "assignments/tasks.py",
+  "line": 1368,
+  "kind": "dict:message",
+  "text": "Assignment uploaded successfully",
+  "flags": []
+ },
+ {
+  "file": "assignments/tasks.py",
+  "line": 437,
+  "kind": "dict:message",
+  "text": "This submission is already being processed by another worker \u2014 duplicate run skipped.",
+  "flags": []
+ },
+ {
+  "file": "assignments/tasks.py",
+  "line": 774,
+  "kind": "dict:message",
+  "text": "This submission was already graded - run skipped.",
+  "flags": []
+ },
+ {
+  "file": "assignments/tasks.py",
+  "line": 826,
+  "kind": "dict:message",
+  "text": "This submission is already being graded by another worker \u2014 duplicate run skipped.",
+  "flags": []
+ },
+ {
+  "file": "audit/filters.py",
+  "line": 15,
+  "kind": "ValidationError",
+  "text": "Not a valid UUID.",
+  "flags": [
+   "\\bUUID\\b"
+  ]
+ },
+ {
+  "file": "classrooms/models.py",
+  "line": 462,
+  "kind": "ValidationError",
+  "text": "A student with the exact name {\u2026} is already enrolled in this course.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/models.py",
+  "line": 117,
+  "kind": "ValidationError",
+  "text": "INDIVIDUAL sessions must have a teacher.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/models.py",
+  "line": 119,
+  "kind": "ValidationError",
+  "text": "INDIVIDUAL sessions must not have a school.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/models.py",
+  "line": 122,
+  "kind": "ValidationError",
+  "text": "SCHOOL sessions must have a school.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/models.py",
+  "line": 124,
+  "kind": "ValidationError",
+  "text": "SCHOOL sessions must not have a teacher.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 160,
+  "kind": "ValidationError",
+  "text": "{\u2026} is not a number between 0 and 100.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 187,
+  "kind": "ValidationError",
+  "text": "{\u2026} is not one of {\u2026}.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 333,
+  "kind": "dict:message",
+  "text": "School and admin created successfully",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 2111,
+  "kind": "PermissionDenied",
+  "text": "You do not have permission to create sessions.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 136,
+  "kind": "ValidationError",
+  "text": "{\u2026} is not a valid UUID.",
+  "flags": [
+   "\\bUUID\\b"
+  ]
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 1473,
+  "kind": "dict:detail",
+  "text": "Student added to course successfully.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 1625,
+  "kind": "PermissionDenied",
+  "text": "You do not have permission to remove students from this course. Only course teacher can",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 1656,
+  "kind": "dict:detail",
+  "text": "Student removed from course successfully.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 1702,
+  "kind": "ParseError",
+  "text": "Only students can access their enrolled courses.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 1797,
+  "kind": "ParseError",
+  "text": "student_id query parameter is required.",
+  "flags": [
+   "\\bparam",
+   "\\bquery\\b",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 1806,
+  "kind": "NotFound",
+  "text": "This student is not enrolled in the course.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 1132,
+  "kind": "dict:detail",
+  "text": "School not found for this user.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 1135,
+  "kind": "dict:detail",
+  "text": "School not found.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 1895,
+  "kind": "dict:detail",
+  "text": "Expected a list of topics.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 2067,
+  "kind": "ParseError",
+  "text": "You are not assigned as an admin for any school.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 2079,
+  "kind": "PermissionDenied",
+  "text": "Sessions for your school are managed by your school admin. Contact them to add or update academic sessions.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 2095,
+  "kind": "ParseError",
+  "text": "Superadmin session creation requires an explicit 'school' field (to create a SCHOOL session) \u2014 there's no superadmin path for creating an INDIVIDUAL session on a teacher's behalf.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 1119,
+  "kind": "dict:detail",
+  "text": "You do not have permission to view this school.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 1128,
+  "kind": "dict:detail",
+  "text": "school_id is required for superadmins.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 1148,
+  "kind": "ValidationError",
+  "text": "{\u2026} is not a whole number.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/views.py",
+  "line": 1520,
+  "kind": "dict:message",
+  "text": "Unable to add student to course",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 636,
+  "kind": "ValidationError",
+  "text": "We couldn't add this student to the course. Please try again.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 116,
+  "kind": "ValidationError",
+  "text": "Name cannot be empty.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 133,
+  "kind": "ValidationError",
+  "text": "You do not have access to this course.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 139,
+  "kind": "ValidationError",
+  "text": "You do not have access to this course.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 197,
+  "kind": "ValidationError",
+  "text": "You do not have access to this session.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 448,
+  "kind": "ValidationError",
+  "text": "Final grade must be between 0 and 100.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 454,
+  "kind": "ValidationError",
+  "text": "Participation score must be between 0 and 100.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 721,
+  "kind": "ValidationError",
+  "text": "Course context is required.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 863,
+  "kind": "ValidationError",
+  "text": "School name cannot be empty.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 1034,
+  "kind": "ValidationError",
+  "text": "Personal emails are not allowed for school admin accounts. Please use a business email address.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 1045,
+  "kind": "ValidationError",
+  "text": "A school with this name already exists.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 1049,
+  "kind": "ValidationError",
+  "text": "A user with this email address already exists.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 1269,
+  "kind": "ValidationError",
+  "text": "Category name cannot be empty.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 201,
+  "kind": "ValidationError",
+  "text": "You do not have access to this session.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 706,
+  "kind": "ValidationError",
+  "text": "A student with the exact name {\u2026} is already enrolled in this course.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 1120,
+  "kind": "ValidationError",
+  "text": "A school or user with these details already exists.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 206,
+  "kind": "ValidationError",
+  "text": "You do not have access to this session.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/serializers.py",
+  "line": 736,
+  "kind": "ValidationError",
+  "text": "A student with this email is already enrolled in this course.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/services/enrollment.py",
+  "line": 612,
+  "kind": "EnrollmentError",
+  "text": "Invalid token or user not found.",
+  "flags": [
+   "\\btoken\\b",
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "classrooms/services/enrollment.py",
+  "line": 623,
+  "kind": "EnrollmentError",
+  "text": "No pending enrollment found for this user.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/services/enrollment.py",
+  "line": 435,
+  "kind": "EnrollmentError",
+  "text": "A student with this email is already enrolled in this course.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/services/enrollment.py",
+  "line": 588,
+  "kind": "EnrollmentError",
+  "text": "Student is not enrolled in this course.",
+  "flags": []
+ },
+ {
+  "file": "students/services.py",
+  "line": 1748,
+  "kind": "SubmissionLimitReachedError",
+  "text": "You have reached the maximum of {\u2026} submissions for this assignment",
+  "flags": []
+ },
+ {
+  "file": "students/services.py",
+  "line": 1860,
+  "kind": "AssignmentNotOpenError",
+  "text": "This assignment is not currently open for submissions.",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 787,
+  "kind": "dict:message",
+  "text": "Answer Extraction Started",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 1006,
+  "kind": "dict:message",
+  "text": "Grade engine started successfully",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 1070,
+  "kind": "dict:message",
+  "text": "Grading scheduled successfully",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 1588,
+  "kind": "dict:message",
+  "text": "Batch processing started for {\u2026} files",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 333,
+  "kind": "PermissionDenied",
+  "text": "This filter or ordering is not available for your account.",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 589,
+  "kind": "ParseError",
+  "text": "This assignment is not currently open for submissions.",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 593,
+  "kind": "ParseError",
+  "text": "No files uploaded. Please try again.",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 600,
+  "kind": "ParseError",
+  "text": "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed.",
+  "flags": [
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "students/views.py",
+  "line": 695,
+  "kind": "ParseError",
+  "text": "This assignment is not currently open for submissions.",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 699,
+  "kind": "ParseError",
+  "text": "No files uploaded. Please try again.",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 706,
+  "kind": "ParseError",
+  "text": "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed.",
+  "flags": [
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "students/views.py",
+  "line": 803,
+  "kind": "ParseError",
+  "text": "raw_input is required.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "students/views.py",
+  "line": 811,
+  "kind": "ParseError",
+  "text": "Cannot update submission for a non-published assignment.",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 853,
+  "kind": "ParseError",
+  "text": "raw_input is required.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "students/views.py",
+  "line": 861,
+  "kind": "ParseError",
+  "text": "Cannot update submission for a non-published assignment.",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 896,
+  "kind": "dict:message",
+  "text": "Answer re-extraction started",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 1039,
+  "kind": "ParseError",
+  "text": "Scheduled time must be in the future",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 1045,
+  "kind": "ParseError",
+  "text": "Scheduled time must be after the due date",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 1458,
+  "kind": "ParseError",
+  "text": "No files uploaded. Please try again.",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 1138,
+  "kind": "dict:message",
+  "text": "Retrieving teacher feedback",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 940,
+  "kind": "dict:error",
+  "text": "This submission is already being graded. Please wait for it to finish before trying again.",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 1203,
+  "kind": "dict:error",
+  "text": "A 'score' value is required.",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 1224,
+  "kind": "dict:error",
+  "text": "This submission has no recorded maximum points, so a percentage cannot be calculated. Re-grade the submission first.",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 1239,
+  "kind": "dict:error",
+  "text": "Score must be between 0 and {\u2026} for this assignment.",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 1211,
+  "kind": "dict:error",
+  "text": "Score must be a number.",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 548,
+  "kind": "dict:error",
+  "text": "Invalid file upload",
+  "flags": [
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "students/views.py",
+  "line": 558,
+  "kind": "dict:error",
+  "text": "File 'example.txt' has an invalid format. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed.",
+  "flags": [
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "students/views.py",
+  "line": 571,
+  "kind": "dict:error",
+  "text": "Internal Server Error",
+  "flags": []
+ },
+ {
+  "file": "students/views.py",
+  "line": 1438,
+  "kind": "dict:detail",
+  "text": "No files uploaded. Please try again.",
+  "flags": []
+ },
+ {
+  "file": "billing/views_admin_credits.py",
+  "line": 305,
+  "kind": "NotFound",
+  "text": "No manual grant found with id {\u2026}.",
+  "flags": []
+ },
+ {
+  "file": "billing/views_admin_credits.py",
+  "line": 201,
+  "kind": "NotFound",
+  "text": "No user found with id {\u2026}.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_stripe_mutation.py",
+  "line": 860,
+  "kind": "LicenceStripeChangeNotRecorded",
+  "text": "The change was applied at our payment provider but could not be recorded. It has been flagged for manual reconciliation.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_stripe_mutation.py",
+  "line": 852,
+  "kind": "LicenceStripeChangeNotRecorded",
+  "text": "The change could not be recorded, so it was undone. Nothing was changed; please try again.",
+  "flags": []
+ },
+ {
+  "file": "billing/services.py",
+  "line": 188,
+  "kind": "BillingRequestError",
+  "text": "The Beta plan is restricted to teacher accounts.",
+  "flags": []
+ },
+ {
+  "file": "billing/services.py",
+  "line": 425,
+  "kind": "PlanAssignmentRefused",
+  "text": "The Beta plan is restricted to teacher accounts.",
+  "flags": []
+ },
+ {
+  "file": "billing/services.py",
+  "line": 440,
+  "kind": "PlanAssignmentRefused",
+  "text": "This account has already received the {\u2026} plan. It can only be granted once. Use a manual credit grant for additional credits.",
+  "flags": []
+ },
+ {
+  "file": "billing/services.py",
+  "line": 455,
+  "kind": "PlanAssignmentRefused",
+  "text": "This account has a Stripe-billed subscription. It must be cancelled or changed through the Stripe subscription flow before another plan can be activated.",
+  "flags": [
+   "\\bstripe"
+  ]
+ },
+ {
+  "file": "billing/services.py",
+  "line": 1058,
+  "kind": "BillingRequestError",
+  "text": "No active subscription to schedule a change for.",
+  "flags": []
+ },
+ {
+  "file": "billing/services.py",
+  "line": 1124,
+  "kind": "BillingRequestError",
+  "text": "No active subscription found.",
+  "flags": []
+ },
+ {
+  "file": "billing/services.py",
+  "line": 2243,
+  "kind": "BillingRequestError",
+  "text": "Block count must be at least 1.",
+  "flags": [
+   "\\bblocks?\\b"
+  ]
+ },
+ {
+  "file": "billing/services.py",
+  "line": 2247,
+  "kind": "BillingRequestError",
+  "text": "{\u2026} has no active plan to determine block size.",
+  "flags": [
+   "\\bblocks?\\b"
+  ]
+ },
+ {
+  "file": "billing/services.py",
+  "line": 2253,
+  "kind": "BillingRequestError",
+  "text": "Grant exceeds the maximum storable credit amount; reduce blocks.",
+  "flags": [
+   "\\bblocks?\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 280,
+  "kind": "ValidationError",
+  "text": "target_datetime must not be in the future.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 289,
+  "kind": "ValidationError",
+  "text": "Only applicable to LICENSE + mid_cycle_grant.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 293,
+  "kind": "ValidationError",
+  "text": "trial_expiry does not apply to LICENSE subscriptions \u2014 licenses have no trial concept.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 465,
+  "kind": "BillingRequestError",
+  "text": "Subscription is not active \u2014 nothing to simulate.",
+  "flags": []
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 584,
+  "kind": "BillingRequestError",
+  "text": "License is not active \u2014 nothing to simulate.",
+  "flags": []
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 478,
+  "kind": "BillingRequestError",
+  "text": "Subscription is not a trial. Use mode='full_renewal' instead.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 588,
+  "kind": "BillingRequestError",
+  "text": "License is billed OFFLINE. Neither the invoice.payment_succeeded webhook nor process_license_renewals (which excludes billing_method=OFFLINE) will process this automatically. Use the renew-offline endpoint directly to test offline renewal instead.",
+  "flags": [
+   "\\bendpoint\\b",
+   "\\bwebhook\\b",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 597,
+  "kind": "BillingRequestError",
+  "text": "This license has no stripe_subscription_id \u2014 nothing to simulate via webhook/Celery here.",
+  "flags": [
+   "\\bstripe",
+   "\\bwebhook\\b",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 487,
+  "kind": "BillingRequestError",
+  "text": "Subscription is currently a trial. Use mode='trial_expiry' to simulate trial expiry instead \u2014 a trial does not renew via invoice.payment_succeeded the same way a paid subscription does.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 494,
+  "kind": "BillingRequestError",
+  "text": "This subscription has no stripe_subscription_id. Neither the invoice.payment_succeeded webhook nor reconcile_subscription_renewals (which requires stripe_subscription_id__isnull=False) will process this automatically \u2014 nothing to simulate here.",
+  "flags": [
+   "\\bstripe",
+   "\\bwebhook\\b",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 628,
+  "kind": "BillingRequestError",
+  "text": "This license's billing_cycle_end has already elapsed locally \u2014 process_license_monthly_credit_refreshes requires license_subscription__billing_cycle_end__gt=now (otherwise the real contract renewal takes over instead). Use mode='full_renewal', or restore billing_cycle_end first.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 645,
+  "kind": "BillingRequestError",
+  "text": "No active SchoolCreditAllocation found matching this request (check allocation_user_id, or that the license has active allocations at all).",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 514,
+  "kind": "BillingRequestError",
+  "text": "mid_cycle_grant does not apply to trial subscriptions.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 518,
+  "kind": "BillingRequestError",
+  "text": "mid_cycle_grant only applies to ANNUAL-interval plans \u2014 this subscription's plan interval is {\u2026}. MONTHLY plans have no separate mid-cycle grant concept (the renewal IS the credit grant); use full_renewal instead.",
+  "flags": [
+   "\\bcycle\\b",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_time_travel.py",
+  "line": 525,
+  "kind": "BillingRequestError",
+  "text": "This subscription's annual billing_cycle_end has already elapsed locally \u2014 process_annual_plan_credit_grants requires billing_cycle_end to still be in the future (otherwise the real annual renewal takes over instead). Use mode='full_renewal' to test that path, or restore billing_cycle_end first.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 545,
+  "kind": "BillingRequestError",
+  "text": "No active subscription or license found for this account.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 2605,
+  "kind": "BillingRequestError",
+  "text": "Your account is covered by {\u2026}'s license, so an individual plan would be charged on top of a seat you already have. If you want a personal subscription as well, use a separate account on a personal email address.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 540,
+  "kind": "BillingRequestError",
+  "text": "Teachers don't manage billing directly \u2014 payment methods are managed by your school's license admin.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 699,
+  "kind": "BillingRequestError",
+  "text": "Checkout is only valid for INDIVIDUAL plans.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 716,
+  "kind": "BillingRequestError",
+  "text": "User already has a chargeable active subscription. Use the upgrade/downgrade flow instead of checkout.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 797,
+  "kind": "BillingRequestError",
+  "text": "Plan {\u2026} is contact-sales only and must be set up manually, not through self-serve checkout.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 917,
+  "kind": "BillingRequestError",
+  "text": "License is not offline; nothing to convert.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 921,
+  "kind": "BillingRequestError",
+  "text": "Plan {\u2026} is contact-sales only and must be set up manually in Stripe.",
+  "flags": [
+   "\\bstripe"
+  ]
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 928,
+  "kind": "BillingRequestError",
+  "text": "This license's current billing cycle has already ended. Renew it offline first, then convert to Stripe so the new cycle end can be used as the billing anchor.",
+  "flags": [
+   "\\bstripe",
+   "\\bcycle\\b"
+  ]
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 1080,
+  "kind": "BillingRequestError",
+  "text": "This subscription has already been fully canceled with our payment provider and cannot be resumed. Please subscribe again via select-plan.",
+  "flags": [
+   "\\bcanceled\\b"
+  ]
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 1488,
+  "kind": "BillingRequestError",
+  "text": "This subscription has no associated Stripe subscription. (it may have been granted manually). Contact support to upgrade.",
+  "flags": [
+   "\\bstripe"
+  ]
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 1909,
+  "kind": "LicenceStripeChangeNotRecorded",
+  "text": "The plan change could not be paid, and undoing it at our payment provider failed. It has been flagged for manual reconciliation.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 2427,
+  "kind": "BillingRequestError",
+  "text": "No active subscription found.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 2431,
+  "kind": "BillingRequestError",
+  "text": "This plan does not support overage credit purchases.",
+  "flags": [
+   "overage"
+  ]
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 2598,
+  "kind": "BillingRequestError",
+  "text": "Your account is the license administrator for {\u2026}, so it is already covered by that school's license. Individual plans are for personal accounts and cannot be combined with a school license.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 2639,
+  "kind": "BillingRequestError",
+  "text": "A plan change is already being processed for your account. Please wait a moment and try again.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 1101,
+  "kind": "BillingRequestError",
+  "text": "This subscription's current billing period has already ended. Please subscribe again via select-plan.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 1960,
+  "kind": "LicenceStripeChangeNotRecorded",
+  "text": "The plan change was applied at our payment provider but its payment could not be confirmed. It has been flagged for manual reconciliation.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 2690,
+  "kind": "dict:message",
+  "text": "Scheduled change cancelled. You'll stay on {\u2026}.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 2787,
+  "kind": "dict:message",
+  "text": "Redirecting to secure checkout to complete your subscription.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 2875,
+  "kind": "BillingRequestError",
+  "text": "Your current subscription has a payment issue. Please update your payment method before changing plans.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 2883,
+  "kind": "BillingRequestError",
+  "text": "You are already subscribed to this plan.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 2886,
+  "kind": "BillingRequestError",
+  "text": "Your current plan is a custom/contact-sales plan and can't be changed through self-serve plan selection. Please contact support.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 2892,
+  "kind": "BillingRequestError",
+  "text": "This plan isn't available for direct self-serve switching right now. Please contact support.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 2778,
+  "kind": "BillingRequestError",
+  "text": "success_url and cancel_url are required to start checkout.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 2803,
+  "kind": "BillingRequestError",
+  "text": "success_url and cancel_url are required to complete an upgrade.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/stripe_view_schemas.py",
+  "line": 143,
+  "kind": "dict:detail",
+  "text": "User already has an active subscription. Use change_plan() to switch plans instead of creating a new checkout session.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/stripe_view_schemas.py",
+  "line": 154,
+  "kind": "dict:detail",
+  "text": "Plan STANDARD has no stripe_price_id configured.",
+  "flags": [
+   "\\bstripe",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/stripe_view_schemas.py",
+  "line": 266,
+  "kind": "dict:detail",
+  "text": "That plan is cheaper than your current plan. Use /subscription/downgrade/ instead.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_view_schemas.py",
+  "line": 276,
+  "kind": "dict:detail",
+  "text": "Upgrade payment failed (invoice status: open). Your plan has not been changed.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_view_schemas.py",
+  "line": 286,
+  "kind": "dict:detail",
+  "text": "Upgrade payment requires additional authentication (3D Secure) that can't be completed automatically here. Please update your payment method and try again. Your plan has not been changed.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_view_schemas.py",
+  "line": 358,
+  "kind": "dict:message",
+  "text": "Downgrade scheduled for the end of the current billing cycle",
+  "flags": [
+   "\\bcycle\\b"
+  ]
+ },
+ {
+  "file": "billing/stripe_view_schemas.py",
+  "line": 419,
+  "kind": "dict:message",
+  "text": "Subscription will not renew at the end of the current billing cycle",
+  "flags": [
+   "\\bcycle\\b"
+  ]
+ },
+ {
+  "file": "billing/stripe_view_schemas.py",
+  "line": 435,
+  "kind": "dict:message",
+  "text": "No active subscription found to cancel",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_view_schemas.py",
+  "line": 600,
+  "kind": "dict:error",
+  "text": "Plan CUSTOM_LICENSE_HIGH is contact-sales only and must be set up manually, not through self-serve checkout.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/stripe_view_schemas.py",
+  "line": 610,
+  "kind": "dict:error",
+  "text": "License subscriptions require a LICENSE plan, not INDIVIDUAL.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_view_schemas.py",
+  "line": 831,
+  "kind": "dict:error",
+  "text": "License abc123 renewal failed for all teachers.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_view_schemas.py",
+  "line": 695,
+  "kind": "dict:error",
+  "text": "This teacher can't be added to your school yet. Please ask them to contact support.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 243,
+  "kind": "BillingRequestError",
+  "text": "License is not active.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 246,
+  "kind": "BillingRequestError",
+  "text": "total_blocks must be a positive integer.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 249,
+  "kind": "BillingRequestError",
+  "text": "total_blocks ({\u2026}) exceeds the maximum of {\u2026} blocks per purchase. Split this into multiple purchases if needed.",
+  "flags": [
+   "\\bblocks?\\b",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 256,
+  "kind": "BillingRequestError",
+  "text": "allocations cannot be empty.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 266,
+  "kind": "BillingRequestError",
+  "text": "Sum of allocated blocks ({\u2026}) must equal total_blocks ({\u2026}).",
+  "flags": [
+   "\\bblocks?\\b",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 289,
+  "kind": "BillingRequestError",
+  "text": "Teachers not active under this license: {\u2026}",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 346,
+  "kind": "LicenseRequestError",
+  "text": "Plan {\u2026} has category={\u2026}, but only LICENSE plans are allowed for license subscriptions.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 352,
+  "kind": "LicenseRequestError",
+  "text": "License plan {\u2026} must define monthly_credits. Custom/contact-sales plans cannot be activated directly.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 358,
+  "kind": "LicenseRequestError",
+  "text": "Standard Grader tier is not available under License subscription",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 389,
+  "kind": "LicenseRequestError",
+  "text": "max_seats must be a positive integer",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 421,
+  "kind": "LicenseRequestError",
+  "text": "This licence has {\u2026}, but {\u2026}. Remove a teacher or increase Max seats.",
+  "flags": [
+   "licence"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 475,
+  "kind": "LicenseRequestError",
+  "text": "Student users cannot manage license subscriptions.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 483,
+  "kind": "LicenseRequestError",
+  "text": "User {\u2026} is a super admin and cannot be set as the license admin for school {\u2026}. Name a school admin belonging to that school instead.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 490,
+  "kind": "LicenseRequestError",
+  "text": "User {\u2026} does not belong to any school and cannot manage licenses for school {\u2026}.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 496,
+  "kind": "LicenseRequestError",
+  "text": "User {\u2026} is not authorized to manage licenses for school {\u2026}.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 535,
+  "kind": "LicenseRequestError",
+  "text": "School {\u2026} has no school admin, so there is nobody to manage its license. Create the school's admin first (POST /schools/create_with_admin/), then create the license.",
+  "flags": [
+   "/api/|POST |PATCH ",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 1224,
+  "kind": "BillingRequestError",
+  "text": "Teacher email is required",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 1457,
+  "kind": "BillingRequestError",
+  "text": "Teacher {\u2026} does not belong to school {\u2026}. Cannot enroll.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 1979,
+  "kind": "LicenseRequestError",
+  "text": "This teacher isn't an active teacher on this licence.",
+  "flags": [
+   "licence"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 2758,
+  "kind": "BillingRequestError",
+  "text": "max_seats must be a positive integer.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 2875,
+  "kind": "LicenceStripeChangeNotRecorded",
+  "text": "The seat increase could not be paid, and undoing it at our payment provider failed. It has been flagged for manual reconciliation.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 3033,
+  "kind": "BillingRequestError",
+  "text": "An overage purchase is already being processed for this license. Please wait a moment and try again.",
+  "flags": [
+   "overage"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 3208,
+  "kind": "BillingRequestError",
+  "text": "Teachers not active under this license: {\u2026}",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 3473,
+  "kind": "BillingRequestError",
+  "text": "An overage purchase is already being processed for this license. Please wait a moment and try again.",
+  "flags": [
+   "overage"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 3674,
+  "kind": "BillingRequestError",
+  "text": "This request has already been reviewed.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 4087,
+  "kind": "BillingRequestError",
+  "text": "License {\u2026} is billed via {\u2026}, not OFFLINE. Use the Stripe renewal path instead.",
+  "flags": [
+   "\\bstripe"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 4097,
+  "kind": "BillingRequestError",
+  "text": "Cannot renew an inactive license. Reactivate it first.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 4103,
+  "kind": "BillingRequestError",
+  "text": "new_billing_cycle_end must be in the future.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 4357,
+  "kind": "BillingRequestError",
+  "text": "blocks must be a positive integer.",
+  "flags": [
+   "\\bblocks?\\b"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 4365,
+  "kind": "BillingRequestError",
+  "text": "{\u2026} is not actively enrolled under this license.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 4462,
+  "kind": "BillingRequestError",
+  "text": "Cannot change the plan of an inactive license. Reactivate it first",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 4467,
+  "kind": "BillingRequestError",
+  "text": "License subscriptions require a LICENSE plan, not {\u2026}.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 4473,
+  "kind": "BillingRequestError",
+  "text": "This plan is no longer available for selection.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 4479,
+  "kind": "BillingRequestError",
+  "text": "This license has a payment issue. Please resolve it (or convert it to offline billing) before changing plans.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 260,
+  "kind": "BillingRequestError",
+  "text": "Invalid block count for teacher {\u2026}: {\u2026}.",
+  "flags": [
+   "\\bblocks?\\b",
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 829,
+  "kind": "dict:error",
+  "text": "Teacher could not be resolved or created.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 1499,
+  "kind": "BillingRequestError",
+  "text": "License {\u2026} for school {\u2026} has reached its seat limit of {\u2026}. Upgrade the license or remove an existing teacher to enroll a new one.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 2338,
+  "kind": "BillingRequestError",
+  "text": "License is already inactive.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 2340,
+  "kind": "BillingRequestError",
+  "text": "License is already scheduled to cancel.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 2765,
+  "kind": "BillingRequestError",
+  "text": "Cannot reduce max_seats to {\u2026} because there are {\u2026} active teachers. Remove some teachers first.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 2771,
+  "kind": "BillingRequestError",
+  "text": "License already has this many seats.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 2872,
+  "kind": "BillingRequestError",
+  "text": "Seat increase payment failed. Seats have not been increased.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 3054,
+  "kind": "BillingRequestError",
+  "text": "You are not authorized to purchase overage for this license.",
+  "flags": [
+   "overage"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 3073,
+  "kind": "BillingRequestError",
+  "text": "success_url and cancel_url are required to start checkout.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 3483,
+  "kind": "BillingRequestError",
+  "text": "This request has already been reviewed.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 2611,
+  "kind": "BillingRequestError",
+  "text": "License is already on this plan with the same price.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 2922,
+  "kind": "LicenceStripeChangeNotRecorded",
+  "text": "The seat change was applied at our payment provider but its payment could not be confirmed. It has been flagged for manual reconciliation.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 4279,
+  "kind": "BillingRequestError",
+  "text": "License is already billed offline.",
+  "flags": []
+ },
+ {
+  "file": "billing/payment_method_views.py",
+  "line": 539,
+  "kind": "dict:detail",
+  "text": "This is your only payment method and your subscription renews automatically. Add another card before removing this one.",
+  "flags": []
+ },
+ {
+  "file": "billing/payment_method_views.py",
+  "line": 88,
+  "kind": "dict:detail",
+  "text": "That payment method does not belong to your account.",
+  "flags": []
+ },
+ {
+  "file": "billing/payment_method_views.py",
+  "line": 183,
+  "kind": "dict:detail",
+  "text": "Teachers don't manage billing directly \u2014 payment methods are managed by your school's license admin.",
+  "flags": []
+ },
+ {
+  "file": "billing/payment_method_views.py",
+  "line": 492,
+  "kind": "dict:detail",
+  "text": "This is your only payment method and your subscription renews automatically. Add another card before removing this one.",
+  "flags": []
+ },
+ {
+  "file": "billing/payment_method_views.py",
+  "line": 512,
+  "kind": "dict:detail",
+  "text": "That payment method does not belong to your account.",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 570,
+  "kind": "dict:message",
+  "text": "You don't have a subscription yet.",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 1380,
+  "kind": "dict:message",
+  "text": "Redirecting to secure checkout to complete your overage purchase.",
+  "flags": [
+   "overage"
+  ]
+ },
+ {
+  "file": "billing/views.py",
+  "line": 898,
+  "kind": "dict:message",
+  "text": "No active subscription found",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 924,
+  "kind": "dict:detail",
+  "text": "A billing change is already being processed for your account. Please wait a moment and try again.",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 1105,
+  "kind": "dict:detail",
+  "text": "A billing change is already being processed for your account. Please wait a moment and try again.",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 2277,
+  "kind": "dict:message",
+  "text": "No beta usage data recorded yet",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 1121,
+  "kind": "dict:message",
+  "text": "No active subscription found to resume",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 1131,
+  "kind": "dict:detail",
+  "text": "This subscription's current billing period has already ended. Please subscribe again via select-plan.",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 1376,
+  "kind": "dict:detail",
+  "text": "An unexpected error occurred. Please try again later.",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 1505,
+  "kind": "dict:message",
+  "text": "No credit wallet found",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 941,
+  "kind": "dict:message",
+  "text": "No active subscription found to cancel",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 1173,
+  "kind": "dict:detail",
+  "text": "Your subscription ended during this request. Please subscribe again via select-plan.",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 1544,
+  "kind": "dict:message",
+  "text": "No subscription found",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 1160,
+  "kind": "dict:message",
+  "text": "Your subscription already renewed during this request \u2014 no action was needed.",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 721,
+  "kind": "dict:message",
+  "text": "You don't have a subscription yet.",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 884,
+  "kind": "dict:message",
+  "text": "No active subscription found",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 1401,
+  "kind": "dict:message",
+  "text": "No subscription history found",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 1451,
+  "kind": "dict:message",
+  "text": "No wallet found",
+  "flags": []
+ },
+ {
+  "file": "billing/views.py",
+  "line": 1484,
+  "kind": "dict:message",
+  "text": "No subscription found",
+  "flags": []
+ },
+ {
+  "file": "billing/license_views.py",
+  "line": 495,
+  "kind": "dict:error",
+  "text": "Only super admins can manually process renewals",
+  "flags": []
+ },
+ {
+  "file": "billing/license_views.py",
+  "line": 720,
+  "kind": "dict:detail",
+  "text": "The 'max_seats' field is required.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/license_views.py",
+  "line": 1148,
+  "kind": "dict:detail",
+  "text": "The 'school' query parameter is required.",
+  "flags": [
+   "\\bparam",
+   "\\bquery\\b"
+  ]
+ },
+ {
+  "file": "billing/license_views.py",
+  "line": 691,
+  "kind": "dict:detail",
+  "text": "An unexpected error occurred.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_views.py",
+  "line": 729,
+  "kind": "dict:detail",
+  "text": "max_seats must be a positive integer.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/license_views.py",
+  "line": 752,
+  "kind": "dict:detail",
+  "text": "An unexpected error occurred.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_views.py",
+  "line": 841,
+  "kind": "dict:detail",
+  "text": "An unexpected error occurred.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_views.py",
+  "line": 623,
+  "kind": "dict:message",
+  "text": "License upgraded to Power License. The school was charged the prorated difference immediately.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_views.py",
+  "line": 636,
+  "kind": "dict:message",
+  "text": "License moved to Pro License. This license is billed offline, so no Stripe charge was made. A billing record was logged \u2014 remember to adjust the school's invoice or contract to match the new price separately.",
+  "flags": [
+   "\\bstripe"
+  ]
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 209,
+  "kind": "ValidationError",
+  "text": "Only a superadmin can activate a subscription directly. Use the plan selection flow to subscribe.",
+  "flags": []
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 216,
+  "kind": "ValidationError",
+  "text": "This field is required.",
+  "flags": []
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 1485,
+  "kind": "ValidationError",
+  "text": "expires_at must be a future datetime.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 2088,
+  "kind": "ValidationError",
+  "text": "License subscriptions require a LICENSE plan, not {\u2026}.",
+  "flags": []
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 2104,
+  "kind": "ValidationError",
+  "text": "Contract months must be at least 1.",
+  "flags": []
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 2109,
+  "kind": "ValidationError",
+  "text": "max_seats must be a positive integer.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 2451,
+  "kind": "ValidationError",
+  "text": "Sum of allocated blocks ({\u2026}) must equal total_blocks ({\u2026}).",
+  "flags": [
+   "\\bblocks?\\b",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 2641,
+  "kind": "ValidationError",
+  "text": "This endpoint only supports INDIVIDUAL plans. Institutional (school/license) billing is managed separately by school admins.",
+  "flags": [
+   "\\bendpoint\\b"
+  ]
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 2654,
+  "kind": "ValidationError",
+  "text": "The {\u2026} plan cannot be selected directly.",
+  "flags": []
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 2661,
+  "kind": "ValidationError",
+  "text": "This plan has no price configured and cannot be selected.",
+  "flags": []
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 2666,
+  "kind": "ValidationError",
+  "text": "This plan is no longer available for new selections.",
+  "flags": []
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 2671,
+  "kind": "ValidationError",
+  "text": "This plan isn't fully configured for billing yet. Please contact support.",
+  "flags": []
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 2683,
+  "kind": "ValidationError",
+  "text": "success_url and cancel_url should not be identical.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 1478,
+  "kind": "ValidationError",
+  "text": "No user found with id {\u2026}.",
+  "flags": []
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 2439,
+  "kind": "ValidationError",
+  "text": "Duplicate teacher {\u2026} in allocations (case-insensitive match) \u2014 each teacher may appear only once.",
+  "flags": []
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 2636,
+  "kind": "ValidationError",
+  "text": "No plan found with id {\u2026}.",
+  "flags": []
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 189,
+  "kind": "ValidationError",
+  "text": "Invalid plan id.",
+  "flags": [
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "billing/serializers.py",
+  "line": 2435,
+  "kind": "ValidationError",
+  "text": "{\u2026} is not a valid teacher UUID.",
+  "flags": [
+   "\\bUUID\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_console.py",
+  "line": 162,
+  "kind": "ValidationError",
+  "text": "seed is required for a chaos run.",
+  "flags": []
+ },
+ {
+  "file": "billing/qa_console.py",
+  "line": 166,
+  "kind": "ValidationError",
+  "text": "scenario_names or tier is required for a scenario run \u2014 leaving both empty would silently run every scenario, including hours-long deep-tier ones.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "billing/qa_console.py",
+  "line": 503,
+  "kind": "dict:error",
+  "text": "No test subscriber yet \u2014 create one first.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1251,
+  "kind": "QueryParamError",
+  "text": "{\u2026} must be at least 1.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1267,
+  "kind": "QueryParamError",
+  "text": "{\u2026} must be between 0 and 100.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1249,
+  "kind": "QueryParamError",
+  "text": "{\u2026} must be a whole number.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1263,
+  "kind": "QueryParamError",
+  "text": "{\u2026} must be a number.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1421,
+  "kind": "dict:detail",
+  "text": "School admin must be associated with a school.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1693,
+  "kind": "dict:detail",
+  "text": "School admin must be associated with a school.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1729,
+  "kind": "dict:detail",
+  "text": "start_date must not be after end_date.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1736,
+  "kind": "dict:detail",
+  "text": "Window too large: max {\u2026} weeks between start_date and end_date.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1894,
+  "kind": "dict:detail",
+  "text": "School admin must be associated with a school.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 2012,
+  "kind": "dict:detail",
+  "text": "School admin must be associated with a school.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 2291,
+  "kind": "dict:detail",
+  "text": "School admin must be associated with a school.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 2497,
+  "kind": "dict:detail",
+  "text": "School admin must be associated with a school.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 2611,
+  "kind": "dict:detail",
+  "text": "User is not associated with any school",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 2763,
+  "kind": "dict:detail",
+  "text": "School admin must be associated with a school.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 2884,
+  "kind": "dict:detail",
+  "text": "School admin must be associated with a school.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1382,
+  "kind": "dict:detail",
+  "text": "No session with that ID exists for this school.",
+  "flags": [
+   "\\bID\\b"
+  ]
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1442,
+  "kind": "dict:detail",
+  "text": "User is not associated with any school",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1704,
+  "kind": "dict:detail",
+  "text": "end_date must be in YYYY-MM-DD format.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1712,
+  "kind": "dict:detail",
+  "text": "start_date must be in YYYY-MM-DD format.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1875,
+  "kind": "dict:detail",
+  "text": "School admin must be associated with a school.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 1986,
+  "kind": "dict:detail",
+  "text": "School admin must be associated with a school.",
+  "flags": []
+ },
+ {
+  "file": "dashboard/views.py",
+  "line": 2272,
+  "kind": "dict:detail",
+  "text": "School admin must be associated with a school.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/image_formats.py",
+  "line": 31,
+  "kind": "ValidationError",
+  "text": "Upload a JPEG, PNG, GIF or WEBP image.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 147,
+  "kind": "ReasonSpec",
+  "text": "Choose the student this paper belongs to, or add them to the course.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 155,
+  "kind": "ReasonSpec",
+  "text": "{file_name} belongs to {student_display}, who isn't enrolled in this course.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 155,
+  "kind": "ReasonSpec",
+  "text": "Add the student to the course roster, then retry this paper.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 164,
+  "kind": "ReasonSpec",
+  "text": "We couldn't read {file_name}. It may be damaged, password-protected or incomplete.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 164,
+  "kind": "ReasonSpec",
+  "text": "Re-export or re-scan the file and upload it again.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 173,
+  "kind": "ReasonSpec",
+  "text": "{file_name} is a {detected_type} file, which isn't supported. Accepted types: {accepted_types}.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 173,
+  "kind": "ReasonSpec",
+  "text": "Save or export the file as a PDF or an image, and upload it again.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 183,
+  "kind": "ReasonSpec",
+  "text": "{file_name} is {actual} and the limit is {limit}.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 183,
+  "kind": "ReasonSpec",
+  "text": "Split the file, remove blank pages or scan at a lower resolution, then upload again.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 201,
+  "kind": "ReasonSpec",
+  "text": "'{file_name}' is empty. Choose another file.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 201,
+  "kind": "ReasonSpec",
+  "text": "Select a file that has content, then upload it again.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 209,
+  "kind": "ReasonSpec",
+  "text": "{file_name} has no student answers to grade.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 209,
+  "kind": "ReasonSpec",
+  "text": "Check that the right file was uploaded, then upload it again or mark the submission as missing.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 218,
+  "kind": "ReasonSpec",
+  "text": "This assignment has no rubric to grade against, so grading hasn't started. No credits were used.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 218,
+  "kind": "ReasonSpec",
+  "text": "Add questions and a rubric to the assignment, then grade again.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 226,
+  "kind": "ReasonSpec",
+  "text": "{file_name} is a second submission for {student_display}. The existing submission ({existing_ref}) was kept.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 226,
+  "kind": "ReasonSpec",
+  "text": "Choose which submission to keep.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 235,
+  "kind": "ReasonSpec",
+  "text": "The grading service couldn't finish this item. {credit_clause}",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 235,
+  "kind": "ReasonSpec",
+  "text": "Try again in a few minutes. If it keeps happening, contact support and quote the reference.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 247,
+  "kind": "ReasonSpec",
+  "text": "Credits ran out after {completed} of {total} items. The finished items are saved.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 247,
+  "kind": "ReasonSpec",
+  "text": "Top up credits, then resume the remaining items. Unfinished uploads need their files uploaded again.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 269,
+  "kind": "ReasonSpec",
+  "text": "Top up credits, or ask your school administrator, then try again.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 285,
+  "kind": "ReasonSpec",
+  "text": "This feature isn't included in your plan.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 285,
+  "kind": "ReasonSpec",
+  "text": "Upgrade your plan, or ask your school administrator to enable it.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 298,
+  "kind": "ReasonSpec",
+  "text": "Purchase limit exceeded \u2014 max {max_blocks} blocks. Reduce your quantity to {remaining} or fewer to proceed.",
+  "flags": [
+   "\\bblocks?\\b",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 298,
+  "kind": "ReasonSpec",
+  "text": "Request fewer blocks, or wait until your next billing cycle, then try again.",
+  "flags": [
+   "\\bblocks?\\b",
+   "\\bcycle\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 327,
+  "kind": "ReasonSpec",
+  "text": "Too many requests. Please wait {wait_seconds} second(s) and try again.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 327,
+  "kind": "ReasonSpec",
+  "text": "Wait, then try again.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 335,
+  "kind": "ReasonSpec",
+  "text": "Fix what its failure message describes first, then try again.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 352,
+  "kind": "ReasonSpec",
+  "text": "Password reset is paused on this account for a while, because the code was entered incorrectly too many times.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 352,
+  "kind": "ReasonSpec",
+  "text": "Wait until the time shown, then request a new code. Your password has not been changed.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 361,
+  "kind": "ReasonSpec",
+  "text": "Too many incorrect codes for this email address.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 361,
+  "kind": "ReasonSpec",
+  "text": "Wait, then request a new verification email.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 368,
+  "kind": "ReasonSpec",
+  "text": "Too many failed login attempts. Please try again later.",
+  "flags": [
+   "\\blog ?in\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 368,
+  "kind": "ReasonSpec",
+  "text": "Wait a few minutes and try again, or reset your password.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 375,
+  "kind": "ReasonSpec",
+  "text": "That email and password don't match. Check them and try again, or reset your password.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 375,
+  "kind": "ReasonSpec",
+  "text": "Check your email and password, or reset your password.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 393,
+  "kind": "ReasonSpec",
+  "text": "Student registration is paused for a short while because of too many invalid activation codes. Please try again later; if your code has expired by then, ask for a new one.",
+  "flags": [
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 393,
+  "kind": "ReasonSpec",
+  "text": "Try again in a few minutes. If your code has expired, ask your teacher for a new one.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 404,
+  "kind": "ReasonSpec",
+  "text": "{file_name} is not a PDF. If it is a photo or scan, upload it as an image instead.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 404,
+  "kind": "ReasonSpec",
+  "text": "Upload the photo or scan as an image (JPEG, PNG, GIF or WebP).",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 414,
+  "kind": "ReasonSpec",
+  "text": "Upload a roster file or paste your student list.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 414,
+  "kind": "ReasonSpec",
+  "text": "Choose a CSV file, or paste rows copied from your spreadsheet.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 421,
+  "kind": "ReasonSpec",
+  "text": "This roster has no student rows.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 421,
+  "kind": "ReasonSpec",
+  "text": "Check that the file has one student per row, then try again.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 428,
+  "kind": "ReasonSpec",
+  "text": "{file_name} isn't readable as text.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 428,
+  "kind": "ReasonSpec",
+  "text": "Export your roster as a CSV file (UTF-8) and try again.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 436,
+  "kind": "ReasonSpec",
+  "text": "This roster has {row_count} rows. Upload at most {max_rows} rows at a time.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 436,
+  "kind": "ReasonSpec",
+  "text": "Split the roster into smaller files.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 513,
+  "kind": "ReasonSpec",
+  "text": "Add at least one teacher.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 513,
+  "kind": "ReasonSpec",
+  "text": "Enter the teachers' email addresses.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 521,
+  "kind": "ReasonSpec",
+  "text": "This licence isn't active, so teachers can't be added to it.",
+  "flags": [
+   "licence"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 521,
+  "kind": "ReasonSpec",
+  "text": "Renew the licence, or contact us.",
+  "flags": [
+   "licence"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 532,
+  "kind": "ReasonSpec",
+  "text": "Your licence has {availability} ({in_use} of {max_seats} in use).",
+  "flags": [
+   "licence",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 532,
+  "kind": "ReasonSpec",
+  "text": "Add fewer teachers, remove a teacher, or ask us to add seats.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 587,
+  "kind": "ReasonSpec",
+  "text": "This submission hasn't been graded yet, so it can't be published.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/reason_codes.py",
+  "line": 587,
+  "kind": "ReasonSpec",
+  "text": "Grade it first, then publish.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/query_params.py",
+  "line": 27,
+  "kind": "ValidationError",
+  "text": "{\u2026} is not true or false.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/handlers.py",
+  "line": 15,
+  "kind": "dict:detail",
+  "text": "invalid Request",
+  "flags": [
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "AutoGrader/handlers.py",
+  "line": 22,
+  "kind": "dict:detail",
+  "text": "Permission denied",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/handlers.py",
+  "line": 28,
+  "kind": "dict:detail",
+  "text": "Resource not found",
+  "flags": []
+ },
+ {
+  "file": "ai_processor/services.py",
+  "line": 5820,
+  "kind": "AIFeatureNotAvailableError",
+  "text": "The AI analytics assistant is temporarily unavailable. Please try again later.",
+  "flags": []
+ },
+ {
+  "file": "ai_processor/services.py",
+  "line": 5247,
+  "kind": "dict:error",
+  "text": "Unknown tool {\u2026}. No such tool is available.",
+  "flags": []
+ },
+ {
+  "file": "ai_processor/services.py",
+  "line": 5596,
+  "kind": "AIFeatureNotAvailableError",
+  "text": "AI access denied: {\u2026}",
+  "flags": []
+ },
+ {
+  "file": "ai_processor/services.py",
+  "line": 5607,
+  "kind": "AIFeatureNotAvailableError",
+  "text": "AI access denied: this super admin account is not fully privileged.",
+  "flags": []
+ },
+ {
+  "file": "ai_processor/services.py",
+  "line": 5258,
+  "kind": "dict:error",
+  "text": "Invalid arguments for fetch_url_content: {\u2026}",
+  "flags": [
+   "\\bfetch",
+   "\\bInvalid\\b",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "ai_processor/serializers.py",
+  "line": 27,
+  "kind": "ValidationError",
+  "text": "Please describe what you'd like the assignment to cover.",
+  "flags": []
+ },
+ {
+  "file": "ai_processor/serializers.py",
+  "line": 35,
+  "kind": "ValidationError",
+  "text": "Your prompt is too short for us to generate a meaningful assignment. Please add a bit more detail about the topic, subject, or learning goal you'd like covered.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 372,
+  "kind": "PermissionDenied",
+  "text": "You can only modify your own account.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 408,
+  "kind": "PermissionDenied",
+  "text": "Only a student's teacher can change the student's name.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 412,
+  "kind": "ValidationError",
+  "text": "Only a student can be renamed here.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 1005,
+  "kind": "ParseError",
+  "text": "Email and Token are required.",
+  "flags": [
+   "\\btoken\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 1202,
+  "kind": "ParseError",
+  "text": "Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`",
+  "flags": [
+   "\\bOTP\\b",
+   "\\bInvalid\\b",
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 1469,
+  "kind": "ParseError",
+  "text": "Invalid email, OTP code, or new password.",
+  "flags": [
+   "\\bOTP\\b",
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 1482,
+  "kind": "ParseError",
+  "text": "Invalid email, OTP code, or new password.",
+  "flags": [
+   "\\bOTP\\b",
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 1493,
+  "kind": "ParseError",
+  "text": "Invalid email, OTP code, or new password.",
+  "flags": [
+   "\\bOTP\\b",
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 1514,
+  "kind": "ParseError",
+  "text": "Invalid email, OTP code, or new password.",
+  "flags": [
+   "\\bOTP\\b",
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 1544,
+  "kind": "dict:detail",
+  "text": "Password has been reset successfully. You are now logged in.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 1572,
+  "kind": "ParseError",
+  "text": "Your email address is not verified",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 1601,
+  "kind": "dict:detail",
+  "text": "An OTP code has been sent to your email",
+  "flags": [
+   "\\bOTP\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 1635,
+  "kind": "ParseError",
+  "text": "Your current password is incorrect. Please check it and try again.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 1694,
+  "kind": "dict:detail",
+  "text": "Password changed successfully.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 2207,
+  "kind": "ParseError",
+  "text": "Authorization code is required",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 2630,
+  "kind": "NotFound",
+  "text": "Tracked task not found for this user.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 2701,
+  "kind": "NotFound",
+  "text": "Tracked task not found for this user.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 2776,
+  "kind": "dict:message",
+  "text": "Batch session cancellation requested successfully.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 2844,
+  "kind": "ParseError",
+  "text": "reason_codes must be a list of reason codes.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 428,
+  "kind": "PermissionDenied",
+  "text": "Only a student's current teacher can change the student's name.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 499,
+  "kind": "dict:detail",
+  "text": "You do not have permission to create users.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 1456,
+  "kind": "ParseError",
+  "text": "Invalid email, OTP code, or new password.",
+  "flags": [
+   "\\bOTP\\b",
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 1655,
+  "kind": "ParseError",
+  "text": "No password change code has been requested for this account. Request one and try again.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 1663,
+  "kind": "ParseError",
+  "text": "This password change code has expired. Request a new one and try again.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 1672,
+  "kind": "ParseError",
+  "text": "Invalid password change code. Please try again.",
+  "flags": [
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 1798,
+  "kind": "ParseError",
+  "text": "Refresh token is required.",
+  "flags": [
+   "\\btoken\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 1810,
+  "kind": "ParseError",
+  "text": "Invalid or expired token",
+  "flags": [
+   "\\btoken\\b",
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 2250,
+  "kind": "ParseError",
+  "text": "Google did not return an ID token",
+  "flags": [
+   "\\bID\\b",
+   "\\btoken\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 2260,
+  "kind": "ParseError",
+  "text": "Google has not verified your email",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 2472,
+  "kind": "ParseError",
+  "text": "Invalid Google token signature",
+  "flags": [
+   "\\btoken\\b",
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 468,
+  "kind": "ValidationError",
+  "text": "A student with the exact name {\u2026} is already enrolled in this course.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 2062,
+  "kind": "ParseError",
+  "text": "Invalid or expired activation token.",
+  "flags": [
+   "\\btoken\\b",
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 2067,
+  "kind": "ParseError",
+  "text": "This invitation link has expired. Please contact your superadmin for a new invitation.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 469,
+  "kind": "dict:detail",
+  "text": "A student with the exact name {\u2026} is already enrolled in this course.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 1760,
+  "kind": "dict:detail",
+  "text": "Refresh token is required.",
+  "flags": [
+   "\\btoken\\b"
+  ]
+ },
+ {
+  "file": "users/views.py",
+  "line": 2355,
+  "kind": "AuthenticationFailed",
+  "text": "This account has been deactivated. Please contact support.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 2327,
+  "kind": "ParseError",
+  "text": "{\u2026} If you are joining a school, ask your school admin to invite you and use the link in that invitation instead.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 761,
+  "kind": "dict:detail",
+  "text": "Settings not found for this user",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 914,
+  "kind": "dict:message",
+  "text": "Request Successful",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 1360,
+  "kind": "dict:message",
+  "text": "Password has been reset successfully. You are now logged in.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 1383,
+  "kind": "dict:message",
+  "text": "New password: This password is too common.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 1402,
+  "kind": "dict:message",
+  "text": "For your security, password reset is paused on this account because the code was entered incorrectly 5 times. You can request a new code after 14:32 UTC (in 30 minutes). Your password has not been changed, and you can still sign in with your current password. If you didn't try to reset your password, someone else may have. Your account is still safe.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 2684,
+  "kind": "dict:message",
+  "text": "Background task cancellation requested successfully.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 2737,
+  "kind": "dict:message",
+  "text": "Batch session cancellation requested successfully.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 1363,
+  "kind": "dict:detail",
+  "text": "Password has been reset successfully. You are now logged in.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 1413,
+  "kind": "dict:message",
+  "text": "For your security, password reset is paused \u2026 (same text)",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 2948,
+  "kind": "dict:error",
+  "text": "Could not identify or associate a student with this paper",
+  "flags": []
+ },
+ {
+  "file": "users/serializers.py",
+  "line": 199,
+  "kind": "ValidationError",
+  "text": "The password cannot be changed through this endpoint. Use POST /auth/change-password instead.",
+  "flags": [
+   "\\bendpoint\\b",
+   "/api/|POST |PATCH "
+  ]
+ },
+ {
+  "file": "users/serializers.py",
+  "line": 220,
+  "kind": "ValidationError",
+  "text": "Email address can't be changed.",
+  "flags": []
+ },
+ {
+  "file": "users/serializers.py",
+  "line": 386,
+  "kind": "ValidationError",
+  "text": "This account uses a personal email address and so belongs to the individual track. A teacher can only be attached to a school on a business email address - invite them through the school's license instead.",
+  "flags": []
+ },
+ {
+  "file": "users/serializers.py",
+  "line": 618,
+  "kind": "ValidationError",
+  "text": "Invalid OTP type",
+  "flags": [
+   "\\bOTP\\b",
+   "\\bInvalid\\b"
+  ]
+ },
+ {
+  "file": "users/serializers.py",
+  "line": 656,
+  "kind": "ValidationError",
+  "text": "Your new password must be different from your current password. Please choose a different one.",
+  "flags": []
+ },
+ {
+  "file": "users/serializers.py",
+  "line": 259,
+  "kind": "ValidationError",
+  "text": "A super admin cannot be assigned to a school. Super admins administer the platform across all schools; to make someone a school's admin, use a separate non-superuser account.",
+  "flags": []
+ },
+ {
+  "file": "users/serializers.py",
+  "line": 270,
+  "kind": "ValidationError",
+  "text": "A super admin cannot be changed into a {\u2026}. Demote the account's superuser status first, or use a separate account for that role.",
+  "flags": []
+ },
+ {
+  "file": "users/serializers.py",
+  "line": 288,
+  "kind": "ValidationError",
+  "text": "This account belongs to a school and so cannot be made a super admin. Clear its school first (set \"school\": null in the same request).",
+  "flags": [
+   "\\bnull\\b"
+  ]
+ },
+ {
+  "file": "users/serializers.py",
+  "line": 309,
+  "kind": "ValidationError",
+  "text": "Students are not allowed to edit their name.",
+  "flags": []
+ },
+ {
+  "file": "users/serializers.py",
+  "line": 346,
+  "kind": "ValidationError",
+  "text": "Business emails are not allowed for individual teacher accounts. Please use a personal email address or use the License subscription track.",
+  "flags": []
+ },
+ {
+  "file": "users/serializers.py",
+  "line": 357,
+  "kind": "ValidationError",
+  "text": "Personal emails are not allowed for school admin accounts. Please use a business email address.",
+  "flags": []
+ },
+ {
+  "file": "assignments/file_uploads.py",
+  "line": 57,
+  "kind": "const:IN_PROGRESS_MESSAGE",
+  "text": "This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/services/enrollment.py",
+  "line": 54,
+  "kind": "const:CROSS_SCHOOL_REJECTION_MESSAGE",
+  "text": "This account cannot be added to this school. If you believe this is a mistake, contact your school administrator.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/services/enrollment.py",
+  "line": 66,
+  "kind": "const:NOT_A_STUDENT_MESSAGE",
+  "text": "This email can't be added as a student.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/services/enrollment.py",
+  "line": 239,
+  "kind": "const:OLD_INVITATION_CLOSED_MESSAGE",
+  "text": "Invitations of this kind are no longer used. Ask your teacher to add you to the class again.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/services/enrollment.py",
+  "line": 244,
+  "kind": "const:DEACTIVATED_ACCOUNT_MESSAGE",
+  "text": "This student's account is disabled. Contact support if they should have access.",
+  "flags": []
+ },
+ {
+  "file": "classrooms/services/enrollment.py",
+  "line": 302,
+  "kind": "const:NAME_MISMATCH_MESSAGE",
+  "text": "This email already belongs to a student with a different name. Use the name on the student's account, or check the email address.",
+  "flags": []
+ },
+ {
+  "file": "students/services.py",
+  "line": 1839,
+  "kind": "const:SUBMITTED_TEXT",
+  "text": "The submitted text",
+  "flags": []
+ },
+ {
+  "file": "billing/overage_pricing.py",
+  "line": 99,
+  "kind": "const:OVERAGE_PRICE_UNAVAILABLE_MESSAGE",
+  "text": "We couldn't confirm the overage price with our payment provider. Please try again in a moment.",
+  "flags": [
+   "overage"
+  ]
+ },
+ {
+  "file": "billing/overage_pricing.py",
+  "line": 117,
+  "kind": "const:OVERAGE_PRICE_CHANGED_MESSAGE",
+  "text": "The price of this purchase has changed. Nothing was charged; please reload and try again.",
+  "flags": []
+ },
+ {
+  "file": "billing/stripe_service.py",
+  "line": 310,
+  "kind": "const:CHECKOUT_FAILED_MESSAGE",
+  "text": "We couldn't start checkout for your account. You haven't been charged. Please contact support.",
+  "flags": []
+ },
+ {
+  "file": "billing/errors.py",
+  "line": 47,
+  "kind": "const:INSUFFICIENT_CREDITS_MESSAGE",
+  "text": "There aren't enough AI credits to do this. Top up your credits or ask your school administrator, then try again.",
+  "flags": []
+ },
+ {
+  "file": "billing/errors.py",
+  "line": 53,
+  "kind": "const:INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE",
+  "text": "There aren't enough AI credits to do this. Top up your credits, then try again.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 153,
+  "kind": "const:TEACHER_OTHER_ROLE_TEXT",
+  "text": "This email can't be added as a teacher.",
+  "flags": []
+ },
+ {
+  "file": "billing/license_service.py",
+  "line": 154,
+  "kind": "const:TEACHER_OTHER_SCHOOL_TEXT",
+  "text": "This teacher already belongs to another school.",
+  "flags": []
+ },
+ {
+  "file": "AutoGrader/error_messages.py",
+  "line": 20,
+  "kind": "const:DEFAULT_ERROR_MESSAGE",
+  "text": "Something went wrong while processing your request. Please try again, and contact support if the problem continues.",
+  "flags": []
+ },
+ {
+  "file": "ai_processor/services.py",
+  "line": 216,
+  "kind": "const:_RETRANSCRIPTION_TEXT",
+  "text": "A first reading of this submission did not transcribe the student's answers to question(s) {numbers}, but there is student writing in each of those places. What was seen there:\n{evidence}\n\nRead the pages again and transcribe ONLY those question(s), in full, under the rules above. Return one entry in `answers` for each of them and no other question. Off-topic writing is still the student's work: transcribe it and flag it. Do not return NOT_FOUND_IN_DOCUMENT or BLANK for these questions: the writing is there. If part of it cannot be read, transcribe what you can and mark it ILLEGIBLE.",
+  "flags": [
+   "_[a-z]+_|\\b[a-z]+_[a-z_]+\\b"
+  ]
+ },
+ {
+  "file": "ai_processor/services.py",
+  "line": 491,
+  "kind": "const:STUDENT_AI_UNAVAILABLE_MESSAGE",
+  "text": "AI features aren't available for this assignment right now. Please ask your teacher to check their account.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 163,
+  "kind": "const:NAME_HELD_ELSEWHERE_MESSAGE",
+  "text": "This name cannot be used for this student.",
+  "flags": []
+ },
+ {
+  "file": "users/views.py",
+  "line": 849,
+  "kind": "const:_VERIFY_LOCKED_TEXT",
+  "text": "Too many incorrect codes for this email address. Please wait, then request a new verification email. Expected available in 1800 seconds.",
+  "flags": []
+ },
+ {
+  "file": "users/serializers.py",
+  "line": 490,
+  "kind": "const:LOCKED_MESSAGE",
+  "text": "Too many failed login attempts. Please try again later.",
+  "flags": [
+   "\\blog ?in\\b"
+  ]
+ },
+ {
+  "file": "users/serializers.py",
+  "line": 491,
+  "kind": "const:INVALID_CREDENTIALS_MESSAGE",
+  "text": "That email and password don't match. Check them and try again, or reset your password.",
+  "flags": []
+ },
+ {
+  "file": "users/tokens.py",
+  "line": 20,
+  "kind": "const:REVOKED_MESSAGE",
+  "text": "Token has been revoked. Please log in again.",
+  "flags": [
+   "\\btoken\\b",
+   "\\blog ?in\\b"
+  ]
+ }
+]

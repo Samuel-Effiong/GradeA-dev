@@ -1,0 +1,144 @@
+"""Extract user-facing message strings from backend code (AST-based)."""
+
+import ast
+import json
+import os
+import re
+import sys
+
+ROOT = sys.argv[1]
+EXC = {
+    "ValidationError",
+    "PermissionDenied",
+    "NotFound",
+    "ParseError",
+    "AuthenticationFailed",
+    "NotAuthenticated",
+    "APIException",
+    "EnrollmentError",
+    "MethodNotAllowed",
+    "Throttled",
+    "EnvelopedAuthenticationFailed",
+    "ServiceUnavailable",
+    "BillingRequestError",
+    "LicenseRequestError",
+    "IndividualSubscriptionConflictError",
+    "InvalidUploadFileError",
+    "UploadAlreadyInProgressError",
+    "CannotAssociateStudentError",
+    "SubmissionAlreadyGradedError",
+    "SubmissionBeingGradedError",
+    "SubmissionLimitReachedError",
+    "SubmissionAnswersUnreadableError",
+    "AssignmentNotOpenError",
+    "CourseNotReachableError",
+    "AIFeatureNotAvailableError",
+    "QueryParamError",
+    "StudentUploadNotProcessedError",
+    "PlanAssignmentRefused",
+    "LicenceStripeChangeNotRecorded",
+    "DjangoValidationError",
+}
+KEYS = {"message", "detail", "error", "non_field_errors", "msg"}
+SKIP_DIRS = {
+    "migrations",
+    "node_modules",
+    "venv",
+    ".venv",
+    "__pycache__",
+    "benchmark",
+    "management",
+    "scripts",
+    "docs",
+}
+out = []
+
+
+def s_of(node):
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.JoinedStr):
+        parts = []
+        for v in node.values:
+            if isinstance(v, ast.Constant):
+                parts.append(str(v.value))
+            else:
+                parts.append("{…}")
+        return "".join(parts)
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        a, b = s_of(node.left), s_of(node.right)
+        if a is not None and b is not None:
+            return a + b
+    return None
+
+
+def cname(f):
+    if isinstance(f, ast.Name):
+        return f.id
+    if isinstance(f, ast.Attribute):
+        return f.attr
+    return None
+
+
+for dp, dns, fns in os.walk(ROOT):
+    dns[:] = [d for d in dns if d not in SKIP_DIRS and not d.startswith(".")]
+    for fn in fns:
+        if (
+            not fn.endswith(".py")
+            or fn.startswith("test")
+            or "tests" in dp.split(os.sep)
+            or "_test" in fn
+            or fn.startswith("conftest")
+        ):
+            continue
+        p = os.path.join(dp, fn)
+        rel = os.path.relpath(p, ROOT)
+        if rel.startswith(("AutoGrader/settings", "scripts/")):
+            continue
+        try:
+            tree = ast.parse(open(p, encoding="utf-8").read())
+        except Exception:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and cname(node.func) in EXC:
+                for a in node.args[:1]:
+                    s = s_of(a)
+                    if s:
+                        out.append((rel, node.lineno, cname(node.func), s))
+                    if isinstance(a, ast.Dict):
+                        for v in a.values:
+                            s = s_of(v)
+                            if s:
+                                out.append((rel, node.lineno, cname(node.func), s))
+                            if isinstance(v, (ast.List, ast.Tuple)):
+                                for e in v.elts:
+                                    s = s_of(e)
+                                    if s:
+                                        out.append(
+                                            (rel, node.lineno, cname(node.func), s)
+                                        )
+            if isinstance(node, ast.Dict):
+                for k, v in zip(node.keys, node.values):
+                    if isinstance(k, ast.Constant) and k.value in KEYS:
+                        s = s_of(v)
+                        if s:
+                            out.append((rel, node.lineno, "dict:" + k.value, s))
+            if isinstance(node, ast.Call) and cname(node.func) == "ReasonSpec":
+                for a in node.args[2:4]:
+                    s = s_of(a)
+                    if s:
+                        out.append((rel, node.lineno, "ReasonSpec", s))
+# dedupe, keep only sentence-like strings
+seen = set()
+res = []
+for r in out:
+    t = r[3].strip()
+    if len(t) < 6 or not re.search(r"[a-zA-Z]{3,} [a-zA-Z]", t):
+        continue
+    k = (r[0], r[1], t)
+    if k in seen:
+        continue
+    seen.add(k)
+    res.append(dict(file=r[0], line=r[1], kind=r[2], text=t))
+json.dump(res, open(sys.argv[2], "w"), indent=1)
+print(len(res))
