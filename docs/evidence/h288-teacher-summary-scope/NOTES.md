@@ -51,3 +51,16 @@ Expected: OK, count recorded before the run.
 
 Mutant (E4): remove the INDIVIDUAL branch's filter -> at least
 `test_individual_session_lists_only_its_teacher` fails.
+
+## Results
+
+- E1 (red, 92974d0c): **the 5 named tests FAILED, the rest passed** - met.
+  Count miss (my arithmetic): `TeacherSummaryEndpointTest` has 9 tests, not
+  10, so it was Ran 16, FAILED (failures=5), not 17. Log `logs/red_run_92974d0c.txt`.
+- E2 (green, fix 1d7c9f6a): Ran 16, OK - met (count corrected to 16). Log `logs/green_run.txt`.
+- E4 mutants, each restored by sha256 (all killed):
+  - M-h288.1 INDIVIDUAL filter removed -> 1 failure (individual session).
+  - M-h288.2 SCHOOL filter removed -> 3 failures (school-alone, other school_id, teacher who left).
+  - M-h288.3 `none()` removed -> 1 failure (unknown session).
+- E3 near run (expectation written before the run): `python manage.py test classrooms`
+  on 1d7c9f6a: **OK, no failures or errors** (count is recorded from the run).
