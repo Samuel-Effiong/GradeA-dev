@@ -902,7 +902,10 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 type=str,
                 location="query",
                 description=(
-                    "Filter by academic session UUID (limits assignments, "
+                    "Filter by academic session UUID. Lists only that "
+                    "session's teachers (a school session: the school's "
+                    "current teachers; an individual session: its teacher; "
+                    "an unknown session: none) and limits assignments, "
                     "students, and tokens_used to that session; the "
                     "remainder of the teacher's token usage outside this "
                     "session is reported as tokens_used_outside_session)."
@@ -949,6 +952,23 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if session_id:
             _validate_uuid_query_param(session_id, "session_id")
             session_filter = Q(course__session_id=session_id)
+            # H-288: the session also decides whose teachers are listed, so
+            # a caller that sends only session_id gets that session's
+            # teachers, not every teacher on the platform. A SCHOOL session
+            # lists its school's current teachers; an INDIVIDUAL session its
+            # one teacher. An unknown session lists no one (a list filter,
+            # like school_id: an empty page, not an error).
+            owner = (
+                Session.objects.filter(pk=session_id)
+                .values("owner_type", "school_id", "teacher_id")
+                .first()
+            )
+            if owner is None:
+                teachers = teachers.none()
+            elif owner["owner_type"] == SessionOwnerType.SCHOOL:
+                teachers = teachers.filter(school_id=owner["school_id"])
+            else:
+                teachers = teachers.filter(pk=owner["teacher_id"])
 
         # --- Subqueries for teacher-level aggregates ---
         # 1. Assignments count (filtered by session if provided)
