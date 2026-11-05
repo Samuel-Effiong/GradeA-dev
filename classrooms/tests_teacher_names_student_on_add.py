@@ -406,7 +406,8 @@ class ARefusalDoesNotDependOnTheNameTest(AddByEmailBase):
         # "already enrolled", not the name-clash refusal.
         response = self.both(mate.email, first_name="Augusta", last_name="Byron")
         self.assertNotIn("Byron", json.dumps(response.json()))
-        self.assertNotIn("exact name", json.dumps(response.json()))
+        # H-296: the name-clash text is now "{name} is already enrolled ...".
+        self.assertNotIn("Augusta Byron is already", json.dumps(response.json()))
         self.assertEqual(self.name_of(mate.email), ("Augusta", "", "Byron"))
 
 

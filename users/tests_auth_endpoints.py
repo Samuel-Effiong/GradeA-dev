@@ -440,14 +440,14 @@ class ResetPasswordBranchTests(APITestCase):
         response = self.submit(email="nobody@gmail.com")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("invalid email, otp code", str(response.data).lower())
+        self.assertIn("we couldn't reset your password", str(response.data).lower())
 
     def test_no_outstanding_otp_is_refused_with_the_same_message(self):
         """Identical wording, so nothing distinguishes the two failures."""
         response = self.submit()
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("invalid email, otp code", str(response.data).lower())
+        self.assertIn("we couldn't reset your password", str(response.data).lower())
 
     def test_an_expired_otp_is_deleted_and_refused(self):
         otp = PasswordResetOTP.objects.create(user=self.user)

@@ -1288,7 +1288,7 @@ class OverageCheckoutSessionSerializer(serializers.Serializer):
     )
     checkout_session_id = serializers.CharField()
     message = serializers.CharField(
-        default=("Redirecting to secure checkout to complete your overage " "purchase.")
+        default="Taking you to secure checkout to buy your extra credits."
     )
 
 
@@ -1938,14 +1938,14 @@ LICENCE_NOT_PATCHABLE = {
         "or convert-to-stripe action."
     ),
     "contract_months": "The contract length can't be changed after creation.",
-    "school": "A licence's school can't be changed after creation.",
-    "admin_user": "The licence admin can't be changed here.",
+    "school": "A license's school can't be changed after creation.",
+    "admin_user": "The license admin can't be changed here.",
     "stripe_subscription_id": "The Stripe subscription can't be changed here.",
 }
 
 
 STRIPE_PRICE_NOT_PATCHABLE = (
-    "The price of a Stripe-billed licence can't be changed here. Use the "
+    "The price of a Stripe-billed license can't be changed here. Use the "
     "change_plan action with custom_price_cents."
 )
 
@@ -2133,7 +2133,7 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
                 if field in attrs
                 and _stored_differs(self.instance, field, attrs[field])
             }
-            # The price of a Stripe-billed licence is Stripe's too: a local-only
+            # The price of a Stripe-billed license is Stripe's too: a local-only
             # change would diverge from what Stripe charges (v2's note 3, the
             # divergence H-28 removed from change_plan). Offline licences
             # keep a PATCHable price.

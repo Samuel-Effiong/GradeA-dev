@@ -273,12 +273,9 @@ EMAILED_CLASH_REMEDIATION = REASON_CODES[
 ].alternative_remediations[0]
 
 #: StudentCourse.clean()'s refusal of a second student with exactly the same
-#: first, middle and last name in one course (case-insensitive). Its text is
-#: built by the model, so it is matched by these fixed ends.
-_NAME_CLASH_TEXT = (
-    "A student with the exact name ",
-    " is already enrolled in this course.",
-)
+#: first, middle and last name in one course (case-insensitive) carries this
+#: code (H-296: matched by code, no longer by its words).
+_NAME_CLASH_CODE = "name_clash"
 
 
 class _RowRefused(Exception):
@@ -291,11 +288,11 @@ class _RowRefused(Exception):
 
 
 def _is_name_clash(exc):
-    return any(
-        message.startswith(_NAME_CLASH_TEXT[0])
-        and message.endswith(_NAME_CLASH_TEXT[1])
-        for message in exc.messages
-    )
+    if hasattr(exc, "error_dict"):
+        errors = [e for group in exc.error_dict.values() for e in group]
+    else:
+        errors = exc.error_list
+    return any(getattr(e, "code", None) == _NAME_CLASH_CODE for e in errors)
 
 
 def _added(row, student, status, kind):

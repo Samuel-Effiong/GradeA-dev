@@ -195,8 +195,8 @@ class ReasonCode(models.TextChoices):
     ROW_FAILED = "ROW_FAILED", "Row: failed"
     # E1: licence teacher management, whole request.
     TEACHER_LIST_EMPTY = "TEACHER_LIST_EMPTY", "No teachers given"
-    LICENCE_INACTIVE = "LICENCE_INACTIVE", "Licence inactive"
-    LICENCE_SEATS_EXCEEDED = "LICENCE_SEATS_EXCEEDED", "Licence seats exceeded"
+    LICENCE_INACTIVE = "LICENCE_INACTIVE", "License inactive"
+    LICENCE_SEATS_EXCEEDED = "LICENCE_SEATS_EXCEEDED", "License seats exceeded"
     # E2: licence teacher management, per teacher.
     TEACHER_EMAIL_NOT_BUSINESS = (
         "TEACHER_EMAIL_NOT_BUSINESS",
@@ -211,9 +211,9 @@ class ReasonCode(models.TextChoices):
     TEACHER_IN_OTHER_SCHOOL = "TEACHER_IN_OTHER_SCHOOL", "Teacher: in another school"
     TEACHER_ALREADY_ON_LICENCE = (
         "TEACHER_ALREADY_ON_LICENCE",
-        "Teacher: already on the licence",
+        "Teacher: already on the license",
     )
-    TEACHER_NOT_ON_LICENCE = "TEACHER_NOT_ON_LICENCE", "Teacher: not on the licence"
+    TEACHER_NOT_ON_LICENCE = "TEACHER_NOT_ON_LICENCE", "Teacher: not on the license"
     TEACHER_ADD_FAILED = "TEACHER_ADD_FAILED", "Teacher: add failed"
     TEACHER_REMOVE_FAILED = "TEACHER_REMOVE_FAILED", "Teacher: remove failed"
     # F: publishing grades.

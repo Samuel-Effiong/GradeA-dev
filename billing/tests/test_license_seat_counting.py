@@ -175,8 +175,8 @@ class LicenseSeatCountingTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(
             response.json()["message"],
-            "This licence has 2 seats, but 3 teachers were added. "
-            "Remove a teacher or increase Max seats.",
+            "This license has 2 seats, but 3 teachers were added. "
+            "Remove a teacher or increase max seats.",
         )
         self.assertFalse(LicenseSubscription.objects.exists())
 

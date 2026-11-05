@@ -609,7 +609,10 @@ def renew_student_activation(*, token):
     ).first()
 
     if student is None:
-        raise EnrollmentError("Invalid token or user not found.")
+        raise EnrollmentError(
+            "This invitation link is invalid or has expired. "
+            "Ask your teacher to send a new one."
+        )
 
     enrollment = (
         StudentCourse.objects.filter(

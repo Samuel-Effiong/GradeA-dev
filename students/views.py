@@ -598,7 +598,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         uploaded_file = files[0]
         if not isinstance(uploaded_file, UploadedFile):
             raise ParseError(
-                "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
+                "This file can't be uploaded. Use a PDF or an image (JPEG, PNG, GIF or WebP)."
             )
 
         # S6: an unsupported type is refused first (415), then an empty
@@ -704,7 +704,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         uploaded_file = files[0]
         if not isinstance(uploaded_file, UploadedFile):
             raise ParseError(
-                "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
+                "This file can't be uploaded. Use a PDF or an image (JPEG, PNG, GIF or WebP)."
             )
 
         # S6, as the synchronous upload: the type check, then

@@ -17,7 +17,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 EPOCH_CLAIM = "epoch"
 # H-276: one id per sign-in (one browser/device), kept across refreshes.
 SESSION_CLAIM = "sid"
-REVOKED_MESSAGE = "Token has been revoked. Please log in again."
+REVOKED_MESSAGE = "You've been signed out. Please sign in again."
 
 
 def token_epoch_of(token):

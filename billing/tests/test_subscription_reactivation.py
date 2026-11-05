@@ -191,7 +191,7 @@ class SubscriptionReactivationServiceTestCase(TestCase):
         with self.assertRaises(ValueError) as ctx:
             SubscriptionReactivationService.reactivate_if_cancelling(self.sub)
 
-        self.assertIn("already been fully canceled", str(ctx.exception))
+        self.assertIn("has ended and can't be resumed", str(ctx.exception))
         mock_subscription.modify.assert_not_called()
 
     @patch("stripe.Subscription")
@@ -406,7 +406,7 @@ class SelectPlanAutoResumeTestCase(TestCase):
         with self.assertRaises(ValueError) as ctx:
             IndividualPlanChangeService.select_plan(self.user, self.standard_plan)
 
-        self.assertIn("already been fully canceled", str(ctx.exception))
+        self.assertIn("has ended and can't be resumed", str(ctx.exception))
         mock_schedule.create.assert_not_called()
         mock_subscription.modify.assert_not_called()
 
@@ -487,7 +487,7 @@ class SubscriptionResumeTestCase(APITestCase):
         response = self.client.post(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("already been fully canceled", response.data["detail"])
+        self.assertIn("has ended and can't be resumed", response.data["detail"])
 
     @patch("stripe.Subscription")
     def test_past_due_warning_surfaces(self, mock_subscription):

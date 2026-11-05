@@ -487,7 +487,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     # Login-specific: kept separate from the generic simplejwt failure
     # message so a locked account gets an explanation instead of looking
     # like a wrong password forever.
-    LOCKED_MESSAGE = "Too many failed login attempts. Please try again later."
+    LOCKED_MESSAGE = "Too many failed sign-in attempts. Please try again later."
     INVALID_CREDENTIALS_MESSAGE = (
         "That email and password don't match. "
         "Check them and try again, or reset your password."

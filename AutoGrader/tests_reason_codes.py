@@ -414,12 +414,12 @@ APPROVED_ADDITIONS = {
     ),
     "LICENCE_INACTIVE": (
         400,
-        "This licence isn't active, so teachers can't be added to it.",
-        "Renew the licence, or contact us.",
+        "This license isn't active, so teachers can't be added to it.",
+        "Renew the license, or contact us.",
     ),
     "LICENCE_SEATS_EXCEEDED": (
         400,
-        "Your licence has {availability} ({in_use} of {max_seats} in use).",
+        "Your license has {availability} ({in_use} of {max_seats} in use).",
         "Add fewer teachers, remove a teacher, or ask us to add seats.",
     ),
     "TEACHER_EMAIL_NOT_BUSINESS": (
@@ -443,10 +443,10 @@ APPROVED_ADDITIONS = {
         "This teacher already belongs to another school.",
         "Contact support if the teacher has moved schools.",
     ),
-    "TEACHER_ALREADY_ON_LICENCE": (422, "{email} is already on this licence.", ""),
+    "TEACHER_ALREADY_ON_LICENCE": (422, "{email} is already on this license.", ""),
     "TEACHER_NOT_ON_LICENCE": (
         422,
-        "This teacher isn't an active teacher on this licence.",
+        "This teacher isn't an active teacher on this license.",
         "",
     ),
     "TEACHER_ADD_FAILED": (
@@ -497,12 +497,12 @@ class QaCatalogueAdditionsTests(SimpleTestCase):
 
         self.assertEqual(
             seats(remaining=2, adding=5, in_use=8, max_seats=10),
-            "Your licence has 2 seats left, but you're adding 5 teachers "
+            "Your license has 2 seats left, but you're adding 5 teachers "
             "(8 of 10 in use).",
         )
         self.assertEqual(
             seats(remaining=0, adding=1, in_use=10, max_seats=10),
-            "Your licence has no seats left (10 of 10 in use).",
+            "Your license has no seats left (10 of 10 in use).",
         )
 
     def test_the_cannot_join_yet_entry_is_h85s_sentence_and_nothing_more(self):
@@ -635,13 +635,14 @@ class SpecChosenVariantTests(SimpleTestCase):
     a variant itself still wins. The dash in both is U+2014.
     """
 
+    # H-296: the owner reworded both sentences 2026-11-05.
     REDUCE = (
-        "Purchase limit exceeded — max 3 blocks. Reduce your quantity "
-        "to 1 or fewer to proceed."
+        "You can buy up to 3 credit packs per billing period. "
+        "Reduce the quantity to 1 or fewer."
     )
     REACHED = (
-        "Purchase limit reached — you have used all 3 blocks for this "
-        "billing cycle. You can buy more when your next cycle starts."
+        "You've bought the maximum of 3 credit packs for this billing "
+        "period. You can buy more when your next period starts."
     )
 
     def _error(self, remaining, **kwargs):

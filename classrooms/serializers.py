@@ -197,6 +197,14 @@ class CourseSerializer(serializers.ModelSerializer):
             # serializer without the request must not skip the check.
             raise serializers.ValidationError("You do not have access to this session.")
 
+        if value is None:
+            # H-295: a course needs a session (the field is nullable only for
+            # legacy rows). Omitted, null or "" used to crash below (500);
+            # it is the framework's own "required" refusal instead.
+            raise serializers.ValidationError(
+                self.fields["session"].error_messages["required"], code="required"
+            )
+
         if value.owner_type == SessionOwnerType.INDIVIDUAL:
             if user.is_under_license() or value.teacher_id != user.id:
                 raise serializers.ValidationError(
@@ -705,7 +713,8 @@ class DirectAddStudentSerializer(serializers.Serializer):
                     "  ", " "
                 ).strip()
                 raise serializers.ValidationError(
-                    f"A student with the exact name {full_name!r} is already enrolled in this course."
+                    f"{full_name} is already enrolled in this course.",
+                    code="name_clash",
                 )
 
         return attrs

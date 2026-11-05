@@ -843,9 +843,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             )
 
         if result["action"] == "checkout":
-            message = (
-                "Redirecting to secure checkout to complete your overage purchase."
-            )
+            message = "Taking you to secure checkout to buy your extra credits."
         elif result["action"] == "offline_request_pending":
             message = (
                 "Your overage request has been submitted for review. "

@@ -1,6 +1,7 @@
 import logging
 import re
 
+from django.http import Http404
 from rest_framework.exceptions import AuthenticationFailed, Throttled, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
@@ -35,6 +36,30 @@ class EnvelopedThrottled(Throttled):
     def __init__(self, wait=None, detail=None, *, reason_code, code_value=None):
         super().__init__(wait=wait, detail=detail)
         self.envelope = (reason_code, code_value)
+
+
+# H-296: owner-approved not-found text in place of Django's
+# "No <Model> matches the given query." (it named internal models). The same
+# text whether the item never existed or is someone else's.
+_NOT_FOUND_DEFAULT = re.compile(r"^No (\w+) matches the given query\.$")
+_NOT_FOUND_THING = {
+    "Course": "course",
+    "Assignment": "assignment",
+    "StudentSubmission": "submission",
+    "Session": "session",
+}
+
+
+def _reword_not_found(exc, drf_response):
+    if not isinstance(exc, Http404) or not isinstance(drf_response.data, dict):
+        return
+    match = _NOT_FOUND_DEFAULT.match(str(drf_response.data.get("detail", "")))
+    if match is None:
+        return
+    thing = _NOT_FOUND_THING.get(match.group(1), "item")
+    drf_response.data["detail"] = (
+        f"We couldn't find that {thing}. It may have been deleted."
+    )
 
 
 def custom_exception_handler(exc, context):
@@ -89,6 +114,7 @@ def custom_exception_handler(exc, context):
         )
         # H-273: stash for audit middleware (exception ref, never its text)
         drf_response._audit_exc = exc
+        _reword_not_found(exc, drf_response)
         if isinstance(exc, ValidationError):
             if isinstance(exc.detail, dict):
                 safe = sorted(

@@ -475,8 +475,8 @@ class TestLicenseCreation(TransactionTestCase):
         with pytest.raises(
             LicenseRequestError,
             match=(
-                r"This licence has 2 seats, but 3 teachers were added "
-                r"\(2 carried over from the current licence \+ 1 new\)\."
+                r"This license has 2 seats, but 3 teachers were added "
+                r"\(2 carried over from the current license \+ 1 new\)\."
             ),
         ):
             LicenseSubscriptionService.create_license_subscription(

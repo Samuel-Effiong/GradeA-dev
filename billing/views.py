@@ -877,13 +877,13 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         responses={
             200: OpenApiResponse(response=UserSubscriptionSerializer),
             404: OpenApiResponse(
-                description="No active subscription found",
+                description="You don't have an active subscription.",
                 examples=[
                     OpenApiExample(
-                        name="No active subscription found",
+                        name="You don't have an active subscription.",
                         value={
                             "status": "inactive",
-                            "message": "No active subscription found",
+                            "message": "You don't have an active subscription.",
                         },
                     )
                 ],
@@ -895,7 +895,10 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         user_subscription = self.get_queryset().first()
         if not user_subscription:
             return Response(
-                {"status": "inactive", "message": "No active subscription found"},
+                {
+                    "status": "inactive",
+                    "message": "You don't have an active subscription.",
+                },
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -940,7 +943,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                     return Response(
                         {
                             "status": "inactive",
-                            "message": "No active subscription found to cancel",
+                            "message": "You don't have an active subscription to cancel.",
                         },
                         status=status.HTTP_404_NOT_FOUND,
                     )
@@ -1120,7 +1123,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                 return Response(
                     {
                         "status": "inactive",
-                        "message": "No active subscription found to resume",
+                        "message": "There's no subscription to resume.",
                     },
                     status=status.HTTP_404_NOT_FOUND,
                 )
@@ -1131,8 +1134,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                     {
                         "detail": (
                             "This subscription's current billing period has "
-                            "already ended. Please subscribe again via "
-                            "select-plan."
+                            "already ended. Choose a plan to subscribe again."
                         )
                     },
                     status=status.HTTP_400_BAD_REQUEST,
@@ -1173,7 +1175,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                     {
                         "detail": (
                             "Your subscription ended during this request. "
-                            "Please subscribe again via select-plan."
+                            "Choose a plan to subscribe again."
                         )
                     },
                     status=status.HTTP_400_BAD_REQUEST,
@@ -1380,7 +1382,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         response_data = {
             "checkout_url": result.url,
             "checkout_session_id": result.id,
-            "message": "Redirecting to secure checkout to complete your overage purchase.",
+            "message": "Taking you to secure checkout to buy your extra credits.",
         }
         return Response(
             OverageCheckoutSessionSerializer(response_data).data,
@@ -1477,13 +1479,13 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         responses={
             200: OpenApiResponse(response=UsageSummarySerializer),
             404: OpenApiResponse(
-                description="No subscription found",
+                description="You don't have a subscription yet. Choose a plan to get started.",
                 examples=[
                     OpenApiExample(
-                        name="No subscription found",
+                        name="You don't have a subscription yet. Choose a plan to get started.",
                         value={
                             "status": "inactive",
-                            "message": "No subscription found",
+                            "message": "You don't have a subscription yet. Choose a plan to get started.",
                         },
                     )
                 ],
@@ -1502,7 +1504,10 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             wallet = user.credit_wallet
         except CreditWallet.DoesNotExist:
             return Response(
-                {"status": "inactive", "message": "No credit wallet found"},
+                {
+                    "status": "inactive",
+                    "message": "We couldn't find your credit balance. Contact support if this keeps happening.",
+                },
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -1541,7 +1546,10 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             end = context.license_subscription.billing_cycle_end
         else:
             return Response(
-                {"status": "inactive", "message": "No subscription found"},
+                {
+                    "status": "inactive",
+                    "message": "You don't have a subscription yet. Choose a plan to get started.",
+                },
                 status=status.HTTP_404_NOT_FOUND,
             )
 

@@ -1078,9 +1078,8 @@ class SubscriptionReactivationService:
         stripe_status_value = stripe_sub.get("status")
         if stripe_status_value in ("canceled", "incomplete_expired"):
             raise BillingRequestError(
-                "This subscription has already been fully canceled with "
-                "our payment provider and cannot be resumed. Please "
-                "subscribe again via select-plan."
+                "This subscription has ended and can't be resumed. "
+                "Choose a plan to subscribe again."
             )
 
         warnings = []
@@ -1100,7 +1099,7 @@ class SubscriptionReactivationService:
             if now >= user_sub.billing_cycle_end:
                 raise BillingRequestError(
                     "This subscription's current billing period has "
-                    "already ended. Please subscribe again via select-plan."
+                    "already ended. Choose a plan to subscribe again."
                 )
 
             try:
@@ -1130,7 +1129,7 @@ class SubscriptionReactivationService:
                 ):
                     raise SubscriptionExpiredDuringRequest(
                         "Your subscription ended during this request. "
-                        "Please subscribe again via select-plan."
+                        "Choose a plan to subscribe again."
                     )
 
                 local_update_fields = []
@@ -1277,8 +1276,8 @@ class StripeSubscriptionMutationService:
         """
         if not user_sub.stripe_subscription_id:
             raise ValueError(
-                "This subscription has no associated Stripe subscription. "
-                "(it may have been granted manually). Contact support to upgrade."
+                "Your plan was set up by our team, so it can't be changed here. "
+                "Contact support to upgrade."
             )
         if not new_plan.stripe_price_id:
             raise ValueError(f"Plan {new_plan.name} has no stripe_price_id configured.")
@@ -1486,8 +1485,8 @@ class StripeSubscriptionMutationService:
             raise ValueError(f"Plan {new_plan.name} has no stripe_price_id configured.")
         if not user_sub.stripe_subscription_id:
             raise BillingRequestError(
-                "This subscription has no associated Stripe subscription. "
-                "(it may have been granted manually). Contact support to upgrade."
+                "Your plan was set up by our team, so it can't be changed here. "
+                "Contact support to upgrade."
             )
 
         try:
@@ -2429,7 +2428,7 @@ class StripeOverageService:
         plan = user_sub.plan
         if plan.max_overage_blocks <= 0 or plan.overage_block_price <= 0:
             raise BillingRequestError(
-                "This plan does not support overage credit purchases."
+                "Extra credits can't be bought on your current plan."
             )
 
         # Per-cycle cap: without this, plan.max_overage_blocks is decorative

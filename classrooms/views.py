@@ -1313,6 +1313,16 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     Sections represent different groups or periods within a classroom.
     """
 
+    def finalize_response(self, request, response, *args, **kwargs):
+        # H-296: owner-approved success messages (was "Request Successful").
+        if 200 <= response.status_code < 300 and isinstance(response.data, dict):
+            name = response.data.get("name")
+            if self.action == "create" and name:
+                response.message = f"Course '{name}' created."  # noqa: B907 (a name may contain an apostrophe)
+            elif self.action in ("update", "partial_update") and name:
+                response.message = f"Changes to '{name}' saved."  # noqa: B907 (a name may contain an apostrophe)
+        return super().finalize_response(request, response, *args, **kwargs)
+
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
@@ -1524,7 +1534,10 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         try:
             student = serializer.save()
             serializer = CustomUserSerializer(student)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = Response(serializer.data, status=status.HTTP_200_OK)
+            # H-296: owner-approved success message.
+            response.message = f"{student.get_full_name()} added to {course.name}."
+            return response
 
         except DjangoValidationError as e:
             detail = e.message_dict if hasattr(e, "message_dict") else e.messages
@@ -2016,6 +2029,20 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
     Academic terms represent a period of time such as a semester, year, or quarter.
     """
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        # H-296: owner-approved success messages (was "Request Successful").
+        if 200 <= response.status_code < 300 and isinstance(response.data, dict):
+            name = response.data.get("name")
+            if self.action == "create" and name:
+                response.message = f"Session '{name}' created."  # noqa: B907 (a name may contain an apostrophe)
+            elif (
+                self.action in ("update", "partial_update")
+                and name
+                and "name" in request.data
+            ):
+                response.message = f"Session renamed to '{name}'."  # noqa: B907 (a name may contain an apostrophe)
+        return super().finalize_response(request, response, *args, **kwargs)
 
     queryset = Session.objects.all()
     serializer_class = SessionSerializer

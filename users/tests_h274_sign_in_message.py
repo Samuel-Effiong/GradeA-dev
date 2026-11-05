@@ -78,7 +78,9 @@ class SignInMessageTests(APITestCase):
         resp = self._login(self.user.email, PASSWORD)
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertNotIn(EXPECTED_MESSAGE, resp.json().get("message", ""))
-        self.assertIn("Too many failed login attempts", resp.json().get("message", ""))
+        self.assertIn(
+            "Too many failed sign-in attempts", resp.json().get("message", "")
+        )
 
     def test_simplejwt_text_not_in_response(self):
         resp = self._login(self.user.email, WRONG)
