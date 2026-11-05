@@ -1,5 +1,6 @@
 import logging
 import secrets
+from urllib.parse import quote
 
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
@@ -931,7 +932,9 @@ def _send_school_admin_invitation_email(user, school, generated_password=None):
     else:
         activation_url = (
             f"https://{frontend_domain}/register/school-admin"
-            f"?email={user.email}&token={user.activation_token}"
+            # H-291: encoded, or a "+" in the address reads back as a space.
+            f"?email={quote(user.email, safe='@')}"
+            f"&token={quote(str(user.activation_token), safe='')}"
         )
         merge_data = {
             "title": f"You've been added as the admin for {school.name}",

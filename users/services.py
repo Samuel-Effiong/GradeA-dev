@@ -2,6 +2,7 @@ import hashlib
 import logging
 import string
 from datetime import timedelta
+from urllib.parse import quote
 
 from django.conf import settings
 from django.core.cache import cache
@@ -97,7 +98,9 @@ def send_user_activation_email(user):
         )
 
         activation_url = (
-            f"{protocol}{frontend_domain}/verify-email?email={user.email}&token={token}"
+            # H-291: encoded, or a "+" in the address reads back as a space.
+            f"{protocol}{frontend_domain}/verify-email"
+            f"?email={quote(user.email, safe='@')}&token={quote(str(token), safe='')}"
         )
 
         top_content = """

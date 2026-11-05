@@ -1,0 +1,3 @@
+FAIL: test_school_admin_invite_keeps_a_plus_address
+Ran 7 tests in 0.073s
+FAILED (failures=1)
