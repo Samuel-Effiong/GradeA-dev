@@ -1,0 +1,341 @@
+[
+ {
+  "row": "Login - wrong email or password",
+  "status": 401,
+  "message": "That email and password don't match. Check them and try again, or reset your password.",
+  "reason_code": "INVALID_CREDENTIALS",
+  "field_errors": {
+   "detail": "That email and password don't match. Check them and try again, or reset your password.",
+   "reason_code": "INVALID_CREDENTIALS",
+   "error_class": "USER",
+   "remediation": "Check your email and password, or reset your password.",
+   "retryable": false,
+   "params": {},
+   "reference": "26fc4b4d-73b0-45ae-8bca-3b6430d93362",
+   "code": "invalid_credentials"
+  }
+ },
+ {
+  "row": "Sign up fails (email taken)",
+  "status": 400,
+  "message": "Email: User with this email already exists.",
+  "reason_code": null,
+  "field_errors": {
+   "email": [
+    "User with this email already exists."
+   ]
+  }
+ },
+ {
+  "row": "Sign up fails (empty body)",
+  "status": 400,
+  "message": "1. Email: This field is required.\n 2. Password: This field is required.\n",
+  "reason_code": null,
+  "field_errors": {
+   "email": [
+    "This field is required."
+   ],
+   "password": [
+    "This field is required."
+   ]
+  }
+ },
+ {
+  "row": "Email verification fails (bad code)",
+  "status": 400,
+  "message": "Email and Token are required.",
+  "reason_code": null,
+  "field_errors": {
+   "detail": "Email and Token are required."
+  }
+ },
+ {
+  "row": "Resend verification / request code (unknown email)",
+  "status": 202,
+  "message": "An OTP has been sent if an account with that email exists.",
+  "reason_code": null,
+  "field_errors": null
+ },
+ {
+  "row": "Password reset - code sent",
+  "status": 202,
+  "message": "An OTP has been sent if an account with that email exists.",
+  "reason_code": null,
+  "field_errors": null
+ },
+ {
+  "row": "Password reset fails (bad code)",
+  "status": 400,
+  "message": "Invalid email, OTP code, or new password.",
+  "reason_code": null,
+  "field_errors": {
+   "detail": "Invalid email, OTP code, or new password."
+  }
+ },
+ {
+  "row": "Create session fails (empty name)",
+  "status": 400,
+  "message": "Name: This field may not be blank.",
+  "reason_code": null,
+  "field_errors": {
+   "name": [
+    "This field may not be blank."
+   ]
+  }
+ },
+ {
+  "row": "Create session succeeds",
+  "status": 201,
+  "message": "Request Successful",
+  "reason_code": null,
+  "field_errors": null
+ },
+ {
+  "row": "Rename session fails (empty)",
+  "status": 400,
+  "message": "Name: This field may not be blank.",
+  "reason_code": null,
+  "field_errors": {
+   "name": [
+    "This field may not be blank."
+   ]
+  }
+ },
+ {
+  "row": "Session deleted",
+  "status": 204,
+  "message": "<no body: 0 bytes>",
+  "reason_code": null,
+  "field_errors": null
+ },
+ {
+  "row": "Create course fails (empty)",
+  "status": 500,
+  "message": "An unexpected error occurred. Please try again.",
+  "reason_code": null,
+  "field_errors": null
+ },
+ {
+  "row": "Course create, session null",
+  "status": 500,
+  "message": "An unexpected error occurred. Please try again.",
+  "reason_code": null,
+  "field_errors": null
+ },
+ {
+  "row": "Course create, session empty string",
+  "status": 500,
+  "message": "An unexpected error occurred. Please try again.",
+  "reason_code": null,
+  "field_errors": null
+ },
+ {
+  "row": "Course create, session omitted",
+  "status": 500,
+  "message": "An unexpected error occurred. Please try again.",
+  "reason_code": null,
+  "field_errors": null
+ },
+ {
+  "row": "Cancel subscription (no sub) raw",
+  "status": 404,
+  "message": "1. Status: inactive\n 2. Message: No active subscription found to cancel\n",
+  "reason_code": null,
+  "field_errors": {
+   "status": "inactive",
+   "message": "No active subscription found to cancel"
+  }
+ },
+ {
+  "row": "Create course succeeds",
+  "status": 201,
+  "message": "Request Successful",
+  "reason_code": null,
+  "field_errors": null
+ },
+ {
+  "row": "Edit course succeeds",
+  "status": 200,
+  "message": "Request Successful",
+  "reason_code": null,
+  "field_errors": null
+ },
+ {
+  "row": "Delete course (other teacher's)",
+  "status": 404,
+  "message": "No Course matches the given query.",
+  "reason_code": null,
+  "field_errors": {
+   "detail": "No Course matches the given query."
+  }
+ },
+ {
+  "row": "Direct add - bad email",
+  "status": 400,
+  "message": "1. First name: Ensure this value has at least 2 characters (it has 1).\n 2. Last name: Ensure this value has at least 2 characters (it has 1).\n 3. Email: Enter a valid email address.\n",
+  "reason_code": null,
+  "field_errors": {
+   "first_name": [
+    "Ensure this value has at least 2 characters (it has 1)."
+   ],
+   "last_name": [
+    "Ensure this value has at least 2 characters (it has 1)."
+   ],
+   "email": [
+    "Enter a valid email address."
+   ]
+  }
+ },
+ {
+  "row": "Direct add succeeds",
+  "status": 200,
+  "message": "Request Successful",
+  "reason_code": null,
+  "field_errors": null
+ },
+ {
+  "row": "Direct add - already enrolled",
+  "status": 400,
+  "message": "A student with the exact name 'Kim Doe' is already enrolled in this course.",
+  "reason_code": null,
+  "field_errors": {
+   "non_field_errors": [
+    "A student with the exact name 'Kim Doe' is already enrolled in this course."
+   ]
+  }
+ },
+ {
+  "row": "Bulk add fails (empty)",
+  "status": 400,
+  "message": "Upload a roster file or paste your student list.",
+  "reason_code": "ROSTER_NO_INPUT",
+  "field_errors": {
+   "error": "Upload a roster file or paste your student list.",
+   "reason_code": "ROSTER_NO_INPUT",
+   "error_class": "USER",
+   "remediation": "Choose a CSV file, or paste rows copied from your spreadsheet.",
+   "retryable": false,
+   "params": {},
+   "reference": "a2996e72-c893-4d2f-a4db-f612cb0968a5"
+  }
+ },
+ {
+  "row": "Create assignment fails (empty)",
+  "status": 400,
+  "message": "1. Course: This field is required.\n 2. Raw input: This field is required.\n",
+  "reason_code": null,
+  "field_errors": {
+   "course": [
+    "This field is required."
+   ],
+   "raw_input": [
+    "This field is required."
+   ]
+  }
+ },
+ {
+  "row": "Assignment edited",
+  "status": 200,
+  "message": "Request Successful",
+  "reason_code": null,
+  "field_errors": null
+ },
+ {
+  "row": "Grade All - nothing to grade",
+  "status": 400,
+  "message": "No ungraded submissons to process",
+  "reason_code": null,
+  "field_errors": {
+   "detail": "No ungraded submissons to process"
+  }
+ },
+ {
+  "row": "Grade All - not enough credits",
+  "status": 402,
+  "message": "There aren't enough AI credits to do this. Top up your credits, then try again.",
+  "reason_code": "INSUFFICIENT_CREDITS",
+  "field_errors": {
+   "error": "There aren't enough AI credits to do this. Top up your credits, then try again.",
+   "reason_code": "INSUFFICIENT_CREDITS",
+   "error_class": "USER",
+   "remediation": "Top up credits, then try again.",
+   "retryable": false,
+   "params": {},
+   "reference": "a7aed246-ff8c-493a-8f42-2a02bb87e5ae",
+   "code": "insufficient_credits"
+  }
+ },
+ {
+  "row": "Schedule grading - time in the past",
+  "status": 400,
+  "message": "Schedule time: This field is required.",
+  "reason_code": null,
+  "field_errors": {
+   "schedule_time": [
+    "This field is required."
+   ]
+  }
+ },
+ {
+  "row": "Publish all - nothing to publish",
+  "status": 200,
+  "message": "No graded submissions found to publish.",
+  "reason_code": null,
+  "field_errors": null
+ },
+ {
+  "row": "Delete submission (unknown id)",
+  "status": 404,
+  "message": "No StudentSubmission matches the given query.",
+  "reason_code": null,
+  "field_errors": {
+   "detail": "No StudentSubmission matches the given query."
+  }
+ },
+ {
+  "row": "Password change - wrong current",
+  "status": 400,
+  "message": "Current password: This field is required.",
+  "reason_code": null,
+  "field_errors": {
+   "current_password": [
+    "This field is required."
+   ]
+  }
+ },
+ {
+  "row": "Request password-change code",
+  "status": 200,
+  "message": "An OTP code has been sent to your email",
+  "reason_code": null,
+  "field_errors": null
+ },
+ {
+  "row": "Notifications/settings save (bad value)",
+  "status": 405,
+  "message": "Method \"PATCH\" not allowed.",
+  "reason_code": null,
+  "field_errors": {
+   "detail": "Method \"PATCH\" not allowed."
+  }
+ },
+ {
+  "row": "Cancel subscription (no subscription)",
+  "status": 404,
+  "message": "1. Status: inactive\n 2. Message: No active subscription found to cancel\n",
+  "reason_code": null,
+  "field_errors": {
+   "status": "inactive",
+   "message": "No active subscription found to cancel"
+  }
+ },
+ {
+  "row": "Select plan (bad plan id)",
+  "status": 405,
+  "message": "Method \"POST\" not allowed.",
+  "reason_code": null,
+  "field_errors": {
+   "detail": "Method \"POST\" not allowed."
+  }
+ }
+]
