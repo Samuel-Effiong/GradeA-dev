@@ -27,3 +27,14 @@ After the fix: Ran 5 OK; `AutoGrader.tests_reason_codes` OK;
 Mutants: (1) view back to ParseError -> 3 tests fail; (2) catalogue message
 typo restored -> catalogue + envelope tests fail.
 Near run: `assignments audit AutoGrader.tests_reason_codes students.tests_s6d_rubric_gate`.
+
+## Results
+- E1 red (eb9d086d): Ran 5, FAILED (failures=1, errors=3): the 4 named, for the
+  expected reasons (KeyError reason_code x2, ValueError not a ReasonCode,
+  reason_code None); the 202 guard passed - met.
+- Green (fix 2e7ee528): new module + tests_reason_codes + s6d rubric gate Ran 78 OK;
+  makemigrations clean (no migration) - met.
+- Mutants, restored by sha256, both killed: M-h292.1 ParseError back (3 tests),
+  M-h292.2 typo back in the catalogue (4 tests incl. the approved-text pin).
+- Near run `assignments audit AutoGrader.tests_reason_codes students.tests_s6d_rubric_gate
+  billing.tests.test_h38_part2_removed_teacher_routes`: Ran 1393, OK (skipped=15) - met.
