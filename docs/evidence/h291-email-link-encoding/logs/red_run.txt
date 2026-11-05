@@ -1,0 +1,124 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+FFree trial plan not found: no trial activated for user a38ded51-e8ae-4e70-a303-7c1c1debc130.
+Cannot activate automatic trial for user a38ded51-e8ae-4e70-a303-7c1c1debc130 (validation): ValueError
+FFree trial plan not found: no trial activated for user 30f07b53-8d0d-43b0-b009-8189097f3578.
+Cannot activate automatic trial for user 30f07b53-8d0d-43b0-b009-8189097f3578 (validation): ValueError
+.Free trial plan not found: no trial activated for user e1834d5f-1963-48d1-9e34-5be41bb6bbf7.
+Cannot activate automatic trial for user e1834d5f-1963-48d1-9e34-5be41bb6bbf7 (validation): ValueError
+.FFF
+======================================================================
+FAIL: test_activation_link_for_a_student_keeps_a_plus_address (users.tests_h291_email_link_encoding.EmailLinkEncodingTests.test_activation_link_for_a_student_keeps_a_plus_address)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h291-email-link-encoding/users/tests_h291_email_link_encoding.py", line 61, in test_activation_link_for_a_student_keeps_a_plus_address
+    self.assertEqual(_query(url)["email"], [PLUS_EMAIL])
+AssertionError: Lists differ: ['emanprojectz test11@gmail.com'] != ['emanprojectz+test11@gmail.com']
+
+First differing element 0:
+'emanprojectz test11@gmail.com'
+'emanprojectz+test11@gmail.com'
+
+- ['emanprojectz test11@gmail.com']
+?               ^
+
++ ['emanprojectz+test11@gmail.com']
+?               ^
+
+
+======================================================================
+FAIL: test_activation_link_keeps_a_plus_address (users.tests_h291_email_link_encoding.EmailLinkEncodingTests.test_activation_link_keeps_a_plus_address)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h291-email-link-encoding/users/tests_h291_email_link_encoding.py", line 53, in test_activation_link_keeps_a_plus_address
+    self.assertEqual(_query(url)["email"], [PLUS_EMAIL])
+AssertionError: Lists differ: ['emanprojectz test11@gmail.com'] != ['emanprojectz+test11@gmail.com']
+
+First differing element 0:
+'emanprojectz test11@gmail.com'
+'emanprojectz+test11@gmail.com'
+
+- ['emanprojectz test11@gmail.com']
+?               ^
+
++ ['emanprojectz+test11@gmail.com']
+?               ^
+
+
+======================================================================
+FAIL: test_school_admin_invite_keeps_a_plus_address (users.tests_h291_email_link_encoding.EmailLinkEncodingTests.test_school_admin_invite_keeps_a_plus_address)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h291-email-link-encoding/users/tests_h291_email_link_encoding.py", line 91, in test_school_admin_invite_keeps_a_plus_address
+    self.assertEqual(_query(url)["email"], [PLUS_EMAIL])
+AssertionError: Lists differ: ['emanprojectz test11@gmail.com'] != ['emanprojectz+test11@gmail.com']
+
+First differing element 0:
+'emanprojectz test11@gmail.com'
+'emanprojectz+test11@gmail.com'
+
+- ['emanprojectz test11@gmail.com']
+?               ^
+
++ ['emanprojectz+test11@gmail.com']
+?               ^
+
+
+======================================================================
+FAIL: test_student_invite_keeps_a_plus_address (users.tests_h291_email_link_encoding.EmailLinkEncodingTests.test_student_invite_keeps_a_plus_address)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h291-email-link-encoding/users/tests_h291_email_link_encoding.py", line 96, in test_student_invite_keeps_a_plus_address
+    self.assertEqual(_query(url)["email"], [PLUS_EMAIL])
+AssertionError: Lists differ: ['emanprojectz test11@gmail.com'] != ['emanprojectz+test11@gmail.com']
+
+First differing element 0:
+'emanprojectz test11@gmail.com'
+'emanprojectz+test11@gmail.com'
+
+- ['emanprojectz test11@gmail.com']
+?               ^
+
++ ['emanprojectz+test11@gmail.com']
+?               ^
+
+
+======================================================================
+FAIL: test_student_invite_keeps_an_address_with_an_ampersand (users.tests_h291_email_link_encoding.EmailLinkEncodingTests.test_student_invite_keeps_an_address_with_an_ampersand)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h291-email-link-encoding/users/tests_h291_email_link_encoding.py", line 103, in test_student_invite_keeps_an_address_with_an_ampersand
+    self.assertEqual(_query(url)["email"], [email])
+AssertionError: Lists differ: ['a'] != ['a&b+c@example.com']
+
+First differing element 0:
+'a'
+'a&b+c@example.com'
+
+- ['a']
++ ['a&b+c@example.com']
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.096s
+
+FAILED (failures=5)
+Destroying test database for alias 'default'...
+Found 7 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -12,6 +12,7 @@ templates render against, so they are reproduced exactly rather than tidied.
 """
 
 import logging
+from urllib.parse import quote
 
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -39,7 +40,11 @@ def _base_merge_data(title, name):
 
 def student_registration_link(activation_token, email):
     domain = settings.STUDENT_FRONTEND_DOMAIN
-    return f"https://{domain}/register/student/{activation_token}?email={email}"
+    # H-291: encoded, or a "+" in the address reads back as a space.
+    return (
+        f"https://{domain}/register/student/{quote(str(activation_token), safe='')}"
+        f"?email={quote(email, safe='@')}"
+    )
 
 
 def send_added_to_course_email(student, course):
