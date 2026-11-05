@@ -64,3 +64,4 @@ Mutant (E4): remove the INDIVIDUAL branch's filter -> at least
   - M-h288.3 `none()` removed -> 1 failure (unknown session).
 - E3 near run (expectation written before the run): `python manage.py test classrooms`
   on 1d7c9f6a: **OK, no failures or errors** (count is recorded from the run).
+  Result on 8927e6c1 (same code as 1d7c9f6a): **Ran 694, OK** - met. Summary `logs/near_8927e6c1_summary.txt`; full log GAP-a0-runs/h288_near.log (too large to commit).

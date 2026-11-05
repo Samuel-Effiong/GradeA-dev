@@ -1,0 +1,7 @@
+System check identified some issues:
+System check identified 1 issue (0 silenced).
+Found 694 test(s).
+API request refused: NotFound (404)
+API request refused: NotFound (404)
+Ran 694 tests in 82.572s
+OK
