@@ -3,7 +3,7 @@ import uuid
 import django_filters
 from rest_framework.exceptions import ValidationError
 
-from .enums import ActorRole, AuditOutcome
+from .enums import ActorRole, AuditOutcome, ErrorClass
 from .models import AuditEvent
 
 
@@ -35,6 +35,9 @@ class _BaseAuditEventFilter(django_filters.FilterSet):
     )
     actor_role = django_filters.ChoiceFilter(choices=ActorRole.choices)
     outcome = django_filters.ChoiceFilter(choices=AuditOutcome.choices)
+    # H-293: where a failure came from. SYSTEM is the class that also reaches
+    # Sentry, so ?error_class=SYSTEM is the "show me the crashes" view.
+    error_class = django_filters.ChoiceFilter(choices=ErrorClass.choices)
     # Plan 08 D1: a STATE_CHANGE event names its route in metadata, so the
     # route is searchable without widening the closed action vocabulary.
     route = django_filters.CharFilter(field_name="metadata__route")
@@ -52,6 +55,7 @@ class _BaseAuditEventFilter(django_filters.FilterSet):
             "action",
             "department_id",
             "outcome",
+            "error_class",
             "reason_code",
         ]
 
