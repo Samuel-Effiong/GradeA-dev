@@ -38,3 +38,12 @@ E2, after the fix: new module Ran 7 OK; the two existing modules OK.
 E3: one mutant per site (revert that site's encoding) -> that site's test fails.
 
 E4, near run: `users classrooms`, OK (count recorded from the run).
+
+## Results
+
+- E1 red (933fd142): Ran 7, FAILED (failures=5), exactly the five named - met.
+- E2 green (fix d4d9c570): new module + the two existing modules Ran 12 OK - met.
+- E3 mutants, each restored by sha256, all killed: M-h291.1 activation (2 failures),
+  M-h291.2 school-admin invite (1), M-h291.3 student invite (2).
+- E4 near run `users classrooms` on the fix: Ran 1626, OK (skipped=4) - met.
+  Summary `logs/near_summary.txt`; full log GAP-a0-runs/h291_near.log.
