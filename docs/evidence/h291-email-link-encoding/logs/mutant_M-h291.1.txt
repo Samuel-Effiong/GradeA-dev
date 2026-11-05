@@ -1,0 +1,4 @@
+FAIL: test_activation_link_for_a_student_keeps_a_plus_address
+FAIL: test_activation_link_keeps_a_plus_address
+Ran 7 tests in 0.080s
+FAILED (failures=2)
