@@ -987,3 +987,18 @@ Every other row matched §14c exactly.
 - All other rows as in §14c.
 
 Green: Ran 16 OK (not 17). Billing app flag off: 2505 + 16 = 2521.
+
+### 14f. 3b gate plants: exact expectations (code committed first at c6d05df0; committed before any plant runs)
+
+Each plant is applied to the committed file, run, restored from a saved copy and checked by sha256 against HEAD. The killing tests are in `billing.tests.test_holds_entry`.
+
+| Plant | Change (`billing/holds.py` `Unit.enter` / `settle_root`, or a site) | Run | Expected |
+|---|---|---|---|
+| Q-1 settled exit removed | `if already_settled(row):` → `if False:` | ER-4 | 1 FAIL `CreditHoldReturnedError not raised` |
+| Q-2 late grading exit removed | the `raise _late(f"task {row.pk}: its credit hold was returned")` → run as a retry instead | ER-3 | 1 FAIL `CreditHoldReturnedError not raised` |
+| Q-3 retry on the OLD job | the final `self._run_as_successor(open_retry_job(old_job, row, 0), row)` → `self.job, self.item = old_job, row` | ER-5 | 1 ERROR `AIJob.DoesNotExist` (no retry job) |
+| Q-4 shared-job finish guard removed | in `settle_root`, `if self.owns_job:` → `if True:` | ER-2 | 1 FAIL `'SETTLED' != 'RUNNING'` |
+| Q-5 start claim skipped (M-B31 entry half) | `if claim_item_start(row):` → `if True:` | ER-2 | 1 FAIL `unexpectedly None` (started_at) |
+| Q-6 a site without its task id | `students/services.py` grading site: drop `processing_task_id=processing_task_id,` from its `metered_unit(` | E-1 granted + wiring `test_the_five_sites…` | 2 FAIL: E-1 `Tuples differ` (key = the unit's job, not the row); wiring `'processing_task_id' not found` |
+
+Logs: `step3b_plant_Q-<n>.log`.
