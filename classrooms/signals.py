@@ -217,14 +217,16 @@ def _recalculate_final_grade(student_id, course_id, *, allow_clear=True):
     `recalculate_final_grades` management command exists for them.
 
     Locks the enrollment row for the duration of the aggregate + write.
-    Batch grading (grade-all) finishes several submissions for the same
-    (student, course) on different workers at nearly the same moment; an
-    unlocked read-aggregate-write here let a worker holding a stale
-    aggregate win the last write, permanently understating final_grade
-    (nothing re-triggers the recalc afterwards). Under the lock, the
-    second worker blocks until the first commits and then aggregates
-    fresh data, so the last write always reflects every graded
-    submission.
+    One Grade all run grades one assignment, one submission per student,
+    so a single run recalculates each student once. The lock matters when
+    runs on different assignments of the same course overlap (or a teacher
+    edits a score while one runs): two workers then finish the same
+    (student, course) at nearly the same moment, and an unlocked
+    read-aggregate-write let the worker holding a stale aggregate win the
+    last write, permanently understating final_grade (nothing re-triggers
+    the recalc afterwards). Under the lock, the second worker blocks until
+    the first commits and then aggregates fresh data, so the last write
+    always reflects every graded submission.
     """
     with transaction.atomic():
         enrollment = (
