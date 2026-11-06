@@ -5644,128 +5644,62 @@ Now, respond to the following teacher's instruction using the rules above
         )
         call_record.note_estimate(estimated_cost)
 
-        if credit_holds.holds_enabled():
-            # Epic B1a (plan 08 §3.3): hold before the provider call, settle
-            # the actual usage after it. The flag-off path below is unchanged.
-            resolved_course = assignment.course if assignment else course
-            billed_school = getattr(target_teacher, "school", None)
-            unit = credit_holds.current_unit()
-            if unit is not None:
-                # Inside a metered unit: the pre-call fit check, then the
-                # usage goes on the unit's tally; the unit settles once.
-                unit.before_call(
-                    wallet=wallet,
-                    target_teacher=target_teacher,
-                    estimate=estimated_cost,
-                )
-                ensure_task_not_cancelled(processing_task_id)
-                task_id = str(uuid.uuid4())
-                call_record.note_task_id(task_id)
-                response = self.__ai_model(
-                    system_prompt,
-                    user_prompt,
-                    messages,
-                    tool_schemas,
-                    respond_format,
-                    response_schema,
-                    sub_models=sub_models,
-                    override_model=override_model,
-                    prompt_version=prompt_version,
-                    task_type=task_type,
-                )
-                note_if_reply_cut_off(response, task_type)
-                call_record.note_response(response)
-                unit.after_call(
-                    response.usage.total_tokens,
-                    task_id,
-                    feature=feature,
-                    task_type=task_type,
-                    course=resolved_course,
-                    school=billed_school,
-                )
-                return response
+        if not credit_holds.holds_enabled():
+            balance = wallet.total_remaining_credits()
 
-            # No unit: a SINGLE_CALL job holds the estimate or refuses here,
-            # before the provider is reached.
-            job = credit_holds.begin_single_call(
-                wallet=wallet, target_teacher=target_teacher, estimate=estimated_cost
-            )
-            try:
-                ensure_task_not_cancelled(processing_task_id)
-                call_record.note_task_id(str(uuid.uuid4()))
-                response = self.__ai_model(
-                    system_prompt,
-                    user_prompt,
-                    messages,
-                    tool_schemas,
-                    respond_format,
-                    response_schema,
-                    sub_models=sub_models,
-                    override_model=override_model,
-                    prompt_version=prompt_version,
-                    task_type=task_type,
+            if balance < estimated_cost:
+                raise InsufficientCreditsError(
+                    f"Task requires ~{estimated_cost} credits, but you only have {balance} credits. "
+                    f"Please refill your wallet to continue",
+                    individual=is_individual_teacher(target_teacher),
                 )
-                note_if_reply_cut_off(response, task_type)
-                call_record.note_response(response)
-                with transaction.atomic():
-                    ensure_task_not_cancelled(processing_task_id)
-                    billing_task_id = credit_holds.finish_single_call(
-                        job,
-                        response.usage.total_tokens,
-                        feature=feature,
-                        task_type=task_type,
-                        course=resolved_course,
-                        school=billed_school,
-                    )
-                    AnalyticsService.record_consumption(
-                        user=target_teacher,
-                        amount=response.usage.total_tokens,
-                        feature=feature,
-                    )
-                    AnalyticsService.track_activity(user=target_teacher)
-            except BaseException:
-                credit_holds.abandon_single_call(job)
-                raise
-            # The call row is written when this method returns (call_record):
-            # it carries the settlement's id, the id the usage rows carry.
-            call_record.note_task_id(billing_task_id)
-            record_billing_task_id(billing_task_id)
-            return response
 
-        balance = wallet.total_remaining_credits()
-
-        if balance < estimated_cost:
-            raise InsufficientCreditsError(
-                f"Task requires ~{estimated_cost} credits, but you only have {balance} credits. "
-                f"Please refill your wallet to continue",
-                individual=is_individual_teacher(target_teacher),
-            )
-
-        if balance <= 0:
-            raise InsufficientCreditsError(
-                "Refill your wallet to continue",
-                individual=is_individual_teacher(target_teacher),
-            )
+            if balance <= 0:
+                raise InsufficientCreditsError(
+                    "Refill your wallet to continue",
+                    individual=is_individual_teacher(target_teacher),
+                )
 
         ensure_task_not_cancelled(processing_task_id)
-        task_id = str(uuid.uuid4())
-        call_record.note_task_id(task_id)
-        response = self.__ai_model(
-            system_prompt,
-            user_prompt,
-            messages,
-            tool_schemas,
-            respond_format,
-            response_schema,
-            sub_models=sub_models,
-            override_model=override_model,
-            prompt_version=prompt_version,
-            task_type=task_type,
+        # Epic B1a (plan 08 §3.3, NOTES §15i): flag on, the call's hold is
+        # taken here, before the provider is reached (or refused); its usage
+        # id is the settlement's, noted below. None with the flag off.
+        hold = credit_holds.hold_for_call(
+            wallet=wallet, target_teacher=target_teacher, estimate=estimated_cost
         )
-        note_if_reply_cut_off(response, task_type)
+        task_id = str(uuid.uuid4()) if hold is None else hold.usage_id
+        call_record.note_task_id(task_id)
+        try:
+            response = self.__ai_model(
+                system_prompt,
+                user_prompt,
+                messages,
+                tool_schemas,
+                respond_format,
+                response_schema,
+                sub_models=sub_models,
+                override_model=override_model,
+                prompt_version=prompt_version,
+                task_type=task_type,
+            )
+            note_if_reply_cut_off(response, task_type)
+        except BaseException:
+            credit_holds.abandon_call(hold)
+            raise
 
         call_record.note_response(response)
         resolved_course = assignment.course if assignment else course
+
+        if hold is not None:
+            hold.finish(
+                response.usage.total_tokens,
+                feature=feature,
+                task_type=task_type,
+                course=resolved_course,
+                school=getattr(target_teacher, "school", None),
+                before_charge=lambda: ensure_task_not_cancelled(processing_task_id),
+            )
+            return response
 
         with transaction.atomic():
             ensure_task_not_cancelled(processing_task_id)

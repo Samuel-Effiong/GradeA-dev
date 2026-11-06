@@ -251,13 +251,17 @@ def settle(
     task_type=None,
     course=None,
     school=None,
-    call_task_ids=(),
+    record_id=None,
 ):
     """Charge `actual` once per settlement key (plan §3.2 settle).
 
     key: (item_id, retry_count). Default: the item's task row and its
     retry_count, or (job.id, 0) for a job with no task row. A duplicate key
     writes nothing and returns NOT_SETTLED.
+
+    record_id: the usage id the run's calls already noted (NOTES §15i): the
+    settlement record takes it, so the usage rows and the call rows share it
+    without the call rows ever being updated.
     """
     if actual < 0:
         raise ValueError("actual cost cannot be negative")
@@ -273,7 +277,10 @@ def settle(
         try:
             with transaction.atomic():
                 record = SettlementRecord.objects.create(
-                    job=job_row, item_id=key[0], retry_count=key[1]
+                    job=job_row,
+                    item_id=key[0],
+                    retry_count=key[1],
+                    **({"id": record_id} if record_id else {}),
                 )
         except IntegrityError:
             return NOT_SETTLED
@@ -313,14 +320,6 @@ def settle(
                 hold_drawn=F("hold_drawn") + drawn,
                 released_credits=F("released_credits") + leftover,
                 hold_state=HoldState.RETURNED,
-            )
-        if call_task_ids:
-            # FR-B-09 (SM ruling Q3): the call rows carry the id the usage
-            # rows carry, so the actual-cost join still finds them.
-            from ai_processor.models import AICallRecord
-
-            AICallRecord.objects.filter(task_id__in=list(call_task_ids)).update(
-                task_id=str(record.id)
             )
         _audit(
             AuditAction.CREDIT_HOLD_SETTLED,
@@ -687,7 +686,9 @@ class Unit:
     def __init__(self, parent):
         self.parent = parent
         self.tally = 0
-        self.call_task_ids = []
+        # FR-B-09 (NOTES §15i): the root's settlement id, fixed before any
+        # call so every call row notes it; nested units use the root's.
+        self.usage_id = uuid.uuid4() if parent is None else None
         # Root only.
         self.job = None
         self.item = None
@@ -783,9 +784,8 @@ class Unit:
             root.billed = target_teacher
         ensure_call_fits(root.job, estimate, item=root.item, tally=self.open_tally())
 
-    def after_call(self, actual, task_id, *, feature, task_type, course, school):
+    def after_call(self, actual, *, feature, task_type, course, school):
         self.tally += actual
-        self.call_task_ids.append(task_id)
         root = self.root()
         if root.settle_kwargs is None:
             root.settle_kwargs = {
@@ -797,7 +797,6 @@ class Unit:
 
     def absorb(self, child):
         self.tally += child.tally
-        self.call_task_ids.extend(child.call_task_ids)
 
     def settle_root(self):
         if self.job is None:
@@ -807,7 +806,7 @@ class Unit:
             self.tally,
             item=self.item,
             key=self.key,
-            call_task_ids=self.call_task_ids,
+            record_id=self.usage_id,
             **(self.settle_kwargs or {}),
         )
         if self.owns_job:
@@ -897,11 +896,19 @@ def begin_single_call(*, wallet, target_teacher, estimate):
     return AIJob.objects.get(pk=job.pk)
 
 
-def finish_single_call(job, actual, *, feature, task_type, course, school):
+def finish_single_call(
+    job, actual, *, feature, task_type, course, school, record_id=None
+):
     """Settle the call's actual usage, return the rest, close the job.
     Returns the billing task id (the settlement's id)."""
     outcome = settle(
-        job, actual, feature=feature, task_type=task_type, course=course, school=school
+        job,
+        actual,
+        feature=feature,
+        task_type=task_type,
+        course=course,
+        school=school,
+        record_id=record_id,
     )
     finish_job(job, AIJobStatus.SETTLED)
     return str(outcome.record_id) if outcome.record_id else None
@@ -911,6 +918,86 @@ def abandon_single_call(job):
     """The call failed or was cancelled: nothing charged, hold returned."""
     fail_item(job)
     finish_job(job, AIJobStatus.FAILED)
+
+
+# --------------------------------------------------------------------------
+# The hold for one provider call in execute_graded_task (plan 08 §3.3;
+# NOTES §15i: one provider call site, one set of call_record notes)
+# --------------------------------------------------------------------------
+
+
+class _UnitCallHold:
+    """A call inside a metered unit: the unit holds and settles it."""
+
+    def __init__(self, unit):
+        self.unit = unit
+        self.usage_id = str(unit.root().usage_id)
+
+    def finish(self, actual, *, feature, task_type, course, school, before_charge):
+        self.unit.after_call(
+            actual, feature=feature, task_type=task_type, course=course, school=school
+        )
+
+    def abandon(self):
+        """The unit's own exit returns the hold (fail_root)."""
+
+
+class _SingleCallHold:
+    """A call outside any unit: its own SINGLE_CALL job."""
+
+    def __init__(self, job, billed):
+        self.job = job
+        self.billed = billed
+        self.usage_id = str(uuid.uuid4())
+
+    def finish(self, actual, *, feature, task_type, course, school, before_charge):
+        from .refunds import record_billing_task_id
+
+        try:
+            with transaction.atomic():
+                before_charge()
+                billing_task_id = finish_single_call(
+                    self.job,
+                    actual,
+                    feature=feature,
+                    task_type=task_type,
+                    course=course,
+                    school=school,
+                    record_id=self.usage_id,
+                )
+                _record_analytics(self.billed, actual, feature)
+        except BaseException:
+            self.abandon()
+            raise
+        record_billing_task_id(billing_task_id)
+
+    def abandon(self):
+        abandon_single_call(self.job)
+
+
+def hold_for_call(*, wallet, target_teacher, estimate):
+    """Hold one provider call's estimate before the call, or raise
+    InsufficientCreditsError. None with the flag off (today's balance check
+    applies)."""
+    if not holds_enabled():
+        return None
+    unit = current_unit()
+    if unit is not None:
+        unit.before_call(
+            wallet=wallet, target_teacher=target_teacher, estimate=estimate
+        )
+        return _UnitCallHold(unit)
+    job = begin_single_call(
+        wallet=wallet, target_teacher=target_teacher, estimate=estimate
+    )
+    return _SingleCallHold(job, target_teacher)
+
+
+def abandon_call(hold):
+    """The provider call raised: return a single call's hold. A no-op with
+    the flag off (None) and inside a unit (its exit returns the hold)."""
+    if hold is not None:
+        hold.abandon()
 
 
 # --------------------------------------------------------------------------
