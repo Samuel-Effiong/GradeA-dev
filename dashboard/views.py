@@ -853,7 +853,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                     course__teacher__user_type=UserTypes.TEACHER,
                 )
                 .values("course__teacher__school_id")
-                .annotate(average=Avg("final_grade"))
+                .annotate(average=grade_service.mean_of_final_grades())
                 .order_by()
             }
 
