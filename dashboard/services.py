@@ -1082,7 +1082,9 @@ class TeacherAIContextService:
                     "submissions",
                     filter=Q(submissions__score_percentage__isnull=False),
                 ),
-                average_score=Avg("submissions__score_percentage"),
+                average_score=grade_service.mean_percentage(
+                    "submissions__score_percentage"
+                ),
             )
             .values(
                 "id",
