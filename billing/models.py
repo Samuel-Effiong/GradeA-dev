@@ -142,6 +142,38 @@ class PendingChangeType(models.TextChoices):
     LATERAL_DEFERRED = "LATERAL_DEFERRED", _("Interval change (deferred)")
 
 
+class AIJobType(models.TextChoices):
+    # 03a §2.2
+    BATCH_GRADING = "BATCH_GRADING", _("Batch Grading")
+    LESSON_GENERATION = "LESSON_GENERATION", _("Lesson Generation")
+    ASSIGNMENT_GENERATION = "ASSIGNMENT_GENERATION", _("Assignment Generation")
+    INSIGHT_GENERATION = "INSIGHT_GENERATION", _("Insight Generation")
+    # plan 08 §3.1: every hold is a durable row
+    SINGLE_CALL = "SINGLE_CALL", _("Single Call")
+    SINGLE_ITEM = "SINGLE_ITEM", _("Single Item")
+    UPLOAD = "UPLOAD", _("Upload")
+
+
+class AIJobStatus(models.TextChoices):
+    # plan 08 §3.1: 03a's machine without the stored PARTIALLY_COMPLETE
+    ESTIMATED = "ESTIMATED", _("Estimated")
+    RESERVED = "RESERVED", _("Reserved")
+    RUNNING = "RUNNING", _("Running")
+    SETTLED = "SETTLED", _("Settled")
+    FAILED = "FAILED", _("Failed")
+    QUEUED_PENDING_CREDITS = "QUEUED_PENDING_CREDITS", _("Queued Pending Credits")
+    EXPIRED = "EXPIRED", _("Expired")
+    CANCELLED = "CANCELLED", _("Cancelled")
+
+
+class HoldState(models.TextChoices):
+    """A BackgroundProcessingTask's credit hold (plan 08 §3.2). Labelled
+    "credit" so it never reads as an H-279 held re-grade."""
+
+    HELD = "HELD", _("Credit held")
+    RETURNED = "RETURNED", _("Credit returned")
+
+
 PLAN_TIER_HIERARCHY = [
     PlanTier.STANDARD,
     PlanTier.PRO,
@@ -380,6 +412,18 @@ class SubscriptionPlan(models.Model):
         PlanFeature,
         through="PlanFeatureInclusion",
         related_name="plans",
+    )
+
+    # --- Queue lifetime (Epic B1) ---
+    queue_expiry_days = models.PositiveSmallIntegerField(
+        default=14,
+        db_default=14,
+        help_text="Days a queued job waits before expiring.",
+    )
+    queue_expiry_warning_hours = models.PositiveSmallIntegerField(
+        default=48,
+        db_default=48,
+        help_text="Hours before expiry to send the warning email.",
     )
 
     # --- Display ---
@@ -662,6 +706,26 @@ class CreditWallet(models.Model):
         help_text="Number of overage blocks used in the current billing cycle",
     )
 
+    # --- Credit holds (Epic B1) ---
+    reserved_credits = models.IntegerField(
+        default=0,
+        db_default=0,
+        help_text=(
+            "Credits currently reserved by open AIJob holds. "
+            "Spendable = total_remaining_credits() − reserved_credits."
+        ),
+    )
+    low_balance_warned_level = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Last threshold-warning level sent this cycle (25, 10 or 0).",
+    )
+    low_balance_warned_cycle_start = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Billing-cycle start date the last warning was for.",
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True, help_text="Date and time when the credit wallet was created"
     )
@@ -675,6 +739,15 @@ class CreditWallet(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        # Plan 08 §3.2: a bookkeeping error fails loudly, never drifts. The
+        # database side is added NOT VALID then validated (migrations 0075,
+        # 0076); this is the state side.
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(reserved_credits__gte=0),
+                name="creditwallet_reserved_credits_nonneg",
+            ),
+        ]
 
     @cached_property
     def active_subscription(self):
@@ -1698,6 +1771,175 @@ register_append_only_guards(CreditLedger, CreditUsageLog)
 pre_save.connect(
     guard_bucket_save, sender=CreditBucket, dispatch_uid="zero_credit_bucket_guard"
 )
+
+
+# ---------------------------------------------------------------------------
+# Epic B1: AIJob, SettlementRecord, BillingSettings
+# ---------------------------------------------------------------------------
+
+
+class AIJob(models.Model):
+    """One credit-consuming operation and its credit hold (03a §2.2, plan 08
+    §3.1). Every transition is a conditional UPDATE on (id, status)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    job_type = models.CharField(max_length=32, choices=AIJobType.choices, db_index=True)
+    status = models.CharField(
+        max_length=32,
+        choices=AIJobStatus.choices,
+        default=AIJobStatus.ESTIMATED,
+        db_index=True,
+    )
+
+    # 03a: an operational row, not history; the ledger keeps the money trail.
+    requested_by = models.ForeignKey(
+        "users.CustomUser", on_delete=models.CASCADE, related_name="ai_jobs"
+    )
+    # 03a: a wallet with open reservations must not vanish.
+    wallet = models.ForeignKey(
+        CreditWallet, on_delete=models.PROTECT, related_name="ai_jobs"
+    )
+    school_id = models.UUIDField(null=True, blank=True, db_index=True)
+    course = models.ForeignKey(
+        "classrooms.Course",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ai_jobs",
+    )
+    assignment = models.ForeignKey(
+        "assignments.Assignment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ai_jobs",
+    )
+
+    # --- Estimate (X-3) ---
+    estimate_p50 = models.IntegerField(null=True, blank=True)
+    estimate_p90 = models.IntegerField(null=True, blank=True)
+    sufficiency_verdict = models.CharField(max_length=16, null=True, blank=True)
+
+    # --- Hold accounting (plan 08 §3.2) ---
+    reserved_credits = models.IntegerField(default=0, db_default=0)
+    # A timestamp only, never a fencing token (plan 08 §3.2, review r1 M2).
+    reservation_claimed_at = models.DateTimeField(null=True, blank=True)
+    consumed_credits = models.IntegerField(default=0, db_default=0)
+    released_credits = models.IntegerField(default=0, db_default=0)
+    hold_drawn = models.IntegerField(default=0, db_default=0)
+    unbilled_credits = models.IntegerField(default=0, db_default=0)
+    overrun_charged = models.IntegerField(default=0, db_default=0)
+    held_per_item = models.IntegerField(default=0, db_default=0)
+
+    # --- Items ---
+    total_items = models.IntegerField(default=0, db_default=0)
+    completed_items = models.IntegerField(default=0, db_default=0)
+    failed_items = models.IntegerField(default=0, db_default=0)
+    stopped_at_item = models.IntegerField(null=True, blank=True)
+
+    # --- Queue (X-8) ---
+    queued_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    warned_expiry_at = models.DateTimeField(null=True, blank=True)
+    cancel_requested_at = models.DateTimeField(null=True, blank=True)
+
+    trace_id = models.UUIDField(db_index=True)
+    meta = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["wallet", "status"],
+                name="aijob_wallet_open_ix",
+                condition=models.Q(status__in=["RESERVED", "RUNNING"]),
+            ),
+            models.Index(
+                fields=["status", "expires_at"],
+                name="aijob_queued_expiry_ix",
+                condition=models.Q(status="QUEUED_PENDING_CREDITS"),
+            ),
+            models.Index(
+                fields=["requested_by", "-created_at"],
+                name="aijob_requester_created_ix",
+            ),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(reserved_credits__gte=0)
+                & models.Q(consumed_credits__gte=0)
+                & models.Q(released_credits__gte=0),
+                name="aijob_credits_nonneg",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    total_items__gte=models.F("completed_items")
+                    + models.F("failed_items")
+                ),
+                name="aijob_items_within_total",
+            ),
+        ]
+
+    def __str__(self):
+        return f"AIJob {self.id} ({self.job_type}/{self.status})"
+
+
+class SettlementRecord(models.Model):
+    """Per-item settlement fence: unique (item_id, retry_count)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    job = models.ForeignKey(
+        AIJob,
+        on_delete=models.CASCADE,
+        related_name="settlements",
+    )
+    item_id = models.UUIDField(
+        help_text="BackgroundProcessingTask id, or the job id for E-4/E-5/SINGLE_CALL.",
+    )
+    retry_count = models.PositiveIntegerField(default=0)
+    credits_charged = models.IntegerField(default=0)
+    settled_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["item_id", "retry_count"],
+                name="unique_settlement_per_item_retry",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Settlement {self.item_id}:{self.retry_count}"
+
+
+class BillingSettings(models.Model):
+    """Singleton editable billing settings (one row via Django admin)."""
+
+    cold_start_cost_factor = models.FloatField(
+        default=3.0,
+        help_text="Multiplier for the cold-start estimate fallback.",
+    )
+    unstarted_backstop_hours = models.PositiveSmallIntegerField(
+        default=36,
+        help_text="Hours before unstarted items in a job are failed by the backstop.",
+    )
+
+    class Meta:
+        verbose_name = "Billing settings"
+        verbose_name_plural = "Billing settings"
+
+    def __str__(self):
+        return "BillingSettings"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
 
 
 class BetaProfile(models.Model):

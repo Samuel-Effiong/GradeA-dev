@@ -51,6 +51,8 @@ ALLOWED_KEYS = frozenset(
         # S3: the retention sweeps' own record (counts only)
         "deleted_general",
         "deleted_student_record",
+        # Epic B1a (plan 08 §4): the FINANCIAL class's sweep count
+        "deleted_financial",
         "scrubbed",
         # identifiers of the things involved (ids, never names)
         "ledger_id",
@@ -353,7 +355,7 @@ METADATA_ALLOWLIST = {
         | _FAILED_AUTH_SUMMARY_KEYS
     ),
     AuditAction.AUDIT_RETENTION_SWEEP: frozenset(
-        {"deleted_general", "deleted_student_record", "scrubbed"}
+        {"deleted_general", "deleted_student_record", "deleted_financial", "scrubbed"}
     ),
     AuditAction.GRADE_CHANGE: frozenset(
         {"assignment_id", "student_id", "changed_fields", "source"}

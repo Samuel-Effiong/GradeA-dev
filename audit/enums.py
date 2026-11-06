@@ -39,10 +39,12 @@ class ErrorClass(models.TextChoices):
 
 class RetentionClass(models.TextChoices):
     """A6: 12 months for general events, 3 years for those touching student
-    records. Stored per row so the retention sweep has a column to filter on."""
+    records, 7 years for financial/credit events. Stored per row so the
+    retention sweep has a column to filter on."""
 
     GENERAL = "GENERAL", "General (12 months)"
     STUDENT_RECORD = "STUDENT_RECORD", "Student record (3 years)"
+    FINANCIAL = "FINANCIAL", "Financial (7 years)"
 
 
 class AuditAction(models.TextChoices):
@@ -115,6 +117,12 @@ STUDENT_RECORD_ACTIONS = frozenset(
         AuditAction.GRADE_CHANGE,
     }
 )
+
+
+# Plan 08 §4 (Epic B1a): the who/when/why of every charge is kept 7 years.
+# Stored FINANCIAL at emit, and the retention sweep keeps these actions to
+# the 7-year cutoff whatever class an older row was stored under.
+FINANCIAL_ACTIONS = frozenset({AuditAction.CREDIT_TRANSACTION})
 
 
 class ReasonCode(models.TextChoices):

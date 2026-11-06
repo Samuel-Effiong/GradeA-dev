@@ -54,6 +54,7 @@ from .context import (
     record_suppressed_event,
 )
 from .enums import (
+    FINANCIAL_ACTIONS,
     STUDENT_RECORD_ACTIONS,
     ActorRole,
     AuditAction,
@@ -423,7 +424,14 @@ def _build(
         reason_code=reason_code,
         trace_id=_resolve_trace_id(),
         retention_class=str(
-            RetentionClass.STUDENT_RECORD if student_record else RetentionClass.GENERAL
+            # Plan 08 §4: FINANCIAL (7 years) wins over STUDENT_RECORD (3).
+            RetentionClass.FINANCIAL
+            if action in FINANCIAL_ACTIONS
+            else (
+                RetentionClass.STUDENT_RECORD
+                if student_record
+                else RetentionClass.GENERAL
+            )
         ),
         before=clean_before if before is not None else None,
         after=clean_after if after is not None else None,

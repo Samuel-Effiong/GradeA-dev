@@ -693,6 +693,9 @@ AI_CALL_RECORD_ENABLED = env.bool("AI_CALL_RECORD_ENABLED", default=True)
 # processes. The account's own privacy settings are separate.
 AI_PROVIDER_ZDR_ENABLED = env.bool("AI_PROVIDER_ZDR_ENABLED", default=False)
 
+# Epic B1: credit holds, metered units, batch jobs and queue.
+BILLING_HOLDS_ENABLED = env.bool("BILLING_HOLDS_ENABLED", default=False)
+
 # H-256: how long one request to the AI provider may wait for each read before
 # it is given up (the connect wait is fixed at 10 s in ai_processor/services.py).
 # The SDK tries a request three times (max_retries=2), so a provider that

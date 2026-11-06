@@ -12,7 +12,7 @@ publishes all 30 and edits 3 grades; each active student signs in once.
 A real day for most teachers is a fraction of this.
 """
 
-from .enums import STUDENT_RECORD_ACTIONS, RetentionClass
+from .enums import FINANCIAL_ACTIONS, STUDENT_RECORD_ACTIONS, RetentionClass
 
 # Events one active teacher's busy school day writes, per action. Measured
 # by the harness on 2026-09-30 at task/epic-a-s8 (phase2/epic-a fda47d7):
@@ -55,6 +55,7 @@ HARNESS_INDEX_RATIO = 1.75
 RETENTION_DAYS = {
     RetentionClass.GENERAL.value: 365,
     RetentionClass.STUDENT_RECORD.value: 365 * 3,
+    RetentionClass.FINANCIAL.value: 365 * 7,
 }
 
 
@@ -64,6 +65,8 @@ def retention_class_of(action) -> str:
     action's floor, so where that happens the projection under-counts
     three-year rows. The harness reports its measured class split beside
     the rates (EVIDENCE), so the gap is visible."""
+    if action in FINANCIAL_ACTIONS:
+        return RetentionClass.FINANCIAL.value
     if action in STUDENT_RECORD_ACTIONS:
         return RetentionClass.STUDENT_RECORD.value
     return RetentionClass.GENERAL.value

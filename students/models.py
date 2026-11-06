@@ -631,8 +631,46 @@ class BackgroundProcessingTask(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # --- Credit holds (Epic B1) ---
+    job = models.ForeignKey(
+        "billing.AIJob",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="items",
+        db_index=False,
+    )
+    hold_state = models.CharField(
+        max_length=10,
+        # Same values and labels as billing.models.HoldState (plan 08 §3.2):
+        # "credit" so it never reads as an H-279 held re-grade.
+        choices=[("HELD", _("Credit held")), ("RETURNED", _("Credit returned"))],
+        null=True,
+        blank=True,
+    )
+    hold_credits = models.IntegerField(
+        default=0,
+        db_default=0,
+        help_text="Credits held for this item (held_per_item plus extensions).",
+    )
+    hold_drawn = models.IntegerField(
+        default=0,
+        db_default=0,
+        help_text="Credits taken off wallet.reserved_credits by this item's settlement.",
+    )
+    released_credits = models.IntegerField(
+        default=0,
+        db_default=0,
+        help_text="Credits returned to the wallet counter for this item.",
+    )
+
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            # Plan 08 §4: built CONCURRENTLY (students 0039); job is
+            # db_index=False so the FK adds no inline index.
+            models.Index(fields=["job"], name="students_bpt_job_id_ix"),
+        ]
 
     def __str__(self):
         label = self.file_name or self.celery_task_id or str(self.id)
