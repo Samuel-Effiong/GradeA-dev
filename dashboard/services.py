@@ -239,7 +239,7 @@ class StudentWeeklySummaryService:
             for submission in submissions
             if submission.score_percentage is not None
         ]
-        return round(sum(scores) / len(scores), 2) if scores else None
+        return grade_service.mean_of_values(scores)
 
     def _letter_grade(self, percentage):
         if percentage is None:
