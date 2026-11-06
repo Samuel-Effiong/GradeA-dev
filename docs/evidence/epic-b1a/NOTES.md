@@ -1127,3 +1127,9 @@ Red attempt 1 (log `step3c_red_5c76ce7f.log`): **Ran 8, failures=3, errors=3.** 
 Every other row matched.
 
 **Corrected red expectation** (same command, at the fix commit): **Ran 8, FAILED (failures=1, errors=5); 2 PASS**, as in §15c, with D-5/D-6 → ERROR `AIJob.DoesNotExist`.
+
+### 15f. Rulings received during 3c (SM, 2026-11-06)
+
+- **Activity-log labels APPROVED as written:** "Credit hold job" (target AIJob), "Credits held", "Credit hold settled", "Credit hold released", "Stale credit hold cleared". The placeholder notes in `audit/enums.py` and `audit/serializers.py` are dropped. This supersedes the "Still placeholders" line in §13.
+- **Late-door email NOT approved.** The owner wants the uploaded file kept temporarily, so the teacher resumes instead of re-uploading. That reopens F4/§0.9 and may change the 2026-10-30 late-door ruling. For 3c, the refusal path stays as built: refused before any provider call, FAILED/INSUFFICIENT_CREDITS, behind the flag, never sent. The texts stay a placeholder, and no test asserts "upload the file again".
+- **The §15a on-commit deviation is NOT accepted.** The three door routes get a literal `transaction.on_commit`, flag on only. It goes in as a 3c amendment (§15g), with expectations written before it runs. The response `task_id` question is open with the SM.

@@ -12,7 +12,7 @@ _TARGET_LABEL = {
     "Session": "Session",
     "LicenseStripeMutationIntent": "License change intent",
     "CreditLedger": "Credit ledger",
-    # Epic B1a: PLACEHOLDER label pending owner approval (SM 2026-11-06).
+    # Epic B1a: label approved by the owner (SM 2026-11-06).
     "AIJob": "Credit hold job",
     "SchoolCreditAllocation": "Credit allocation",
     "StudentCourse": "Student enrollment",

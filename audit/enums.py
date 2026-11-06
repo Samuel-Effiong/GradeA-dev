@@ -70,8 +70,8 @@ class AuditAction(models.TextChoices):
     ROSTER_CHANGE = "ROSTER_CHANGE", "Roster changed"
     SUBMISSION_UPLOAD = "SUBMISSION_UPLOAD", "Submission uploaded"
     CREDIT_TRANSACTION = "CREDIT_TRANSACTION", "Credit transaction"
-    # Epic B1a credit holds (plan 08 §3.2). Labels are PLACEHOLDERS pending
-    # owner approval (SM 2026-11-06).
+    # Epic B1a credit holds (plan 08 §3.2). Labels approved by the owner
+    # (SM 2026-11-06).
     CREDIT_HOLD_RESERVED = "CREDIT_HOLD_RESERVED", "Credits held"
     CREDIT_HOLD_SETTLED = "CREDIT_HOLD_SETTLED", "Credit hold settled"
     CREDIT_HOLD_RELEASED = "CREDIT_HOLD_RELEASED", "Credit hold released"
