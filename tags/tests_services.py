@@ -135,6 +135,23 @@ class RenameTest(_ServiceCase):
         self.assertEqual(
             str(caught.exception), 'You already have a Unit tag named "Genetics".'
         )
+        # SM (i): the type is the code in params and the existing TagType
+        # label in the message; the name is the stored spelling, not the
+        # typed one.
+        self.assertEqual(
+            caught.exception.params, {"tag_type": "UNIT", "name": "Genetics"}
+        )
+
+    def test_the_collision_message_uses_the_type_label(self):
+        tag = self.make("Biology", TagType.SUBJECT)
+        self.make("Chemistry", TagType.SUBJECT)
+        with self.assertRaises(CodedError) as caught:
+            services.rename_tag(tag, "CHEMISTRY")
+        self.assertEqual(
+            str(caught.exception),
+            f'You already have a {TagType.SUBJECT.label} tag named "Chemistry".',
+        )
+        self.assertEqual(caught.exception.params["tag_type"], "SUBJECT")
 
     def test_no_collision_across_type_or_teacher(self):
         tag = self.make("Cells")
