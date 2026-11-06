@@ -70,6 +70,12 @@ class AuditAction(models.TextChoices):
     ROSTER_CHANGE = "ROSTER_CHANGE", "Roster changed"
     SUBMISSION_UPLOAD = "SUBMISSION_UPLOAD", "Submission uploaded"
     CREDIT_TRANSACTION = "CREDIT_TRANSACTION", "Credit transaction"
+    # Epic B1a credit holds (plan 08 §3.2). Labels are PLACEHOLDERS pending
+    # owner approval (SM 2026-11-06).
+    CREDIT_HOLD_RESERVED = "CREDIT_HOLD_RESERVED", "Credits held"
+    CREDIT_HOLD_SETTLED = "CREDIT_HOLD_SETTLED", "Credit hold settled"
+    CREDIT_HOLD_RELEASED = "CREDIT_HOLD_RELEASED", "Credit hold released"
+    CREDIT_HOLD_SWEPT = "CREDIT_HOLD_SWEPT", "Stale credit hold cleared"
     DEPARTMENT_CREATE = "DEPARTMENT_CREATE", "Department created"
     DEPARTMENT_UPDATE = "DEPARTMENT_UPDATE", "Department updated"
     DEPARTMENT_DELETE = "DEPARTMENT_DELETE", "Department deleted"
@@ -122,7 +128,15 @@ STUDENT_RECORD_ACTIONS = frozenset(
 # Plan 08 §4 (Epic B1a): the who/when/why of every charge is kept 7 years.
 # Stored FINANCIAL at emit, and the retention sweep keeps these actions to
 # the 7-year cutoff whatever class an older row was stored under.
-FINANCIAL_ACTIONS = frozenset({AuditAction.CREDIT_TRANSACTION})
+FINANCIAL_ACTIONS = frozenset(
+    {
+        AuditAction.CREDIT_TRANSACTION,
+        AuditAction.CREDIT_HOLD_RESERVED,
+        AuditAction.CREDIT_HOLD_SETTLED,
+        AuditAction.CREDIT_HOLD_RELEASED,
+        AuditAction.CREDIT_HOLD_SWEPT,
+    }
+)
 
 
 class ReasonCode(models.TextChoices):

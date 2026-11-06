@@ -53,6 +53,11 @@ ALLOWED_KEYS = frozenset(
         "deleted_student_record",
         # Epic B1a (plan 08 §4): the FINANCIAL class's sweep count
         "deleted_financial",
+        # Epic B1a credit holds: the job's type, the task row it held for
+        # (an id), and what a settlement returned.
+        "job_type",
+        "item_id",
+        "credits_released",
         "scrubbed",
         # identifiers of the things involved (ids, never names)
         "ledger_id",
@@ -313,6 +318,16 @@ METADATA_ALLOWLIST = {
     ),
     AuditAction.CREDIT_TRANSACTION: frozenset(
         {"credits", "credits_estimated", "credits_actual", "ledger_type", "ledger_id"}
+    ),
+    AuditAction.CREDIT_HOLD_RESERVED: frozenset({"credits", "job_type", "item_id"}),
+    AuditAction.CREDIT_HOLD_SETTLED: frozenset(
+        {"credits", "credits_actual", "credits_released", "job_type", "item_id"}
+    ),
+    AuditAction.CREDIT_HOLD_RELEASED: frozenset(
+        {"credits", "job_type", "item_id", "reason_label"}
+    ),
+    AuditAction.CREDIT_HOLD_SWEPT: frozenset(
+        {"credits", "job_type", "item_id", "reason_label"}
     ),
     AuditAction.DEPARTMENT_CREATE: frozenset(),
     AuditAction.DEPARTMENT_UPDATE: frozenset(),

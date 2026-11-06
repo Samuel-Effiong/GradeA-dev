@@ -20,6 +20,8 @@ row, then the item row. No network I/O happens inside these transactions.
 Nothing here is behind BILLING_HOLDS_ENABLED: the callers are (step 3).
 """
 
+import contextlib
+import contextvars
 import logging
 import uuid
 from collections import namedtuple
@@ -31,7 +33,9 @@ from django.db.models import Exists, F, OuterRef, Q, Sum
 from django.utils import timezone
 
 from audit import metrics as audit_metrics
-from audit.enums import ReasonCode
+from audit.context import current_request_actor
+from audit.emitter import emit
+from audit.enums import AuditAction, ReasonCode
 from students.models import BackgroundProcessingTask, BackgroundTaskStatus
 
 from .errors import InsufficientCreditsError, is_individual_teacher
@@ -68,9 +72,29 @@ REFUSAL_MESSAGE = "Refill your wallet to continue"
 
 SettlementOutcome = namedtuple(
     "SettlementOutcome",
-    "settled chargeable drawn overrun_charged unbilled leftover",
+    "settled chargeable drawn overrun_charged unbilled leftover record_id",
 )
-NOT_SETTLED = SettlementOutcome(False, 0, 0, 0, 0, 0)
+NOT_SETTLED = SettlementOutcome(False, 0, 0, 0, 0, 0, None)
+
+
+def holds_enabled():
+    return bool(getattr(settings, "BILLING_HOLDS_ENABLED", False))
+
+
+def _audit(action, job, *, item=None, **metadata):
+    """One FINANCIAL audit row about `job` (SM ruling 2026-11-06). Ids and
+    amounts only; never raises into the caller (emit's own contract)."""
+    fields = {"job_type": str(job.job_type), **metadata}
+    if item is not None:
+        fields["item_id"] = str(item.pk)
+    emit(
+        action,
+        actor=current_request_actor(),
+        target_type="AIJob",
+        target_id=job.pk,
+        school_id=job.school_id,
+        metadata=fields,
+    )
 
 
 # --------------------------------------------------------------------------
@@ -178,6 +202,7 @@ def _reserve_locked(locked_wallet, amount, job, item):
         BackgroundProcessingTask.objects.filter(pk=item.pk).update(
             hold_credits=F("hold_credits") + amount, hold_state=HoldState.HELD
         )
+    _audit(AuditAction.CREDIT_HOLD_RESERVED, job, item=item, credits=amount)
     return True
 
 
@@ -224,6 +249,8 @@ def settle(
     feature=None,
     task_type=None,
     course=None,
+    school=None,
+    call_task_ids=(),
 ):
     """Charge `actual` once per settlement key (plan §3.2 settle).
 
@@ -263,6 +290,7 @@ def settle(
                 task_type=task_type,
                 task_id=str(record.id),
                 course=course,
+                school=school,
             )
         drawn = min(left, chargeable)
         leftover = left - drawn
@@ -285,6 +313,22 @@ def settle(
                 released_credits=F("released_credits") + leftover,
                 hold_state=HoldState.RETURNED,
             )
+        if call_task_ids:
+            # FR-B-09 (SM ruling Q3): the call rows carry the id the usage
+            # rows carry, so the actual-cost join still finds them.
+            from ai_processor.models import AICallRecord
+
+            AICallRecord.objects.filter(task_id__in=list(call_task_ids)).update(
+                task_id=str(record.id)
+            )
+        _audit(
+            AuditAction.CREDIT_HOLD_SETTLED,
+            job_row,
+            item=item_row,
+            credits=chargeable,
+            credits_actual=actual,
+            credits_released=leftover,
+        )
 
     tags = {"job_type": job_row.job_type}
     if overrun_charged:
@@ -292,7 +336,7 @@ def settle(
     if unbilled:
         audit_metrics.count("credit_overrun", unbilled, tags=tags)
     return SettlementOutcome(
-        True, chargeable, drawn, overrun_charged, unbilled, leftover
+        True, chargeable, drawn, overrun_charged, unbilled, leftover, record.id
     )
 
 
@@ -313,6 +357,14 @@ def fail_item(job, *, item=None):
             BackgroundProcessingTask.objects.filter(pk=item_row.pk).update(
                 released_credits=F("released_credits") + amount,
                 hold_state=HoldState.RETURNED,
+            )
+        if amount > 0:
+            _audit(
+                AuditAction.CREDIT_HOLD_RELEASED,
+                job_row,
+                item=item_row,
+                credits=amount,
+                reason_label="failed",
             )
         return amount
 
@@ -348,6 +400,13 @@ def finish_job(job, to_status):
         AIJob.objects.filter(pk=job_row.pk).update(
             released_credits=F("released_credits") + returned
         )
+        if returned > 0:
+            _audit(
+                AuditAction.CREDIT_HOLD_RELEASED,
+                job_row,
+                credits=returned,
+                reason_label=str(to_status).lower(),
+            )
         return returned
 
 
@@ -391,7 +450,9 @@ def _open_successor_job(old_job, item, amount, job_type, link_key):
         trace_id=old_job.trace_id,
         meta={link_key: str(old_job.id), "task_id": str(item.id)},
     )
-    if reserve(old_job.wallet, amount, new_job):
+    # amount 0: no up-front hold; each call's pre-call check reserves its
+    # estimate (SM ruling Q1, B1a).
+    if amount <= 0 or reserve(old_job.wallet, amount, new_job):
         AIJob.objects.filter(pk=new_job.pk).update(status=AIJobStatus.RESERVED)
         return AIJob.objects.get(pk=new_job.pk)
     AIJob.objects.filter(pk=new_job.pk).update(status=AIJobStatus.FAILED)
@@ -469,6 +530,13 @@ def _sweep_item(item_pk, job_pk, cutoff):
         AIJob.objects.filter(pk=job_pk).update(
             released_credits=F("released_credits") + amount,
             failed_items=F("failed_items") + 1,
+        )
+        _audit(
+            AuditAction.CREDIT_HOLD_SWEPT,
+            job_row,
+            item=item_row,
+            credits=amount,
+            reason_label="stale",
         )
         return amount
 
@@ -576,3 +644,187 @@ def check_invariants(wallet=None):
             for item_pk in negative.values_list("pk", flat=True):
                 problems.append(f"item_negative item={item_pk}")
     return problems
+
+
+# --------------------------------------------------------------------------
+# The metered unit (plan 08 §3.3, §3.4), replacing billing_refund_scope
+# --------------------------------------------------------------------------
+
+_active_unit: contextvars.ContextVar = contextvars.ContextVar(
+    "billing_metered_unit", default=None
+)
+
+
+def current_unit():
+    """The innermost open metered unit, or None."""
+    return _active_unit.get()
+
+
+class Unit:
+    """One logical AI operation. The ROOT unit owns the job; nested units
+    keep their own tally and hand it to their parent on success (the refund
+    scope's nesting rule). Nothing is charged until the root exits."""
+
+    def __init__(self, parent):
+        self.parent = parent
+        self.tally = 0
+        self.call_task_ids = []
+        # Root only.
+        self.job = None
+        self.item = None
+        self.settle_kwargs = None
+        self.billed = None
+
+    def root(self):
+        unit = self
+        while unit.parent is not None:
+            unit = unit.parent
+        return unit
+
+    def open_tally(self):
+        """What this unit and its open ancestors have used so far."""
+        total, unit = 0, self
+        while unit is not None:
+            total += unit.tally
+            unit = unit.parent
+        return total
+
+    def before_call(self, *, wallet, target_teacher, estimate):
+        """The pre-call fit check. Opens the root's job at the first call
+        (SINGLE_ITEM, no up-front amount: SM ruling Q1) and reserves this
+        call's estimate beyond what the hold still covers, or raises
+        InsufficientCreditsError before the provider is reached."""
+        root = self.root()
+        if root.job is None:
+            job = create_job(
+                wallet=wallet,
+                requested_by=target_teacher,
+                job_type=AIJobType.SINGLE_ITEM,
+                total_items=1,
+                school_id=getattr(target_teacher, "school_id", None),
+            )
+            AIJob.objects.filter(pk=job.pk).update(status=AIJobStatus.RUNNING)
+            root.job = AIJob.objects.get(pk=job.pk)
+            root.billed = target_teacher
+        elif root.job.wallet_id != wallet.pk:
+            raise ValueError("a metered unit bills one wallet")
+        ensure_call_fits(root.job, estimate, item=root.item, tally=self.open_tally())
+
+    def after_call(self, actual, task_id, *, feature, task_type, course, school):
+        self.tally += actual
+        self.call_task_ids.append(task_id)
+        root = self.root()
+        if root.settle_kwargs is None:
+            root.settle_kwargs = {
+                "feature": feature,
+                "task_type": task_type,
+                "course": course,
+                "school": school,
+            }
+
+    def absorb(self, child):
+        self.tally += child.tally
+        self.call_task_ids.extend(child.call_task_ids)
+
+    def settle_root(self):
+        if self.job is None:
+            return None
+        outcome = settle(
+            self.job,
+            self.tally,
+            item=self.item,
+            call_task_ids=self.call_task_ids,
+            **(self.settle_kwargs or {}),
+        )
+        finish_job(self.job, AIJobStatus.SETTLED)
+        if outcome.settled and outcome.chargeable and self.billed is not None:
+            _record_analytics(
+                self.billed,
+                outcome.chargeable,
+                (self.settle_kwargs or {}).get("feature"),
+            )
+        return outcome
+
+    def fail_root(self):
+        if self.job is None:
+            return
+        fail_item(self.job, item=self.item)
+        finish_job(self.job, AIJobStatus.FAILED)
+
+
+def _record_analytics(teacher, amount, feature):
+    # As execute_graded_task did at each charge (Q4: now at settlement).
+    from .services import AnalyticsService
+
+    AnalyticsService.record_consumption(user=teacher, amount=amount, feature=feature)
+    AnalyticsService.track_activity(user=teacher)
+
+
+@contextlib.contextmanager
+def metered_unit(*, processing_task_id=None, reason="task failed"):
+    """A billed multi-call operation (decision 2: a failed AI call is not
+    charged). With the flag off it is billing_refund_scope, unchanged.
+
+    3a: units without a task row only (processing_task_id is accepted for
+    the 3b entry rule and not used yet)."""
+    if not holds_enabled():
+        from .refunds import billing_refund_scope
+
+        with billing_refund_scope(reason=reason) as ids:
+            yield ids
+        return
+
+    parent = _active_unit.get()
+    unit = Unit(parent)
+    token = _active_unit.set(unit)
+    try:
+        yield unit
+    except BaseException:
+        _active_unit.reset(token)
+        if parent is None:
+            unit.fail_root()
+        # A nested unit's calls are dropped: never charged (plan §3.4).
+        raise
+    _active_unit.reset(token)
+    if parent is not None:
+        parent.absorb(unit)
+    else:
+        unit.settle_root()
+
+
+# --------------------------------------------------------------------------
+# A single call outside any unit (plan 08 §3.3)
+# --------------------------------------------------------------------------
+
+
+def begin_single_call(*, wallet, target_teacher, estimate):
+    """Open a SINGLE_CALL job and hold `estimate`, or leave it FAILED and
+    raise InsufficientCreditsError BEFORE the provider call."""
+    job = create_job(
+        wallet=wallet,
+        requested_by=target_teacher,
+        job_type=AIJobType.SINGLE_CALL,
+        total_items=1,
+        school_id=getattr(target_teacher, "school_id", None),
+    )
+    if estimate > 0 and not reserve(wallet, estimate, job):
+        finish_job(job, AIJobStatus.FAILED)
+        raise _refusal(CreditWallet.objects.get(pk=wallet.pk))
+    AIJob.objects.filter(pk=job.pk).update(status=AIJobStatus.RUNNING)
+    return AIJob.objects.get(pk=job.pk)
+
+
+def finish_single_call(job, actual, *, feature, task_type, course, school):
+    """Settle the call's actual usage, return the rest, close the job.
+    Returns the billing task id (the settlement's id)."""
+    outcome = settle(
+        job, actual, feature=feature, task_type=task_type, course=course, school=school
+    )
+    finish_job(job, AIJobStatus.SETTLED)
+    return str(outcome.record_id) if outcome.record_id else None
+
+
+def abandon_single_call(job):
+    """The call failed or was cancelled: nothing charged, hold returned."""
+    fail_item(job)
+    finish_job(job, AIJobStatus.FAILED)
