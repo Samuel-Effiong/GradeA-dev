@@ -20,9 +20,11 @@ Three independent tasks — each with a single, well-defined responsibility:
 """
 
 import logging
+from datetime import timedelta
 from enum import Enum
 
 from celery import shared_task
+from django.conf import settings
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
@@ -1756,3 +1758,46 @@ def replay_safe_failed_stripe_events(self):
         summary = "Stripe auto-replay: nothing eligible."
     logger.info(summary)
     return summary
+
+
+# ---------------------------------------------------------------------------
+# Epic B1a: credit holds (plan 08 §3.2)
+# ---------------------------------------------------------------------------
+
+#: The sweep runs every 5 minutes. The lock's worst-case life is max_hold +
+#: ttl (AutoGrader/beat_locks.py), and it must end before the next run:
+#: 3 min + 1 min < 5 min.
+HOLD_SWEEP_MAX_HOLD = timedelta(minutes=3)
+HOLD_SWEEP_LOCK_TTL = timedelta(minutes=1)
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=HOLD_SWEEP_MAX_HOLD, ttl=HOLD_SWEEP_LOCK_TTL)
+def sweep_stale_credit_holds(self):
+    """Return the holds of started items that can no longer be running, and
+    of jobs with no task row past their window (billing.holds). Does nothing
+    while BILLING_HOLDS_ENABLED is off."""
+    if not getattr(settings, "BILLING_HOLDS_ENABLED", False):
+        return "credit holds disabled"
+    from .holds import sweep_stale_holds
+
+    result = sweep_stale_holds()
+    return (
+        f"Credit hold sweep: items={result['items_swept']} "
+        f"jobs={result['jobs_released']} credits={result['credits_returned']}"
+    )
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
+def check_credit_hold_invariants(self):
+    """Daily: compare every wallet's reserved_credits with its jobs, and each
+    job with its items. Reports only (credit_ledger_anomaly{kind=hold_drift});
+    never repairs. Read-only, so it is not behind the flag."""
+    from .holds import check_invariants
+
+    problems = check_invariants()
+    for problem in problems:
+        logger.error("Credit hold invariant: %s", problem)
+        audit_metrics.count("credit_ledger_anomaly", tags={"kind": "hold_drift"})
+    return f"Credit hold invariants: {len(problems)} problem(s)"

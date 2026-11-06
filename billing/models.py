@@ -1924,6 +1924,14 @@ class BillingSettings(models.Model):
         default=36,
         help_text="Hours before unstarted items in a job are failed by the backstop.",
     )
+    hold_sweep_margin_minutes = models.PositiveSmallIntegerField(
+        default=15,
+        db_default=15,
+        help_text=(
+            "Minutes past the redelivery window (and past the time limit for "
+            "jobs with no task row) before a stale credit hold is returned."
+        ),
+    )
 
     class Meta:
         verbose_name = "Billing settings"

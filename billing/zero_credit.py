@@ -73,6 +73,8 @@ LEDGER_INSERT = "LEDGER_INSERT"
 USAGE_LOG_INSERT = "USAGE_LOG_INSERT"
 BULK_INSERT = "BULK_INSERT"
 BUCKET_MUTATION = "BUCKET_MUTATION"
+# Epic B1a (plan 08 §3.11): taking a credit hold or opening a billed job.
+CREDIT_RESERVE = "CREDIT_RESERVE"
 
 
 class ZeroCreditViolation(Exception):

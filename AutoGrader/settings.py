@@ -937,6 +937,17 @@ CELERY_BEAT_SCHEDULE = {
         "task": "billing.tasks.process_license_renewals",
         "schedule": crontab(minute=0, hour=0),
     },
+    # Epic B1a (plan 08 §3.2): return stale credit holds. Does nothing while
+    # BILLING_HOLDS_ENABLED is off.
+    "sweep-stale-credit-holds": {
+        "task": "billing.tasks.sweep_stale_credit_holds",
+        "schedule": 300.0,
+    },
+    # Epic B1a: wallet and per-item hold invariants. Reports only.
+    "check-credit-hold-invariants-daily": {
+        "task": "billing.tasks.check_credit_hold_invariants",
+        "schedule": crontab(minute=30, hour=5),
+    },
     "process-annual_plan-credit-grants": {
         "task": "billing.tasks.process_annual_plan_credit_grants",
         "schedule": crontab(minute=0, hour=2),
