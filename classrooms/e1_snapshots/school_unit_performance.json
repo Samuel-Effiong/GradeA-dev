@@ -1,0 +1,80 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "hardest_units": [
+   {
+    "id": "assignment:B3 Undated",
+    "title": "B3 Undated",
+    "course_name": "Biology",
+    "mastery": 0.0,
+    "avg_score": 10.0
+   },
+   {
+    "id": "assignment:B2 Quiz",
+    "title": "B2 Quiz",
+    "course_name": "Biology",
+    "mastery": 0.0,
+    "avg_score": 18.75
+   },
+   {
+    "id": "assignment:A3 NoPts",
+    "title": "A3 NoPts",
+    "course_name": "Algebra",
+    "mastery": 33.333333333333336,
+    "avg_score": 46.666666666666664
+   },
+   {
+    "id": "assignment:A1 Exam",
+    "title": "A1 Exam",
+    "course_name": "Algebra",
+    "mastery": 40.0,
+    "avg_score": 49.25
+   },
+   {
+    "id": "assignment:A4 Zero",
+    "title": "A4 Zero",
+    "course_name": "Algebra",
+    "mastery": 0.0,
+    "avg_score": 50.0
+   }
+  ],
+  "reteach_recommended": [
+   {
+    "id": "assignment:B3 Undated",
+    "title": "B3 Undated",
+    "course_name": "Biology",
+    "mastery": 0.0,
+    "avg_score": 10.0
+   },
+   {
+    "id": "assignment:B2 Quiz",
+    "title": "B2 Quiz",
+    "course_name": "Biology",
+    "mastery": 0.0,
+    "avg_score": 18.75
+   },
+   {
+    "id": "assignment:A3 NoPts",
+    "title": "A3 NoPts",
+    "course_name": "Algebra",
+    "mastery": 33.333333333333336,
+    "avg_score": 46.666666666666664
+   },
+   {
+    "id": "assignment:A1 Exam",
+    "title": "A1 Exam",
+    "course_name": "Algebra",
+    "mastery": 40.0,
+    "avg_score": 49.25
+   },
+   {
+    "id": "assignment:A4 Zero",
+    "title": "A4 Zero",
+    "course_name": "Algebra",
+    "mastery": 0.0,
+    "avg_score": 50.0
+   }
+  ]
+ }
+}

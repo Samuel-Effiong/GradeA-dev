@@ -1,0 +1,27 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "count": 2,
+  "next": null,
+  "previous": null,
+  "results": [
+   {
+    "teacher_id": "user:Tess",
+    "teacher_name": "Tess Snap",
+    "number_of_courses": 2,
+    "number_of_students": 7,
+    "average_student_performance": 49.52,
+    "assignment_completion_rate": 45.1
+   },
+   {
+    "teacher_id": "user:Theo",
+    "teacher_name": "Theo Snap",
+    "number_of_courses": 1,
+    "number_of_students": 2,
+    "average_student_performance": 90.0,
+    "assignment_completion_rate": 75.0
+   }
+  ]
+ }
+}

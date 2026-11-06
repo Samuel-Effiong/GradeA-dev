@@ -1,0 +1,26 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "assignment": "assignment:B2 Quiz",
+  "title": "B2 Quiz",
+  "due_date": "2026-10-03T12:00:00Z",
+  "assignment_type": "OBJECTIVE",
+  "total_submissions": 2,
+  "unit": "Biology - Cells",
+  "average_grade": 18.75,
+  "question_extraction_confidence": 80,
+  "ai_extraction_confidence": 70.5,
+  "ai_grading_confidence": 80.5,
+  "hardest_questions": [],
+  "easiest_questions": [],
+  "question_breakdown": [],
+  "question_difficulty": {
+   "status": "too_few_questions",
+   "students_analysed": 0,
+   "excluded_manual_grade_change": 0,
+   "minimum_students": 3,
+   "list_size": 0
+  }
+ }
+}

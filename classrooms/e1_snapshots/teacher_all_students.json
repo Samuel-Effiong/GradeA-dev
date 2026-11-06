@@ -1,0 +1,110 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "count": 9,
+  "next": null,
+  "previous": null,
+  "results": [
+   {
+    "student_id": "user:Ben",
+    "student_name": "Ben Snap",
+    "course_id": "course:Biology",
+    "course_name": "Biology",
+    "assignment_submitted": 1,
+    "assignment_assigned": 3,
+    "average_grade": 50.0,
+    "grade_trend": "INSUFFICIENT DATA",
+    "at_risk": true
+   },
+   {
+    "student_id": "user:Ada",
+    "student_name": "Ada Snap",
+    "course_id": "course:Biology",
+    "course_name": "Biology",
+    "assignment_submitted": 2,
+    "assignment_assigned": 3,
+    "average_grade": 57.14,
+    "grade_trend": "DECLINING",
+    "at_risk": true
+   },
+   {
+    "student_id": "user:Eve",
+    "student_name": "Eve Snap",
+    "course_id": "course:Biology",
+    "course_name": "Biology",
+    "assignment_submitted": 3,
+    "assignment_assigned": 3,
+    "average_grade": 57.89,
+    "grade_trend": "DECLINING",
+    "at_risk": true
+   },
+   {
+    "student_id": "user:Fay",
+    "student_name": "Fay Snap",
+    "course_id": "course:Algebra",
+    "course_name": "Algebra",
+    "assignment_submitted": 0,
+    "assignment_assigned": 6,
+    "average_grade": null,
+    "grade_trend": "INSUFFICIENT DATA",
+    "at_risk": true
+   },
+   {
+    "student_id": "user:Cy",
+    "student_name": "Cy Snap",
+    "course_id": "course:Algebra",
+    "course_name": "Algebra",
+    "assignment_submitted": 2,
+    "assignment_assigned": 6,
+    "average_grade": 80.0,
+    "grade_trend": "INSUFFICIENT DATA",
+    "at_risk": true
+   },
+   {
+    "student_id": "user:Dee",
+    "student_name": "Dee Snap",
+    "course_id": "course:Algebra",
+    "course_name": "Algebra",
+    "assignment_submitted": 3,
+    "assignment_assigned": 6,
+    "average_grade": 3.64,
+    "grade_trend": "IMPROVING",
+    "at_risk": true
+   },
+   {
+    "student_id": "user:Eve",
+    "student_name": "Eve Snap",
+    "course_id": "course:Algebra",
+    "course_name": "Algebra",
+    "assignment_submitted": 3,
+    "assignment_assigned": 6,
+    "average_grade": 86.96,
+    "grade_trend": "DECLINING",
+    "at_risk": true
+   },
+   {
+    "student_id": "user:Ada",
+    "student_name": "Ada Snap",
+    "course_id": "course:Algebra",
+    "course_name": "Algebra",
+    "assignment_submitted": 4,
+    "assignment_assigned": 6,
+    "average_grade": 84.44,
+    "grade_trend": "STABLE",
+    "at_risk": false
+   },
+   {
+    "student_id": "user:Ben",
+    "student_name": "Ben Snap",
+    "course_id": "course:Algebra",
+    "course_name": "Algebra",
+    "assignment_submitted": 4,
+    "assignment_assigned": 6,
+    "average_grade": 46.09,
+    "grade_trend": "STABLE",
+    "at_risk": true
+   }
+  ]
+ }
+}

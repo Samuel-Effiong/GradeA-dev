@@ -1,0 +1,152 @@
+{
+ "course": {
+  "id": "course:Biology",
+  "name": "Biology",
+  "session_name": "E1 Fall Tess",
+  "teacher_id": "user:Tess",
+  "generated_at": "2026-10-15T12:00:00Z",
+  "window_days": 60
+ },
+ "overall": {
+  "student_count": 3,
+  "published_assignment_count": 3,
+  "relevant_assignment_count": 3,
+  "submission_count": 6,
+  "expected_submission_count": 9,
+  "submission_rate": 66.67,
+  "graded_submission_count": 6,
+  "average_grade": 44.58,
+  "recent_submission_count": 6,
+  "previous_submission_count": 0,
+  "submission_trend": "IMPROVING",
+  "recent_average_grade": 44.58,
+  "previous_average_grade": null,
+  "grade_trend": "IMPROVING",
+  "term_label": "E1 Fall Tess"
+ },
+ "overall_summary": "Biology currently has 3 enrolled student(s) and 3 published assignment(s) so far in E1 Fall Tess. Students have completed 6 of 9 expected submission(s) (66.67%), and the average graded score across the course is 44.58%. Over the last week, submission activity is improving compared with the prior week, while recent graded performance is improving (44.58% versus no prior graded work).",
+ "at_risk_students": [
+  {
+   "student_id": "user:Ben",
+   "student_name": "Ben Snap",
+   "average_grade": 50.0,
+   "assignments_submitted": 1,
+   "assignments_expected": 3,
+   "missing_assignments_count": 2,
+   "submission_rate": 33.33,
+   "grade_trend": "INSUFFICIENT DATA",
+   "recent_scores": [
+    50.0
+   ],
+   "ai_student_summary": null,
+   "risk_reasons": [
+    "Submission rate is 33.3% with 2 missing assignment(s).",
+    "Average graded score is 50.0%, below the 70% target."
+   ],
+   "issue_tags": [
+    "missing_submissions",
+    "low_scores"
+   ]
+  },
+  {
+   "student_id": "user:Ada",
+   "student_name": "Ada Snap",
+   "average_grade": 57.14,
+   "assignments_submitted": 2,
+   "assignments_expected": 3,
+   "missing_assignments_count": 1,
+   "submission_rate": 66.67,
+   "grade_trend": "DECLINING",
+   "recent_scores": [
+    75.0,
+    12.5
+   ],
+   "ai_student_summary": null,
+   "risk_reasons": [
+    "Submission rate is 66.7% with 1 missing assignment(s).",
+    "Average graded score is 57.14%, below the 70% target.",
+    "Recent graded work is trending downward."
+   ],
+   "issue_tags": [
+    "missing_submissions",
+    "low_scores",
+    "declining_performance"
+   ]
+  },
+  {
+   "student_id": "user:Eve",
+   "student_name": "Eve Snap",
+   "average_grade": 57.89,
+   "assignments_submitted": 3,
+   "assignments_expected": 3,
+   "missing_assignments_count": 0,
+   "submission_rate": 100.0,
+   "grade_trend": "DECLINING",
+   "recent_scores": [
+    95.0,
+    25.0,
+    10.0
+   ],
+   "ai_student_summary": null,
+   "risk_reasons": [
+    "Average graded score is 57.89%, which suggests conceptual gaps despite regular submission.",
+    "Recent graded work is trending downward."
+   ],
+   "issue_tags": [
+    "conceptual_gaps",
+    "declining_performance"
+   ]
+  }
+ ],
+ "commonalities": [
+  "2 at-risk student(s) are being pulled down by missing submissions.",
+  "3 at-risk student(s) are showing low-score patterns that suggest comprehension gaps.",
+  "2 at-risk student(s) are trending downward on recent graded work.",
+  "Several at-risk students are struggling on work connected to the topic 'Cells'."
+ ],
+ "trend_watch": {
+  "trending_up": [],
+  "trending_down": []
+ },
+ "interventions": [
+  {
+   "scope": "student",
+   "target": "Eve Snap",
+   "student_id": "user:Eve",
+   "reason": "Average graded score is 57.89%, which suggests conceptual gaps despite regular submission.",
+   "recommendation": "Provide re-teaching or targeted practice on the weakest concept area and review the next submission closely."
+  },
+  {
+   "scope": "course",
+   "target": "Biology",
+   "reason": "Low scores suggest a shared comprehension issue.",
+   "recommendation": "Re-teach the weakest concept or assignment area in a focused mini-lesson and assign one targeted follow-up practice task."
+  },
+  {
+   "scope": "course",
+   "target": "Biology",
+   "reason": "Missing submissions are a recurring issue.",
+   "recommendation": "Set a catch-up checkpoint, contact missing students directly, and give a short make-up submission window where appropriate."
+  },
+  {
+   "scope": "course",
+   "target": "Biology",
+   "reason": "Some students are slipping on recent work.",
+   "recommendation": "Schedule quick check-ins with students trending downward before the decline becomes persistent."
+  },
+  {
+   "scope": "student",
+   "target": "Ben Snap",
+   "student_id": "user:Ben",
+   "reason": "Submission rate is 33.3% with 2 missing assignment(s).",
+   "recommendation": "Reach out directly, identify the blocker, and create a short recovery plan for missed work."
+  },
+  {
+   "scope": "student",
+   "target": "Ada Snap",
+   "student_id": "user:Ada",
+   "reason": "Submission rate is 66.7% with 1 missing assignment(s).",
+   "recommendation": "Reach out directly, identify the blocker, and create a short recovery plan for missed work."
+  }
+ ]
+}

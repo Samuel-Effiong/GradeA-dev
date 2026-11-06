@@ -1,0 +1,33 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "total_courses": 2,
+  "assignments_submitted": 0,
+  "assignments_not_submitted": 2,
+  "assignments_graded": 6,
+  "assignments_due_no_submission": 1,
+  "overall_percentage": 51.56,
+  "overall_grade": "F",
+  "overall_gpa": 0.0,
+  "overall_remark": "Fail",
+  "courses_grades": [
+   {
+    "course_id": "course:Algebra",
+    "course_name": "Algebra",
+    "score": 26.39,
+    "percentage": 59.38,
+    "grade": "F",
+    "gpa": 0.0
+   },
+   {
+    "course_id": "course:Biology",
+    "course_name": "Biology",
+    "score": 8.0,
+    "percentage": 43.75,
+    "grade": "F",
+    "gpa": 0.0
+   }
+  ]
+ }
+}
