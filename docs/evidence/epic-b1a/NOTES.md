@@ -1055,3 +1055,67 @@ Commits:
 - this evidence commit
 
 **Carried:** E-3's BATCH_GRADING job → step 5; E-7 door → 3c; B1b replaces the entry amount with p90.
+
+---
+
+## 15. Step 3c: expectations, committed before any run (2026-11-06)
+
+### 15a. Code
+
+- **`assignments/upload_door.py`:** the balance the door compares with is `spendable_credits(wallet)` when the flag is on (plan §3.2: every "can this teacher spend?" reads spendable); `total_remaining_credits()` when it is off, unchanged. `parked_files` and `upload_refusal_if_unaffordable` also hand back the per-file estimates they computed, so the view reserves the same number without reading the file twice.
+- **`billing/holds.py`:**
+  - `open_door_job(*, billed_user, requested_by, total_items, assignment=None)`: an UPLOAD job, RESERVED.
+  - `hold_door_item(job, item, estimate)`: attaches the row to the job and reserves the estimate on it. On refusal it detaches the row and returns False. An estimate of None (the door could not read the file) attaches nothing; the task's per-item rule applies.
+- **The three routes** (`students/views.py` student upload_async and teacher batch; `assignments/views.py` teacher assignment files), flag on:
+  - **Student route:** the hold is taken inside the transaction that creates the row. A refused hold raises inside it, so the row rolls back and the same 402 is returned with the existing student sentence. The launch stays after the transaction, as today.
+  - **Batch routes:** one UPLOAD job per request, opened at the first queued file. Each queued file's estimate is held on its row before its launch. A hold that loses a race marks that row FAILED with the INSUFFICIENT_CREDITS refusal (existing message) and skips its launch.
+- **On-commit launch (deviation from my Q5 proposal, recorded for the SM):**
+  - Every door launch already runs after its transaction, in autocommit (no ATOMIC_REQUESTS). A refused hold rolls back before any launch.
+  - The existing door tests patch `students.views.launch_processing_task` / `assignments.views.launch_processing_task` by name, so renaming the views' call to a new function would silently bypass those flag-off tests.
+  - So the views keep `launch_processing_task`, and the rolled-back case is pinned by D-1: a refused hold rolls the row back and launches nothing. No unused launch variant is added.
+- **Late-door notice:**
+  - When a root unit that runs a late door row (`open_late_door_job`) ends in `InsufficientCreditsError`, `notify_late_door_refusal(row)` runs.
+  - Texts: one constant, `LATE_DOOR_EMAIL_TEXTS` (subject, individual, license), marked **PENDING OWNER APPROVAL**.
+  - Switches: `LATE_DOOR_EMAIL_APPROVED = False` and `LATE_DOOR_STUDENT_NOTICE_APPROVED = False` (code constants, not settings). While off, nothing is sent; the refusal is logged without the file name.
+  - Student hook: built to reuse `STUDENT_UPLOAD_NOT_PROCESSED`, off until the owner answers.
+  - Sending uses `send_email_task.delay(subject=…, message=…, from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=[teacher.email])`.
+
+### 15b. Tests: `billing/tests/test_holds_door.py` (8)
+
+- D-1: refused hold rolls back, launches nothing
+- D-2: granted hold on the row, then the task's unit settles on it and the shared job stays open
+- D-4: flag off reads the total as before
+- D-5: batch holds what fits and parks the rest
+- D-6: assignment file held on its row
+- D-7: no email while pending
+- D-8: once approved, the teacher is emailed naming the file
+- D-9: texts are one constant; both switches off
+
+### 15c. Red: expected
+
+At the tests commit, code = 3b (c6d05df0), in a disposable worktree:
+
+`python manage.py test billing.tests.test_holds_door --settings=settings_worktree --noinput`
+
+**Expected: Ran 8, FAILED (failures=1, errors=5); 2 PASS.**
+
+| Test | Expected | Fragment |
+|---|---|---|
+| D-1 | FAIL | `200 != 402` (the door reads the total, 6000 ≥ 5000) |
+| D-2 | ERROR | `AIJob.DoesNotExist` |
+| D-4 | PASS | (flag-off guard) |
+| D-5 | ERROR | `AIJob.DoesNotExist` |
+| D-6 | ERROR | `AIJob.DoesNotExist` |
+| D-7 | PASS | (guard: 3b already refuses, no email code exists) |
+| D-8 | ERROR | `does not have the attribute 'LATE_DOOR_EMAIL_APPROVED'` |
+| D-9 | ERROR | `has no attribute 'LATE_DOOR_EMAIL_TEXTS'` |
+
+A mismatch is a STOP.
+
+### 15d. Green and the end-of-3c near run
+
+- `test_holds_door`: Ran 8, OK.
+- All hold tests (121 + 8 = 129): OK.
+- The existing door tests unchanged with the flag off: `students.tests_upload_credit_door`, `students.tests_batch_item_results`, `students.tests_h216_student_credit_sentence`, `students.tests_upload_bills_the_teacher_only`, `assignments.tests_edit_refusal_student_sentence`.
+- **Four-app near run with the flag off (SM Q8):** `billing ai_processor students assignments`, on base 2f00c078 and on 3c, each with its own log. Expected: 3c = base + only the added B1a tests, 0 failures.
+- Plants at the 3c gate (expectations written before they run): the door reads the total instead of spendable; the hold taken outside the transaction (after the row commits); the notice switch ignored.
