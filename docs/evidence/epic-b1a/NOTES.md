@@ -848,3 +848,20 @@ Other 3a facts, for the evidence:
 - **Target label:** the scanner `audit/tests_h273_query_filters` needed a label for target_type "AIJob". Production `audit/serializers.py` `_TARGET_LABEL` gains `"AIJob": "Credit hold job"`, a **PLACEHOLDER** on the owner wording list with the four action labels.
 
 After the break run: both billing runs again. Expected: WIP = base 2410 + only the added hold tests, 0 failures. Then the §13e plants.
+
+### 13g. 3a gate plants: exact expectations (committed before any plant runs; corrects §13e)
+
+The code is committed first (8796a8d4). Each plant is applied to a saved copy's file, run, then restored from the copy and checked by sha256.
+
+| Plant | Change | Run | Expected |
+|---|---|---|---|
+| P-1 | `billing/services.py`: the first `wallet.save(update_fields=["overage_blocks_used"])` → `wallet.save()` | `test_wallet_save_guard.WalletWriteGuardTests.test_every_wallet_save_names_its_fields` | 1 FAIL, offender list names `billing/services.py:<that line> wallet.save()` |
+| P-2 | `billing/services.py`: after the first `CreditWallet.objects.filter(pk=wallet.pk).update(…)`, add `CreditWallet.objects.filter(pk=wallet.pk).update(reserved_credits=0)` | `…test_only_the_hold_service_updates_reserved_credits` | 1 FAIL, offender list names `billing/services.py:<line>` |
+| P-3 (M-B4) | `ai_processor/services.py`: `credit_holds.begin_single_call(…)` replaced by `credit_holds.create_job(wallet=wallet, requested_by=target_teacher, job_type="SINGLE_CALL")` (no hold) | SC-7 dominance | 1 FAIL `not preceded by a hold`. (SC-3 run alongside and recorded: it is expected to fail too, FAIL or ERROR, since the provider is reached unheld.) |
+| P-4 (M-B5) | `billing/holds.py` `metered_unit`: on an exception the root calls `settle_root()` instead of `fail_root()` | `test_holds_unit.UnitTests.test_a_unit_that_raises_charges_nothing_and_returns_its_hold` | 1 FAIL `True is not false` (a CreditUsageLog exists) |
+| P-5 | `billing/holds.py` `settle`: the AICallRecord repoint disabled (`if call_task_ids:` → `if False:`) | `test_holds_unit.UnitTests.test_two_calls_in_a_unit_settle_once` | 1 FAIL `0 != 2` |
+| P-5b | `ai_processor/services.py`: drop `call_record.note_task_id(billing_task_id)` | SC-2 `test_a_call_holds_settles_and_returns_the_rest` | 1 FAIL on `call.task_id` vs the settlement id |
+
+**Correction to §13e:** P-5 cannot kill SC-2. The single-call path sets the call row's id through `call_record.note_task_id`, not through the repoint, so P-5b is added for it.
+
+Logs: `step3a_plant_P-<n>.log`.
