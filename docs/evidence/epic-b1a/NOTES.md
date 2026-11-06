@@ -1119,3 +1119,11 @@ A mismatch is a STOP.
 - The existing door tests unchanged with the flag off: `students.tests_upload_credit_door`, `students.tests_batch_item_results`, `students.tests_h216_student_credit_sentence`, `students.tests_upload_bills_the_teacher_only`, `assignments.tests_edit_refusal_student_sentence`.
 - **Four-app near run with the flag off (SM Q8):** `billing ai_processor students assignments`, on base 2f00c078 and on 3c, each with its own log. Expected: 3c = base + only the added B1a tests, 0 failures.
 - Plants at the 3c gate (expectations written before they run): the door reads the total instead of spendable; the hold taken outside the transaction (after the row commits); the notice switch ignored.
+
+### 15e. Red attempt 1: a STOP (my test's status code), corrected before re-running red
+
+Red attempt 1 (log `step3c_red_5c76ce7f.log`): **Ran 8, failures=3, errors=3.** It did not match §15c: D-5 and D-6 failed `202 != 200`, because the batch and assignment-file routes answer **202 Accepted** and my tests expected 200. The test was wrong, not the code. Fixed: both assert 202.
+
+Every other row matched.
+
+**Corrected red expectation** (same command, at the fix commit): **Ran 8, FAILED (failures=1, errors=5); 2 PASS**, as in §15c, with D-5/D-6 → ERROR `AIJob.DoesNotExist`.
