@@ -8,7 +8,7 @@ from rest_framework import serializers
 
 from ai_processor.extraction_flags import answers_with_flags
 from assignments.models import is_expected_by_now, is_published
-from classrooms.final_grade import final_grade_from
+from classrooms import grade_service
 from classrooms.models import enrollment_list_key, grade_basis_enrollments
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from users.models import CustomUser
@@ -984,7 +984,7 @@ class StudentListSerializer(serializers.ModelSerializer):
     def _cross_course_grade(self, obj):
         """The points-weighted grade across every course this teacher
         teaches this student, memoised per student - the same
-        `final_grade_from` formula every other final-grade figure in the
+        grade_service formula every other final-grade figure in the
         codebase uses, just fed this student's FULL submission set instead
         of one course's.
         """
@@ -998,19 +998,7 @@ class StudentListSerializer(serializers.ModelSerializer):
         # and scored, keyed on `graded_at`/`score`, NOT `score_percentage` -
         # a submission graded before that field existed/was backfilled
         # still counts (H-33), same as the per-course figure always did.
-        scored = (
-            (
-                submission.score,
-                (
-                    submission.max_points
-                    if submission.max_points is not None
-                    else submission.assignment.total_points
-                ),
-            )
-            for submission in self._cross_course_submissions(obj)
-            if submission.graded_at is not None and submission.score is not None
-        )
-        grade = final_grade_from(scored)
+        grade = grade_service.cross_course_grade(self._cross_course_submissions(obj))
         self._cross_course_grade_cache[obj.pk] = grade
         return grade
 
