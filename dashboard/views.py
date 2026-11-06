@@ -1043,7 +1043,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
 
         if data is None:
             stats = StudentCourse.objects.active().aggregate(
-                avg_grade=Avg("final_grade"),
+                avg_grade=grade_service.mean_of_final_grades(),
                 total_enrollments=Count("id"),
                 total_assignments=Count("course__assignments", distinct=True),
             )
