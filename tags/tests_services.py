@@ -5,6 +5,7 @@ import importlib
 import json
 import uuid
 
+from django.db import transaction
 from django.http import Http404
 from django.test import TestCase
 
@@ -324,6 +325,47 @@ class SetAssignmentTagsTest(_ServiceCase):
 
     def test_the_audit_label(self):
         self.assertEqual(TAGS_SET.label, "Assignment tags changed")
+
+
+class RollbackTest(_ServiceCase):
+    """SM condition on H-299: each event is written just after its
+    zero-credit scope closes but inside the same transaction, so a write
+    that is rolled back leaves neither the row nor the event."""
+
+    def rolled_back(self, write):
+        with self.assertRaises(RuntimeError):
+            with transaction.atomic():
+                write()
+                raise RuntimeError("forced rollback")
+
+    def test_a_rolled_back_create_leaves_no_tag_and_no_event(self):
+        self.rolled_back(lambda: self.make("Cells"))
+        self.assertFalse(Tag.objects.exists())
+        self.assertFalse(events(AuditAction.TAG_CREATE))
+
+    def test_a_rolled_back_rename_delete_or_set_leaves_nothing(self):
+        tag = self.make("Cells")
+        self.rolled_back(lambda: services.rename_tag(tag, "Genetics"))
+        self.rolled_back(
+            lambda: services.set_assignment_tags(
+                self.w.a1, [tag.pk], teacher=self.w.teacher
+            )
+        )
+        self.rolled_back(lambda: services.delete_tag(tag, expected_count=0))
+        tag.refresh_from_db()
+        self.assertEqual(tag.name, "Cells")
+        self.assertFalse(AssignmentTag.objects.exists())
+        for action in (AuditAction.TAG_RENAME, TAGS_SET, AuditAction.TAG_DELETE):
+            with self.subTest(action=action):
+                self.assertFalse(events(action))
+
+    def test_the_events_are_written_outside_the_scope(self):
+        # Pins the placement: inside a scope the billing guard drops the
+        # insert (H-299). A surviving write has its one event.
+        tag = self.make("Cells")
+        services.set_assignment_tags(self.w.a1, [tag.pk], teacher=self.w.teacher)
+        self.assertEqual(len(events(AuditAction.TAG_CREATE)), 1)
+        self.assertEqual(len(events(TAGS_SET)), 1)
 
 
 class ResolveInScopeTest(_ServiceCase):
