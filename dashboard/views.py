@@ -3422,16 +3422,16 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             # Average grade by Assignment Type
             avg_grade_by_type = graded_submissions.values(
                 "assignment__assignment_type"
-            ).annotate(avg_score=Avg("score_percentage"))
+            ).annotate(avg_score=grade_service.mean_percentage())
 
             avg_grade_by_topic = graded_submissions.values(
                 "assignment__topic__name"
-            ).annotate(avg_score=Avg("score_percentage"))
+            ).annotate(avg_score=grade_service.mean_percentage())
 
             # Lowest Mastery Assignment
             lowest_assignment = (
                 graded_submissions.values("assignment__id", "assignment__title")
-                .annotate(avg_score=Avg("score_percentage"))
+                .annotate(avg_score=grade_service.mean_percentage())
                 .order_by("avg_score")  # Fixed: order by ascending for lowest mastery
                 .first()
             )
