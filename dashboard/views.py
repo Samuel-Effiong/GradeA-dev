@@ -2536,7 +2536,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     submissions__graded_at__isnull=False, submissions__is_published=True
                 ),
             ),
-            avg_score=Avg(
+            avg_score=grade_service.mean_percentage(
                 "submissions__score_percentage",
                 filter=Q(
                     submissions__graded_at__isnull=False, submissions__is_published=True
