@@ -39,6 +39,17 @@ FR-C-08's documented rule changes as follows:
 | 11-gate-api | API | 9 backfill errors (not built yet) + 4 API failures (deviations 16, 17) |
 | 12-gate-api | API | Ran 412, OK (backfill excluded); C1_RACE delete_won=93 attach_won=7; then mypy refused 3 typings at commit |
 | 13-gate-api | API | after the typing fixes: Ran 412, OK; C1_RACE delete_won=96 attach_won=4 |
+| 14-gate-backfill | backfill | tags.tests_backfill: 1 failure (dry-run notice was on the RESULT line) |
+| 15-gate-backfill | backfill | full C1 set, Ran 421: the same 1 failure (my edit missed after black re-wrapped the line) |
+| 16-gate-backfill | backfill | full C1 set: Ran 421, OK; C1_RACE delete_won=100 attach_won=0 |
+| 17-backfill-after-lint | backfill | after the flake8 B904 fix: Ran 13, OK |
+
+## The backfill and the audit trail
+
+`backfill_topic_tags` writes TAG_CREATE for each tag it makes and TAG_DELETE
+for each tag `--reverse` removes, with the SYSTEM actor (a command has no
+user) and ids and labels only. It writes no event for a link, and nothing
+during a dry run: the dry run runs inside a transaction that is rolled back.
 
 ## Pending owner ruling (2026-11-06, via the SM)
 
