@@ -36,19 +36,22 @@ import uuid
 from functools import partial
 
 from django.core.files.uploadedfile import UploadedFile
-from django.db import transaction
+from django.db import connection, transaction
 from rest_framework import status
 from rest_framework.response import Response
 
 from ai_processor.services import ai_processor
 from assignments.services import AssignmentProcessingService
 from AutoGrader.reason_codes import credit_refusal_message
+from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.uploads import validate_upload_size
 from billing import holds as credit_holds
 from billing.errors import InsufficientCreditsError, is_individual_teacher
+from billing.models import HoldState
 from billing.refusals import log_refusal
 from students.exceptions import STUDENT_UPLOAD_NOT_PROCESSED
-from students.task_tracking import attach_celery_task
+from students.models import BackgroundProcessingTask, BackgroundTaskStatus
+from students.task_tracking import attach_celery_task, mark_processing_task_failure
 from users.models import UserTypes
 
 logger = logging.getLogger(__name__)
@@ -189,17 +192,58 @@ def launch_at_door(launch, task_callable, processing_task, *args, **kwargs):
         return launch(task_callable, processing_task, *args, **kwargs).id
     celery_task_id = str(uuid.uuid4())
     attach_celery_task(processing_task.id, celery_task_id)
-    transaction.on_commit(
-        partial(
-            launch,
-            task_callable,
-            processing_task,
-            *args,
-            _celery_task_id=celery_task_id,
-            **kwargs,
-        )
+    send = partial(
+        launch,
+        task_callable,
+        processing_task,
+        *args,
+        _celery_task_id=celery_task_id,
+        **kwargs,
     )
+    if connection.in_atomic_block:
+        # Under an outer transaction the message goes at its commit, where an
+        # error would stop the later files' callbacks (NOTES §15g addendum).
+        transaction.on_commit(_DoorLaunchOnCommit(send, processing_task.id))
+    else:
+        # Autocommit: on_commit runs it now, and a broker failure still
+        # reaches the view (503), as in 327ce23c.
+        transaction.on_commit(send)
     return celery_task_id
+
+
+class _DoorLaunchOnCommit:
+    """A door file's on-commit send under an outer atomic. Its own failure
+    is settled here and logged without its text (H-208), and nothing is
+    re-raised, so the other files' callbacks still run. It does not assume
+    launch_processing_task already accounted for the failure."""
+
+    def __init__(self, send, processing_task_id):
+        self.send = send
+        self.processing_task_id = processing_task_id
+
+    def __call__(self):
+        try:
+            self.send()
+        except Exception as exc:
+            self._settle_failure(exc)
+            logger.error(
+                "Door launch for task %s failed on commit: %s",
+                self.processing_task_id,
+                describe_error_for_log(exc),
+            )
+
+    def _settle_failure(self, exc):
+        row = (
+            BackgroundProcessingTask.objects.select_related("job")
+            .filter(pk=self.processing_task_id)
+            .first()
+        )
+        if row is None:
+            return
+        if row.finished_at is None and row.status != BackgroundTaskStatus.FAILURE:
+            mark_processing_task_failure(row.id, exc)
+        if row.job_id is not None and row.hold_state == HoldState.HELD:
+            credit_holds.fail_item(row.job, item=row)
 
 
 class DoorHoldRefused(Exception):
