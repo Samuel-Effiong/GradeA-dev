@@ -11,6 +11,7 @@ from django.db import connection
 from django.test import TransactionTestCase
 from django.utils import timezone
 
+from audit.models import AuditEvent
 from billing.models import AIJob, CreditLedger, CreditUsageLog
 from billing.testing.holds import fresh, funded_wallet, holds, make_item, make_job
 
@@ -107,6 +108,13 @@ class SweepOverlapTests(TransactionTestCase):
                 self.assertEqual(fresh(batch).failed_items, 1)
                 self.assertEqual(fresh(single).released_credits, 20)
                 self.assertEqual(fresh(wallet).reserved_credits, 0)
+                # SM ruling 2026-11-06 (step 3a): one audit row per release.
+                self.assertEqual(
+                    AuditEvent.objects.filter(
+                        action="CREDIT_HOLD_SWEPT", target_id=batch.id
+                    ).count(),
+                    1,
+                )
         self.assertFalse(CreditUsageLog.objects.exists())
         self.assertFalse(CreditLedger.objects.filter(user_id=wallet.user_id).exists())
         self.assertEqual(holds().check_invariants(wallet), [])

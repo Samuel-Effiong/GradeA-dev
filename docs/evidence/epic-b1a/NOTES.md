@@ -730,3 +730,101 @@ Commits:
 - 36e0befa: pin edit, overlap test, §5c/§11h
 - 2f3c5c45: step-2 code
 - this evidence commit
+
+---
+
+## 12. Step 3: split into 3a / 3b / 3c (SM approved 2026-11-06)
+
+SM rulings for step 3 (2026-11-06):
+- **Q1** No-job entry opens a SINGLE_ITEM job, or a job-level holder, with no up-front amount; the pre-call fit check reserves each call's `estimate_messages_cost` before that call. **Carried to B1b: B1b replaces the entry amount with p90.**
+- **Q2** `assignments/views.py:878` `upload_assignment` becomes **E-8**: per-item rule, its own E-test.
+- **Q3** AICallRecord task ids are repointed to the settlement id inside settle's transaction, on both paths. Tested by the FR-B-09 join.
+- **Q4** `settle(school=…)`; AnalyticsService runs at settlement.
+- **Q5** students/views.py, assignments/views.py and the on-commit launch in task_tracking.py are this lane's. Test: a rolled-back request launches nothing.
+- **Q6** Late-door email: code behind the flag, texts in one constant marked PENDING OWNER APPROVAL, **never sent until the SM confirms**.
+- **Q7** AST guard plus interleaving tests; planted bugs at the 3a gate.
+- **Q8** Flag-off near run over billing, ai_processor, students and assignments at the end of 3c, compared with the same four apps at base 2f00c078. A billing-only flag-off run at each sub-step checkpoint.
+- **Audit:** CREDIT_HOLD_RESERVED / _SETTLED / _RELEASED / _SWEPT, FINANCIAL, target AIJob. Labels are placeholders ("Credits held", "Credit hold settled", "Credit hold released", "Stale credit hold cleared") until the owner confirms. RELEASED only when the amount is > 0.
+
+Sub-steps:
+- **3a:** single-call hold; `metered_unit` core; repoint; audit actions; wallet guard
+- **3b:** the unit at the five sites; E-1…E-8 entry rule (start claim, late exit, retry, settled exit)
+- **3c:** door hold, on-commit launch, late door, email code
+
+## 13. Step 3a: expectations, committed before any run (2026-11-06)
+
+### 13a. Code
+
+**`billing/holds.py`:**
+- `holds_enabled()`
+- `metered_unit(*, processing_task_id=None, reason=…)`: a ContextVar unit. With the flag off it is `billing_refund_scope`. In 3a it supports no-item units only; items come in 3b.
+- `current_unit()`, `Unit.before_call(...)` (opens the SINGLE_ITEM job lazily at the first call, then `ensure_call_fits`) and `Unit.after_call(actual, task_id)` (the tally)
+- settle once at exit; `fail_item` on an exception; nested units pass their tally up on success and drop it on failure
+- `begin_single_call` / `finish_single_call` / `abandon_single_call` for the no-unit path
+- `settle(school=…)`, plus the AICallRecord repoint for the unit's call ids
+- audit emits in `reserve`/`ensure_call_fits` (RESERVED), `settle` (SETTLED), `fail_item`/`finish_job` when the amount is > 0 (RELEASED), and the sweep (SWEPT)
+- `open_*_job(amount=0)` allowed (no up-front reserve, Q1)
+
+**`ai_processor/services.py` `execute_graded_task`:** an `if holds_enabled():` branch after the estimate.
+- **Unit open:** `unit.before_call` → provider → `unit.after_call`.
+- **No unit:** `begin_single_call` → provider → settle inside the cancellation-checked transaction, with AnalyticsService as today → `call_record.note_task_id(<settlement id>)` → `record_billing_task_id(<settlement id>)`. On an exception, `abandon_single_call` (release, job FAILED).
+- The flag-off branch is unchanged (`:5643–5657` and the charge block).
+
+**`audit`:** the four actions, in `FINANCIAL_ACTIONS`; METADATA_ALLOWLIST entries; ALLOWED_KEYS gains `job_type`, `item_id`, `credits_released`; migration `audit/0005` (choices).
+
+### 13b. Tests
+
+| File | Tests |
+|---|---|
+| `billing/tests/test_holds_single_call.py` | 7: flag-off control, held+settled+join (SC-2), refused before provider (SC-3), provider failure (SC-4), refund-scope compatibility (SC-5), super admin unmetered (SC-6), AST dominance M-B4 (SC-7) |
+| `billing/tests/test_holds_unit.py` | 6: settle once + join, raise → nothing charged, U-1 refusal (1 provider call), nested success, nested inner failure, flag-off = refund scope |
+| `billing/tests/test_holds_audit.py` | 5: vocabulary (4 subtests), RESERVED, SETTLED, RELEASED only when > 0, SWEPT |
+| `billing/tests/test_wallet_save_guard.py` | 4: AST save guard, AST reserved_credits guard, two interleavings. **Guards for already-correct behaviour; PASS at red; proven by planted bugs at the 3a gate** |
+| `billing/tests/test_holds_concurrency.py` | SweepOverlapTests gains "exactly one CREDIT_HOLD_SWEPT row per round" |
+
+Helpers added to `billing/testing/holds.py`: `ai_ready_teacher`, `ai_response`, `estimate_for`, `call_ai`.
+
+### 13c. Red: expected
+
+At the tests commit, code = step 2 (2f3c5c45), in a disposable worktree:
+
+`python manage.py test billing.tests.test_holds_single_call billing.tests.test_holds_unit billing.tests.test_holds_audit billing.tests.test_wallet_save_guard billing.tests.test_holds_concurrency.SweepOverlapTests --settings=settings_worktree --noinput`
+
+**Expected: Ran 23, FAILED (failures=7, errors=16); 7 PASS.**
+
+| Test | Expected | Fragment |
+|---|---|---|
+| SC flag-off control | PASS | |
+| SC-2 held+settled | ERROR | `AIJob.DoesNotExist` |
+| SC-3 refused | ERROR | `AIJob.DoesNotExist` (today's gate refuses first; every assert before the job lookup passes) |
+| SC-4 provider failure | ERROR | `AIJob.DoesNotExist` |
+| SC-5 refund-scope compatibility | PASS | (today's behaviour; guards 3a) |
+| SC-6 super admin | PASS | |
+| SC-7 dominance | FAIL | ``no `if holds_enabled()` branch found`` |
+| unit ×6 | ERROR ×6 | `AttributeError: module 'billing.holds' has no attribute 'metered_unit'` |
+| audit vocabulary (4 subtests) | ERROR ×4 | `AttributeError: CREDIT_HOLD_` |
+| audit RESERVED | ERROR | `AuditEvent.DoesNotExist` |
+| audit SETTLED | ERROR | `AuditEvent.DoesNotExist` |
+| audit RELEASED | FAIL | `0 != 1` |
+| audit SWEPT | ERROR | `AuditEvent.DoesNotExist` |
+| guard ×4 | PASS ×4 | |
+| SweepOverlap (5 rounds) | FAIL ×5 | `0 != 1` |
+
+Any other count or fragment is a STOP.
+
+### 13d. Green: expected
+
+- The same command on 3a code: Ran 23, OK.
+- All step-2 hold tests again: 49 OK. Step-1 tests: 34 OK. `makemigrations --check`: clean after `audit/0005`.
+- Targeted: the audit app (vocabulary/metadata/schema tests), `ai_processor.tests_grading_completeness`, `ai_processor.tests` and AutoGrader beat locks.
+- **The billing app with the flag off (default): every existing test passes unchanged** (SM Q8). Compared with the same billing run at base 2f00c078.
+
+### 13e. 3a gate, planted bugs (one per guard, restored by sha256)
+
+| Plant | Expected kill |
+|---|---|
+| P-1: drop `update_fields` from one production `wallet.save(...)` (billing/services.py, the first `overage_blocks_used` save) | `test_every_wallet_save_names_its_fields` FAIL, listing that line |
+| P-2: add `CreditWallet.objects.filter(pk=wallet.pk).update(reserved_credits=0)` in a production billing function | `test_only_the_hold_service_updates_reserved_credits` FAIL |
+| P-3 (M-B4): remove the `begin_single_call` line from execute_graded_task | SC-7 FAIL `not preceded by a hold`, and SC-3 (provider called) |
+| P-4: unit settles on exception (M-B5) | unit "raise → nothing charged" FAIL |
+| P-5: drop the AICallRecord repoint | the join assertions (SC-2, unit settle-once) FAIL |
