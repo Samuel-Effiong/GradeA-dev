@@ -2354,7 +2354,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 distinct=True,
             ),
             avg_grade=Coalesce(
-                Avg(
+                grade_service.mean_of_final_grades(
                     "enrollments__final_grade",
                     filter=Q(
                         enrollments__enrollment_status__in=active_enrollment_statuses
