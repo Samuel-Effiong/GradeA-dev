@@ -29,13 +29,13 @@ from classrooms.models import School
 from users.models import CustomUser, UserTypes
 
 SEATS_2_TEACHERS_3 = (
-    "This licence has 2 seats, but 3 teachers were added. "
-    "Remove a teacher or increase Max seats."
+    "This license has 2 seats, but 3 teachers were added. "
+    "Remove a teacher or increase max seats."
 )
 SEATS_2_CARRIED_1_NEW_2 = (
-    "This licence has 2 seats, but 3 teachers were added "
-    "(1 carried over from the current licence + 2 new). "
-    "Remove a teacher or increase Max seats."
+    "This license has 2 seats, but 3 teachers were added "
+    "(1 carried over from the current license + 2 new). "
+    "Remove a teacher or increase max seats."
 )
 
 
@@ -282,8 +282,8 @@ class SeatCapacityMessageTest(APITestCase):
     def test_singular_wording(self):
         with self.assertRaisesMessage(
             LicenseRequestError,
-            "This licence has 1 seat, but 2 teachers were added. "
-            "Remove a teacher or increase Max seats.",
+            "This license has 1 seat, but 2 teachers were added. "
+            "Remove a teacher or increase max seats.",
         ):
             LicenseSubscriptionService.check_seat_capacity(
                 existing_license=None,

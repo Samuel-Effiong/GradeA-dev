@@ -274,7 +274,7 @@ class TheSessionResultsShape(BatchFixture, TestCase):
         self.assertIs(bad["retryable"], False)
         self.assertEqual(bad["retry_count"], 0)
         assert item.trace_id is not None  # recorded at creation
-        self.assertEqual(bad["reference"], item.trace_id.hex)
+        self.assertEqual(bad["reference"], str(item.trace_id))
         self.assertEqual(bad["reference"], response["X-Request-ID"])
         self.assertIsNone(bad["submission_id"])
         # The session.

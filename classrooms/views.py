@@ -4,6 +4,7 @@ import uuid
 from dateutil.relativedelta import relativedelta
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from django.db.models import (
     CharField,
     Count,
@@ -43,7 +44,7 @@ from rest_framework.response import Response
 
 from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
-from audit.emitter import emit
+from audit.emitter import NO_SCHOOL, emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
 from AutoGrader.cache_generation import (
     SCOPE_COURSE,
@@ -110,6 +111,14 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
 from .tasks import student_summary_async
 
 logger = logging.getLogger(__name__)
+
+
+def _name_or_email(user):
+    """A user's name, or their email when they have none (H-280).
+
+    Used for the school list and detail pages, so a nameless teacher or admin
+    never shows a blank name. Same fallback as billing/stripe_service.py."""
+    return user.get_full_name() or user.email
 
 
 def _validate_uuid_query_param(value, param_name):
@@ -653,7 +662,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "phone": school.phone,
                     "website": school.website,
                     "admin_id": str(admin.id) if admin else None,
-                    "admin_name": admin.get_full_name() if admin else None,
+                    "admin_name": _name_or_email(admin) if admin else None,
                     "admin_email": admin.email if admin else None,
                     "teachers": school.teachers,
                     "students": school.students,
@@ -794,7 +803,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             if s.owner_type == SessionOwnerType.INDIVIDUAL
         )
         teacher_names = {
-            u.id: u.get_full_name()
+            u.id: _name_or_email(u)
             for u in CustomUser.objects.filter(id__in=all_teacher_ids)
         }
 
@@ -847,7 +856,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "phone": school.phone,
             "website": school.website,
             "admin_id": str(admin.id) if admin else None,
-            "admin_name": admin.get_full_name() if admin else None,
+            "admin_name": _name_or_email(admin) if admin else None,
             "admin_email": admin.email if admin else None,
             "teachers": teachers_count,
             "students": students_count,
@@ -859,9 +868,10 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "session_breakdown": session_breakdown,
         }
 
-        serializer = SchoolDetailSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.data)
+        # Serialized, not validated: this is our own output, and running it
+        # through is_valid turned any blank value (a nameless teacher, H-280)
+        # into a 400 for the whole page.
+        return Response(SchoolDetailSerializer(data).data)
 
     @extend_schema(
         tags=["School"],
@@ -892,7 +902,10 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 type=str,
                 location="query",
                 description=(
-                    "Filter by academic session UUID (limits assignments, "
+                    "Filter by academic session UUID. Lists only that "
+                    "session's teachers (a school session: the school's "
+                    "current teachers; an individual session: its teacher; "
+                    "an unknown session: none) and limits assignments, "
                     "students, and tokens_used to that session; the "
                     "remainder of the teacher's token usage outside this "
                     "session is reported as tokens_used_outside_session)."
@@ -939,6 +952,23 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if session_id:
             _validate_uuid_query_param(session_id, "session_id")
             session_filter = Q(course__session_id=session_id)
+            # H-288: the session also decides whose teachers are listed, so
+            # a caller that sends only session_id gets that session's
+            # teachers, not every teacher on the platform. A SCHOOL session
+            # lists its school's current teachers; an INDIVIDUAL session its
+            # one teacher. An unknown session lists no one (a list filter,
+            # like school_id: an empty page, not an error).
+            owner = (
+                Session.objects.filter(pk=session_id)
+                .values("owner_type", "school_id", "teacher_id")
+                .first()
+            )
+            if owner is None:
+                teachers = teachers.none()
+            elif owner["owner_type"] == SessionOwnerType.SCHOOL:
+                teachers = teachers.filter(school_id=owner["school_id"])
+            else:
+                teachers = teachers.filter(pk=owner["teacher_id"])
 
         # --- Subqueries for teacher-level aggregates ---
         # 1. Assignments count (filtered by session if provided)
@@ -1283,6 +1313,16 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     Sections represent different groups or periods within a classroom.
     """
 
+    def finalize_response(self, request, response, *args, **kwargs):
+        # H-296: owner-approved success messages (was "Request Successful").
+        if 200 <= response.status_code < 300 and isinstance(response.data, dict):
+            name = response.data.get("name")
+            if self.action == "create" and name:
+                response.message = f"Course '{name}' created."  # noqa: B907 (a name may contain an apostrophe)
+            elif self.action in ("update", "partial_update") and name:
+                response.message = f"Changes to '{name}' saved."  # noqa: B907 (a name may contain an apostrophe)
+        return super().finalize_response(request, response, *args, **kwargs)
+
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
@@ -1494,7 +1534,10 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         try:
             student = serializer.save()
             serializer = CustomUserSerializer(student)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            response = Response(serializer.data, status=status.HTTP_200_OK)
+            # H-296: owner-approved success message.
+            response.message = f"{student.get_full_name()} added to {course.name}."
+            return response
 
         except DjangoValidationError as e:
             detail = e.message_dict if hasattr(e, "message_dict") else e.messages
@@ -1987,6 +2030,20 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     Academic terms represent a period of time such as a semester, year, or quarter.
     """
 
+    def finalize_response(self, request, response, *args, **kwargs):
+        # H-296: owner-approved success messages (was "Request Successful").
+        if 200 <= response.status_code < 300 and isinstance(response.data, dict):
+            name = response.data.get("name")
+            if self.action == "create" and name:
+                response.message = f"Session '{name}' created."  # noqa: B907 (a name may contain an apostrophe)
+            elif (
+                self.action in ("update", "partial_update")
+                and name
+                and "name" in request.data
+            ):
+                response.message = f"Session renamed to '{name}'."  # noqa: B907 (a name may contain an apostrophe)
+        return super().finalize_response(request, response, *args, **kwargs)
+
     queryset = Session.objects.all()
     serializer_class = SessionSerializer
     permission_classes = (IsAuthenticated, CanManageSession)
@@ -1994,6 +2051,8 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     filter_backends = (DjangoFilterBackend, SearchFilter, OrderingFilter)
+    # H-278: ?is_active=true answers with the viewer's active session(s).
+    filterset_fields = ["is_active"]
     ordering_fields = [
         "name",
         "created_at",
@@ -2053,7 +2112,8 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             school = admin_schools.first()
             if not school:
                 raise ParseError("You are not assigned as an admin for any school.")
-            serializer.save(
+            self._save_session(
+                serializer,
                 owner_type=SessionOwnerType.SCHOOL,
                 school=school,
                 teacher=None,
@@ -2067,7 +2127,8 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "Sessions for your school are managed by your school "
                     "admin. Contact them to add or update academic sessions."
                 )
-            serializer.save(
+            self._save_session(
+                serializer,
                 owner_type=SessionOwnerType.INDIVIDUAL,
                 teacher=user,
                 school=None,
@@ -2085,7 +2146,8 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "on a teacher's behalf."
                 )
             school = get_object_or_404(School, pk=school_id)
-            serializer.save(
+            self._save_session(
+                serializer,
                 owner_type=SessionOwnerType.SCHOOL,
                 school=school,
                 teacher=None,
@@ -2094,6 +2156,86 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             return
 
         raise PermissionDenied("You do not have permission to create sessions.")
+
+    def perform_update(self, serializer):
+        self._save_session(serializer)
+
+    def _save_session(self, serializer, **save_kwargs):
+        """Save, keeping at most one active session per school / teacher.
+
+        H-278: marking a session active clears its scope's previous active
+        session in the same transaction. The scope's owner row (the School,
+        or the teacher's user row) is locked first, so concurrent switches
+        run one after another and the database's one-active constraint is
+        never hit. A change of the flag is one SESSION_ACTIVE_CHANGE event,
+        which stands in for the request's generic STATE_CHANGE row. The
+        INDIVIDUAL lock (the teacher's user row) also makes any other write
+        that locks that row wait for the switch.
+        """
+        wanted = serializer.validated_data.get("is_active")
+        if wanted is None:
+            serializer.save(**save_kwargs)
+            return
+        instance = serializer.instance
+        if instance is not None:
+            owner_type = instance.owner_type
+            school_id, teacher_id = instance.school_id, instance.teacher_id
+        else:
+            owner_type = save_kwargs["owner_type"]
+            school_id = getattr(save_kwargs.get("school"), "pk", None)
+            teacher_id = getattr(save_kwargs.get("teacher"), "pk", None)
+
+        with transaction.atomic():
+            previous = self._lock_scope_and_find_active(
+                owner_type, school_id, teacher_id
+            )
+            was_active = (
+                instance is not None
+                and previous is not None
+                and previous.pk == instance.pk
+            )
+            if wanted and previous is not None and not was_active:
+                previous.is_active = False
+                previous.save(update_fields=["is_active"])
+            session = serializer.save(**save_kwargs)
+
+        if bool(wanted) != was_active:
+            emit(
+                AuditAction.SESSION_ACTIVE_CHANGE,
+                actor=self.request.user,
+                request=self.request,
+                target_type="Session",
+                target_id=session.pk,
+                # SM ruling: a SCHOOL session's school; an INDIVIDUAL
+                # session belongs to none (never the actor's school).
+                school_id=(
+                    session.school_id
+                    if session.owner_type == SessionOwnerType.SCHOOL
+                    else NO_SCHOOL
+                ),
+                metadata={
+                    "changed_fields": ["is_active"],
+                    "is_active": bool(wanted),
+                    "previous_active_session_id": (
+                        str(previous.pk) if previous is not None else None
+                    ),
+                    "source": "api",
+                },
+            )
+
+    @staticmethod
+    def _lock_scope_and_find_active(owner_type, school_id, teacher_id):
+        """Lock the scope's owner row; return its active session, if any."""
+        if owner_type == SessionOwnerType.SCHOOL:
+            list(School.objects.select_for_update().filter(pk=school_id))
+            scope = {"owner_type": SessionOwnerType.SCHOOL, "school_id": school_id}
+        else:
+            list(CustomUser.objects.select_for_update().filter(pk=teacher_id))
+            scope = {
+                "owner_type": SessionOwnerType.INDIVIDUAL,
+                "teacher_id": teacher_id,
+            }
+        return Session.objects.filter(is_active=True, **scope).first()
 
 
 @extend_schema_view(

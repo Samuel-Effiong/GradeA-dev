@@ -41,7 +41,10 @@ from rest_framework.response import Response
 
 from audit.enums import ErrorClass, ReasonCode
 from AutoGrader.request_context import get_request_id
-from billing.errors import INSUFFICIENT_CREDITS_MESSAGE
+from billing.errors import (
+    INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE,
+    INSUFFICIENT_CREDITS_MESSAGE,
+)
 
 #: The keys a coded body adds next to "error". The renderer hides them from
 #: the display message (users/renderers.py).
@@ -195,6 +198,14 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         # The message shows them formatted, through `display` ("63.2 MB").
         params=_FILE | {"actual", "limit", "dimension"},
     ),
+    ReasonCode.FILE_EMPTY: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_400_BAD_REQUEST,
+        "'{file_name}' is empty. Choose another file.",
+        "Select a file that has content, then upload it again.",
+        retryable=False,
+        params=_FILE,
+    ),
     ReasonCode.SUBMISSION_EMPTY: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -263,6 +274,13 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         INSUFFICIENT_CREDITS_MESSAGE,
         "Top up credits, or ask your school administrator, then try again.",
         retryable=False,
+        # H-281 (owner-approved 2026-11-03): an individual teacher has no
+        # school administrator to ask. Picked by credit_refusal_variant
+        # from the refusal's `individual` flag.
+        alternative_messages={
+            "individual": INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE,
+        },
+        alternative_remediations=("Top up credits, then try again.",),
     ),
     ReasonCode.AI_FEATURE_NOT_AVAILABLE: ReasonSpec(
         ErrorClass.USER,
@@ -284,18 +302,18 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         # sentences, picked from the params by variant_from_params:
         # remaining > 0 gets the default; remaining == 0 gets
         # "cap_reached". H-233's rule holds: the zero sentence never says
-        # "reduce your quantity to 0 or fewer". The dash is U+2014.
-        "Purchase limit exceeded — max {max_blocks} blocks. Reduce "
-        "your quantity to {remaining} or fewer to proceed.",
-        "Request fewer blocks, or wait until your next billing cycle, then "
-        "try again.",
+        # "reduce the quantity to 0 or fewer". H-296: owner reworded both
+        # sentences 2026-11-05 ("credit packs", "billing period").
+        "You can buy up to {max_blocks} credit packs per billing period. "
+        "Reduce the quantity to {remaining} or fewer.",
+        "Choose fewer credit packs, or wait until your next billing period.",
         retryable=False,
         params=frozenset({"max_blocks", "remaining"}),
         alternative_messages={
             "cap_reached": (
-                "Purchase limit reached — you have used all "
-                "{max_blocks} blocks for this billing cycle. You can buy "
-                "more when your next cycle starts."
+                "You've bought the maximum of {max_blocks} credit packs "
+                "for this billing period. You can buy more when your next "
+                "period starts."
             ),
         },
         variant_from_params=_overage_cap_variant,
@@ -350,9 +368,17 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
     ReasonCode.ACCOUNT_LOCKED: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_401_UNAUTHORIZED,
-        "Too many failed login attempts. Please try again later.",
+        "Too many failed sign-in attempts. Please try again later.",
         "Wait a few minutes and try again, or reset your password.",
         retryable=True,
+    ),
+    ReasonCode.INVALID_CREDENTIALS: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_401_UNAUTHORIZED,
+        "That email and password don't match. "
+        "Check them and try again, or reset your password.",
+        "Check your email and password, or reset your password.",
+        retryable=False,
     ),
     # ------------------------------------------------------------------
     # QA catalogue additions, sections B-F (Epic A S7d). Approved AS WRITTEN
@@ -390,6 +416,15 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         status.HTTP_400_BAD_REQUEST,
         "Upload a roster file or paste your student list.",
         "Choose a CSV file, or paste rows copied from your spreadsheet.",
+        retryable=False,
+    ),
+    # H-292: "Grade all" with nothing left to grade (was a ParseError,
+    # logged as PARSE_ERROR). Owner-approved text; no remediation.
+    ReasonCode.NOTHING_TO_GRADE: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_400_BAD_REQUEST,
+        "No ungraded submissions to process.",
+        "",
         retryable=False,
     ),
     ReasonCode.ROSTER_EMPTY: ReasonSpec(
@@ -495,8 +530,8 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
     ReasonCode.LICENCE_INACTIVE: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_400_BAD_REQUEST,
-        "This licence isn't active, so teachers can't be added to it.",
-        "Renew the licence, or contact us.",
+        "This license isn't active, so teachers can't be added to it.",
+        "Renew the license, or contact us.",
         retryable=False,
     ),
     # The approved text has two forms: "{remaining} seats left, but you're
@@ -506,7 +541,7 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
     ReasonCode.LICENCE_SEATS_EXCEEDED: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_400_BAD_REQUEST,
-        "Your licence has {availability} ({in_use} of {max_seats} in use).",
+        "Your license has {availability} ({in_use} of {max_seats} in use).",
         "Add fewer teachers, remove a teacher, or ask us to add seats.",
         retryable=False,
         params=frozenset(
@@ -538,12 +573,12 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "Contact support if the teacher has moved schools.",
     ),
     ReasonCode.TEACHER_ALREADY_ON_LICENCE: _item_spec(
-        "{email} is already on this licence.",
+        "{email} is already on this license.",
         "",
         params={"email"},
     ),
     ReasonCode.TEACHER_NOT_ON_LICENCE: _item_spec(
-        "This teacher isn't an active teacher on this licence.",
+        "This teacher isn't an active teacher on this license.",
         "",
     ),
     ReasonCode.TEACHER_ADD_FAILED: _item_spec(
@@ -572,7 +607,6 @@ AUDIT_ONLY_CODES = frozenset(
     {
         ReasonCode.ACCOUNT_DEACTIVATED,
         ReasonCode.WRONG_PASSWORD,
-        ReasonCode.INVALID_CREDENTIALS,
         ReasonCode.INVALID_CODE,
         ReasonCode.CODE_EXPIRED,
         ReasonCode.CODE_MISSING,
@@ -711,6 +745,38 @@ class CodedError(Exception):
         return self._spec.remediation or None
 
 
+INDIVIDUAL_CREDITS_VARIANT = "individual"
+
+
+def credit_refusal_variant(error):
+    """H-281: "individual" for a plain credit refusal whose billed user is
+    an individual teacher (InsufficientCreditsError.individual), else None.
+    A coded refusal (the mid-batch one) carries its own message."""
+    from billing.errors import InsufficientCreditsError
+
+    if (
+        isinstance(error, InsufficientCreditsError)
+        and not isinstance(error, CodedError)
+        and getattr(error, "individual", False)
+    ):
+        return INDIVIDUAL_CREDITS_VARIANT
+    return None
+
+
+def credit_refusal_message(error):
+    """The fixed sentence a client reads for a plain credit refusal."""
+    spec = REASON_CODES[ReasonCode.INSUFFICIENT_CREDITS]
+    return spec.template(credit_refusal_variant(error))
+
+
+def credit_refusal_remediation(variant):
+    """The remediation for a credit refusal of `variant`; None for the
+    spec's own (the school sentence)."""
+    if variant == INDIVIDUAL_CREDITS_VARIANT:
+        return REASON_CODES[ReasonCode.INSUFFICIENT_CREDITS].alternative_remediations[0]
+    return None
+
+
 def _refusal_reason(error):
     """(code, message) for the two refusals that predate CodedError, or
     None. Their shown message is unchanged (describe_user_error)."""
@@ -785,7 +851,10 @@ def coded_response(error):
         return None
     code, params, message = reason
     spec = REASON_CODES[code]
-    remediation = error.remediation if isinstance(error, CodedError) else None
+    if isinstance(error, CodedError):
+        remediation = error.remediation
+    else:
+        remediation = credit_refusal_remediation(credit_refusal_variant(error))
     response = Response(
         coded_body(code, params, message, remediation), status=spec.http_status
     )

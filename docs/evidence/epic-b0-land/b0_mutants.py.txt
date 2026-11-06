@@ -1,0 +1,68 @@
+"""B0 landing mutant battery. Usage: python b0_mutants.py <worktree> <out>"""
+import hashlib, os, re, subprocess, sys
+WT, OUT = sys.argv[1], sys.argv[2]
+os.chdir(WT)
+VS = "billing.tests.test_zero_credit_scope.ViolationTests."
+SM = "billing.tests.test_zero_credit_scope.ScopeMechanicsTests."
+MC = "ai_processor.tests_metering_chokepoint.MeteringChokepointTests."
+CALL_END = "            tags=tags,\n        )\n"
+M = [
+ ("M1","ai_processor/services.py","        assert_not_zero_credit(MODEL_CALL)\n        if not prompt_version:","        if not prompt_version:",[VS+"test_execute_graded_task_raises_before_any_provider_call"],"'WALLET_CONSUME' != 'MODEL_CALL'"),
+ ("M3","billing/models.py","        assert_not_zero_credit(WALLET_CONSUME)\n","",[VS+"test_wallet_consume_raises"],"'BUCKET_MUTATION' != 'WALLET_CONSUME'"),
+ ("M4","billing/immutable.py","    if instance._state.adding:\n        assert_not_zero_credit(\n            _INSERT_ATTEMPT.get(sender._meta.model_name, LEDGER_INSERT)\n        )\n","",[VS+"test_ledger_record_raises"],"ZeroCreditViolation not raised"),
+ ("M5","billing/immutable.py","        assert_not_zero_credit(BULK_INSERT)\n","",[VS+"test_ledger_bulk_create_raises"],"ZeroCreditViolation not raised"),
+ ("M6","billing/zero_credit.py","        _active_scopes.reset(token)\n","        pass\n",[SM+"test_scope_state_is_restored_when_the_block_raises"],"is not None"),
+ ("M7b","billing/zero_credit.py","        _active_scopes.reset(token)\n","        _active_scopes.set(())\n",[SM+"test_nested_scopes_stack_and_unwind"],"None != '_selftest'"),
+ ("M9","ai_processor/services.py","    def extract_assignment(self, user, text):\n","    def get_ai_model_function(self):\n        return self.__ai_model\n\n    def extract_assignment(self, user, text):\n",[MC+"test_escape_hatch_is_gone"],"True is not false"),
+ ("M10","ai_processor/services.py","    def extract_assignment(self, user, text):\n","    def _stray(self):\n        return self.client.chat.completions\n\n    def extract_assignment(self, user, text):\n",[MC+"test_self_client_is_only_used_inside___ai_model"],"Lists differ"),
+ ("M12","billing/models.py",'pre_save.connect(\n    guard_bucket_save, sender=CreditBucket, dispatch_uid="zero_credit_bucket_guard"\n)\n',"",[VS+"test_bucket_balance_write_raises_and_bookkeeping_save_does_not"],"ZeroCreditViolation not raised"),
+]
+# M8: delete the registry check (if-block of 2+ lines)
+def m8(s):
+    i = s.index("    if operation not in ZERO_CREDIT_OPERATIONS:\n")
+    j = s.index("\n", s.index("raise", i))  # end of the raise statement line(s)
+    k = s.index("\n    ", j)  # keep following code
+    # remove from i to the end of the raise call (handle multi-line raise)
+    block_end = j
+    while s[block_end+1:block_end+9].startswith("        ") :
+        block_end = s.index("\n", block_end+1)
+    return s[:i] + s[block_end+1:]
+# M11: expose metric call (no try/except)
+def m11(s):
+    old = s[s.index("    try:\n        from audit import metrics as audit_metrics"):s.index('        logger.debug("zero-credit metric emit failed", exc_info=True)\n')+len('        logger.debug("zero-credit metric emit failed", exc_info=True)\n')]
+    new = "    from audit import metrics as audit_metrics\n\n    audit_metrics.count(\n        \"credit_ledger_anomaly\",\n        tags={\"kind\": \"zero_credit_violation\", \"attempted\": attempted},\n    )\n"
+    return s.replace(old, new, 1)
+# M2: guard after the metered provider call
+def m2(s):
+    s = s.replace("        assert_not_zero_credit(MODEL_CALL)\n        if not prompt_version:","        if not prompt_version:",1)
+    i = s.index("        response = self.__ai_model(\n            system_prompt,")
+    j = s.index("\n        )\n", i) + len("\n        )\n")
+    return s[:j] + "        assert_not_zero_credit(MODEL_CALL)\n" + s[j:]
+FUNCS = [("M2","ai_processor/services.py",m2,[VS+"test_execute_graded_task_raises_before_any_provider_call"],"to not have been called"),
+         ("M8","billing/zero_credit.py",m8,[SM+"test_unknown_operation_is_rejected"],"ValueError not raised"),
+         ("M11","billing/zero_credit.py",m11,[VS+"test_violation_still_raises_when_metric_and_logging_helpers_fail"],"metrics down")]
+out = open(OUT,"w")
+def run(name, path, mutate, tests, frag):
+    src = open(path).read(); h = hashlib.sha256(src.encode()).hexdigest()
+    try:
+        new = mutate(src)
+        assert new != src, "mutation did not apply"
+        open(path,"w").write(new)
+        r = subprocess.run([sys.executable,"manage.py","test",*tests,"--settings=settings_worktree","--noinput"],capture_output=True,text=True)
+        txt = r.stdout + r.stderr
+        killed = r.returncode != 0
+        fragok = frag in txt
+        status = "KILLED" if killed else "SURVIVED"
+        line = f"{name}: {status}; fragment {'MATCH' if fragok else 'MISMATCH'} ({frag!r})"
+        if not fragok:
+            errs = [l for l in txt.splitlines() if l.startswith(("AssertionError","RuntimeError","ValueError","AttributeError"))][:2]
+            line += " | got: " + " / ".join(errs)
+    finally:
+        open(path,"w").write(src)
+    ok = hashlib.sha256(open(path).read().encode()).hexdigest() == h
+    line += f"; restored sha256 {'match' if ok else 'MISMATCH'}"
+    print(line); out.write(line+"\n"); out.flush()
+for name,path,old,new,tests,frag in M:
+    run(name,path,lambda s,o=old,n=new: s.replace(o,n,1),tests,frag)
+for name,path,f,tests,frag in FUNCS:
+    run(name,path,f,tests,frag)

@@ -1,3 +1,5 @@
+import copy
+import json
 import logging
 from datetime import timedelta
 from decimal import Decimal
@@ -5,6 +7,7 @@ from html import escape
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.db.models import Value
 from django.db.models.functions import Concat
@@ -403,6 +406,163 @@ GRADING_RESULT_FIELDS = (
 )
 
 
+# H-279 (owner, 2026-11-02): an AI re-grade of a RELEASED grade is held for
+# the teacher. Every column the grading run would have written goes, whole,
+# into `pending_result`; the released columns - and so every reader a
+# student or an analytic has - stay as they were until the teacher approves
+# it (promote_pending: the publish routes, or a hand edit).
+HELD_RESULT_FIELDS = tuple(
+    name for name in GRADING_RESULT_FIELDS if name != "grading_state"
+)
+#: What the held save writes: the run's own state and the held result.
+HELD_SAVE_FIELDS = ("grading_state", "pending_result", "pending_graded_at")
+#: What a promotion writes: the released columns and the emptied hold.
+PROMOTION_FIELDS = (*HELD_RESULT_FIELDS, "pending_result", "pending_graded_at")
+
+
+def holds_a_released_grade(row) -> bool:
+    """A grade a student can read: released, and graded. A published row
+    with no grade (not reachable through the publish routes) holds none, so
+    its first grading writes as any first grading does."""
+    return bool(row.is_published) and row.graded_at is not None
+
+
+def held_values(pending_result) -> dict:
+    """The held result as column values, each through its model field."""
+    return {
+        name: StudentSubmission._meta.get_field(name).to_python(
+            pending_result.get(name)
+        )
+        for name in HELD_RESULT_FIELDS
+    }
+
+
+def held_view(row):
+    """A copy of `row` reading as if its held result were released. For
+    the readers that word or record the held result; never saved."""
+    view = copy.copy(row)
+    for name, value in held_values(row.pending_result).items():
+        setattr(view, name, value)
+    return view
+
+
+def held_result_stamp(row) -> str:
+    """grading_result_stamp of the held result (H-145): its grading time and
+    the row's regrade time. A promotion makes the released stamp this one,
+    so a task queued for a held result writes wherever the result is."""
+    return "|".join(
+        moment.isoformat() if moment else ""
+        for moment in (row.pending_graded_at, row.regraded_at)
+    )
+
+
+def _hold_if_released(submission) -> bool:
+    """Called under the final save's transaction. If the row, read under its
+    lock now, holds a released grade, the result on `submission` is held:
+    only the run's state and the held result are written, and `submission`
+    is left reading the released columns again. Decided here, at the save,
+    because a publish can land while the AI call runs."""
+    stored = StudentSubmission.objects.select_for_update().get(pk=submission.pk)
+    if not holds_a_released_grade(stored):
+        return False
+    payload = json.loads(
+        json.dumps(
+            {name: getattr(submission, name) for name in HELD_RESULT_FIELDS},
+            cls=DjangoJSONEncoder,
+        )
+    )
+    held_at = submission.graded_at
+    for name in HELD_RESULT_FIELDS:
+        setattr(submission, name, getattr(stored, name))
+    submission.is_published = stored.is_published
+    submission.pending_result = payload
+    submission.pending_graded_at = held_at
+    submission.save(update_fields=HELD_SAVE_FIELDS)
+    submission._held = True
+    return True
+
+
+def take_held_result(row) -> bool:
+    """Put `row`'s held result into its released columns, in memory, and
+    empty the hold. The caller saves PROMOTION_FIELDS, under the row lock.
+    Returns whether there was one."""
+    if row.pending_result is None:
+        return False
+    for name, value in held_values(row.pending_result).items():
+        setattr(row, name, value)
+    # The JSON copy of a time is cut to milliseconds (DjangoJSONEncoder);
+    # the column is whole. The released grading time must be the held
+    # stamp's exactly, or the held result's formatting task, queued with
+    # that stamp, would find itself superseded once the result is released.
+    row.graded_at = row.pending_graded_at
+    row.pending_result = None
+    row.pending_graded_at = None
+    return True
+
+
+def promote_pending(submission_id, *, actor, notify=True):
+    """Release a held re-grade (H-279): the teacher's approval. Returns the
+    promoted row, or None when nothing is held.
+
+    Under the row lock, so of two approvals one promotes and the other finds
+    nothing (owner, 2026-11-03: the newest held result is released). One
+    instance save: the GRADE_CHANGE, the cache invalidation and the final
+    grade follow from it. After the commit, and only for a promotion, the
+    student is told as for any grade update (a row that is not released is
+    told by its release instead) and the AI summary is refreshed (Q3)."""
+    with transaction.atomic():
+        row = StudentSubmission.objects.select_for_update().get(pk=submission_id)
+        if not take_held_result(row):
+            return None
+        row.save(update_fields=PROMOTION_FIELDS)
+        tell = notify and row.is_published
+        transaction.on_commit(lambda: _after_promotion(row, actor, tell))
+    return row
+
+
+def promote_all_pending(queryset, *, actor):
+    """promote_pending for every row of `queryset` holding a re-grade, each
+    under its own lock, in pk order. Returns how many were released."""
+    held = queryset.filter(pending_graded_at__isnull=False).order_by("pk")
+    return sum(
+        promote_pending(pk, actor=actor) is not None
+        for pk in list(held.values_list("pk", flat=True))
+    )
+
+
+def _after_promotion(row, actor, tell):
+    if tell:
+        try:
+            notify_student_of_graded_submission(row, is_update=True)
+        except Exception:
+            logger.exception(
+                "Failed to notify student of a released re-grade",
+                extra={"submission_id": str(row.id)},
+            )
+    refresh_student_summary(row, actor)
+
+
+def refresh_student_summary(row, actor):
+    """The AI student summary, refreshed once per approval of a held
+    re-grade (publish or publish-all) and once per successful hand edit
+    (H-279). Called after the change has committed; a dispatch failure is
+    logged, never raised: the grade is already saved."""
+    try:
+        student_summary_async.delay(
+            str(row.student_id),
+            str(actor.id),
+            str(row.assignment.course_id),
+        )
+    except Exception as exc:
+        logger.error(
+            "Failed to dispatch the AI summary after a grade change: "
+            "submission=%s %s",
+            row.id,
+            describe_error_for_log(exc),
+            extra={"submission_id": str(row.id)},
+        )
+
+
 # Review-queue ordering. review_severity used to store the raw
 # gap_fraction, which silently mis-ordered the queue: _severity classifies
 # a disagreement "critical" when the two graders are >= 2 rubric levels
@@ -539,9 +699,14 @@ def emit_grading_completed(submission, *, actor, before, task_id=None):
     # submission via `submission.feedback = grading`. Reading it back here is
     # the only way this emit, which only sees the persisted submission,
     # learns it too.
+    # H-279: a held re-grade released nothing, so its before/after (of the
+    # released columns) are empty; what it produced is the held result,
+    # which is what the model and the label below are read from.
+    held = getattr(submission, "_held", False)
+    graded = held_view(submission) if held else submission
     grading_model = (
-        submission.feedback.get("grading_model")
-        if isinstance(submission.feedback, dict)
+        graded.feedback.get("grading_model")
+        if isinstance(graded.feedback, dict)
         else None
     )
     # BE-I-04: when the submission carries a label, the entry says what the
@@ -556,11 +721,11 @@ def emit_grading_completed(submission, *, actor, before, task_id=None):
     # (students/tests_grading_label_written.py pins the call sites).
     label_metadata = {}
     run = getattr(submission, "_grading_run", None)
-    if isinstance(run, GradingRun) and submission.grading_model != UNLABELLED:
-        grading_model = submission.grading_model.replace("@", "(at)")[:128]
+    if isinstance(run, GradingRun) and graded.grading_model != UNLABELLED:
+        grading_model = graded.grading_model.replace("@", "(at)")[:128]
         label_metadata = {
-            "grading_config_version": submission.grading_config_version,
-            "strictness": submission.grading_strictness,
+            "grading_config_version": graded.grading_config_version,
+            "strictness": graded.grading_strictness,
             "fresh_backup_used": run.fresh_backup_used(),
             **run.audit_models(),
         }
@@ -588,6 +753,7 @@ def emit_grading_completed(submission, *, actor, before, task_id=None):
                 else GRADING_ASSIGNMENT_PROMPT.version
             ),
             **label_metadata,
+            **({"held_for_approval": True} if held else {}),
         },
     )
 
@@ -912,7 +1078,9 @@ def _populate_and_save_grade(submission, grading, processing_task_id, run=None):
     submission._grading_run = run
 
     with cancellable_final_save(processing_task_id), history.suppressed():
-        submission.save(update_fields=GRADING_RESULT_FIELDS)
+        # H-279: a re-grade of a released grade is held for the teacher.
+        if not _hold_if_released(submission):
+            submission.save(update_fields=GRADING_RESULT_FIELDS)
 
 
 # The formatted-grade follow-up lives in assignments.tasks, which imports
@@ -994,7 +1162,10 @@ def _run_grading_pipeline(user, submission, processing_task_id):
 
     # Of the result just saved, taken now: by the time the follow-up runs
     # the row may hold a newer one.
-    result_stamp = grading_result_stamp(submission)
+    held = getattr(submission, "_held", False)
+    result_stamp = (
+        held_result_stamp(submission) if held else grading_result_stamp(submission)
+    )
 
     def _dispatch_followups():
         try:
@@ -1012,12 +1183,14 @@ def _run_grading_pipeline(user, submission, processing_task_id):
                 user_prompt,
                 result_stamp=result_stamp,
             )
-            # Invalidate ai_summary
-            student_summary_async.delay(
-                str(submission.student.id),
-                str(user.id),
-                str(submission.assignment.course.id),
-            )
+            # Invalidate ai_summary. H-279 (Q3): not for a held result,
+            # which changes nothing the summary reads; its approval does.
+            if not held:
+                student_summary_async.delay(
+                    str(submission.student.id),
+                    str(user.id),
+                    str(submission.assignment.course.id),
+                )
         except Exception as exc:
             # The grade itself is already committed - a follow-up dispatch
             # failure must not fail (or un-claim) the graded run. H-208: the

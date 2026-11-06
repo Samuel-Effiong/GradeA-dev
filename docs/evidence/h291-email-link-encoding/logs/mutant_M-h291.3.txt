@@ -1,0 +1,4 @@
+FAIL: test_student_invite_keeps_a_plus_address
+FAIL: test_student_invite_keeps_an_address_with_an_ampersand
+Ran 7 tests in 0.068s
+FAILED (failures=2)

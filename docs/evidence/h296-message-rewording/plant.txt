@@ -1,0 +1,20 @@
+PLANT P1 success message (course create) (classrooms/views.py):
+Ran 6 tests in 0.358s
+FAILED (failures=1)
+  restored sha256 match
+PLANT P2 not-found map (users/exceptions.py):
+Ran 5 tests in 0.350s
+FAILED (failures=5)
+  restored sha256 match
+PLANT P3 form reword (users/renderers.py):
+Ran 15 tests in 0.235s
+FAILED (failures=13)
+  restored sha256 match
+PLANT P4 name-clash code (roster import) (classrooms/services/roster_import.py):
+Ran 693 tests in 94.676s
+FAILED (failures=1)
+  restored sha256 match
+PLANT P5 publish-all zero counts (assignments/views.py):
+Ran 1 test in 0.102s
+FAILED (errors=1)
+  restored sha256 match

@@ -1,9 +1,15 @@
 import os
 from io import BytesIO
 
+from django import forms
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from PIL import Image, ImageCms, ImageOps
+from rest_framework import serializers
+
+from audit.enums import ReasonCode
+from AutoGrader.reason_codes import REASON_CODES
+from AutoGrader.uploads import file_name_of
 
 PILLOW_FORMATS = {
     "image/jpeg": "JPEG",
@@ -28,6 +34,32 @@ def validate_image_format(value):
         ) from exc
     finally:
         value.seek(pos)
+
+
+def _empty_upload_message(upload):
+    return REASON_CODES[ReasonCode.FILE_EMPTY].render(
+        {"file_name": file_name_of(upload)}
+    )
+
+
+# H-274 (e.2b): a 0-byte profile picture is refused with (e.1)'s FILE_EMPTY
+# text at every door that stores one, in place of Django's "The submitted
+# file is empty." The error code stays "empty". These checks run before DRF's
+# and Django's own empty-file checks, which stay in place behind them.
+
+
+class ProfileImageField(serializers.ImageField):
+    def to_internal_value(self, data):
+        if getattr(data, "size", None) == 0:
+            raise serializers.ValidationError(_empty_upload_message(data), code="empty")
+        return super().to_internal_value(data)
+
+
+class ProfileImageFormField(forms.ImageField):
+    def to_python(self, data):
+        if getattr(data, "size", None) == 0:
+            raise ValidationError(_empty_upload_message(data), code="empty")
+        return super().to_python(data)
 
 
 # H-270: profile pictures are stored as WebP. Phone photos carry EXIF with

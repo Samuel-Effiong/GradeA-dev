@@ -1,0 +1,242 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 7c621857-6e93-4fbf-b35a-189b7614c5f3.
+Cannot activate automatic trial for user 7c621857-6e93-4fbf-b35a-189b7614c5f3 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user 0383cf0d-f808-4f6a-ac1c-9dc765855244.
+Cannot activate automatic trial for user 0383cf0d-f808-4f6a-ac1c-9dc765855244 (validation): ValueError
+API request failed with NOTHING_TO_GRADE: No ungraded submissions to process.
+.Free trial plan not found: no trial activated for user 8477954c-f9fc-4176-b6df-93406a2b8cc4.
+Cannot activate automatic trial for user 8477954c-f9fc-4176-b6df-93406a2b8cc4 (validation): ValueError
+API request failed with NOTHING_TO_GRADE: No ungraded submissions to process.
+.Free trial plan not found: no trial activated for user 5db90e0b-01f6-43e1-b351-17fd4a8d975f.
+Cannot activate automatic trial for user 5db90e0b-01f6-43e1-b351-17fd4a8d975f (validation): ValueError
+API request failed with NOTHING_TO_GRADE: No ungraded submissions to process.
+.Free trial plan not found: no trial activated for user 600b4d00-1e07-45a8-b7c7-21194ecfdfcd.
+Cannot activate automatic trial for user 600b4d00-1e07-45a8-b7c7-21194ecfdfcd (validation): ValueError
+.Free trial plan not found: no trial activated for user ec020e7f-330a-4179-aa4e-b1c9f156f87a.
+Cannot activate automatic trial for user ec020e7f-330a-4179-aa4e-b1c9f156f87a (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-05 14:54:04,278 task_tracking 82153 136015692523392 [request_id=- client_request_id=-] Background task 3648b1e1-595b-40ba-9e2f-68be2f6ef611 failed: error=RubricMissingError
+
+
+Grading of assignment 8ebcc7f1-9005-45d9-8fa1-2727720548a0 refused at run time: RUBRIC_MISSING (1 submission(s) not dispatched).
+.Free trial plan not found: no trial activated for user 5293f855-70b8-4a6b-9dcd-b9bb4e165a7b.
+Cannot activate automatic trial for user 5293f855-70b8-4a6b-9dcd-b9bb4e165a7b (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-05 14:54:04,320 task_tracking 82153 136015692523392 [request_id=- client_request_id=-] Background task 0ea4092a-e8fc-49de-a6e2-070687edb0bb failed: error=RubricMissingError
+
+
+Grading of assignment fb4534db-365d-4015-b0e9-f860275fb3fb refused at run time: RUBRIC_MISSING (1 submission(s) not dispatched).
+.Free trial plan not found: no trial activated for user c6be0747-853b-4aca-a5de-b03b2e5c7aa8.
+Cannot activate automatic trial for user c6be0747-853b-4aca-a5de-b03b2e5c7aa8 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-05 14:54:04,389 task_tracking 82153 136015692523392 [request_id=- client_request_id=-] Background task None failed: error=RubricMissingError frames=tasks.py:707:grade_engine_async <- services.py:795:grade_engine <- grading_gates.py:44:ensure_gradable
+
+
+.Free trial plan not found: no trial activated for user 5e7b2a10-7667-4f02-8be3-9673eebc16b4.
+Cannot activate automatic trial for user 5e7b2a10-7667-4f02-8be3-9673eebc16b4 (validation): ValueError
+
+
+students.views ERROR 2026-11-05 14:54:04,443 views 82153 136015692523392 [request_id=4cb7ee97-01b8-43ff-8247-519a3a3babb0 client_request_id=-] Grading failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/students/views.py", line 929, in grade
+    submission = grade_engine(request.user, submission)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/students/services.py", line 795, in grade_engine
+    ensure_gradable(submission.assignment)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/students/grading_gates.py", line 44, in ensure_gradable
+    raise RubricMissingError(
+students.exceptions.RubricMissingError: This assignment has no rubric to grade against, so grading hasn't started. No credits were used.
+API request failed with RUBRIC_MISSING: assignment 982cfe20-4023-483e-bd6b-4914012c92aa has no marking guide
+API request failed with RUBRIC_MISSING: assignment 982cfe20-4023-483e-bd6b-4914012c92aa has no marking guide
+API request failed with RUBRIC_MISSING: assignment 982cfe20-4023-483e-bd6b-4914012c92aa has no marking guide
+API request failed with RUBRIC_MISSING: assignment 982cfe20-4023-483e-bd6b-4914012c92aa has no marking guide
+.Free trial plan not found: no trial activated for user 9b7a1714-8794-4fdc-b66d-783bb6d145a5.
+Cannot activate automatic trial for user 9b7a1714-8794-4fdc-b66d-783bb6d145a5 (validation): ValueError
+
+
+students.views ERROR 2026-11-05 14:54:04,521 views 82153 136015692523392 [request_id=6cd92c82-0723-4efe-af06-b7f5e01a89c7 client_request_id=-] Grading failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/students/views.py", line 929, in grade
+    submission = grade_engine(request.user, submission)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/students/services.py", line 795, in grade_engine
+    ensure_gradable(submission.assignment)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/students/grading_gates.py", line 44, in ensure_gradable
+    raise RubricMissingError(
+students.exceptions.RubricMissingError: This assignment has no rubric to grade against, so grading hasn't started. No credits were used.
+API request failed with RUBRIC_MISSING: assignment 5efde76e-eb13-4993-a65c-2cef71e12252 has no marking guide
+API request failed with RUBRIC_MISSING: assignment 5efde76e-eb13-4993-a65c-2cef71e12252 has no marking guide
+API request failed with RUBRIC_MISSING: assignment 5efde76e-eb13-4993-a65c-2cef71e12252 has no marking guide
+API request failed with RUBRIC_MISSING: assignment 5efde76e-eb13-4993-a65c-2cef71e12252 has no marking guide
+.Free trial plan not found: no trial activated for user 7d819142-cb2e-44dc-a0fd-4eb07d8a2fee.
+Cannot activate automatic trial for user 7d819142-cb2e-44dc-a0fd-4eb07d8a2fee (validation): ValueError
+
+
+students.views ERROR 2026-11-05 14:54:04,596 views 82153 136015692523392 [request_id=bf4dfcf3-2add-4a71-a830-0cf38f5b6e9d client_request_id=-] Grading failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/students/views.py", line 929, in grade
+    submission = grade_engine(request.user, submission)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/students/services.py", line 795, in grade_engine
+    ensure_gradable(submission.assignment)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h292-nothing-to-grade/students/grading_gates.py", line 44, in ensure_gradable
+    raise RubricMissingError(
+students.exceptions.RubricMissingError: This assignment has no rubric to grade against, so grading hasn't started. No credits were used.
+API request failed with RUBRIC_MISSING: assignment 61c1e2a0-37d9-44ee-a705-9301c3094a93 has no marking guide
+API request failed with RUBRIC_MISSING: assignment 61c1e2a0-37d9-44ee-a705-9301c3094a93 has no marking guide
+API request failed with RUBRIC_MISSING: assignment 61c1e2a0-37d9-44ee-a705-9301c3094a93 has no marking guide
+API request failed with RUBRIC_MISSING: assignment 61c1e2a0-37d9-44ee-a705-9301c3094a93 has no marking guide
+.Free trial plan not found: no trial activated for user aab8e605-4840-40ba-b0ab-49a4dff56611.
+Cannot activate automatic trial for user aab8e605-4840-40ba-b0ab-49a4dff56611 (validation): ValueError
+.............API request failed with MISSING_STUDENT_NAME: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with STUDENT_NOT_ON_ROSTER: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_UNREADABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TYPE_UNSUPPORTED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TOO_LARGE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with SUBMISSION_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with DUPLICATE_SUBMISSION: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+
+
+django.request ERROR 2026-11-05 14:54:06,342 log 82153 136015692523392 [request_id=- client_request_id=-] Service Unavailable: /coded/PROVIDER_FAILURE
+
+
+API request failed with INSUFFICIENT_CREDITS_MID_BATCH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with INSUFFICIENT_CREDITS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with AI_FEATURE_NOT_AVAILABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with OVERAGE_CAP_EXCEEDED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RATE_LIMITED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with NOT_RETRYABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RESET_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with VERIFY_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ACCOUNT_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with INVALID_CREDENTIALS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with REGISTRATION_PAUSED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_NOT_A_PDF: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_NO_INPUT: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with NOTHING_TO_GRADE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_FILE_UNREADABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_TOO_MANY_ROWS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_INVALID: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_ALREADY_ENROLLED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_CLASH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_STAFF_EMAIL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_OTHER_SCHOOL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_MISMATCH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_ACCOUNT_DISABLED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_EMAIL_INVALID: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_DUPLICATE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_LIST_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with LICENCE_INACTIVE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with LICENCE_SEATS_EXCEEDED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_EMAIL_NOT_BUSINESS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_EMAIL_OTHER_ROLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_CANNOT_JOIN_YET: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_IN_OTHER_SCHOOL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_ALREADY_ON_LICENCE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_NOT_ON_LICENCE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_ADD_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_REMOVE_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with SUBMISSION_NOT_GRADED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+.API request failed with MISSING_STUDENT_NAME: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with STUDENT_NOT_ON_ROSTER: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_UNREADABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TYPE_UNSUPPORTED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TOO_LARGE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with SUBMISSION_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with DUPLICATE_SUBMISSION: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+
+
+django.request ERROR 2026-11-05 14:54:06,367 log 82153 136015692523392 [request_id=- client_request_id=-] Service Unavailable: /coded/PROVIDER_FAILURE
+
+
+API request failed with INSUFFICIENT_CREDITS_MID_BATCH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with INSUFFICIENT_CREDITS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with AI_FEATURE_NOT_AVAILABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with OVERAGE_CAP_EXCEEDED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RATE_LIMITED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with NOT_RETRYABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RESET_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with VERIFY_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ACCOUNT_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with INVALID_CREDENTIALS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with REGISTRATION_PAUSED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_NOT_A_PDF: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_NO_INPUT: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with NOTHING_TO_GRADE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_FILE_UNREADABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_TOO_MANY_ROWS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_INVALID: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_ALREADY_ENROLLED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_CLASH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_STAFF_EMAIL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_OTHER_SCHOOL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_MISMATCH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_ACCOUNT_DISABLED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_EMAIL_INVALID: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_DUPLICATE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_LIST_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with LICENCE_INACTIVE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with LICENCE_SEATS_EXCEEDED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_EMAIL_NOT_BUSINESS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_EMAIL_OTHER_ROLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_CANNOT_JOIN_YET: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_IN_OTHER_SCHOOL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_ALREADY_ON_LICENCE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_NOT_ON_LICENCE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_ADD_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_REMOVE_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with SUBMISSION_NOT_GRADED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: EmptyWalletError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: AIFeatureNotAvailableError: AI grading isn't included in your plan.
+.API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+
+
+django.request ERROR 2026-11-05 14:54:06,387 log 82153 136015692523392 [request_id=- client_request_id=-] Service Unavailable: /coded-client-id
+
+
+.API request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+.API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: EmptyWalletError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: AIFeatureNotAvailableError: AI grading isn't included in your plan.
+...............................AI access denied for user ANON (feature=None): No credits remaining. Please purchase more credits to continue using AI features.
+AI access denied for user ANON (feature=None): Out of trial credits. Please subscribe to continue using AI features.
+.AI access denied for user ANON (feature=None): User not authenticated
+..................
+----------------------------------------------------------------------
+Ran 78 tests in 2.590s
+
+OK
+Destroying test database for alias 'default'...
+Found 78 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

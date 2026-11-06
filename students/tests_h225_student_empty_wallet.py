@@ -32,7 +32,7 @@ from ai_processor.services import AIProcessor
 from assignments.models import Assignment, AssignmentStatus
 from audit.enums import ReasonCode
 from AutoGrader.reason_codes import REASON_CODES
-from billing.errors import INSUFFICIENT_CREDITS_MESSAGE
+from billing.errors import INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE
 from billing.models import CreditWallet, PlanType
 from billing.tests.test_execute_graded_task import ExecuteGradedTaskTestBase
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
@@ -244,9 +244,15 @@ class EveryOtherAnswerIsUnchanged(Base):
         self.assertEqual(response.data["reason_code"], "INSUFFICIENT_CREDITS")
         self.assertEqual(response.data["code"], "insufficient_credits")
         self.assertTrue(response.data["error"])
-        self.assertEqual(response.data["error"], INSUFFICIENT_CREDITS_MESSAGE)
-        self.assertTrue(CREDITS_SPEC.remediation)
-        self.assertEqual(response.data["remediation"], CREDITS_SPEC.remediation)
+        # H-281: this teacher is individual (no school license funds the
+        # wallet), so the generic body is the individual-teacher one.
+        self.assertEqual(
+            response.data["error"], INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE
+        )
+        self.assertTrue(CREDITS_SPEC.alternative_remediations)
+        self.assertEqual(
+            response.data["remediation"], CREDITS_SPEC.alternative_remediations[0]
+        )
         self.provider.assert_not_called()
 
     def test_c2_a_students_non_credit_refusal_is_unchanged(self):

@@ -63,6 +63,10 @@ class Session(models.Model):
         help_text="Set only when owner_type=SCHOOL.",
     )
 
+    # H-278: THE active session of its school (SCHOOL) or of its teacher
+    # (INDIVIDUAL). At most one per scope, enforced below; none is fine.
+    is_active = models.BooleanField(default=False, db_default=False)
+
     created_by = models.ForeignKey(
         "users.CustomUser",
         null=True,
@@ -90,6 +94,16 @@ class Session(models.Model):
                 fields=["name", "school"],
                 condition=models.Q(owner_type="SCHOOL"),
                 name="unique_session_name_per_school",
+            ),
+            UniqueConstraint(
+                fields=["school"],
+                condition=models.Q(owner_type="SCHOOL", is_active=True),
+                name="one_active_session_per_school",
+            ),
+            UniqueConstraint(
+                fields=["teacher"],
+                condition=models.Q(owner_type="INDIVIDUAL", is_active=True),
+                name="one_active_session_per_teacher",
             ),
         ]
 
@@ -445,8 +459,11 @@ class StudentCourse(models.Model):
             full_name = f"{first_name} {middle_name} {last_name}".replace(
                 "  ", " "
             ).strip()
+            # H-296: owner-approved text; roster import recognizes the
+            # refusal by its code, not by the words.
             raise ValidationError(
-                f"A student with the exact name {full_name!r} is already enrolled in this course."
+                f"{full_name} is already enrolled in this course.",
+                code="name_clash",
             )
 
     def save(self, *args, **kwargs):

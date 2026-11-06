@@ -281,17 +281,18 @@ class EpochMechanismTests(TokenRevocationBase):
         self.assertEqual(decode_claims(access)["epoch"], 0)
         self.assertEqual(self.call_as(access).status_code, status.HTTP_200_OK)
 
-    def test_logout_on_one_device_signs_out_every_device(self):
-        """Documented, user-visible behaviour (global logout)."""
+    def test_logout_on_one_device_leaves_the_other_devices_signed_in(self):
+        """H-276 (owner decision 2026-11-02) reversed the old global logout:
+        logging out ends this device only (users/tests_h276_per_device_logout.py
+        has the full set). A password change still signs out everywhere."""
         phone, laptop = self.login(), self.login()
         self.as_client(laptop["access"]).post(
             reverse("auth-logout"), {"refresh": laptop["refresh"]}, format="json"
         )
+        self.assertEqual(self.call_as(phone["access"]).status_code, status.HTTP_200_OK)
+        self.assertEqual(self.refresh(phone["refresh"]).status_code, status.HTTP_200_OK)
         self.assertEqual(
-            self.call_as(phone["access"]).status_code, status.HTTP_401_UNAUTHORIZED
-        )
-        self.assertEqual(
-            self.refresh(phone["refresh"]).status_code, status.HTTP_401_UNAUTHORIZED
+            self.call_as(laptop["access"]).status_code, status.HTTP_401_UNAUTHORIZED
         )
 
     def test_a_stolen_refresh_token_is_dead_after_logout_and_after_change(self):

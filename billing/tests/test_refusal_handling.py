@@ -76,8 +76,13 @@ PAYMENT_REQUIRED, CREDITS_CODE = (
     "insufficient_credits",
 )
 GENERIC_CREDITS_MESSAGE = (
-    "There aren't enough AI credits available for this. The credit wallet "
-    "needs to be topped up before it can run."
+    "There aren't enough AI credits to do this. Top up your credits or ask "
+    "your school administrator, then try again."
+)
+# H-281: what an individual teacher (no school license funds the wallet)
+# reads instead. Every refused teacher built here is one.
+INDIVIDUAL_CREDITS_MESSAGE = (
+    "There aren't enough AI credits to do this. Top up your credits, then " "try again."
 )
 
 # Fragments of every InsufficientCreditsError text on b744c9f that carry
@@ -294,7 +299,13 @@ class D2D3AssistantChatRefusalTest(RefusalAssertions, APITestCase):
                     if refusal is AIFeatureNotAvailableError
                     else (PAYMENT_REQUIRED, CREDITS_CODE)
                 )
-                self.assertCleanRefusalResponse(response, *expected)
+                expected_status, expected_code = expected
+                self.assertCleanRefusalResponse(
+                    response,
+                    expected_status,
+                    expected_code,
+                    credits_message=INDIVIDUAL_CREDITS_MESSAGE,
+                )
                 self.assertEqual(gate.call_count, 1)
                 # A refused turn leaves no orphaned chat message behind.
                 self.assertEqual(DashboardChatMessage.objects.count(), before)
@@ -350,7 +361,13 @@ class D4UncaughtRefusalTest(RefusalAssertions, APITestCase):
                     if refusal is AIFeatureNotAvailableError
                     else (PAYMENT_REQUIRED, CREDITS_CODE)
                 )
-                self.assertCleanRefusalResponse(response, *expected)
+                expected_status, expected_code = expected
+                self.assertCleanRefusalResponse(
+                    response,
+                    expected_status,
+                    expected_code,
+                    credits_message=INDIVIDUAL_CREDITS_MESSAGE,
+                )
                 self.assertEqual(gate.call_count, 1)
                 # @transaction.atomic on create: nothing half-created.
                 self.assertFalse(
@@ -787,7 +804,8 @@ class D11EmptyWalletPermissionTest(RefusalAssertions, APITestCase):
                     credits_message=(
                         STUDENT_UPLOAD_NOT_PROCESSED
                         if user.user_type == UserTypes.STUDENT
-                        else GENERIC_CREDITS_MESSAGE
+                        # H-281: the refused teacher here is individual.
+                        else INDIVIDUAL_CREDITS_MESSAGE
                     ),
                 )
                 self.assertEqual(gate.call_count, 0, "work ran past the permission")

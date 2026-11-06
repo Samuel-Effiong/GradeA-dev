@@ -44,6 +44,7 @@ from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_stripe_error, stripe_error_label
 from AutoGrader.reason_codes import CodedError
 from billing.errors import BillingRequestError
+from billing.invoice_wording import invoice_description
 from classrooms.models import School
 from users.models import CustomUser
 
@@ -303,6 +304,51 @@ def extract_subscription_billing_period(stripe_subscription):
     return None, None
 
 
+# H-274 (b), BUG-009: shown when a checkout session can't be created. It
+# never carries Stripe's text ("No such customer: cus_..."). True as worded:
+# a checkout session collects payment only after the redirect.
+CHECKOUT_FAILED_MESSAGE = (
+    "We couldn't start checkout for your account. You haven't been charged. "
+    "Please contact support."
+)
+
+
+def _customer_key(base, replacing):
+    return f"{base}-replacing-{replacing}" if replacing else base
+
+
+def _is_missing_customer(exc) -> bool:
+    return (
+        isinstance(exc, stripe.error.InvalidRequestError)
+        and getattr(exc, "code", None) == "resource_missing"
+        and getattr(exc, "param", None) == "customer"
+    )
+
+
+def _checkout_failed(exc, where):
+    logger.warning("Checkout session for %s failed: %s", where, stripe_error_label(exc))
+    return BillingRequestError(CHECKOUT_FAILED_MESSAGE)
+
+
+def _create_checkout_session(where, session_kwargs, heal=None):
+    """stripe.checkout.Session.create, with any StripeError turned into
+    BillingRequestError(CHECKOUT_FAILED_MESSAGE).
+
+    `heal(stale_customer_id)` returns the kwargs for ONE retry. It is used
+    only when Stripe says the CUSTOMER is missing; any other error, or a
+    failure of the heal or the retry, goes straight to the fallback."""
+    try:
+        return stripe.checkout.Session.create(**session_kwargs)
+    except stripe.error.StripeError as exc:
+        if heal is None or not _is_missing_customer(exc):
+            raise _checkout_failed(exc, where) from exc
+        stale_id = session_kwargs.get("customer")
+    try:
+        return stripe.checkout.Session.create(**heal(stale_id))
+    except stripe.error.StripeError as exc:
+        raise _checkout_failed(exc, where) from exc
+
+
 class StripeCustomerService:
     """Get-or-create the Stripe Customer behind a CreditWallet."""
 
@@ -330,7 +376,10 @@ class StripeCustomerService:
         return new_customer_test_clock_kwargs(email, label)
 
     @staticmethod
-    def get_or_create_customer(user) -> str:
+    def get_or_create_customer(user, replacing=None) -> str:
+        """`replacing`: the stale customer id this call replaces (H-274 (b)).
+        It goes into the idempotency key, because the plain key would replay
+        the deleted customer for 24 hours."""
         wallet, _ = CreditWallet.objects.get_or_create(user=user)
         if wallet.stripe_customer_id:
             return wallet.stripe_customer_id
@@ -351,7 +400,7 @@ class StripeCustomerService:
             email=user.email,
             name=user.get_full_name() or user.email,
             metadata={"user_id": str(user.id)},
-            idempotency_key=f"customer-for-user-{user.id}",
+            idempotency_key=_customer_key(f"customer-for-user-{user.id}", replacing),
             **StripeCustomerService._qa_test_clock_kwargs(
                 user.email, label=f"QA time travel — user {user.email}"
             ),
@@ -361,7 +410,9 @@ class StripeCustomerService:
         return customer.id
 
     @staticmethod
-    def get_or_create_license_customer(license_sub, admin_user=None) -> str:
+    def get_or_create_license_customer(
+        license_sub, admin_user=None, replacing=None
+    ) -> str:
         """
         License-level equivalent of get_or_create_customer. Used both by
         offline-license overage purchases (lazily, on first attempt) and by
@@ -382,7 +433,9 @@ class StripeCustomerService:
                 "license_id": str(license_sub.id),
                 "school_id": str(license_sub.school.id),
             },
-            idempotency_key=f"customer-for-license-{license_sub.id}",
+            idempotency_key=_customer_key(
+                f"customer-for-license-{license_sub.id}", replacing
+            ),
             **StripeCustomerService._qa_test_clock_kwargs(
                 contact.email,
                 label=f"QA time travel — license {license_sub.school.name}",
@@ -391,6 +444,46 @@ class StripeCustomerService:
         license_sub.stripe_customer_id = customer.id
         license_sub.save(update_fields=["stripe_customer_id", "updated_at"])
         return customer.id
+
+    @staticmethod
+    def replace_stale_customer(user, stale_id) -> str:
+        """H-274 (b): Stripe says `stale_id` no longer exists. Clear it only
+        if the wallet still holds it (a concurrent request may already have
+        stored a replacement), then get-or-create, which re-reads the row and
+        reuses that replacement, or creates one under the replacing key that
+        every concurrent request shares."""
+        cleared = CreditWallet.objects.filter(
+            user=user, stripe_customer_id=stale_id
+        ).update(stripe_customer_id=None)
+        new_id = StripeCustomerService.get_or_create_customer(user, replacing=stale_id)
+        logger.warning(
+            "Replaced missing Stripe customer %s with %s for user %s (cleared=%d).",
+            stale_id,
+            new_id,
+            user.pk,
+            cleared,
+        )
+        return new_id
+
+    @staticmethod
+    def replace_stale_license_customer(license_sub, stale_id) -> str:
+        """Licence-level equivalent of replace_stale_customer."""
+        cleared = LicenseSubscription.objects.filter(
+            pk=license_sub.pk, stripe_customer_id=stale_id
+        ).update(stripe_customer_id=None)
+        license_sub.refresh_from_db(fields=["stripe_customer_id"])
+        new_id = StripeCustomerService.get_or_create_license_customer(
+            license_sub, license_sub.admin_user, replacing=stale_id
+        )
+        logger.warning(
+            "Replaced missing Stripe customer %s with %s for license %s "
+            "(cleared=%d).",
+            stale_id,
+            new_id,
+            license_sub.pk,
+            cleared,
+        )
+        return new_id
 
     @staticmethod
     def create_license_setup_intent(license_sub, admin_user):
@@ -643,19 +736,25 @@ class StripeCheckoutService:
             user=user, is_active=True, is_trial=True
         ).first()
 
-        session = stripe.checkout.Session.create(
-            customer=customer_id,
-            mode="subscription",
-            line_items=[{"price": plan.stripe_price_id, "quantity": 1}],
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
+        session_kwargs = {
+            "customer": customer_id,
+            "mode": "subscription",
+            "line_items": [{"price": plan.stripe_price_id, "quantity": 1}],
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "metadata": {
                 "flow": "individual_checkout",
                 "user_id": str(user.id),
                 "plan_id": str(plan.id),
                 "trial_subscription_id": str(trial_sub.id) if trial_sub else "",
             },
-        )
+        }
+
+        def heal(stale_id):
+            new_id = StripeCustomerService.replace_stale_customer(user, stale_id)
+            return {**session_kwargs, "customer": new_id}
+
+        session = _create_checkout_session(f"user {user.id}", session_kwargs, heal=heal)
 
         logger.info(
             "Created unified individual checkout session for user %s -> plan %s "
@@ -771,7 +870,31 @@ class StripeCheckoutService:
         else:
             session_kwargs["customer_email"] = admin_user.email
 
-        return stripe.checkout.Session.create(**session_kwargs)
+        def heal(stale_id):
+            # SM ruling B2: no Customer.create on this path. Clear the stale
+            # id on that row only (if it still holds it) and let Checkout
+            # make the customer from the email, as for a school that has
+            # never billed.
+            cleared = LicenseSubscription.objects.filter(
+                pk=existing_license.pk, stripe_customer_id=stale_id
+            ).update(stripe_customer_id=None)
+            logger.warning(
+                "Cleared missing Stripe customer %s from license %s (cleared=%d); "
+                "retrying checkout for school %s by email.",
+                stale_id,
+                existing_license.pk,
+                cleared,
+                school.pk,
+            )
+            retry = {k: v for k, v in session_kwargs.items() if k != "customer"}
+            retry["customer_email"] = admin_user.email
+            return retry
+
+        return _create_checkout_session(
+            f"school {school.pk}",
+            session_kwargs,
+            heal=heal if existing_license else None,
+        )
 
     @staticmethod
     def create_license_conversion_session(
@@ -837,21 +960,31 @@ class StripeCheckoutService:
 
         anchor_timestamp = int(license_sub.billing_cycle_end.timestamp())
 
-        session = stripe.checkout.Session.create(
-            customer=customer_id,
-            mode="subscription",
-            line_items=[line_item],
-            subscription_data={
+        session_kwargs = {
+            "customer": customer_id,
+            "mode": "subscription",
+            "line_items": [line_item],
+            "subscription_data": {
                 "billing_cycle_anchor": anchor_timestamp,
                 "proration_behavior": "none",
             },
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "metadata": {
                 "flow": "license_convert_to_stripe",
                 "license_id": str(license_sub.id),
                 "initiated_by_user_id": str(initiated_by.id) if initiated_by else "",
             },
+        }
+
+        def heal(stale_id):
+            new_id = StripeCustomerService.replace_stale_license_customer(
+                license_sub, stale_id
+            )
+            return {**session_kwargs, "customer": new_id}
+
+        session = _create_checkout_session(
+            f"license {license_sub.id}", session_kwargs, heal=heal
         )
 
         logger.info(
@@ -945,9 +1078,8 @@ class SubscriptionReactivationService:
         stripe_status_value = stripe_sub.get("status")
         if stripe_status_value in ("canceled", "incomplete_expired"):
             raise BillingRequestError(
-                "This subscription has already been fully canceled with "
-                "our payment provider and cannot be resumed. Please "
-                "subscribe again via select-plan."
+                "This subscription has ended and can't be resumed. "
+                "Choose a plan to subscribe again."
             )
 
         warnings = []
@@ -967,7 +1099,7 @@ class SubscriptionReactivationService:
             if now >= user_sub.billing_cycle_end:
                 raise BillingRequestError(
                     "This subscription's current billing period has "
-                    "already ended. Please subscribe again via select-plan."
+                    "already ended. Choose a plan to subscribe again."
                 )
 
             try:
@@ -997,7 +1129,7 @@ class SubscriptionReactivationService:
                 ):
                     raise SubscriptionExpiredDuringRequest(
                         "Your subscription ended during this request. "
-                        "Please subscribe again via select-plan."
+                        "Choose a plan to subscribe again."
                     )
 
                 local_update_fields = []
@@ -1144,8 +1276,8 @@ class StripeSubscriptionMutationService:
         """
         if not user_sub.stripe_subscription_id:
             raise ValueError(
-                "This subscription has no associated Stripe subscription. "
-                "(it may have been granted manually). Contact support to upgrade."
+                "Your plan was set up by our team, so it can't be changed here. "
+                "Contact support to upgrade."
             )
         if not new_plan.stripe_price_id:
             raise ValueError(f"Plan {new_plan.name} has no stripe_price_id configured.")
@@ -1353,8 +1485,8 @@ class StripeSubscriptionMutationService:
             raise ValueError(f"Plan {new_plan.name} has no stripe_price_id configured.")
         if not user_sub.stripe_subscription_id:
             raise BillingRequestError(
-                "This subscription has no associated Stripe subscription. "
-                "(it may have been granted manually). Contact support to upgrade."
+                "Your plan was set up by our team, so it can't be changed here. "
+                "Contact support to upgrade."
             )
 
         try:
@@ -1408,34 +1540,39 @@ class StripeSubscriptionMutationService:
             )
             return {"requires_checkout": False, "subscription": updated_sub}
 
-        session = stripe.checkout.Session.create(
-            customer=customer_id,
-            mode="payment",
-            line_items=[
-                {
-                    "price_data": {
-                        "currency": "usd",
-                        "product_data": {
-                            "name": (
-                                f"Upgrade to "
-                                f"{new_plan.display_name or new_plan.name}"
-                            ),
+        # SM ruling B1: wrap only. This customer owns the live subscription
+        # (from Subscription.retrieve), so it is never replaced here.
+        session = _create_checkout_session(
+            f"upgrade of user subscription {user_sub.id}",
+            {
+                "customer": customer_id,
+                "mode": "payment",
+                "line_items": [
+                    {
+                        "price_data": {
+                            "currency": "usd",
+                            "product_data": {
+                                "name": (
+                                    f"Upgrade to "
+                                    f"{new_plan.display_name or new_plan.name}"
+                                ),
+                            },
+                            "unit_amount": amount_due,
                         },
-                        "unit_amount": amount_due,
-                    },
-                    "quantity": 1,
-                }
-            ],
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
-                "flow": "individual_upgrade_checkout",
-                "user_id": str(user_sub.user_id),
-                "user_subscription_id": str(user_sub.id),
-                "new_plan_id": str(new_plan.id),
-                "stripe_subscription_id": user_sub.stripe_subscription_id,
-                "stripe_item_id": item_id,
-                "proration_amount": str(amount_due),
+                        "quantity": 1,
+                    }
+                ],
+                "success_url": success_url,
+                "cancel_url": cancel_url,
+                "metadata": {
+                    "flow": "individual_upgrade_checkout",
+                    "user_id": str(user_sub.user_id),
+                    "user_subscription_id": str(user_sub.id),
+                    "new_plan_id": str(new_plan.id),
+                    "stripe_subscription_id": user_sub.stripe_subscription_id,
+                    "stripe_item_id": item_id,
+                    "proration_amount": str(amount_due),
+                },
             },
         )
 
@@ -2291,7 +2428,7 @@ class StripeOverageService:
         plan = user_sub.plan
         if plan.max_overage_blocks <= 0 or plan.overage_block_price <= 0:
             raise BillingRequestError(
-                "This plan does not support overage credit purchases."
+                "Extra credits can't be bought on your current plan."
             )
 
         # Per-cycle cap: without this, plan.max_overage_blocks is decorative
@@ -3897,7 +4034,9 @@ class StripeWebhookHandler:
                 stripe_invoice_id=invoice.get("id"),
                 stripe_subscription_id=stripe_subscription_id,
                 receipt_url=invoice.get("hosted_invoice_url"),
-                description=f"License Stripe invoice paid ({billing_reason})",
+                description=invoice_description(
+                    billing_reason=billing_reason, paid=True, license=True
+                ),
             )
 
             # Only act on actual renewal invoices, and never on a license
@@ -3990,7 +4129,9 @@ class StripeWebhookHandler:
                 stripe_invoice_id=invoice.get("id"),
                 stripe_subscription_id=stripe_subscription_id,
                 receipt_url=invoice.get("hosted_invoice_url"),
-                description=f"Subscription invoice paid ({billing_reason})",
+                description=invoice_description(
+                    billing_reason=billing_reason, paid=True, license=False
+                ),
             )
 
         # Does this invoice pay for time beyond the cycle we have already
@@ -4167,7 +4308,9 @@ class StripeWebhookHandler:
                 user_subscription=user_sub,
                 stripe_invoice_id=invoice.get("id"),
                 stripe_subscription_id=stripe_subscription_id,
-                description=f"Subscription invoice payment failed ({billing_reason})",
+                description=invoice_description(
+                    billing_reason=billing_reason, paid=False, license=False
+                ),
             )
 
             if user_sub.is_trial:
@@ -4215,7 +4358,9 @@ class StripeWebhookHandler:
                 license_subscription=license_sub,
                 stripe_invoice_id=invoice.get("id"),
                 stripe_subscription_id=stripe_subscription_id,
-                description=f"License invoice payment failed ({billing_reason})",
+                description=invoice_description(
+                    billing_reason=billing_reason, paid=False, license=True
+                ),
             )
 
             license_sub.stripe_status = StripeSubscriptionStatus.PAST_DUE

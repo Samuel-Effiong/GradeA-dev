@@ -1,0 +1,21 @@
+committed sha256: {'assignments/upload_door.py': '0f61067095e3', 'users/models.py': '4c9ee3c3134c'}
+M-h282.1 rc=1 restored ok ['Ran 73 tests in 4.819s', 'FAILED (failures=5)']
+    students.tests_h282_upload_door_superadmin.TheBatchDoor.test_a3_a_half_set_up_super_admin_with_a_short_wallet_is_parked
+    students.tests_h282_upload_door_superadmin.TheBatchDoor.test_a4_a_half_set_up_super_admin_with_an_empty_wallet_is_parked
+    students.tests_h282_upload_door_superadmin.TheSingleDoor.test_a1_a_half_set_up_super_admin_with_a_short_wallet_is_refused
+    students.tests_h282_upload_door_superadmin.TheSingleDoor.test_a2_a_half_set_up_super_admin_with_an_empty_wallet_is_refused
+    students.tests_h282_upload_door_superadmin.WhoIsARealSuperAdmin.test_a_half_set_up_super_admin_is_not
+M-h282.2 rc=1 restored ok ['Ran 73 tests in 5.817s', 'FAILED (failures=1)']
+    students.tests_h282_upload_door_superadmin.WhoIsARealSuperAdmin.test_a_teacher_with_is_superuser_ticked_is_not
+M-h282.3 rc=1 restored ok ['Ran 73 tests in 4.526s', 'FAILED (failures=2)']
+    students.tests_h282_upload_door_superadmin.TheSingleDoor.test_a1_a_half_set_up_super_admin_with_a_short_wallet_is_refused
+    students.tests_h282_upload_door_superadmin.TheSingleDoor.test_a2_a_half_set_up_super_admin_with_an_empty_wallet_is_refused
+M-h282.4 rc=1 restored ok ['Ran 73 tests in 4.107s', 'FAILED (failures=2)']
+    students.tests_h282_upload_door_superadmin.TheBatchDoor.test_a3_a_half_set_up_super_admin_with_a_short_wallet_is_parked
+    students.tests_h282_upload_door_superadmin.TheBatchDoor.test_a4_a_half_set_up_super_admin_with_an_empty_wallet_is_parked
+M-h282.5 rc=1 restored ok ['Ran 73 tests in 4.033s', 'FAILED (failures=2)']
+    students.tests_h282_upload_door_superadmin.TheSingleDoor.test_b1_a_real_super_admin_still_skips_the_door
+    students.tests_upload_credit_door.TheDoorFunctionTest.test_a_super_admin_is_never_refused_and_a_poor_teacher_is
+M-h282.6 rc=1 restored ok ['Ran 73 tests in 4.679s', 'FAILED (failures=1)']
+    students.tests_h282_upload_door_superadmin.TheBatchDoor.test_b2_a_real_super_admin_still_skips_the_door
+exit=0

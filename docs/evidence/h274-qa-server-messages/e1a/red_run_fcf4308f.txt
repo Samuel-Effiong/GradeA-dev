@@ -1,0 +1,89 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 6f5a8a02-3657-42ec-9beb-a1201ca0fd6e.
+Cannot activate automatic trial for user 6f5a8a02-3657-42ec-9beb-a1201ca0fd6e (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/.venv/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/staticfiles/
+  mw_instance = middleware(adapted_handler)
+Upload door could not estimate blank.pdf: PayloadEmpty
+Upload door could not estimate blank2.pdf: PayloadEmpty
+API request failed with FILE_EMPTY: 'blank.pdf' is empty. Choose another file.
+Upload door could not estimate big.pdf: PayloadTooLarge
+Upload door could not estimate big2.pdf: PayloadTooLarge
+
+
+students.task_tracking ERROR 2026-11-02 16:53:08,568 task_tracking 23491 137247413365696 [request_id=67bae15c5c15462cbe89a156bb6ff5b1 client_request_id=-] Background task c0cca5bc-e8ea-41b7-8d0b-df6faec3e4d6 failed: error=PayloadTooLarge frames=views.py:1134:upload_assignment_async <- uploads.py:74:validate_upload_size
+
+
+
+
+students.task_tracking ERROR 2026-11-02 16:53:08,581 task_tracking 23491 137247413365696 [request_id=67bae15c5c15462cbe89a156bb6ff5b1 client_request_id=-] Background task 02e7bcb2-0806-4c29-8f05-415abcaa6d4f failed: error=PayloadTooLarge frames=views.py:1134:upload_assignment_async <- uploads.py:74:validate_upload_size
+
+
+FFree trial plan not found: no trial activated for user 8854471b-2523-4d24-ad2e-becfecabaac4.
+Cannot activate automatic trial for user 8854471b-2523-4d24-ad2e-becfecabaac4 (validation): ValueError
+Upload door could not estimate blank.pdf: PayloadEmpty
+API request failed with FILE_EMPTY: 'blank.pdf' is empty. Choose another file.
+F...Free trial plan not found: no trial activated for user f1b0d22d-2be9-481d-8c43-c070bf3b2a8a.
+Cannot activate automatic trial for user f1b0d22d-2be9-481d-8c43-c070bf3b2a8a (validation): ValueError
+API request failed with FILE_EMPTY: 'blank.pdf' is empty. Choose another file.
+FFree trial plan not found: no trial activated for user f0577424-e44b-4a76-91a7-4f53893807ae.
+Cannot activate automatic trial for user f0577424-e44b-4a76-91a7-4f53893807ae (validation): ValueError
+API request failed with FILE_EMPTY: 'blank.pdf' is empty. Choose another file.
+F
+======================================================================
+FAIL: test_an_all_empty_request_answers_like_an_all_too_large_one (assignments.tests_h274_empty_upload_doors.TheAsyncTeacherUploadIsNeverHalfQueued.test_an_all_empty_request_answers_like_an_all_too_large_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/assignments/tests_h274_empty_upload_doors.py", line 153, in test_an_all_empty_request_answers_like_an_all_too_large_one
+    self.assertEqual(empty.status_code, large.status_code, empty.content)
+AssertionError: 400 != 202 : b'{"success":false,"message":"\'blank.pdf\' is empty. Choose another file.","error":{"field_errors":{"error":"\'blank.pdf\' is empty. Choose another file.","reason_code":"FILE_EMPTY","error_class":"USER","remediation":"Select a file that has content, then upload it again.","retryable":false,"params":{"file_name":"blank.pdf"},"reference":"8d2b351770d54bd3a471767c55b7438f"}}}'
+
+======================================================================
+FAIL: test_one_empty_file_fails_as_its_item_and_the_rest_are_queued (assignments.tests_h274_empty_upload_doors.TheAsyncTeacherUploadIsNeverHalfQueued.test_one_empty_file_fails_as_its_item_and_the_rest_are_queued)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/assignments/tests_h274_empty_upload_doors.py", line 140, in test_one_empty_file_fails_as_its_item_and_the_rest_are_queued
+    self.assertEqual(response.status_code, 202, response.content[:400])
+AssertionError: 400 != 202 : b'{"success":false,"message":"\'blank.pdf\' is empty. Choose another file.","error":{"field_errors":{"error":"\'blank.pdf\' is empty. Choose another file.","reason_code":"FILE_EMPTY","error_class":"USER","remediation":"Select a file that has content, then upload it again.","retryable":false,"params":{"file_name":"blank.pdf"},"reference":"52b858e35aae41f6b984cd7a642795ab"}}}'
+
+======================================================================
+FAIL: test_an_all_empty_request_answers_like_an_all_too_large_one (assignments.tests_h274_empty_upload_doors.TheSyncTeacherUploadFailsAnEmptyFileAsItsOwnEntry.test_an_all_empty_request_answers_like_an_all_too_large_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/assignments/tests_h274_empty_upload_doors.py", line 101, in test_an_all_empty_request_answers_like_an_all_too_large_one
+    self.assertEqual(_shape(empty.json()), _shape(large.json()))
+AssertionError: {'suc[38 chars]r': {'field_errors': {'error': 'str', 'reason_[127 chars]r'}}} != {'suc[38 chars]r': {}}
++ {'error': {}, 'message': 'str', 'success': 'bool'}
+- {'error': {'field_errors': {'error': 'str',
+-                             'error_class': 'str',
+-                             'params': {'file_name': 'str'},
+-                             'reason_code': 'str',
+-                             'reference': 'str',
+-                             'remediation': 'str',
+-                             'retryable': 'bool'}},
+-  'message': 'str',
+-  'success': 'bool'}
+
+======================================================================
+FAIL: test_one_empty_file_fails_only_itself (assignments.tests_h274_empty_upload_doors.TheSyncTeacherUploadFailsAnEmptyFileAsItsOwnEntry.test_one_empty_file_fails_only_itself)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/assignments/tests_h274_empty_upload_doors.py", line 85, in test_one_empty_file_fails_only_itself
+    self.assertEqual(
+AssertionError: 400 != 207 : b'{"success":false,"message":"\'blank.pdf\' is empty. Choose another file.","error":{"field_errors":{"error":"\'blank.pdf\' is empty. Choose another file.","reason_code":"FILE_EMPTY","error_class":"USER","remediation":"Select a file that has content, then upload it again.","retryable":false,"params":{"file_name":"blank.pdf"},"reference":"6a85735495944d0eafda20f858cc0d17"}}}'
+
+----------------------------------------------------------------------
+Ran 7 tests in 2.618s
+
+FAILED (failures=4)
+Destroying test database for alias 'default'...
+Found 7 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

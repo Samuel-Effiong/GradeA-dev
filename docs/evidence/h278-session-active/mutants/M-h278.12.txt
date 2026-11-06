@@ -1,0 +1,584 @@
+M-h278.12: audit/emitter.py
+- 'if school_id is NO_SCHOOL'
++ 'if school_id is NO_SCHOOL and False'
+rc=1
+
+Found 32 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user bedbbd4b-cbab-4878-9c43-dadc69e264aa.
+Cannot activate automatic trial for user bedbbd4b-cbab-4878-9c43-dadc69e264aa (validation): ValueError
+Free trial plan not found: no trial activated for user 7ea9c414-b9b9-4370-8e9c-17dd2844569a.
+Cannot activate automatic trial for user 7ea9c414-b9b9-4370-8e9c-17dd2844569a (validation): ValueError
+Free trial plan not found: no trial activated for user f12d9388-4ea5-477b-80d5-7342453091c6.
+Cannot activate automatic trial for user f12d9388-4ea5-477b-80d5-7342453091c6 (validation): ValueError
+Free trial plan not found: no trial activated for user 6617ed5a-8288-4215-81d6-540752c1a9e9.
+Cannot activate automatic trial for user 6617ed5a-8288-4215-81d6-540752c1a9e9 (validation): ValueError
+Free trial plan not found: no trial activated for user 38a7dee9-18ae-44ad-a1d3-ff5f0bfd6908.
+Cannot activate automatic trial for user 38a7dee9-18ae-44ad-a1d3-ff5f0bfd6908 (validation): ValueError
+/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/h274_g10_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user 9b8c79ef-ee40-4c13-ba48-12cae861d6ce.
+Cannot activate automatic trial for user 9b8c79ef-ee40-4c13-ba48-12cae861d6ce (validation): ValueError
+Free trial plan not found: no trial activated for user e169ede8-6115-4af7-a6a8-1b2cd9566569.
+Cannot activate automatic trial for user e169ede8-6115-4af7-a6a8-1b2cd9566569 (validation): ValueError
+Free trial plan not found: no trial activated for user c7ea55cd-fe68-4cf7-b78b-501d9d7fbb13.
+Cannot activate automatic trial for user c7ea55cd-fe68-4cf7-b78b-501d9d7fbb13 (validation): ValueError
+Free trial plan not found: no trial activated for user f55d601d-29eb-4a50-8f09-b3b359c7dde5.
+Cannot activate automatic trial for user f55d601d-29eb-4a50-8f09-b3b359c7dde5 (validation): ValueError
+Free trial plan not found: no trial activated for user b8ed6688-20c7-4dfe-ab74-2548fb46426a.
+Cannot activate automatic trial for user b8ed6688-20c7-4dfe-ab74-2548fb46426a (validation): ValueError
+.Free trial plan not found: no trial activated for user db114036-58e5-492e-a359-7b5a9d076cc8.
+Cannot activate automatic trial for user db114036-58e5-492e-a359-7b5a9d076cc8 (validation): ValueError
+Free trial plan not found: no trial activated for user fe2cac16-ca6e-42b1-bc49-380ac2108b51.
+Cannot activate automatic trial for user fe2cac16-ca6e-42b1-bc49-380ac2108b51 (validation): ValueError
+Free trial plan not found: no trial activated for user 8cf35a8f-99d3-4c10-88ce-7d8d67ba5fc2.
+Cannot activate automatic trial for user 8cf35a8f-99d3-4c10-88ce-7d8d67ba5fc2 (validation): ValueError
+Free trial plan not found: no trial activated for user a9ec4aac-0703-45f4-bd72-ad50b1066072.
+Cannot activate automatic trial for user a9ec4aac-0703-45f4-bd72-ad50b1066072 (validation): ValueError
+Free trial plan not found: no trial activated for user 97aa48bb-3db4-4cd4-a5c5-613ee415b5bf.
+Cannot activate automatic trial for user 97aa48bb-3db4-4cd4-a5c5-613ee415b5bf (validation): ValueError
+Free trial plan not found: no trial activated for user 118c7163-9e2e-4dc9-9fda-8d1b32819604.
+Cannot activate automatic trial for user 118c7163-9e2e-4dc9-9fda-8d1b32819604 (validation): ValueError
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+FFree trial plan not found: no trial activated for user 68f86288-65e2-4f4d-aea7-842444bc9182.
+Cannot activate automatic trial for user 68f86288-65e2-4f4d-aea7-842444bc9182 (validation): ValueError
+Free trial plan not found: no trial activated for user 1dd6bd01-80ae-464e-9340-8e39e3d21f6f.
+Cannot activate automatic trial for user 1dd6bd01-80ae-464e-9340-8e39e3d21f6f (validation): ValueError
+Free trial plan not found: no trial activated for user 44d934bd-ee70-4215-9328-acae8ee54325.
+Cannot activate automatic trial for user 44d934bd-ee70-4215-9328-acae8ee54325 (validation): ValueError
+Free trial plan not found: no trial activated for user 3cf02a0f-9eb0-4045-b4d7-10606e2ed6d4.
+Cannot activate automatic trial for user 3cf02a0f-9eb0-4045-b4d7-10606e2ed6d4 (validation): ValueError
+Free trial plan not found: no trial activated for user 4f6bacce-b189-45d1-b1bd-b63932ffab02.
+Cannot activate automatic trial for user 4f6bacce-b189-45d1-b1bd-b63932ffab02 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0fab8168-0a6c-42ac-984a-8a950e3516de.
+Cannot activate automatic trial for user 0fab8168-0a6c-42ac-984a-8a950e3516de (validation): ValueError
+Free trial plan not found: no trial activated for user c581c350-aedd-4914-a3a8-4e129bd3bd1c.
+Cannot activate automatic trial for user c581c350-aedd-4914-a3a8-4e129bd3bd1c (validation): ValueError
+Free trial plan not found: no trial activated for user eadd1679-3211-4306-9ba2-cb16c8aa7e1b.
+Cannot activate automatic trial for user eadd1679-3211-4306-9ba2-cb16c8aa7e1b (validation): ValueError
+Free trial plan not found: no trial activated for user 78b08cdc-8331-461c-ae52-61b4a3e0e8a9.
+Cannot activate automatic trial for user 78b08cdc-8331-461c-ae52-61b4a3e0e8a9 (validation): ValueError
+Free trial plan not found: no trial activated for user 2e223414-586b-4a67-9e55-5dcebea51c61.
+Cannot activate automatic trial for user 2e223414-586b-4a67-9e55-5dcebea51c61 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6a083a23-94bf-423f-8396-29a94f69ccf5.
+Cannot activate automatic trial for user 6a083a23-94bf-423f-8396-29a94f69ccf5 (validation): ValueError
+Free trial plan not found: no trial activated for user 560f261f-d44a-4294-a349-17759d6d0b4b.
+Cannot activate automatic trial for user 560f261f-d44a-4294-a349-17759d6d0b4b (validation): ValueError
+Free trial plan not found: no trial activated for user c19bdd15-b66d-44de-b79b-b02b37b32252.
+Cannot activate automatic trial for user c19bdd15-b66d-44de-b79b-b02b37b32252 (validation): ValueError
+Free trial plan not found: no trial activated for user 76453d2f-57f4-4b45-a882-5d854d3f4e60.
+Cannot activate automatic trial for user 76453d2f-57f4-4b45-a882-5d854d3f4e60 (validation): ValueError
+Free trial plan not found: no trial activated for user c314b960-f822-45a1-8d7d-1f1a6f99405c.
+Cannot activate automatic trial for user c314b960-f822-45a1-8d7d-1f1a6f99405c (validation): ValueError
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+FFree trial plan not found: no trial activated for user 6423e830-1e76-4183-8cfc-18280344e2d5.
+Cannot activate automatic trial for user 6423e830-1e76-4183-8cfc-18280344e2d5 (validation): ValueError
+Free trial plan not found: no trial activated for user f162e524-d2f5-4aa3-97e1-4e586ce55306.
+Cannot activate automatic trial for user f162e524-d2f5-4aa3-97e1-4e586ce55306 (validation): ValueError
+Free trial plan not found: no trial activated for user b3a7b951-eb2a-40f3-b013-d86cd9e0fc2f.
+Cannot activate automatic trial for user b3a7b951-eb2a-40f3-b013-d86cd9e0fc2f (validation): ValueError
+Free trial plan not found: no trial activated for user 4c8282be-fb88-4468-997d-bd613d013cd5.
+Cannot activate automatic trial for user 4c8282be-fb88-4468-997d-bd613d013cd5 (validation): ValueError
+Free trial plan not found: no trial activated for user 89b0ea22-1ba5-44f9-9ca5-6a1e21a02764.
+Cannot activate automatic trial for user 89b0ea22-1ba5-44f9-9ca5-6a1e21a02764 (validation): ValueError
+.Free trial plan not found: no trial activated for user 44d38297-d5af-4a0e-a360-c2f9fb6f1af5.
+Cannot activate automatic trial for user 44d38297-d5af-4a0e-a360-c2f9fb6f1af5 (validation): ValueError
+Free trial plan not found: no trial activated for user c432e3eb-36e3-4853-8d8c-433784ea86e8.
+Cannot activate automatic trial for user c432e3eb-36e3-4853-8d8c-433784ea86e8 (validation): ValueError
+Free trial plan not found: no trial activated for user dc816cc3-3a8b-492f-99b2-637ab6d1022e.
+Cannot activate automatic trial for user dc816cc3-3a8b-492f-99b2-637ab6d1022e (validation): ValueError
+Free trial plan not found: no trial activated for user d9f94ef0-e95a-49d1-bc5c-b86a9f3bc1e5.
+Cannot activate automatic trial for user d9f94ef0-e95a-49d1-bc5c-b86a9f3bc1e5 (validation): ValueError
+Free trial plan not found: no trial activated for user 6da35c03-8448-474a-9e79-7456da61c57e.
+Cannot activate automatic trial for user 6da35c03-8448-474a-9e79-7456da61c57e (validation): ValueError
+.Free trial plan not found: no trial activated for user 164470fd-13e6-413d-9d08-8622ebf04844.
+Cannot activate automatic trial for user 164470fd-13e6-413d-9d08-8622ebf04844 (validation): ValueError
+Free trial plan not found: no trial activated for user dbaf7520-c60a-41be-964d-62dd93663786.
+Cannot activate automatic trial for user dbaf7520-c60a-41be-964d-62dd93663786 (validation): ValueError
+Free trial plan not found: no trial activated for user b3a29f6c-4a33-43a1-bb7f-1154981dd5a6.
+Cannot activate automatic trial for user b3a29f6c-4a33-43a1-bb7f-1154981dd5a6 (validation): ValueError
+Free trial plan not found: no trial activated for user c26653ba-564a-480e-a9f1-b412dc7cf105.
+Cannot activate automatic trial for user c26653ba-564a-480e-a9f1-b412dc7cf105 (validation): ValueError
+Free trial plan not found: no trial activated for user 43f9b337-e3ad-4007-94e9-86dc0fc1ab1d.
+Cannot activate automatic trial for user 43f9b337-e3ad-4007-94e9-86dc0fc1ab1d (validation): ValueError
+.Free trial plan not found: no trial activated for user 32671265-8bd5-4f59-a09e-f84240128f88.
+Cannot activate automatic trial for user 32671265-8bd5-4f59-a09e-f84240128f88 (validation): ValueError
+Free trial plan not found: no trial activated for user d16187b0-2e06-4bf7-9b7d-3b7bc476c37d.
+Cannot activate automatic trial for user d16187b0-2e06-4bf7-9b7d-3b7bc476c37d (validation): ValueError
+Free trial plan not found: no trial activated for user ccc3cdf2-3b43-4bee-9009-b8ccba01a5ee.
+Cannot activate automatic trial for user ccc3cdf2-3b43-4bee-9009-b8ccba01a5ee (validation): ValueError
+Free trial plan not found: no trial activated for user d3417c94-5e8f-4185-8b7f-c18c53768718.
+Cannot activate automatic trial for user d3417c94-5e8f-4185-8b7f-c18c53768718 (validation): ValueError
+Free trial plan not found: no trial activated for user 8f1c360a-0ccb-429e-9461-ca3469e11ebe.
+Cannot activate automatic trial for user 8f1c360a-0ccb-429e-9461-ca3469e11ebe (validation): ValueError
+.Free trial plan not found: no trial activated for user 004db636-9110-4dcc-8ece-908c68cdd48d.
+Cannot activate automatic trial for user 004db636-9110-4dcc-8ece-908c68cdd48d (validation): ValueError
+Free trial plan not found: no trial activated for user 0846d202-43d5-43d0-bb9e-5aae5f6d977c.
+Cannot activate automatic trial for user 0846d202-43d5-43d0-bb9e-5aae5f6d977c (validation): ValueError
+Free trial plan not found: no trial activated for user a5a56522-0e54-4ba0-ad5e-b56360001d08.
+Cannot activate automatic trial for user a5a56522-0e54-4ba0-ad5e-b56360001d08 (validation): ValueError
+Free trial plan not found: no trial activated for user fcb89d6c-8cfd-490a-9598-ec3746bc4709.
+Cannot activate automatic trial for user fcb89d6c-8cfd-490a-9598-ec3746bc4709 (validation): ValueError
+Free trial plan not found: no trial activated for user 037b26fd-d342-4f0f-b8f6-1355ccb58992.
+Cannot activate automatic trial for user 037b26fd-d342-4f0f-b8f6-1355ccb58992 (validation): ValueError
+.Free trial plan not found: no trial activated for user 211a3818-6e31-414f-9ec7-575feecc2ec8.
+Cannot activate automatic trial for user 211a3818-6e31-414f-9ec7-575feecc2ec8 (validation): ValueError
+Free trial plan not found: no trial activated for user 6f5d8c25-5e69-4f2b-8283-de1f4e80e609.
+Cannot activate automatic trial for user 6f5d8c25-5e69-4f2b-8283-de1f4e80e609 (validation): ValueError
+Free trial plan not found: no trial activated for user b8f2c6ac-a213-4636-a8b2-c19b7d654db6.
+Cannot activate automatic trial for user b8f2c6ac-a213-4636-a8b2-c19b7d654db6 (validation): ValueError
+Free trial plan not found: no trial activated for user ba847f4b-b5cd-4ff3-9485-892db4cc2a13.
+Cannot activate automatic trial for user ba847f4b-b5cd-4ff3-9485-892db4cc2a13 (validation): ValueError
+Free trial plan not found: no trial activated for user 4b1f57e7-4559-4d55-b4bd-65ea838eac16.
+Cannot activate automatic trial for user 4b1f57e7-4559-4d55-b4bd-65ea838eac16 (validation): ValueError
+.Free trial plan not found: no trial activated for user 30a71a40-0dee-4876-9c69-ec5f6c355b33.
+Cannot activate automatic trial for user 30a71a40-0dee-4876-9c69-ec5f6c355b33 (validation): ValueError
+Free trial plan not found: no trial activated for user 435216ff-7adb-474e-befc-b865e259afb5.
+Cannot activate automatic trial for user 435216ff-7adb-474e-befc-b865e259afb5 (validation): ValueError
+Free trial plan not found: no trial activated for user 24fd4221-c99f-42a4-89eb-a55fa0ce4341.
+Cannot activate automatic trial for user 24fd4221-c99f-42a4-89eb-a55fa0ce4341 (validation): ValueError
+Free trial plan not found: no trial activated for user 21bffed3-052c-478f-8d30-1ec87dc48daa.
+Cannot activate automatic trial for user 21bffed3-052c-478f-8d30-1ec87dc48daa (validation): ValueError
+Free trial plan not found: no trial activated for user d120eb5f-285a-4262-8081-bb37442c2e74.
+Cannot activate automatic trial for user d120eb5f-285a-4262-8081-bb37442c2e74 (validation): ValueError
+.Free trial plan not found: no trial activated for user b32f1660-e8f4-4980-bbd4-56915dd02877.
+Cannot activate automatic trial for user b32f1660-e8f4-4980-bbd4-56915dd02877 (validation): ValueError
+Free trial plan not found: no trial activated for user 250f2538-0eba-433a-9de1-3dbf4e4b49ca.
+Cannot activate automatic trial for user 250f2538-0eba-433a-9de1-3dbf4e4b49ca (validation): ValueError
+Free trial plan not found: no trial activated for user 341aca4c-f40f-4b4a-b96a-41d459e2cb64.
+Cannot activate automatic trial for user 341aca4c-f40f-4b4a-b96a-41d459e2cb64 (validation): ValueError
+Free trial plan not found: no trial activated for user 9d04be90-42d4-4860-bb66-b95eb01e2148.
+Cannot activate automatic trial for user 9d04be90-42d4-4860-bb66-b95eb01e2148 (validation): ValueError
+Free trial plan not found: no trial activated for user 9699e54d-018e-442c-8077-466fd093486e.
+Cannot activate automatic trial for user 9699e54d-018e-442c-8077-466fd093486e (validation): ValueError
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+.Free trial plan not found: no trial activated for user c6ac9e70-e7c9-4588-ab3b-1d8762f5b849.
+Cannot activate automatic trial for user c6ac9e70-e7c9-4588-ab3b-1d8762f5b849 (validation): ValueError
+Free trial plan not found: no trial activated for user 71b40e2b-4dff-4dd9-832b-5a0e0b46197d.
+Cannot activate automatic trial for user 71b40e2b-4dff-4dd9-832b-5a0e0b46197d (validation): ValueError
+Free trial plan not found: no trial activated for user b3b9454a-5971-43f6-905b-1657c418a2fa.
+Cannot activate automatic trial for user b3b9454a-5971-43f6-905b-1657c418a2fa (validation): ValueError
+Free trial plan not found: no trial activated for user e26a5548-ea15-44f6-8a63-5b984332f987.
+Cannot activate automatic trial for user e26a5548-ea15-44f6-8a63-5b984332f987 (validation): ValueError
+Free trial plan not found: no trial activated for user b1044ad6-ec78-453c-b3b8-259492a39441.
+Cannot activate automatic trial for user b1044ad6-ec78-453c-b3b8-259492a39441 (validation): ValueError
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+.Free trial plan not found: no trial activated for user 452cbf00-0f76-4495-9116-714f5a86cfc6.
+Cannot activate automatic trial for user 452cbf00-0f76-4495-9116-714f5a86cfc6 (validation): ValueError
+Free trial plan not found: no trial activated for user 1562bc18-e662-41e4-9c08-3ceb10cf81e2.
+Cannot activate automatic trial for user 1562bc18-e662-41e4-9c08-3ceb10cf81e2 (validation): ValueError
+Free trial plan not found: no trial activated for user 5bff7dce-7941-4aed-bc25-d3e830269874.
+Cannot activate automatic trial for user 5bff7dce-7941-4aed-bc25-d3e830269874 (validation): ValueError
+Free trial plan not found: no trial activated for user 9016c170-477e-4029-affe-47ef8e0e024c.
+Cannot activate automatic trial for user 9016c170-477e-4029-affe-47ef8e0e024c (validation): ValueError
+Free trial plan not found: no trial activated for user 7c66f343-61af-428e-b50c-f96c711d7a99.
+Cannot activate automatic trial for user 7c66f343-61af-428e-b50c-f96c711d7a99 (validation): ValueError
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+.Free trial plan not found: no trial activated for user f2339578-1dd7-4097-9aa7-0487df35f2a1.
+Cannot activate automatic trial for user f2339578-1dd7-4097-9aa7-0487df35f2a1 (validation): ValueError
+Free trial plan not found: no trial activated for user ad94f52a-317f-4015-a718-8fcdbfac9470.
+Cannot activate automatic trial for user ad94f52a-317f-4015-a718-8fcdbfac9470 (validation): ValueError
+Free trial plan not found: no trial activated for user b160d9e3-c626-4c86-9522-c8527216d03c.
+Cannot activate automatic trial for user b160d9e3-c626-4c86-9522-c8527216d03c (validation): ValueError
+Free trial plan not found: no trial activated for user cf9d27ca-5139-4e40-a8b3-ce5dd051465d.
+Cannot activate automatic trial for user cf9d27ca-5139-4e40-a8b3-ce5dd051465d (validation): ValueError
+Free trial plan not found: no trial activated for user 81b5705f-7b93-4b76-a376-e26a7275458d.
+Cannot activate automatic trial for user 81b5705f-7b93-4b76-a376-e26a7275458d (validation): ValueError
+API request refused: PermissionDenied (403)
+.Free trial plan not found: no trial activated for user 6f749bf8-5dc1-445e-9afa-512e0dbbbb0f.
+Cannot activate automatic trial for user 6f749bf8-5dc1-445e-9afa-512e0dbbbb0f (validation): ValueError
+Free trial plan not found: no trial activated for user c2778544-74a9-4892-bb54-7775bbcc03dd.
+Cannot activate automatic trial for user c2778544-74a9-4892-bb54-7775bbcc03dd (validation): ValueError
+Free trial plan not found: no trial activated for user af434786-4794-47ae-8c7e-b10b3c12485c.
+Cannot activate automatic trial for user af434786-4794-47ae-8c7e-b10b3c12485c (validation): ValueError
+Free trial plan not found: no trial activated for user 9d794576-46ce-40ab-a9b7-32c12136e99e.
+Cannot activate automatic trial for user 9d794576-46ce-40ab-a9b7-32c12136e99e (validation): ValueError
+Free trial plan not found: no trial activated for user 19f4e897-6f2a-4746-a708-52ff73f0759b.
+Cannot activate automatic trial for user 19f4e897-6f2a-4746-a708-52ff73f0759b (validation): ValueError
+API request refused: PermissionDenied (403)
+.Free trial plan not found: no trial activated for user b7abb300-87ef-403c-961c-cb7a76bd6ced.
+Cannot activate automatic trial for user b7abb300-87ef-403c-961c-cb7a76bd6ced (validation): ValueError
+Free trial plan not found: no trial activated for user 267b5a9f-9539-4fbe-97aa-f4ee45fb84c4.
+Cannot activate automatic trial for user 267b5a9f-9539-4fbe-97aa-f4ee45fb84c4 (validation): ValueError
+Free trial plan not found: no trial activated for user 632e8243-f6da-46aa-9ecd-5e74789bbcb1.
+Cannot activate automatic trial for user 632e8243-f6da-46aa-9ecd-5e74789bbcb1 (validation): ValueError
+Free trial plan not found: no trial activated for user 4d152e82-1b9d-499a-aa61-34977f144a94.
+Cannot activate automatic trial for user 4d152e82-1b9d-499a-aa61-34977f144a94 (validation): ValueError
+Free trial plan not found: no trial activated for user 53e12ab6-357c-4c0e-8257-191b1deb2021.
+Cannot activate automatic trial for user 53e12ab6-357c-4c0e-8257-191b1deb2021 (validation): ValueError
+.Free trial plan not found: no trial activated for user 06753647-959d-4eb1-9f63-3cedfb566eea.
+Cannot activate automatic trial for user 06753647-959d-4eb1-9f63-3cedfb566eea (validation): ValueError
+Free trial plan not found: no trial activated for user 335227c2-c584-4fa7-a81b-f3b36903e0fd.
+Cannot activate automatic trial for user 335227c2-c584-4fa7-a81b-f3b36903e0fd (validation): ValueError
+Free trial plan not found: no trial activated for user abb9457d-1c4f-46df-af8c-5958d0aeb017.
+Cannot activate automatic trial for user abb9457d-1c4f-46df-af8c-5958d0aeb017 (validation): ValueError
+Free trial plan not found: no trial activated for user 321fb304-a3d2-4424-9ff9-a5c02badbf29.
+Cannot activate automatic trial for user 321fb304-a3d2-4424-9ff9-a5c02badbf29 (validation): ValueError
+Free trial plan not found: no trial activated for user 9d06110b-38dd-4a84-b664-b578753d360f.
+Cannot activate automatic trial for user 9d06110b-38dd-4a84-b664-b578753d360f (validation): ValueError
+.Free trial plan not found: no trial activated for user cda6a933-afd8-46de-a00e-24c836e32823.
+Cannot activate automatic trial for user cda6a933-afd8-46de-a00e-24c836e32823 (validation): ValueError
+Free trial plan not found: no trial activated for user 54c10ec9-ca57-480b-9a98-bed60d14a236.
+Cannot activate automatic trial for user 54c10ec9-ca57-480b-9a98-bed60d14a236 (validation): ValueError
+Free trial plan not found: no trial activated for user 2b4064c0-90de-4a3d-bc0d-bb8d28e2266a.
+Cannot activate automatic trial for user 2b4064c0-90de-4a3d-bc0d-bb8d28e2266a (validation): ValueError
+Free trial plan not found: no trial activated for user cca3712e-d240-4afe-aa07-1c482c658766.
+Cannot activate automatic trial for user cca3712e-d240-4afe-aa07-1c482c658766 (validation): ValueError
+Free trial plan not found: no trial activated for user 685e631c-fb25-4450-8057-4d2c3d72b72b.
+Cannot activate automatic trial for user 685e631c-fb25-4450-8057-4d2c3d72b72b (validation): ValueError
+.Free trial plan not found: no trial activated for user 9c16f4fe-4545-4688-b325-d9c678166470.
+Cannot activate automatic trial for user 9c16f4fe-4545-4688-b325-d9c678166470 (validation): ValueError
+Free trial plan not found: no trial activated for user 623f0bf9-c262-48c1-8564-a482f83ce031.
+Cannot activate automatic trial for user 623f0bf9-c262-48c1-8564-a482f83ce031 (validation): ValueError
+Free trial plan not found: no trial activated for user 61f70ff5-7fda-476f-9b68-d1d6e2f007d3.
+Cannot activate automatic trial for user 61f70ff5-7fda-476f-9b68-d1d6e2f007d3 (validation): ValueError
+Free trial plan not found: no trial activated for user 7ca56728-a4f6-4ee3-aa9d-25734c6b2d5c.
+Cannot activate automatic trial for user 7ca56728-a4f6-4ee3-aa9d-25734c6b2d5c (validation): ValueError
+Free trial plan not found: no trial activated for user bb255540-40b2-47ed-a2a4-3585b256ef67.
+Cannot activate automatic trial for user bb255540-40b2-47ed-a2a4-3585b256ef67 (validation): ValueError
+.Free trial plan not found: no trial activated for user 18f075b0-dad3-41aa-ac55-c659b7cd51ec.
+Cannot activate automatic trial for user 18f075b0-dad3-41aa-ac55-c659b7cd51ec (validation): ValueError
+Free trial plan not found: no trial activated for user 1b6115d5-c07a-4b0a-a50d-5b4e87f481ad.
+Cannot activate automatic trial for user 1b6115d5-c07a-4b0a-a50d-5b4e87f481ad (validation): ValueError
+Free trial plan not found: no trial activated for user e82a0f4e-39b8-4814-ad86-1582a7f77151.
+Cannot activate automatic trial for user e82a0f4e-39b8-4814-ad86-1582a7f77151 (validation): ValueError
+Free trial plan not found: no trial activated for user 4158751a-8831-4a33-b517-6ff0fcccd80f.
+Cannot activate automatic trial for user 4158751a-8831-4a33-b517-6ff0fcccd80f (validation): ValueError
+Free trial plan not found: no trial activated for user 8d343352-a865-437a-9d6b-ed170911d915.
+Cannot activate automatic trial for user 8d343352-a865-437a-9d6b-ed170911d915 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6dd64578-bfe2-40e8-862f-73625b9e228f.
+Cannot activate automatic trial for user 6dd64578-bfe2-40e8-862f-73625b9e228f (validation): ValueError
+Free trial plan not found: no trial activated for user c99463ae-7062-499f-a140-991d42988838.
+Cannot activate automatic trial for user c99463ae-7062-499f-a140-991d42988838 (validation): ValueError
+Free trial plan not found: no trial activated for user 0e6478c0-33ab-489b-aa5a-877fc4a52fbc.
+Cannot activate automatic trial for user 0e6478c0-33ab-489b-aa5a-877fc4a52fbc (validation): ValueError
+Free trial plan not found: no trial activated for user c9c57aa8-0113-42d7-aa9c-448eae80eb16.
+Cannot activate automatic trial for user c9c57aa8-0113-42d7-aa9c-448eae80eb16 (validation): ValueError
+Free trial plan not found: no trial activated for user e8683d6f-3ccb-4ab8-ab1b-b3d11bffbacc.
+Cannot activate automatic trial for user e8683d6f-3ccb-4ab8-ab1b-b3d11bffbacc (validation): ValueError
+.Free trial plan not found: no trial activated for user 6e54bdfc-b09a-4e18-8003-f57e15f3c6e4.
+Cannot activate automatic trial for user 6e54bdfc-b09a-4e18-8003-f57e15f3c6e4 (validation): ValueError
+Free trial plan not found: no trial activated for user e7c296a5-ff63-40ad-a418-5c3fbc86c2d7.
+Cannot activate automatic trial for user e7c296a5-ff63-40ad-a418-5c3fbc86c2d7 (validation): ValueError
+Free trial plan not found: no trial activated for user a307a308-d7af-4406-b778-ca61b1c336af.
+Cannot activate automatic trial for user a307a308-d7af-4406-b778-ca61b1c336af (validation): ValueError
+Free trial plan not found: no trial activated for user afac7878-f1e3-43d7-87e0-d697a9a8d09f.
+Cannot activate automatic trial for user afac7878-f1e3-43d7-87e0-d697a9a8d09f (validation): ValueError
+Free trial plan not found: no trial activated for user 4b8494e0-a1bb-47c1-afb9-d89fac0eca6e.
+Cannot activate automatic trial for user 4b8494e0-a1bb-47c1-afb9-d89fac0eca6e (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user e670d751-8581-42ad-9134-f9ac3dfecdf4.
+Cannot activate automatic trial for user e670d751-8581-42ad-9134-f9ac3dfecdf4 (validation): ValueError
+Free trial plan not found: no trial activated for user af85f63b-8c7a-4152-b17d-12c4ccd8873f.
+Cannot activate automatic trial for user af85f63b-8c7a-4152-b17d-12c4ccd8873f (validation): ValueError
+Free trial plan not found: no trial activated for user f1912891-2352-4550-b231-11100b692949.
+Cannot activate automatic trial for user f1912891-2352-4550-b231-11100b692949 (validation): ValueError
+Free trial plan not found: no trial activated for user 98d93595-f329-417d-a1be-29369e04792a.
+Cannot activate automatic trial for user 98d93595-f329-417d-a1be-29369e04792a (validation): ValueError
+Free trial plan not found: no trial activated for user 21060e4a-ba4b-47d4-9c09-1f08947b6229.
+Cannot activate automatic trial for user 21060e4a-ba4b-47d4-9c09-1f08947b6229 (validation): ValueError
+.Free trial plan not found: no trial activated for user a41d270e-1a81-41c6-b330-c1cb4d37a78e.
+Cannot activate automatic trial for user a41d270e-1a81-41c6-b330-c1cb4d37a78e (validation): ValueError
+Free trial plan not found: no trial activated for user a7586c8d-e9a3-497b-851f-bb1ba979c405.
+Cannot activate automatic trial for user a7586c8d-e9a3-497b-851f-bb1ba979c405 (validation): ValueError
+Free trial plan not found: no trial activated for user 5ed6b106-80fb-4e06-816e-4bdcc61fd3de.
+Cannot activate automatic trial for user 5ed6b106-80fb-4e06-816e-4bdcc61fd3de (validation): ValueError
+Free trial plan not found: no trial activated for user 7fe6ea3a-653d-4b98-bc4d-b0356b0929ef.
+Cannot activate automatic trial for user 7fe6ea3a-653d-4b98-bc4d-b0356b0929ef (validation): ValueError
+Free trial plan not found: no trial activated for user 0e1cea43-3283-4ae5-b289-adfc3891519f.
+Cannot activate automatic trial for user 0e1cea43-3283-4ae5-b289-adfc3891519f (validation): ValueError
+.Free trial plan not found: no trial activated for user 4e1ebad1-63e5-4d1e-8f02-caedbafbebb3.
+Cannot activate automatic trial for user 4e1ebad1-63e5-4d1e-8f02-caedbafbebb3 (validation): ValueError
+Free trial plan not found: no trial activated for user 16879341-56f4-472f-b56e-0837d30bd89a.
+Cannot activate automatic trial for user 16879341-56f4-472f-b56e-0837d30bd89a (validation): ValueError
+Free trial plan not found: no trial activated for user 10e12722-1130-4be5-b3b3-2ce0be7a23ec.
+Cannot activate automatic trial for user 10e12722-1130-4be5-b3b3-2ce0be7a23ec (validation): ValueError
+Free trial plan not found: no trial activated for user a3fcf306-b1f2-4005-bbe3-09215d733787.
+Cannot activate automatic trial for user a3fcf306-b1f2-4005-bbe3-09215d733787 (validation): ValueError
+Free trial plan not found: no trial activated for user 55129eb9-19b4-4870-a87e-8b500621e9d2.
+Cannot activate automatic trial for user 55129eb9-19b4-4870-a87e-8b500621e9d2 (validation): ValueError
+.Free trial plan not found: no trial activated for user 10e4c8d2-c87a-4b69-9ce2-7c8cebe967ab.
+Cannot activate automatic trial for user 10e4c8d2-c87a-4b69-9ce2-7c8cebe967ab (validation): ValueError
+Free trial plan not found: no trial activated for user 253a0934-fb24-4470-8916-672662bf4088.
+Cannot activate automatic trial for user 253a0934-fb24-4470-8916-672662bf4088 (validation): ValueError
+Free trial plan not found: no trial activated for user 309e636f-3fd0-4dc8-b38f-ef82458d2074.
+Cannot activate automatic trial for user 309e636f-3fd0-4dc8-b38f-ef82458d2074 (validation): ValueError
+Free trial plan not found: no trial activated for user 2c8350b3-99c6-480d-9d19-e2c462c270bd.
+Cannot activate automatic trial for user 2c8350b3-99c6-480d-9d19-e2c462c270bd (validation): ValueError
+Free trial plan not found: no trial activated for user 55e5a0e1-d22e-4d53-a700-4983eeda9f35.
+Cannot activate automatic trial for user 55e5a0e1-d22e-4d53-a700-4983eeda9f35 (validation): ValueError
+.Free trial plan not found: no trial activated for user e3b43fb7-b9f1-471a-b7b4-31b0f171033e.
+Cannot activate automatic trial for user e3b43fb7-b9f1-471a-b7b4-31b0f171033e (validation): ValueError
+Free trial plan not found: no trial activated for user cda2ff97-4a0e-4c32-a914-d048bfd236ac.
+Cannot activate automatic trial for user cda2ff97-4a0e-4c32-a914-d048bfd236ac (validation): ValueError
+Free trial plan not found: no trial activated for user f5992219-35bd-41fa-8e65-db4e44d7ca2a.
+Cannot activate automatic trial for user f5992219-35bd-41fa-8e65-db4e44d7ca2a (validation): ValueError
+Free trial plan not found: no trial activated for user 3c558171-3395-4b43-afb8-f5a5be86cff7.
+Cannot activate automatic trial for user 3c558171-3395-4b43-afb8-f5a5be86cff7 (validation): ValueError
+Free trial plan not found: no trial activated for user d2b28ca4-b2ce-4706-a085-324bb9fb24fe.
+Cannot activate automatic trial for user d2b28ca4-b2ce-4706-a085-324bb9fb24fe (validation): ValueError
+.Free trial plan not found: no trial activated for user 0ad2c588-e1e0-480f-a1a1-4bcb58761316.
+Cannot activate automatic trial for user 0ad2c588-e1e0-480f-a1a1-4bcb58761316 (validation): ValueError
+Free trial plan not found: no trial activated for user 4713a4e4-6928-4767-aaf2-170827af798a.
+Cannot activate automatic trial for user 4713a4e4-6928-4767-aaf2-170827af798a (validation): ValueError
+Free trial plan not found: no trial activated for user 9cafe2d0-4392-49b0-b501-f16ad4dd7ccd.
+Cannot activate automatic trial for user 9cafe2d0-4392-49b0-b501-f16ad4dd7ccd (validation): ValueError
+Free trial plan not found: no trial activated for user 1a76d69b-3280-4be1-b88f-d222a9fe6f63.
+Cannot activate automatic trial for user 1a76d69b-3280-4be1-b88f-d222a9fe6f63 (validation): ValueError
+Free trial plan not found: no trial activated for user a5896061-70f1-4379-9af0-9853ae730ad1.
+Cannot activate automatic trial for user a5896061-70f1-4379-9af0-9853ae730ad1 (validation): ValueError
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+audit event rejected: action=SESSION_ACTIVE_CHANGE detail=school_id: not a UUID
+.Free trial plan not found: no trial activated for user 2799b14b-1435-4e52-a715-c083233b3890.
+Cannot activate automatic trial for user 2799b14b-1435-4e52-a715-c083233b3890 (validation): ValueError
+Free trial plan not found: no trial activated for user 3be0f087-6cfa-404c-acac-3422fff88b72.
+Cannot activate automatic trial for user 3be0f087-6cfa-404c-acac-3422fff88b72 (validation): ValueError
+Free trial plan not found: no trial activated for user e9e2b4f6-9919-422d-920d-6a6ff1ec192d.
+Cannot activate automatic trial for user e9e2b4f6-9919-422d-920d-6a6ff1ec192d (validation): ValueError
+Free trial plan not found: no trial activated for user 53c6492f-91ce-4618-bc5f-77bc0526096b.
+Cannot activate automatic trial for user 53c6492f-91ce-4618-bc5f-77bc0526096b (validation): ValueError
+Free trial plan not found: no trial activated for user 47a0e502-ae9a-4b23-baa1-62b11f40e104.
+Cannot activate automatic trial for user 47a0e502-ae9a-4b23-baa1-62b11f40e104 (validation): ValueError
+.
+======================================================================
+FAIL: test_a_former_licence_teachers_own_switch_is_not_filed_under_a_school (classrooms.tests_h278_session_active.EveryChangeIsOneAuditEvent.test_a_former_licence_teachers_own_switch_is_not_filed_under_a_school)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 446, in test_a_former_licence_teachers_own_switch_is_not_filed_under_a_school
+    self.assertChange(event, theirs, True, None)
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 379, in assertChange
+    self.assertEqual(event.action, CHANGE)
+AssertionError: 'STATE_CHANGE' != 'SESSION_ACTIVE_CHANGE'
+- STATE_CHANGE
++ SESSION_ACTIVE_CHANGE
+
+
+======================================================================
+FAIL: test_an_individual_switch (classrooms.tests_h278_session_active.EveryChangeIsOneAuditEvent.test_an_individual_switch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 467, in test_an_individual_switch
+    self.assertChange(event, self.mine2, True, self.mine)
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_h278/classrooms/tests_h278_session_active.py", line 379, in assertChange
+    self.assertEqual(event.action, CHANGE)
+AssertionError: 'STATE_CHANGE' != 'SESSION_ACTIVE_CHANGE'
+- STATE_CHANGE
++ SESSION_ACTIVE_CHANGE
+
+
+----------------------------------------------------------------------
+Ran 32 tests in 42.816s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...

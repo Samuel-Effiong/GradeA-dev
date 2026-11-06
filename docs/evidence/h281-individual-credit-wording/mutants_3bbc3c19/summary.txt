@@ -1,0 +1,99 @@
+committed sha256: {'AutoGrader/error_messages.py': '67057586b765', 'AutoGrader/reason_codes.py': '8b43bbe283de', 'ai_processor/services.py': 'eac92226e5ca', 'assignments/upload_door.py': 'bd4f9cfa40fe', 'billing/access_control.py': '5f90fe983dbc', 'billing/errors.py': 'dfb936de71a4', 'billing/models.py': '306c86c4c0d8', 'students/item_results.py': '740346d6c76c', 'students/task_tracking.py': 'e306687c6fcc', 'users/permissions.py': '76e927d2989e'}
+M-h281.1 rc=1 restored ok ['Ran 307 tests in 31.391s', 'FAILED (failures=11)']
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r10_a_parked_file_of_a_licensed_teacher_is_not
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r1_consume_credits_blocked_licensed
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r2_consume_credits_balance_licensed
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r3_consume_credits_defensive_recheck_licensed
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r4_has_credit_balance_licensed
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r7_execute_graded_task_below_estimate_licensed
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s1_a_licensed_teacher_keeps_the_school_sentence
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s2_custom_ai_prompt_licensed_teacher_keeps_the_school_sentence
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s5_a_whole_batch_refusal_licensed
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s5_the_single_upload_door_for_a_teacher_licensed
+    billing.tests_h281_individual_credit_wording.WhoIsAnIndividualTeacher.test_a_licensed_teacher_is_not
+M-h281.2 rc=1 restored ok ['Ran 307 tests in 25.843s', 'FAILED (failures=2, errors=2)']
+    AutoGrader.tests_reason_codes.RequireAiAccessTests.test_a_balance_reason_gets_the_credits_refusal
+    billing.tests_h281_individual_credit_wording.WhoIsAnIndividualTeacher.test_an_anonymous_user_is_not_individual
+    billing.tests_h281_individual_credit_wording.WhoIsAnIndividualTeacher.test_no_billed_user_is_not_individual
+M-h281.3 rc=1 restored ok ['Ran 307 tests in 28.210s', 'FAILED (failures=1)']
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r1_consume_credits_blocked_individual
+M-h281.4 rc=1 restored ok ['Ran 307 tests in 26.605s', 'FAILED (failures=1)']
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r2_consume_credits_balance_individual
+M-h281.5 rc=1 restored ok ['Ran 307 tests in 28.696s', 'FAILED (failures=1)']
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r3_consume_credits_defensive_recheck_individual
+M-h281.6 rc=1 restored ok ['Ran 307 tests in 28.168s', 'FAILED (failures=16)']
+    billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r4_has_credit_balance_individual
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s1_a_teacher_removed_from_their_license_follows_the_owner_rule
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s1_an_individual_teacher_reads_the_individual_sentence
+    students.tests_h225_student_empty_wallet.EveryOtherAnswerIsUnchanged.test_c1_a_teacher_at_an_empty_wallet_keeps_the_generic_body
+M-h281.7 rc=1 restored ok ['Ran 307 tests in 33.455s', 'FAILED (failures=1)']
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r5_require_ai_access_individual
+M-h281.8 rc=1 restored ok ['Ran 307 tests in 27.509s', 'FAILED (failures=1)']
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r6_execute_graded_task_access_gate_individual
+M-h281.9 rc=1 restored ok ['Ran 307 tests in 24.983s', 'FAILED (failures=15)']
+    billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_teacher_chat_refusals_are_402_or_403_never_500
+    billing.tests.test_refusal_handling.D4UncaughtRefusalTest.test_sync_assignment_create_refusal_is_402_or_403
+    billing.tests.test_refusal_handling_gates.ConcurrentRefusalTest.test_twenty_simultaneous_refusals_charge_nothing_and_persist_nothing
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r7_execute_graded_task_below_estimate_individual
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s2_custom_ai_prompt_individual
+    students.tests_h216_student_credit_sentence.EveryOtherAnswerIsUnchanged.test_c1_a_teacher_asking_for_the_same_edit_keeps_the_generic_body
+M-h281.10 rc=1 restored ok ['Ran 307 tests in 25.407s', 'FAILED (failures=1)']
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r8_execute_graded_task_nothing_left_individual
+M-h281.11 rc=1 restored ok ['Ran 307 tests in 26.470s', 'FAILED (failures=1)']
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s5_the_single_upload_door_for_a_teacher_individual
+M-h281.12 rc=1 restored ok ['Ran 307 tests in 26.641s', 'FAILED (failures=1)']
+    billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r10_a_parked_file_is_tagged_from_the_billed_teacher
+M-h281.13 rc=1 restored ok ['Ran 307 tests in 25.929s', 'FAILED (failures=7)']
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s5_a_whole_batch_refusal_individual
+    students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t4_when_no_file_fits_the_batch_is_refused_whole
+    students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t6_one_dear_file_alone_is_refused_as_before
+    students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t4_when_no_file_fits_the_batch_is_refused_whole
+    students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t6_one_dear_file_alone_is_refused_as_before
+    students.tests_upload_credit_door.AssignmentUploadDoorTest.test_a_poor_teacher_is_refused_and_nothing_is_queued
+    students.tests_upload_credit_door.TeacherBatchDoorTest.test_a_poor_teacher_is_refused_and_nothing_is_queued
+M-h281.14 rc=1 restored ok ['Ran 307 tests in 26.456s', 'FAILED (failures=31)']
+    billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code
+    billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_teacher_chat_refusals_are_402_or_403_never_500
+    billing.tests.test_refusal_handling.D4UncaughtRefusalTest.test_sync_assignment_create_refusal_is_402_or_403
+    billing.tests.test_refusal_handling_gates.ConcurrentRefusalTest.test_twenty_simultaneous_refusals_charge_nothing_and_persist_nothing
+    billing.tests_h281_individual_credit_wording.WhatAPolledItemSays.test_s4_describe_user_error_individual
+    billing.tests_h281_individual_credit_wording.WhatAPolledItemSays.test_s6_s7_an_individual_refusal_is_stored_and_read_back
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s1_a_teacher_removed_from_their_license_follows_the_owner_rule
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s1_an_individual_teacher_reads_the_individual_sentence
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s2_custom_ai_prompt_individual
+    students.tests_h216_student_credit_sentence.EveryOtherAnswerIsUnchanged.test_c1_a_teacher_asking_for_the_same_edit_keeps_the_generic_body
+    students.tests_h225_student_empty_wallet.EveryOtherAnswerIsUnchanged.test_c1_a_teacher_at_an_empty_wallet_keeps_the_generic_body
+M-h281.15 rc=1 restored ok ['Ran 307 tests in 25.871s', 'FAILED (failures=5)']
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s1_a_teacher_removed_from_their_license_follows_the_owner_rule
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s1_an_individual_teacher_reads_the_individual_sentence
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s2_custom_ai_prompt_individual
+    students.tests_h216_student_credit_sentence.EveryOtherAnswerIsUnchanged.test_c1_a_teacher_asking_for_the_same_edit_keeps_the_generic_body
+    students.tests_h225_student_empty_wallet.EveryOtherAnswerIsUnchanged.test_c1_a_teacher_at_an_empty_wallet_keeps_the_generic_body
+M-h281.16 rc=1 restored ok ['Ran 307 tests in 22.569s', 'FAILED (failures=1)']
+    billing.tests_h281_individual_credit_wording.WhatAPolledItemSays.test_s6_s7_an_individual_refusal_is_stored_and_read_back
+M-h281.17 rc=1 restored ok ['Ran 307 tests in 41.588s', 'FAILED (failures=1)']
+    billing.tests_h281_individual_credit_wording.WhatAPolledItemSays.test_s6_s7_an_individual_refusal_is_stored_and_read_back
+M-h281.18 rc=1 restored ok ['Ran 307 tests in 26.765s', 'FAILED (failures=1)']
+    billing.tests_h281_individual_credit_wording.WhatAPolledItemSays.test_the_mid_batch_refusal_never_takes_the_individual_variant
+M-h281.19 rc=1 restored ok ['Ran 307 tests in 26.030s', 'FAILED (failures=39)']
+    billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code
+    billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_teacher_chat_refusals_are_402_or_403_never_500
+    billing.tests.test_refusal_handling.D4UncaughtRefusalTest.test_sync_assignment_create_refusal_is_402_or_403
+    billing.tests.test_refusal_handling_gates.ConcurrentRefusalTest.test_twenty_simultaneous_refusals_charge_nothing_and_persist_nothing
+    billing.tests_h281_individual_credit_wording.WhatAPolledItemSays.test_s4_describe_user_error_individual
+    billing.tests_h281_individual_credit_wording.WhatAPolledItemSays.test_s6_s7_an_individual_refusal_is_stored_and_read_back
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s1_a_teacher_removed_from_their_license_follows_the_owner_rule
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s1_an_individual_teacher_reads_the_individual_sentence
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s2_custom_ai_prompt_individual
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s5_a_whole_batch_refusal_individual
+    billing.tests_h281_individual_credit_wording.WhatEachSurfaceSays.test_s5_the_single_upload_door_for_a_teacher_individual
+    students.tests_h216_student_credit_sentence.EveryOtherAnswerIsUnchanged.test_c1_a_teacher_asking_for_the_same_edit_keeps_the_generic_body
+    students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t4_when_no_file_fits_the_batch_is_refused_whole
+    students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t6_one_dear_file_alone_is_refused_as_before
+    students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t4_when_no_file_fits_the_batch_is_refused_whole
+    students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t6_one_dear_file_alone_is_refused_as_before
+    students.tests_h225_student_empty_wallet.EveryOtherAnswerIsUnchanged.test_c1_a_teacher_at_an_empty_wallet_keeps_the_generic_body
+    students.tests_upload_credit_door.AssignmentUploadDoorTest.test_a_poor_teacher_is_refused_and_nothing_is_queued
+    students.tests_upload_credit_door.TeacherBatchDoorTest.test_a_poor_teacher_is_refused_and_nothing_is_queued
+exit=0

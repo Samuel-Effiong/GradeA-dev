@@ -1,0 +1,74 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user a0de9cf5-b115-466f-8d23-c6e2980c5180.
+Cannot activate automatic trial for user a0de9cf5-b115-466f-8d23-c6e2980c5180 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/.venv/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/staticfiles/
+  mw_instance = middleware(adapted_handler)
+Upload door could not estimate blank.png: PayloadEmpty
+API request failed with FILE_EMPTY: 'blank.png' is empty. Choose another file.
+FFree trial plan not found: no trial activated for user b5ed2986-f214-4b6f-bd87-dc5f4bf0e4cc.
+Cannot activate automatic trial for user b5ed2986-f214-4b6f-bd87-dc5f4bf0e4cc (validation): ValueError
+Upload door could not estimate blank.txt: PayloadEmpty
+API request failed with FILE_EMPTY: 'blank.txt' is empty. Choose another file.
+FFree trial plan not found: no trial activated for user 7568557b-001c-4b6f-b8a8-03ff72cd0848.
+Cannot activate automatic trial for user 7568557b-001c-4b6f-b8a8-03ff72cd0848 (validation): ValueError
+API request failed with FILE_EMPTY: 'blank.png' is empty. Choose another file.
+FFree trial plan not found: no trial activated for user ad43dc54-9d4e-4f2b-9dae-0d245973161a.
+Cannot activate automatic trial for user ad43dc54-9d4e-4f2b-9dae-0d245973161a (validation): ValueError
+API request failed with FILE_EMPTY: 'blank.txt' is empty. Choose another file.
+F
+======================================================================
+FAIL: test_a_zero_byte_answer_is_submission_empty_and_the_rest_run (students.tests_h274_empty_student_answer_doors.AnEmptyFileInABatchFailsAsItsItem.test_a_zero_byte_answer_is_submission_empty_and_the_rest_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/students/tests_h274_empty_student_answer_doors.py", line 79, in test_a_zero_byte_answer_is_submission_empty_and_the_rest_run
+    self.run_batch(_empty("blank.png", "image/png"), "SUBMISSION_EMPTY")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/students/tests_h274_empty_student_answer_doors.py", line 66, in run_batch
+    self.assertEqual(response.status_code, 202, response.content[:400])
+AssertionError: 400 != 202 : b'{"success":false,"message":"\'blank.png\' is empty. Choose another file.","error":{"field_errors":{"error":"\'blank.png\' is empty. Choose another file.","reason_code":"FILE_EMPTY","error_class":"USER","remediation":"Select a file that has content, then upload it again.","retryable":false,"params":{"file_name":"blank.png"},"reference":"6c8b404c81914f88a8ab4db799f389cf"}}}'
+
+======================================================================
+FAIL: test_an_empty_unsupported_file_is_the_type_first_and_the_rest_run (students.tests_h274_empty_student_answer_doors.AnEmptyFileInABatchFailsAsItsItem.test_an_empty_unsupported_file_is_the_type_first_and_the_rest_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/students/tests_h274_empty_student_answer_doors.py", line 82, in test_an_empty_unsupported_file_is_the_type_first_and_the_rest_run
+    self.run_batch(_empty("blank.txt", "text/plain"), "FILE_TYPE_UNSUPPORTED")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/students/tests_h274_empty_student_answer_doors.py", line 66, in run_batch
+    self.assertEqual(response.status_code, 202, response.content[:400])
+AssertionError: 400 != 202 : b'{"success":false,"message":"\'blank.txt\' is empty. Choose another file.","error":{"field_errors":{"error":"\'blank.txt\' is empty. Choose another file.","reason_code":"FILE_EMPTY","error_class":"USER","remediation":"Select a file that has content, then upload it again.","retryable":false,"params":{"file_name":"blank.txt"},"reference":"2f54b782721d4e789f2173f9b22d3575"}}}'
+
+======================================================================
+FAIL: test_a_zero_byte_answer_is_submission_empty (students.tests_h274_empty_student_answer_doors.TheAsyncStudentUploadKeepsS6.test_a_zero_byte_answer_is_submission_empty)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/students/tests_h274_empty_student_answer_doors.py", line 43, in test_a_zero_byte_answer_is_submission_empty
+    self.assertTaskFailedWith(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/students/tests_h274_empty_student_answer_doors.py", line 37, in assertTaskFailedWith
+    self.assertEqual(response.status_code, 200, response.content[:400])
+AssertionError: 400 != 200 : b'{"success":false,"message":"\'blank.png\' is empty. Choose another file.","error":{"field_errors":{"error":"\'blank.png\' is empty. Choose another file.","reason_code":"FILE_EMPTY","error_class":"USER","remediation":"Select a file that has content, then upload it again.","retryable":false,"params":{"file_name":"blank.png"},"reference":"1ac6a74f7ce14d1f90c71d525d1e0131"}}}'
+
+======================================================================
+FAIL: test_an_empty_file_of_an_unsupported_type_is_the_type_first (students.tests_h274_empty_student_answer_doors.TheAsyncStudentUploadKeepsS6.test_an_empty_file_of_an_unsupported_type_is_the_type_first)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/students/tests_h274_empty_student_answer_doors.py", line 48, in test_an_empty_file_of_an_unsupported_type_is_the_type_first
+    self.assertTaskFailedWith(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/students/tests_h274_empty_student_answer_doors.py", line 37, in assertTaskFailedWith
+    self.assertEqual(response.status_code, 200, response.content[:400])
+AssertionError: 400 != 200 : b'{"success":false,"message":"\'blank.txt\' is empty. Choose another file.","error":{"field_errors":{"error":"\'blank.txt\' is empty. Choose another file.","reason_code":"FILE_EMPTY","error_class":"USER","remediation":"Select a file that has content, then upload it again.","retryable":false,"params":{"file_name":"blank.txt"},"reference":"047f8d6ce0004ad19057478533d2e5b7"}}}'
+
+----------------------------------------------------------------------
+Ran 4 tests in 3.109s
+
+FAILED (failures=4)
+Destroying test database for alias 'default'...
+Found 4 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

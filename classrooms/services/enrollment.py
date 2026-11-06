@@ -432,7 +432,9 @@ def enroll_student_by_email(
             return student, True
 
         if StudentCourse.objects.filter(student=student, course=course).exists():
-            raise EnrollmentError("Student is already enrolled in this course.")
+            raise EnrollmentError(
+                "A student with this email is already enrolled in this course."
+            )
 
         # Same gate as bulk import and direct add - see
         # check_existing_account_may_join.
@@ -607,7 +609,10 @@ def renew_student_activation(*, token):
     ).first()
 
     if student is None:
-        raise EnrollmentError("Invalid token or user not found.")
+        raise EnrollmentError(
+            "This invitation link is invalid or has expired. "
+            "Ask your teacher to send a new one."
+        )
 
     enrollment = (
         StudentCourse.objects.filter(

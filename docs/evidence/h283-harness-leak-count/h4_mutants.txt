@@ -1,0 +1,17 @@
+== M1
+FAIL: test_a_baseline_session_ending_does_not_hide_a_leak (AutoGrader.tests_concurrency_harness.LeakCountDriftTests.test_a_baseline_session_ending_does_not_hide_a_leak)
+FAIL: test_a_single_leak_is_not_cancelled_out (AutoGrader.tests_concurrency_harness.LeakCountDriftTests.test_a_single_leak_is_not_cancelled_out)
+Ran 10 tests in 25.524s
+FAILED (failures=2)
+restored sha256 bbe5ec2503cbd66f60b25d5ea3c4fabf987a56afca4648d12cd5517c2d54cd7a
+== M2
+FAIL: test_a_session_open_before_the_run_is_not_a_leak (AutoGrader.tests_concurrency_harness.LeakCountDriftTests.test_a_session_open_before_the_run_is_not_a_leak)
+FAIL: test_a_clean_run_leaves_no_extra_backends (AutoGrader.tests_concurrency_harness.RunConcurrentlyTests.test_a_clean_run_leaves_no_extra_backends)
+Ran 10 tests in 55.066s
+FAILED (failures=2)
+restored sha256 bbe5ec2503cbd66f60b25d5ea3c4fabf987a56afca4648d12cd5517c2d54cd7a
+== M3
+FAIL: test_a_session_open_before_the_run_is_not_a_leak (AutoGrader.tests_concurrency_harness.LeakCountDriftTests.test_a_session_open_before_the_run_is_not_a_leak)
+Ran 10 tests in 44.981s
+FAILED (failures=1)
+restored sha256 bbe5ec2503cbd66f60b25d5ea3c4fabf987a56afca4648d12cd5517c2d54cd7a

@@ -38,7 +38,11 @@ from rest_framework.test import APITestCase
 from ai_processor.services import AIProcessor
 from assignments.models import Assignment, AssignmentStatus
 from assignments.tasks import upload_answers_engine_async
-from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
+from billing.errors import (
+    INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE,
+    INSUFFICIENT_CREDITS_MESSAGE,
+    InsufficientCreditsError,
+)
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from billing.tests.test_execute_graded_task import (
     TEST_PROMPT_VERSION,
@@ -300,7 +304,10 @@ class TeacherBatchDoorTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
         self.assertEqual(response.data["code"], "insufficient_credits")
-        self.assertEqual(response.data["error"], INSUFFICIENT_CREDITS_MESSAGE)
+        # H-281: the poor teacher is individual.
+        self.assertEqual(
+            response.data["error"], INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE
+        )
         launch.assert_not_called()
         self.assertEqual(BatchUploadSession.objects.count(), 0)
         self.assertEqual(BackgroundProcessingTask.objects.count(), 0)
@@ -337,7 +344,10 @@ class AssignmentUploadDoorTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
         self.assertEqual(response.data["code"], "insufficient_credits")
-        self.assertEqual(response.data["error"], INSUFFICIENT_CREDITS_MESSAGE)
+        # H-281: the poor teacher is individual.
+        self.assertEqual(
+            response.data["error"], INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE
+        )
         launch.assert_not_called()
         self.assertEqual(BatchUploadSession.objects.count(), 0)
 

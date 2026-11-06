@@ -1,0 +1,8 @@
+............................
+----------------------------------------------------------------------
+Ran 28 tests in 0.019s
+
+OK
+Found 28 test(s).
+System check identified no issues (0 silenced).
+pip-audit gate: 78 accepted advisories from .pip-audit-ignore.toml, 19 from .pip-audit-ignore-dev.toml

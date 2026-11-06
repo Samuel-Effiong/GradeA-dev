@@ -1,0 +1,40 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+F.F.......
+======================================================================
+FAIL: test_a_baseline_session_ending_does_not_hide_a_leak (AutoGrader.tests_concurrency_harness.LeakCountDriftTests.test_a_baseline_session_ending_does_not_hide_a_leak)
+----------------------------------------------------------------------
+AssertionError: 2 database session(s) still open after all 3 workers finished: a worker did not close its own connection.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h283/AutoGrader/tests_concurrency_harness.py", line 186, in test_a_baseline_session_ending_does_not_hide_a_leak
+    with self.assertRaisesRegex(
+         ^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "^3 database session\(s\) still open after all 3 workers" does not match "2 database session(s) still open after all 3 workers finished: a worker did not close its own connection."
+
+======================================================================
+FAIL: test_a_single_leak_is_not_cancelled_out (AutoGrader.tests_concurrency_harness.LeakCountDriftTests.test_a_single_leak_is_not_cancelled_out)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h283/AutoGrader/tests_concurrency_harness.py", line 195, in test_a_single_leak_is_not_cancelled_out
+    with self.assertRaisesRegex(
+         ^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: AssertionError not raised
+
+----------------------------------------------------------------------
+Ran 10 tests in 24.439s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...
+Found 10 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

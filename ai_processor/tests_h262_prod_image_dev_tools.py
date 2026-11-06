@@ -60,8 +60,6 @@ DEV_ONLY_PACKAGES = {
     "pyflakes",
     "pytest",
     "restructuredtext_lint",
-    "safety",
-    "safety-schemas",
     "snowballstemmer",
     "stevedore",
     "tblib",

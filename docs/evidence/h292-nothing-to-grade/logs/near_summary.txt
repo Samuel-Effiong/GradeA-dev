@@ -1,0 +1,6 @@
+Found 1393 test(s).
+API request refused: NotFound (404)
+.....API request refused: NotFound (404)
+API request refused: NotFound (404)
+Ran 1393 tests in 76.013s
+OK (skipped=15)

@@ -384,7 +384,7 @@ def log_provider_error(intent, exc: Exception) -> None:
 
 def busy_error() -> LicenceBillingChangeInProgress:
     return LicenceBillingChangeInProgress(
-        "Another billing change for this licence is still in progress or "
+        "Another billing change for this license is still in progress or "
         "awaiting reconciliation. Please try again shortly."
     )
 

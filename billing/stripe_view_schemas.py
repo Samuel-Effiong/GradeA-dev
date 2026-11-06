@@ -434,7 +434,7 @@ too, so trial users would be shown a bogus "cancelled" state.
                     "No subscription",
                     value={
                         "status": "inactive",
-                        "message": "No active subscription found to cancel",
+                        "message": "You don't have an active subscription to cancel.",
                     },
                     response_only=True,
                 )

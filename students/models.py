@@ -1,5 +1,6 @@
 import uuid
 
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
@@ -339,6 +340,15 @@ class StudentSubmission(models.Model):
     is_published = models.BooleanField(
         default=False, help_text=_("Whether the grade has been released to the student")
     )
+    # H-279: an AI re-grade of a released grade, held for the teacher. The
+    # whole result, keyed by the column names it would have written
+    # (students.services.HELD_RESULT_FIELDS); the released columns are
+    # untouched until the teacher approves it (students.services.
+    # promote_pending). Staff only: no student serializer reads these.
+    pending_result = models.JSONField(null=True, blank=True, encoder=DjangoJSONEncoder)
+    # The held result's grading time: its stamp, and the "has a held
+    # result" filter (?has_pending_result).
+    pending_graded_at = models.DateTimeField(null=True, blank=True, db_index=True)
     scheduled_grading_at = models.DateTimeField(
         null=True,
         blank=True,

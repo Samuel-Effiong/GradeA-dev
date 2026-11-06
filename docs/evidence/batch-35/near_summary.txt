@@ -1,0 +1,5 @@
+near f352897f: Ran 996 tests in 62.986s
+near f352897f: FAILED (failures=1, skipped=4)
+near 4ea2073f: Ran 997 tests in 56.928s
+near 4ea2073f: OK (skipped=4)
+full logs: GAP-a0-runs/b35/ (strict_b35.log, near_*.log, strict_bundle.sh: venv h284_deps_env)

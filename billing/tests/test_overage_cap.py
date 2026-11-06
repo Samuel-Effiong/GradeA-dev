@@ -38,13 +38,14 @@ from billing.tests.test_execute_graded_task import ExecuteGradedTaskTestBase
 #: H-233's rule still holds, and CAP_REACHED_SENTENCE is what keeps it:
 #: with nothing left the teacher is never told to "reduce your quantity to
 #: 0 or fewer".
+#: H-296: the owner reworded both sentences 2026-11-05.
 CAP_SENTENCE = (
-    "Purchase limit exceeded — max {max_blocks} blocks. Reduce your "
-    "quantity to {remaining} or fewer to proceed."
+    "You can buy up to {max_blocks} credit packs per billing period. "
+    "Reduce the quantity to {remaining} or fewer."
 )
 CAP_REACHED_SENTENCE = (
-    "Purchase limit reached — you have used all {max_blocks} blocks for "
-    "this billing cycle. You can buy more when your next cycle starts."
+    "You've bought the maximum of {max_blocks} credit packs for this "
+    "billing period. You can buy more when your next period starts."
 )
 
 
@@ -166,8 +167,7 @@ class PurchaseOverageViewCapTests(OverageCapTestBase):
         )
         self.assertEqual(
             response.data["remediation"],
-            "Request fewer blocks, or wait until your next billing cycle, then "
-            "try again.",
+            "Choose fewer credit packs, or wait until your next billing period.",
         )
 
     def _refusal(self, quantity):
@@ -192,7 +192,7 @@ class PurchaseOverageViewCapTests(OverageCapTestBase):
         expected = CAP_SENTENCE.format(max_blocks=3, remaining=1)
         self.assertEqual(body["message"], expected)
         self.assertEqual(body["error"]["field_errors"]["error"], expected)
-        self.assertIn("—", body["message"])
+        # H-296: the reworded sentence has no U+2014 dash to check for.
 
     def test_at_zero_left_both_places_read_the_other_sentence(self):
         self._set_blocks_used(3)  # none left
@@ -290,9 +290,9 @@ class GrantTimeOverageCapTests(OverageCapTestBase):
             "description", ""
         )
         for fragment in (
-            "Purchase limit exceeded",
-            "Purchase limit reached",
-            "or fewer to proceed",
-            "next cycle starts",
+            "credit packs per billing period",
+            "You've bought the maximum",
+            "Reduce the quantity to",
+            "next period starts",
         ):
             self.assertNotIn(fragment, written)

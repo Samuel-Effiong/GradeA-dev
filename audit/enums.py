@@ -96,6 +96,9 @@ class AuditAction(models.TextChoices):
     # Epic A completion S4: a plan, status, period or seat change on a
     # subscription or a school licence.
     SUBSCRIPTION_CHANGE = "SUBSCRIPTION_CHANGE", "Subscription changed"
+    # H-278: a session marked as, or cleared from being, THE active session
+    # of its school or teacher (the previous one is in the metadata).
+    SESSION_ACTIVE_CHANGE = "SESSION_ACTIVE_CHANGE", "Active session changed"
 
 
 # Actions that always touch a student's record, so they are kept 3 years.
@@ -135,6 +138,7 @@ class ReasonCode(models.TextChoices):
     FILE_UNREADABLE = "FILE_UNREADABLE", "File unreadable"
     FILE_TYPE_UNSUPPORTED = "FILE_TYPE_UNSUPPORTED", "File type not supported"
     FILE_TOO_LARGE = "FILE_TOO_LARGE", "File too large"
+    FILE_EMPTY = "FILE_EMPTY", "File is empty"
     SUBMISSION_EMPTY = "SUBMISSION_EMPTY", "Submission empty"
     RUBRIC_MISSING = "RUBRIC_MISSING", "Rubric missing"
     DUPLICATE_SUBMISSION = "DUPLICATE_SUBMISSION", "Duplicate submission"
@@ -171,6 +175,7 @@ class ReasonCode(models.TextChoices):
     # D1: roster import, whole request.
     ROSTER_NO_INPUT = "ROSTER_NO_INPUT", "Roster: no input"
     ROSTER_EMPTY = "ROSTER_EMPTY", "Roster: no student rows"
+    NOTHING_TO_GRADE = "NOTHING_TO_GRADE", "Grading: no ungraded submissions"
     ROSTER_FILE_UNREADABLE = "ROSTER_FILE_UNREADABLE", "Roster: file unreadable"
     ROSTER_TOO_MANY_ROWS = "ROSTER_TOO_MANY_ROWS", "Roster: too many rows"
     # D2: roster import, per row.
@@ -190,8 +195,8 @@ class ReasonCode(models.TextChoices):
     ROW_FAILED = "ROW_FAILED", "Row: failed"
     # E1: licence teacher management, whole request.
     TEACHER_LIST_EMPTY = "TEACHER_LIST_EMPTY", "No teachers given"
-    LICENCE_INACTIVE = "LICENCE_INACTIVE", "Licence inactive"
-    LICENCE_SEATS_EXCEEDED = "LICENCE_SEATS_EXCEEDED", "Licence seats exceeded"
+    LICENCE_INACTIVE = "LICENCE_INACTIVE", "License inactive"
+    LICENCE_SEATS_EXCEEDED = "LICENCE_SEATS_EXCEEDED", "License seats exceeded"
     # E2: licence teacher management, per teacher.
     TEACHER_EMAIL_NOT_BUSINESS = (
         "TEACHER_EMAIL_NOT_BUSINESS",
@@ -206,9 +211,9 @@ class ReasonCode(models.TextChoices):
     TEACHER_IN_OTHER_SCHOOL = "TEACHER_IN_OTHER_SCHOOL", "Teacher: in another school"
     TEACHER_ALREADY_ON_LICENCE = (
         "TEACHER_ALREADY_ON_LICENCE",
-        "Teacher: already on the licence",
+        "Teacher: already on the license",
     )
-    TEACHER_NOT_ON_LICENCE = "TEACHER_NOT_ON_LICENCE", "Teacher: not on the licence"
+    TEACHER_NOT_ON_LICENCE = "TEACHER_NOT_ON_LICENCE", "Teacher: not on the license"
     TEACHER_ADD_FAILED = "TEACHER_ADD_FAILED", "Teacher: add failed"
     TEACHER_REMOVE_FAILED = "TEACHER_REMOVE_FAILED", "Teacher: remove failed"
     # F: publishing grades.

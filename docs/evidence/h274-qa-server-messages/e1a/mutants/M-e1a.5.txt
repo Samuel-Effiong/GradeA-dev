@@ -1,0 +1,287 @@
+M-e1a.5: AutoGrader/uploads.py
+- '*, allow_empty=False):'
++ '*, allow_empty=True):'
+rc=1
+
+Found 26 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user c9bb3a61-7640-454c-864d-5615fe6fb1a5.
+Cannot activate automatic trial for user c9bb3a61-7640-454c-864d-5615fe6fb1a5 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/.venv/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+Upload door could not estimate blank.pdf: SubmissionEmptyError
+Upload door could not estimate blank2.pdf: SubmissionEmptyError
+Upload door could not estimate big.pdf: PayloadTooLarge
+Upload door could not estimate big2.pdf: PayloadTooLarge
+
+
+students.task_tracking ERROR 2026-11-02 16:59:54,228 task_tracking 27291 140090944154560 [request_id=5cbed182785e4208af82f46d312cee8f client_request_id=-] Background task 95cc1946-78d4-4d25-be0b-507ab0f760ae failed: error=PayloadTooLarge frames=views.py:1134:upload_assignment_async <- uploads.py:74:validate_upload_size
+
+
+
+
+students.task_tracking ERROR 2026-11-02 16:59:54,237 task_tracking 27291 140090944154560 [request_id=5cbed182785e4208af82f46d312cee8f client_request_id=-] Background task 4510a3b3-7661-4edc-ba53-9edbd7d38d91 failed: error=PayloadTooLarge frames=views.py:1134:upload_assignment_async <- uploads.py:74:validate_upload_size
+
+
+FFree trial plan not found: no trial activated for user 39a52330-c1a2-412f-bf86-8ecb08703b88.
+Cannot activate automatic trial for user 39a52330-c1a2-412f-bf86-8ecb08703b88 (validation): ValueError
+Upload door could not estimate blank.pdf: SubmissionEmptyError
+FFree trial plan not found: no trial activated for user 771f6c2d-3939-4d6f-b952-d36146196fe4.
+Cannot activate automatic trial for user 771f6c2d-3939-4d6f-b952-d36146196fe4 (validation): ValueError
+Upload door could not estimate blank.png: SubmissionEmptyError
+
+
+students.task_tracking ERROR 2026-11-02 16:59:55,405 task_tracking 27291 140090944154560 [request_id=4a9f201d058e4c2a88cc528380dceddd client_request_id=-] Background task 94ab0a4a-2893-4360-a067-1d28ef65cdbd failed: error=SubmissionEmptyError frames=tasks.py:1048:upload_answers_engine_async <- services.py:598:prepare_ai_content
+
+
+.Free trial plan not found: no trial activated for user 5737da70-5565-45de-a2a2-44e34a221dd8.
+Cannot activate automatic trial for user 5737da70-5565-45de-a2a2-44e34a221dd8 (validation): ValueError
+Upload door could not estimate blank.txt: FileTypeUnsupportedError
+
+
+students.task_tracking ERROR 2026-11-02 16:59:55,966 task_tracking 27291 140090944154560 [request_id=9445ac40eed84904b98fdc3086caf643 client_request_id=-] Background task e8cc2d15-c8a1-44c1-9229-920c6d694b44 failed: error=FileTypeUnsupportedError frames=tasks.py:1048:upload_answers_engine_async <- services.py:590:prepare_ai_content
+
+
+.Free trial plan not found: no trial activated for user 134ac447-f39c-4acf-9c24-288cbaec48fc.
+Cannot activate automatic trial for user 134ac447-f39c-4acf-9c24-288cbaec48fc (validation): ValueError
+Upload door could not estimate blank.png: SubmissionEmptyError
+
+
+students.task_tracking ERROR 2026-11-02 16:59:56,346 task_tracking 27291 140090944154560 [request_id=498b087833614c2593d096b82af9951d client_request_id=-] Background task 6e3bc2f2-ed6c-4156-9324-b2d2f540d9f5 failed: error=SubmissionEmptyError frames=tasks.py:1048:upload_answers_engine_async <- services.py:598:prepare_ai_content
+
+
+.Free trial plan not found: no trial activated for user 6ed9a061-d013-4edb-a126-85e1ebd814c3.
+Cannot activate automatic trial for user 6ed9a061-d013-4edb-a126-85e1ebd814c3 (validation): ValueError
+Upload door could not estimate blank.txt: FileTypeUnsupportedError
+
+
+students.task_tracking ERROR 2026-11-02 16:59:56,580 task_tracking 27291 140090944154560 [request_id=9b7f7626b6544747b71d0aad5981d669 client_request_id=-] Background task 5bf99c09-c931-40c2-aba9-f12ee894ddb5 failed: error=FileTypeUnsupportedError frames=tasks.py:1048:upload_answers_engine_async <- services.py:590:prepare_ai_content
+
+
+.Free trial plan not found: no trial activated for user 604e52c5-eba8-44ba-8e37-5dd527145190.
+Cannot activate automatic trial for user 604e52c5-eba8-44ba-8e37-5dd527145190 (validation): ValueError
+Free trial plan not found: no trial activated for user bfee0214-5624-4d62-8c12-c90edc480db8.
+Cannot activate automatic trial for user bfee0214-5624-4d62-8c12-c90edc480db8 (validation): ValueError
+API request failed with FILE_UNREADABLE: We couldn't read answers.pdf. It may be damaged, password-protected or incomplete.
+.Free trial plan not found: no trial activated for user 278dc9d0-1421-4299-bdc3-2d53f3001b21.
+Cannot activate automatic trial for user 278dc9d0-1421-4299-bdc3-2d53f3001b21 (validation): ValueError
+Free trial plan not found: no trial activated for user f0bd3209-f02d-4446-a692-8414e5331b9b.
+Cannot activate automatic trial for user f0bd3209-f02d-4446-a692-8414e5331b9b (validation): ValueError
+API request failed with FILE_UNREADABLE: We couldn't read answers.pdf. It may be damaged, password-protected or incomplete.
+.Free trial plan not found: no trial activated for user f505c9b7-7566-472f-8acc-3d90baf893b3.
+Cannot activate automatic trial for user f505c9b7-7566-472f-8acc-3d90baf893b3 (validation): ValueError
+Free trial plan not found: no trial activated for user 6623d28b-e4d2-44a3-b75d-d97127e8365c.
+Cannot activate automatic trial for user 6623d28b-e4d2-44a3-b75d-d97127e8365c (validation): ValueError
+API request failed with SUBMISSION_EMPTY: blank.pdf has no student answers to grade.
+.Free trial plan not found: no trial activated for user 323cbbf6-1c2f-450d-a0eb-1278685e43b1.
+Cannot activate automatic trial for user 323cbbf6-1c2f-450d-a0eb-1278685e43b1 (validation): ValueError
+Free trial plan not found: no trial activated for user 29f994fd-910a-42d7-813e-7a7e5db883c0.
+Cannot activate automatic trial for user 29f994fd-910a-42d7-813e-7a7e5db883c0 (validation): ValueError
+API request failed with FILE_NOT_A_PDF: photo.pdf is not a PDF. If it is a photo or scan, upload it as an image instead.
+.Free trial plan not found: no trial activated for user 1799f495-3a65-4d99-a90c-1c0b269e8c41.
+Cannot activate automatic trial for user 1799f495-3a65-4d99-a90c-1c0b269e8c41 (validation): ValueError
+Free trial plan not found: no trial activated for user 9d7da358-6232-47e4-9fdf-8492059ff553.
+Cannot activate automatic trial for user 9d7da358-6232-47e4-9fdf-8492059ff553 (validation): ValueError
+API request failed with FILE_TYPE_UNSUPPORTED: notes.txt is a TXT file, which isn't supported. Accepted types: PDF, JPEG, PNG, GIF, WebP.
+.Free trial plan not found: no trial activated for user d2e724cf-869b-4321-95bc-e3f350ce8dc0.
+Cannot activate automatic trial for user d2e724cf-869b-4321-95bc-e3f350ce8dc0 (validation): ValueError
+Free trial plan not found: no trial activated for user 7ec66a34-64b6-4037-80a7-3298bc9803db.
+Cannot activate automatic trial for user 7ec66a34-64b6-4037-80a7-3298bc9803db (validation): ValueError
+API request failed with FILE_UNREADABLE: We couldn't read answers.pdf. It may be damaged, password-protected or incomplete.
+.Free trial plan not found: no trial activated for user ca47c7a0-df70-44c9-8eba-17a628994481.
+Cannot activate automatic trial for user ca47c7a0-df70-44c9-8eba-17a628994481 (validation): ValueError
+Free trial plan not found: no trial activated for user 1c03a8f6-3827-4754-a300-5f98114d7154.
+Cannot activate automatic trial for user 1c03a8f6-3827-4754-a300-5f98114d7154 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/.venv/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request failed with FILE_TYPE_UNSUPPORTED: answers is a application/zip file, which isn't supported. Accepted types: PDF, JPEG, PNG, GIF, WebP.
+.Free trial plan not found: no trial activated for user 5c66c40c-c98d-4b74-a3e8-73bd5b7ed51a.
+Cannot activate automatic trial for user 5c66c40c-c98d-4b74-a3e8-73bd5b7ed51a (validation): ValueError
+Free trial plan not found: no trial activated for user 43da51df-5e0c-478b-a1d7-2b119f39679d.
+Cannot activate automatic trial for user 43da51df-5e0c-478b-a1d7-2b119f39679d (validation): ValueError
+API request failed with SUBMISSION_EMPTY: blank.png has no student answers to grade.
+.Free trial plan not found: no trial activated for user c2c14948-6d01-4ab3-a6b5-8e1a7c565f75.
+Cannot activate automatic trial for user c2c14948-6d01-4ab3-a6b5-8e1a7c565f75 (validation): ValueError
+Free trial plan not found: no trial activated for user b8b81d51-1d64-4342-81b3-4a2884618563.
+Cannot activate automatic trial for user b8b81d51-1d64-4342-81b3-4a2884618563 (validation): ValueError
+API request failed with FILE_TYPE_UNSUPPORTED: blank.txt is a TXT file, which isn't supported. Accepted types: PDF, JPEG, PNG, GIF, WebP.
+.Free trial plan not found: no trial activated for user f2957058-9f74-4e1e-87be-6be1c9c5246e.
+Cannot activate automatic trial for user f2957058-9f74-4e1e-87be-6be1c9c5246e (validation): ValueError
+Free trial plan not found: no trial activated for user fe651be7-375a-4fb4-98e9-8303e9501f65.
+Cannot activate automatic trial for user fe651be7-375a-4fb4-98e9-8303e9501f65 (validation): ValueError
+API request failed with FILE_TOO_LARGE: scan.png is 6.5 MB even after compression and the limit is 5 MB.
+API request failed with FILE_TOO_LARGE: scan.pdf is 6.5 MB even after compression and the limit is 5 MB.
+.Free trial plan not found: no trial activated for user 0a45a305-eb64-4ecb-b8a6-2b6591eaaa75.
+Cannot activate automatic trial for user 0a45a305-eb64-4ecb-b8a6-2b6591eaaa75 (validation): ValueError
+Free trial plan not found: no trial activated for user 50cb2cfd-83d8-4b7f-b3ef-5f3c5e8404d1.
+Cannot activate automatic trial for user 50cb2cfd-83d8-4b7f-b3ef-5f3c5e8404d1 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h274/.venv/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request failed with FILE_UNREADABLE: We couldn't read scan.png. It may be damaged, password-protected or incomplete.
+.Free trial plan not found: no trial activated for user 0fef6343-9a6e-4cb0-87ee-488b4b98b1ec.
+Cannot activate automatic trial for user 0fef6343-9a6e-4cb0-87ee-488b4b98b1ec (validation): ValueError
+Free trial plan not found: no trial activated for user 43c06bad-b54c-4316-acf3-17a3db6be296.
+Cannot activate automatic trial for user 43c06bad-b54c-4316-acf3-17a3db6be296 (validation): ValueError
+API request failed with FILE_TOO_LARGE: scan.png is too large even after compression and the limit is 4 MB.
+.Free trial plan not found: no trial activated for user 4cf17e2e-bca2-4359-8ae3-38e07ab5c31e.
+Cannot activate automatic trial for user 4cf17e2e-bca2-4359-8ae3-38e07ab5c31e (validation): ValueError
+Free trial plan not found: no trial activated for user a4f4e7e2-940a-4f1b-82d2-ec9876bcfab9.
+Cannot activate automatic trial for user a4f4e7e2-940a-4f1b-82d2-ec9876bcfab9 (validation): ValueError
+API request failed with FILE_TOO_LARGE: big.pdf is 3.0 MB and the limit is 1 MB.
+.Free trial plan not found: no trial activated for user 4d104388-cc21-4c0a-98f3-eead7db54df0.
+Cannot activate automatic trial for user 4d104388-cc21-4c0a-98f3-eead7db54df0 (validation): ValueError
+Free trial plan not found: no trial activated for user 7e968206-cab6-45cf-9060-4bbde3205294.
+Cannot activate automatic trial for user 7e968206-cab6-45cf-9060-4bbde3205294 (validation): ValueError
+API request failed with FILE_TOO_LARGE: long.pdf is 3 pages and the limit is 2 pages.
+.Free trial plan not found: no trial activated for user 67964ed7-3589-48d1-8280-b4081f2b09b5.
+Cannot activate automatic trial for user 67964ed7-3589-48d1-8280-b4081f2b09b5 (validation): ValueError
+Free trial plan not found: no trial activated for user 12c3cdc7-f272-450b-9a8a-78d7ffcb5054.
+Cannot activate automatic trial for user 12c3cdc7-f272-450b-9a8a-78d7ffcb5054 (validation): ValueError
+API request failed with FILE_TOO_LARGE: huge.png is 200x120 px and the limit is 0.02 MP.
+..F.Free trial plan not found: no trial activated for user 66139535-1e26-4ac7-b068-4d9aff4eabfe.
+Cannot activate automatic trial for user 66139535-1e26-4ac7-b068-4d9aff4eabfe (validation): ValueError
+Failed to extract assignment from file blank.pdf
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/file_uploads.py", line 116, in upload_assignment_file
+    content = AssignmentProcessingService.prepare_ai_content(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/services.py", line 598, in prepare_ai_content
+    raise SubmissionEmptyError(params={"file_name": file_name})
+assignments.exceptions.SubmissionEmptyError: blank.pdf has no student answers to grade.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/views.py", line 948, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/file_uploads.py", line 122, in upload_assignment_file
+    raise FileUnreadableError(params=dict(exc.params)) from exc
+assignments.exceptions.FileUnreadableError: We couldn't read blank.pdf. It may be damaged, password-protected or incomplete.
+Failed to extract assignment from file blank2.pdf
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/file_uploads.py", line 116, in upload_assignment_file
+    content = AssignmentProcessingService.prepare_ai_content(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/services.py", line 598, in prepare_ai_content
+    raise SubmissionEmptyError(params={"file_name": file_name})
+assignments.exceptions.SubmissionEmptyError: blank2.pdf has no student answers to grade.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/views.py", line 948, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/file_uploads.py", line 122, in upload_assignment_file
+    raise FileUnreadableError(params=dict(exc.params)) from exc
+assignments.exceptions.FileUnreadableError: We couldn't read blank2.pdf. It may be damaged, password-protected or incomplete.
+FFree trial plan not found: no trial activated for user fbf01a9a-3f7b-4376-bc89-cdd2098097bd.
+Cannot activate automatic trial for user fbf01a9a-3f7b-4376-bc89-cdd2098097bd (validation): ValueError
+Failed to extract assignment from file blank.pdf
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/file_uploads.py", line 116, in upload_assignment_file
+    content = AssignmentProcessingService.prepare_ai_content(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/services.py", line 598, in prepare_ai_content
+    raise SubmissionEmptyError(params={"file_name": file_name})
+assignments.exceptions.SubmissionEmptyError: blank.pdf has no student answers to grade.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/views.py", line 948, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/file_uploads.py", line 122, in upload_assignment_file
+    raise FileUnreadableError(params=dict(exc.params)) from exc
+assignments.exceptions.FileUnreadableError: We couldn't read blank.pdf. It may be damaged, password-protected or incomplete.
+F
+======================================================================
+FAIL: test_an_all_empty_request_answers_like_an_all_too_large_one (assignments.tests_h274_empty_upload_doors.TheAsyncTeacherUploadIsNeverHalfQueued.test_an_all_empty_request_answers_like_an_all_too_large_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/tests_h274_empty_upload_doors.py", line 154, in test_an_all_empty_request_answers_like_an_all_too_large_one
+    self.assertEqual(_shape(empty.json()), _shape(large.json()))
+AssertionError: {'suc[119 chars]d': 'str', 'item_id': 'str'}, {'file_name': 's[38 chars]'}]}} != {'suc[119 chars]d': 'NoneType', 'item_id': 'str'}, {'file_name[48 chars]'}]}}
+  {'data': {'message': 'str',
+            'session_id': 'str',
+-           'tasks': [{'file_name': 'str', 'item_id': 'str', 'task_id': 'str'},
+-                     {'file_name': 'str', 'item_id': 'str', 'task_id': 'str'}]},
++           'tasks': [{'file_name': 'str',
++                      'item_id': 'str',
++                      'task_id': 'NoneType'},
++                     {'file_name': 'str',
++                      'item_id': 'str',
++                      'task_id': 'NoneType'}]},
+   'message': 'str',
+   'success': 'bool'}
+
+======================================================================
+FAIL: test_one_empty_file_fails_as_its_item_and_the_rest_are_queued (assignments.tests_h274_empty_upload_doors.TheAsyncTeacherUploadIsNeverHalfQueued.test_one_empty_file_fails_as_its_item_and_the_rest_are_queued)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/tests_h274_empty_upload_doors.py", line 141, in test_one_empty_file_fails_as_its_item_and_the_rest_are_queued
+    self.assertEqual(self.dispatched, ["a.png", "c.png"])
+AssertionError: Lists differ: ['a.png', 'blank.pdf', 'c.png'] != ['a.png', 'c.png']
+
+First differing element 1:
+'blank.pdf'
+'c.png'
+
+First list contains 1 additional elements.
+First extra element 2:
+'c.png'
+
+- ['a.png', 'blank.pdf', 'c.png']
++ ['a.png', 'c.png']
+
+======================================================================
+FAIL: test_by_default_a_zero_byte_file_is_file_empty (assignments.tests_h274_empty_upload_doors.TheEmptyCheckIsTheCallersChoice.test_by_default_a_zero_byte_file_is_file_empty)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/tests_h274_empty_upload_doors.py", line 41, in test_by_default_a_zero_byte_file_is_file_empty
+    with self.assertRaises(PayloadEmpty):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: PayloadEmpty not raised
+
+======================================================================
+FAIL: test_an_all_empty_request_answers_like_an_all_too_large_one (assignments.tests_h274_empty_upload_doors.TheSyncTeacherUploadFailsAnEmptyFileAsItsOwnEntry.test_an_all_empty_request_answers_like_an_all_too_large_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/tests_h274_empty_upload_doors.py", line 102, in test_an_all_empty_request_answers_like_an_all_too_large_one
+    self.assertIn(EMPTY_PDF_TEXT, empty.content.decode())
+AssertionError: "'blank.pdf' is empty. Choose another file." not found in '{"success":false,"message":"1. File name: blank.pdf\\n 2. Error: We couldn\'t read blank.pdf. It may be damaged, password-protected or incomplete.\\n 3. File name: blank2.pdf\\n 4. Error: We couldn\'t read blank2.pdf. It may be damaged, password-protected or incomplete.\\n","error":{}}'
+
+======================================================================
+FAIL: test_one_empty_file_fails_only_itself (assignments.tests_h274_empty_upload_doors.TheSyncTeacherUploadFailsAnEmptyFileAsItsOwnEntry.test_one_empty_file_fails_only_itself)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/claude-1000/-home-bond-servant-in-training-Documents-Projects-Grade-Automator-Plus/8eb9e903-a8dd-4901-a907-442e8f3a1e4e/scratchpad/mut_e1a/assignments/tests_h274_empty_upload_doors.py", line 92, in test_one_empty_file_fails_only_itself
+    self.assertEqual(failed, [{"file_name": "blank.pdf", "error": EMPTY_PDF_TEXT}])
+AssertionError: Lists differ: [{'fi[28 chars]r': "We couldn't read blank.pdf. It may be dam[37 chars]e."}] != [{'fi[28 chars]r': "'blank.pdf' is empty. Choose another file."}]
+
+First differing element 0:
+{'fil[27 chars]r': "We couldn't read blank.pdf. It may be dam[36 chars]te."}
+{'fil[27 chars]r': "'blank.pdf' is empty. Choose another file."}
+
++ [{'error': "'blank.pdf' is empty. Choose another file.",
+- [{'error': "We couldn't read blank.pdf. It may be damaged, password-protected "
+-            'or incomplete.',
+    'file_name': 'blank.pdf'}]
+
+----------------------------------------------------------------------
+Ran 26 tests in 8.497s
+
+FAILED (failures=5)
+Destroying test database for alias 'default'...

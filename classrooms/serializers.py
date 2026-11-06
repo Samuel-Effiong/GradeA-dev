@@ -1,5 +1,6 @@
 import logging
 import secrets
+from urllib.parse import quote
 
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
@@ -16,7 +17,7 @@ from assignments.serializers import (
     AssignmentListStudentSerializer,
 )
 from assignments.services import get_student_assignment_status
-from AutoGrader.image_formats import validate_image_format
+from AutoGrader.image_formats import ProfileImageField, validate_image_format
 from AutoGrader.tasks import send_email_task
 from billing.context import (
     clear_license_invitation_context,
@@ -58,6 +59,7 @@ class SessionSerializer(serializers.ModelSerializer):
             "owner_type",
             "teacher",
             "school",
+            "is_active",
             "created_by",
             "created_at",
         ]
@@ -194,6 +196,14 @@ class CourseSerializer(serializers.ModelSerializer):
             # Fail closed (H-18 hardening): a caller that builds this
             # serializer without the request must not skip the check.
             raise serializers.ValidationError("You do not have access to this session.")
+
+        if value is None:
+            # H-295: a course needs a session (the field is nullable only for
+            # legacy rows). Omitted, null or "" used to crash below (500);
+            # it is the framework's own "required" refusal instead.
+            raise serializers.ValidationError(
+                self.fields["session"].error_messages["required"], code="required"
+            )
 
         if value.owner_type == SessionOwnerType.INDIVIDUAL:
             if user.is_under_license() or value.teacher_id != user.id:
@@ -652,7 +662,7 @@ class DirectAddStudentSerializer(serializers.Serializer):
         max_length=150, validators=[MinLengthValidator(2)], required=True
     )
     email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
-    profile_image = serializers.ImageField(
+    profile_image = ProfileImageField(
         required=False,
         allow_null=True,
         validators=[validate_image_format],
@@ -703,7 +713,8 @@ class DirectAddStudentSerializer(serializers.Serializer):
                     "  ", " "
                 ).strip()
                 raise serializers.ValidationError(
-                    f"A student with the exact name {full_name!r} is already enrolled in this course."
+                    f"{full_name} is already enrolled in this course.",
+                    code="name_clash",
                 )
 
         return attrs
@@ -733,7 +744,7 @@ class DirectAddStudentSerializer(serializers.Serializer):
                     student=student, course=course
                 ).exists():
                     raise serializers.ValidationError(
-                        "Student is already enrolled in this course."
+                        "A student with this email is already enrolled in this course."
                     )
 
                 # This path attaches an EXISTING account, so it needs the
@@ -828,7 +839,7 @@ class StudentRegistrationCompletionSerializer(serializers.Serializer):
         validators=[MinLengthValidator(8)],
     )
     token = serializers.CharField(write_only=True)
-    profile_image = serializers.ImageField(
+    profile_image = ProfileImageField(
         required=False,
         allow_null=True,
         validators=[validate_image_format],
@@ -930,7 +941,9 @@ def _send_school_admin_invitation_email(user, school, generated_password=None):
     else:
         activation_url = (
             f"https://{frontend_domain}/register/school-admin"
-            f"?email={user.email}&token={user.activation_token}"
+            # H-291: encoded, or a "+" in the address reads back as a space.
+            f"?email={quote(user.email, safe='@')}"
+            f"&token={quote(str(user.activation_token), safe='')}"
         )
         merge_data = {
             "title": f"You've been added as the admin for {school.name}",
@@ -1015,7 +1028,7 @@ class SchoolWithAdminSerializer(serializers.Serializer):
         max_length=150, required=False, allow_blank=True
     )
 
-    admin_profile_image = serializers.ImageField(
+    admin_profile_image = ProfileImageField(
         required=False,
         allow_null=True,
         validators=[validate_image_format],

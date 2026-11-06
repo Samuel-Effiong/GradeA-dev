@@ -416,11 +416,11 @@ class LicenseSubscriptionService:
             if carry_forward_emails:
                 added += (
                     f" ({len(carry_forward_emails)} carried over from the current "
-                    f"licence + {len(genuinely_new_emails)} new)"
+                    f"license + {len(genuinely_new_emails)} new)"
                 )
             raise LicenseRequestError(
-                f"This licence has {seats}, but {added}. "
-                "Remove a teacher or increase Max seats."
+                f"This license has {seats}, but {added}. "
+                "Remove a teacher or increase max seats."
             )
 
         return carry_forward_emails, genuinely_new_emails
@@ -1977,7 +1977,7 @@ class LicenseSubscriptionService:
 
         if not allocation:
             raise LicenseRequestError(
-                "This teacher isn't an active teacher on this licence."
+                "This teacher isn't an active teacher on this license."
             )
 
         # 1. Deactivate allocation

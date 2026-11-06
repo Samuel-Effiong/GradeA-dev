@@ -1,11 +1,18 @@
 import logging
+import re
 
-from rest_framework.exceptions import AuthenticationFailed, Throttled
+from django.http import Http404
+from rest_framework.exceptions import AuthenticationFailed, Throttled, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 from audit.enums import ReasonCode
-from AutoGrader.reason_codes import CodedError, add_coded_envelope, coded_response
+from AutoGrader.reason_codes import (
+    CodedError,
+    add_coded_envelope,
+    coded_response,
+    reason_of,
+)
 from billing.errors import StudentEmptyWalletError
 from billing.refusals import is_permanent_refusal, log_refusal
 from students.exceptions import STUDENT_UPLOAD_NOT_PROCESSED
@@ -29,6 +36,30 @@ class EnvelopedThrottled(Throttled):
     def __init__(self, wait=None, detail=None, *, reason_code, code_value=None):
         super().__init__(wait=wait, detail=detail)
         self.envelope = (reason_code, code_value)
+
+
+# H-296: owner-approved not-found text in place of Django's
+# "No <Model> matches the given query." (it named internal models). The same
+# text whether the item never existed or is someone else's.
+_NOT_FOUND_DEFAULT = re.compile(r"^No (\w+) matches the given query\.$")
+_NOT_FOUND_THING = {
+    "Course": "course",
+    "Assignment": "assignment",
+    "StudentSubmission": "submission",
+    "Session": "session",
+}
+
+
+def _reword_not_found(exc, drf_response):
+    if not isinstance(exc, Http404) or not isinstance(drf_response.data, dict):
+        return
+    match = _NOT_FOUND_DEFAULT.match(str(drf_response.data.get("detail", "")))
+    if match is None:
+        return
+    thing = _NOT_FOUND_THING.get(match.group(1), "item")
+    drf_response.data["detail"] = (
+        f"We couldn't find that {thing}. It may have been deleted."
+    )
 
 
 def custom_exception_handler(exc, context):
@@ -61,6 +92,11 @@ def custom_exception_handler(exc, context):
             response.data["error"] = STUDENT_UPLOAD_NOT_PROCESSED
             response.data["remediation"] = None
         response._drf_handled = True  # marker for renderer
+        # H-273: stash for audit middleware
+        response._audit_exc = exc
+        reason = reason_of(exc)
+        if reason is not None:
+            response._audit_reason_code = reason[0].value
         return response
 
     # ---- Let DRF try to handle it (validation, 404, etc.) ----
@@ -76,6 +112,22 @@ def custom_exception_handler(exc, context):
             drf_response.status_code,
             extra=extra,
         )
+        # H-273: stash for audit middleware (exception ref, never its text)
+        drf_response._audit_exc = exc
+        _reword_not_found(exc, drf_response)
+        if isinstance(exc, ValidationError):
+            if isinstance(exc.detail, dict):
+                safe = sorted(
+                    k
+                    for k in exc.detail
+                    if isinstance(k, str)
+                    and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,63}", k)
+                )
+                drf_response._audit_fields = safe[:20]
+                if len(safe) > 20:
+                    drf_response._audit_fields_truncated = True
+            else:
+                drf_response._audit_fields = ["non_field_errors"]
         envelope = getattr(exc, "envelope", None)
         if envelope is not None and isinstance(drf_response.data, dict):
             reason_code, code_value = envelope
@@ -85,6 +137,8 @@ def custom_exception_handler(exc, context):
                 str(drf_response.data.get("detail", "")),
                 code_value=code_value,
             )
+            # H-273: the coded envelope's reason reaches the audit row too
+            drf_response._audit_reason_code = ReasonCode(reason_code).value
         elif isinstance(exc, Throttled) and isinstance(drf_response.data, dict):
             # The generic catch-all: every OTHER throttle (the global
             # defaults, the named AnonRateThrottle buckets in
@@ -101,6 +155,7 @@ def custom_exception_handler(exc, context):
                 str(drf_response.data.get("detail", "")),
                 params={"wait_seconds": round(exc.wait) if exc.wait is not None else 0},
             )
+            drf_response._audit_reason_code = ReasonCode.RATE_LIMITED.value
         drf_response._drf_handled = True  # marker for renderer
         return drf_response
 
@@ -111,4 +166,5 @@ def custom_exception_handler(exc, context):
     response = Response(status=500)
     response.exception = True
     response._raw_exc = exc  # for traceback in renderer
+    response._audit_exc = exc  # H-273: stash for audit middleware
     return response

@@ -367,7 +367,7 @@ class RemovedTeacherAssignmentRouteTests(RemovedTeacherRoutesBase):
             BatchUploadSession.objects.count() != before,
         )
         # Strict: the guard's 404. With A1 reverted, get_object() returns the
-        # assignment and the view answers 400 "No ungraded submissons".
+        # assignment and the view answers 400 NOTHING_TO_GRADE.
         self.assertEqual(response.status_code, 404, response.content)
         self.assertLess(response.status_code, 500, response.content)
         self.assertEqual(BatchUploadSession.objects.count(), before)

@@ -44,7 +44,7 @@ from audit.enums import AuditAction, AuditOutcome, ReasonCode
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.reason_codes import CodedError, coded_entry
-from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
+from AutoGrader.uploads import PayloadEmpty, PayloadTooLarge, validate_upload_size
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
 from classrooms.models import (
@@ -310,6 +310,15 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     Assignments can contain multiple questions with various types (objective, essay, etc.)
     and are used to assess student knowledge.
     """
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        # H-296: owner-approved success message (was "Request Successful").
+        if (
+            self.action in ("update", "partial_update")
+            and 200 <= response.status_code < 300
+        ):
+            response.message = "Assignment saved."
+        return super().finalize_response(request, response, *args, **kwargs)
 
     queryset = Assignment.objects.all()
     serializer_class = AssignmentSerializer
@@ -801,7 +810,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         topic_id = request.query_params.get("topic_id")
 
         if not topic_id:
-            raise ParseError("Topic ID is required.")
+            raise ParseError("Choose a topic first.")
 
         topic = get_object_or_404(Topic, id=topic_id)
 
@@ -869,14 +878,14 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def upload_assignment(self, request, *args, **kwargs):
         course_id = request.data.get("course")
         if not course_id:
-            raise ParseError("Course ID is required.")
+            raise ParseError("Choose a course first.")
 
         # Validate course exists and user has access to it
         try:
             course = get_object_or_404(reachable_courses(request.user), id=course_id)
         except (ValueError, ValidationError):
             raise ParseError(
-                "Invalid Course ID format. Must be with a valid UUID"
+                "We couldn't find that course. Go back and select it again."
             ) from Exception
         except Http404:
             raise NotFound(
@@ -940,7 +949,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
             try:
                 validate_upload_size(uploaded_file)
-            except PayloadTooLarge as exc:
+            except (PayloadTooLarge, PayloadEmpty) as exc:
                 failed.append({"file_name": file_name, "error": str(exc.detail)})
                 continue
 
@@ -1054,7 +1063,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def upload_assignment_async(self, request, *args, **kwargs):
         course_id = request.data.get("course")
         if not course_id:
-            raise ParseError("Course ID is required.")
+            raise ParseError("Choose a course first.")
 
         # Validate course exists and user has access to it
         course = get_object_or_404(reachable_courses(request.user), id=course_id)
@@ -1096,7 +1105,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # left to the loop below, which refuses it as its own item.
         parked = parked_files(request.user, None, files, prompt_text)
         if parked and len(parked) == len(files):
-            return batch_refusal_response()
+            # A teacher-only route: the batch is billed to the caller.
+            return batch_refusal_response(request.user)
 
         session = BatchUploadSession.objects.create(
             teacher=request.user,
@@ -1132,7 +1142,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             else:
                 try:
                     validate_upload_size(uploaded_file)
-                except PayloadTooLarge as exc:
+                except (PayloadTooLarge, PayloadEmpty) as exc:
                     refusal = exc
             if refusal is None and item_index - 1 in parked_items:
                 # H-223: parked (recorded above); uploaded again after a top-up.
@@ -1760,7 +1770,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         ungraded_submissions = assignment.submissions.filter(Q(graded_at__isnull=True))
 
         if not ungraded_submissions.exists():
-            raise ParseError("No ungraded submissons to process")
+            # H-292: a coded refusal, not a ParseError (PARSE_ERROR in the log).
+            raise CodedError(ReasonCode.NOTHING_TO_GRADE)
 
         session = BatchUploadSession.objects.create(
             teacher=request.user,
@@ -1896,7 +1907,10 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # Local import: students.services reaches back into assignments
         # (models/tasks), so importing it at module level here would create
         # an import cycle.
-        from students.services import notify_student_of_graded_submission
+        from students.services import (
+            notify_student_of_graded_submission,
+            promote_all_pending,
+        )
         from students.signals import invalidate_submission_caches_bulk
 
         assignment = self.get_object()
@@ -1917,13 +1931,29 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         total_graded = graded_submissions.count()
         if total_graded == 0:
             # "Nothing to publish" stays a normal answer, as before.
+            # H-296 (owner 2026-11-05): still 200, reworded, and the same
+            # counts as a real publish so a client can tell "nothing
+            # published" apart from a success.
             return Response(
                 {
-                    "message": "No graded submissions found to publish.",
+                    "message": (
+                        "No graded submissions to publish yet. "
+                        "Grade them first, then publish."
+                    ),
+                    "total_graded": 0,
+                    "ungraded_count": assignment.submissions.count(),
                     "skipped": skipped,
                 },
                 status=status.HTTP_200_OK,
             )
+
+        # H-279: publishing is the teacher's approval of every held re-grade
+        # here. Each is released under its own row lock (one email per
+        # release, from promote_pending), before the snapshot below, so a
+        # row this call also releases for the first time is told once, by
+        # that release, with the released result. The count is unchanged: a
+        # held row is a graded row, counted as before.
+        promote_all_pending(graded_submissions, actor=request.user)
 
         # Snapshot who is being published for the FIRST time before the
         # bulk write, so we can notify exactly those students. .update()

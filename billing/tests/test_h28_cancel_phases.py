@@ -521,7 +521,7 @@ class CancelPhaseTests(LicencePhaseTestCase):
         )
 
         with self.assertRaisesRegex(
-            ValueError, "Another billing change for this licence is still in progress"
+            ValueError, "Another billing change for this license is still in progress"
         ) as caught:
             self.cancel()
 

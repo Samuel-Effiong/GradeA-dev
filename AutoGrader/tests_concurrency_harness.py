@@ -16,7 +16,7 @@ import threading
 from django.db import connection, connections
 from django.test import TransactionTestCase
 
-from AutoGrader.testing.concurrency import other_backends, run_concurrently
+from AutoGrader.testing.concurrency import other_backend_pids, run_concurrently
 
 
 class RunConcurrentlyTests(TransactionTestCase):
@@ -119,16 +119,96 @@ class RunConcurrentlyTests(TransactionTestCase):
                 cursor.execute("SELECT %s", [i])
                 return cursor.fetchone()[0]
 
-        before = other_backends()
+        before = other_backend_pids()
 
         results, errors = run_concurrently(query, 6, test=self)
 
         self.assertEqual(errors, [])
         self.assertEqual(results, [0, 1, 2, 3, 4, 5])
-        self.assertEqual(other_backends(), before)
+        # No session that was not open before (H-283: by pid, not by count).
+        self.assertEqual(other_backend_pids() - before, set())
 
     def test_workers_that_never_touch_the_database_need_no_connection(self):
         results, errors = run_concurrently(lambda i: i + 1, 4, test=self, uses_db=False)
 
         self.assertEqual(errors, [])
         self.assertEqual(results, [1, 2, 3, 4])
+
+
+class LeakCountDriftTests(TransactionTestCase):
+    """
+    H-283: the leak check must not depend on sessions that were already
+    open before the run. It used to subtract a COUNT taken before the run,
+    so a session in that count ending mid-run (an autovacuum worker on the
+    test database, say) hid one leak per session: three leaks read as two,
+    and a single leak read as none.
+
+    `spare` below stands in for that session: opened before the run, so it
+    is in the baseline, and closed by a worker while the run is going.
+    """
+
+    def _spare_session(self):
+        spare = connections.create_connection("default")
+        spare.ensure_connection()
+        self.addCleanup(self._close_quietly, spare)
+        return spare
+
+    @staticmethod
+    def _close_quietly(spare):
+        try:
+            spare.close()
+        except Exception:  # noqa: BLE001 - already closed by a worker
+            pass
+
+    def _leak_workers(self, spare, leakers):
+        leaked = []
+        lock = threading.Lock()
+        self.addCleanup(lambda: [raw.close() for raw in leaked])
+
+        def work(i):
+            if i == 0:
+                # The baseline session ends during the run. The raw
+                # connection, because a DatabaseWrapper may only be closed by
+                # the thread that made it.
+                spare.connection.close()
+            if i < leakers:
+                extra = connections.create_connection("default")
+                with extra.cursor() as cursor:
+                    cursor.execute("SELECT 1")
+                with lock:
+                    leaked.append(extra.connection)
+            return i
+
+        return work
+
+    def test_a_baseline_session_ending_does_not_hide_a_leak(self):
+        spare = self._spare_session()
+
+        with self.assertRaisesRegex(
+            AssertionError,
+            r"^3 database session\(s\) still open after all 3 workers",
+        ):
+            run_concurrently(self._leak_workers(spare, 3), 3, test=self)
+
+    def test_a_single_leak_is_not_cancelled_out(self):
+        spare = self._spare_session()
+
+        with self.assertRaisesRegex(
+            AssertionError,
+            r"^1 database session\(s\) still open after all 2 workers",
+        ):
+            run_concurrently(self._leak_workers(spare, 1), 2, test=self)
+
+    def test_a_session_open_before_the_run_is_not_a_leak(self):
+        """The control: a baseline session that stays open is not counted."""
+        self._spare_session()
+
+        def query(i):
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT %s", [i])
+                return cursor.fetchone()[0]
+
+        results, errors = run_concurrently(query, 4, test=self)
+
+        self.assertEqual(errors, [])
+        self.assertEqual(results, [0, 1, 2, 3])

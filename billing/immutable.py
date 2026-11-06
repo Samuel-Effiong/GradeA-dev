@@ -55,6 +55,15 @@ import threading
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from billing.zero_credit import (
+    BULK_INSERT,
+    LEDGER_INSERT,
+    USAGE_LOG_INSERT,
+    assert_not_zero_credit,
+)
+
+_INSERT_ATTEMPT = {"creditledger": LEDGER_INSERT, "creditusagelog": USAGE_LOG_INSERT}
+
 # `auto_now`-style bookkeeping columns Django itself may rewrite, plus the
 # per-model exemptions declared via `mutable_fields`.
 _ALWAYS_ALLOWED = frozenset({"updated_at"})
@@ -133,6 +142,7 @@ class AppendOnlyQuerySet(models.QuerySet):
         probe before this override existed. Nothing in the codebase uses
         it; this keeps it that way rather than trusting that it stays true.
         """
+        assert_not_zero_credit(BULK_INSERT)
         if kwargs.get("update_conflicts") and not mutations_allowed():
             raise ImmutableRecordError(
                 f"{self.model.__name__} is append-only; bulk_create("
@@ -183,7 +193,16 @@ class AppendOnlyModel(models.Model):
 def _guard_save(sender, instance, raw, update_fields, **kwargs):
     # `raw` is a loaddata/fixture load: the row is being reconstructed,
     # not edited, and blocking it would make fixtures unusable.
-    if raw or mutations_allowed():
+    if raw:
+        return
+    # Zero-credit scope (billing/zero_credit.py). Checked BEFORE the
+    # mutations_allowed() exemption: that lifts row immutability, not the
+    # "this operation must not write credits" rule.
+    if instance._state.adding:
+        assert_not_zero_credit(
+            _INSERT_ATTEMPT.get(sender._meta.model_name, LEDGER_INSERT)
+        )
+    if mutations_allowed():
         return
     if instance._state.adding:
         return

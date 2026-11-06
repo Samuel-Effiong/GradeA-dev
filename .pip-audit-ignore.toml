@@ -124,14 +124,6 @@ reason = "upgrade awaiting the owner's ruling (H-258 report)"
 review_by = 2026-11-30
 
 [[ignore]]
-package = "oauthlib"  # 3.3.1
-ids = [
-    "PYSEC-2026-4114",
-]
-reason = "upgrade awaiting the owner's ruling (H-258 report)"
-review_by = 2026-11-30
-
-[[ignore]]
 package = "protobuf"  # 6.32.0
 ids = [
     "PYSEC-2026-1805",
@@ -160,27 +152,6 @@ package = "setuptools"  # 80.9.0
 ids = [
     "GHSA-xmj3-9gf7-h52w",
     "PYSEC-2026-3447",
-]
-reason = "upgrade awaiting the owner's ruling (H-258 report)"
-review_by = 2026-11-30
-
-[[ignore]]
-package = "social-auth-app-django"  # 5.5.1
-ids = [
-    "PYSEC-2026-1932",
-]
-reason = "upgrade awaiting the owner's ruling (H-258 report)"
-review_by = 2026-11-30
-
-[[ignore]]
-package = "social-auth-core"  # 4.7.0
-ids = [
-    "GHSA-526j-582w-7fm9",
-    "PYSEC-2026-4165",
-    "PYSEC-2026-4166",
-    "PYSEC-2026-4167",
-    "PYSEC-2026-4168",
-    "PYSEC-2026-4169",
 ]
 reason = "upgrade awaiting the owner's ruling (H-258 report)"
 review_by = 2026-11-30

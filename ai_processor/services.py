@@ -36,9 +36,10 @@ from billing.access_control import (
     can_ai_be_used_for_assignment,
     can_user_access_ai,
 )
-from billing.errors import InsufficientCreditsError
+from billing.errors import InsufficientCreditsError, is_individual_teacher
 from billing.refunds import billing_refund_scope, record_billing_task_id
 from billing.services import AnalyticsService
+from billing.zero_credit import MODEL_CALL, assert_not_zero_credit
 from classrooms.models import StudentCourse
 from students.exceptions import TaskCancelledError
 from students.task_tracking import ensure_task_not_cancelled
@@ -1272,9 +1273,6 @@ class AIProcessor:
                 latency_ms=int((time.monotonic() - started) * 1000),
                 outcome=outcome,
             )
-
-    def get_ai_model_function(self):
-        return self.__ai_model
 
     def extract_assignment(self, user, text):
         system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
@@ -5501,6 +5499,7 @@ Now, respond to the following teacher's instruction using the rules above
         the call itself. `prompt_version` is required (S5, NFR-OBS-04): every
         AI path names the prompt it sent (e.g. `GRADING_ASSIGNMENT_PROMPT.
         version`), so any result can be traced to the exact prompt text."""
+        assert_not_zero_credit(MODEL_CALL)
         if not prompt_version:
             raise ValueError("execute_graded_task requires a prompt_version")
 
@@ -5589,7 +5588,10 @@ Now, respond to the following teacher's instruction using the rules above
                     NO_CREDITS_REMAINING_REASON,
                     TRIAL_CREDITS_EXHAUSTED_REASON,
                 ):
-                    raise InsufficientCreditsError("Refill your wallet to continue")
+                    raise InsufficientCreditsError(
+                        "Refill your wallet to continue",
+                        individual=is_individual_teacher(user),
+                    )
                 raise AIFeatureNotAvailableError(f"AI access denied: {reason}")
 
             wallet = user.credit_wallet
@@ -5643,11 +5645,15 @@ Now, respond to the following teacher's instruction using the rules above
         if balance < estimated_cost:
             raise InsufficientCreditsError(
                 f"Task requires ~{estimated_cost} credits, but you only have {balance} credits. "
-                f"Please refill your wallet to continue"
+                f"Please refill your wallet to continue",
+                individual=is_individual_teacher(target_teacher),
             )
 
         if balance <= 0:
-            raise InsufficientCreditsError("Refill your wallet to continue")
+            raise InsufficientCreditsError(
+                "Refill your wallet to continue",
+                individual=is_individual_teacher(target_teacher),
+            )
 
         ensure_task_not_cancelled(processing_task_id)
         task_id = str(uuid.uuid4())

@@ -149,9 +149,10 @@ class CustomUser(AbstractUser):
     # Session epoch (AUTHZ-T1/T2). Every issued token carries the epoch it was
     # minted under (users.tokens.EPOCH_CLAIM) and users.authentication rejects
     # a token whose epoch differs from this. It is bumped on any credential
-    # change (set_password / set_unusable_password) and on logout, which kills
-    # every live access AND refresh token for the user at once. A token with
-    # no claim (minted before this existed) counts as epoch 0.
+    # change (set_password / set_unusable_password), which kills every live
+    # access AND refresh token for the user at once. Logout ends one session
+    # only (H-276, RevokedSession below). A token with no claim (minted
+    # before this existed) counts as epoch 0.
     token_epoch = models.PositiveIntegerField(default=0, db_default=0)
 
     must_change_password = models.BooleanField(
@@ -187,6 +188,12 @@ class CustomUser(AbstractUser):
     def is_teacher(self):
         """Love God"""
         return self.user_type == UserTypes.TEACHER
+
+    def is_real_super_admin(self):
+        """H-19: a super admin has BOTH user_type SUPER_ADMIN and is_superuser.
+        A half-set-up account (is_superuser unticked) is not one: it is metered
+        and refused like any other non-student."""
+        return bool(self.is_superuser and self.user_type == UserTypes.SUPER_ADMIN)
 
     def is_beta_eligible(self):
         """Beta access is restricted to teacher accounts."""
@@ -376,6 +383,28 @@ class CustomUser(AbstractUser):
         CustomUser.objects.filter(pk=self.pk).update(
             failed_login_attempts=0, locked_until=None
         )
+
+
+class RevokedSession(models.Model):
+    """H-276: one signed-out browser/device session.
+
+    Every sign-in stamps a session id (users.tokens.SESSION_CLAIM) on its
+    tokens and keeps it across refreshes. Logout records that id here, and
+    users.authentication / the refresh serializer reject any token carrying
+    it, so logging out of one browser leaves the user's other browsers and
+    devices signed in. A revoked session can mint nothing new (its refresh
+    token is blacklisted), so rows older than the refresh lifetime are
+    pruned at logout (users.tokens.revoke_session).
+    """
+
+    sid = models.UUIDField(primary_key=True)
+    user = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name="revoked_sessions"
+    )
+    revoked_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    def __str__(self):
+        return f"RevokedSession({self.sid})"
 
 
 class UserGoogleCredentials(models.Model):

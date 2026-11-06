@@ -38,7 +38,7 @@ from rest_framework.test import APITestCase
 
 from ai_processor.services import AIProcessor
 from assignments.models import Assignment, AssignmentStatus
-from billing.errors import INSUFFICIENT_CREDITS_MESSAGE
+from billing.errors import INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from classrooms.models import Course, Session
 from students.models import (
@@ -153,7 +153,10 @@ class Base(APITestCase):
             response.status_code, status.HTTP_402_PAYMENT_REQUIRED, response.data
         )
         self.assertEqual(response.data["code"], "insufficient_credits")
-        self.assertEqual(response.data["error"], INSUFFICIENT_CREDITS_MESSAGE)
+        # H-281: the batch's teacher is individual.
+        self.assertEqual(
+            response.data["error"], INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE
+        )
         self.assertEqual(self.queued, [])
         self.assertEqual(BatchUploadSession.objects.count(), 0)
         self.assertEqual(BackgroundProcessingTask.objects.count(), 0)
