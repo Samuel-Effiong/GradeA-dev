@@ -500,11 +500,7 @@ class WeeklyCourseSummaryService:
         ]
 
         recent_average_grade = grade_service.mean_of_values(recent_graded_scores)
-        previous_average_grade = (
-            round(sum(previous_graded_scores) / len(previous_graded_scores), 2)
-            if previous_graded_scores
-            else None
-        )
+        previous_average_grade = grade_service.mean_of_values(previous_graded_scores)
 
         grade_trend = self._trend_from_values(
             previous_average_grade,
