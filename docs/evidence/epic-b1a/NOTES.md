@@ -828,3 +828,23 @@ Any other count or fragment is a STOP.
 | P-3 (M-B4): remove the `begin_single_call` line from execute_graded_task | SC-7 FAIL `not preceded by a hold`, and SC-3 (provider called) |
 | P-4: unit settles on exception (M-B5) | unit "raise → nothing charged" FAIL |
 | P-5: drop the AICallRecord repoint | the join assertions (SC-2, unit settle-once) FAIL |
+
+### 13f. 3a STOP and rulings (2026-11-06), committed before the runs below
+
+**Billing app, flag off:**
+- BASE 2f00c078: Ran 2410, OK (log `step3a_billing_flagoff_BASE_2f00c078.log`).
+- 3a WIP: Ran 2504, failures=1, errors=1 (log `step3a_billing_flagoff_WIP.log`).
+1. **ERROR `column "job_id" … does not exist`** in SweepOverlapTests.
+   - Cause: `billing/tests/test_audit_identity_migration.py` rewinds billing to 0058, and its tearDown restored only the billing and users leaves. That un-applied students 0037–0039 (they depend on billing/0076) for every later test in the worker.
+   - **SM ruling (1):** `_restore_targets` restores every app's current leaf.
+   - New test `test_the_restore_brings_back_every_apps_leaf`.
+   - **Break run:** the new test with `_restore_targets` reverted to its old billing+users body (old file sha256 `c73db935…`, saved at `GAP-a0-runs/epic-b1a/old_test_audit_identity_migration.py`). **Expected: Ran 1, 1 FAIL, the list names `students.0039_backgroundprocessingtask_job_index`** (other apps' leaves that depend on billing may also be listed).
+   - **Timing:** the old file ran 2 tests in 12.7 s (24.6 s wall). The new file is timed the same way; anything more than a few seconds is reported.
+2. **FAIL `test_zero_credit_registry`**: my step-2 Z-1 test registered `b1a_z1_test` process-wide. **SM ruling (2):** use the exempt `_selftest`. **Rule: a test must not register a name in the process-wide zero-credit registry without unregistering it.**
+
+Other 3a facts, for the evidence:
+- **`item_id` slip:** in green attempt 1, `item_id` was missing from `audit/metadata.py` ALLOWED_KEYS. I had removed it as a "duplicate", but the line I saw was my own just-added one. Restored; green attempt 2 is OK.
+- **No audit migration:** `AuditEvent.action` has no choices, so §13a's `audit/0005` does not exist.
+- **Target label:** the scanner `audit/tests_h273_query_filters` needed a label for target_type "AIJob". Production `audit/serializers.py` `_TARGET_LABEL` gains `"AIJob": "Credit hold job"`, a **PLACEHOLDER** on the owner wording list with the four action labels.
+
+After the break run: both billing runs again. Expected: WIP = base 2410 + only the added hold tests, 0 failures. Then the §13e plants.

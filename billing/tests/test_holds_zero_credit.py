@@ -4,21 +4,14 @@ from django.test import TestCase
 
 from billing.models import AIJob
 from billing.testing.holds import fresh, funded_wallet, holds, make_job
-from billing.zero_credit import (
-    ZeroCreditViolation,
-    register_zero_credit_operations,
-    zero_credit_scope,
-)
+from billing.zero_credit import ZeroCreditViolation, zero_credit_scope
 
-OPERATION = "b1a_z1_test"
+# The scope's own exempt fixture name: registering a new name would leak into
+# the process-wide registry and fail the registry test in the same worker.
+OPERATION = "_selftest"
 
 
 class ZeroCreditHoldTests(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        register_zero_credit_operations(OPERATION)
-
     def test_reserve_is_refused_inside_a_zero_credit_scope(self):
         wallet = funded_wallet("z.reserve@example.com", 100)
         job = make_job(wallet)
