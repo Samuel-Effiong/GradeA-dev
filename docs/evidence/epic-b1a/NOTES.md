@@ -903,3 +903,72 @@ Commits:
 
 **Still placeholders (owner wording, SM-held):** the four action labels and the `"AIJob": "Credit hold job"` target label.
 The four billing-app logs are gzipped (each about 0.78 MB raw, over the large-file hook's limit), as B0's near-run.log.gz was.
+
+---
+
+## 14. Step 3b: expectations, committed before any run (2026-11-06)
+
+### 14a. Code
+
+- **The five sites:** `ai_processor/services.py` `grade_student_submission`, `students/services.py` ×3 (`_run_grading_pipeline`, `upload_answers_engine`, `update_submission_from_raw_text`) and `assignments/file_uploads.py` `upload_assignment_file`. Each replaces `billing_refund_scope(reason=…)` with `metered_unit(processing_task_id=processing_task_id, reason=…)`. With the flag off that is the refund scope, unchanged.
+- **The entry rule** in `metered_unit` (root unit, flag on, a task row found for `processing_task_id`):
+  1. row with no job: the first call opens a SINGLE_ITEM job and attaches the row (row = holder, key (task, retry)).
+  2. a settlement row exists for `(task.id, task.retry_count)`: raise `CreditHoldReturnedError`.
+  3. hold HELD: `claim_item_start`. On a lost claim, re-read and fall through.
+  4. hold not held and the row is finished (`FAILURE`/`SUCCESS`/`CANCELLED`, which `update_processing_task` never moves back to STARTED):
+     - an UPLOAD job → `open_late_door_job(amount=0)`, a job-level holder keyed (task, retry)
+     - otherwise → raise `CreditHoldReturnedError`
+  5. hold not held and the row is not finished (a retry, PENDING/STARTED): `open_retry_job(amount=0)`, keyed (task, retry).
+- **`CreditHoldReturnedError(ProviderFailureError)`:** PROVIDER_FAILURE, retryable, existing text "No credits were charged.". This is the code the sweep already set, so the late run's failure mark writes the same code. No new wording.
+- **A unit finishes only a job it opened** (SINGLE_ITEM, retry or late-door). On a shared batch/door job it settles or fails the row only; that job's terminal transition is step 5.
+- `charges_in_open_scope()` (PROVIDER_FAILURE's credit_clause): with the flag on no refund scope is open, so it reads "No credits were charged.", which is true under units.
+
+### 14b. Tests: `billing/tests/test_holds_entry.py` (17)
+
+- **Entry rule** (direct `metered_unit` on real task rows): ER-1 no-job row attached; ER-2 HELD row claimed, shared job stays open; ER-3 late grading exits before any call; ER-4 settled row exits; ER-5 retry → new SINGLE_ITEM job (shared trace_id, old job untouched); ER-6 late door → new UPLOAD job; ER-8 failed unit on a shared job returns the row's hold only.
+- **Entry points** (real entry functions; the AI step is a fake making real billed calls through `execute_graded_task`):
+  - E-1 `grade_engine` (granted + refused)
+  - E-4 `upload_answers_engine` sync (granted)
+  - E-5 `update_submission_from_raw_text` sync (granted + refused)
+  - E-6 `extract_answer_background_task.apply` (granted)
+  - E-8 `upload_assignment_file`: a failure after two billed calls charges nothing
+  - E-2 is ER-5's mechanism. **Carried:** E-3's BATCH_GRADING job to step 5; E-7's door to 3c.
+- **Wiring** (AST): the five sites call `metered_unit` with `processing_task_id`; none calls `billing_refund_scope`.
+- The refusal E-tests pass at red: today's single-call path also refuses before the provider. They are kept as guards; the granted tests discriminate.
+
+### 14c. Red: expected
+
+At the tests commit, code = 3a (8796a8d4), in a disposable worktree:
+
+`python manage.py test billing.tests.test_holds_entry --settings=settings_worktree --noinput`
+
+**Expected: Ran 17, FAILED (failures=12, errors=6); 2 PASS.**
+
+| Test | Expected | Fragment |
+|---|---|---|
+| ER-1 | FAIL | `unexpectedly None` (row not attached) |
+| ER-2 | FAIL | `unexpectedly None` (no start claim) |
+| ER-3 | ERROR | `has no attribute 'CreditHoldReturnedError'` |
+| ER-4 | ERROR | `has no attribute 'CreditHoldReturnedError'` |
+| ER-5 | FAIL | trace_id `UUID(...) != UUID(...)` (the unit's own job, not a retry job) |
+| ER-6 | FAIL | `('SINGLE_ITEM', 'SETTLED') != ('UPLOAD', 'SETTLED')` |
+| ER-8 | FAIL | `('RUNNING', 0) != ('RUNNING', 1)` |
+| E-1 granted | ERROR | `MultipleObjectsReturned` (two single-call settlements) |
+| E-1 refused | PASS | |
+| E-4 granted | ERROR | `MultipleObjectsReturned` |
+| E-5 granted | ERROR | `MultipleObjectsReturned` |
+| E-5 refused | PASS | |
+| E-6 granted | ERROR | `MultipleObjectsReturned` |
+| E-8 | FAIL | `True is not false` (refunded usage rows exist under the refund scope) |
+| Wiring metered_unit (3 subtests) | FAIL ×3 | `0 != 1`, `0 != 3`, `0 != 1` |
+| Wiring refund scope (3 subtests) | FAIL ×3 | `Lists differ` |
+
+**A mismatch is a STOP.** If it comes from a test fixture (an entry function refusing my fixture for an unrelated reason), I fix the fixture, update this table and re-run red before any code.
+
+### 14d. Green: expected
+
+- `test_holds_entry`: Ran 17, OK.
+- All hold tests (105 + 17): OK.
+- Billing app flag off: 2505 + 17 = 2522, OK.
+- Targeted: `ai_processor` grading/answer tests (`tests_grading_completeness`, `tests_answer_chunk_merge`, `tests_grading_pipeline`, `tests_reading_pipeline`), `students.tests_async_edit_path`, `students.tests_h242_submission_flags`, `assignments.tests_h219_task_error_text`, all flag off.
+- Plants at the 3b gate: one per mechanism (entry rule branch 2/4/5, the shared-job finish guard, one site reverted to the refund scope), expectations written before they run.
