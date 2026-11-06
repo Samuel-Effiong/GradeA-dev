@@ -1,0 +1,4 @@
+FAIL: test_teacher_assignment_analytics (classrooms.tests_e1_query_budget.GradeFigureQueryBudgetTest.test_teacher_assignment_analytics)
+AssertionError: 72 not less than or equal to 66 : test_teacher_assignment_analytics ran 72 queries, budget 66 (captured before the E1a moves)
+Ran 26 tests in 3.924s
+FAILED (failures=1)

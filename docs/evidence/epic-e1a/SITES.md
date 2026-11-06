@@ -35,9 +35,9 @@ nobody re-surveys it; **dead** = computed but never read.
 |---|---|---|---|---|
 | P1 | dashboard/views.py:2539 `SchoolAdminDashboardView.unit_performance` | average score per unit | moved (`mean_percentage`) | snapshot school_unit_performance |
 | P2 | dashboard/views.py:3142 `TeacherAdminDashboardView.overview` | average grade per course | moved (`mean_percentage`) | snapshot teacher_overview |
-| P3 | dashboard/views.py:3270 `TeacherAdminDashboardView._at_risk_students` `avg_grade_val` | **none: never read** | **dead** (see note 1) | nothing can be: not in any output |
+| P3 | dashboard/views.py:3270 `TeacherAdminDashboardView._at_risk_students` `avg_grade_val` | **none: never read** | **dead, deleted** (f1d8cf678; note 1) | nothing can be: not in any output |
 | P4 | dashboard/views.py:3439, 3443, 3448 `TeacherAdminDashboardView.courses` | average score by type, by topic, lowest assignment | moved (`mean_percentage`) | snapshot teacher_courses_* |
-| P5 | dashboard/views.py:3777 `TeacherAdminDashboardView.students` `avg_grade_val` | **none: never read** | **dead** (see note 1) | nothing can be: not in any output |
+| P5 | dashboard/views.py:3777 `TeacherAdminDashboardView.students` `avg_grade_val` | **none: never read** | **dead, deleted** (3ff3e40a0; note 1) | nothing can be: not in any output |
 | P6 | dashboard/views.py:4331 `StudentAdminDashboardView.summary` | a student's own average | moved (`mean_percentage`) | snapshot student_summary_* |
 | P7 | dashboard/services.py:1103 `TeacherAIContextService.build` | average score per assignment | moved (`mean_percentage`) | snapshot svc_teacher_ai_context |
 | P8 | dashboard/rigor.py:270 `_submission_rollup` | average percentage, rigor | moved (`mean_percentage`) | snapshots school_teachers, school_teacher_detail, svc_school_weekly, svc_teacher_stats_rigor |
@@ -93,10 +93,16 @@ nobody re-surveys it; **dead** = computed but never read.
    rows through `points_weighted`). So plan 09 §0.2's statement that P3/P5
    show a plain-mean grade is not right on 2f00c078: those two figures
    already agree with the final grade's formula. P6 (the student's own
-   summary) is a real plain mean. Proposed handling in E1a: delete the two
-   annotations (fewer joins, no output change) rather than route dead code
-   through the service. Awaiting SM.
+   summary) is a real plain mean. SM decision 2026-11-06: delete. Deleted in
+   f1d8cf678 (P3) and 3ff3e40a0 (P5), snapshots unchanged. Effect, measured
+   on the snapshot fixture: the SAME number of queries (19 / 23 / 8 on
+   teacher overview, course analytics, course students), each endpoint
+   running one AVG(score_percentage) aggregate fewer (SQL 17701->17533,
+   15730->15562, 9417->9245 characters). Lighter SQL, not fewer queries.
 2. The plan's "four `Avg("final_grade")` sites" are six: F4 and F6 average
    `enrollments__final_grade` with a filter.
 3. Coverage: 33 of 35 planted edits turn a test red on the base code. The two
-   that cannot are P3 and P5 (note 1).
+   that cannot are P3 and P5 (note 1), now deleted: every live site is covered.
+4. The guard also allow-lists the old side of the parity command
+   (classrooms/management/commands/grade_parity_report.py `_run`, G1): the
+   legacy aggregates written out on purpose for comparison. Removed in E2.

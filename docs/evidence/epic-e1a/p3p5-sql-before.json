@@ -1,0 +1,17 @@
+{
+ "teacher_overview": {
+  "queries": 19,
+  "AVG_over_score_percentage": 2,
+  "sql_chars": 17701
+ },
+ "teacher_courses_algebra": {
+  "queries": 23,
+  "AVG_over_score_percentage": 4,
+  "sql_chars": 15730
+ },
+ "teacher_students_algebra": {
+  "queries": 8,
+  "AVG_over_score_percentage": 1,
+  "sql_chars": 9417
+ }
+}
