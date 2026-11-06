@@ -957,7 +957,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                 .values("course__teacher_id")
                 .annotate(
                     students=Count("student", distinct=True),
-                    average_grade=Avg("final_grade"),
+                    average_grade=grade_service.mean_of_final_grades(),
                 )
                 .order_by()
             }
