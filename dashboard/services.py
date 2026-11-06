@@ -19,6 +19,7 @@ from django.utils import timezone
 
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD
 from assignments.models import Assignment, AssignmentStatus, expected_q, is_expected
+from classrooms import grade_service
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -385,16 +386,7 @@ class WeeklyCourseSummaryService:
             float(submission.score_percentage) for submission in graded_submissions
         ]
         dated_scores = [
-            (
-                submission.submission_date,
-                float(submission.score_percentage),
-                submission.score,
-                (
-                    submission.max_points
-                    if submission.max_points is not None
-                    else submission.assignment.total_points
-                ),
-            )
+            grade_service.risk_score_row(submission)
             for submission in graded_submissions
         ]
 
