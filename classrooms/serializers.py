@@ -28,7 +28,7 @@ from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
 from users.serializers import CustomUserSerializer
 
-from .final_grade import released_final_grade
+from . import grade_service
 from .models import (
     Course,
     CourseCategory,
@@ -438,7 +438,9 @@ class StudentCourseSerializer(serializers.ModelSerializer):
             return obj.final_grade
         # The viewset's own prefetch (student__submissions, each with its
         # assignment): no query per enrollment.
-        return released_final_grade(obj.student.submissions.all(), obj.course_id)
+        return grade_service.released_course_grade(
+            obj.student.submissions.all(), obj.course_id
+        )
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
