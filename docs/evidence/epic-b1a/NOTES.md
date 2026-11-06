@@ -46,6 +46,7 @@ Every file:line in plan 08 (89) and in this file (37) was compared, cited block 
    - Charging the held re-grade itself is the same as today: one charge at the AI call; the hold is decided later, at the save.
    - Approval (promote_pending → refresh_student_summary) starts one billed summary call, charged to the approving actor.
    - There is no reject path. An overwriting re-grade charges again, with no refund.
+   - Publish-all is per assignment, and a student has at most one submission per assignment. So publish-all of N held rows covers N different students: at most one summary per student (SM correction, 2026-11-06).
    - The pinning tests wait for the ruling.
 4. **Billed paths added since the survey.** The student summary (student_summary_async → generate_student_summary → execute_graded_task at ai_processor/services.py:5999) is single-call, so the hold inside `execute_graded_task` covers it. It is not a unit site.
 5. **Migration numbering.**
@@ -375,6 +376,11 @@ Break run = pre-existing tests that B1a EDITS, run at their OLD versions against
   - `test_a_retention_sweep_that_deletes_nothing_still_records_itself`: the metadata dict differs only by the extra `'deleted_financial': 0`.
   - `test_a_retention_sweep_records_its_counts`: `{'deleted_general': 0, 'deleted_student_record': 0, 'deleted_financial': 0} != {'deleted_general': 2, 'deleted_student_record': 0}`. The two grant rows are now FINANCIAL, so the old GENERAL-only `update` ages nothing.
 - Any other failure, or a different dict, is a STOP.
+
+**Edited (SM ruling 2026-11-06, (c) approved):** `audit/tests_schema.py:251` `ClosedVocabulariesTest.test_the_role_outcome_class_and_retention_values_match_the_data_model`. Not foreseen in §9; found by the targeted audit-app check (459 tests, 1 FAIL).
+- The old file is saved at `~/Documents/Projects/GAP-a0-runs/epic-b1a/old_tests_schema.py`, sha256 `4ef0fe7520ffcd533b25a77287e8547d30df8d398d0f59be490713cc4e6e3263` (= HEAD f65e53b4).
+- Run the one test at its old text against the step-1 code. **Expected: Ran 1, 1 FAIL, 0 ERROR**, with fragment `Items in the first set but not the second:` followed by `'FINANCIAL'` and nothing else.
+- Afterwards, the same targeted check (`audit billing.tests.test_credit_transaction_audit`, 459 tests) must give 0 failures.
 
 ### 5d. Near-run plan
 
