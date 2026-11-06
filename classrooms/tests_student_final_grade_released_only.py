@@ -25,7 +25,7 @@ from django.utils import timezone
 from rest_framework import status
 
 from assignments.models import Assignment, AssignmentStatus
-from classrooms.final_grade import final_grade_from
+from classrooms.grade_service import points_weighted as final_grade_from
 from classrooms.models import Course, EnrollmentStatusType, StudentCourse
 from classrooms.serializers import StudentCourseSerializer
 from classrooms.services import enroll_student_by_email

@@ -145,7 +145,7 @@ class StudentRiskEvaluatorTest(SimpleTestCase):
         self.assertAlmostEqual(result.average_grade, 61.90, places=1)
 
     def test_average_grade_matches_final_grade_from_exactly(self):
-        from classrooms.final_grade import final_grade_from
+        from classrooms.grade_service import points_weighted as final_grade_from
 
         scored = [(5, 5), (60, 100), (18, 20)]
         expected = float(final_grade_from(scored))
