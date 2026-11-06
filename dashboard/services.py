@@ -499,11 +499,7 @@ class WeeklyCourseSummaryService:
             and previous_start <= submission.graded_at < recent_start
         ]
 
-        recent_average_grade = (
-            round(sum(recent_graded_scores) / len(recent_graded_scores), 2)
-            if recent_graded_scores
-            else None
-        )
+        recent_average_grade = grade_service.mean_of_values(recent_graded_scores)
         previous_average_grade = (
             round(sum(previous_graded_scores) / len(previous_graded_scores), 2)
             if previous_graded_scores
