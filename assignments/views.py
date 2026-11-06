@@ -37,7 +37,12 @@ from rest_framework.response import Response
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
 from assignments.exceptions import FileUnreadableError
-from assignments.upload_door import DoorHold, batch_refusal_response, parked_files
+from assignments.upload_door import (
+    DoorHold,
+    batch_refusal_response,
+    launch_at_door,
+    parked_files,
+)
 from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
@@ -1199,7 +1204,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     }
                 )
                 continue
-            task = launch_processing_task(
+            task_id = launch_at_door(
+                launch_processing_task,
                 upload_assignment_async,
                 processing_task,
                 user_id=str(request.user.id),
@@ -1213,7 +1219,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             tasks_data.append(
                 {
                     "file_name": uploaded_file.name,
-                    "task_id": task.id,
+                    "task_id": task_id,
                     "item_id": processing_task.id,
                 }
             )

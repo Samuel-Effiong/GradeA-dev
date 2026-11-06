@@ -82,21 +82,55 @@ def attach_celery_task(processing_task_id, celery_task_id):
     )
 
 
-def launch_processing_task(task_callable, processing_task, *args, **kwargs):
+def launch_processing_task(
+    task_callable, processing_task, *args, _celery_task_id=None, **kwargs
+):
+    """Dispatch the task for `processing_task`.
+
+    `_celery_task_id` (Epic B1a, flag-on door launches only) is the Celery id
+    the door already wrote on the row and returned to the client; it goes to
+    apply_async, never into the task's kwargs. Without it the dispatch is
+    today's delay()."""
     kwargs["processing_task_id"] = str(processing_task.id)
     try:
-        async_result = task_callable.delay(*args, **kwargs)
+        if _celery_task_id is None:
+            async_result = task_callable.delay(*args, **kwargs)
+        else:
+            async_result = task_callable.apply_async(
+                args=args, kwargs=kwargs, task_id=_celery_task_id
+            )
     except BROKER_UNAVAILABLE_ERRORS as exc:
         # The broker (Redis) is unreachable. This is not the task failing -
         # it never got dispatched - so the caller gets a clean, typed error
         # instead of a raw connection traceback surfacing as a generic 500.
         mark_processing_task_failure(processing_task.id, exc)
+        if _celery_task_id is not None:
+            _return_door_hold(processing_task.id)
         raise ProcessingTemporarilyUnavailable() from exc
     except Exception as exc:
         mark_processing_task_failure(processing_task.id, exc)
+        if _celery_task_id is not None:
+            _return_door_hold(processing_task.id)
         raise
     attach_celery_task(processing_task.id, async_result.id)
     return async_result
+
+
+def _return_door_hold(processing_task_id):
+    """Epic B1a (NOTES §15g): a door file whose message never went out gives
+    its hold back; no sweep or backstop covers an unstarted item yet."""
+    from billing import holds as credit_holds
+    from billing.models import HoldState
+
+    row = (
+        BackgroundProcessingTask.objects.filter(
+            pk=processing_task_id, hold_state=HoldState.HELD, job__isnull=False
+        )
+        .select_related("job")
+        .first()
+    )
+    if row is not None:
+        credit_holds.fail_item(row.job, item=row)
 
 
 def get_processing_task(task_id, requested_by=None):

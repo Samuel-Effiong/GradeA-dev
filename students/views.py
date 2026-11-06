@@ -56,6 +56,7 @@ from assignments.upload_door import (
     DoorHold,
     DoorHoldRefused,
     batch_refusal_response,
+    launch_at_door,
     parked_files,
     upload_refusal_if_unaffordable,
 )
@@ -771,7 +772,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         except DoorHoldRefused as refused:
             return refused.response
 
-        task = launch_processing_task(
+        task_id = launch_at_door(
+            launch_processing_task,
             upload_answers_engine_async,
             processing_task,
             str(assignment.id),
@@ -779,7 +781,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             prompt,
             str(request.user.id),
         )
-        task_id = task.id
 
         emit(
             AuditAction.SUBMISSION_UPLOAD,
@@ -1585,7 +1586,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     }
                 )
                 continue
-            task = launch_processing_task(
+            task_id = launch_at_door(
+                launch_processing_task,
                 upload_answers_engine_async,
                 processing_task,
                 str(assignment.id),
@@ -1598,11 +1600,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             tasks_data.append(
                 {
                     "file_name": uploaded_file.name,
-                    "task_id": task.id,
+                    "task_id": task_id,
                     "item_id": processing_task.id,
                 }
             )
-            task_ids.append(task.id)
+            task_ids.append(task_id)
 
         emit(
             AuditAction.SUBMISSION_UPLOAD,

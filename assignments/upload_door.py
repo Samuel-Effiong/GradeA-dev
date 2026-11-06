@@ -32,8 +32,11 @@ Said plainly, as limits:
 """
 
 import logging
+import uuid
+from functools import partial
 
 from django.core.files.uploadedfile import UploadedFile
+from django.db import transaction
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -45,6 +48,7 @@ from billing import holds as credit_holds
 from billing.errors import InsufficientCreditsError, is_individual_teacher
 from billing.refusals import log_refusal
 from students.exceptions import STUDENT_UPLOAD_NOT_PROCESSED
+from students.task_tracking import attach_celery_task
 from users.models import UserTypes
 
 logger = logging.getLogger(__name__)
@@ -171,6 +175,31 @@ def batch_refusal_response(billed_user):
         {"error": credit_refusal_message(refusal), "code": "insufficient_credits"},
         status=status.HTTP_402_PAYMENT_REQUIRED,
     )
+
+
+def launch_at_door(launch, task_callable, processing_task, *args, **kwargs):
+    """Launch a door file's task and return the task id the response carries.
+
+    Flag off: today's direct call. Flag on (plan 08 M5, NOTES §15g): the
+    Celery id is chosen now and written on the row, and the message goes out
+    only when the transaction commits, so no worker starts before the hold
+    exists. `launch` is the caller's own launch_processing_task, so tests
+    that patch it by name still apply; partial binds this file's arguments."""
+    if not credit_holds.holds_enabled():
+        return launch(task_callable, processing_task, *args, **kwargs).id
+    celery_task_id = str(uuid.uuid4())
+    attach_celery_task(processing_task.id, celery_task_id)
+    transaction.on_commit(
+        partial(
+            launch,
+            task_callable,
+            processing_task,
+            *args,
+            _celery_task_id=celery_task_id,
+            **kwargs,
+        )
+    )
+    return celery_task_id
 
 
 class DoorHoldRefused(Exception):
