@@ -65,6 +65,8 @@ class AuditAction(models.TextChoices):
     TAG_CREATE = "TAG_CREATE", "Tag created"
     TAG_RENAME = "TAG_RENAME", "Tag renamed"
     TAG_DELETE = "TAG_DELETE", "Tag deleted"
+    # Epic C1: an assignment's tags replaced as one set (plan 11 §3.3).
+    ASSIGNMENT_TAGS_SET = "ASSIGNMENT_TAGS_SET", "Assignment tags changed"
     ROSTER_CHANGE = "ROSTER_CHANGE", "Roster changed"
     SUBMISSION_UPLOAD = "SUBMISSION_UPLOAD", "Submission uploaded"
     CREDIT_TRANSACTION = "CREDIT_TRANSACTION", "Credit transaction"
