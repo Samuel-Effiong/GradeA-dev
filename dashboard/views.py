@@ -3139,7 +3139,9 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             course_performance_raw = (
                 Course.objects.filter(teacher=teacher, session=session)
                 .annotate(
-                    avg_grade=Avg("assignments__submissions__score_percentage"),
+                    avg_grade=grade_service.mean_percentage(
+                        "assignments__submissions__score_percentage"
+                    ),
                     actual_subs=Count("assignments__submissions", distinct=True),
                     enrollment_count=Count("enrollments", distinct=True),
                     assignment_count=Count("assignments", distinct=True),
