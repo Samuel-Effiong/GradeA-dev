@@ -11,6 +11,7 @@ from django.db import connection
 from django.test import TransactionTestCase
 from django.utils import timezone
 
+from billing.models import AIJob, CreditLedger, CreditUsageLog
 from billing.testing.holds import fresh, funded_wallet, holds, make_item, make_job
 
 THREADS = 32
@@ -73,4 +74,39 @@ class StartClaimSweepRaceTests(TransactionTestCase):
                 self.assertNotEqual(bool(claimed), bool(swept), results)
                 state = fresh(item).hold_state
                 self.assertEqual(state, "HELD" if claimed else "RETURNED")
+        self.assertEqual(holds().check_invariants(wallet), [])
+
+
+class SweepOverlapTests(TransactionTestCase):
+    def test_two_overlapping_sweeps_release_a_stale_hold_once(self):
+        # SM condition 2026-11-06: a sweep that outlives its 3-min lock may
+        # overlap the next one; each hold is still released exactly once.
+        wallet = funded_wallet("c.overlap@example.com", 1000)
+        for round_no in range(5):
+            batch = make_job(wallet, "BATCH_GRADING", status="RUNNING")
+            started = (
+                timezone.now() - holds().item_sweep_window() - timedelta(minutes=5)
+            )
+            item = make_item(batch, started_at=started)
+            holds().reserve(wallet, 30, batch, item=item)
+            single = make_job(wallet, "SINGLE_CALL", status="RUNNING")
+            holds().reserve(wallet, 20, single)
+            AIJob.objects.filter(pk=single.pk).update(
+                created_at=timezone.now()
+                - holds().single_sweep_window()
+                - timedelta(minutes=5)
+            )
+
+            results = race(2, lambda i: holds().sweep_stale_holds())
+            errors = [r for r in results if isinstance(r, Exception)]
+            with self.subTest(round=round_no):
+                self.assertEqual(errors, [])
+                self.assertEqual(sum(r["items_swept"] for r in results), 1)
+                self.assertEqual(sum(r["jobs_released"] for r in results), 1)
+                self.assertEqual(fresh(item).released_credits, 30)
+                self.assertEqual(fresh(batch).failed_items, 1)
+                self.assertEqual(fresh(single).released_credits, 20)
+                self.assertEqual(fresh(wallet).reserved_credits, 0)
+        self.assertFalse(CreditUsageLog.objects.exists())
+        self.assertFalse(CreditLedger.objects.filter(user_id=wallet.user_id).exists())
         self.assertEqual(holds().check_invariants(wallet), [])

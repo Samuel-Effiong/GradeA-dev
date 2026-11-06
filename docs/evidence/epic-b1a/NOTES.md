@@ -382,6 +382,11 @@ Break run = pre-existing tests that B1a EDITS, run at their OLD versions against
 - Run the one test at its old text against the step-1 code. **Expected: Ran 1, 1 FAIL, 0 ERROR**, with fragment `Items in the first set but not the second:` followed by `'FINANCIAL'` and nothing else.
 - Afterwards, the same targeted check (`audit billing.tests.test_credit_transaction_audit`, 459 tests) must give 0 failures.
 
+**Edited (SM ruling 2026-11-06, step 2):** `AutoGrader/tests_beat_locks.py:48` `EPIC_ONLY_GUARDED_BEAT_TASKS` gains `billing.tasks.sweep_stale_credit_holds` and `billing.tasks.check_credit_hold_invariants`. That's the documented pattern (precedent 160271889); beta's pinned 21 stays. Found by the step-2 targeted check (113 tests).
+- The old file is saved at `~/Documents/Projects/GAP-a0-runs/epic-b1a/old_tests_beat_locks.py`, sha256 `78e63aa52149a92a11b4c4a885a011d47d22997fd51ad7d473134c1bc441665f`.
+- Run `RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it` at its old text against the step-2 code. **Expected: Ran 1, 1 FAIL, 0 ERROR**, fragment `AssertionError: 23 != 21`.
+- Afterwards, the step-2 targeted check (113 tests) must give 0 failures.
+
 ### 5d. Near-run plan
 
 See §3a (flag-off) and §3b (flag-on). Both are required for green.
@@ -676,3 +681,21 @@ Slice summary (§10) gains:
 - `CreditWallet.consume_credits`' own `self.save(update_fields=[...])`
 
 None of the bare `row.save()` sites is a wallet. Step 3 extends the check to `.update()` and `bulk_update` paths and adds the interleaving tests.
+
+### 11h. Sweep overlap safety (SM condition 2026-11-06 on the 3-min/1-min lock)
+
+**Relied on: overlap safety, not a capped batch.** A sweep run that outlives its lock can overlap the next run.
+- Each item is released only after the conditional UPDATE `hold_state HELD → RETURNED WHERE hold_state = 'HELD' AND started_at < cutoff`, inside a transaction holding the wallet row lock (`_sweep_item`). A second run's UPDATE matches 0 rows and returns before touching any amount.
+- Each job with no task row is released only through `finish_job`'s conditional status UPDATE (`status IN open`), under the same wallet lock.
+- A double release is impossible.
+
+**Test, new:** `billing/tests/test_holds_concurrency.py` `SweepOverlapTests.test_two_overlapping_sweeps_release_a_stale_hold_once`. Two `sweep_stale_holds()` run on a barrier over one stale item and one stale SINGLE_CALL job (5 rounds). Asserted:
+- the items swept across both runs total exactly 1, and the jobs released exactly 1
+- item `released_credits` and job `failed_items` are as for one release
+- wallet `reserved_credits` is 0, never negative
+- zero CreditUsageLog/CreditLedger rows
+- invariants are clean
+
+**Audit row:** the sweep writes **no AuditEvent** in step 2. B1's four audit actions are not named yet (plan §9 item 12: "B1 adds its four actions itself unless the Feature Lead rules for one shared task"). Flagged to the SM. The test pins "exactly once" on the books, not on an audit row.
+
+**Red** for the new test: at its tests commit there is no committed `billing/holds.py`, so it is expected to give Ran 1, errors=1, `ModuleNotFoundError: No module named 'billing.holds'`. It is run in the same disposable worktree as the break run, but the break run needs the step-2 code; so the red runs at the tests commit, and the break run runs in the main worktree with the old file swapped in.

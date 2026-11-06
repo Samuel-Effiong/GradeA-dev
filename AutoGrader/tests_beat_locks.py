@@ -48,6 +48,9 @@ EVERY_5_MIN_TASK = "billing.tasks.escalate_stale_licence_stripe_intents"
 EPIC_ONLY_GUARDED_BEAT_TASKS = {
     "audit.tasks.sweep_audit_retention",
     "audit.tasks.sweep_audit_pii_short_retention",
+    # Epic B1a (plan 08 §3.2): credit holds.
+    "billing.tasks.sweep_stale_credit_holds",
+    "billing.tasks.check_credit_hold_invariants",
 }
 
 
