@@ -1426,3 +1426,54 @@ Each plant runs `billing.tests.test_holds_door billing.tests.test_holds_door_com
 | DP-6 | `launch_processing_task`: neither branch calls `_return_door_hold` | C-8; C-10 (autocommit: no guard, so the hold stays HELD). C-9 still passes because its guard returns the hold. |
 | DP-7 | `launch_at_door`: no `attach_celery_task` before commit | C-2, C-3 |
 | DP-8 | `_DoorLaunchOnCommit`: no `fail_item` | C-11 |
+
+### 15h results: DP plants on cf82437d (expectations 1a384334)
+
+Every file was restored, sha256-checked against HEAD. G-1 stayed green in every plant.
+
+| Plant | Result | Matches? | Log |
+|---|---|---|---|
+| DP-1 | D-10 FAIL `2 != 1` (total_items) | yes | step3c_plant_DP-1.log |
+| DP-2 | **SURVIVED** (Ran 54, OK) | **no: STOP**, reported to the SM | step3c_plant_DP-2.log |
+| DP-3 | D-7 FAIL `Expected 'delay' to not have been called` | yes | step3c_plant_DP-3.log |
+| DP-4 | C-1, C-3, C-4 FAIL (launched before commit); C-9 FAIL; C-11 FAIL (no guard log, the RuntimeError reached the view) | yes | step3c_plant_DP-4.log |
+| DP-5 | C-6 FAIL `expected call not found` | yes | step3c_plant_DP-5.log |
+| DP-6 | C-8 and C-10 FAIL `('FAILURE', 'HELD') != ('FAILURE', 'RETURNED')` | yes | step3c_plant_DP-6.log |
+| DP-7 | C-2 and C-3 FAIL `None != '<uuid>'` (no id on the row) | yes | step3c_plant_DP-7.log |
+| DP-8 | C-11 FAIL `('FAILURE', 'HELD') != ('FAILURE', 'RETURNED')` | yes | step3c_plant_DP-8.log |
+
+**Why DP-2 survived: a test gap.** D-1's setup is refused at the door's own balance check (`upload_refusal_if_unaffordable`, which reads spendable) before the atomic block creates the row. So D-1 never reaches the hold-refusal path. That path is reached only in a race, when the door's check passes and the hold then refuses, and no test covered it. D-1 in effect pins "the door reads spendable", as D-10 does for batches. Proposed to the SM: D-11, a student-door race test, with DP-2 as its red.
+
+### 15h-2. The door race: D-11, D-12, DP-9 (SM approved 2026-11-06), expectations before any run
+
+**D-1 re-described (SM):** D-1 pins **"the student door reads spendable"**. It is refused at the door's own balance check before any row exists. It does **not** cover the hold-refusal rollback; D-11 does.
+
+**D-11 (student door race)**, `StudentDoorTests`:
+- **Setup:** wallet 6,000; another job holds 2,000; estimate 5,000. `assignments.upload_door._balance` is patched to a large number, so the door's check passes, as when another request takes the balance in between. The real `reserve` refuses.
+- **Expected, current code:**
+  - 402 with `{"error": STUDENT_UPLOAD_NOT_PROCESSED, "code": "insufficient_credits"}`;
+  - no BackgroundProcessingTask row;
+  - no UPLOAD job;
+  - no on-commit callback;
+  - launch not called.
+  - Result: PASS.
+- **Under DP-2** (the hold taken after the atomic block): FAIL `True is not false` on the row check.
+
+**The batch door (SM addition 1): it has the same check-then-hold window, but not inside a transaction.** The two batch routes run no atomic block: each row is committed on its own, and a hold that loses the race marks that file FAILED with the existing INSUFFICIENT_CREDITS refusal and skips its launch (§15a). So its plant is not "outside the atomic" but **"the refused file is launched anyway"**, and that path was untested too.
+
+**D-12 (batch door race)**, `TeacherDoorTests`:
+- **Setup:** wallet 12,000; another job holds 3,000 (spendable 9,000); `_balance` patched large, so nothing is parked; 2 files at 5,000 each. The first hold fits; the second is refused.
+- **Expected, current code:**
+  - 202;
+  - the second file's entry has `task_id` None, and its row is FAILURE with the credit refusal's reason code;
+  - launch called once;
+  - the UPLOAD job holds 5,000.
+  - Result: PASS.
+
+**DP-9** (`students/views.py`, batch): `if not door.hold(…):` becomes `if not (door.hold(…) or True):`, so the hold is attempted, its refusal ignored, and the file launched. Expected kill: **D-12** (launch called twice).
+
+**DP-2 re-run** with D-11 in place: expected kill **D-11** only, fragment `True is not false`.
+
+**Final DP record:** DP-1…DP-9 on the full door set (`test_holds_door` 11 + `test_holds_door_commit` 11 = 22) plus G-1. The expected kills are as in the updated §15h table, plus DP-2 → D-11 and DP-9 → D-12. D-11 and D-12 must pass in every other plant.
+
+**Four-app near run, expected:** **Ran 5788 = 5654 + 134** (127 + C-9, C-10, C-11, D-10, N-1, D-11, D-12), OK (skipped=20). It is followed by the static set as its own run.

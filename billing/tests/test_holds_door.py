@@ -33,7 +33,9 @@ from billing.testing.holds import (
     make_job,
 )
 from billing.tests.test_holds_entry import classroom
+from students.exceptions import STUDENT_UPLOAD_NOT_PROCESSED
 from students.models import BackgroundProcessingTask
+from students.task_tracking import failure_reason_code
 
 PROVIDER = "_AIProcessor__ai_model"
 DOOR_ESTIMATE = 5_000
@@ -55,6 +57,12 @@ def fixed_estimate():
     return patch("assignments.upload_door._estimate_for", return_value=DOOR_ESTIMATE)
 
 
+def door_check_passes():
+    """Another request takes the free balance between the door's check and
+    the hold: the check sees plenty, the real reserve refuses."""
+    return patch("assignments.upload_door._balance", return_value=10**9)
+
+
 class StudentDoorTests(APITestCase):
     def upload(self, student, assignment):
         self.client.force_authenticate(user=student)
@@ -74,6 +82,27 @@ class StudentDoorTests(APITestCase):
         launch.assert_not_called()
         self.assertFalse(BackgroundProcessingTask.objects.exists())
         self.assertFalse(AIJob.objects.filter(job_type="UPLOAD").exists())
+
+    @override_settings(BILLING_HOLDS_ENABLED=True)
+    def test_d11_a_hold_refused_after_the_door_check_rolls_the_row_back(self):
+        # D-11 (NOTES §15h-2): the race. D-1 only pins the door's own check.
+        teacher, student, _, assignment, submission = classroom("d11", 6_000)
+        submission.delete()
+        holds().reserve(wallet_of(teacher), 2_000, make_job(wallet_of(teacher)))
+        with fixed_estimate(), door_check_passes(), patch(
+            "students.views.launch_processing_task"
+        ) as launch:
+            with self.captureOnCommitCallbacks(execute=False) as callbacks:
+                response = self.upload(student, assignment)
+        self.assertEqual(response.status_code, 402)
+        self.assertEqual(
+            response.data,
+            {"error": STUDENT_UPLOAD_NOT_PROCESSED, "code": "insufficient_credits"},
+        )
+        self.assertFalse(BackgroundProcessingTask.objects.exists())
+        self.assertFalse(AIJob.objects.filter(job_type="UPLOAD").exists())
+        self.assertEqual(callbacks, [])
+        launch.assert_not_called()
 
     @override_settings(BILLING_HOLDS_ENABLED=True)
     def test_a_granted_hold_is_taken_on_the_row_and_the_task_settles_on_it(self):
@@ -156,6 +185,32 @@ class TeacherDoorTests(APITestCase):
             BackgroundProcessingTask.objects.filter(job=job, hold_state="HELD").count(),
             1,
         )
+
+    def test_d12_a_batch_file_whose_hold_loses_the_race_is_failed_not_launched(self):
+        # D-12 (NOTES §15h-2): no transaction here; the refused file's row is
+        # its own FAILED item with the credit refusal, and is not launched.
+        teacher, _, _, assignment, _ = classroom("d12", 12_000)
+        holds().reserve(wallet_of(teacher), 3_000, make_job(wallet_of(teacher)))
+        self.client.force_authenticate(user=teacher)
+        url = reverse(
+            "student-submission-batch-upload", kwargs={"assignment_id": assignment.pk}
+        )
+        files = [png_file("s1.png"), png_file("s2.png")]
+        with fixed_estimate(), door_check_passes(), patch(
+            "students.views.launch_processing_task"
+        ) as launch:
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(url, {"answers": files}, format="multipart")
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(launch.call_count, 1)
+        by_name = {t["file_name"]: t for t in response.data["tasks"]}
+        self.assertIsNone(by_name["s2.png"]["task_id"])
+        refused = BackgroundProcessingTask.objects.get(file_name="s2.png")
+        self.assertEqual(refused.status, "FAILURE")
+        self.assertEqual(
+            refused.reason_code, failure_reason_code(InsufficientCreditsError())
+        )
+        self.assertEqual(AIJob.objects.get(job_type="UPLOAD").reserved_credits, 5_000)
 
     def test_an_assignment_file_is_held_on_its_row(self):
         teacher, _, course, _, _ = classroom("d6", 10 * estimate_for())
