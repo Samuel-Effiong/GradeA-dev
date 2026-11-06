@@ -367,11 +367,14 @@ Exact FAIL/ERROR count, test IDs, and fragments are committed after tests are co
 
 ### 5c. Break-run plan
 
-Break run = pre-existing tests that B1a EDITS, run at their OLD versions against the new code. This proves they fail only for the declared reason.
+Break run = pre-existing tests that B1a EDITS, run at their OLD versions against the new code. It proves they fail only for the declared reason.
 
-**Pre-existing tests expected to be edited:** none identified so far. B1a adds new files and new columns (flag default off); existing tests should not need editing. If this changes during implementation, it is a STOP.
-
-If no pre-existing tests are edited, there is no break run.
+**Edited (SM ruling 2026-11-06, (a)/(b) approved):** `audit/tests_background_attribution.py` `SweepSelfRecordTests`.
+- The old file is saved at `~/Documents/Projects/GAP-a0-runs/epic-b1a/old_tests_background_attribution.py`, sha256 `ec65d3e334463c1a069ddb438d22a5c67ba15ce0d95bcf2b448a82089788049f` (= HEAD ad0f8b3a).
+- Run the two tests at their old text against the step-1 code. **Expected: 2 FAIL, 0 ERROR**:
+  - `test_a_retention_sweep_that_deletes_nothing_still_records_itself`: the metadata dict differs only by the extra `'deleted_financial': 0`.
+  - `test_a_retention_sweep_records_its_counts`: `{'deleted_general': 0, 'deleted_student_record': 0, 'deleted_financial': 0} != {'deleted_general': 2, 'deleted_student_record': 0}`. The two grant rows are now FINANCIAL, so the old GENERAL-only `update` ages nothing.
+- Any other failure, or a different dict, is a STOP.
 
 ### 5d. Near-run plan
 
@@ -413,3 +416,96 @@ After each plan step, send SM the sha plus its own tests' result. A checkpoint i
 | 3 | Wire holds behind BILLING_HOLDS_ENABLED (entry rule, metered unit, pre-call check) | sha + entry-point tests, metered-unit tests |
 | 3b | Departed-teacher share refund | sha + departure-refund test |
 | 8 | FR-B-08 forced-failure proofs (F-1, F-2, F-3) | sha + grant atomicity tests |
+
+---
+
+## 9. Step 1 (schema): expectations, committed before any run (2026-11-06)
+
+### 9a. Departures from the stash draft (cfd89cc2), all SM-approved 2026-11-06
+
+| Where | Stash draft | Step 1 | Why |
+|---|---|---|---|
+| `AIJob.wallet` | CASCADE | PROTECT | 03a §2.2 |
+| `AIJob.school` | FK to `users.School` | `school_id` UUIDField, null, indexed | 03a §2.2, plan §3.1 "captured as 03a says" |
+| `AIJob.course` | missing | FK `classrooms.Course`, SET_NULL | 03a |
+| `AIJob.sufficiency_verdict`, `failed_items`, `trace_id` | missing | added (CharField(16) null; int default 0; UUID indexed) | 03a |
+| `AIJob.estimated_p50/p90` | that name | `estimate_p50/p90` | 03a |
+| `AIJob.total_items` | default 1 | default 0 | 03a |
+| `AIJob.job_type` | 4 values (BATCH_GRADING, SINGLE_CALL, SINGLE_ITEM, UPLOAD) | 03a's four + SINGLE_CALL, SINGLE_ITEM, UPLOAD; max_length 32, indexed | 03a + plan §3.1 |
+| `AIJob.status` | max_length 30 | max_length 32 | 03a |
+| `AIJob.queued_at` … `cancel_requested_at` | `cancel_requested_at` present | kept (plan §3.1 state machine: "teacher cancels / cancel_requested_at") | plan |
+| `AIJob` indexes | `(wallet, status)` plain | 03a's three: `aijob_wallet_open_ix` partial RESERVED/RUNNING, `aijob_queued_expiry_ix` partial QUEUED_PENDING_CREDITS, `aijob_requester_created_ix` `(requested_by, -created_at)` | 03a |
+| `AIJob` CHECKs | none | `aijob_credits_nonneg` (reserved, consumed, released ≥ 0), `aijob_items_within_total` (completed + failed ≤ total) | 03a |
+| `HoldState` labels | "Held" / "Returned" | "Credit held" / "Credit returned" (values unchanged); BPT uses the same labels | SM 2(a) |
+| `CreditWallet` CHECK `reserved_credits >= 0` | missing | `creditwallet_reserved_credits_nonneg`, RunSQL NOT VALID, then VALIDATE in a separate migration; `Meta.constraints` is the state side | plan §3.2, §4 |
+| Reverse of `reserved_credits` | plain | `refuse_reverse_with_open_holds`: refuses with the flag on or any `reserved_credits ≠ 0` | plan §4 |
+| `BPT.job` | AddField FK | ADD COLUMN + FOREIGN KEY NOT VALID (`students_bpt_job_id_fk_billing_aijob`), VALIDATE separately, `AddIndexConcurrently` `students_bpt_job_id_ix` in an `atomic = False` migration | plan §4 |
+| Emitter | unchanged (only GENERAL or STUDENT_RECORD) | CREDIT_TRANSACTION stored FINANCIAL; FINANCIAL wins over `touches_student_record` | plan §4, SM ruling 1 |
+| `FINANCIAL_ACTIONS` | in `audit/volume.py` | in `audit/enums.py` beside `STUDENT_RECORD_ACTIONS`; volume and tasks import it | SM ruling 1 |
+| Drift-summary table | absent | still absent (B1b) | plan §4 marks it B1b |
+
+`AIJob.requested_by` CASCADE (a student for student uploads) stays as 03a says: "an operational row, not history; the ledger keeps the money trail". SM agreed 2026-11-06. No per-student audit deletion or export walk exists (AuditEvent is append-only), so FINANCIAL tagging removes nothing from one. The SM is raising the wider NFR-CMP-04 gap with the owner separately.
+
+**Migrations (each header names its class, per docs/MIGRATIONS.md §2):**
+- billing: `0074_b1a_credit_hold_schema`, `0075_creditwallet_reserved_credits_check` (NOT VALID), `0076_validate_creditwallet_reserved_credits_check`
+- students: `0037_backgroundprocessingtask_credit_hold` (column + FK NOT VALID + hold columns), `0038_validate_backgroundprocessingtask_job_fk`, `0039_backgroundprocessingtask_job_index` (concurrent, `atomic = False`)
+- audit: `0004_alter_auditevent_retention_class` (choices only)
+
+### 9b. Step-1 tests
+
+New: `billing/tests/test_holds_schema.py` (23 tests; S-1…S-8) and `audit/tests_financial_retention.py` (8 tests; FR-1, FR-2). Edited: the two `SweepSelfRecordTests` tests (§5c).
+
+### 9c. Red run: expected result
+
+Red = the step-1 tests at commit T (tests and NOTES only) on code = staging 2f00c078, with no stash and no schema. Run in a disposable detached worktree with test DB `test_epic_b1a_red`.
+
+Command: `python manage.py test billing.tests.test_holds_schema audit.tests_financial_retention audit.tests_background_attribution.SweepSelfRecordTests --settings=settings_worktree --noinput`
+
+Expected: **Ran 34, FAILED (failures=13, errors=21)**.
+- Ran 34 = 23 (test_holds_schema) + 8 (tests_financial_retention) + 3 (SweepSelfRecordTests).
+- errors=21 counts `test_negative_job_credits_are_refused` as 3 subtest ERRORs; every other test gives one result.
+- 2 PASS: `test_an_ordinary_event_is_still_general` (control) and `test_the_pii_sweep_records_what_it_scrubbed_including_zero` (untouched).
+- The `test_holds_schema` ERRORs are 4 + 3 + 1 + 2 + 3 + 2 + 3 + 2 = 20, plus 1 in FR-2.
+
+| Test | Expected | Fragment |
+|---|---|---|
+| S-1 test_aijob_has_the_03a_columns_and_the_plan_additions | ERROR | LookupError: App 'billing' doesn't have a 'AIJob' model |
+| S-1 test_aijob_on_delete_rules_follow_03a | ERROR | LookupError … 'AIJob' |
+| S-1 test_aijob_job_types_and_statuses | ERROR | LookupError … 'AIJob' |
+| S-2 test_a_new_job_starts_estimated_with_every_counter_at_zero | ERROR | LookupError … 'AIJob' |
+| S-2 test_aijob_counters_have_database_defaults | FAIL | 'NO COLUMN' != '0' |
+| S-3 test_negative_job_credits_are_refused (×3 subtests) | ERROR ×3 | LookupError … 'AIJob' |
+| S-3 test_items_finished_beyond_the_total_are_refused | ERROR | LookupError … 'AIJob' |
+| S-3 test_aijob_indexes_match_03a | FAIL | '(wallet_id, status)' not found in '' |
+| S-4 test_wallet_starts_with_nothing_reserved | ERROR | AttributeError: 'CreditWallet' object has no attribute 'reserved_credits' |
+| S-4 test_a_negative_reservation_is_refused_by_the_database | ERROR | FieldDoesNotExist: CreditWallet has no field named 'reserved_credits' |
+| S-4 test_the_reservation_check_is_validated | FAIL | None != ('c', True) |
+| S-5 test_reverse_is_refused_while_a_wallet_holds_credits | ERROR | ModuleNotFoundError: No module named 'billing.migrations.0074_b1a_credit_hold_schema' |
+| S-5 test_reverse_is_refused_with_the_flag_on | ERROR | ModuleNotFoundError (same) |
+| S-5 test_reverse_is_allowed_with_the_flag_off_and_no_hold_open | ERROR | ModuleNotFoundError (same) |
+| S-6 test_one_settlement_per_item_and_retry | ERROR | LookupError … 'SettlementRecord' |
+| S-6 test_settlement_has_no_settled_flag_column | ERROR | LookupError … 'SettlementRecord' |
+| S-7 test_a_task_starts_with_no_credit_hold | ERROR | TypeError: BackgroundProcessingTask() got unexpected keyword arguments: 'job' |
+| S-7 test_deleting_the_job_keeps_the_task | ERROR | LookupError … 'AIJob' |
+| S-7 test_the_job_foreign_key_is_validated_and_indexed | FAIL | None != ('f', True) |
+| S-7 test_hold_state_reads_as_a_credit_hold | ERROR | AttributeError: module 'billing.models' has no attribute 'HoldState' |
+| S-8 test_plan_queue_lifetime_defaults | ERROR | FieldDoesNotExist: SubscriptionPlan has no field named 'queue_expiry_days' |
+| S-8 test_billing_settings_is_one_row_with_its_defaults | ERROR | LookupError … 'BillingSettings' |
+| S-8 test_holds_flag_defaults_off | FAIL | None is not False |
+| FR-1 test_financial_is_kept_seven_years | FAIL | 'FINANCIAL' not found in |
+| FR-1 test_a_new_credit_event_is_stored_financial | FAIL | 'GENERAL' != 'FINANCIAL' |
+| FR-1 test_a_student_linked_credit_event_is_stored_financial | FAIL | 'STUDENT_RECORD' != 'FINANCIAL' |
+| FR-1 test_an_ordinary_event_is_still_general | PASS | control |
+| FR-2 test_a_financial_row_survives_until_seven_years | FAIL | True is not false |
+| FR-2 test_a_legacy_general_credit_row_survives_the_general_cutoff | FAIL | False is not true |
+| FR-2 test_a_legacy_general_credit_row_goes_at_seven_years | ERROR | KeyError: 'deleted_financial' |
+| FR-2 test_a_student_record_credit_row_survives_the_three_year_cutoff | FAIL | False is not true |
+| SweepSelfRecord test_a_retention_sweep_that_deletes_nothing_still_records_itself (new text) | FAIL | 'deleted_financial' |
+| SweepSelfRecord test_the_pii_sweep_records_what_it_scrubbed_including_zero | PASS | untouched |
+| SweepSelfRecord test_a_retention_sweep_records_its_counts (new text) | FAIL | {'deleted_general': 3, 'deleted_student_record': 0} != {'deleted_general': 1, … 'deleted_financial': 1} |
+
+Any mismatch with this table is a STOP, investigated and reported before green.
+
+### 9d. Green: expected result
+
+Same command on the step-1 code: all OK. Then `makemigrations --check --dry-run` reports no changes. Then the break run (§5c).

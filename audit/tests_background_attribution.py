@@ -27,6 +27,7 @@ from audit.context import request_audit_state
 from audit.enums import ActorRole, AuditAction, RetentionClass
 from audit.models import AuditEvent
 from audit.tasks import sweep_audit_pii_short_retention, sweep_audit_retention
+from audit.tests_schema import event_fields
 from billing.immutable import allow_unsafe_mutation
 from billing.license_service import LicenseSubscriptionService
 from billing.models import (
@@ -156,24 +157,45 @@ class SweepSelfRecordTests(TestCase):
         event = self.sweep_events().get()
         self.assertEqual(event.actor_role, ActorRole.SYSTEM)
         self.assertEqual(
-            event.metadata, {"deleted_general": 0, "deleted_student_record": 0}
+            event.metadata,
+            {"deleted_general": 0, "deleted_student_record": 0, "deleted_financial": 0},
         )
 
     def test_a_retention_sweep_records_its_counts(self):
-        old = timezone.now() - timedelta(days=400)
-        for _ in range(2):
-            grant(make_user(f"s3.old.{_}@example.com"))
+        # Epic B1a (plan 08 §4): credit events are FINANCIAL, kept 7 years,
+        # and a credit row tagged GENERAL before FINANCIAL existed is kept
+        # past the 12-month cutoff too.
+        now = timezone.now()
+        for n in range(2):
+            grant(make_user(f"s3.old.{n}@example.com"))
+        credit_ids = list(credit_events().values_list("pk", flat=True))
+        self.assertEqual(len(credit_ids), 2)
         with allow_unsafe_mutation():
-            AuditEvent.objects.filter(retention_class=RetentionClass.GENERAL).update(
-                occurred_at=old
+            AuditEvent.objects.filter(pk=credit_ids[0]).update(
+                occurred_at=now - timedelta(days=365 * 7, hours=1)
             )
+            AuditEvent.objects.filter(pk=credit_ids[1]).update(
+                retention_class=RetentionClass.GENERAL,
+                occurred_at=now - timedelta(days=400),
+            )
+        ordinary = AuditEvent.objects.create(
+            **event_fields(
+                retention_class=RetentionClass.GENERAL,
+                occurred_at=now - timedelta(days=400),
+            )
+        )
 
         sweep_audit_retention.apply()
 
         event = self.sweep_events().get()
         self.assertEqual(
-            event.metadata, {"deleted_general": 2, "deleted_student_record": 0}
+            event.metadata,
+            {"deleted_general": 1, "deleted_student_record": 0, "deleted_financial": 1},
         )
+        self.assertFalse(AuditEvent.objects.filter(pk=ordinary.pk).exists())
+        self.assertFalse(AuditEvent.objects.filter(pk=credit_ids[0]).exists())
+        # The legacy GENERAL-tagged credit row survives (SM ruling 2026-11-06).
+        self.assertTrue(AuditEvent.objects.filter(pk=credit_ids[1]).exists())
 
     def test_the_pii_sweep_records_what_it_scrubbed_including_zero(self):
         sweep_audit_pii_short_retention.apply()
