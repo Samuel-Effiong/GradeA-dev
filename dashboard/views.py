@@ -3805,19 +3805,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 best = max(graded, key=lambda s: s.score_percentage or 0, default=None)
                 worst = min(graded, key=lambda s: s.score_percentage or 0, default=None)
 
-                dated_scores = [
-                    (
-                        s.submission_date,
-                        float(s.score_percentage),
-                        s.score,
-                        (
-                            s.max_points
-                            if s.max_points is not None
-                            else s.assignment.total_points
-                        ),
-                    )
-                    for s in graded
-                ]
+                dated_scores = [grade_service.risk_score_row(s) for s in graded]
                 risk_result = self.risk_evaluator.evaluate(
                     RiskInputs(
                         expected_assignment_count=expected_assignment_count,
