@@ -1,0 +1,51 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+FFree trial plan not found: no trial activated for user fe1f9474-88cb-4657-8a07-7dc8925c9bdf.
+Cannot activate automatic trial for user fe1f9474-88cb-4657-8a07-7dc8925c9bdf (validation): ValueError
+E
+======================================================================
+ERROR: test_a_call_that_cannot_be_held_is_refused_before_the_provider (billing.tests.test_holds_single_call.FlagOnSingleCallTests.test_a_call_that_cannot_be_held_is_refused_before_the_provider)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_single_call.py", line 65, in test_a_call_that_cannot_be_held_is_refused_before_the_provider
+    call_ai(teacher)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/testing/holds.py", line 143, in call_ai
+    return ai_processor.execute_graded_task(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/call_record.py", line 363, in wrapper
+    result = function(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 5709, in execute_graded_task
+    billing_task_id = credit_holds.finish_single_call(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/holds.py", line 820, in finish_single_call
+    outcome = settle(
+              ^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/holds.py", line 261, in settle
+    if actual < 0:
+       ^^^^^^^^^^
+TypeError: '<' not supported between instances of 'MagicMock' and 'int'
+
+======================================================================
+FAIL: test_every_held_provider_call_is_dominated_by_a_hold (billing.tests.test_holds_single_call.DominanceTests.test_every_held_provider_call_is_dominated_by_a_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_single_call.py", line 163, in test_every_held_provider_call_is_dominated_by_a_hold
+    self.assertTrue(
+AssertionError: False is not true : provider call at line 214 is not preceded by a hold
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.271s
+
+FAILED (failures=1, errors=1)
+Destroying test database for alias 'default'...
+Found 2 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

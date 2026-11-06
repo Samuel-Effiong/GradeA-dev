@@ -1,0 +1,28 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 933a4715-b2cb-4e4d-ab4b-8b51e3f80d89.
+Cannot activate automatic trial for user 933a4715-b2cb-4e4d-ab4b-8b51e3f80d89 (validation): ValueError
+F
+======================================================================
+FAIL: test_a_unit_that_raises_charges_nothing_and_returns_its_hold (billing.tests.test_holds_unit.UnitTests.test_a_unit_that_raises_charges_nothing_and_returns_its_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_unit.py", line 63, in test_a_unit_that_raises_charges_nothing_and_returns_its_hold
+    self.assertFalse(CreditUsageLog.objects.exists())
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 1 test in 0.204s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

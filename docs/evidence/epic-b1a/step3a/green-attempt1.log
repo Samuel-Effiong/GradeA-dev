@@ -1,0 +1,77 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+.Free trial plan not found: no trial activated for user 39ac2718-85ad-4600-b7af-9d620a161f43.
+Cannot activate automatic trial for user 39ac2718-85ad-4600-b7af-9d620a161f43 (validation): ValueError
+.Free trial plan not found: no trial activated for user dc318562-fc65-44fc-8307-67d1ed0cab34.
+Cannot activate automatic trial for user dc318562-fc65-44fc-8307-67d1ed0cab34 (validation): ValueError
+.Free trial plan not found: no trial activated for user 29941026-225f-42b4-be6a-77e0fb9867b2.
+Cannot activate automatic trial for user 29941026-225f-42b4-be6a-77e0fb9867b2 (validation): ValueError
+.Free trial plan not found: no trial activated for user a8c20037-298a-40e3-90f1-fecc666a62d8.
+Cannot activate automatic trial for user a8c20037-298a-40e3-90f1-fecc666a62d8 (validation): ValueError
+..Free trial plan not found: no trial activated for user 044ee6a8-f1f4-4f08-856c-4e5d875323ce.
+Cannot activate automatic trial for user 044ee6a8-f1f4-4f08-856c-4e5d875323ce (validation): ValueError
+.Free trial plan not found: no trial activated for user 9eb75ee5-a8d0-4e56-9693-79663b848df0.
+Cannot activate automatic trial for user 9eb75ee5-a8d0-4e56-9693-79663b848df0 (validation): ValueError
+.Free trial plan not found: no trial activated for user f3106711-a751-45b8-8433-0a636d0853eb.
+Cannot activate automatic trial for user f3106711-a751-45b8-8433-0a636d0853eb (validation): ValueError
+.Free trial plan not found: no trial activated for user 5a23a534-bd44-490e-956c-fdf01496a3e3.
+Cannot activate automatic trial for user 5a23a534-bd44-490e-956c-fdf01496a3e3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5d568301-3f3a-4de5-ab6c-dfb19992420a.
+Cannot activate automatic trial for user 5d568301-3f3a-4de5-ab6c-dfb19992420a (validation): ValueError
+.Free trial plan not found: no trial activated for user bede7378-59f2-497f-8856-293df342fc7c.
+Cannot activate automatic trial for user bede7378-59f2-497f-8856-293df342fc7c (validation): ValueError
+.Free trial plan not found: no trial activated for user 50817a57-1b0f-40ce-912d-1ebd99c4c079.
+Cannot activate automatic trial for user 50817a57-1b0f-40ce-912d-1ebd99c4c079 (validation): ValueError
+.Free trial plan not found: no trial activated for user ea0aa18b-3207-48b5-b3f5-df494f371058.
+Cannot activate automatic trial for user ea0aa18b-3207-48b5-b3f5-df494f371058 (validation): ValueError
+audit event metadata dropped: action=CREDIT_HOLD_RESERVED keys=item_id (not on the allow-list)
+audit event metadata dropped: action=CREDIT_HOLD_RELEASED keys=item_id (not on the allow-list)
+.Free trial plan not found: no trial activated for user 5fb99c9d-3cf4-4403-bb9f-a171ecc8a72d.
+Cannot activate automatic trial for user 5fb99c9d-3cf4-4403-bb9f-a171ecc8a72d (validation): ValueError
+.Free trial plan not found: no trial activated for user d4ab8e34-c486-41c1-99e7-77d42fa3764f.
+Cannot activate automatic trial for user d4ab8e34-c486-41c1-99e7-77d42fa3764f (validation): ValueError
+.Free trial plan not found: no trial activated for user a20f3df0-c85d-41f5-9c4c-930b84ec6599.
+Cannot activate automatic trial for user a20f3df0-c85d-41f5-9c4c-930b84ec6599 (validation): ValueError
+audit event metadata dropped: action=CREDIT_HOLD_RESERVED keys=item_id (not on the allow-list)
+audit event metadata dropped: action=CREDIT_HOLD_SWEPT keys=item_id (not on the allow-list)
+E.Free trial plan not found: no trial activated for user 44a82f11-b4d9-45af-97a3-746d89843971.
+Cannot activate automatic trial for user 44a82f11-b4d9-45af-97a3-746d89843971 (validation): ValueError
+.Free trial plan not found: no trial activated for user 327fbda4-f2a7-48f4-8b23-fb3cc0c654d4.
+Cannot activate automatic trial for user 327fbda4-f2a7-48f4-8b23-fb3cc0c654d4 (validation): ValueError
+...Free trial plan not found: no trial activated for user bd26eb50-f1ea-460c-9aa7-fc965f0073b2.
+Cannot activate automatic trial for user bd26eb50-f1ea-460c-9aa7-fc965f0073b2 (validation): ValueError
+audit event metadata dropped: action=CREDIT_HOLD_RESERVED keys=item_id (not on the allow-list)
+audit event metadata dropped: action=CREDIT_HOLD_SWEPT keys=item_id (not on the allow-list)
+audit event metadata dropped: action=CREDIT_HOLD_RESERVED keys=item_id (not on the allow-list)
+audit event metadata dropped: action=CREDIT_HOLD_SWEPT keys=item_id (not on the allow-list)
+audit event metadata dropped: action=CREDIT_HOLD_RESERVED keys=item_id (not on the allow-list)
+audit event metadata dropped: action=CREDIT_HOLD_SWEPT keys=item_id (not on the allow-list)
+audit event metadata dropped: action=CREDIT_HOLD_RESERVED keys=item_id (not on the allow-list)
+audit event metadata dropped: action=CREDIT_HOLD_SWEPT keys=item_id (not on the allow-list)
+audit event metadata dropped: action=CREDIT_HOLD_RESERVED keys=item_id (not on the allow-list)
+audit event metadata dropped: action=CREDIT_HOLD_SWEPT keys=item_id (not on the allow-list)
+.
+======================================================================
+ERROR: test_the_sweep_records_one_swept_row_per_item (billing.tests.test_holds_audit.EmitTests.test_the_sweep_records_one_swept_row_per_item)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_audit.py", line 77, in test_the_sweep_records_one_swept_row_per_item
+    self.assertEqual(row.metadata["item_id"], str(fresh(item).id))
+                     ~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'item_id'
+
+----------------------------------------------------------------------
+Ran 23 tests in 8.877s
+
+FAILED (errors=1)
+Destroying test database for alias 'default'...
+Found 23 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

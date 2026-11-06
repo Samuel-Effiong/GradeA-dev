@@ -1,0 +1,2181 @@
+Creating test database for alias 'default'...
+Cloning test database for alias 'default'...
+Cloning test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Found 575 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+ssFree trial plan not found: no trial activated for user 95626284-7695-4338-8ae9-8f8bcd1afe7a.
+Cannot activate automatic trial for user 95626284-7695-4338-8ae9-8f8bcd1afe7a (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 8ae6dac8-30cd-4b4e-943f-a91bbb5627fb.
+Cannot activate automatic trial for user 8ae6dac8-30cd-4b4e-943f-a91bbb5627fb (validation): ValueError
+Free trial plan not found: no trial activated for user ebc8d53e-4982-4c09-a714-020033f4be0f.
+Cannot activate automatic trial for user ebc8d53e-4982-4c09-a714-020033f4be0f (validation): ValueError
+Free trial plan not found: no trial activated for user b7a8df90-c7c0-4c4b-bc1d-e36b0c3ca461.
+Cannot activate automatic trial for user b7a8df90-c7c0-4c4b-bc1d-e36b0c3ca461 (validation): ValueError
+API request refused: PermissionDenied (403)
+..Free trial plan not found: no trial activated for user d61e72a3-61dc-4817-a61d-53d81075c450.
+Cannot activate automatic trial for user d61e72a3-61dc-4817-a61d-53d81075c450 (validation): ValueError
+Free trial plan not found: no trial activated for user e4519e15-0e7d-4099-8a5e-42769fca0701.
+Cannot activate automatic trial for user e4519e15-0e7d-4099-8a5e-42769fca0701 (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user da3ebbc5-a72b-4ce0-9d87-46ab2a46d6a4.
+API request refused: PermissionDenied (403)
+Cannot activate automatic trial for user da3ebbc5-a72b-4ce0-9d87-46ab2a46d6a4 (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 9e1e0ea2-5576-4e66-a359-1961cb50b309.
+API request refused: PermissionDenied (403)
+Cannot activate automatic trial for user 9e1e0ea2-5576-4e66-a359-1961cb50b309 (validation): ValueError
+API request refused: NotAuthenticated (401)
+.....API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+Free trial plan not found: no trial activated for user fc6663f2-1302-4a7e-8825-4439b7dbae4e.
+Cannot activate automatic trial for user fc6663f2-1302-4a7e-8825-4439b7dbae4e (validation): ValueError
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+.....Free trial plan not found: no trial activated for user 647b5328-237f-4364-a1b1-762eedd8dcd5.
+Cannot activate automatic trial for user 647b5328-237f-4364-a1b1-762eedd8dcd5 (validation): ValueError
+Free trial plan not found: no trial activated for user e1ebbf71-cf41-4f93-a69e-16b3ca4c85ca.
+Cannot activate automatic trial for user e1ebbf71-cf41-4f93-a69e-16b3ca4c85ca (validation): ValueError
+Free trial plan not found: no trial activated for user 4a1bb6b4-e4d4-45ee-808f-72b8041a5fbb.
+Cannot activate automatic trial for user 4a1bb6b4-e4d4-45ee-808f-72b8041a5fbb (validation): ValueError
+Free trial plan not found: no trial activated for user e82e4a34-025f-4ef7-a582-7df42b90a99c.
+Cannot activate automatic trial for user e82e4a34-025f-4ef7-a582-7df42b90a99c (validation): ValueError
+Free trial plan not found: no trial activated for user d96e8b04-bd70-4d86-ab08-3feed9d019b6.
+Cannot activate automatic trial for user d96e8b04-bd70-4d86-ab08-3feed9d019b6 (validation): ValueError
+....Free trial plan not found: no trial activated for user 3c255f57-f437-48ff-adc1-69d113b7a183.
+Cannot activate automatic trial for user 3c255f57-f437-48ff-adc1-69d113b7a183 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4f0490c8-12a8-49f2-b369-b9ce7941eac3.
+Cannot activate automatic trial for user 4f0490c8-12a8-49f2-b369-b9ce7941eac3 (validation): ValueError
+Free trial plan not found: no trial activated for user ce11cffd-84d0-4170-bbd7-79824025553b.
+Cannot activate automatic trial for user ce11cffd-84d0-4170-bbd7-79824025553b (validation): ValueError
+Free trial plan not found: no trial activated for user 4af33aa4-ede3-4fbc-acc1-9ed844c4a9cd.
+Cannot activate automatic trial for user 4af33aa4-ede3-4fbc-acc1-9ed844c4a9cd (validation): ValueError
+...Free trial plan not found: no trial activated for user 3e13f7d5-8a5c-4893-86da-2af9d594fa49.
+Cannot activate automatic trial for user 3e13f7d5-8a5c-4893-86da-2af9d594fa49 (validation): ValueError
+Free trial plan not found: no trial activated for user 95bc7389-f1db-4aeb-85b1-4ab80b174d49.
+Cannot activate automatic trial for user 95bc7389-f1db-4aeb-85b1-4ab80b174d49 (validation): ValueError
+Free trial plan not found: no trial activated for user 2a831c0e-221a-4cbf-a024-eb692c0bfcea.
+Cannot activate automatic trial for user 2a831c0e-221a-4cbf-a024-eb692c0bfcea (validation): ValueError
+Free trial plan not found: no trial activated for user 51af1b42-bee6-495b-80af-6bff4b8cee31.
+Cannot activate automatic trial for user 51af1b42-bee6-495b-80af-6bff4b8cee31 (validation): ValueError
+......Free trial plan not found: no trial activated for user b228ff3b-7518-4f22-b7b8-09154709ab16.
+Cannot activate automatic trial for user b228ff3b-7518-4f22-b7b8-09154709ab16 (validation): ValueError
+audit event metadata dropped: action=ADMIN_ACTION keys=command (not allowed for this action)
+Free trial plan not found: no trial activated for user 50e357ad-09f6-4a5b-b180-fa265bad7e79.
+Cannot activate automatic trial for user 50e357ad-09f6-4a5b-b180-fa265bad7e79 (validation): ValueError
+audit event metadata dropped: action=ADMIN_ACTION keys=command (looks like an email address)
+audit event metadata dropped: action=ADMIN_ACTION keys=command (not allowed for this action)
+audit event metadata dropped: action=ADMIN_ACTION keys=command (not allowed for this action)
+audit event metadata dropped: action=ADMIN_ACTION keys=command (not allowed for this action)
+Free trial plan not found: no trial activated for user 5d353826-fb64-4887-ba5b-43d94fe653ad.
+Cannot activate automatic trial for user 5d353826-fb64-4887-ba5b-43d94fe653ad (validation): ValueError
+.Free trial plan not found: no trial activated for user 921b5699-99e5-4208-aa42-2eae698fa196.
+Cannot activate automatic trial for user 921b5699-99e5-4208-aa42-2eae698fa196 (validation): ValueError
+Free trial plan not found: no trial activated for user 805487fd-e063-44b7-b2ad-d0ef8320db3b.
+Cannot activate automatic trial for user 805487fd-e063-44b7-b2ad-d0ef8320db3b (validation): ValueError
+Free trial plan not found: no trial activated for user be7d87b8-8b56-4fce-ad0c-c6c25b4817d2.
+Cannot activate automatic trial for user be7d87b8-8b56-4fce-ad0c-c6c25b4817d2 (validation): ValueError
+Free trial plan not found: no trial activated for user 9d493cbe-de7a-49cc-94a3-a35a37a173ed.
+Cannot activate automatic trial for user 9d493cbe-de7a-49cc-94a3-a35a37a173ed (validation): ValueError
+Free trial plan not found: no trial activated for user ef560a4e-12f3-4139-b8af-f17c5fd4fc96.
+Cannot activate automatic trial for user ef560a4e-12f3-4139-b8af-f17c5fd4fc96 (validation): ValueError
+Free trial plan not found: no trial activated for user 58d98826-66e2-4424-8e41-bbfa2022aa23.
+Cannot activate automatic trial for user 58d98826-66e2-4424-8e41-bbfa2022aa23 (validation): ValueError
+.....Free trial plan not found: no trial activated for user f637cc83-9a74-4cd4-8522-262c0914b655.
+Cannot activate automatic trial for user f637cc83-9a74-4cd4-8522-262c0914b655 (validation): ValueError
+Free trial plan not found: no trial activated for user 8eab31d2-360d-4241-8fc4-73b91ca48b68.
+Cannot activate automatic trial for user 8eab31d2-360d-4241-8fc4-73b91ca48b68 (validation): ValueError
+Free trial plan not found: no trial activated for user f731586c-f466-47ed-b42f-05ef510d0196.
+Cannot activate automatic trial for user f731586c-f466-47ed-b42f-05ef510d0196 (validation): ValueError
+Free trial plan not found: no trial activated for user 05822b8b-26b0-43d6-9a24-6a3097924993.
+Cannot activate automatic trial for user 05822b8b-26b0-43d6-9a24-6a3097924993 (validation): ValueError
+Free trial plan not found: no trial activated for user 7444e8d8-eafa-4898-a359-7d7e928c0b4c.
+Cannot activate automatic trial for user 7444e8d8-eafa-4898-a359-7d7e928c0b4c (validation): ValueError
+Free trial plan not found: no trial activated for user 674101f2-9bc0-4a95-b489-d07b7b031fdb.
+Cannot activate automatic trial for user 674101f2-9bc0-4a95-b489-d07b7b031fdb (validation): ValueError
+Free trial plan not found: no trial activated for user 4a5f1f4c-8be8-48c7-946f-db216cb8a6a4.
+Cannot activate automatic trial for user 4a5f1f4c-8be8-48c7-946f-db216cb8a6a4 (validation): ValueError
+Free trial plan not found: no trial activated for user 2f629264-bc45-4049-be14-4fce34f42680.
+Cannot activate automatic trial for user 2f629264-bc45-4049-be14-4fce34f42680 (validation): ValueError
+Free trial plan not found: no trial activated for user cfe9211f-374f-4457-935b-df049823b09e.
+Cannot activate automatic trial for user cfe9211f-374f-4457-935b-df049823b09e (validation): ValueError
+Free trial plan not found: no trial activated for user 13234b97-1345-4a47-a77f-dd2f798db3e0.
+Cannot activate automatic trial for user 13234b97-1345-4a47-a77f-dd2f798db3e0 (validation): ValueError
+Free trial plan not found: no trial activated for user f93ffdd3-b5ad-4310-a21f-e0ebbc55b620.
+Cannot activate automatic trial for user f93ffdd3-b5ad-4310-a21f-e0ebbc55b620 (validation): ValueError
+.....Free trial plan not found: no trial activated for user f467ff6e-57ae-496f-a909-72aa3434378c.
+Cannot activate automatic trial for user f467ff6e-57ae-496f-a909-72aa3434378c (validation): ValueError
+Free trial plan not found: no trial activated for user 6d6851bb-2eff-4938-96bd-3582af6fef63.
+Cannot activate automatic trial for user 6d6851bb-2eff-4938-96bd-3582af6fef63 (validation): ValueError
+Free trial plan not found: no trial activated for user 6dc3e813-8153-42c0-a728-73ae11a58486.
+Cannot activate automatic trial for user 6dc3e813-8153-42c0-a728-73ae11a58486 (validation): ValueError
+Free trial plan not found: no trial activated for user 519e3b1d-3499-4823-a11b-a4899e7825a8.
+Cannot activate automatic trial for user 519e3b1d-3499-4823-a11b-a4899e7825a8 (validation): ValueError
+.....Free trial plan not found: no trial activated for user cd4304dc-0940-4b97-b1fe-b7ee96f24874.
+Cannot activate automatic trial for user cd4304dc-0940-4b97-b1fe-b7ee96f24874 (validation): ValueError
+...........audit event metadata dropped: action=ASSIGNMENT_COPY keys=credits (not allowed for this action)
+audit event metadata dropped: action=GRADE_CHANGE keys=answer_text (not on the allow-list), item_count (not allowed in before/after for this action)
+audit event metadata dropped: action=ASSIGNMENT_COPY keys=assignment_id (not allowed in before/after for this action)
+......audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a non-success needs one
+audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a non-success needs one
+audit event rejected: action=ASSIGNMENT_COPY detail=school_id: not a UUID
+audit event rejected: action=ASSIGNMENT_COPY detail=department_id: not a UUID
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+Free trial plan not found: no trial activated for user 16836650-74df-4868-97ec-92488ab72d9a.
+Cannot activate automatic trial for user 16836650-74df-4868-97ec-92488ab72d9a (validation): ValueError
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a success has no error class
+audit event rejected: action=ASSIGNMENT_COPY detail=target_id: not a UUID
+audit event rejected: action=ASSIGNMENT_COPY detail=actor: unknown user type
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+Free trial plan not found: no trial activated for user 13c0ecc1-78f2-4cdf-a193-c986fa419a11.
+Cannot activate automatic trial for user 13c0ecc1-78f2-4cdf-a193-c986fa419a11 (validation): ValueError
+audit event rejected: action=MADE_UP_ACTION detail=action: not a known action
+audit event rejected: action=ASSIGNMENT_COPY detail=error_class: not a valid class
+audit event rejected: action=ASSIGNMENT_COPY detail=outcome: not a valid outcome
+audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+Free trial plan not found: no trial activated for user 39f0162c-3b37-4361-a849-9b0b58c49dbd.
+Cannot activate automatic trial for user 39f0162c-3b37-4361-a849-9b0b58c49dbd (validation): ValueError
+audit event rejected: action=ASSIGNMENT_COPY detail=unexpected AttributeError
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+audit event rejected: action=ASSIGNMENT_COPY detail=school_id: not a UUID
+audit event rejected: action=ASSIGNMENT_COPY detail=outcome: not a valid outcome
+audit event rejected: action=MADE_UP detail=action: not a known action
+...............Free trial plan not found: no trial activated for user 6d9e04b5-df62-4766-a5f9-13f41b010a55.
+Cannot activate automatic trial for user 6d9e04b5-df62-4766-a5f9-13f41b010a55 (validation): ValueError
+Free trial plan not found: no trial activated for user e2a32bb3-6d05-4172-b267-6b0a38553437.
+Cannot activate automatic trial for user e2a32bb3-6d05-4172-b267-6b0a38553437 (validation): ValueError
+.....Free trial plan not found: no trial activated for user 32089deb-3fa7-4aa5-a269-b9693433161d.
+Cannot activate automatic trial for user 32089deb-3fa7-4aa5-a269-b9693433161d (validation): ValueError
+Free trial plan not found: no trial activated for user f358b7bc-390b-4867-8448-3eca80c03f24.
+Cannot activate automatic trial for user f358b7bc-390b-4867-8448-3eca80c03f24 (validation): ValueError
+Free trial plan not found: no trial activated for user 6753aebd-8680-4005-8983-6c304e242db4.
+Cannot activate automatic trial for user 6753aebd-8680-4005-8983-6c304e242db4 (validation): ValueError
+Free trial plan not found: no trial activated for user 7d8ec9fe-b964-41b4-b357-e51ab2cf9277.
+Cannot activate automatic trial for user 7d8ec9fe-b964-41b4-b357-e51ab2cf9277 (validation): ValueError
+Free trial plan not found: no trial activated for user 205cd8b2-e6dd-4208-ae9b-d91885acb3be.
+Cannot activate automatic trial for user 205cd8b2-e6dd-4208-ae9b-d91885acb3be (validation): ValueError
+Free trial plan not found: no trial activated for user 0382cb3e-7728-401b-a082-1891ab02ca15.
+Cannot activate automatic trial for user 0382cb3e-7728-401b-a082-1891ab02ca15 (validation): ValueError
+...........audit event metadata dropped: action=ASSIGNMENT_COPY keys=assignment_id (looks like an email address)
+....Free trial plan not found: no trial activated for user a2ec3820-076a-4d6b-882b-31a24e6f07c9.
+Cannot activate automatic trial for user a2ec3820-076a-4d6b-882b-31a24e6f07c9 (validation): ValueError
+..........Free trial plan not found: no trial activated for user a5929b65-c159-40c4-b4fd-7e7441afae12.
+Cannot activate automatic trial for user a5929b65-c159-40c4-b4fd-7e7441afae12 (validation): ValueError
+API request refused: ParseError (400)
+API request refused: ParseError (400)
+Free trial plan not found: no trial activated for user 6c6f69f1-62c6-45d4-9e78-23491d0dadd6.
+Cannot activate automatic trial for user 6c6f69f1-62c6-45d4-9e78-23491d0dadd6 (validation): ValueError
+API request refused: ParseError (400)
+.Free trial plan not found: no trial activated for user ef74ba04-d984-41bc-bff1-0c6ef3a654bf.
+Cannot activate automatic trial for user ef74ba04-d984-41bc-bff1-0c6ef3a654bf (validation): ValueError
+Free trial plan not found: no trial activated for user fe0f93eb-5dd7-496e-bd84-da8b1d533552.
+Cannot activate automatic trial for user fe0f93eb-5dd7-496e-bd84-da8b1d533552 (validation): ValueError
+Free trial plan not found: no trial activated for user ebb9fb87-d79d-4963-bd39-12a02225301a.
+Cannot activate automatic trial for user ebb9fb87-d79d-4963-bd39-12a02225301a (validation): ValueError
+Free trial plan not found: no trial activated for user 0d427a01-a890-445e-acf2-335c946d0ec1.
+Cannot activate automatic trial for user 0d427a01-a890-445e-acf2-335c946d0ec1 (validation): ValueError
+Free trial plan not found: no trial activated for user 3bb30b65-2d40-4ee4-9bd0-243070f066ba.
+Cannot activate automatic trial for user 3bb30b65-2d40-4ee4-9bd0-243070f066ba (validation): ValueError
+Free trial plan not found: no trial activated for user 8edea3b6-08f5-4f4e-b2b3-d44384aeefcb.
+Cannot activate automatic trial for user 8edea3b6-08f5-4f4e-b2b3-d44384aeefcb (validation): ValueError
+Free trial plan not found: no trial activated for user be6a5afc-fc09-4626-b065-26f1745c229b.
+Cannot activate automatic trial for user be6a5afc-fc09-4626-b065-26f1745c229b (validation): ValueError
+...........Free trial plan not found: no trial activated for user 4a4b8457-1dc8-4d97-82da-11dc466c2a0f.
+Cannot activate automatic trial for user 4a4b8457-1dc8-4d97-82da-11dc466c2a0f (validation): ValueError
+Free trial plan not found: no trial activated for user 8a58f8e4-e8ce-4883-af0f-1051b7d4ac39.
+Cannot activate automatic trial for user 8a58f8e4-e8ce-4883-af0f-1051b7d4ac39 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user af8044c9-b997-4bc0-83c2-f2baa4e599e8.
+Cannot activate automatic trial for user af8044c9-b997-4bc0-83c2-f2baa4e599e8 (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user 5ba99c54-ad07-4a6b-9070-474ff8663ebf.
+Cannot activate automatic trial for user 5ba99c54-ad07-4a6b-9070-474ff8663ebf (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user 168ad7e7-052e-4764-8029-c916eaca3258.
+Cannot activate automatic trial for user 168ad7e7-052e-4764-8029-c916eaca3258 (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user 9732e3bc-c5a7-4efe-8019-bd4507c7acdd.
+Cannot activate automatic trial for user 9732e3bc-c5a7-4efe-8019-bd4507c7acdd (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user f7d838a4-67a1-4f66-acb2-fdde20485839.
+Cannot activate automatic trial for user f7d838a4-67a1-4f66-acb2-fdde20485839 (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+.Free trial plan not found: no trial activated for user 29921926-4585-4572-854e-e37a6e48deef.
+Cannot activate automatic trial for user 29921926-4585-4572-854e-e37a6e48deef (validation): ValueError
+....Free trial plan not found: no trial activated for user a0d8547b-d737-4acf-a7e9-3d1296d4c08d.
+Cannot activate automatic trial for user a0d8547b-d737-4acf-a7e9-3d1296d4c08d (validation): ValueError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+Free trial plan not found: no trial activated for user db7cf6d9-829a-48a5-935c-764f87189e00.
+Cannot activate automatic trial for user db7cf6d9-829a-48a5-935c-764f87189e00 (validation): ValueError
+....Free trial plan not found: no trial activated for user 8070c934-209c-4900-bc82-03771e36b036.
+Cannot activate automatic trial for user 8070c934-209c-4900-bc82-03771e36b036 (validation): ValueError
+..........................Free trial plan not found: no trial activated for user b0451a4b-fb84-472e-b682-0a3ff0deadcf.
+Cannot activate automatic trial for user b0451a4b-fb84-472e-b682-0a3ff0deadcf (validation): ValueError
+API request refused: PermissionDenied (403)
+....F..........API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 3ae917d6-c489-4f08-9cbe-4b5996730940.
+Cannot activate automatic trial for user 3ae917d6-c489-4f08-9cbe-4b5996730940 (validation): ValueError
+API request failed with RUBRIC_MISSING: This assignment has no rubric to grade against, so grading hasn't started. No credits were used.
+Free trial plan not found: no trial activated for user 6121fa4b-1fde-4164-8eb5-67664c3a8f14.
+Cannot activate automatic trial for user 6121fa4b-1fde-4164-8eb5-67664c3a8f14 (validation): ValueError
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user ab1066dc-f3bc-424e-9ab9-5c9ae0d34aef.
+Cannot activate automatic trial for user ab1066dc-f3bc-424e-9ab9-5c9ae0d34aef (validation): ValueError
+API request refused: NotFound (404)
+Free trial plan not found: no trial activated for user 8c484602-c92d-4652-a965-3841bc0016cb.
+Cannot activate automatic trial for user 8c484602-c92d-4652-a965-3841bc0016cb (validation): ValueError
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 771dc2e6-5e5f-4be2-8d74-dfe273f916ad.
+Cannot activate automatic trial for user 771dc2e6-5e5f-4be2-8d74-dfe273f916ad (validation): ValueError
+API request refused: Throttled (429)
+Free trial plan not found: no trial activated for user 22ddd8ec-ac4e-40d1-90c6-c9429358df69.
+Cannot activate automatic trial for user 22ddd8ec-ac4e-40d1-90c6-c9429358df69 (validation): ValueError
+API request refused: ValidationError (400)
+............Free trial plan not found: no trial activated for user 580247d2-87f9-4886-af1d-769b01057b23.
+Cannot activate automatic trial for user 580247d2-87f9-4886-af1d-769b01057b23 (validation): ValueError
+Free trial plan not found: no trial activated for user afdf9a68-c41d-4103-8304-ec324acc22cd.
+Cannot activate automatic trial for user afdf9a68-c41d-4103-8304-ec324acc22cd (validation): ValueError
+..Free trial plan not found: no trial activated for user f0ce5517-5917-4f5d-ae09-15be36dc11f0.
+Cannot activate automatic trial for user f0ce5517-5917-4f5d-ae09-15be36dc11f0 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-06 11:37:06,170 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:06,172 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+Free trial plan not found: no trial activated for user e5aefb7a-711a-4059-9235-e66b01087410.
+Cannot activate automatic trial for user e5aefb7a-711a-4059-9235-e66b01087410 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-06 11:37:06,516 services 370548 138425161770880 [request_id=868974e4-b71a-4813-b366-77c8d57aaf01 client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:06,517 services 370548 138425161770880 [request_id=868974e4-b71a-4813-b366-77c8d57aaf01 client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "grant_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:grant_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "user_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:user_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+..Free trial plan not found: no trial activated for user 5134207c-6500-44b7-9da4-bca6be5a913e.
+Cannot activate automatic trial for user 5134207c-6500-44b7-9da4-bca6be5a913e (validation): ValueError
+Free trial plan not found: no trial activated for user e38c3346-0d99-4546-a7e2-407cc1f25b85.
+Cannot activate automatic trial for user e38c3346-0d99-4546-a7e2-407cc1f25b85 (validation): ValueError
+...Free trial plan not found: no trial activated for user c70c970d-5e98-4cd5-bc17-622c2bdc809b.
+Cannot activate automatic trial for user c70c970d-5e98-4cd5-bc17-622c2bdc809b (validation): ValueError
+.Free trial plan not found: no trial activated for user 6aefd280-83f8-4633-915e-e323e50debf5.
+Cannot activate automatic trial for user 6aefd280-83f8-4633-915e-e323e50debf5 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_message_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_latest_message_preview". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/assignments/serializers.py: Warning [AssignmentViewSet > AssignmentDetailSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Free trial plan not found: no trial activated for user a314eaf4-b5db-494b-af3b-a60be536d5dd.
+Cannot activate automatic trial for user a314eaf4-b5db-494b-af3b-a60be536d5dd (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [AuthViewSet > GoogleAuthResponse > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [AuthViewSet > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/views.py: Error [BetaAnaylicChartViewSet]: exception raised while getting serializer. Hint: Is get_serializer_class() returning None or is get_queryset() not working without a request? Ignoring the view for now. (Exception: 'BetaAnaylicChartViewSet' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method.)
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/classrooms/serializers.py: Warning [CourseViewSet > CourseSerializer]: unable to resolve type hint for function "get_assignment_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Free trial plan not found: no trial activated for user 419d04e2-3bc1-4630-b4fc-9dc9e7cb7fef.
+Cannot activate automatic trial for user 419d04e2-3bc1-4630-b4fc-9dc9e7cb7fef (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [CreditWalletViewSet > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/AutoGrader/health.py: Error [health]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/AutoGrader/health.py: Error [beat_health_check]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/AutoGrader/health.py: Error [client_identity]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'user_type')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+Free trial plan not found: no trial activated for user c937a733-c3d6-4add-9f5a-afdffbe38798.
+Cannot activate automatic trial for user c937a733-c3d6-4add-9f5a-afdffbe38798 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/payment_method_views.py: Warning [PaymentMethodViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/payment_method_views.py: Error [PaymentMethodViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+Free trial plan not found: no trial activated for user 6306c443-cd66-4948-8e86-140d66656160.
+Cannot activate automatic trial for user 6306c443-cd66-4948-8e86-140d66656160 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/qa_time_travel.py: Error [BillingTimeTravelView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/audit/views.py: Warning [SchoolAdminAuditEventListView]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'school_id')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_label". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_name". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/dashboard/views.py: Warning [SchoolAdminDashboardView]: could not derive type of path parameter "teacher_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:teacher_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/classrooms/serializers.py: Warning [SchoolViewSet > SchoolAdminSummarySerializer]: Encountered 2 components with identical names "SchoolAdminSummary" and different identities <class 'classrooms.serializers.SchoolAdminSummarySerializer'> and <class 'dashboard.serializers.SchoolAdminSummarySerializer'>. This will very likely result in an incorrect schema. Try renaming one.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_no_of_assignment". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_assignment_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_submitted_assignment_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_grade_letter". Consider using a type hint or @extend_schema_field. Defaulting to string.
+audit event store_failed: action=GRADE_CHANGE detail=RuntimeError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_enrolled_courses". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_in_course". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_percentage_of_submission". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+audit event store_failed: action=STATE_CHANGE detail=RuntimeError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_max_points". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_grade_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_formatted_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Free trial plan not found: no trial activated for user 9cf5d2af-42d1-48ec-ba8f-cbe15defe128.
+Cannot activate automatic trial for user 9cf5d2af-42d1-48ec-ba8f-cbe15defe128 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [SubscriptionPlanViewSet > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+......Free trial plan not found: no trial activated for user 46922693-4496-4e9d-9d51-6468c49257aa.
+Cannot activate automatic trial for user 46922693-4496-4e9d-9d51-6468c49257aa (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "session_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:session_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/users/views.py: Error [TaskViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "task_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:task_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+Free trial plan not found: no trial activated for user 53f6514a-af0f-4a8a-a0e3-601bf8b6323b.
+Cannot activate automatic trial for user 53f6514a-af0f-4a8a-a0e3-601bf8b6323b (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "item_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:item_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/dashboard/views.py: Error [TeacherAdminDashboardView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_remaining_time". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_exact_due_date". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer]: unable to resolve type hint for function "get_average_grading_turnaround". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "status". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "StatusBbeEnum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: encountered multiple names for the same choice set (CategoryEnum). This may be unwanted even though the generated schema is technically correct. Add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request refused: ValidationError (400)
+.......Free trial plan not found: no trial activated for user 65f7bd31-477a-47d8-b418-ef59f1e322f1.
+Cannot activate automatic trial for user 65f7bd31-477a-47d8-b418-ef59f1e322f1 (validation): ValueError
+Free trial plan not found: no trial activated for user 1ebf0ab6-b484-4f36-a0f1-80d665b15701.
+Cannot activate automatic trial for user 1ebf0ab6-b484-4f36-a0f1-80d665b15701 (validation): ValueError
+Free trial plan not found: no trial activated for user eed95791-9add-4e38-8d1e-fdf68b610a8c.
+Cannot activate automatic trial for user eed95791-9add-4e38-8d1e-fdf68b610a8c (validation): ValueError
+Free trial plan not found: no trial activated for user 347d0ab9-bb23-4114-978b-44112f94bea8.
+Cannot activate automatic trial for user 347d0ab9-bb23-4114-978b-44112f94bea8 (validation): ValueError
+Free trial plan not found: no trial activated for user 1dd08106-8971-4937-9ea5-0d630ae20329.
+Cannot activate automatic trial for user 1dd08106-8971-4937-9ea5-0d630ae20329 (validation): ValueError
+Free trial plan not found: no trial activated for user ad75e1b2-d335-434f-9058-b38889261b8b.
+Cannot activate automatic trial for user ad75e1b2-d335-434f-9058-b38889261b8b (validation): ValueError
+Free trial plan not found: no trial activated for user e2ad4430-e7c4-422e-87f0-5c5fe40df445.
+Cannot activate automatic trial for user e2ad4430-e7c4-422e-87f0-5c5fe40df445 (validation): ValueError
+.......Free trial plan not found: no trial activated for user 98d7e805-5311-4049-bdfc-d39267fab91f.
+Cannot activate automatic trial for user 98d7e805-5311-4049-bdfc-d39267fab91f (validation): ValueError
+Free trial plan not found: no trial activated for user 3ad1fb6e-ce6e-441c-9e1e-e86610daf5bb.
+Cannot activate automatic trial for user 3ad1fb6e-ce6e-441c-9e1e-e86610daf5bb (validation): ValueError
+Free trial plan not found: no trial activated for user 996e0992-a8de-43f0-90b2-de9cf8701a1b.
+Cannot activate automatic trial for user 996e0992-a8de-43f0-90b2-de9cf8701a1b (validation): ValueError
+Free trial plan not found: no trial activated for user 7e592967-171c-4100-b1e5-9ff3036486a3.
+Cannot activate automatic trial for user 7e592967-171c-4100-b1e5-9ff3036486a3 (validation): ValueError
+Free trial plan not found: no trial activated for user e7411839-533d-4e04-b33b-a2aef6459c75.
+Cannot activate automatic trial for user e7411839-533d-4e04-b33b-a2aef6459c75 (validation): ValueError
+.audit event metadata dropped: action=TAG_CREATE keys=score (not allowed in before/after for this action)
+..........Free trial plan not found: no trial activated for user f5ed6ea6-dc7c-4b42-9a83-4f024e23ba1e.
+Cannot activate automatic trial for user f5ed6ea6-dc7c-4b42-9a83-4f024e23ba1e (validation): ValueError
+Free trial plan not found: no trial activated for user cff036ce-fb6e-41e9-bdfc-9f04b7f3ef14.
+Cannot activate automatic trial for user cff036ce-fb6e-41e9-bdfc-9f04b7f3ef14 (validation): ValueError
+..Free trial plan not found: no trial activated for user 04726143-0743-45b7-9c49-7c7a40ef73e7.
+Cannot activate automatic trial for user 04726143-0743-45b7-9c49-7c7a40ef73e7 (validation): ValueError
+Free trial plan not found: no trial activated for user c3ab1ed6-495f-4eef-99f5-10f9865870dd.
+Cannot activate automatic trial for user c3ab1ed6-495f-4eef-99f5-10f9865870dd (validation): ValueError
+Free trial plan not found: no trial activated for user ac37eddd-f4cd-4760-89e6-ca27a60e5b1c.
+Cannot activate automatic trial for user ac37eddd-f4cd-4760-89e6-ca27a60e5b1c (validation): ValueError
+..Free trial plan not found: no trial activated for user 593cadd5-8a53-416d-ae29-2f295828d2b3.
+Cannot activate automatic trial for user 593cadd5-8a53-416d-ae29-2f295828d2b3 (validation): ValueError
+audit event rejected: action=AUTH_LOGOUT detail=target_type: must be a model name
+Free trial plan not found: no trial activated for user 394b6264-b13b-4ca3-8166-6a72af695dc9.
+Cannot activate automatic trial for user 394b6264-b13b-4ca3-8166-6a72af695dc9 (validation): ValueError
+audit event store_failed: action=AUTH_LOGOUT detail=RuntimeError
+Free trial plan not found: no trial activated for user 7e4bac33-52f4-4b54-9713-7301ea1bf4f5.
+Cannot activate automatic trial for user 7e4bac33-52f4-4b54-9713-7301ea1bf4f5 (validation): ValueError
+.....Free trial plan not found: no trial activated for user a3043214-dc4b-4e09-8b1e-d8045b2b2172.
+Cannot activate automatic trial for user a3043214-dc4b-4e09-8b1e-d8045b2b2172 (validation): ValueError
+Free trial plan not found: no trial activated for user fdca053b-834b-4860-a831-215c654e96ee.
+Cannot activate automatic trial for user fdca053b-834b-4860-a831-215c654e96ee (validation): ValueError
+Free trial plan not found: no trial activated for user 312a1380-c4ef-4b05-8fcd-657b2c0aae71.
+Cannot activate automatic trial for user 312a1380-c4ef-4b05-8fcd-657b2c0aae71 (validation): ValueError
+Free trial plan not found: no trial activated for user f6bfccc9-259a-4722-be66-00e8ebec8ce4.
+Cannot activate automatic trial for user f6bfccc9-259a-4722-be66-00e8ebec8ce4 (validation): ValueError
+..Failed to reconcile expired bucket 3ee74950-a5d4-474d-bb04-f9ec2e4a9da4 (wallet: 72a28064-944e-445f-b052-9ca6ef5eb0d2): boom
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tasks.py", line 407, in cleanup_expired_credit_buckets
+    value_lost = SubscriptionService.expire_bucket(bucket)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+..Free trial plan not found: no trial activated for user 844d2291-6b01-4c22-8942-87a1d0939186.
+Cannot activate automatic trial for user 844d2291-6b01-4c22-8942-87a1d0939186 (validation): ValueError
+Free trial plan not found: no trial activated for user e35cea1b-919b-4b74-b519-09ec788f8fc5.
+Cannot activate automatic trial for user e35cea1b-919b-4b74-b519-09ec788f8fc5 (validation): ValueError
+Free trial plan not found: no trial activated for user 5cd01021-a0cc-4992-8fc9-55383764205e.
+Cannot activate automatic trial for user 5cd01021-a0cc-4992-8fc9-55383764205e (validation): ValueError
+Free trial plan not found: no trial activated for user 0ed890cf-df77-404e-a66c-a5861a8090c9.
+Cannot activate automatic trial for user 0ed890cf-df77-404e-a66c-a5861a8090c9 (validation): ValueError
+Free trial plan not found: no trial activated for user 7ae60fe1-3cda-4491-84c8-ffb1a2cc061a.
+Free trial plan not found: no trial activated for user e9343c8f-2b4d-4106-bd68-fe5ef5f202e2.
+Cannot activate automatic trial for user 7ae60fe1-3cda-4491-84c8-ffb1a2cc061a (validation): ValueError
+Cannot activate automatic trial for user e9343c8f-2b4d-4106-bd68-fe5ef5f202e2 (validation): ValueError
+Free trial plan not found: no trial activated for user 04a1e439-00cc-4310-8d13-2390060b8c75.
+Cannot activate automatic trial for user 04a1e439-00cc-4310-8d13-2390060b8c75 (validation): ValueError
+Free trial plan not found: no trial activated for user 361ea58d-7363-49c1-abf4-949970769475.
+Cannot activate automatic trial for user 361ea58d-7363-49c1-abf4-949970769475 (validation): ValueError
+...............Free trial plan not found: no trial activated for user e0b83ebe-674b-42a5-a185-113d13aa1bf9.
+Cannot activate automatic trial for user e0b83ebe-674b-42a5-a185-113d13aa1bf9 (validation): ValueError
+Free trial plan not found: no trial activated for user 0b9e2564-2062-4c6f-9d77-311061a71211.
+Cannot activate automatic trial for user 0b9e2564-2062-4c6f-9d77-311061a71211 (validation): ValueError
+..Free trial plan not found: no trial activated for user 8c862e9a-9c17-4a23-a1f6-2f60d899d64a.
+Cannot activate automatic trial for user 8c862e9a-9c17-4a23-a1f6-2f60d899d64a (validation): ValueError
+Free trial plan not found: no trial activated for user 1d52ab4a-f0e0-4d13-b9d1-f609f8340828.
+Cannot activate automatic trial for user 1d52ab4a-f0e0-4d13-b9d1-f609f8340828 (validation): ValueError
+Free trial plan not found: no trial activated for user fd75e7e0-7d56-406f-a328-3d1066880db4.
+Cannot activate automatic trial for user fd75e7e0-7d56-406f-a328-3d1066880db4 (validation): ValueError
+API request refused: PermissionDenied (403)
+..Free trial plan not found: no trial activated for user 3188453b-1eb1-4112-983f-04acac392410.
+Cannot activate automatic trial for user 3188453b-1eb1-4112-983f-04acac392410 (validation): ValueError
+Free trial plan not found: no trial activated for user 679efa0c-f462-4ee2-8361-a7f07a1adb77.
+Cannot activate automatic trial for user 679efa0c-f462-4ee2-8361-a7f07a1adb77 (validation): ValueError
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 90d59424-d0a8-4971-bd0a-6766a4fc9b6a.
+Cannot activate automatic trial for user 90d59424-d0a8-4971-bd0a-6766a4fc9b6a (validation): ValueError
+...Free trial plan not found: no trial activated for user a8801f68-e4e5-478d-ae1d-f0fdd7d2451c.
+Cannot activate automatic trial for user a8801f68-e4e5-478d-ae1d-f0fdd7d2451c (validation): ValueError
+....Free trial plan not found: no trial activated for user 7f8233e5-2d5b-464b-8863-8defade31758.
+Cannot activate automatic trial for user 7f8233e5-2d5b-464b-8863-8defade31758 (validation): ValueError
+....audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action)
+Free trial plan not found: no trial activated for user 2744a749-b8d5-4f5a-85ab-b6263e84727b.
+Cannot activate automatic trial for user 2744a749-b8d5-4f5a-85ab-b6263e84727b (validation): ValueError
+API request refused: PermissionDenied (403)
+....Free trial plan not found: no trial activated for user 3bd35668-2f9d-4197-8190-350e7bd98830.
+Cannot activate automatic trial for user 3bd35668-2f9d-4197-8190-350e7bd98830 (validation): ValueError
+........API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/views.py", line 523, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/users/views.py", line 1915, in register
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+audit event metadata dropped: action=ACCOUNT_REGISTER keys=method (not allowed for this action), route (not allowed for this action)
+
+
+django.request ERROR 2026-11-06 11:37:13,169 log 370549 138425161770880 [request_id=- client_request_id=-] Internal Server Error: /api/v1/auth/register
+
+
+..Free trial plan not found: no trial activated for user 15ca48d4-73df-4d7e-9e46-826755665cc9.
+Cannot activate automatic trial for user 15ca48d4-73df-4d7e-9e46-826755665cc9 (validation): ValueError
+API request refused: ParseError (400)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=ACCOUNT_REGISTER keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ParseError (400)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+.API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=ACCOUNT_REGISTER keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+Free trial plan not found: no trial activated for user 1c5a8ab3-2e30-44a2-a972-a0e564b176ac.
+Cannot activate automatic trial for user 1c5a8ab3-2e30-44a2-a972-a0e564b176ac (validation): ValueError
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+..API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+..API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+.....API request refused: ParseError (400)
+API request refused: NotAuthenticated (401)
+API request refused: ParseError (400)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=ACCOUNT_REGISTER keys=method (not allowed for this action), route (not allowed for this action)
+..API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: NotAuthenticated (401)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ParseError (400)
+API request refused: NotAuthenticated (401)
+.API request refused: NotAuthenticated (401)
+...API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+..API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+Free trial plan not found: no trial activated for user 366f1591-1292-467f-9090-0c18bc7b269f.
+Cannot activate automatic trial for user 366f1591-1292-467f-9090-0c18bc7b269f (validation): ValueError
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+....API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+.....API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+Free trial plan not found: no trial activated for user fda18560-7520-49a6-adce-1486b40c68ba.
+Cannot activate automatic trial for user fda18560-7520-49a6-adce-1486b40c68ba (validation): ValueError
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+Stripe webhook: signature verification failed.
+Stripe thin webhook: signature verification failed.
+API request refused: NotAuthenticated (401)
+Free trial plan not found: no trial activated for user ced411ac-c0de-4c2e-b05a-f0af1cd8e3f8.
+Cannot activate automatic trial for user ced411ac-c0de-4c2e-b05a-f0af1cd8e3f8 (validation): ValueError
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 9f1709e0-ead0-42ed-bda8-78031f2f828d.
+Cannot activate automatic trial for user 9f1709e0-ead0-42ed-bda8-78031f2f828d (validation): ValueError
+Free trial plan not found: no trial activated for user 7188201d-28a3-4c03-94a0-06b6f5a607ff.
+Cannot activate automatic trial for user 7188201d-28a3-4c03-94a0-06b6f5a607ff (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 1a2ed7ce-ad55-404b-8b67-8409fd812f92.
+Cannot activate automatic trial for user 1a2ed7ce-ad55-404b-8b67-8409fd812f92 (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: MethodNotAllowed (405)
+....API request refused: MethodNotAllowed (405)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+Free trial plan not found: no trial activated for user b82d675e-a1d0-4b6e-9c26-e73f087ff771.
+Cannot activate automatic trial for user b82d675e-a1d0-4b6e-9c26-e73f087ff771 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user 77dc7dce-8e6d-43d5-accf-c2865b135f87.
+Cannot activate automatic trial for user 77dc7dce-8e6d-43d5-accf-c2865b135f87 (validation): ValueError
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 978648e1-3031-4f7b-bd9d-26347500ded3.
+Cannot activate automatic trial for user 978648e1-3031-4f7b-bd9d-26347500ded3 (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 54fcc4be-ebed-4052-9915-ed7db6857ede.
+Cannot activate automatic trial for user 54fcc4be-ebed-4052-9915-ed7db6857ede (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: MethodNotAllowed (405)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: MethodNotAllowed (405)
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 3aaf9930-0d9c-44dc-bc7d-e78b207dba10.
+API request refused: MethodNotAllowed (405)
+Cannot activate automatic trial for user 3aaf9930-0d9c-44dc-bc7d-e78b207dba10 (validation): ValueError
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user 67374685-9a17-4681-b1c1-40458487017d.
+Cannot activate automatic trial for user 67374685-9a17-4681-b1c1-40458487017d (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: ValidationError (400)
+API request refused: ParseError (400)
+API request refused: NotFound (404)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user c19059e5-7e8e-4d8e-ba1f-e8372bf70da3.
+Cannot activate automatic trial for user c19059e5-7e8e-4d8e-ba1f-e8372bf70da3 (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 3c684676-2283-4d0a-b0ae-97e105e6e7e4.
+Cannot activate automatic trial for user 3c684676-2283-4d0a-b0ae-97e105e6e7e4 (validation): ValueError
+API request refused: MethodNotAllowed (405)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+Free trial plan not found: no trial activated for user 4a8d797e-9a14-433e-8316-2c0bc0254bff.
+Cannot activate automatic trial for user 4a8d797e-9a14-433e-8316-2c0bc0254bff (validation): ValueError
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: PermissionDenied (403)
+....API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user df27efae-4b63-4700-8f06-369baef17067.
+Cannot activate automatic trial for user df27efae-4b63-4700-8f06-369baef17067 (validation): ValueError
+API request refused: ParseError (400)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user a6ef582d-d8df-4d08-8e98-52dd2e3ae167.
+Cannot activate automatic trial for user a6ef582d-d8df-4d08-8e98-52dd2e3ae167 (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: ValidationError (400)
+API request refused: PermissionDenied (403)
+API request refused: ParseError (400)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 5dda2175-6cb8-4110-b7db-20d0f5236285.
+Cannot activate automatic trial for user 5dda2175-6cb8-4110-b7db-20d0f5236285 (validation): ValueError
+API request refused: ValidationError (400)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user 5a8db4a3-1678-4a9b-9c48-3f84261733e1.
+Cannot activate automatic trial for user 5a8db4a3-1678-4a9b-9c48-3f84261733e1 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 8eaa6eec-38e9-425f-a6ae-503d0aa57fb3.
+Cannot activate automatic trial for user 8eaa6eec-38e9-425f-a6ae-503d0aa57fb3 (validation): ValueError
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: MethodNotAllowed (405)
+Free trial plan not found: no trial activated for user 2170af09-1fcb-42c2-acee-b2f5a01f82c7.
+Cannot activate automatic trial for user 2170af09-1fcb-42c2-acee-b2f5a01f82c7 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: PermissionDenied (403)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user 24f58ffa-8307-4613-873f-d8091fe7d03b.
+Cannot activate automatic trial for user 24f58ffa-8307-4613-873f-d8091fe7d03b (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user b493caa7-1435-4d3a-a9c7-84bb16c72c48.
+Cannot activate automatic trial for user b493caa7-1435-4d3a-a9c7-84bb16c72c48 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: PermissionDenied (403)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user dadaf72c-963d-47b8-812f-e9456dd51059.
+Cannot activate automatic trial for user dadaf72c-963d-47b8-812f-e9456dd51059 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user 23ed1ff2-5604-4382-b3d9-2f8df1e9ffb0.
+Cannot activate automatic trial for user 23ed1ff2-5604-4382-b3d9-2f8df1e9ffb0 (validation): ValueError
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user f25b74b1-36b5-487b-929f-ab42c11745ff.
+Cannot activate automatic trial for user f25b74b1-36b5-487b-929f-ab42c11745ff (validation): ValueError
+API request refused: NotAuthenticated (401)
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user fca073ed-5111-40fb-b66d-fe7c1c4d14c9.
+Cannot activate automatic trial for user fca073ed-5111-40fb-b66d-fe7c1c4d14c9 (validation): ValueError
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user dedb8573-08d8-458f-a17a-7b6ce6f312cb.
+Cannot activate automatic trial for user dedb8573-08d8-458f-a17a-7b6ce6f312cb (validation): ValueError
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 160348b4-7308-48e6-9a23-300f7c3eba32.
+Cannot activate automatic trial for user 160348b4-7308-48e6-9a23-300f7c3eba32 (validation): ValueError
+API request refused: MethodNotAllowed (405)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user aed89f74-5125-4bc1-a1d2-6784401e1e96.
+Cannot activate automatic trial for user aed89f74-5125-4bc1-a1d2-6784401e1e96 (validation): ValueError
+.............API request refused: ValidationError (400)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user afcfca7b-9da1-49aa-96e6-7e64289e94ac.
+Cannot activate automatic trial for user afcfca7b-9da1-49aa-96e6-7e64289e94ac (validation): ValueError
+API request refused: ValidationError (400)
+audit event store_failed: action=AUTH_LOGOUT detail=RuntimeError
+Free trial plan not found: no trial activated for user b7c67931-e4e1-4a7d-8ee3-9cf8268270b1.
+Cannot activate automatic trial for user b7c67931-e4e1-4a7d-8ee3-9cf8268270b1 (validation): ValueError
+
+
+django.request ERROR 2026-11-06 11:37:16,966 log 370549 138425161770880 [request_id=72090a43-a648-4bbf-b783-702eada30141 client_request_id=-] Internal Server Error: /api/v1/qa/console/subscriber
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/qa_console.py", line 132, in _wrapped
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/views/decorators/http.py", line 64, in inner
+    return func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/qa_console.py", line 467, in qa_console_new_subscriber
+    plan = _monthly_plan()
+           ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/qa_console.py", line 208, in _monthly_plan
+    return require_plan(tier=PlanTier.STANDARD, interval=BillingInterval.MONTHLY)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/stripe_live_qa.py", line 366, in require_plan
+    raise LiveQAConfigurationError(
+billing.stripe_live_qa.LiveQAConfigurationError: No active INDIVIDUAL STANDARD/MONTHLY plan with a stripe_price_id exists. The live-QA suite needs real plans wired to real Stripe test prices — seed them before running.
+audit event store_failed: action=STATE_CHANGE detail=RuntimeError
+..API request refused: ValidationError (400)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 251cb37c-ff6d-4733-b254-84c91ced4308.
+Cannot activate automatic trial for user 251cb37c-ff6d-4733-b254-84c91ced4308 (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: ValidationError (400)
+.......Free trial plan not found: no trial activated for user 9cfd0988-49dd-4660-a176-7e708fe40963.
+Cannot activate automatic trial for user 9cfd0988-49dd-4660-a176-7e708fe40963 (validation): ValueError
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 6725ff48-f993-4cd5-a50b-7fba14b571f5.
+Cannot activate automatic trial for user 6725ff48-f993-4cd5-a50b-7fba14b571f5 (validation): ValueError
+...Free trial plan not found: no trial activated for user 1ef3e892-9759-421f-ba43-76f13839bc8e.
+Cannot activate automatic trial for user 1ef3e892-9759-421f-ba43-76f13839bc8e (validation): ValueError
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 866496fe-a73f-4a15-9452-53d0e071b19f.
+Cannot activate automatic trial for user 866496fe-a73f-4a15-9452-53d0e071b19f (validation): ValueError
+.API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 4fbc80fa-fdbc-433e-8772-da1b1e05a33d.
+Cannot activate automatic trial for user 4fbc80fa-fdbc-433e-8772-da1b1e05a33d (validation): ValueError
+API request refused: ValidationError (400)
+........Free trial plan not found: no trial activated for user 9353760f-4ccd-42de-8132-87db9a2e9881.
+Cannot activate automatic trial for user 9353760f-4ccd-42de-8132-87db9a2e9881 (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user 5d907a73-8a44-4efb-abd7-46e9afed9161.
+Cannot activate automatic trial for user 5d907a73-8a44-4efb-abd7-46e9afed9161 (validation): ValueError
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user 7802eb30-34f9-495b-ab90-df460d101687.
+Cannot activate automatic trial for user 7802eb30-34f9-495b-ab90-df460d101687 (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user 35867d24-1542-4b78-a3e8-e18cb52192d3.
+Cannot activate automatic trial for user 35867d24-1542-4b78-a3e8-e18cb52192d3 (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user e9c9f450-e53b-49e7-a2ae-aacf79bd8623.
+Cannot activate automatic trial for user e9c9f450-e53b-49e7-a2ae-aacf79bd8623 (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+...........Free trial plan not found: no trial activated for user e7f6f1f8-2daa-4599-bf86-2906d8fd3967.
+Cannot activate automatic trial for user e7f6f1f8-2daa-4599-bf86-2906d8fd3967 (validation): ValueError
+Free trial plan not found: no trial activated for user 865189de-8bea-4f33-9ad3-41456ca7e11f.
+Cannot activate automatic trial for user 865189de-8bea-4f33-9ad3-41456ca7e11f (validation): ValueError
+Free trial plan not found: no trial activated for user 69226d21-4483-4b4a-94dc-a700a322572c.
+Cannot activate automatic trial for user 69226d21-4483-4b4a-94dc-a700a322572c (validation): ValueError
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+....Free trial plan not found: no trial activated for user 5295615b-6bce-49ea-9862-6ad187bd635a.
+Cannot activate automatic trial for user 5295615b-6bce-49ea-9862-6ad187bd635a (validation): ValueError
+Free trial plan not found: no trial activated for user c36c21d4-81c7-4830-806d-ddb7361e6aa4.
+Cannot activate automatic trial for user c36c21d4-81c7-4830-806d-ddb7361e6aa4 (validation): ValueError
+Free trial plan not found: no trial activated for user 4c3dda35-80b9-4742-9d5d-00022e6c1324.
+Cannot activate automatic trial for user 4c3dda35-80b9-4742-9d5d-00022e6c1324 (validation): ValueError
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+Free trial plan not found: no trial activated for user fa4cbea1-c6f9-4c2b-9831-b28021686474.
+Cannot activate automatic trial for user fa4cbea1-c6f9-4c2b-9831-b28021686474 (validation): ValueError
+Free trial plan not found: no trial activated for user d592b69c-84e7-4665-b753-1a18481de418.
+Cannot activate automatic trial for user d592b69c-84e7-4665-b753-1a18481de418 (validation): ValueError
+Free trial plan not found: no trial activated for user c2d3f529-f0e2-46a0-a983-e7bf33d7712b.
+Cannot activate automatic trial for user c2d3f529-f0e2-46a0-a983-e7bf33d7712b (validation): ValueError
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+....audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+.........Free trial plan not found: no trial activated for user f0aeaa3c-bcda-4ebe-a2a5-f2f50f089404.
+Cannot activate automatic trial for user f0aeaa3c-bcda-4ebe-a2a5-f2f50f089404 (validation): ValueError
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+Free trial plan not found: no trial activated for user fd512b45-babe-4e11-bada-f693f7dc6c08.
+Cannot activate automatic trial for user fd512b45-babe-4e11-bada-f693f7dc6c08 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=LEDGER_INSERT request_id=None
+Free trial plan not found: no trial activated for user 50a4aa85-5594-480c-b73b-17134552bd66.
+Cannot activate automatic trial for user 50a4aa85-5594-480c-b73b-17134552bd66 (validation): ValueError
+Free trial plan not found: no trial activated for user 29c7370b-10eb-4851-b174-3e87c5761944.
+Cannot activate automatic trial for user 29c7370b-10eb-4851-b174-3e87c5761944 (validation): ValueError
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+Zero-credit violation: operation=_selftest attempted=BUCKET_MUTATION request_id=None
+Free trial plan not found: no trial activated for user 95452c6c-a84b-4576-b87b-1447a1039150.
+Cannot activate automatic trial for user 95452c6c-a84b-4576-b87b-1447a1039150 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=BULK_INSERT request_id=None
+Free trial plan not found: no trial activated for user b88e1f5e-7948-4512-82e9-05f26e81fb14.
+Cannot activate automatic trial for user b88e1f5e-7948-4512-82e9-05f26e81fb14 (validation): ValueError
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+Free trial plan not found: no trial activated for user c081bc48-2440-49bf-993a-84d8fae89261.
+Cannot activate automatic trial for user c081bc48-2440-49bf-993a-84d8fae89261 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=MODEL_CALL request_id=None
+Free trial plan not found: no trial activated for user d14cc3a8-bc1a-4f65-a476-4d63f1ed7675.
+Cannot activate automatic trial for user d14cc3a8-bc1a-4f65-a476-4d63f1ed7675 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=MODEL_CALL request_id=None
+Free trial plan not found: no trial activated for user 1f37b0a8-077e-471b-b5cd-0bd44ad4e23a.
+Cannot activate automatic trial for user 1f37b0a8-077e-471b-b5cd-0bd44ad4e23a (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=BULK_INSERT request_id=None
+Free trial plan not found: no trial activated for user cac69e6a-1569-42df-9053-b68dee7b566a.
+Cannot activate automatic trial for user cac69e6a-1569-42df-9053-b68dee7b566a (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=LEDGER_INSERT request_id=None
+Free trial plan not found: no trial activated for user c3715d87-9eb5-4452-9719-ea306020932c.
+Cannot activate automatic trial for user c3715d87-9eb5-4452-9719-ea306020932c (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=LEDGER_INSERT request_id=None
+Free trial plan not found: no trial activated for user 0d41781e-f03b-46cf-bb18-556fdbb6666b.
+Cannot activate automatic trial for user 0d41781e-f03b-46cf-bb18-556fdbb6666b (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Free trial plan not found: no trial activated for user 1f92b92c-5473-41d3-a113-dfa3027b7698.
+Cannot activate automatic trial for user 1f92b92c-5473-41d3-a113-dfa3027b7698 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=BUCKET_MUTATION request_id=None
+Free trial plan not found: no trial activated for user 757de594-1e59-459f-a731-4baac3d04814.
+Cannot activate automatic trial for user 757de594-1e59-459f-a731-4baac3d04814 (validation): ValueError
+Free trial plan not found: no trial activated for user fb69f105-d24f-4e8b-a3a7-9ae4415a677e.
+Cannot activate automatic trial for user fb69f105-d24f-4e8b-a3a7-9ae4415a677e (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Free trial plan not found: no trial activated for user 729b4060-90c6-48be-b667-4403bea8791b.
+Cannot activate automatic trial for user 729b4060-90c6-48be-b667-4403bea8791b (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=USAGE_LOG_INSERT request_id=None
+Free trial plan not found: no trial activated for user 5ce6ffd4-b387-4c32-b4d8-b3e748d9233d.
+Cannot activate automatic trial for user 5ce6ffd4-b387-4c32-b4d8-b3e748d9233d (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Free trial plan not found: no trial activated for user fa389f89-7418-49df-855f-8370f779d91c.
+Cannot activate automatic trial for user fa389f89-7418-49df-855f-8370f779d91c (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Free trial plan not found: no trial activated for user c9e4fb13-c400-4a8d-bc61-ad23b34bb357.
+Cannot activate automatic trial for user c9e4fb13-c400-4a8d-bc61-ad23b34bb357 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=MODEL_CALL request_id=None
+.......................Free trial plan not found: no trial activated for user d3f52ea3-eed4-4cda-8cd1-f49ec8ea67b8.
+Cannot activate automatic trial for user d3f52ea3-eed4-4cda-8cd1-f49ec8ea67b8 (validation): ValueError
+Free trial plan not found: no trial activated for user 7349d478-40dd-4798-a76a-9ab0c510c909.
+Cannot activate automatic trial for user 7349d478-40dd-4798-a76a-9ab0c510c909 (validation): ValueError
+......Free trial plan not found: no trial activated for user 770eefef-ed42-456c-b15c-8fda2872cd43.
+Cannot activate automatic trial for user 770eefef-ed42-456c-b15c-8fda2872cd43 (validation): ValueError
+............API request failed with RUBRIC_MISSING: This assignment has no rubric to grade against, so grading hasn't started. No credits were used.
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedThrottled (429)
+API request refused: InsufficientCreditsError:
+API request refused: ValidationError (400)
+API request refused: Throttled (429)
+API Exception
+RuntimeError: a-message-that-must-never-reach-the-row
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+...........Free trial plan not found: no trial activated for user a572267d-abac-4218-b0c2-72168267b8b7.
+Cannot activate automatic trial for user a572267d-abac-4218-b0c2-72168267b8b7 (validation): ValueError
+...............................................Beat task audit.tasks.sweep_audit_retention: another run already holds the lock; skipping this one (key gaplus-t370548:1:beat-lock:audit.tasks.sweep_audit_retention, held by run direct:6af6fa3ea5f8; this run direct:d8ca747fa53d).
+........Free trial plan not found: no trial activated for user 07af0b92-6102-44b5-8415-29c96e0e36f5.
+Cannot activate automatic trial for user 07af0b92-6102-44b5-8415-29c96e0e36f5 (validation): ValueError
+API request refused: ValidationError (400)
+Beat task audit.tasks.sweep_audit_pii_short_retention: another run already holds the lock; skipping this one (key gaplus-t370548:1:beat-lock:audit.tasks.sweep_audit_pii_short_retention, held by run direct:c3d5f4575fec; this run direct:c6775fe36073).
+Free trial plan not found: no trial activated for user 6da57fa3-8e5b-410d-9b8b-abb180ddca50.
+Cannot activate automatic trial for user 6da57fa3-8e5b-410d-9b8b-abb180ddca50 (validation): ValueError
+API request refused: ValidationError (400)
+......Free trial plan not found: no trial activated for user 6c4ccfbc-1e58-409e-b8bb-c7c71335b3b7.
+Cannot activate automatic trial for user 6c4ccfbc-1e58-409e-b8bb-c7c71335b3b7 (validation): ValueError
+Free trial plan not found: no trial activated for user c5f502d2-a8a5-4679-b1cc-00aa6f88f5c6.
+Cannot activate automatic trial for user c5f502d2-a8a5-4679-b1cc-00aa6f88f5c6 (validation): ValueError
+API request refused: ValidationError (400)
+.Free trial plan not found: no trial activated for user f69709cc-8573-4611-b118-1935a23acfde.
+Cannot activate automatic trial for user f69709cc-8573-4611-b118-1935a23acfde (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-06 11:37:34,734 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] Partition: 20 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 20 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:34,734 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] 20 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:34,734 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] 20 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:34,735 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+Free trial plan not found: no trial activated for user b996c510-ab52-45da-bf31-81548370feec.
+Cannot activate automatic trial for user b996c510-ab52-45da-bf31-81548370feec (validation): ValueError
+API request refused: ValidationError (400)
+
+
+ai_processor.services WARNING 2026-11-06 11:37:34,826 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] incomplete_response batch=1/2 attempt=1 processing_task_id=None — Batch 1 response is missing evaluations for question(s) [10].
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:34,904 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:34,904 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q20)...
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:34,995 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] Batch 2/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:34,996 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] All 2 batches complete. 20 question evaluations collected. Building overall summary...
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:35,102 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] Complete. Score: 80/100 (80.0%)
+
+
+Free trial plan not found: no trial activated for user 999aa0a1-e02c-4235-a471-0090d3fea032.
+Cannot activate automatic trial for user 999aa0a1-e02c-4235-a471-0090d3fea032 (validation): ValueError
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user ee225e1d-54b0-4770-840e-6a1051fb1ac4.
+Cannot activate automatic trial for user ee225e1d-54b0-4770-840e-6a1051fb1ac4 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-06 11:37:35,870 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] Partition: 20 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 20 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:35,871 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] 20 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:35,871 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] 20 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:35,871 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:35,996 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] incomplete_response batch=1/2 attempt=1 processing_task_id=None — Batch 1 response is missing evaluations for question(s) [10].
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:36,089 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] incomplete_response batch=1/2 attempt=2 processing_task_id=None — Batch 1 response is missing evaluations for question(s) [10].
+
+
+.....
+
+ai_processor.services WARNING 2026-11-06 11:37:36,176 services 370548 138425161770880 [request_id=- client_request_id=-] [Grading] incomplete_response batch=1/2 attempt=3 processing_task_id=None — Batch 1 response is missing evaluations for question(s) [10].
+
+
+....Free trial plan not found: no trial activated for user 522f8c29-1e6a-4c13-952b-e3095b42006a.
+Cannot activate automatic trial for user 522f8c29-1e6a-4c13-952b-e3095b42006a (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-06 11:37:36,363 services 370549 138425161770880 [request_id=- client_request_id=-] [Grading] Partition: 2 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 2 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:36,363 services 370549 138425161770880 [request_id=- client_request_id=-] [Grading] 2 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+........
+
+ai_processor.services WARNING 2026-11-06 11:37:36,846 services 370549 138425161770880 [request_id=- client_request_id=-] [Grading] Attempt 1 failed: [Grading] Single-pass response is missing evaluations for question(s) [2].
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:36,846 services 370549 138425161770880 [request_id=- client_request_id=-] [Grading] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:36,846 services 370549 138425161770880 [request_id=- client_request_id=-] [Grading] Partition: 2 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 2 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:36,847 services 370549 138425161770880 [request_id=- client_request_id=-] [Grading] 2 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+.
+
+ai_processor.services INFO 2026-11-06 11:37:37,373 services 370549 138425161770880 [request_id=- client_request_id=-] [AssignmentGeneration] Model requested a web fetch.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,373 services 370549 138425161770880 [request_id=- client_request_id=-] [AssignmentGeneration] Model requested a web fetch.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,373 services 370549 138425161770880 [request_id=- client_request_id=-] [AssignmentGeneration] Model requested a web fetch.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,375 services 370549 138425161770880 [request_id=- client_request_id=-] [AssignmentGeneration] Model requested a web fetch.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,375 services 370549 138425161770880 [request_id=- client_request_id=-] [AssignmentGeneration] Model requested a web fetch.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,378 services 370549 138425161770880 [request_id=- client_request_id=-] [AssignmentGeneration] Model requested a web fetch.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,380 services 370549 138425161770880 [request_id=- client_request_id=-] [AssignmentGeneration] Model requested a web fetch.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,380 services 370549 138425161770880 [request_id=- client_request_id=-] [AssignmentGeneration] Model requested a web fetch.
+
+
+......
+
+ai_processor.services INFO 2026-11-06 11:37:37,388 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] 4 pages → 2 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,389 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/2 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,389 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1/2 complete. Running total: 3 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,389 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 2/2 (pages 4–4)...
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,390 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2/2 complete. Running total: 3 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,390 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Done. Merged 3 answers from 2 chunks. Confidence: 33%.
+
+
+...
+
+ai_processor.services INFO 2026-11-06 11:37:37,397 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 3 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,398 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] 3 pages → 1 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,398 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/1 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,399 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 3 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,399 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] 3 pages → 1 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,400 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/1 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,400 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 3 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,400 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] 3 pages → 1 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,400 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/1 (pages 1–3)...
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,401 services 370549 138425161770880 [request_id=- client_request_id=-] Attempt 1 failed: Error during AI model: provider timed out
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,401 services 370549 138425161770880 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,402 services 370549 138425161770880 [request_id=- client_request_id=-] Attempt 2 failed: Error during AI model: provider timed out
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,402 services 370549 138425161770880 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,402 services 370549 138425161770880 [request_id=- client_request_id=-] Attempt 3 failed: Error during AI model: provider timed out
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,402 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 3 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,402 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] 3 pages → 1 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,403 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/1 (pages 1–3)...
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,403 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1, attempt 1: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,403 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1, attempt 2: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,403 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1, attempt 3: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,403 services 370549 138425161770880 [request_id=- client_request_id=-] Attempt 1 failed: [Answer Extraction] Chunk 1 failed after 3 attempts. Last error: provider timed out
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,403 services 370549 138425161770880 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,403 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 3 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,403 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] 3 pages → 1 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,403 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/1 (pages 1–3)...
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,403 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1, attempt 1: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,404 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1, attempt 2: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,404 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1, attempt 3: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,404 services 370549 138425161770880 [request_id=- client_request_id=-] Attempt 2 failed: [Answer Extraction] Chunk 1 failed after 3 attempts. Last error: provider timed out
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,404 services 370549 138425161770880 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,404 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 3 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,404 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] 3 pages → 1 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-06 11:37:37,404 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/1 (pages 1–3)...
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,404 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1, attempt 1: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,404 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1, attempt 2: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,404 services 370549 138425161770880 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1, attempt 3: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-06 11:37:37,404 services 370549 138425161770880 [request_id=- client_request_id=-] Attempt 3 failed: [Answer Extraction] Chunk 1 failed after 3 attempts. Last error: provider timed out
+
+
+.....................................
+
+ai_processor.tools WARNING 2026-11-06 11:37:48,523 tools 370548 138425161770880 [request_id=- client_request_id=-] Image compression required 4 attempt(s) (scale=1.00, quality=55) to reach 1545885 bytes
+
+
+...Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t370549:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run crashed-run; this run direct:f8c1ad7934b6).
+Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t370549:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run direct:24c677cdec71; this run direct:f58b39702073).
+..........Free trial plan not found: no trial activated for user b400d3a1-4ffd-49ea-a31b-2c06e36c592e.
+Cannot activate automatic trial for user b400d3a1-4ffd-49ea-a31b-2c06e36c592e (validation): ValueError
+Free trial plan not found: no trial activated for user 59744368-eccd-497e-b65c-14ada51d92a1.
+Cannot activate automatic trial for user 59744368-eccd-497e-b65c-14ada51d92a1 (validation): ValueError
+Free trial plan not found: no trial activated for user 51ff9337-a56a-4574-b5ae-f4053e90b7c7.
+Cannot activate automatic trial for user 51ff9337-a56a-4574-b5ae-f4053e90b7c7 (validation): ValueError
+Free trial plan not found: no trial activated for user 019d3e29-5eef-47bd-832a-6b74d94ccc6e.
+Cannot activate automatic trial for user 019d3e29-5eef-47bd-832a-6b74d94ccc6e (validation): ValueError
+Free trial plan not found: no trial activated for user 026bfcc6-323c-4ac2-8f98-16e00f8951cb.
+Cannot activate automatic trial for user 026bfcc6-323c-4ac2-8f98-16e00f8951cb (validation): ValueError
+Free trial plan not found: no trial activated for user 1c45bd7e-03f2-4b94-aebf-d56f7e384321.
+Cannot activate automatic trial for user 1c45bd7e-03f2-4b94-aebf-d56f7e384321 (validation): ValueError
+Free trial plan not found: no trial activated for user df9e2560-468a-4d4a-950d-b55a7b9b28cc.
+Cannot activate automatic trial for user df9e2560-468a-4d4a-950d-b55a7b9b28cc (validation): ValueError
+Free trial plan not found: no trial activated for user f477c950-e460-4828-b6da-96d96c59fa7a.
+Cannot activate automatic trial for user f477c950-e460-4828-b6da-96d96c59fa7a (validation): ValueError
+Free trial plan not found: no trial activated for user b67b98f9-36a3-43a2-b1b7-ae0a07caaac3.
+Cannot activate automatic trial for user b67b98f9-36a3-43a2-b1b7-ae0a07caaac3 (validation): ValueError
+Free trial plan not found: no trial activated for user 60df5d0e-92f5-4d4a-a0b1-7d3986228086.
+Cannot activate automatic trial for user 60df5d0e-92f5-4d4a-a0b1-7d3986228086 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Free trial plan not found: no trial activated for user c8b09682-09d2-401b-a203-d926638d28ce.
+Cannot activate automatic trial for user c8b09682-09d2-401b-a203-d926638d28ce (validation): ValueError
+Free trial plan not found: no trial activated for user cab790e8-89e7-4e36-8b58-79af96dda2dd.
+Cannot activate automatic trial for user cab790e8-89e7-4e36-8b58-79af96dda2dd (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+...
+
+ai_processor.tools WARNING 2026-11-06 11:38:07,321 tools 370548 138425161770880 [request_id=- client_request_id=-] Image compression could not reach target of 1 bytes; falling back to smallest achieved size of 311839 bytes
+
+
+........
+Guard check: 408.4 ns/call over 100000 iterations
+
+======================================================================
+FAIL: test_every_target_type_the_code_writes_has_a_label (audit.tests_h273_query_filters.TargetLabelTests.test_every_target_type_the_code_writes_has_a_label)
+M-H273-16: every explicit target_type="X" in production code and
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 58, in testPartExecutor
+    yield
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 634, in run
+    self._callTestMethod(testMethod)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 589, in _callTestMethod
+    if method() is not None:
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/audit/tests_h273_query_filters.py", line 251, in test_every_target_type_the_code_writes_has_a_label
+    self.assertEqual(sorted(written - set(_TARGET_LABEL)), [])
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 885, in assertEqual
+    assertion_func(first, second, msg=msg)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 1091, in assertListEqual
+    self.assertSequenceEqual(list1, list2, msg, seq_type=list)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 1073, in assertSequenceEqual
+    self.fail(msg)
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 715, in fail
+    raise self.failureException(msg)
+    ^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['AIJob'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'AIJob'
+
+- ['AIJob']
++ []
+
+----------------------------------------------------------------------
+Ran 575 tests in 80.707s
+
+FAILED (failures=1, skipped=2)
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...

@@ -865,3 +865,41 @@ The code is committed first (8796a8d4). Each plant is applied to a saved copy's 
 **Correction to §13e:** P-5 cannot kill SC-2. The single-call path sets the call row's id through `call_record.note_task_id`, not through the repoint, so P-5b is added for it.
 
 Logs: `step3a_plant_P-<n>.log`.
+
+### 13h. Step 3a results (2026-11-06)
+
+| Run | Code | Result | Matches | Log (docs/evidence/epic-b1a/step3a/) |
+|---|---|---|---|---|
+| Red | 64367061 (tests only) | Ran 23, failures=7, errors=16 | yes (§13c) | red-run.log |
+| Green attempt 1 | WIP | Ran 23, errors=1: `KeyError: 'item_id'` (the ALLOWED_KEYS slip, §13f) | build fault, fixed | green-attempt1.log |
+| Green attempt 2 | WIP | Ran 23, OK | yes | green-attempt2.log |
+| Steps 1+2 recheck | WIP | Ran 83, OK | yes | steps12-recheck.log |
+| Targeted 1 (audit app, ai_processor billing-gate tests, beat locks, zero-credit) | WIP | Ran 575, failures=1: target-label scanner (AIJob) | fixed in production code (placeholder label) | targeted-check-1.log |
+| Targeted 2 | WIP | Ran 575, OK (skipped=2) | yes | targeted-check-2.log |
+| Billing app flag off, BASE | 2f00c078 | Ran 2410, OK | — | billing-flagoff-BASE-2f00c078.log.gz |
+| Billing app flag off, WIP 1 | WIP | Ran 2504, failures=1, errors=1 | STOP (§13f), ruled | billing-flagoff-WIP-1.log.gz |
+| Migration test timing before (old file, 2 tests) | — | 12.7 s (24.6 s wall) | — | migration-test-timing-before.log |
+| Break run: proof test with the old billing+users restore | f7e90e6c | Ran 1, failures=1, `['students.0039_backgroundprocessingtask_job_index'] != []` | yes (§13f) | break-run-migration-restore.log |
+| Migration test file after (3 tests) | f7e90e6c | 25.0 s (36.8 s wall) | — | migration-test-timing-after.log |
+| Original 2 tests with the new restore | f7e90e6c | 19.6 s, i.e. **+6.9 s (~3.5 s per test)**: each teardown re-applies students 0037–0039, which the rewind really un-applies (not a no-op) | reported | migration-test-timing-after-original-two.log |
+| Billing app flag off, WIP 2 | WIP | Ran 2505, OK = 2410 + 95 added (23 step 1 + 49 step 2 + 22 step 3a + 1 proof test) | yes | billing-flagoff-WIP-2.log.gz |
+| Green on committed code | 8796a8d4 | Ran 105 hold tests, OK | yes | green-run.log |
+| Billing app flag off, committed | 8796a8d4 | Ran 2505, OK | yes | billing-flagoff-8796a8d4.log.gz |
+| P-1 save without update_fields | 8796a8d4 + plant | 1 FAIL `['billing/services.py:357 wallet.save()'] != []` | yes | plant-P-1.log |
+| P-2 stray reserved_credits update | 8796a8d4 + plant | 1 FAIL `['billing/services.py:1631'] != []` | yes | plant-P-2.log |
+| P-3 single call without a hold (M-B4) | 8796a8d4 + plant | SC-7 FAIL `provider call at line 214 is not preceded by a hold`; SC-3 ERROR `TypeError` (provider reached unheld) | yes | plant-P-3.log |
+| P-4 unit settles on exception (M-B5) | 8796a8d4 + plant | 1 FAIL `True is not false` | yes | plant-P-4.log |
+| P-5 repoint disabled | 8796a8d4 + plant | 1 FAIL `0 != 2` | yes | plant-P-5.log |
+| P-5b single-call note_task_id dropped | 8796a8d4 + plant | 1 FAIL (call row id ≠ settlement id) | yes | plant-P-5b.log |
+
+Every plant was restored from its saved copy; sha256 equalled HEAD after each.
+
+Commits:
+- 64367061: tests
+- f7e90e6c: rulings (migration-test restore, Z-1 `_selftest`)
+- 8796a8d4: 3a code (pre-commit mypy/isort fixes before it landed; green re-run on it)
+- 04f416b9: plant expectations
+- this evidence commit
+
+**Still placeholders (owner wording, SM-held):** the four action labels and the `"AIJob": "Credit hold job"` target label.
+The four billing-app logs are gzipped (each about 0.78 MB raw, over the large-file hook's limit), as B0's near-run.log.gz was.

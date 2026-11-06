@@ -1,0 +1,54 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+.Free trial plan not found: no trial activated for user b62946b5-90b0-439e-933e-8f9c3ca5d4a6.
+Cannot activate automatic trial for user b62946b5-90b0-439e-933e-8f9c3ca5d4a6 (validation): ValueError
+.Free trial plan not found: no trial activated for user feb05693-0462-4391-b373-9df3fb539e6a.
+Cannot activate automatic trial for user feb05693-0462-4391-b373-9df3fb539e6a (validation): ValueError
+.Free trial plan not found: no trial activated for user 8e8e8cf6-4fdf-42b1-8f6a-6e1385b9e786.
+Cannot activate automatic trial for user 8e8e8cf6-4fdf-42b1-8f6a-6e1385b9e786 (validation): ValueError
+.Free trial plan not found: no trial activated for user acda2d9d-3ba8-4507-8bde-a5401c94ca2e.
+Cannot activate automatic trial for user acda2d9d-3ba8-4507-8bde-a5401c94ca2e (validation): ValueError
+..Free trial plan not found: no trial activated for user c481601b-ec34-4c13-b43f-54d5eda41d54.
+Cannot activate automatic trial for user c481601b-ec34-4c13-b43f-54d5eda41d54 (validation): ValueError
+.Free trial plan not found: no trial activated for user 50e747db-5ae9-4c31-8763-61917d1e1342.
+Cannot activate automatic trial for user 50e747db-5ae9-4c31-8763-61917d1e1342 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5ad822c3-a2ca-4f6d-8f8f-741953fa27a3.
+Cannot activate automatic trial for user 5ad822c3-a2ca-4f6d-8f8f-741953fa27a3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8bf07a34-c73e-4466-a45a-6ca7ec1f9cd3.
+Cannot activate automatic trial for user 8bf07a34-c73e-4466-a45a-6ca7ec1f9cd3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 355a6b8d-5567-4241-ae1e-6697fad235a7.
+Cannot activate automatic trial for user 355a6b8d-5567-4241-ae1e-6697fad235a7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 67c28886-571e-49ee-892d-0ffc6a273d79.
+Cannot activate automatic trial for user 67c28886-571e-49ee-892d-0ffc6a273d79 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4e66da28-bfd7-4fed-937f-5c501ced5c2c.
+Cannot activate automatic trial for user 4e66da28-bfd7-4fed-937f-5c501ced5c2c (validation): ValueError
+.Free trial plan not found: no trial activated for user f49fc4f7-24d6-47c7-8e59-e2085a136305.
+Cannot activate automatic trial for user f49fc4f7-24d6-47c7-8e59-e2085a136305 (validation): ValueError
+.Free trial plan not found: no trial activated for user b7f2efea-dced-424f-83fc-6ec752934bc6.
+Cannot activate automatic trial for user b7f2efea-dced-424f-83fc-6ec752934bc6 (validation): ValueError
+.Free trial plan not found: no trial activated for user ffb25634-3ccf-4b82-8d50-99b79abc2c9e.
+Cannot activate automatic trial for user ffb25634-3ccf-4b82-8d50-99b79abc2c9e (validation): ValueError
+.Free trial plan not found: no trial activated for user 6d0fa1de-95cd-4c85-abb1-177fdb30f63e.
+Cannot activate automatic trial for user 6d0fa1de-95cd-4c85-abb1-177fdb30f63e (validation): ValueError
+..Free trial plan not found: no trial activated for user e29bf211-6cc9-4d88-b4b3-43ccd544f7dd.
+Cannot activate automatic trial for user e29bf211-6cc9-4d88-b4b3-43ccd544f7dd (validation): ValueError
+.Free trial plan not found: no trial activated for user 5ff74122-f3ff-4fe1-bdb7-ead4be5e0e87.
+Cannot activate automatic trial for user 5ff74122-f3ff-4fe1-bdb7-ead4be5e0e87 (validation): ValueError
+...Free trial plan not found: no trial activated for user 2872fb1f-437a-43fa-ac48-de624fdc1695.
+Cannot activate automatic trial for user 2872fb1f-437a-43fa-ac48-de624fdc1695 (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 23 tests in 9.930s
+
+OK
+Destroying test database for alias 'default'...
+Found 23 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
