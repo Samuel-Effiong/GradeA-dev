@@ -3267,10 +3267,6 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             .active()
             .select_related("student", "course")
             .annotate(
-                avg_grade_val=Avg(
-                    "student__submissions__score_percentage",
-                    filter=Q(student__submissions__assignment__course=F("course_id")),
-                ),
                 # H-237: the risk rate counts only submissions to
                 # published work that is due (expected_q).
                 risk_submitted_val=Count(
