@@ -4273,7 +4273,9 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             )
 
             # 7. Average grade (course)
-            average_grade = released.aggregate(avg=Avg("score_percentage"))["avg"] or 0
+            average_grade = (
+                released.aggregate(avg=grade_service.mean_percentage())["avg"] or 0
+            )
 
             recent_scores = list(
                 released.order_by("-submission_date").values_list(
