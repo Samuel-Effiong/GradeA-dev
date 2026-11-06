@@ -1074,16 +1074,7 @@ class StudentListSerializer(serializers.ModelSerializer):
 
         submissions = self._cross_course_submissions(obj)
         graded_scores = [
-            (
-                submission.submission_date,
-                float(submission.score_percentage),
-                submission.score,
-                (
-                    submission.max_points
-                    if submission.max_points is not None
-                    else submission.assignment.total_points
-                ),
-            )
+            grade_service.risk_score_row(submission)
             for submission in submissions
             if submission.score_percentage is not None
         ]
