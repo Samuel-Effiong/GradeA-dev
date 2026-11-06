@@ -1,0 +1,48 @@
+         call_record.note_estimate(estimated_cost)
+
++        if not credit_holds.holds_enabled():
+             balance = wallet.total_remaining_credits()
+
+             if balance < estimated_cost:
+@@ -5656,8 +5661,15 @@ Now, respond to the following teacher's instruction using the rules above
+                 )
+
+         ensure_task_not_cancelled(processing_task_id)
+-        task_id = str(uuid.uuid4())
++        # Epic B1a (plan 08 §3.3, NOTES §15i): flag on, the call's hold is
++        # taken here, before the provider is reached (or refused); its usage
++        # id is the settlement's, noted below. None with the flag off.
++        hold = credit_holds.hold_for_call(
++            wallet=wallet, target_teacher=target_teacher, estimate=estimated_cost
++        )
++        task_id = str(uuid.uuid4()) if hold is None else hold.usage_id
+         call_record.note_task_id(task_id)
++        try:
+             response = self.__ai_model(
+                 system_prompt,
+                 user_prompt,
+@@ -5671,10 +5683,24 @@ Now, respond to the following teacher's instruction using the rules above
+                 task_type=task_type,
+             )
+             note_if_reply_cut_off(response, task_type)
++        except BaseException:
++            credit_holds.abandon_call(hold)
++            raise
+
+         call_record.note_response(response)
+         resolved_course = assignment.course if assignment else course
+
++        if hold is not None:
++            hold.finish(
++                response.usage.total_tokens,
++                feature=feature,
++                task_type=task_type,
++                course=resolved_course,
++                school=getattr(target_teacher, "school", None),
++                before_charge=lambda: ensure_task_not_cancelled(processing_task_id),
++            )
++            return response
++
+         with transaction.atomic():
+             ensure_task_not_cancelled(processing_task_id)
+             actual_cost = response.usage.total_tokens

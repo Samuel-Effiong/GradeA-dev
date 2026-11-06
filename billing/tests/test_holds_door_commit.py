@@ -8,9 +8,9 @@ A broker failure on that dispatch returns the file's hold.
 
 from unittest.mock import MagicMock, patch
 
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
-from rest_framework.test import APITestCase
+from rest_framework.test import APIClient, APITestCase
 
 from AutoGrader.dispatch import ProcessingTemporarilyUnavailable
 from billing.models import AIJob
@@ -159,3 +159,86 @@ class LaunchProcessingTaskIdTests(TestCase):
         self.assertEqual(wallet_of(teacher).reserved_credits, 0)
         self.assertEqual(fresh(job).released_credits, DOOR_ESTIMATE)
         self.assertTrue(AIJob.objects.filter(pk=job.pk).exists())
+
+
+BROKER_TEXT = "redis://10.0.0.9:6379"
+
+
+@override_settings(BILLING_HOLDS_ENABLED=True)
+class FailingCallbackUnderAnOuterAtomicTests(APITestCase):
+    """§15g addendum: under an outer atomic (TestCase is one), a raising door
+    callback is accounted for and logged by its guard, and the later
+    callbacks still run."""
+
+    def test_c9_the_first_file_fails_and_the_second_still_launches(self):
+        teacher, _, _, assignment, _ = classroom("c9", 10 * DOOR_ESTIMATE)
+        self.client.force_authenticate(user=teacher)
+        url = reverse(
+            "student-submission-batch-upload", kwargs={"assignment_id": assignment.pk}
+        )
+        task = MagicMock()
+        task.apply_async.side_effect = [ConnectionError(BROKER_TEXT), MagicMock()]
+        files = [png_file("s1.png"), png_file("s2.png")]
+        with fixed_estimate(), patch(
+            "students.views.upload_answers_engine_async", task
+        ), self.assertLogs(level="WARNING") as logs:
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(url, {"answers": files}, format="multipart")
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(task.apply_async.call_count, 2)
+        first = BackgroundProcessingTask.objects.get(file_name="s1.png")
+        second = BackgroundProcessingTask.objects.get(file_name="s2.png")
+        self.assertEqual((first.status, first.hold_state), ("FAILURE", "RETURNED"))
+        self.assertEqual(second.hold_state, "HELD")
+        self.assertEqual(wallet_of(teacher).reserved_credits, DOOR_ESTIMATE)
+        text = "\n".join(logs.output)
+        self.assertIn("failed on commit", text)
+        self.assertNotIn(BROKER_TEXT, text)
+
+    def test_c11_an_early_non_broker_error_still_returns_the_hold(self):
+        teacher, student, _, assignment, submission = classroom(
+            "c11", 10 * estimate_for()
+        )
+        submission.delete()
+        self.client.force_authenticate(user=student)
+        url = reverse(
+            "student-submission-upload-async", kwargs={"assignment_id": assignment.pk}
+        )
+        with fixed_estimate(), patch(
+            STUDENT_LAUNCH, side_effect=RuntimeError("before any accounting")
+        ), self.assertLogs("assignments.upload_door", level="ERROR"):
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(
+                    url, {"answer": png_file()}, format="multipart"
+                )
+        self.assertEqual(response.status_code, 200)
+        row = BackgroundProcessingTask.objects.get()
+        self.assertEqual((row.status, row.hold_state), ("FAILURE", "RETURNED"))
+        self.assertEqual(wallet_of(teacher).reserved_credits, 0)
+
+
+@override_settings(BILLING_HOLDS_ENABLED=True)
+class FailingLaunchInAutocommitTests(TransactionTestCase):
+    """§15g addendum C-10: in autocommit the door launch runs at once and a
+    broker failure still reaches the view (503), with the hold returned."""
+
+    def test_c10_a_broker_failure_still_answers_503(self):
+        teacher, student, _, assignment, submission = classroom(
+            "c10", 10 * estimate_for()
+        )
+        submission.delete()
+        client = APIClient()
+        client.force_authenticate(user=student)
+        url = reverse(
+            "student-submission-upload-async", kwargs={"assignment_id": assignment.pk}
+        )
+        task = MagicMock()
+        task.apply_async.side_effect = ConnectionError(BROKER_TEXT)
+        with fixed_estimate(), patch(
+            "students.views.upload_answers_engine_async", task
+        ):
+            response = client.post(url, {"answer": png_file()}, format="multipart")
+        self.assertEqual(response.status_code, 503)
+        row = BackgroundProcessingTask.objects.get()
+        self.assertEqual((row.status, row.hold_state), ("FAILURE", "RETURNED"))
+        self.assertEqual(wallet_of(teacher).reserved_credits, 0)

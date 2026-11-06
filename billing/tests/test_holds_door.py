@@ -136,6 +136,27 @@ class TeacherDoorTests(APITestCase):
         )
         self.assertEqual(wallet_of(teacher).reserved_credits, DOOR_ESTIMATE)
 
+    def test_d10_the_door_parks_by_spendable_not_by_total(self):
+        # D-10 (NOTES §15h): another job holds 3,000 of 12,000, so the door's
+        # spendable 9,000 fits one 5,000 file; the total would fit both.
+        teacher, _, _, assignment, _ = classroom("d10", 12_000)
+        holds().reserve(wallet_of(teacher), 3_000, make_job(wallet_of(teacher)))
+        self.client.force_authenticate(user=teacher)
+        url = reverse(
+            "student-submission-batch-upload", kwargs={"assignment_id": assignment.pk}
+        )
+        files = [png_file("s1.png"), png_file("s2.png")]
+        with fixed_estimate(), patch("students.views.launch_processing_task"):
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(url, {"answers": files}, format="multipart")
+        self.assertEqual(response.status_code, 202)
+        job = AIJob.objects.get(job_type="UPLOAD")
+        self.assertEqual(job.total_items, 1)
+        self.assertEqual(
+            BackgroundProcessingTask.objects.filter(job=job, hold_state="HELD").count(),
+            1,
+        )
+
     def test_an_assignment_file_is_held_on_its_row(self):
         teacher, _, course, _, _ = classroom("d6", 10 * estimate_for())
         self.client.force_authenticate(user=teacher)

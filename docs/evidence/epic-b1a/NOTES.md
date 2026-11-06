@@ -1365,3 +1365,49 @@ Every 3a and 3b plant is re-run, each re-pointed at the same logic in its new pl
 - **B1b item (SM):** actual-cost reporting reads CREDITS only from the usage rows (`CreditUsageLog` by task_id) and PROVIDER COST from `AICallRecord`. It tells failed calls apart by the record's own `AICallRecord.outcome` field (`CallOutcome`), and it must never derive credits from AICallRecord.
 - The nested-drop nuance (15i-1).
 - The guard-coverage process rule (above).
+
+**Skip baseline restored (SM, 2026-11-06).** Headless Chromium was reinstalled with owner approval: the Ubuntu 24.04 build, because Playwright does not list 26.04. `assignments.tests_pdf_renderer` now runs 59/59 with 0 skips. The four-app near run is expected at **skipped=20** again. Any browser skip is reported to the SM.
+
+### 15i-5. §15i results (2026-11-06)
+
+| Run | Code | Result | Matches? | Log |
+|---|---|---|---|---|
+| Red: G-1 + test_holds_single_call + test_holds_unit + test_holds_settlement | fec07eec (code = 327ce23c) | Ran 53, FAILED (failures=5, errors=1): the 3 guards; SC-7 `no \`hold = ...hold_for_call(...)\` line`; N-1 `1 != 2`; D-1 `TypeError: settle() got an unexpected keyword argument 'record_id'` | yes | step3c_15i_red_fec07eec.log |
+| Green, the same set | WIP | Ran 53, OK | yes | step3c_15i_green_WIP.log |
+| All holds (declared set) | WIP | Ran 138, OK | yes | step3c_15i_allholds_WIP.log |
+| Static/chokepoint set (G-1 + students.tests_reading_label_static + AutoGrader.tests_h271_static_files) | WIP | Ran 58, OK | yes | step3c_15i_static_WIP.log |
+| Flag off: the 3a targeted set | WIP | Ran 575, OK (skipped=2), as in 3a | yes | step3c_15i_flagoff_3aset_WIP.log |
+| Flag off: the 3b targeted set | WIP | Ran 140, OK (skipped=1), as in 3b | yes | step3c_15i_flagoff_3bset_WIP.log |
+| Flag off: billing app | WIP | Ran 2538 (= 2410 + 128), OK | yes | step3c_15i_flagoff_billing_WIP.log |
+| `git diff -w` of execute_graded_task vs 2f00c078 | WIP | only the three declared points plus the flag-on lines | yes | step3c/execute_graded_task_flagoff.diff |
+| Code commit | 3abd7628 | black wrapped one line in holds.py on the first attempt; re-staged (format only) | — | — |
+| Unplanted baseline: all holds + G-1 | 3abd7628 | Ran 172, OK | yes | step3c_15i_unplanted_3abd7628.log |
+
+**Plants on 3abd7628.** Runner `plants15i.py`: each plant was applied to the committed file, run with its declared tests plus G-1, restored from a saved copy, and sha256-checked against HEAD. All were restored.
+
+| Plant | Result | Matches? |
+|---|---|---|
+| P-1 | 1 FAIL `['billing/services.py:357 wallet.save()'] != []` | yes |
+| P-2 | 1 FAIL `['billing/services.py:1634'] != []` | yes |
+| P-3 | SC-3 ERROR `TypeError: '<' not supported between MagicMock and int`: the provider was reached unheld. §13g allowed FAIL or ERROR | yes |
+| P-4 | 1 FAIL `True is not false` | yes |
+| P-5 | 2 FAIL: unit join `0 != 2`; SC-2 call id ≠ settlement id | yes |
+| P-5b | 1 FAIL SC-2 call id ≠ settlement id | yes |
+| Q-1 | ER-4 FAIL `Expected '_AIProcessor__ai_model' to not have been called` (the tightened form, §14) | yes |
+| Q-2 | ER-3 FAIL, the same | yes |
+| Q-3 | ER-5 ERROR `IntegrityError … aijob_items_within_total` (the kill accepted in 3b) | yes |
+| Q-4 | ER-2 FAIL `'SETTLED' != 'RUNNING'` | yes |
+| Q-5 | ER-2 FAIL `unexpectedly None` | yes |
+| Q-6 | 2 FAIL: E-1 `Tuples differ`; wiring `'processing_task_id' not found in {'reason'}` | yes |
+| G-P1 | chokepoint FAIL (3 sites) | yes |
+| G-P2 | `test_no_other_code_names_the_model` FAIL `['billing/holds.py']` | yes |
+
+In every plant G-1 otherwise stayed green. The SC-7 break run (the old SC-7 text against the new code) runs next, then the §15g addendum.
+
+| SC-7 break run (old SC-7 text vs 3abd7628) | Declared: FAIL `no \`if holds_enabled()\` branch found`. Actual: Ran 1, FAILED (failures=1) `0 not greater than or equal to 2 : expected the unit and the single-call calls` | **matched in substance, fragment mispredicted** (SM accepted). The old walk finds the new `if not holds_enabled():` branch around the flag-off balance checks, and no provider call inside it, which is what the refactor intends. | step3c_15i_sc7_break_run.log |
+
+### 15g addendum, amended before any run: the guard also finishes the row
+
+The C-11 case is a non-broker error raised before `launch_processing_task` reaches its own handling. There the guard's `fail_item` alone would return the hold but leave the row unfinished, with no message ever sent, so it would never resolve. **So the guard also marks the row FAILURE** (`mark_processing_task_failure(row id, exc)`, the existing failure path and text) when the row is not yet finished. It then returns the hold if it is still HELD, logs, and returns. C-11 asserts `("FAILURE", "RETURNED")`.
+
+Tests as committed with this addendum: C-9 and C-11 (`FailingCallbackUnderAnOuterAtomicTests`), C-10 (`FailingLaunchInAutocommitTests`, a TransactionTestCase), and D-10 (`TeacherDoorTests`). The red set is `billing.tests.test_holds_door billing.tests.test_holds_door_commit` plus G-1 (SM process rule): **Ran 54 (20 + 34), FAILED (errors=2): C-9, C-11.** C-10 and D-10 pass.
