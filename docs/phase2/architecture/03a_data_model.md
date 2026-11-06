@@ -95,7 +95,7 @@ Admin (BE-A-08).
 | `client_correlation_id` | CharField(64) | yes | — | | The inbound `X-Request-ID`, stored as **untrusted** context. See X-5 |
 | `source_ip` | GenericIPAddressField | yes | — | | Nulled by the retention sweep after `PII_SHORT_RETENTION_DAYS`; never populated for `STUDENT` actors. See X-4 |
 | `user_agent` | CharField(512) | yes | — | | Same handling as `source_ip` |
-| `retention_class` | CharField(16) | no | — | IX | `GENERAL` (12 months) or `STUDENT_RECORD` (3 years) per A6. Set at write time; drives the sweep |
+| `retention_class` | CharField(16) | no | — | IX | `GENERAL` (12 months) or `STUDENT_RECORD` (3 years) per A6, or `FINANCIAL` (7 years) for credit events (Epic B1a, plan 08 §4, §9 item 11; wins over `STUDENT_RECORD`). Set at write time; drives the sweep, which keeps financial actions 7 years whatever their stored class |
 | `before` | JSONField | yes | — | | Prior state for value-changing actions (BE-E-06 weight changes). Bounded; identifiers only |
 | `after` | JSONField | yes | — | | New state, same rules |
 | `metadata` | JSONField | no | `{}` | | Bounded, PII-free context. Enforced by the emitter's allow-list, not by convention |
@@ -819,8 +819,8 @@ Defined in code as `TextChoices`, listed here so the contract is visible.
 | `ActorRole` | `STUDENT`, `TEACHER`, `SCHOOL_ADMIN`, `SUPER_ADMIN`, `SYSTEM` | `AuditEvent.actor_role` |
 | `AuditOutcome` | `SUCCESS`, `FAILURE`, `DENIED` | `AuditEvent.outcome` |
 | `ErrorClass` | `USER`, `VALIDATION`, `PROVIDER`, `MODEL`, `SYSTEM` | `AuditEvent.error_class` (BE-A-05) |
-| `RetentionClass` | `GENERAL`, `STUDENT_RECORD` | `AuditEvent.retention_class` (A6) |
-| `AIJobType` | `BATCH_GRADING`, `LESSON_GENERATION`, `ASSIGNMENT_GENERATION`, `INSIGHT_GENERATION` | `AIJob.job_type` |
+| `RetentionClass` | `GENERAL`, `STUDENT_RECORD`, `FINANCIAL` (Epic B1a, plan 08 §4) | `AuditEvent.retention_class` (A6) |
+| `AIJobType` | `BATCH_GRADING`, `LESSON_GENERATION`, `ASSIGNMENT_GENERATION`, `INSIGHT_GENERATION`, `SINGLE_CALL`, `SINGLE_ITEM`, `UPLOAD` (the last three: Epic B1a, plan 08 §3.1) | `AIJob.job_type` |
 | `AIJobStatus` | `ESTIMATED`, `RESERVED`, `RUNNING`, `PARTIALLY_COMPLETE`, `QUEUED_PENDING_CREDITS`, `SETTLED`, `FAILED`, `CANCELLED`, `EXPIRED` | `AIJob.status` |
 | `SufficiencyVerdict` | `SUFFICIENT`, `MARGINAL`, `INSUFFICIENT` | `AIJob.sufficiency_verdict` (BE-B-04) |
 | `TagType` | `SUBJECT`, `UNIT`, `LESSON` | `Tag.tag_type` |
