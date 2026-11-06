@@ -1,0 +1,48 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 7b70bd9f-7528-4159-a33b-78ff8120d299.
+Cannot activate automatic trial for user 7b70bd9f-7528-4159-a33b-78ff8120d299 (validation): ValueError
+Free trial plan not found: no trial activated for user 62d9399d-a07e-467b-8b83-6ce4f8825c25.
+Cannot activate automatic trial for user 62d9399d-a07e-467b-8b83-6ce4f8825c25 (validation): ValueError
+FF.
+======================================================================
+FAIL: test_a_retention_sweep_records_its_counts (audit.tests_background_attribution.SweepSelfRecordTests.test_a_retention_sweep_records_its_counts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/audit/tests_background_attribution.py", line 174, in test_a_retention_sweep_records_its_counts
+    self.assertEqual(
+AssertionError: {'deleted_general': 0, 'deleted_financial': 0, 'deleted_student_record': 0} != {'deleted_general': 2, 'deleted_student_record': 0}
+- {'deleted_financial': 0, 'deleted_general': 0, 'deleted_student_record': 0}
+?  ------------------------                   ^
+
++ {'deleted_general': 2, 'deleted_student_record': 0}
+?                     ^
+
+
+======================================================================
+FAIL: test_a_retention_sweep_that_deletes_nothing_still_records_itself (audit.tests_background_attribution.SweepSelfRecordTests.test_a_retention_sweep_that_deletes_nothing_still_records_itself)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/audit/tests_background_attribution.py", line 158, in test_a_retention_sweep_that_deletes_nothing_still_records_itself
+    self.assertEqual(
+AssertionError: {'deleted_general': 0, 'deleted_financial': 0, 'deleted_student_record': 0} != {'deleted_general': 0, 'deleted_student_record': 0}
+- {'deleted_financial': 0, 'deleted_general': 0, 'deleted_student_record': 0}
+?  ------------------------
+
++ {'deleted_general': 0, 'deleted_student_record': 0}
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.131s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...
+Found 3 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -1,0 +1,44 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 4e566788-ce7a-45c7-a7b5-3e6b414e4371.
+Cannot activate automatic trial for user 4e566788-ce7a-45c7-a7b5-3e6b414e4371 (validation): ValueError
+......Free trial plan not found: no trial activated for user bb3bb560-90ff-4f6a-aba4-b6186cbb3ce8.
+Cannot activate automatic trial for user bb3bb560-90ff-4f6a-aba4-b6186cbb3ce8 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2652a19d-8d28-4295-bc7d-da25ffb6094d.
+Cannot activate automatic trial for user 2652a19d-8d28-4295-bc7d-da25ffb6094d (validation): ValueError
+.Free trial plan not found: no trial activated for user a75d3279-b15d-4401-ac66-b4f5942c6d01.
+Cannot activate automatic trial for user a75d3279-b15d-4401-ac66-b4f5942c6d01 (validation): ValueError
+.Free trial plan not found: no trial activated for user 35eb4d5a-7221-45a1-af52-2749e2ba0e26.
+Cannot activate automatic trial for user 35eb4d5a-7221-45a1-af52-2749e2ba0e26 (validation): ValueError
+......Free trial plan not found: no trial activated for user 594be8b5-6fc1-44b5-8ba3-a9aa422de792.
+Cannot activate automatic trial for user 594be8b5-6fc1-44b5-8ba3-a9aa422de792 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9cfa8992-464e-44ec-b5de-2aea82b1da14.
+Cannot activate automatic trial for user 9cfa8992-464e-44ec-b5de-2aea82b1da14 (validation): ValueError
+.Free trial plan not found: no trial activated for user 67f85ffc-ae2c-40ff-b4f3-1aed5e454af7.
+Cannot activate automatic trial for user 67f85ffc-ae2c-40ff-b4f3-1aed5e454af7 (validation): ValueError
+.Free trial plan not found: no trial activated for user ce67415d-6689-4194-9871-f8b659220611.
+Cannot activate automatic trial for user ce67415d-6689-4194-9871-f8b659220611 (validation): ValueError
+..Free trial plan not found: no trial activated for user 7e4bee9a-c799-4c15-afa5-164b39595dba.
+Cannot activate automatic trial for user 7e4bee9a-c799-4c15-afa5-164b39595dba (validation): ValueError
+..Free trial plan not found: no trial activated for user 33e8bedc-a17b-4210-8379-4b0aedaeddc9.
+Cannot activate automatic trial for user 33e8bedc-a17b-4210-8379-4b0aedaeddc9 (validation): ValueError
+.........Free trial plan not found: no trial activated for user 2d75a488-35b4-451a-95c4-00a24cb4a9db.
+Cannot activate automatic trial for user 2d75a488-35b4-451a-95c4-00a24cb4a9db (validation): ValueError
+Free trial plan not found: no trial activated for user af5c34b0-58f9-4bc9-b8e2-99ba45d1b72f.
+Cannot activate automatic trial for user af5c34b0-58f9-4bc9-b8e2-99ba45d1b72f (validation): ValueError
+...
+----------------------------------------------------------------------
+Ran 34 tests in 0.827s
+
+OK
+Destroying test database for alias 'default'...
+Found 34 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -1,0 +1,7 @@
+OK   audit/migrations/0004_alter_auditevent_retention_class.py: additive only
+OK   billing/migrations/0074_b1a_credit_hold_schema.py: additive only
+OK   billing/migrations/0075_creditwallet_reserved_credits_check.py: additive only
+OK   billing/migrations/0076_validate_creditwallet_reserved_credits_check.py: additive only
+OK   students/migrations/0037_backgroundprocessingtask_credit_hold.py: additive only
+OK   students/migrations/0038_validate_backgroundprocessingtask_job_fk.py: additive only
+OK   students/migrations/0039_backgroundprocessingtask_job_index.py: additive only

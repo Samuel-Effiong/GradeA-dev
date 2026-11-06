@@ -1,0 +1,1080 @@
+Creating test database for alias 'default'...
+Cloning test database for alias 'default'...
+Cloning test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Found 459 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+ssFree trial plan not found: no trial activated for user f86ebd04-9ac1-4ce5-9360-84ed8beb8e79.
+Cannot activate automatic trial for user f86ebd04-9ac1-4ce5-9360-84ed8beb8e79 (validation): ValueError
+Free trial plan not found: no trial activated for user 6eaa0eae-a943-4f89-95b9-2ed220edaa69.
+Cannot activate automatic trial for user 6eaa0eae-a943-4f89-95b9-2ed220edaa69 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user d7f559c4-171a-4fee-a28e-d42e5dc1e838.
+Cannot activate automatic trial for user d7f559c4-171a-4fee-a28e-d42e5dc1e838 (validation): ValueError
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 6da34193-6e52-4ce7-919b-e205c9546c4a.
+Cannot activate automatic trial for user 6da34193-6e52-4ce7-919b-e205c9546c4a (validation): ValueError
+..Free trial plan not found: no trial activated for user 6e8fcf62-06f0-4be5-93ca-b955ec01d1e8.
+Cannot activate automatic trial for user 6e8fcf62-06f0-4be5-93ca-b955ec01d1e8 (validation): ValueError
+Free trial plan not found: no trial activated for user 2ef54797-fd4a-43ce-8d31-cb4e144f8a6f.
+Cannot activate automatic trial for user 2ef54797-fd4a-43ce-8d31-cb4e144f8a6f (validation): ValueError
+Free trial plan not found: no trial activated for user 6b71f8ff-c28a-458f-8d32-9d9f8bc982ad.
+Cannot activate automatic trial for user 6b71f8ff-c28a-458f-8d32-9d9f8bc982ad (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 7e723fdf-0570-4162-8f14-45b373fb9dee.
+Cannot activate automatic trial for user 7e723fdf-0570-4162-8f14-45b373fb9dee (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: NotAuthenticated (401)
+API request refused: PermissionDenied (403)
+.....API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+Free trial plan not found: no trial activated for user d841bf10-a518-477d-a525-d900bb86da9b.
+Cannot activate automatic trial for user d841bf10-a518-477d-a525-d900bb86da9b (validation): ValueError
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+.....Free trial plan not found: no trial activated for user cb08b310-8b61-4552-9769-b5f6077fb0e2.
+Cannot activate automatic trial for user cb08b310-8b61-4552-9769-b5f6077fb0e2 (validation): ValueError
+Free trial plan not found: no trial activated for user 343c60ef-7fd1-428a-8812-3157fb7b6bc1.
+Cannot activate automatic trial for user 343c60ef-7fd1-428a-8812-3157fb7b6bc1 (validation): ValueError
+Free trial plan not found: no trial activated for user 8bad6314-596b-4c42-b273-4656530bdc8b.
+Cannot activate automatic trial for user 8bad6314-596b-4c42-b273-4656530bdc8b (validation): ValueError
+Free trial plan not found: no trial activated for user 9bb7c439-08e3-4de5-9358-3e29de3813b9.
+Cannot activate automatic trial for user 9bb7c439-08e3-4de5-9358-3e29de3813b9 (validation): ValueError
+Free trial plan not found: no trial activated for user 7049d3c1-cf08-47bf-8735-c8023ebe4fe6.
+Cannot activate automatic trial for user 7049d3c1-cf08-47bf-8735-c8023ebe4fe6 (validation): ValueError
+....Free trial plan not found: no trial activated for user 05eb6fbd-6eb6-48ab-b46d-646be2216d13.
+Cannot activate automatic trial for user 05eb6fbd-6eb6-48ab-b46d-646be2216d13 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2607d7be-e030-4012-a3de-882c6b74418c.
+Cannot activate automatic trial for user 2607d7be-e030-4012-a3de-882c6b74418c (validation): ValueError
+Free trial plan not found: no trial activated for user ad114271-b1e3-4f45-b295-b4f5b67437ab.
+Cannot activate automatic trial for user ad114271-b1e3-4f45-b295-b4f5b67437ab (validation): ValueError
+Free trial plan not found: no trial activated for user 2a8d0273-1f09-4342-b784-7e1b2f33db3c.
+Cannot activate automatic trial for user 2a8d0273-1f09-4342-b784-7e1b2f33db3c (validation): ValueError
+...Free trial plan not found: no trial activated for user e608034c-8177-494a-ae25-8560f5920fab.
+Cannot activate automatic trial for user e608034c-8177-494a-ae25-8560f5920fab (validation): ValueError
+Free trial plan not found: no trial activated for user e6fd7f66-8d3a-406e-b243-2560371e7b96.
+Cannot activate automatic trial for user e6fd7f66-8d3a-406e-b243-2560371e7b96 (validation): ValueError
+Free trial plan not found: no trial activated for user a2327d43-dc77-4ecb-9ce0-42935ba32c5b.
+Cannot activate automatic trial for user a2327d43-dc77-4ecb-9ce0-42935ba32c5b (validation): ValueError
+Free trial plan not found: no trial activated for user d027b82f-2135-4e76-914a-014e0399b3f8.
+Cannot activate automatic trial for user d027b82f-2135-4e76-914a-014e0399b3f8 (validation): ValueError
+......Free trial plan not found: no trial activated for user 7f7a1ad4-e447-4de1-9595-add456c41b45.
+Cannot activate automatic trial for user 7f7a1ad4-e447-4de1-9595-add456c41b45 (validation): ValueError
+audit event metadata dropped: action=ADMIN_ACTION keys=command (not allowed for this action)
+Free trial plan not found: no trial activated for user 948ad150-aecd-4ebc-92de-624dc9577d42.
+Cannot activate automatic trial for user 948ad150-aecd-4ebc-92de-624dc9577d42 (validation): ValueError
+audit event metadata dropped: action=ADMIN_ACTION keys=command (looks like an email address)
+Free trial plan not found: no trial activated for user 94112689-6a8b-49ee-92a9-07ff2707ab23.
+Cannot activate automatic trial for user 94112689-6a8b-49ee-92a9-07ff2707ab23 (validation): ValueError
+audit event metadata dropped: action=ADMIN_ACTION keys=command (not allowed for this action)
+audit event metadata dropped: action=ADMIN_ACTION keys=command (not allowed for this action)
+audit event metadata dropped: action=ADMIN_ACTION keys=command (not allowed for this action)
+.Free trial plan not found: no trial activated for user 8bc796be-9e70-47a8-8ce6-8b977a612462.
+Cannot activate automatic trial for user 8bc796be-9e70-47a8-8ce6-8b977a612462 (validation): ValueError
+Free trial plan not found: no trial activated for user a7f7cac4-6e6a-4de8-89bd-18b1d1fa1999.
+Cannot activate automatic trial for user a7f7cac4-6e6a-4de8-89bd-18b1d1fa1999 (validation): ValueError
+Free trial plan not found: no trial activated for user 76f865a0-3de7-4eb9-a452-7089a82a1736.
+Cannot activate automatic trial for user 76f865a0-3de7-4eb9-a452-7089a82a1736 (validation): ValueError
+Free trial plan not found: no trial activated for user ac3e50c9-cd07-40e0-9c30-127edf5612f7.
+Cannot activate automatic trial for user ac3e50c9-cd07-40e0-9c30-127edf5612f7 (validation): ValueError
+Free trial plan not found: no trial activated for user d7d5e809-1797-42d3-b84e-cbcef5a26737.
+Cannot activate automatic trial for user d7d5e809-1797-42d3-b84e-cbcef5a26737 (validation): ValueError
+.....Free trial plan not found: no trial activated for user 848f3a59-17b0-4d18-a1a9-25af2e5d26a4.
+Cannot activate automatic trial for user 848f3a59-17b0-4d18-a1a9-25af2e5d26a4 (validation): ValueError
+Free trial plan not found: no trial activated for user 759a43c8-43af-4149-ac01-37bd685d825b.
+Cannot activate automatic trial for user 759a43c8-43af-4149-ac01-37bd685d825b (validation): ValueError
+Free trial plan not found: no trial activated for user f3e880af-4fc8-491e-83e8-230aa15a02fd.
+Cannot activate automatic trial for user f3e880af-4fc8-491e-83e8-230aa15a02fd (validation): ValueError
+Free trial plan not found: no trial activated for user 9f7fb453-d680-4ea9-bb65-f217a1f95a0d.
+Cannot activate automatic trial for user 9f7fb453-d680-4ea9-bb65-f217a1f95a0d (validation): ValueError
+Free trial plan not found: no trial activated for user 2b6a3c7b-7038-473a-8c07-6c7e55772048.
+Cannot activate automatic trial for user 2b6a3c7b-7038-473a-8c07-6c7e55772048 (validation): ValueError
+Free trial plan not found: no trial activated for user 72361e4a-081c-4b35-9152-2111e14153ee.
+Cannot activate automatic trial for user 72361e4a-081c-4b35-9152-2111e14153ee (validation): ValueError
+Free trial plan not found: no trial activated for user f3954269-8352-4459-a61b-338b0431b9e8.
+Cannot activate automatic trial for user f3954269-8352-4459-a61b-338b0431b9e8 (validation): ValueError
+Free trial plan not found: no trial activated for user 00e3a4a0-8cda-41cf-951b-1bb4579f0552.
+Cannot activate automatic trial for user 00e3a4a0-8cda-41cf-951b-1bb4579f0552 (validation): ValueError
+Free trial plan not found: no trial activated for user ba02f878-c07b-44ed-b236-afaf81b03b63.
+Cannot activate automatic trial for user ba02f878-c07b-44ed-b236-afaf81b03b63 (validation): ValueError
+Free trial plan not found: no trial activated for user 8c522b91-0d72-41b8-be88-af5b0caa4c37.
+Cannot activate automatic trial for user 8c522b91-0d72-41b8-be88-af5b0caa4c37 (validation): ValueError
+Free trial plan not found: no trial activated for user 3256125a-d7f5-4a05-9948-eb692987f295.
+Cannot activate automatic trial for user 3256125a-d7f5-4a05-9948-eb692987f295 (validation): ValueError
+Free trial plan not found: no trial activated for user 4521a9e6-a0c6-4c38-975a-6c9751fb73d5.
+Cannot activate automatic trial for user 4521a9e6-a0c6-4c38-975a-6c9751fb73d5 (validation): ValueError
+.....Free trial plan not found: no trial activated for user e6b0ad04-d20a-4f33-a29f-bceeb9ae50f4.
+Cannot activate automatic trial for user e6b0ad04-d20a-4f33-a29f-bceeb9ae50f4 (validation): ValueError
+Free trial plan not found: no trial activated for user 92dea75a-57b4-45f1-9fc7-c5935cd1f950.
+Cannot activate automatic trial for user 92dea75a-57b4-45f1-9fc7-c5935cd1f950 (validation): ValueError
+Free trial plan not found: no trial activated for user f8dd106f-35f5-4c72-a6eb-ebff51c100b7.
+Cannot activate automatic trial for user f8dd106f-35f5-4c72-a6eb-ebff51c100b7 (validation): ValueError
+Free trial plan not found: no trial activated for user e858efb8-eaee-4a7a-83f1-8edcb7a7c458.
+Cannot activate automatic trial for user e858efb8-eaee-4a7a-83f1-8edcb7a7c458 (validation): ValueError
+.....Free trial plan not found: no trial activated for user 3a0dfe3a-e58d-4592-89ad-0b3812d33786.
+Cannot activate automatic trial for user 3a0dfe3a-e58d-4592-89ad-0b3812d33786 (validation): ValueError
+...........audit event metadata dropped: action=ASSIGNMENT_COPY keys=credits (not allowed for this action)
+audit event metadata dropped: action=GRADE_CHANGE keys=answer_text (not on the allow-list), item_count (not allowed in before/after for this action)
+audit event metadata dropped: action=ASSIGNMENT_COPY keys=assignment_id (not allowed in before/after for this action)
+......audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a non-success needs one
+audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a non-success needs one
+audit event rejected: action=ASSIGNMENT_COPY detail=school_id: not a UUID
+audit event rejected: action=ASSIGNMENT_COPY detail=department_id: not a UUID
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+Free trial plan not found: no trial activated for user 86006457-b839-4df6-8c86-0025712bb43d.
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+Cannot activate automatic trial for user 86006457-b839-4df6-8c86-0025712bb43d (validation): ValueError
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a success has no error class
+audit event rejected: action=ASSIGNMENT_COPY detail=target_id: not a UUID
+audit event rejected: action=ASSIGNMENT_COPY detail=actor: unknown user type
+audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+Free trial plan not found: no trial activated for user ea9d43fa-815e-4a11-9999-b3b7dbd08d3b.
+Cannot activate automatic trial for user ea9d43fa-815e-4a11-9999-b3b7dbd08d3b (validation): ValueError
+audit event rejected: action=MADE_UP_ACTION detail=action: not a known action
+audit event rejected: action=ASSIGNMENT_COPY detail=error_class: not a valid class
+audit event rejected: action=ASSIGNMENT_COPY detail=outcome: not a valid outcome
+audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+audit event rejected: action=ASSIGNMENT_COPY detail=unexpected AttributeError
+audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+audit event rejected: action=ASSIGNMENT_COPY detail=school_id: not a UUID
+audit event rejected: action=ASSIGNMENT_COPY detail=outcome: not a valid outcome
+audit event rejected: action=MADE_UP detail=action: not a known action
+Free trial plan not found: no trial activated for user 9ce99aa2-6ea2-494a-9929-23281e3b02e7.
+Cannot activate automatic trial for user 9ce99aa2-6ea2-494a-9929-23281e3b02e7 (validation): ValueError
+...............Free trial plan not found: no trial activated for user 4fdd4477-4ec1-4c55-9b4b-bdfb2f690b19.
+Cannot activate automatic trial for user 4fdd4477-4ec1-4c55-9b4b-bdfb2f690b19 (validation): ValueError
+Free trial plan not found: no trial activated for user 94ac6ef3-430e-487d-ab00-2f3177d29741.
+Cannot activate automatic trial for user 94ac6ef3-430e-487d-ab00-2f3177d29741 (validation): ValueError
+.....Free trial plan not found: no trial activated for user 5ab88111-3d1d-43e2-91e9-9960dc02e24e.
+Cannot activate automatic trial for user 5ab88111-3d1d-43e2-91e9-9960dc02e24e (validation): ValueError
+Free trial plan not found: no trial activated for user 68a665b4-4904-4123-923c-6c130debb6d7.
+Cannot activate automatic trial for user 68a665b4-4904-4123-923c-6c130debb6d7 (validation): ValueError
+Free trial plan not found: no trial activated for user 9243f2df-bcc3-4e60-a9ad-204ed3aa32f5.
+Cannot activate automatic trial for user 9243f2df-bcc3-4e60-a9ad-204ed3aa32f5 (validation): ValueError
+Free trial plan not found: no trial activated for user b44ae92f-7fb3-492a-8b35-aefc78d110d0.
+Cannot activate automatic trial for user b44ae92f-7fb3-492a-8b35-aefc78d110d0 (validation): ValueError
+Free trial plan not found: no trial activated for user d35c2d17-bb91-4ad4-bc69-60dd29c0a7f1.
+Cannot activate automatic trial for user d35c2d17-bb91-4ad4-bc69-60dd29c0a7f1 (validation): ValueError
+Free trial plan not found: no trial activated for user 38425aa2-715b-444f-beab-ea712b6f8c2e.
+Cannot activate automatic trial for user 38425aa2-715b-444f-beab-ea712b6f8c2e (validation): ValueError
+...........audit event metadata dropped: action=ASSIGNMENT_COPY keys=assignment_id (looks like an email address)
+..............Free trial plan not found: no trial activated for user ec455e9a-714a-4c41-8110-a1c019f15261.
+Cannot activate automatic trial for user ec455e9a-714a-4c41-8110-a1c019f15261 (validation): ValueError
+Free trial plan not found: no trial activated for user a46b1e8a-1468-44b2-b522-9f899bd00c65.
+Cannot activate automatic trial for user a46b1e8a-1468-44b2-b522-9f899bd00c65 (validation): ValueError
+API request refused: ParseError (400)
+API request refused: ParseError (400)
+API request refused: ParseError (400)
+Free trial plan not found: no trial activated for user 76f8ed8f-9653-4e50-8f90-4ebe050252c9.
+Cannot activate automatic trial for user 76f8ed8f-9653-4e50-8f90-4ebe050252c9 (validation): ValueError
+.Free trial plan not found: no trial activated for user 416dc6f2-6037-4f89-a55e-8cef8c6c6b79.
+Cannot activate automatic trial for user 416dc6f2-6037-4f89-a55e-8cef8c6c6b79 (validation): ValueError
+Free trial plan not found: no trial activated for user 970b9ae0-213c-415c-8f3a-525acef20545.
+Cannot activate automatic trial for user 970b9ae0-213c-415c-8f3a-525acef20545 (validation): ValueError
+Free trial plan not found: no trial activated for user 1a7cdfc6-4339-4a9d-8be9-41b489b2c4c8.
+Cannot activate automatic trial for user 1a7cdfc6-4339-4a9d-8be9-41b489b2c4c8 (validation): ValueError
+Free trial plan not found: no trial activated for user 494b2d36-b72f-47ee-9965-4d9d41b3a0a2.
+Cannot activate automatic trial for user 494b2d36-b72f-47ee-9965-4d9d41b3a0a2 (validation): ValueError
+Free trial plan not found: no trial activated for user 51b0326c-3a23-436a-93fe-9a49e633477a.
+Cannot activate automatic trial for user 51b0326c-3a23-436a-93fe-9a49e633477a (validation): ValueError
+Free trial plan not found: no trial activated for user 55066d72-b20b-4d68-a801-793a34e65e9b.
+Cannot activate automatic trial for user 55066d72-b20b-4d68-a801-793a34e65e9b (validation): ValueError
+Free trial plan not found: no trial activated for user 6694deaf-45c8-44cb-8cac-9e886affd344.
+Cannot activate automatic trial for user 6694deaf-45c8-44cb-8cac-9e886affd344 (validation): ValueError
+...........Free trial plan not found: no trial activated for user 99b11689-6659-4c53-bdef-4b4ff3454909.
+Cannot activate automatic trial for user 99b11689-6659-4c53-bdef-4b4ff3454909 (validation): ValueError
+Free trial plan not found: no trial activated for user c48c928f-a414-4244-96e1-8d5e5c8cb771.
+Cannot activate automatic trial for user c48c928f-a414-4244-96e1-8d5e5c8cb771 (validation): ValueError
+Free trial plan not found: no trial activated for user 14fd54d1-ab1e-44e3-b0c0-94dbf7cfff43.
+Cannot activate automatic trial for user 14fd54d1-ab1e-44e3-b0c0-94dbf7cfff43 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user 438d5e83-7883-43f2-9e16-8c9d3893ffc8.
+Cannot activate automatic trial for user 438d5e83-7883-43f2-9e16-8c9d3893ffc8 (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user 445c3eb8-32ae-4fba-9660-4ededc390ae5.
+Cannot activate automatic trial for user 445c3eb8-32ae-4fba-9660-4ededc390ae5 (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user 59609cc0-cfdd-4db7-9847-1eb5457924d1.
+Cannot activate automatic trial for user 59609cc0-cfdd-4db7-9847-1eb5457924d1 (validation): ValueError
+Free trial plan not found: no trial activated for user 9d1c271c-61f1-4e5f-8148-b6f44b33edf8.
+Cannot activate automatic trial for user 9d1c271c-61f1-4e5f-8148-b6f44b33edf8 (validation): ValueError
+Free trial plan not found: no trial activated for user 67db02d6-5287-41b2-ba2d-15b5d3e7926c.
+Cannot activate automatic trial for user 67db02d6-5287-41b2-ba2d-15b5d3e7926c (validation): ValueError
+Free trial plan not found: no trial activated for user ef018707-3359-4bb4-8446-a9db8df523e5.
+Cannot activate automatic trial for user ef018707-3359-4bb4-8446-a9db8df523e5 (validation): ValueError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+failed-auth cap unavailable, event written uncapped: ConnectionError
+Free trial plan not found: no trial activated for user a8f66730-2e6a-4331-9fea-0d8c23d5a65a.
+Cannot activate automatic trial for user a8f66730-2e6a-4331-9fea-0d8c23d5a65a (validation): ValueError
+Free trial plan not found: no trial activated for user bc26a318-68d4-48c9-904e-1239d1b618eb.
+Cannot activate automatic trial for user bc26a318-68d4-48c9-904e-1239d1b618eb (validation): ValueError
+..................................API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+...Free trial plan not found: no trial activated for user 2ea397fb-6ca8-4d24-9fad-1b2f135b2f7a.
+Cannot activate automatic trial for user 2ea397fb-6ca8-4d24-9fad-1b2f135b2f7a (validation): ValueError
+API request refused: PermissionDenied (403)
+..........API request refused: ValidationError (400)
+...Free trial plan not found: no trial activated for user 8e6d891b-cfe0-4c05-96ee-1d04901bba42.
+Cannot activate automatic trial for user 8e6d891b-cfe0-4c05-96ee-1d04901bba42 (validation): ValueError
+API request failed with RUBRIC_MISSING: This assignment has no rubric to grade against, so grading hasn't started. No credits were used.
+Free trial plan not found: no trial activated for user eabbc72a-656a-432e-b9df-6330702e2101.
+Cannot activate automatic trial for user eabbc72a-656a-432e-b9df-6330702e2101 (validation): ValueError
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 8772a7db-cbda-4b55-995a-f391612ecab2.
+Cannot activate automatic trial for user 8772a7db-cbda-4b55-995a-f391612ecab2 (validation): ValueError
+API request refused: NotFound (404)
+Free trial plan not found: no trial activated for user b7291171-f15b-4578-ba86-c9276a34e3a9.
+Cannot activate automatic trial for user b7291171-f15b-4578-ba86-c9276a34e3a9 (validation): ValueError
+......API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 5467d023-2e90-4faa-bec9-3438b34fd748.
+Cannot activate automatic trial for user 5467d023-2e90-4faa-bec9-3438b34fd748 (validation): ValueError
+API request refused: Throttled (429)
+Free trial plan not found: no trial activated for user 1cb0b3be-9a14-4cfb-800f-67a013f1e537.
+Cannot activate automatic trial for user 1cb0b3be-9a14-4cfb-800f-67a013f1e537 (validation): ValueError
+Free trial plan not found: no trial activated for user 3fe2ca3b-d30e-4fce-9cca-c7946b591d8d.
+Cannot activate automatic trial for user 3fe2ca3b-d30e-4fce-9cca-c7946b591d8d (validation): ValueError
+API request refused: ValidationError (400)
+......Free trial plan not found: no trial activated for user 00184b80-8390-4e68-9233-c2f49e697e83.
+Cannot activate automatic trial for user 00184b80-8390-4e68-9233-c2f49e697e83 (validation): ValueError
+..Free trial plan not found: no trial activated for user 41795d61-167f-4b7b-8eaa-9d78314a86ad.
+Cannot activate automatic trial for user 41795d61-167f-4b7b-8eaa-9d78314a86ad (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-06 10:51:29,587 services 326227 123530836559744 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-06 10:51:29,588 services 326227 123530836559744 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "grant_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:grant_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "user_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:user_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+Free trial plan not found: no trial activated for user 8741abc6-6ca0-4cc8-9808-01fa8276ee1a.
+Cannot activate automatic trial for user 8741abc6-6ca0-4cc8-9808-01fa8276ee1a (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-06 10:51:29,712 services 326227 123530836559744 [request_id=5a2017fc-788b-4fb5-ad46-5bb67abc9063 client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-06 10:51:29,713 services 326227 123530836559744 [request_id=5a2017fc-788b-4fb5-ad46-5bb67abc9063 client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+..Free trial plan not found: no trial activated for user 9d5426ee-05bc-4ad5-8a5d-5058be7b10d3.
+Cannot activate automatic trial for user 9d5426ee-05bc-4ad5-8a5d-5058be7b10d3 (validation): ValueError
+Free trial plan not found: no trial activated for user e64bf9ce-a1cf-40cf-81f0-3eb8be6189f5.
+Cannot activate automatic trial for user e64bf9ce-a1cf-40cf-81f0-3eb8be6189f5 (validation): ValueError
+...Free trial plan not found: no trial activated for user ce654afd-5563-46f8-8736-2768b1c7d19a.
+Cannot activate automatic trial for user ce654afd-5563-46f8-8736-2768b1c7d19a (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_message_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_latest_message_preview". Consider using a type hint or @extend_schema_field. Defaulting to string.
+./home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/assignments/serializers.py: Warning [AssignmentViewSet > AssignmentDetailSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Free trial plan not found: no trial activated for user 24f55385-0823-4fb3-a078-34aa8799c0ee.
+Cannot activate automatic trial for user 24f55385-0823-4fb3-a078-34aa8799c0ee (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [AuthViewSet > GoogleAuthResponse > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [AuthViewSet > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Free trial plan not found: no trial activated for user 8df8dd50-08cd-4c90-8b3d-738946bdbdb1.
+Cannot activate automatic trial for user 8df8dd50-08cd-4c90-8b3d-738946bdbdb1 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/views.py: Error [BetaAnaylicChartViewSet]: exception raised while getting serializer. Hint: Is get_serializer_class() returning None or is get_queryset() not working without a request? Ignoring the view for now. (Exception: 'BetaAnaylicChartViewSet' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method.)
+Free trial plan not found: no trial activated for user 91c2fdbf-b8ce-4632-9c2d-f264cb7483b3.
+Cannot activate automatic trial for user 91c2fdbf-b8ce-4632-9c2d-f264cb7483b3 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/classrooms/serializers.py: Warning [CourseViewSet > CourseSerializer]: unable to resolve type hint for function "get_assignment_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Free trial plan not found: no trial activated for user 821c401e-0a5b-449a-9e8f-2340f4597116.
+Cannot activate automatic trial for user 821c401e-0a5b-449a-9e8f-2340f4597116 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [CreditWalletViewSet > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/AutoGrader/health.py: Error [health]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/AutoGrader/health.py: Error [beat_health_check]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/AutoGrader/health.py: Error [client_identity]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'user_type')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+Free trial plan not found: no trial activated for user fca92f3e-1a44-4daf-ab67-a56068d1fd91.
+Cannot activate automatic trial for user fca92f3e-1a44-4daf-ab67-a56068d1fd91 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/payment_method_views.py: Warning [PaymentMethodViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/payment_method_views.py: Error [PaymentMethodViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/qa_time_travel.py: Error [BillingTimeTravelView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/audit/views.py: Warning [SchoolAdminAuditEventListView]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'school_id')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_label". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_name". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/dashboard/views.py: Warning [SchoolAdminDashboardView]: could not derive type of path parameter "teacher_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:teacher_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/classrooms/serializers.py: Warning [SchoolViewSet > SchoolAdminSummarySerializer]: Encountered 2 components with identical names "SchoolAdminSummary" and different identities <class 'classrooms.serializers.SchoolAdminSummarySerializer'> and <class 'dashboard.serializers.SchoolAdminSummarySerializer'>. This will very likely result in an incorrect schema. Try renaming one.
+audit event store_failed: action=GRADE_CHANGE detail=RuntimeError
+audit event store_failed: action=STATE_CHANGE detail=RuntimeError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_no_of_assignment". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_assignment_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_submitted_assignment_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_grade_letter". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_enrolled_courses". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_in_course". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_percentage_of_submission". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Free trial plan not found: no trial activated for user 46de4ab6-71b3-4eb4-a023-70f892a606b2.
+Cannot activate automatic trial for user 46de4ab6-71b3-4eb4-a023-70f892a606b2 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_max_points". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_grade_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_formatted_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+......Free trial plan not found: no trial activated for user 42986651-de1e-4498-b22d-5b14b942ef08.
+Cannot activate automatic trial for user 42986651-de1e-4498-b22d-5b14b942ef08 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Free trial plan not found: no trial activated for user 61957022-e5c7-48c9-873c-b32910237ca2.
+Cannot activate automatic trial for user 61957022-e5c7-48c9-873c-b32910237ca2 (validation): ValueError
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [SubscriptionPlanViewSet > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "session_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:session_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/users/views.py: Error [TaskViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "task_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:task_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "item_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:item_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/dashboard/views.py: Error [TeacherAdminDashboardView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_remaining_time". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_exact_due_date". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer]: unable to resolve type hint for function "get_average_grading_turnaround". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "status". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "StatusBbeEnum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: encountered multiple names for the same choice set (CategoryEnum). This may be unwanted even though the generated schema is technically correct. Add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Free trial plan not found: no trial activated for user 0a88c2b7-f9fe-4681-af95-67a95117dde9.
+Cannot activate automatic trial for user 0a88c2b7-f9fe-4681-af95-67a95117dde9 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+Free trial plan not found: no trial activated for user 565425d5-3944-47c7-8161-b3e6a37be0f2.
+Cannot activate automatic trial for user 565425d5-3944-47c7-8161-b3e6a37be0f2 (validation): ValueError
+Free trial plan not found: no trial activated for user f37aeb0f-8c3d-4e93-8470-a66561dfb578.
+Cannot activate automatic trial for user f37aeb0f-8c3d-4e93-8470-a66561dfb578 (validation): ValueError
+Free trial plan not found: no trial activated for user 0d6e5530-be54-4b83-a347-6521ba92f3aa.
+Cannot activate automatic trial for user 0d6e5530-be54-4b83-a347-6521ba92f3aa (validation): ValueError
+API request refused: ValidationError (400)
+.......Free trial plan not found: no trial activated for user 44a22dc4-46ef-4681-8fde-a96927fccbcd.
+Free trial plan not found: no trial activated for user 74c83fb4-5aa2-460d-8d4f-9af35c5a1bb4.
+Cannot activate automatic trial for user 44a22dc4-46ef-4681-8fde-a96927fccbcd (validation): ValueError
+Cannot activate automatic trial for user 74c83fb4-5aa2-460d-8d4f-9af35c5a1bb4 (validation): ValueError
+Free trial plan not found: no trial activated for user dca34b02-6ff6-4280-b9e6-b51661dd1fff.
+Cannot activate automatic trial for user dca34b02-6ff6-4280-b9e6-b51661dd1fff (validation): ValueError
+.......Free trial plan not found: no trial activated for user 6d63e519-3844-48d0-bfea-b5e6df92415c.
+Cannot activate automatic trial for user 6d63e519-3844-48d0-bfea-b5e6df92415c (validation): ValueError
+Free trial plan not found: no trial activated for user f067b2f5-9d25-49a2-b54e-36f1a82135db.
+Cannot activate automatic trial for user f067b2f5-9d25-49a2-b54e-36f1a82135db (validation): ValueError
+Free trial plan not found: no trial activated for user 24d1afb8-e77d-4eb0-a6af-40e80bf23f43.
+Cannot activate automatic trial for user 24d1afb8-e77d-4eb0-a6af-40e80bf23f43 (validation): ValueError
+Free trial plan not found: no trial activated for user 3d71e77a-4053-4ec6-a24e-6d519907952b.
+Cannot activate automatic trial for user 3d71e77a-4053-4ec6-a24e-6d519907952b (validation): ValueError
+Free trial plan not found: no trial activated for user df928046-8514-4ffa-a2e3-608d56bd69ea.
+Cannot activate automatic trial for user df928046-8514-4ffa-a2e3-608d56bd69ea (validation): ValueError
+.....audit event metadata dropped: action=TAG_CREATE keys=score (not allowed in before/after for this action)
+.....Free trial plan not found: no trial activated for user 82eae809-38e2-4722-8cce-1b8e4b60abb2.
+Cannot activate automatic trial for user 82eae809-38e2-4722-8cce-1b8e4b60abb2 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7afb1810-288f-4edc-be55-227db224abc5.
+Cannot activate automatic trial for user 7afb1810-288f-4edc-be55-227db224abc5 (validation): ValueError
+Free trial plan not found: no trial activated for user 58654881-41b1-4fd3-ae82-22007be56fd6.
+Cannot activate automatic trial for user 58654881-41b1-4fd3-ae82-22007be56fd6 (validation): ValueError
+..Free trial plan not found: no trial activated for user e0960c14-a154-4d84-9729-eadda4ac854f.
+Cannot activate automatic trial for user e0960c14-a154-4d84-9729-eadda4ac854f (validation): ValueError
+..Free trial plan not found: no trial activated for user 1767ba86-03e1-4f7b-8200-9f9d36fa0e89.
+Cannot activate automatic trial for user 1767ba86-03e1-4f7b-8200-9f9d36fa0e89 (validation): ValueError
+audit event rejected: action=AUTH_LOGOUT detail=target_type: must be a model name
+Free trial plan not found: no trial activated for user 82a5c629-664d-477a-ae21-4c85a2ab36af.
+Cannot activate automatic trial for user 82a5c629-664d-477a-ae21-4c85a2ab36af (validation): ValueError
+audit event store_failed: action=AUTH_LOGOUT detail=RuntimeError
+Free trial plan not found: no trial activated for user f6bca0f7-4292-4715-ace5-5a2956b9461e.
+Cannot activate automatic trial for user f6bca0f7-4292-4715-ace5-5a2956b9461e (validation): ValueError
+...Free trial plan not found: no trial activated for user 567b22ad-8eb0-4da9-982c-ddb3bc6abeb5.
+Cannot activate automatic trial for user 567b22ad-8eb0-4da9-982c-ddb3bc6abeb5 (validation): ValueError
+Free trial plan not found: no trial activated for user d135baac-8e3c-4439-a4ea-73b6d71c4d13.
+Cannot activate automatic trial for user d135baac-8e3c-4439-a4ea-73b6d71c4d13 (validation): ValueError
+Free trial plan not found: no trial activated for user f2e8c262-536f-4189-a8c2-08e0f46bc182.
+Cannot activate automatic trial for user f2e8c262-536f-4189-a8c2-08e0f46bc182 (validation): ValueError
+Failed to reconcile expired bucket d7f10235-0578-49db-871f-6a288cc0de8a (wallet: 765e5604-834e-4ed5-84bc-bc3df22d7c4b): boom
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tasks.py", line 405, in cleanup_expired_credit_buckets
+    value_lost = SubscriptionService.expire_bucket(bucket)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+..Free trial plan not found: no trial activated for user 1e6bb431-7946-4329-8e50-20805dcec11b.
+Cannot activate automatic trial for user 1e6bb431-7946-4329-8e50-20805dcec11b (validation): ValueError
+Free trial plan not found: no trial activated for user 7bd061f5-cd18-442e-8dc4-69caeff8dd00.
+Cannot activate automatic trial for user 7bd061f5-cd18-442e-8dc4-69caeff8dd00 (validation): ValueError
+..Free trial plan not found: no trial activated for user 1297f3e4-ddd2-4e72-bee2-5d8cb5071a7a.
+Cannot activate automatic trial for user 1297f3e4-ddd2-4e72-bee2-5d8cb5071a7a (validation): ValueError
+..Free trial plan not found: no trial activated for user 68de3278-f0d9-4f8c-b2fd-7ba086f172b2.
+Cannot activate automatic trial for user 68de3278-f0d9-4f8c-b2fd-7ba086f172b2 (validation): ValueError
+Free trial plan not found: no trial activated for user 73f5d079-6a43-40c3-9b80-1f757b9d5c69.
+Cannot activate automatic trial for user 73f5d079-6a43-40c3-9b80-1f757b9d5c69 (validation): ValueError
+Free trial plan not found: no trial activated for user 770f20e6-9253-4fef-a394-98cc9f61d27e.
+Cannot activate automatic trial for user 770f20e6-9253-4fef-a394-98cc9f61d27e (validation): ValueError
+Free trial plan not found: no trial activated for user cf5ce1da-3b2c-4b79-854d-43fc1484c452.
+Cannot activate automatic trial for user cf5ce1da-3b2c-4b79-854d-43fc1484c452 (validation): ValueError
+Free trial plan not found: no trial activated for user c05f89cf-5706-42f4-9a0e-31803f07ebb2.
+Cannot activate automatic trial for user c05f89cf-5706-42f4-9a0e-31803f07ebb2 (validation): ValueError
+..Free trial plan not found: no trial activated for user c3720f28-4409-4e7a-9ce2-ad66969c33b2.
+Cannot activate automatic trial for user c3720f28-4409-4e7a-9ce2-ad66969c33b2 (validation): ValueError
+Free trial plan not found: no trial activated for user 87b39531-1c84-4481-b60a-64963e1e4751.
+Cannot activate automatic trial for user 87b39531-1c84-4481-b60a-64963e1e4751 (validation): ValueError
+.............Free trial plan not found: no trial activated for user 48e1fd8f-efe2-48fa-a9cd-d31dcd4ed879.
+Cannot activate automatic trial for user 48e1fd8f-efe2-48fa-a9cd-d31dcd4ed879 (validation): ValueError
+Free trial plan not found: no trial activated for user 6aabd19c-33da-4a7f-993d-7fbafc6ab735.
+Cannot activate automatic trial for user 6aabd19c-33da-4a7f-993d-7fbafc6ab735 (validation): ValueError
+..Free trial plan not found: no trial activated for user 22e2dce4-8ec4-4da6-b7b5-768902e28083.
+Cannot activate automatic trial for user 22e2dce4-8ec4-4da6-b7b5-768902e28083 (validation): ValueError
+Free trial plan not found: no trial activated for user 6a75e01b-2221-4439-a1e7-dc793c368a74.
+Cannot activate automatic trial for user 6a75e01b-2221-4439-a1e7-dc793c368a74 (validation): ValueError
+Free trial plan not found: no trial activated for user d26e2d2c-40be-4cf3-b552-721800a36eaa.
+Cannot activate automatic trial for user d26e2d2c-40be-4cf3-b552-721800a36eaa (validation): ValueError
+API request refused: PermissionDenied (403)
+..Free trial plan not found: no trial activated for user a5fbffee-9254-47be-9a33-871aac6c189c.
+Cannot activate automatic trial for user a5fbffee-9254-47be-9a33-871aac6c189c (validation): ValueError
+Free trial plan not found: no trial activated for user af827cb7-d376-4dfe-8d08-8f418576c508.
+Cannot activate automatic trial for user af827cb7-d376-4dfe-8d08-8f418576c508 (validation): ValueError
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 371f4d6a-7a33-4f1f-8683-8d1cf5ad0c22.
+Cannot activate automatic trial for user 371f4d6a-7a33-4f1f-8683-8d1cf5ad0c22 (validation): ValueError
+...Free trial plan not found: no trial activated for user d27cde80-6472-4388-a848-4959bc50677c.
+Cannot activate automatic trial for user d27cde80-6472-4388-a848-4959bc50677c (validation): ValueError
+....Free trial plan not found: no trial activated for user 4ff3f2ce-0f8b-491b-86eb-a6c0050a5f76.
+Cannot activate automatic trial for user 4ff3f2ce-0f8b-491b-86eb-a6c0050a5f76 (validation): ValueError
+....Free trial plan not found: no trial activated for user 1e3420c3-0a6b-4e99-b350-81ea086078ef.
+Cannot activate automatic trial for user 1e3420c3-0a6b-4e99-b350-81ea086078ef (validation): ValueError
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action)
+API request refused: PermissionDenied (403)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action)
+....API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/views.py", line 523, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/users/views.py", line 1915, in register
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+audit event metadata dropped: action=ACCOUNT_REGISTER keys=method (not allowed for this action), route (not allowed for this action)
+
+
+django.request ERROR 2026-11-06 10:51:32,460 log 326227 123530836559744 [request_id=- client_request_id=-] Internal Server Error: /api/v1/auth/register
+
+
+.Free trial plan not found: no trial activated for user 80ac6368-c6b2-4a87-ac94-fd60d1d6b682.
+Cannot activate automatic trial for user 80ac6368-c6b2-4a87-ac94-fd60d1d6b682 (validation): ValueError
+.........Free trial plan not found: no trial activated for user ee1a717c-4e15-42c2-bc11-5099d33dfee0.
+Cannot activate automatic trial for user ee1a717c-4e15-42c2-bc11-5099d33dfee0 (validation): ValueError
+API request refused: ParseError (400)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=ACCOUNT_REGISTER keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ParseError (400)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+.API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=ACCOUNT_REGISTER keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+Free trial plan not found: no trial activated for user b7dab423-2992-4de4-9021-b53646137903.
+Cannot activate automatic trial for user b7dab423-2992-4de4-9021-b53646137903 (validation): ValueError
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+..API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: ParseError (400)
+API request refused: NotAuthenticated (401)
+API request refused: ParseError (400)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=ACCOUNT_REGISTER keys=method (not allowed for this action), route (not allowed for this action)
+..API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: NotAuthenticated (401)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ParseError (400)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+.....API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+..API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+....API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+..API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+Free trial plan not found: no trial activated for user 0587df67-314a-45de-910f-c5b3f69dfb1c.
+Cannot activate automatic trial for user 0587df67-314a-45de-910f-c5b3f69dfb1c (validation): ValueError
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+....API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+.....API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+Stripe webhook: signature verification failed.
+Stripe thin webhook: signature verification failed.
+API request refused: NotAuthenticated (401)
+Free trial plan not found: no trial activated for user 1b031392-c1b9-4808-b57c-b278ea27a114.
+Cannot activate automatic trial for user 1b031392-c1b9-4808-b57c-b278ea27a114 (validation): ValueError
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user c503a4f9-0a27-4611-b62c-46f26b51d7e0.
+Cannot activate automatic trial for user c503a4f9-0a27-4611-b62c-46f26b51d7e0 (validation): ValueError
+Free trial plan not found: no trial activated for user 96c3a03d-84e6-49e9-a2d2-0d4d85bef0fa.
+Cannot activate automatic trial for user 96c3a03d-84e6-49e9-a2d2-0d4d85bef0fa (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 83e0eadb-9ab4-48d2-b93e-2956b2e08644.
+Cannot activate automatic trial for user 83e0eadb-9ab4-48d2-b93e-2956b2e08644 (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: MethodNotAllowed (405)
+API request refused: MethodNotAllowed (405)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 5ba4168e-873a-4083-a5d6-c95e1245858a.
+Cannot activate automatic trial for user 5ba4168e-873a-4083-a5d6-c95e1245858a (validation): ValueError
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+....API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user e67bc947-ef2b-4b8f-aeab-7906e13caaff.
+Cannot activate automatic trial for user e67bc947-ef2b-4b8f-aeab-7906e13caaff (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user a9f841af-0266-4dcd-be60-9f73ffc0300d.
+Cannot activate automatic trial for user a9f841af-0266-4dcd-be60-9f73ffc0300d (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: PermissionDenied (403)
+API request refused: MethodNotAllowed (405)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user 0286541d-6775-43fb-8843-ff4ddc26640a.
+Cannot activate automatic trial for user 0286541d-6775-43fb-8843-ff4ddc26640a (validation): ValueError
+API request refused: MethodNotAllowed (405)
+Free trial plan not found: no trial activated for user 1d3ca6a1-64dc-457d-bbc6-6cfed7be6ab7.
+API request refused: ValidationError (400)
+Cannot activate automatic trial for user 1d3ca6a1-64dc-457d-bbc6-6cfed7be6ab7 (validation): ValueError
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: ParseError (400)
+Free trial plan not found: no trial activated for user 8ef6fb0e-8abc-460f-8f2b-44e5f6864349.
+Cannot activate automatic trial for user 8ef6fb0e-8abc-460f-8f2b-44e5f6864349 (validation): ValueError
+API request refused: NotFound (404)
+Free trial plan not found: no trial activated for user 7a986061-c335-45cc-bc5a-42a488dd8c04.
+Cannot activate automatic trial for user 7a986061-c335-45cc-bc5a-42a488dd8c04 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: PermissionDenied (403)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: PermissionDenied (403)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user 76449a24-12da-47fc-9131-3b422c1e0c5c.
+Cannot activate automatic trial for user 76449a24-12da-47fc-9131-3b422c1e0c5c (validation): ValueError
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+Free trial plan not found: no trial activated for user a8424cac-4688-4633-af55-d13578f06eb8.
+Cannot activate automatic trial for user a8424cac-4688-4633-af55-d13578f06eb8 (validation): ValueError
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: Http404 (404)
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 3b2fa3d9-7ee7-4e1c-ba49-0905a68ebc49.
+Cannot activate automatic trial for user 3b2fa3d9-7ee7-4e1c-ba49-0905a68ebc49 (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: ParseError (400)
+API request refused: PermissionDenied (403)
+....API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+Free trial plan not found: no trial activated for user 2bf32c90-d0fe-435a-bfad-59b55816b665.
+Cannot activate automatic trial for user 2bf32c90-d0fe-435a-bfad-59b55816b665 (validation): ValueError
+API request refused: ParseError (400)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 97912c65-6514-4996-969e-ae6ffdeaf34c.
+Cannot activate automatic trial for user 97912c65-6514-4996-969e-ae6ffdeaf34c (validation): ValueError
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user c3a9e892-c16e-471a-aacf-5cb056915083.
+Cannot activate automatic trial for user c3a9e892-c16e-471a-aacf-5cb056915083 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: Http404 (404)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user bdc9f3dd-e01a-4274-ba52-5ef479ff4ca4.
+Cannot activate automatic trial for user bdc9f3dd-e01a-4274-ba52-5ef479ff4ca4 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: MethodNotAllowed (405)
+Free trial plan not found: no trial activated for user 27910cac-cafe-4286-8766-8a3bb07f13ec.
+Cannot activate automatic trial for user 27910cac-cafe-4286-8766-8a3bb07f13ec (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user 5a686639-8573-4341-a599-4c8d5c1e406f.
+API request refused: Http404 (404)
+Cannot activate automatic trial for user 5a686639-8573-4341-a599-4c8d5c1e406f (validation): ValueError
+API request refused: Http404 (404)
+API request refused: PermissionDenied (403)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user 8530b653-ea57-4df6-8539-ca8a24340661.
+Cannot activate automatic trial for user 8530b653-ea57-4df6-8539-ca8a24340661 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user 3b1a1675-dc75-4a26-a140-5dba26ba9876.
+Cannot activate automatic trial for user 3b1a1675-dc75-4a26-a140-5dba26ba9876 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: PermissionDenied (403)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 539530f7-b01d-4f6c-b1cc-af367e38210c.
+Cannot activate automatic trial for user 539530f7-b01d-4f6c-b1cc-af367e38210c (validation): ValueError
+API request refused: MethodNotAllowed (405)
+Free trial plan not found: no trial activated for user 06726aef-07aa-4264-b1a2-e327251e5700.
+Cannot activate automatic trial for user 06726aef-07aa-4264-b1a2-e327251e5700 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user ed1247e5-57a3-49a2-94a5-bcb122c41157.
+Cannot activate automatic trial for user ed1247e5-57a3-49a2-94a5-bcb122c41157 (validation): ValueError
+API request refused: NotAuthenticated (401)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 6e69dc65-cb72-424b-aeae-581eaa5de4fe.
+Cannot activate automatic trial for user 6e69dc65-cb72-424b-aeae-581eaa5de4fe (validation): ValueError
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 395e3e4d-4db3-4eba-8705-38b752d0574c.
+Cannot activate automatic trial for user 395e3e4d-4db3-4eba-8705-38b752d0574c (validation): ValueError
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: MethodNotAllowed (405)
+Free trial plan not found: no trial activated for user 1f36842c-9386-4588-bb9d-4a417d3c29e4.
+Cannot activate automatic trial for user 1f36842c-9386-4588-bb9d-4a417d3c29e4 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: Http404 (404)
+Free trial plan not found: no trial activated for user 7e8f282c-eabc-49f2-9e33-c928bb572375.
+Cannot activate automatic trial for user 7e8f282c-eabc-49f2-9e33-c928bb572375 (validation): ValueError
+API request refused: ValidationError (400)
+API request refused: Http404 (404)
+.............API request refused: Http404 (404)
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 986d6ddb-8985-41ce-a3e7-0301c769d9c8.
+Cannot activate automatic trial for user 986d6ddb-8985-41ce-a3e7-0301c769d9c8 (validation): ValueError
+audit event store_failed: action=AUTH_LOGOUT detail=RuntimeError
+
+
+django.request ERROR 2026-11-06 10:51:34,163 log 326226 123530836559744 [request_id=2d9c1d52-bbf1-46da-a717-a64f3cc142fc client_request_id=-] Internal Server Error: /api/v1/qa/console/subscriber
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/qa_console.py", line 132, in _wrapped
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/views/decorators/http.py", line 64, in inner
+    return func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/qa_console.py", line 467, in qa_console_new_subscriber
+    plan = _monthly_plan()
+           ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/qa_console.py", line 208, in _monthly_plan
+    return require_plan(tier=PlanTier.STANDARD, interval=BillingInterval.MONTHLY)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/stripe_live_qa.py", line 366, in require_plan
+    raise LiveQAConfigurationError(
+billing.stripe_live_qa.LiveQAConfigurationError: No active INDIVIDUAL STANDARD/MONTHLY plan with a stripe_price_id exists. The live-QA suite needs real plans wired to real Stripe test prices — seed them before running.
+Free trial plan not found: no trial activated for user 898ca781-259c-4e86-9765-971c647dbfe8.
+Cannot activate automatic trial for user 898ca781-259c-4e86-9765-971c647dbfe8 (validation): ValueError
+audit event store_failed: action=STATE_CHANGE detail=RuntimeError
+..API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user cb2f0ba8-38c8-467c-9e28-23f8a54c4328.
+Cannot activate automatic trial for user cb2f0ba8-38c8-467c-9e28-23f8a54c4328 (validation): ValueError
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 5c89c81b-49c5-41c6-9e13-490ae96eb498.
+Cannot activate automatic trial for user 5c89c81b-49c5-41c6-9e13-490ae96eb498 (validation): ValueError
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user df1dcdf2-b2b7-43e4-bb81-f479a0bbbc9e.
+Cannot activate automatic trial for user df1dcdf2-b2b7-43e4-bb81-f479a0bbbc9e (validation): ValueError
+Free trial plan not found: no trial activated for user eab8e1f5-a14b-4263-84a6-4be97d30da10.
+Cannot activate automatic trial for user eab8e1f5-a14b-4263-84a6-4be97d30da10 (validation): ValueError
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 6f183df9-c0f1-4d71-9d09-9eab26b92893.
+Cannot activate automatic trial for user 6f183df9-c0f1-4d71-9d09-9eab26b92893 (validation): ValueError
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user c68d7d7a-b5e4-48d9-9ac7-91199b53ae4f.
+Cannot activate automatic trial for user c68d7d7a-b5e4-48d9-9ac7-91199b53ae4f (validation): ValueError
+API request refused: ValidationError (400)
+.....API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+..............Free trial plan not found: no trial activated for user e77240ec-dc14-4849-96f9-964db2053137.
+Cannot activate automatic trial for user e77240ec-dc14-4849-96f9-964db2053137 (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user 2fb86732-6969-42cd-9b6b-82d587ca634c.
+Cannot activate automatic trial for user 2fb86732-6969-42cd-9b6b-82d587ca634c (validation): ValueError
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+Free trial plan not found: no trial activated for user d9e0a47a-bd6c-4aa8-9558-64313a087048.
+Cannot activate automatic trial for user d9e0a47a-bd6c-4aa8-9558-64313a087048 (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user 6464bc31-e57c-48a3-a1ec-d67320047fd6.
+Cannot activate automatic trial for user 6464bc31-e57c-48a3-a1ec-d67320047fd6 (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+Free trial plan not found: no trial activated for user b5b20fc0-83ba-4b31-b6d5-bba9dc16c938.
+Cannot activate automatic trial for user b5b20fc0-83ba-4b31-b6d5-bba9dc16c938 (validation): ValueError
+API request refused: EnvelopedAuthenticationFailed (401)
+......Free trial plan not found: no trial activated for user af57da6d-5162-4cf8-a78f-b28e2b469583.
+Cannot activate automatic trial for user af57da6d-5162-4cf8-a78f-b28e2b469583 (validation): ValueError
+Free trial plan not found: no trial activated for user 6e49148a-a990-4f63-89cc-7a0d467bdc7a.
+Cannot activate automatic trial for user 6e49148a-a990-4f63-89cc-7a0d467bdc7a (validation): ValueError
+..Free trial plan not found: no trial activated for user 73a3f274-312d-4f5d-88c4-7bb7f409b768.
+Cannot activate automatic trial for user 73a3f274-312d-4f5d-88c4-7bb7f409b768 (validation): ValueError
+Free trial plan not found: no trial activated for user ec0ff619-a3d8-4f61-bb4d-2fbbac3b0444.
+Cannot activate automatic trial for user ec0ff619-a3d8-4f61-bb4d-2fbbac3b0444 (validation): ValueError
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+Free trial plan not found: no trial activated for user 3fd91ec3-d005-4870-9c58-073090f5b9d7.
+Cannot activate automatic trial for user 3fd91ec3-d005-4870-9c58-073090f5b9d7 (validation): ValueError
+..Free trial plan not found: no trial activated for user 4fa06b62-d7c8-4fe7-b996-6e2eea70b4cb.
+Cannot activate automatic trial for user 4fa06b62-d7c8-4fe7-b996-6e2eea70b4cb (validation): ValueError
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+Free trial plan not found: no trial activated for user 77a56d83-a1d8-437a-b56c-4da93545eac4.
+Cannot activate automatic trial for user 77a56d83-a1d8-437a-b56c-4da93545eac4 (validation): ValueError
+.Free trial plan not found: no trial activated for user 052ee4ba-e063-47eb-8d44-e9e1921625cb.
+Cannot activate automatic trial for user 052ee4ba-e063-47eb-8d44-e9e1921625cb (validation): ValueError
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+Free trial plan not found: no trial activated for user fe42ec5d-e693-4ad0-b279-68ce04c6c3fa.
+Cannot activate automatic trial for user fe42ec5d-e693-4ad0-b279-68ce04c6c3fa (validation): ValueError
+Free trial plan not found: no trial activated for user d5c366ec-1e30-4d43-ab40-0fb1cf59f8bb.
+Cannot activate automatic trial for user d5c366ec-1e30-4d43-ab40-0fb1cf59f8bb (validation): ValueError
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+Free trial plan not found: no trial activated for user 5339bbd3-1c1e-468e-8cb6-3c5317c2a8a1.
+Cannot activate automatic trial for user 5339bbd3-1c1e-468e-8cb6-3c5317c2a8a1 (validation): ValueError
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+Free trial plan not found: no trial activated for user b577a3e2-28ff-450d-bcd0-d608a9b0f150.
+Cannot activate automatic trial for user b577a3e2-28ff-450d-bcd0-d608a9b0f150 (validation): ValueError
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
+Free trial plan not found: no trial activated for user b14bd0fd-9e26-4289-9e8f-b3dc299322d4.
+Cannot activate automatic trial for user b14bd0fd-9e26-4289-9e8f-b3dc299322d4 (validation): ValueError
+.............Free trial plan not found: no trial activated for user 9246a43c-02e5-4041-9520-cec4ce5a908b.
+Cannot activate automatic trial for user 9246a43c-02e5-4041-9520-cec4ce5a908b (validation): ValueError
+............API request failed with RUBRIC_MISSING: This assignment has no rubric to grade against, so grading hasn't started. No credits were used.
+API request refused: EnvelopedAuthenticationFailed (401)
+API request refused: EnvelopedThrottled (429)
+API request refused: InsufficientCreditsError:
+API request refused: ValidationError (400)
+API request refused: Throttled (429)
+API Exception
+RuntimeError: a-message-that-must-never-reach-the-row
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+...........Free trial plan not found: no trial activated for user 26de8c38-d7d2-42f1-8b2c-43b695704cdf.
+Cannot activate automatic trial for user 26de8c38-d7d2-42f1-8b2c-43b695704cdf (validation): ValueError
+...............................................Beat task audit.tasks.sweep_audit_retention: another run already holds the lock; skipping this one (key gaplus-t326227:1:beat-lock:audit.tasks.sweep_audit_retention, held by run direct:98599e476a7d; this run direct:7c017b63da15).
+Beat task audit.tasks.sweep_audit_pii_short_retention: another run already holds the lock; skipping this one (key gaplus-t326227:1:beat-lock:audit.tasks.sweep_audit_pii_short_retention, held by run direct:ed04c0e57093; this run direct:459f34cd14e2).
+........Free trial plan not found: no trial activated for user 0027a38c-933c-45b2-b0fc-ecd396e3f97e.
+Cannot activate automatic trial for user 0027a38c-933c-45b2-b0fc-ecd396e3f97e (validation): ValueError
+..API request refused: ValidationError (400)
+.....Free trial plan not found: no trial activated for user 18145b37-1e51-45c3-b638-f3253635c3b7.
+Cannot activate automatic trial for user 18145b37-1e51-45c3-b638-f3253635c3b7 (validation): ValueError
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 4c65ccff-84e7-4705-9905-b7ba0ca943e9.
+Cannot activate automatic trial for user 4c65ccff-84e7-4705-9905-b7ba0ca943e9 (validation): ValueError
+Free trial plan not found: no trial activated for user 52851234-b0bb-4c4d-8d62-4a5d401b5017.
+Cannot activate automatic trial for user 52851234-b0bb-4c4d-8d62-4a5d401b5017 (validation): ValueError
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 7f61d570-5d8f-4fb3-8d12-cf84019b817f.
+Cannot activate automatic trial for user 7f61d570-5d8f-4fb3-8d12-cf84019b817f (validation): ValueError
+API request refused: ValidationError (400)
+Free trial plan not found: no trial activated for user 835505be-4a1e-4ea4-9fd8-384109699f7c.
+Cannot activate automatic trial for user 835505be-4a1e-4ea4-9fd8-384109699f7c (validation): ValueError
+API request refused: ValidationError (400)
+.....
+----------------------------------------------------------------------
+Ran 459 tests in 16.387s
+
+OK (skipped=2)
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...

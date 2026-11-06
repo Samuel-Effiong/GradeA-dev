@@ -1,0 +1,27 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+F
+======================================================================
+FAIL: test_the_role_outcome_class_and_retention_values_match_the_data_model (audit.tests_schema.ClosedVocabulariesTest.test_the_role_outcome_class_and_retention_values_match_the_data_model)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/audit/tests_schema.py", line 251, in test_the_role_outcome_class_and_retention_values_match_the_data_model
+    self.assertEqual(set(RetentionClass.values), {"GENERAL", "STUDENT_RECORD"})
+AssertionError: Items in the first set but not the second:
+'FINANCIAL'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.004s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

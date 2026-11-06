@@ -1,0 +1,619 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 291b39b9-6483-495e-b0da-517c9f33625c.
+Cannot activate automatic trial for user 291b39b9-6483-495e-b0da-517c9f33625c (validation): ValueError
+EFEEEFFree trial plan not found: no trial activated for user 2e75fcc6-8287-4a06-b7cf-04c8f44bfcb6.
+Cannot activate automatic trial for user 2e75fcc6-8287-4a06-b7cf-04c8f44bfcb6 (validation): ValueError
+EFree trial plan not found: no trial activated for user e392d750-b587-4fb5-bb69-87bfc77d1f5c.
+Cannot activate automatic trial for user e392d750-b587-4fb5-bb69-87bfc77d1f5c (validation): ValueError
+EEEFree trial plan not found: no trial activated for user a462ffe2-10ee-4262-bc0a-fe737ab6c1f8.
+Cannot activate automatic trial for user a462ffe2-10ee-4262-bc0a-fe737ab6c1f8 (validation): ValueError
+EFree trial plan not found: no trial activated for user d15b67d0-a29b-475f-925c-f1702331a32d.
+Cannot activate automatic trial for user d15b67d0-a29b-475f-925c-f1702331a32d (validation): ValueError
+EEFEFEEEEEEFree trial plan not found: no trial activated for user 37750755-5f28-4796-82ff-531075246256.
+Cannot activate automatic trial for user 37750755-5f28-4796-82ff-531075246256 (validation): ValueError
+EFFree trial plan not found: no trial activated for user 54955904-ad16-4ec9-84b7-ac03d2b7fe7f.
+Cannot activate automatic trial for user 54955904-ad16-4ec9-84b7-ac03d2b7fe7f (validation): ValueError
+EFF.FFEFFFree trial plan not found: no trial activated for user 008f8e64-aa0a-492c-a605-16abcb64396f.
+Cannot activate automatic trial for user 008f8e64-aa0a-492c-a605-16abcb64396f (validation): ValueError
+Free trial plan not found: no trial activated for user 728c139c-dc45-4913-ba96-59b779e655f3.
+Cannot activate automatic trial for user 728c139c-dc45-4913-ba96-59b779e655f3 (validation): ValueError
+FF.
+======================================================================
+ERROR: test_a_new_job_starts_estimated_with_every_counter_at_zero (billing.tests.test_holds_schema.AIJobColumnsTests.test_a_new_job_starts_estimated_with_every_counter_at_zero)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'aijob'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 160, in test_a_new_job_starts_estimated_with_every_counter_at_zero
+    job = make_job(make_wallet())
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 44, in make_job
+    return model("AIJob").objects.create(**fields)
+           ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 18, in model
+    return apps.get_model(app, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'billing' doesn't have a 'AIJob' model.
+
+======================================================================
+ERROR: test_aijob_has_the_03a_columns_and_the_plan_additions (billing.tests.test_holds_schema.AIJobColumnsTests.test_aijob_has_the_03a_columns_and_the_plan_additions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'aijob'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 79, in test_aijob_has_the_03a_columns_and_the_plan_additions
+    names = {f.name for f in model("AIJob")._meta.get_fields()}
+                             ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 18, in model
+    return apps.get_model(app, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'billing' doesn't have a 'AIJob' model.
+
+======================================================================
+ERROR: test_aijob_job_types_and_statuses (billing.tests.test_holds_schema.AIJobColumnsTests.test_aijob_job_types_and_statuses)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'aijob'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 129, in test_aijob_job_types_and_statuses
+    aijob = model("AIJob")
+            ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 18, in model
+    return apps.get_model(app, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'billing' doesn't have a 'AIJob' model.
+
+======================================================================
+ERROR: test_aijob_on_delete_rules_follow_03a (billing.tests.test_holds_schema.AIJobColumnsTests.test_aijob_on_delete_rules_follow_03a)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'aijob'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 117, in test_aijob_on_delete_rules_follow_03a
+    aijob = model("AIJob")
+            ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 18, in model
+    return apps.get_model(app, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'billing' doesn't have a 'AIJob' model.
+
+======================================================================
+ERROR: test_items_finished_beyond_the_total_are_refused (billing.tests.test_holds_schema.AIJobConstraintTests.test_items_finished_beyond_the_total_are_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'aijob'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 208, in test_items_finished_beyond_the_total_are_refused
+    make_job(wallet, total_items=2, completed_items=2, failed_items=1)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 44, in make_job
+    return model("AIJob").objects.create(**fields)
+           ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 18, in model
+    return apps.get_model(app, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'billing' doesn't have a 'AIJob' model.
+
+======================================================================
+ERROR: test_negative_job_credits_are_refused (billing.tests.test_holds_schema.AIJobConstraintTests.test_negative_job_credits_are_refused) (name='reserved_credits')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'aijob'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 203, in test_negative_job_credits_are_refused
+    make_job(wallet, **{name: -1})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 44, in make_job
+    return model("AIJob").objects.create(**fields)
+           ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 18, in model
+    return apps.get_model(app, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'billing' doesn't have a 'AIJob' model.
+
+======================================================================
+ERROR: test_negative_job_credits_are_refused (billing.tests.test_holds_schema.AIJobConstraintTests.test_negative_job_credits_are_refused) (name='consumed_credits')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'aijob'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 203, in test_negative_job_credits_are_refused
+    make_job(wallet, **{name: -1})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 44, in make_job
+    return model("AIJob").objects.create(**fields)
+           ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 18, in model
+    return apps.get_model(app, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'billing' doesn't have a 'AIJob' model.
+
+======================================================================
+ERROR: test_negative_job_credits_are_refused (billing.tests.test_holds_schema.AIJobConstraintTests.test_negative_job_credits_are_refused) (name='released_credits')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'aijob'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 203, in test_negative_job_credits_are_refused
+    make_job(wallet, **{name: -1})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 44, in make_job
+    return model("AIJob").objects.create(**fields)
+           ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 18, in model
+    return apps.get_model(app, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'billing' doesn't have a 'AIJob' model.
+
+======================================================================
+ERROR: test_a_task_starts_with_no_credit_hold (billing.tests.test_holds_schema.BackgroundTaskHoldTests.test_a_task_starts_with_no_credit_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 308, in test_a_task_starts_with_no_credit_hold
+    task = self.make_task()
+           ^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 301, in make_task
+    return task_model.objects.create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 663, in create
+    obj = self.model(**kwargs)
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 569, in __init__
+    raise TypeError(
+TypeError: BackgroundProcessingTask() got unexpected keyword arguments: 'job'
+
+======================================================================
+ERROR: test_deleting_the_job_keeps_the_task (billing.tests.test_holds_schema.BackgroundTaskHoldTests.test_deleting_the_job_keeps_the_task)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'aijob'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 323, in test_deleting_the_job_keeps_the_task
+    job = make_job(make_wallet())
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 44, in make_job
+    return model("AIJob").objects.create(**fields)
+           ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 18, in model
+    return apps.get_model(app, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'billing' doesn't have a 'AIJob' model.
+
+======================================================================
+ERROR: test_hold_state_reads_as_a_credit_hold (billing.tests.test_holds_schema.BackgroundTaskHoldTests.test_hold_state_reads_as_a_credit_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 338, in test_hold_state_reads_as_a_credit_hold
+    hold_state = importlib.import_module("billing.models").HoldState
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.models' has no attribute 'HoldState'
+
+======================================================================
+ERROR: test_billing_settings_is_one_row_with_its_defaults (billing.tests.test_holds_schema.PlanAndSettingsTests.test_billing_settings_is_one_row_with_its_defaults)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'billingsettings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 362, in test_billing_settings_is_one_row_with_its_defaults
+    settings_model = model("BillingSettings")
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 18, in model
+    return apps.get_model(app, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'billing' doesn't have a 'BillingSettings' model.
+
+======================================================================
+ERROR: test_plan_queue_lifetime_defaults (billing.tests.test_holds_schema.PlanAndSettingsTests.test_plan_queue_lifetime_defaults)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/options.py", line 683, in get_field
+    return self.fields_map[field_name]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+KeyError: 'queue_expiry_days'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 351, in test_plan_queue_lifetime_defaults
+    self.assertEqual(plan._meta.get_field("queue_expiry_days").default, 14)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/options.py", line 685, in get_field
+    raise FieldDoesNotExist(
+django.core.exceptions.FieldDoesNotExist: SubscriptionPlan has no field named 'queue_expiry_days'
+
+======================================================================
+ERROR: test_reverse_is_allowed_with_the_flag_off_and_no_hold_open (billing.tests.test_holds_schema.ReverseGuardTests.test_reverse_is_allowed_with_the_flag_off_and_no_hold_open)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 272, in test_reverse_is_allowed_with_the_flag_off_and_no_hold_open
+    guard = self.guard()
+            ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 252, in guard
+    module = importlib.import_module(
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.migrations.0074_b1a_credit_hold_schema'
+
+======================================================================
+ERROR: test_reverse_is_refused_while_a_wallet_holds_credits (billing.tests.test_holds_schema.ReverseGuardTests.test_reverse_is_refused_while_a_wallet_holds_credits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 258, in test_reverse_is_refused_while_a_wallet_holds_credits
+    guard = self.guard()
+            ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 252, in guard
+    module = importlib.import_module(
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.migrations.0074_b1a_credit_hold_schema'
+
+======================================================================
+ERROR: test_reverse_is_refused_with_the_flag_on (billing.tests.test_holds_schema.ReverseGuardTests.test_reverse_is_refused_with_the_flag_on)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 266, in test_reverse_is_refused_with_the_flag_on
+    guard = self.guard()
+            ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 252, in guard
+    module = importlib.import_module(
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.migrations.0074_b1a_credit_hold_schema'
+
+======================================================================
+ERROR: test_one_settlement_per_item_and_retry (billing.tests.test_holds_schema.SettlementRecordTests.test_one_settlement_per_item_and_retry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'settlementrecord'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 281, in test_one_settlement_per_item_and_retry
+    record = model("SettlementRecord")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 18, in model
+    return apps.get_model(app, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'billing' doesn't have a 'SettlementRecord' model.
+
+======================================================================
+ERROR: test_settlement_has_no_settled_flag_column (billing.tests.test_holds_schema.SettlementRecordTests.test_settlement_has_no_settled_flag_column)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'settlementrecord'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 292, in test_settlement_has_no_settled_flag_column
+    names = {f.name for f in model("SettlementRecord")._meta.get_fields()}
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 18, in model
+    return apps.get_model(app, name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'billing' doesn't have a 'SettlementRecord' model.
+
+======================================================================
+ERROR: test_a_negative_reservation_is_refused_by_the_database (billing.tests.test_holds_schema.WalletHoldColumnsTests.test_a_negative_reservation_is_refused_by_the_database)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/options.py", line 683, in get_field
+    return self.fields_map[field_name]
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+KeyError: 'reserved_credits'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 239, in test_a_negative_reservation_is_refused_by_the_database
+    type(wallet).objects.filter(pk=wallet.pk).update(reserved_credits=-1)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1237, in update
+    query.add_update_values(kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/subqueries.py", line 88, in add_update_values
+    field = self.get_meta().get_field(name)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/options.py", line 685, in get_field
+    raise FieldDoesNotExist(
+django.core.exceptions.FieldDoesNotExist: CreditWallet has no field named 'reserved_credits'
+
+======================================================================
+ERROR: test_wallet_starts_with_nothing_reserved (billing.tests.test_holds_schema.WalletHoldColumnsTests.test_wallet_starts_with_nothing_reserved)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 229, in test_wallet_starts_with_nothing_reserved
+    self.assertEqual(wallet.reserved_credits, 0)
+                     ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'CreditWallet' object has no attribute 'reserved_credits'
+
+======================================================================
+ERROR: test_a_legacy_general_credit_row_goes_at_seven_years (audit.tests_financial_retention.FinancialSweepTests.test_a_legacy_general_credit_row_goes_at_seven_years)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/audit/tests_financial_retention.py", line 122, in test_a_legacy_general_credit_row_goes_at_seven_years
+    self.assertEqual(sweep_metadata()["deleted_financial"], 1)
+                     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'deleted_financial'
+
+======================================================================
+FAIL: test_aijob_counters_have_database_defaults (billing.tests.test_holds_schema.AIJobColumnsTests.test_aijob_counters_have_database_defaults)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 192, in test_aijob_counters_have_database_defaults
+    self.assertEqual(column_default("billing_aijob", column), "0", column)
+AssertionError: 'NO COLUMN' != '0'
+- NO COLUMN
++ 0
+ : reserved_credits
+
+======================================================================
+FAIL: test_aijob_indexes_match_03a (billing.tests.test_holds_schema.AIJobConstraintTests.test_aijob_indexes_match_03a)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 213, in test_aijob_indexes_match_03a
+    self.assertIn("(wallet_id, status)", open_ix)
+AssertionError: '(wallet_id, status)' not found in ''
+
+======================================================================
+FAIL: test_the_job_foreign_key_is_validated_and_indexed (billing.tests.test_holds_schema.BackgroundTaskHoldTests.test_the_job_foreign_key_is_validated_and_indexed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 330, in test_the_job_foreign_key_is_validated_and_indexed
+    self.assertEqual(
+AssertionError: None != ('f', True)
+
+======================================================================
+FAIL: test_holds_flag_defaults_off (billing.tests.test_holds_schema.PlanAndSettingsTests.test_holds_flag_defaults_off)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 373, in test_holds_flag_defaults_off
+    self.assertIs(getattr(settings, "BILLING_HOLDS_ENABLED", None), False)
+AssertionError: None is not False
+
+======================================================================
+FAIL: test_the_reservation_check_is_validated (billing.tests.test_holds_schema.WalletHoldColumnsTests.test_the_reservation_check_is_validated)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/billing/tests/test_holds_schema.py", line 242, in test_the_reservation_check_is_validated
+    self.assertEqual(
+AssertionError: None != ('c', True)
+
+======================================================================
+FAIL: test_a_new_credit_event_is_stored_financial (audit.tests_financial_retention.FinancialClassTests.test_a_new_credit_event_is_stored_financial)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/audit/tests_financial_retention.py", line 61, in test_a_new_credit_event_is_stored_financial
+    self.assertEqual(event.retention_class, FINANCIAL)
+AssertionError: 'GENERAL' != 'FINANCIAL'
+- GENERAL
++ FINANCIAL
+
+
+======================================================================
+FAIL: test_a_student_linked_credit_event_is_stored_financial (audit.tests_financial_retention.FinancialClassTests.test_a_student_linked_credit_event_is_stored_financial)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/audit/tests_financial_retention.py", line 66, in test_a_student_linked_credit_event_is_stored_financial
+    self.assertEqual(event.retention_class, FINANCIAL)
+AssertionError: 'STUDENT_RECORD' != 'FINANCIAL'
+- STUDENT_RECORD
++ FINANCIAL
+
+
+======================================================================
+FAIL: test_financial_is_kept_seven_years (audit.tests_financial_retention.FinancialClassTests.test_financial_is_kept_seven_years)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/audit/tests_financial_retention.py", line 55, in test_financial_is_kept_seven_years
+    self.assertIn(FINANCIAL, RetentionClass.values)
+AssertionError: 'FINANCIAL' not found in ['GENERAL', 'STUDENT_RECORD']
+
+======================================================================
+FAIL: test_a_financial_row_survives_until_seven_years (audit.tests_financial_retention.FinancialSweepTests.test_a_financial_row_survives_until_seven_years)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/audit/tests_financial_retention.py", line 95, in test_a_financial_row_survives_until_seven_years
+    self.assertFalse(AuditEvent.objects.filter(pk=gone.pk).exists())
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_a_legacy_general_credit_row_survives_the_general_cutoff (audit.tests_financial_retention.FinancialSweepTests.test_a_legacy_general_credit_row_survives_the_general_cutoff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/audit/tests_financial_retention.py", line 111, in test_a_legacy_general_credit_row_survives_the_general_cutoff
+    self.assertTrue(AuditEvent.objects.filter(pk=legacy.pk).exists())
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_a_student_record_credit_row_survives_the_three_year_cutoff (audit.tests_financial_retention.FinancialSweepTests.test_a_student_record_credit_row_survives_the_three_year_cutoff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/audit/tests_financial_retention.py", line 131, in test_a_student_record_credit_row_survives_the_three_year_cutoff
+    self.assertTrue(AuditEvent.objects.filter(pk=kept.pk).exists())
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_a_retention_sweep_records_its_counts (audit.tests_background_attribution.SweepSelfRecordTests.test_a_retention_sweep_records_its_counts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/audit/tests_background_attribution.py", line 191, in test_a_retention_sweep_records_its_counts
+    self.assertEqual(
+AssertionError: {'deleted_general': 3, 'deleted_student_record': 0} != {'deleted_general': 1, 'deleted_student_record': 0, 'deleted_financial': 1}
+- {'deleted_general': 3, 'deleted_student_record': 0}
+?                     ^
+
++ {'deleted_financial': 1, 'deleted_general': 1, 'deleted_student_record': 0}
+?  ++++++++++++++++++++++++                   ^
+
+
+======================================================================
+FAIL: test_a_retention_sweep_that_deletes_nothing_still_records_itself (audit.tests_background_attribution.SweepSelfRecordTests.test_a_retention_sweep_that_deletes_nothing_still_records_itself)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red/audit/tests_background_attribution.py", line 159, in test_a_retention_sweep_that_deletes_nothing_still_records_itself
+    self.assertEqual(
+AssertionError: {'deleted_general': 0, 'deleted_student_record': 0} != {'deleted_general': 0, 'deleted_student_record': 0, 'deleted_financial': 0}
+- {'deleted_general': 0, 'deleted_student_record': 0}
++ {'deleted_financial': 0, 'deleted_general': 0, 'deleted_student_record': 0}
+?  ++++++++++++++++++++++++
+
+
+----------------------------------------------------------------------
+Ran 34 tests in 0.611s
+
+FAILED (failures=13, errors=21)
+Destroying test database for alias 'default'...
+Found 34 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

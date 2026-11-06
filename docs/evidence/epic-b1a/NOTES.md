@@ -449,6 +449,7 @@ After each plan step, send SM the sha plus its own tests' result. A checkpoint i
 | Emitter | unchanged (only GENERAL or STUDENT_RECORD) | CREDIT_TRANSACTION stored FINANCIAL; FINANCIAL wins over `touches_student_record` | plan §4, SM ruling 1 |
 | `FINANCIAL_ACTIONS` | in `audit/volume.py` | in `audit/enums.py` beside `STUDENT_RECORD_ACTIONS`; volume and tasks import it | SM ruling 1 |
 | Drift-summary table | absent | still absent (B1b) | plan §4 marks it B1b |
+| `audit/metadata.py` `ALLOWED_KEYS` | only the AUDIT_RETENTION_SWEEP allowlist gained `deleted_financial` | the global `ALLOWED_KEYS` gains it too; without it the emitter drops the key | found by the first green attempt (§9e) |
 
 `AIJob.requested_by` CASCADE (a student for student uploads) stays as 03a says: "an operational row, not history; the ledger keeps the money trail". SM agreed 2026-11-06. No per-student audit deletion or export walk exists (AuditEvent is append-only), so FINANCIAL tagging removes nothing from one. The SM is raising the wider NFR-CMP-04 gap with the owner separately.
 
@@ -515,3 +516,25 @@ Any mismatch with this table is a STOP, investigated and reported before green.
 ### 9d. Green: expected result
 
 Same command on the step-1 code: all OK. Then `makemigrations --check --dry-run` reports no changes. Then the break run (§5c).
+
+### 9e. Step 1 results (2026-11-06)
+
+| Run | Code | Result | Matches expectation | Log (docs/evidence/epic-b1a/step1/) |
+|---|---|---|---|---|
+| Red | f65e53b4 (tests only, staging code), disposable worktree, DB test_epic_b1a_red | Ran 34, FAILED (failures=13, errors=21) | yes: every row of §9c, fragment for fragment | red-run.log |
+| Green, first attempt | WIP | Ran 34, FAILED (failures=2, errors=2): the sweep metadata had no `deleted_financial` (the global `ALLOWED_KEYS` lacked it) | n/a: a build fault, fixed (§9a last row). **The log was overwritten by the next run**; the four failures were the two SweepSelfRecordTests dict mismatches and two `KeyError: 'deleted_financial'` in FR-2 | — |
+| Green | WIP, then 55c19958 | Ran 34, OK, both times | yes | green-run.log (at 55c19958) |
+| makemigrations --check | 55c19958 | No changes detected | yes | — |
+| check_migration_safety --base origin/staging | 55c19958 | all 7 migrations "additive only" | yes | migration-safety.txt |
+| Break run: SweepSelfRecordTests at old text (sha ec65d3e3) vs step-1 code | WIP | Ran 3, FAILED (failures=2): exactly the two §5c dict mismatches (dict key order is printed differently) | yes | break-run-sweep-tests.log |
+| Targeted check: audit app + billing test_credit_transaction_audit | WIP | Ran 459, FAILED (failures=1): `audit/tests_schema.py:251`, not foreseen. STOP; SM ruling (c) | no: a STOP, ruled on | audit-app-check-1.log |
+| Break run: tests_schema.py:251 at old text (sha 4ef0fe75) vs step-1 code | WIP | Ran 1, FAILED (failures=1): `Items in the first set but not the second: 'FINANCIAL'` | yes: §5c (committed at 4642207c before the run) | break-run-tests-schema.log |
+| Targeted check, again | WIP (= 55c19958 code apart from formatting) | Ran 459, OK (skipped=2) | yes | audit-app-check-2.log |
+
+The edited test files were restored by sha256 from saved copies after each break run: tests_background_attribution.py 87c626e9…, tests_schema.py b447e8f8…. Both equal the committed files.
+
+Commits:
+- f65e53b4: expectations and tests
+- 4642207c: §5c addition
+- 55c19958: step-1 code. The pre-commit black/isort reformatting (audit/tasks.py, 0074 import order) is cosmetic; green was re-run on 55c19958.
+- 3db3871e: 03a amendment (SM ruling (d))
