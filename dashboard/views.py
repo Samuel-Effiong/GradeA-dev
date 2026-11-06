@@ -55,7 +55,7 @@ from AutoGrader.query_params import boolean_query_param
 from billing.models import CONVERSION_FACTOR, CreditBucketType, CreditUsageLog
 from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal, refusal_response
 from billing.services import FEATURE_TO_ANALYTICS_FIELD
-from classrooms.final_grade import final_grade_from
+from classrooms import grade_service
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -3628,20 +3628,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     score__isnull=False, graded_at__isnull=False
                 ).select_related("student")
             )
-            average_grade = (
-                final_grade_from(
-                    (
-                        submission.score,
-                        (
-                            submission.max_points
-                            if submission.max_points is not None
-                            else assignment.total_points
-                        ),
-                    )
-                    for submission in graded
-                )
-                or 0
-            )
+            average_grade = grade_service.assignment_grade(graded, assignment) or 0
 
             avg_grading_confidence = (
                 average_confidence_from(submissions, "grading_confidence") or 0
