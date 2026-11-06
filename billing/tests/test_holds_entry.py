@@ -130,6 +130,22 @@ class EntryRuleTests(TestCase):
                     call_ai(self.teacher)
         return provider
 
+    def assert_exits_before_any_call(self, row):
+        """The exit must come before the provider (SM ruling 2026-11-06):
+        the provider answers normally, so a missing exit shows as a call."""
+        late_error = holds().CreditHoldReturnedError
+        raised = False
+        with patch.object(
+            AIProcessor, PROVIDER, return_value=ai_response(100)
+        ) as provider:
+            try:
+                with holds().metered_unit(processing_task_id=row.id, reason="t"):
+                    call_ai(self.teacher)
+            except late_error:
+                raised = True
+        provider.assert_not_called()
+        self.assertTrue(raised, "CreditHoldReturnedError not raised")
+
     def test_er1_a_row_with_no_job_is_attached_to_a_new_single_item_job(self):
         row = task_row(self.teacher)
         self.run_unit(row)
@@ -159,11 +175,7 @@ class EntryRuleTests(TestCase):
         row = make_item(job, status="FAILURE", reason_code="PROVIDER_FAILURE")
         holds().reserve(self.wallet, 50, job, item=row)
         holds().fail_item(job, item=row)
-        with patch.object(AIProcessor, PROVIDER) as provider:
-            with self.assertRaises(holds().CreditHoldReturnedError):
-                with holds().metered_unit(processing_task_id=row.id, reason="t"):
-                    call_ai(self.teacher)
-        provider.assert_not_called()
+        self.assert_exits_before_any_call(row)
         self.assertEqual(AIJob.objects.count(), 1)
 
     def test_er4_a_row_already_settled_exits_before_any_call(self):
@@ -171,11 +183,7 @@ class EntryRuleTests(TestCase):
         row = make_item(job, status="SUCCESS")
         holds().reserve(self.wallet, 50, job, item=row)
         holds().settle(job, 10, item=row)
-        with patch.object(AIProcessor, PROVIDER) as provider:
-            with self.assertRaises(holds().CreditHoldReturnedError):
-                with holds().metered_unit(processing_task_id=row.id, reason="t"):
-                    call_ai(self.teacher)
-        provider.assert_not_called()
+        self.assert_exits_before_any_call(row)
 
     def test_er5_a_retried_row_runs_under_a_new_single_item_job(self):
         old = make_job(self.wallet, "BATCH_GRADING", total_items=1, status="RUNNING")

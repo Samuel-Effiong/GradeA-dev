@@ -1002,3 +1002,27 @@ Each plant is applied to the committed file, run, restored from a saved copy and
 | Q-6 a site without its task id | `students/services.py` grading site: drop `processing_task_id=processing_task_id,` from its `metered_unit(` | E-1 granted + wiring `test_the_five_sites…` | 2 FAIL: E-1 `Tuples differ` (key = the unit's job, not the row); wiring `'processing_task_id' not found` |
 
 Logs: `step3b_plant_Q-<n>.log`.
+
+### 14g. 3b plant results and SM rulings (2026-11-06)
+
+| Plant | Observed (log `step3b_plant_Q-<n>.log`) | Ruling |
+|---|---|---|
+| Q-1 settled exit removed | killed, but ERROR `TypeError: '<' not supported between MagicMock and int`, not the declared FAIL | **Tighten** ER-4 |
+| Q-2 late grading exit removed | killed, the same ERROR `TypeError` | **Tighten** ER-3 |
+| Q-3 retry on the old job | killed by ERROR `IntegrityError … aijob_items_within_total`, not the declared `AIJob.DoesNotExist` | **Accepted as the kill.** Corrected fragment: `IntegrityError: … violates check constraint "aijob_items_within_total"`. Why: settling a retry on the old job counts the item a second time; 03a's CHECK is the next guard down, the same one D-2 hit in step 2. |
+| Q-4 | FAIL `'SETTLED' != 'RUNNING'` | as declared |
+| Q-5 | FAIL `unexpectedly None` | as declared |
+| Q-6 | E-1 FAIL `Tuples differ`; wiring FAIL `'processing_task_id' not found in {'reason'}` | as declared |
+
+**Why Q-1/Q-2 died the way they did:** ER-3/ER-4 patched the provider with no return value. With the exit removed, the run went on and crashed on a MagicMock usage in the hold arithmetic. That's a weak catch: it would pass if the arithmetic changed.
+
+**Tightened** (`EntryRuleTests.assert_exits_before_any_call`):
+- the provider returns `ai_response(100)`
+- `provider.assert_not_called()` comes first, then `CreditHoldReturnedError` raised
+- the error class is looked up before the call, so at red (no class) both tests still ERROR `has no attribute 'CreditHoldReturnedError'`
+
+**Re-run expectations (before running):**
+- Q-1 → ER-4: 1 FAIL `Expected 'mock' to not have been called. Called 1 times.`
+- Q-2 → ER-3: the same 1 FAIL.
+- ER-3/ER-4 unplanted on c6d05df0: 2 OK.
+- **Red check, unchanged table:** ER-3/ER-4 with 3a's `billing/holds.py` (8796a8d4) checked out in a disposable worktree: 2 ERROR `has no attribute 'CreditHoldReturnedError'`.
