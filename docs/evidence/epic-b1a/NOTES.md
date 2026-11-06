@@ -7,6 +7,56 @@ Code facts checked against 350e2682 (code unchanged from b8f12291).
 
 ---
 
+## 0. Re-survey on task/epic-b1a at staging 2f00c078 (2026-11-06, Lane 1)
+
+Staging 2f00c078 is beta 40f514f6 plus B0, about 165 commits after the 350e2682 survey below.
+Every file:line in plan 08 (89) and in this file (37) was compared, cited block by cited block, between d808a9ce and 2f00c078.
+**None is broken.** The lines below moved; every other cite is unchanged. The tables in §1 keep their 350e2682 numbers. **This table overrides them.**
+
+| File | Old (350e2682 / d808a9ce) | Now (2f00c078) | Moved by |
+|---|---|---|---|
+| ai_processor/services.py | SUPER_ADMIN call :5612 | :5615 | H-281 |
+| | estimate :5636–5639 (actual :5635–5638) | :5638–5641 | |
+| | balance check :5640–5649 | :5643–5657 (both raises now pass `individual=`) | |
+| | metered call :5654 | :5661 | |
+| | charge :5671–5684 | :5678–5691 | |
+| | record_billing_task_id :5699/:5700 | :5706 | |
+| | estimate_messages_cost :5721 / estimate_total_token :5774 / `+= 20000` :5790 | :5728 / :5781 / :5797 | |
+| | unchanged: :4574, :4635, :5480, :5502 | | |
+| students/services.py | refund scopes :962 / :1365 / :1709 | :1130 / :1538 / :1882 | H-279 |
+| | GRADING_TASK_TIME_LIMIT_SECONDS :297, GRADING_CLAIM_STALE_AFTER :306, `_claim_submission_for_grading` :309 | :300, :309, :312 | |
+| | upload_answers_engine :1334, update_submission_from_raw_text :1669 | :1507, :1842 | |
+| assignments/tasks.py | grade_engine_async :646, :450, grade_batch_async :1436, `_relaunch_failed_dispatches` :1616, :1662, auto_grade_due_assignment :1668, :1733 | :648, :452, :1466, :1646, :1692, :1698, :1763 | H-279 |
+| billing/models.py | CreditLedger.record :1505, after_bulk_create :1514, LicenseOveragePurchaseStatus :1981, stripe_checkout_session_id :2042, SchoolCreditAllocation :2315 | :1508, :1517, :1984, :2045, :2318 | H-281 |
+| billing/stripe_service.py | handle_checkout_completed atomic :2907–2908, `_handle_license_overage_checkout_completed` :3204, :3248, §8 :~3250, m3-a :~3384–3387 | :3044–3045, :3341, :3385, :~3385, :~3521–3524 | H-274/H-275 |
+| AutoGrader/settings.py | :559, :575, :598, :685, :695 | :558, :574, :597, :684, :694 | |
+| students/views.py | :610, :794, :964 | :628, :814, :984 | |
+| assignments/views.py | :1785 | :1796 | |
+| users/models.py | notify_* :408–424 | :437–453 | |
+| users/services.py | :202 | :205 | |
+| billing/views.py | wallet :1463 | :1465 | |
+
+**Drift that changes the build (SM rulings 2026-11-06):**
+
+1. **H-281.** `InsufficientCreditsError` takes `individual=is_individual_teacher(user)`, and `mark_processing_task_failure` stores `meta["message_variant"]` (`credit_refusal_variant`).
+   - Every refusal B1a adds passes `individual=`, with one test per entry point.
+   - Existing messages only; no new wording.
+2. **H-279 naming.** H-279 brought in a "held result" (`StudentSubmission.pending_result` / `pending_graded_at`). B1a code, fields and audit keys say "credit hold" / `hold_*`, never a bare "held".
+3. **H-279 billing (2(b)): ON HOLD, waiting for an owner ruling.**
+   - Charging the held re-grade itself is the same as today: one charge at the AI call; the hold is decided later, at the save.
+   - Approval (promote_pending → refresh_student_summary) starts one billed summary call, charged to the approving actor.
+   - There is no reject path. An overwriting re-grade charges again, with no refund.
+   - The pinning tests wait for the ruling.
+4. **Billed paths added since the survey.** The student summary (student_summary_async → generate_student_summary → execute_graded_task at ai_processor/services.py:5999) is single-call, so the hold inside `execute_graded_task` covers it. It is not a unit site.
+5. **Migration numbering.**
+   - billing: after 0073_schoolcreditallocation_grant_anchor_at (unchanged).
+   - students: after 0036_studentsubmission_pending_result (was 0035).
+   - audit: after 0003_auditevent_target_time_ix (was 0002).
+   - assignments, if needed: after 0041_topic_set_null (SM, H-297).
+6. **Stash b1a-paused (cfd89cc2)** is applied onto 2f00c078 (apply only; the entry is kept). The 3-way merge resolved the `audit/metadata.py` AUDIT_RETENTION_SWEEP hunk, and every H-273/H-278/H-279 key is kept.
+
+---
+
 ## 1. Survey: every file:line the plan cites, re-verified
 
 ### 1a. `execute_graded_task` structure (ai_processor/services.py)
