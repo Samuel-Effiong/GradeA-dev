@@ -1,10 +1,18 @@
 """Epic C1, FR-C-08: one normalization rule (plan 11 §3.2), with the
-owner's D5 ruling of 2026-11-06: tag names hold no invisible characters.
-Every Unicode format (Cf) and control (Cc) character is removed before the
-trim and length checks; a whitespace control (tab, newline) becomes a space
-first. Visible punctuation and emoji are kept as typed (pending the owner:
-that rule is one row of `tags.normalize.CHARACTER_RULES`).
+owner's rulings of 2026-11-06.
+
+D5: tag names hold no invisible characters. Every Unicode format (Cf) and
+control (Cc) character is removed before the checks; a whitespace control
+(tab, newline) becomes a space first.
+
+The visible-character rule (replacing D5's "visible: keep" row): after the
+strip and the collapse, a name may use only letters (L*), combining marks
+(M*), numbers (N*), the space and - ' . ( ); the typographic apostrophe
+U+2019 becomes '. Anything else is TAG_NAME_HAS_SYMBOLS. The order is:
+empty (TAG_NAME_MISSING), then characters, then length.
 """
+
+import importlib
 
 from django.test import SimpleTestCase
 
@@ -54,12 +62,68 @@ INVISIBLE = [
 # Only invisible characters: nothing left, so the name is missing.
 ONLY_INVISIBLE = ["\u200b", "\u200b\u2060\ufeff", "\x07", "\u202e\u200d", "\t\u200b\n"]
 
-# Visible punctuation and emoji: kept as typed (plan 11; owner pending).
-VISIBLE_KEPT = [
-    ("C++ & Java!", "c++ & java!"),
-    ("Cells \U0001f52c", "cells \U0001f52c"),
-    ("Year 7: Fractions (Part 1)", "year 7: fractions (part 1)"),
+# Owner rule of 2026-11-06 (replaces D5's "visible: keep" row): after the
+# Cf/Cc strip and the collapse, only letters (L*), combining marks (M*),
+# numbers (N*), the space and - ' . ( ) are allowed. The typographic
+# apostrophe U+2019 is the same approved mark and becomes '.
+# (typed, display name kept, normalized key)
+ALLOWED = [
+    ("Newton\u2019s Laws", "Newton's Laws", "newton's laws"),
+    ("Grade 10 (Advanced)", "Grade 10 (Advanced)", "grade 10 (advanced)"),
+    ("Ch. 3", "Ch. 3", "ch. 3"),
+    ("Cell-Biology", "Cell-Biology", "cell-biology"),
+    ("\u00c9nergie", "\u00c9nergie", "\u00e9nergie"),
+    ("E\u0301nergie", "\u00c9nergie", "\u00e9nergie"),  # combining accent, NFKC
+    (
+        "\u0930\u0938\u093e\u092f\u0928",
+        "\u0930\u0938\u093e\u092f\u0928",
+        "\u0930\u0938\u093e\u092f\u0928",
+    ),
+    (
+        "\u0627\u0644\u0643\u064a\u0645\u064a\u0627\u0621",
+        "\u0627\u0644\u0643\u064a\u0645\u064a\u0627\u0621",
+        "\u0627\u0644\u0643\u064a\u0645\u064a\u0627\u0621",
+    ),
+    ("\uff08Part 1\uff09", "(Part 1)", "(part 1)"),  # full-width ( ) are ( ) after NFKC
 ]
+
+# One case per refused class (the SM's list), each with the owner's message.
+REFUSED = [
+    "C# Basics",
+    "Q&A",
+    "Email @ School",
+    "Wow!",
+    "Either/Or",
+    "Cells, Tissues",
+    "Year 7: Fractions",
+    "Part 1; Part 2",
+    "snake_case",
+    "C++",
+    "a = b",
+    "Why?",
+    "Star*",
+    '"Quoted"',
+    "\u201cQuoted\u201d",  # typographic double quotes
+    "\u2018Single\u2019",  # U+2018 is not the approved apostrophe
+    "Cells \u2013 Tissues",  # en dash
+    "Cells \u2014 Tissues",  # em dash
+    "Cell\u2010Biology",  # Unicode hyphen, not -
+    "\u00a9 Science",  # Unicode symbol (So)
+    "Cost $5",  # currency symbol (Sc)
+    "x^2",  # modifier symbol (Sk)
+    "a < b",  # math symbol (Sm)
+    "a ~ b",
+    "Back`tick",
+    "Pipe|Line",
+    "Cells \U0001f52c",  # emoji
+    "Family \U0001f468\u200d\U0001f469\u200d\U0001f467",  # ZWJ family
+    "\U0001f600",  # an emoji alone is not missing: it is refused
+    # NFKC turns \u00bd into 1, U+2044, 2, and U+2044 FRACTION SLASH is a math
+    # symbol (Sm), so a vulgar fraction is refused (flagged to the SM).
+    "Year \u00bd",
+]
+
+HAS_SYMBOLS = "Tag names can only use letters, numbers, spaces and - ' . ( )"
 
 
 class NormalizeTest(SimpleTestCase):
@@ -123,15 +187,45 @@ class NormalizeTest(SimpleTestCase):
     def test_invisible_characters_do_not_count_toward_the_limit(self):
         self.assertEqual(clean_tag_name("a" * 100 + "\u200b" * 20)[1], "a" * 100)
 
-    def test_visible_punctuation_and_emoji_are_kept(self):
-        for typed, key in VISIBLE_KEPT:
+    def test_the_allowed_characters_are_kept(self):
+        for typed, shown, key in ALLOWED:
             with self.subTest(typed=typed):
-                self.assertEqual(normalize_tag_name(typed), key)
+                self.assertEqual(clean_tag_name(typed), (shown, key))
+
+    def test_every_other_visible_character_is_refused(self):
+        for typed in REFUSED:
+            with self.subTest(typed=typed):
+                with self.assertRaises(CodedError) as caught:
+                    clean_tag_name(typed)
+                self.assertEqual(caught.exception.reason_code, "TAG_NAME_HAS_SYMBOLS")
+                self.assertEqual(str(caught.exception), HAS_SYMBOLS)
+
+    def test_the_order_missing_then_symbols_then_length(self):
+        # Empty after the strip is missing, even with a stripped ZWJ.
+        for typed, code in (
+            ("\u200d", "TAG_NAME_MISSING"),
+            ("#" * 101, "TAG_NAME_HAS_SYMBOLS"),
+            ("a" * 100 + "!", "TAG_NAME_HAS_SYMBOLS"),
+            ("a" * 101, "TAG_NAME_TOO_LONG"),
+        ):
+            with self.subTest(typed=typed[:12]):
+                with self.assertRaises(CodedError) as caught:
+                    clean_tag_name(typed)
+                self.assertEqual(caught.exception.reason_code, code)
 
     def test_the_rule_is_one_table(self):
-        # One row per character class, so the owner's pending ruling on
-        # visible special characters is a one-row change.
+        # One row per Unicode class, plus the five approved marks.
         self.assertEqual(
             dict(CHARACTER_RULES),
-            {"Cf": "remove", "Cc": "remove", "visible": "keep"},
+            {
+                "Cf": "remove",
+                "Cc": "remove",
+                "L": "allow",
+                "M": "allow",
+                "N": "allow",
+                "other": "refuse",
+            },
         )
+        # Looked up at run time: not on the base when this was written.
+        normalize = importlib.import_module("tags.normalize")
+        self.assertEqual(normalize.ALLOWED_MARKS, frozenset(" -'.()"))

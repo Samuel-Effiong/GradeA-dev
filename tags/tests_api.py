@@ -100,6 +100,23 @@ class CreateTest(_ApiCase):
             "Tag names can be up to 100 characters.",
         )
 
+    def test_symbols_and_emoji_are_refused_with_the_owners_message(self):
+        for name in ("C# Basics", "Cells \U0001f52c", "Q&A"):
+            with self.subTest(name=name):
+                response = self.create(name)
+                self.assertCoded(response, "TAG_NAME_HAS_SYMBOLS", 400)
+                self.assertEqual(
+                    envelope(response)["error"],
+                    "Tag names can only use letters, numbers, spaces and - ' . ( )",
+                )
+        self.assertFalse(Tag.objects.exists())
+
+    def test_the_typographic_apostrophe_is_the_approved_one(self):
+        response = self.create("Newton\u2019s Laws")
+        self.assertEqual(response.status_code, 201, response.content[:400])
+        self.assertEqual(data(response)["name"], "Newton's Laws")
+        self.assertEqual(self.create("newton's laws").status_code, 200)
+
     def test_a_lesson_or_unknown_type_is_refused(self):  # FR-C-01, C1 part
         for tag_type in ("LESSON", "", "unit", None):
             with self.subTest(tag_type=tag_type):
@@ -182,6 +199,12 @@ class RenameDeleteTest(_ApiCase):
         self.assertEqual(
             envelope(response)["error"], 'You already have a Unit tag named "Genetics".'
         )
+
+    def test_rename_to_symbols_is_refused(self):
+        response = fire(self.api, "patch", f"tags/{self.tag.pk}", {"name": "Cells!"})
+        self.assertCoded(response, "TAG_NAME_HAS_SYMBOLS", 400)
+        self.tag.refresh_from_db()
+        self.assertEqual(self.tag.name, "Cells")
 
     def test_impact(self):
         response = fire(self.api, "get", f"tags/{self.tag.pk}/impact")

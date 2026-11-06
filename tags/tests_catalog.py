@@ -1,6 +1,6 @@
 """Epic C1: the shared registries (plan 11 §6 item 1, D6; SM rulings 1-3).
 
-* The five owner-approved reason codes, word for word, with no
+* The six owner-approved reason codes, word for word, with no
   remediation text (SM ruling 3: each message already says what to do).
 * The audit allow-lists: ids, counts and labels only, never a tag name
   (audit/metadata.py's rule: no text a person wrote).
@@ -50,6 +50,13 @@ APPROVED = {
         False,
         set(),
     ),
+    # Owner, 2026-11-06: the visible-character rule (replaces D5 "visible").
+    "TAG_NAME_HAS_SYMBOLS": (
+        "Tag names can only use letters, numbers, spaces and - ' . ( )",
+        status.HTTP_400_BAD_REQUEST,
+        False,
+        set(),
+    ),
     "TOO_MANY_TAGS": (
         "An assignment can have up to 50 tags.",
         status.HTTP_400_BAD_REQUEST,
@@ -60,7 +67,7 @@ APPROVED = {
 
 
 class ReasonCodeTest(SimpleTestCase):
-    def test_the_five_approved_codes(self):
+    def test_the_six_approved_codes(self):
         for code, (message, http_status, retryable, params) in APPROVED.items():
             with self.subTest(code=code):
                 spec = REASON_CODES[ReasonCode(code)]

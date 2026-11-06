@@ -23,6 +23,7 @@ FR-C-08's documented rule changes as follows:
 | 12 | Billing's append-only guard is registered on AuditEvent and treats an AuditEvent insert inside `zero_credit_scope` as a ledger insert. The emitter then drops the event silently (FR-A-11). | Every tag write stays inside its zero-credit scope. Its audit event is written just after the scope closes, inside the same transaction. `tags.tests_services.RollbackTest` pins this: a rolled-back write leaves neither the row nor the event. When H-299 lands, the emit placement stays as it is (SM: don't churn it). | **H-299** (Lane 1: exempt AuditEvent in billing/immutable.py); SM accepted |
 | 13 | makemigrations wrote the unique key and the CHECKs as separate AddConstraint operations, which the H-217 migration-safety check refuses. | They are in the CreateModel options. The tables are new and empty, so this creates the same constraints with no lock on existing rows. `check_migration_safety.py` reports "additive only". | SM accepted |
 | 14 | A backfilled link that a teacher keeps in a set. | It stays TOPIC_BACKFILL, so `backfill_topic_tags --reverse` (a rollback of a bad backfill) removes it. Only a link the teacher adds becomes USER. | SM ruling (ii) |
+| 18 | D5 kept visible punctuation and emoji (pending the owner). | The owner's visible-character rule (section below) and the new code TAG_NAME_HAS_SYMBOLS. | Owner, 2026-11-06, via the SM |
 | 15 | TAG_NAME_TAKEN. | params `{tag_type: <code>, name: <stored spelling>}`. The message shows the TagType label (`display`), with no new label text. | SM ruling (i) |
 | 16 | `tags/tests_api.py` expected the "item" not-found text when another teacher, or an unknown id, PUTs tags on an assignment. | That case answers with the house H-296 text for an assignment: "We couldn't find that assignment. It may have been deleted." (`get_object_or_404`, as every assignment route does). A foreign or unknown **tag** still gets the "item" text. Both are existing approved wording, and neither tells the caller whether the thing exists. | H-296 house wording |
 | 17 | The query-count test measured the first request of the test, which also warms per-request caches (5 queries against 3). | An unmeasured warm-up request first. After that, page sizes 2 and 7 cost the same number of queries. | test fix |
@@ -43,6 +44,8 @@ FR-C-08's documented rule changes as follows:
 | 15-gate-backfill | backfill | full C1 set, Ran 421: the same 1 failure (my edit missed after black re-wrapped the line) |
 | 16-gate-backfill | backfill | full C1 set: Ran 421, OK; C1_RACE delete_won=100 attach_won=0 |
 | 17-backfill-after-lint | backfill | after the flake8 B904 fix: Ran 13, OK |
+| 18-red-symbols | symbols, red | Ran 53: 7 failures, 2 errors (the normalize module failed to import) |
+| 19-red-symbols | symbols, red | Ran 66: 41 failures, 1 error, as expected; snapshots green |
 
 ## The backfill and the audit trail
 
@@ -51,10 +54,38 @@ for each tag `--reverse` removes, with the SYSTEM actor (a command has no
 user) and ids and labels only. It writes no event for a link, and nothing
 during a dry run: the dry run runs inside a transaction that is rolled back.
 
-## Pending owner ruling (2026-11-06, via the SM)
+## Owner ruling (2026-11-06): the visible-character rule, a second change to FR-C-08
 
-The owner has overturned the D5 "visible: keep" row: visible symbols and
-emoji will be refused. The allowed set and the message wording are still to
-come. `tags.normalize` and the reason codes stay unchanged until they arrive.
-That will be one change, expectations first: a new code, a deviation row
-here, and an update to the FR-C-08 ruling.
+It replaces the D5 "visible: keep" row. After the Cf/Cc strip and the
+whitespace collapse, a tag name may contain only:
+- letters of any script (L*)
+- combining marks (M*)
+- numbers (N*)
+- the space
+- - ' . ( )
+
+The typographic apostrophe U+2019 counts as ' and is stored as '.
+Everything else is refused with the new code TAG_NAME_HAS_SYMBOLS: 400,
+VALIDATION, not retryable, no remediation. Its message is the owner's,
+word for word: "Tag names can only use letters, numbers, spaces and - ' . ( )".
+
+The checks run in this order:
+1. Empty, which gives TAG_NAME_MISSING.
+2. Characters, which gives TAG_NAME_HAS_SYMBOLS.
+3. Length, which gives TAG_NAME_TOO_LONG.
+
+The rule applies to create, rename and the backfill. In the backfill, a
+topic whose name fails is counted in `skipped_bad_name`, is never written,
+and its Topic is left unchanged.
+
+Edge case, raised with the SM: NFKC turns a vulgar fraction such as ½ into
+1, U+2044, 2. U+2044 FRACTION SLASH is a math symbol (Sm), so "Year ½" is
+refused, even though ½ itself is a number (No). This is pinned as a refused
+case. If the owner wants it allowed, the change is one expectation and one
+line.
+
+Red run: `19-red-symbols`. Ran 66: 41 failures and 1 error, as expected; the
+five snapshots are green. The 41 failures are the 30 refused classes, the
+apostrophe case, the order and table checks, and the API and backfill cases.
+`18-red-symbols` was the same run before mypy made the test look up
+`ALLOWED_MARKS` at run time instead of importing it.

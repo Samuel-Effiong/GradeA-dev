@@ -157,7 +157,10 @@ class BackfillTest(TestCase):
         loose = Course.objects.create(name="No teacher", teacher=None)
         no_teacher = Topic.objects.create(name="Lost", course=loose)
         blank = Topic.objects.create(name="​⁠", course=self.w.course_a)
-        for topic in (orphan, no_teacher, blank):
+        # Owner, 2026-11-06: a name with symbols is a bad name too; it is
+        # skipped, never written, and the Topic is left as it is.
+        symbols = Topic.objects.create(name="Q&A \U0001f52c", course=self.w.course_a)
+        for topic in (orphan, no_teacher, blank, symbols):
             assignment = Assignment.objects.create(
                 title=f"For {topic.pk}",
                 course=topic.course or self.w.course_a,
@@ -172,9 +175,12 @@ class BackfillTest(TestCase):
                 result["skipped_no_teacher"],
                 result["skipped_bad_name"],
             ),
-            (1, 1, 1),
+            (1, 1, 2),
         )
         self.assertEqual(result["links_created"], 4)
+        symbols.refresh_from_db()
+        self.assertEqual(symbols.name, "Q&A \U0001f52c")
+        self.assertFalse(Tag.objects.filter(normalized_name__startswith="q").exists())
 
     def test_reverse_removes_exactly_what_the_backfill_made(self):
         run()
