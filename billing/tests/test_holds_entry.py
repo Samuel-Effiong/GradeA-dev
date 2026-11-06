@@ -73,7 +73,14 @@ def classroom(tag, credits):
         title="A",
         course=course,
         status=AssignmentStatus.PUBLISHED,
-        questions=[{"question_number": 1, "question_text": "Q1?", "points": 10}],
+        questions=[
+            {
+                "question_number": 1,
+                "question_text": "Q1?",
+                "points": 10,
+                "model_answer": "An answer.",
+            }
+        ],
     )
     submission = StudentSubmission.objects.create(
         assignment=assignment,

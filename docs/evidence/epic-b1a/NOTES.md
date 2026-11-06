@@ -972,3 +972,18 @@ At the tests commit, code = 3a (8796a8d4), in a disposable worktree:
 - Billing app flag off: 2505 + 17 = 2522, OK.
 - Targeted: `ai_processor` grading/answer tests (`tests_grading_completeness`, `tests_answer_chunk_merge`, `tests_grading_pipeline`, `tests_reading_pipeline`), `students.tests_async_edit_path`, `students.tests_h242_submission_flags`, `assignments.tests_h219_task_error_text`, all flag off.
 - Plants at the 3b gate: one per mechanism (entry rule branch 2/4/5, the shared-job finish guard, one site reverted to the refund scope), expectations written before they run.
+
+### 14e. Red attempt 1: a STOP (fixture), corrected before re-running red
+
+Red attempt 1 (log `step3b_red_824e7bcd.log`): **Ran 16, failures=12, errors=7.** It did not match §14c. Causes, both in my tests, not the code:
+1. **Count:** the test file has 7 entry-point tests, not 8, so Ran is 16, not 17.
+2. **Fixture:** both E-1 tests raised `RubricMissingError`. The classroom fixture's question had no marking guide (`students/grading_gates.py` needs a `rubric` list or a `model_answer`). Fixed: the question gains `"model_answer": "An answer."`.
+
+Every other row matched §14c exactly.
+
+**Corrected red expectation** (same command, at the fixture-fix commit): **Ran 16, FAILED (failures=12, errors=6); 2 PASS.**
+- E-1 granted → ERROR `MultipleObjectsReturned`.
+- E-1 refused → PASS.
+- All other rows as in §14c.
+
+Green: Ran 16 OK (not 17). Billing app flag off: 2505 + 16 = 2521.
