@@ -73,6 +73,13 @@ ALLOWED = {
     ): "Grading-evaluation tool: bands one submission's score for an AI "
     "accuracy report. Not a product grade figure.",
     (
+        "classrooms/management/commands/grade_parity_report.py",
+        "_run",
+        "G1",
+    ): "The OLD side of the E1a parity run (plan 09 §4.2): the legacy "
+    "aggregates, written out on purpose so the service can be compared with "
+    "them. Not a figure anyone sees. Removed with the command in Epic E2.",
+    (
         "assignments/serializers.py",
         "get_student_submissions",
         "G3",
