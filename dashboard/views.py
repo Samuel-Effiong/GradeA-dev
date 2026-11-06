@@ -2633,7 +2633,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 )
 
             stats = school_student_courses.aggregate(
-                avg_grade=Avg("final_grade"),
+                avg_grade=grade_service.mean_of_final_grades(),
                 total_enrollments=Count("id"),
                 a=Count(Case(When(final_grade__gte=90, then=Value(1)))),
                 b=Count(
