@@ -4564,11 +4564,8 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             # so the letter grade and GPA shown together always agree with
             # each other and with the school's own GPA scale (see
             # get_letter_grade_from_gpa).
-            if all_percentages:
-                overall_percentage = round(
-                    sum(all_percentages) / len(all_percentages), 2
-                )
-            else:
+            overall_percentage = grade_service.mean_of_values(all_percentages)
+            if overall_percentage is None:
                 overall_percentage = 0.0
 
             overall_gpa = (
