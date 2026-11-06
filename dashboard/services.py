@@ -471,9 +471,7 @@ class WeeklyCourseSummaryService:
             if expected_submissions
             else 100.0
         )
-        average_grade = (
-            round(sum(graded_scores) / len(graded_scores), 2) if graded_scores else None
-        )
+        average_grade = grade_service.mean_of_values(graded_scores)
 
         recent_submissions = [
             submission
