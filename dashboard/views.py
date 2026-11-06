@@ -2905,7 +2905,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 .annotate(
                     teacher_count=Count("teacher", distinct=True),
                     avg_grade=Coalesce(
-                        Avg(
+                        grade_service.mean_of_final_grades(
                             "enrollments__final_grade",
                             filter=~Q(enrollments__enrollment_status="WITHDRAWN"),
                         ),
