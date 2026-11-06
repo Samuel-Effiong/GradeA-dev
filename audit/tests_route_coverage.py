@@ -71,6 +71,11 @@ CONCEALED_ROUTES = frozenset(
         "qa-console-runs-list",
         "qa-console-runs-create",
         "qa-console-runs-detail",
+        # Epic C1: while TAGS_ENABLED is off (the default) the tag routes
+        # answer everyone as an unknown URL does (tags/views.py; SM ruling 1).
+        "tag-list",
+        "tag-detail",
+        "assignment-tags",
     }
 )
 

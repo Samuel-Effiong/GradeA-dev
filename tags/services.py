@@ -29,6 +29,11 @@ from billing.zero_credit import register_zero_credit_operations, zero_credit_sco
 from .models import AssignmentTag, LinkSource, OwnerType, Tag, TagType
 from .normalize import clean_tag_name
 
+#: Django's own wording, which H-296 rewords for the client as "We couldn't
+#: find that item. It may have been deleted." (users/exceptions.py): the same
+#: text whether the tag never existed or is another teacher's.
+NOT_FOUND = "No Tag matches the given query."
+
 #: FR-C-04 allows several tags per assignment; this bounds one set.
 MAX_TAGS_PER_ASSIGNMENT = 50
 
@@ -151,7 +156,7 @@ def delete_tag(tag, expected_count):
         with zero_credit_scope("tag.delete"):
             locked = Tag.objects.select_for_update().filter(pk=tag.pk).first()
             if locked is None:
-                raise Http404
+                raise Http404(NOT_FOUND)
             count = AssignmentTag.objects.filter(tag_id=locked.pk).count()
             if count != expected_count:
                 raise CodedError("TAG_CHANGED_SINCE_CHECK")
@@ -173,7 +178,7 @@ def _as_ids(tag_ids):
         try:
             tag_id = value if isinstance(value, uuid.UUID) else uuid.UUID(str(value))
         except (TypeError, ValueError, AttributeError):
-            raise Http404 from None
+            raise Http404(NOT_FOUND) from None
         if tag_id not in ids:
             ids.append(tag_id)
     return ids
@@ -206,7 +211,7 @@ def set_assignment_tags(assignment, tag_ids, *, teacher):
                 .order_by("pk")
             }
             if len(found) != len(ids):
-                raise Http404
+                raise Http404(NOT_FOUND)
             current = set(
                 AssignmentTag.objects.filter(assignment_id=assignment.pk).values_list(
                     "tag_id", flat=True

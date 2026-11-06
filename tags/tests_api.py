@@ -29,6 +29,7 @@ from tags.models import AssignmentTag, Tag, TagType
 services = importlib.import_module("tags.services")
 
 NOT_FOUND = "We couldn't find that item. It may have been deleted."
+NOT_FOUND_ASSIGNMENT = "We couldn't find that assignment. It may have been deleted."
 
 
 @flag_on
@@ -275,11 +276,14 @@ class AssignmentTagsTest(_ApiCase):
 
     def test_only_the_courses_own_teacher_can_tag(self):
         # Teacher B's own tag on teacher A's assignment: 404, not 403.
+        # The assignment form of the H-296 text (NOTES deviation 16).
         theirs = self.make("Forces", teacher=self.w.other_teacher)
-        self.assertNotFound(
-            self.put(self.w.a1, [theirs.pk], client=client_for(self.w.other_teacher))
-        )
-        self.assertNotFound(self.put(type("A", (), {"pk": uuid.uuid4()}), []))
+        for response in (
+            self.put(self.w.a1, [theirs.pk], client=client_for(self.w.other_teacher)),
+            self.put(type("A", (), {"pk": uuid.uuid4()}), []),
+        ):
+            self.assertEqual(response.status_code, 404, response.content[:400])
+            self.assertIn(NOT_FOUND_ASSIGNMENT, response.content.decode())
         self.assertFalse(AssignmentTag.objects.exists())
 
 
@@ -383,6 +387,7 @@ class AssignmentFieldTest(_ApiCase):
         from django.db import connection
         from django.test.utils import CaptureQueriesContext
 
+        fire(self.api, "get", "assignments?page_size=1")  # warm, not measured
         with CaptureQueriesContext(connection) as few:
             fire(self.api, "get", "assignments?page_size=2")
         with CaptureQueriesContext(connection) as many:

@@ -24,6 +24,8 @@ FR-C-08's documented rule changes as follows:
 | 13 | makemigrations wrote the unique key and the CHECKs as separate AddConstraint operations, which the H-217 migration-safety check refuses. | They are in the CreateModel options. The tables are new and empty, so this creates the same constraints with no lock on existing rows. `check_migration_safety.py` reports "additive only". | SM accepted |
 | 14 | A backfilled link that a teacher keeps in a set. | It stays TOPIC_BACKFILL, so `backfill_topic_tags --reverse` (a rollback of a bad backfill) removes it. Only a link the teacher adds becomes USER. | SM ruling (ii) |
 | 15 | TAG_NAME_TAKEN. | params `{tag_type: <code>, name: <stored spelling>}`. The message shows the TagType label (`display`), with no new label text. | SM ruling (i) |
+| 16 | `tags/tests_api.py` expected the "item" not-found text when another teacher, or an unknown id, PUTs tags on an assignment. | That case answers with the house H-296 text for an assignment: "We couldn't find that assignment. It may have been deleted." (`get_object_or_404`, as every assignment route does). A foreign or unknown **tag** still gets the "item" text. Both are existing approved wording, and neither tells the caller whether the thing exists. | H-296 house wording |
+| 17 | The query-count test measured the first request of the test, which also warms per-request caches (5 queries against 3). | An unmeasured warm-up request first. After that, page sizes 2 and 7 cost the same number of queries. | test fix |
 
 ## Gates
 
@@ -34,3 +36,14 @@ FR-C-08's documented rule changes as follows:
 | 08-gate-service | service | 5 errors: audit events dropped (deviation 12, H-299) |
 | 09-gate-service | service | Ran 348, OK; C1_RACE delete_attach delete_won=96 attach_won=4 |
 | 10-rollback-pin | service | tags.tests_services Ran 41, OK (RollbackTest added) |
+| 11-gate-api | API | 9 backfill errors (not built yet) + 4 API failures (deviations 16, 17) |
+| 12-gate-api | API | Ran 412, OK (backfill excluded); C1_RACE delete_won=93 attach_won=7; then mypy refused 3 typings at commit |
+| 13-gate-api | API | after the typing fixes: Ran 412, OK; C1_RACE delete_won=96 attach_won=4 |
+
+## Pending owner ruling (2026-11-06, via the SM)
+
+The owner has overturned the D5 "visible: keep" row: visible symbols and
+emoji will be refused. The allowed set and the message wording are still to
+come. `tags.normalize` and the reason codes stay unchanged until they arrive.
+That will be one change, expectations first: a new code, a deviation row
+here, and an update to the FR-C-08 ruling.
