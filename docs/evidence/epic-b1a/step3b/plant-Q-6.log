@@ -1,0 +1,43 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 18b3d585-a90f-4ad7-8083-b8f843422d9d.
+Cannot activate automatic trial for user 18b3d585-a90f-4ad7-8083-b8f843422d9d (validation): ValueError
+FF
+======================================================================
+FAIL: test_e1_a_single_paper_grade_settles_once_on_its_task_row (billing.tests.test_holds_entry.EntryPointTests.test_e1_a_single_paper_grade_settles_once_on_its_task_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_entry.py", line 253, in test_e1_a_single_paper_grade_settles_once_on_its_task_row
+    self.assertEqual((record.item_id, record.retry_count), (row.id, 0))
+AssertionError: Tuples differ: (UUID('8372ab30-0b84-4de9-9348-5cabaceb1f5b'), 0) != (UUID('0c2efe3d-6dd1-4c2b-a3d3-5ebe9d1a8374'), 0)
+
+First differing element 0:
+UUID('8372ab30-0b84-4de9-9348-5cabaceb1f5b')
+UUID('0c2efe3d-6dd1-4c2b-a3d3-5ebe9d1a8374')
+
+- (UUID('8372ab30-0b84-4de9-9348-5cabaceb1f5b'), 0)
++ (UUID('0c2efe3d-6dd1-4c2b-a3d3-5ebe9d1a8374'), 0)
+
+======================================================================
+FAIL: test_the_five_sites_open_a_metered_unit_with_their_task_id (billing.tests.test_holds_entry.WiringTests.test_the_five_sites_open_a_metered_unit_with_their_task_id) (site='students/services.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_entry.py", line 373, in test_the_five_sites_open_a_metered_unit_with_their_task_id
+    self.assertIn("processing_task_id", {k.arg for k in call.keywords})
+AssertionError: 'processing_task_id' not found in {'reason'}
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.403s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...
+Found 2 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

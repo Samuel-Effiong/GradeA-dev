@@ -1026,3 +1026,32 @@ Logs: `step3b_plant_Q-<n>.log`.
 - Q-2 → ER-3: the same 1 FAIL.
 - ER-3/ER-4 unplanted on c6d05df0: 2 OK.
 - **Red check, unchanged table:** ER-3/ER-4 with 3a's `billing/holds.py` (8796a8d4) checked out in a disposable worktree: 2 ERROR `has no attribute 'CreditHoldReturnedError'`.
+
+### 14h. Step 3b results (2026-11-06)
+
+| Run | Code | Result | Matches | Log (docs/evidence/epic-b1a/step3b/) |
+|---|---|---|---|---|
+| Red attempt 1 | 824e7bcd | Ran 16, failures=12, errors=7 | no: test count + E-1 fixture (§14e), fixed before re-running | red-attempt1.log |
+| Red | dd7687f4 | Ran 16, failures=12, errors=6 | yes (§14e) | red-run.log |
+| Green attempt 1 | WIP | Ran 16, OK | yes | green-attempt1.log |
+| All hold tests | WIP / c6d05df0 / d203dd50 | Ran 121, OK each time | yes | all-holds-WIP.log, all-holds-c6d05df0.log, all-holds-d203dd50.log |
+| Targeted (ai_processor grading/answer/reading pipelines; students async edit, h242 flags; assignments h219) | WIP / c6d05df0 | Ran 140, OK (skipped=1) | yes | targeted-WIP.log, targeted-c6d05df0.log |
+| Billing app flag off | WIP / c6d05df0 | Ran 2521, OK = 2505 + 16 | yes | billing-flagoff-WIP.log.gz, billing-flagoff-c6d05df0.log.gz |
+| makemigrations --check | c6d05df0 | No changes detected | yes | — |
+| Plants Q-1…Q-6 | c6d05df0 + plant | all 6 killed; Q-4/Q-5/Q-6 as declared; Q-1/Q-2/Q-3 different fragments (§14g) | ruled | plant-Q-*.log |
+| ER-3/ER-4 tightened, unplanted | d203dd50 | Ran 2, OK | yes | er34-unplanted.log |
+| Q-1 re-run (ER-4) | d203dd50 + plant | 1 FAIL `Expected '_AIProcessor__ai_model' to not have been called. Called 1 times.` | yes, in substance. The mock prints its real name where §14g wrote `'mock'`; the fragment `to not have been called. Called 1 times.` matches | plant-Q-1-rerun.log |
+| Q-2 re-run (ER-3) | d203dd50 + plant | the same 1 FAIL | yes, as Q-1 | plant-Q-2-rerun.log |
+| Red check: ER-3/ER-4 with 3a's holds.py | d203dd50, holds.py at 8796a8d4 | Ran 2, errors=2, `has no attribute 'CreditHoldReturnedError'` | yes: the red table is unchanged | red-check-er34.log |
+
+Every plant was restored from its saved copy; sha256 equalled HEAD after each.
+
+Commits:
+- 824e7bcd: tests
+- dd7687f4: fixture fix + corrected red
+- c6d05df0: 3b code
+- 0c8f7d80: plant expectations
+- d203dd50: tightened ER-3/ER-4 + §14g
+- this evidence commit
+
+**Carried:** E-3's BATCH_GRADING job → step 5; E-7 door → 3c; B1b replaces the entry amount with p90.

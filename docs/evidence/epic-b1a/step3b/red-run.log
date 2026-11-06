@@ -1,0 +1,257 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user d09d74ea-1797-42a9-ae9b-0527579db51d.
+Cannot activate automatic trial for user d09d74ea-1797-42a9-ae9b-0527579db51d (validation): ValueError
+EFree trial plan not found: no trial activated for user b73ee2aa-6da9-43f1-9f51-0d354fe3efb1.
+Cannot activate automatic trial for user b73ee2aa-6da9-43f1-9f51-0d354fe3efb1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 129c3392-d547-4597-8de4-4774f91f8706.
+Cannot activate automatic trial for user 129c3392-d547-4597-8de4-4774f91f8706 (validation): ValueError
+EFree trial plan not found: no trial activated for user 4f3fd485-1375-41c1-a8b8-bb839fa75659.
+Cannot activate automatic trial for user 4f3fd485-1375-41c1-a8b8-bb839fa75659 (validation): ValueError
+EFree trial plan not found: no trial activated for user fd365833-87d1-48fc-9388-c98f9de7fa03.
+Cannot activate automatic trial for user fd365833-87d1-48fc-9388-c98f9de7fa03 (validation): ValueError
+.Free trial plan not found: no trial activated for user 57bd7d05-f26d-4e51-aa50-4fb94b401912.
+Cannot activate automatic trial for user 57bd7d05-f26d-4e51-aa50-4fb94b401912 (validation): ValueError
+EFree trial plan not found: no trial activated for user 72b3ba0d-9d11-499f-b17c-27063c6b96a6.
+Cannot activate automatic trial for user 72b3ba0d-9d11-499f-b17c-27063c6b96a6 (validation): ValueError
+FFree trial plan not found: no trial activated for user d02e54ed-5f1a-45f0-9e69-412a4c890b6a.
+Cannot activate automatic trial for user d02e54ed-5f1a-45f0-9e69-412a4c890b6a (validation): ValueError
+FFree trial plan not found: no trial activated for user 4bee3eec-967d-4bb0-8883-b9f8f46c6ace.
+Cannot activate automatic trial for user 4bee3eec-967d-4bb0-8883-b9f8f46c6ace (validation): ValueError
+FFree trial plan not found: no trial activated for user 5dc60a8f-10d6-4a65-a062-317f06f118c6.
+Cannot activate automatic trial for user 5dc60a8f-10d6-4a65-a062-317f06f118c6 (validation): ValueError
+EFree trial plan not found: no trial activated for user 03c3d2ef-2ab3-4105-ba22-8b6560d2011d.
+Cannot activate automatic trial for user 03c3d2ef-2ab3-4105-ba22-8b6560d2011d (validation): ValueError
+EFree trial plan not found: no trial activated for user 288ad7d9-cc66-4536-96c9-1c62656eb809.
+Cannot activate automatic trial for user 288ad7d9-cc66-4536-96c9-1c62656eb809 (validation): ValueError
+FFree trial plan not found: no trial activated for user 2d1ee559-4f64-478d-9569-a82016e832dc.
+Cannot activate automatic trial for user 2d1ee559-4f64-478d-9569-a82016e832dc (validation): ValueError
+FFree trial plan not found: no trial activated for user 9f8ea774-8e53-4fbf-8d23-49c56a53e8aa.
+Cannot activate automatic trial for user 9f8ea774-8e53-4fbf-8d23-49c56a53e8aa (validation): ValueError
+FFFFFFF
+======================================================================
+ERROR: test_e1_a_single_paper_grade_settles_once_on_its_task_row (billing.tests.test_holds_entry.EntryPointTests.test_e1_a_single_paper_grade_settles_once_on_its_task_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 252, in test_e1_a_single_paper_grade_settles_once_on_its_task_row
+    record = SettlementRecord.objects.get()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 638, in get
+    raise self.model.MultipleObjectsReturned(
+billing.models.SettlementRecord.MultipleObjectsReturned: get() returned more than one SettlementRecord -- it returned 2!
+
+======================================================================
+ERROR: test_e4_a_sync_upload_settles_once_on_its_own_job (billing.tests.test_holds_entry.EntryPointTests.test_e4_a_sync_upload_settles_once_on_its_own_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 281, in test_e4_a_sync_upload_settles_once_on_its_own_job
+    record = SettlementRecord.objects.get()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 638, in get
+    raise self.model.MultipleObjectsReturned(
+billing.models.SettlementRecord.MultipleObjectsReturned: get() returned more than one SettlementRecord -- it returned 2!
+
+======================================================================
+ERROR: test_e5_a_sync_edit_settles_once_on_its_own_job (billing.tests.test_holds_entry.EntryPointTests.test_e5_a_sync_edit_settles_once_on_its_own_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 294, in test_e5_a_sync_edit_settles_once_on_its_own_job
+    self.assertEqual(SettlementRecord.objects.get().job.consumed_credits, 500)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 638, in get
+    raise self.model.MultipleObjectsReturned(
+billing.models.SettlementRecord.MultipleObjectsReturned: get() returned more than one SettlementRecord -- it returned 2!
+
+======================================================================
+ERROR: test_e6_an_async_edit_settles_once_on_its_task_row (billing.tests.test_holds_entry.EntryPointTests.test_e6_an_async_edit_settles_once_on_its_task_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 321, in test_e6_an_async_edit_settles_once_on_its_task_row
+    record = SettlementRecord.objects.get()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 638, in get
+    raise self.model.MultipleObjectsReturned(
+billing.models.SettlementRecord.MultipleObjectsReturned: get() returned more than one SettlementRecord -- it returned 2!
+
+======================================================================
+ERROR: test_er3_a_late_grading_message_exits_before_any_call (billing.tests.test_holds_entry.EntryRuleTests.test_er3_a_late_grading_message_exits_before_any_call)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 163, in test_er3_a_late_grading_message_exits_before_any_call
+    with self.assertRaises(holds().CreditHoldReturnedError):
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'CreditHoldReturnedError'
+
+======================================================================
+ERROR: test_er4_a_row_already_settled_exits_before_any_call (billing.tests.test_holds_entry.EntryRuleTests.test_er4_a_row_already_settled_exits_before_any_call)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 175, in test_er4_a_row_already_settled_exits_before_any_call
+    with self.assertRaises(holds().CreditHoldReturnedError):
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'CreditHoldReturnedError'
+
+======================================================================
+FAIL: test_e8_a_failed_assignment_upload_charges_nothing (billing.tests.test_holds_entry.EntryPointTests.test_e8_a_failed_assignment_upload_charges_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 343, in test_e8_a_failed_assignment_upload_charges_nothing
+    self.assertFalse(CreditUsageLog.objects.exists())
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_er1_a_row_with_no_job_is_attached_to_a_new_single_item_job (billing.tests.test_holds_entry.EntryRuleTests.test_er1_a_row_with_no_job_is_attached_to_a_new_single_item_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 137, in test_er1_a_row_with_no_job_is_attached_to_a_new_single_item_job
+    self.assertIsNotNone(row.job_id)
+AssertionError: unexpectedly None
+
+======================================================================
+FAIL: test_er2_a_held_row_on_a_shared_job_is_claimed_and_the_job_stays_open (billing.tests.test_holds_entry.EntryRuleTests.test_er2_a_held_row_on_a_shared_job_is_claimed_and_the_job_stays_open)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 152, in test_er2_a_held_row_on_a_shared_job_is_claimed_and_the_job_stays_open
+    self.assertIsNotNone(row.started_at)
+AssertionError: unexpectedly None
+
+======================================================================
+FAIL: test_er5_a_retried_row_runs_under_a_new_single_item_job (billing.tests.test_holds_entry.EntryRuleTests.test_er5_a_retried_row_runs_under_a_new_single_item_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 192, in test_er5_a_retried_row_runs_under_a_new_single_item_job
+    self.assertEqual(retry.trace_id, old.trace_id)
+AssertionError: UUID('359b52cb-f2dc-4db2-801b-80913437f46c') != UUID('c25e7c7f-a90d-453d-88af-f2962e464244')
+
+======================================================================
+FAIL: test_er6_a_late_door_row_runs_under_a_new_upload_job (billing.tests.test_holds_entry.EntryRuleTests.test_er6_a_late_door_row_runs_under_a_new_upload_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 210, in test_er6_a_late_door_row_runs_under_a_new_upload_job
+    self.assertEqual((new.job_type, new.status), ("UPLOAD", "SETTLED"))
+AssertionError: Tuples differ: ('SINGLE_ITEM', 'SETTLED') != ('UPLOAD', 'SETTLED')
+
+First differing element 0:
+'SINGLE_ITEM'
+'UPLOAD'
+
+- ('SINGLE_ITEM', 'SETTLED')
++ ('UPLOAD', 'SETTLED')
+
+======================================================================
+FAIL: test_er8_a_failed_unit_on_a_shared_job_returns_the_row_hold_only (billing.tests.test_holds_entry.EntryRuleTests.test_er8_a_failed_unit_on_a_shared_job_returns_the_row_hold_only)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 225, in test_er8_a_failed_unit_on_a_shared_job_returns_the_row_hold_only
+    self.assertEqual((job.status, job.failed_items), ("RUNNING", 1))
+AssertionError: Tuples differ: ('RUNNING', 0) != ('RUNNING', 1)
+
+First differing element 1:
+0
+1
+
+- ('RUNNING', 0)
+?             ^
+
++ ('RUNNING', 1)
+?             ^
+
+
+======================================================================
+FAIL: test_no_production_code_opens_a_refund_scope (billing.tests.test_holds_entry.WiringTests.test_no_production_code_opens_a_refund_scope) (site='ai_processor/services.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 378, in test_no_production_code_opens_a_refund_scope
+    self.assertEqual(self.calls_in(rel, "billing_refund_scope"), [])
+AssertionError: Lists differ: [<ast.Call object at 0x7a28e2229350>] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+<ast.Call object at 0x7a28e2229350>
+
+- [<ast.Call object at 0x7a28e2229350>]
++ []
+
+======================================================================
+FAIL: test_no_production_code_opens_a_refund_scope (billing.tests.test_holds_entry.WiringTests.test_no_production_code_opens_a_refund_scope) (site='students/services.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 378, in test_no_production_code_opens_a_refund_scope
+    self.assertEqual(self.calls_in(rel, "billing_refund_scope"), [])
+AssertionError: Lists differ: [<ast.Call object at 0x7a28e213bf90>, <ast[64 chars]710>] != []
+
+First list contains 3 additional elements.
+First extra element 0:
+<ast.Call object at 0x7a28e213bf90>
+
++ []
+- [<ast.Call object at 0x7a28e213bf90>,
+-  <ast.Call object at 0x7a28e21ac290>,
+-  <ast.Call object at 0x7a28e1fea710>]
+
+======================================================================
+FAIL: test_no_production_code_opens_a_refund_scope (billing.tests.test_holds_entry.WiringTests.test_no_production_code_opens_a_refund_scope) (site='assignments/file_uploads.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 378, in test_no_production_code_opens_a_refund_scope
+    self.assertEqual(self.calls_in(rel, "billing_refund_scope"), [])
+AssertionError: Lists differ: [<ast.Call object at 0x7a28e3aa4b10>] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+<ast.Call object at 0x7a28e3aa4b10>
+
+- [<ast.Call object at 0x7a28e3aa4b10>]
++ []
+
+======================================================================
+FAIL: test_the_five_sites_open_a_metered_unit_with_their_task_id (billing.tests.test_holds_entry.WiringTests.test_the_five_sites_open_a_metered_unit_with_their_task_id) (site='ai_processor/services.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 371, in test_the_five_sites_open_a_metered_unit_with_their_task_id
+    self.assertEqual(len(units), count)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_the_five_sites_open_a_metered_unit_with_their_task_id (billing.tests.test_holds_entry.WiringTests.test_the_five_sites_open_a_metered_unit_with_their_task_id) (site='students/services.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 371, in test_the_five_sites_open_a_metered_unit_with_their_task_id
+    self.assertEqual(len(units), count)
+AssertionError: 0 != 3
+
+======================================================================
+FAIL: test_the_five_sites_open_a_metered_unit_with_their_task_id (billing.tests.test_holds_entry.WiringTests.test_the_five_sites_open_a_metered_unit_with_their_task_id) (site='assignments/file_uploads.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red7/billing/tests/test_holds_entry.py", line 371, in test_the_five_sites_open_a_metered_unit_with_their_task_id
+    self.assertEqual(len(units), count)
+AssertionError: 0 != 1
+
+----------------------------------------------------------------------
+Ran 16 tests in 2.411s
+
+FAILED (failures=12, errors=6)
+Destroying test database for alias 'default'...
+Found 16 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
