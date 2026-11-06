@@ -538,3 +538,100 @@ Commits:
 - 4642207c: §5c addition
 - 55c19958: step-1 code. The pre-commit black/isort reformatting (audit/tasks.py, 0074 import order) is cosmetic; green was re-run on 55c19958.
 - 3db3871e: 03a amendment (SM ruling (d))
+
+---
+
+## 10. Slice summary items (collected for the B1a slice review)
+
+- **Always on, not behind `BILLING_HOLDS_ENABLED` (step 1):** the emitter stores CREDIT_TRANSACTION as FINANCIAL, and the retention sweep keeps financial actions 7 years. New credit rows are tagged FINANCIAL as soon as step 1 deploys. Plan §4 intends this (SM note 2026-11-06).
+- Every run has its own log file (attempt number or timestamp); nothing is overwritten (SM directive 2026-11-06).
+
+## 11. Step 2 (hold service, `billing/holds.py`): expectations, committed before any run (2026-11-06)
+
+### 11a. Scope
+
+In step 2 (plan §2 row 2):
+- reserve, settle, fail and finish (release) on `hold_drawn`, with `overrun_charged`
+- per-item settlement keyed on the task row
+- the pre-call fit check against the item's own hold, reserving any shortfall
+- `spendable_credits`
+- the per-item stale-hold sweep (started items only)
+- leftover returned in each settle or fail
+- the start claim; the late door helpers (settlement-row check, new UPLOAD job)
+- the invariant checks
+- `CREDIT_RESERVE` zero-credit code
+- two beat tasks in `billing/tasks.py`, flag-gated at the task: the sweep every 5 min under `single_instance`, and the daily invariant check (reports only, `credit_ledger_anomaly{kind="hold_drift"}`), with their beat entries in `AutoGrader/settings.py`
+
+Not in step 2:
+- `metered_unit` itself and every wiring (step 3)
+- the late-door teacher email (step 3). **It needs new wording, which I'll bring to the SM before step 3 code.**
+- the 36-hour unstarted-items backstop, last-item transition, promotion and expiry (step 5)
+- R-2, R-4, U-2, P-1…P-5 (steps 5 and 9)
+- the mutant battery (step 9 gate)
+
+### 11b. API
+
+```
+spendable_credits(wallet) -> int
+create_job(*, wallet, requested_by, job_type, total_items=1, held_per_item=0,
+           assignment=None, course=None, school_id=None, trace_id=None, meta=None) -> AIJob
+reserve(wallet, amount, job, item=None) -> bool
+item_hold_left(job, item=None) -> int
+ensure_call_fits(job, estimate, *, item=None, tally=0) -> int   # shortfall reserved; raises InsufficientCreditsError
+settle(job, actual, *, item=None, key=None, feature=None, task_type=None, course=None) -> SettlementOutcome
+fail_item(job, *, item=None) -> int
+finish_job(job, to_status) -> int | None
+claim_item_start(item) -> bool
+already_settled(item) -> bool
+open_late_door_job(old_job, item, amount) -> AIJob             # raises InsufficientCreditsError
+item_sweep_window() / single_sweep_window() -> timedelta
+sweep_stale_holds(now=None) -> {"items_swept", "credits_returned", "jobs_released"}
+check_invariants(wallet=None) -> list[str]
+```
+
+### 11c. Design decisions (plan silent or ambiguous; flagged to the SM at the checkpoint)
+
+1. **The holder.** A job with no task row is its own single item: E-4, E-5, SINGLE_CALL, and a late door job. Its hold is the job's `reserved − hold_drawn − released`. Plan §3.2: "the item's hold is the job's".
+2. **Counting.** Settle adds 1 to `completed_items`; a failure (unit exception or sweep) adds 1 to `failed_items`. A job is finished when `completed + failed = total`. That fits 03a's `CHECK (completed_items + failed_items <= total_items)`. Plan §3.2 says the sweep "increment[s] completed_items"; counting the failure there as well would count it twice against the CHECK. A settle on an item already RETURNED by the sweep counts nothing (plan R4-1).
+3. **After settle**, the item's `hold_state` becomes RETURNED (nothing is left to sweep), so a late redelivery's start claim fails and it exits.
+4. **Ledger identity.** `consume_credits(task_id=str(SettlementRecord.id))`: each attempt has its own ledger identity (plan §3.2 step 4).
+5. **Late door job.** A new UPLOAD job with `total_items=1`, accounted as its own holder. The settlement key is still `(task.id, task.retry_count)`, passed as `key=`. The task row and the old job are untouched (S-4). A refused reserve leaves the new job FAILED with 0 reserved and raises `InsufficientCreditsError(individual=…)`.
+6. **Sweep window.**
+   - Items: `visibility_timeout` (3600 s, from `CELERY_BROKER_TRANSPORT_OPTIONS`) + `GRADING_TASK_TIME_LIMIT_SECONDS` (1500 s) + `HOLD_SWEEP_MARGIN` (15 min).
+   - Jobs with no task row: `GRADING_TASK_TIME_LIMIT_SECONDS` + margin, from `created_at`.
+   - The plan says only "a margin"; 15 min is my choice.
+7. **A swept item** gets status FAILURE and `reason_code = PROVIDER_FAILURE`. That code is retryable, and its existing text defaults to "No credits were charged.", which is true for a swept item. No new wording.
+8. **Refusals** pass `individual=is_individual_teacher(wallet.user)` (SM ruling 1) and reuse the existing message "Refill your wallet to continue".
+9. **Lock order:** wallet (`lock_wallet_first`), then job row, then item row, in every transaction (H-181 order: wallet before its buckets; `consume_credits` locks the wallet again, re-entrantly in the same transaction).
+10. **Metrics:** `credit_overrun` and `credit_overrun_charged` (count, tags `job_type`) when non-zero (plan §3.5).
+
+### 11d. Tests (46)
+
+| File | Tests |
+|---|---|
+| `billing/tests/test_holds.py` | 23: spendable/reserve 6, settle/fail/finish 5, pre-call 4, start claim 2, late door 3, invariants 3 |
+| `billing/tests/test_holds_settlement.py` | 5: D-1, D-2, D-3, D-4, no-task-row key |
+| `billing/tests/test_holds_overrun.py` | 4: H-1a, H-1b, absorbed overrun + metrics, R-3 |
+| `billing/tests/test_holds_sweep.py` | 9: S-1/S-5 sweep half, window kept, S-3, settled never swept, single job swept/kept, task flag off/on, invariant task metric |
+| `billing/tests/test_holds_zero_credit.py` | 3: Z-1 (reserve, create_job, settle under a scope) |
+| `billing/tests/test_holds_concurrency.py` | 2: R-1 (32 threads, not 200: one connection per thread; max_connections 300 is shared with other sessions), S-8 (10 rounds) |
+
+Helpers: `billing/testing/holds.py`. `holds()` imports the module when a test runs.
+
+### 11e. Red: expected
+
+At the tests commit, with no `billing/holds.py` and no tasks:
+
+`python manage.py test billing.tests.test_holds billing.tests.test_holds_settlement billing.tests.test_holds_overrun billing.tests.test_holds_sweep billing.tests.test_holds_zero_credit billing.tests.test_holds_concurrency --settings=settings_worktree --noinput`
+
+**Expected: Ran 46, FAILED (failures=1, errors=45).**
+- 42 ERRORs are `ModuleNotFoundError: No module named 'billing.holds'`, including setUp errors (PreCallCheckTests ×4 and LateDoorTests ×3, each reported per test).
+- 3 ERRORs are `AttributeError: module 'billing.tasks' has no attribute …`: `sweep_stale_credit_holds` ×2 and `check_credit_hold_invariants` ×1. The sweep-task tests look the task up via importlib before building their fixture, which keeps mypy quiet about a not-yet-existing name.
+- The 1 FAIL is R-1 `test_concurrent_reserves_grant_exactly_what_fits`. The worker threads record the ModuleNotFoundError, so `assertEqual(errors, [])` fails with a list of ModuleNotFoundError. Fragment: `No module named 'billing.holds'`.
+- Run in a disposable detached worktree at the tests commit (step-1 code present), test DB `test_epic_b1a_red2`. Log: `step2_red_<sha>.log`.
+
+Any other count or fragment is a STOP.
+
+### 11f. Green: expected
+
+The same command on the step-2 code: Ran 46 OK. Then the step-1 tests again (Ran 34 OK), and `makemigrations --check` (no changes; step 2 adds no model change). Each run gets its own log.
