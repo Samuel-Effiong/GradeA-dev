@@ -16,8 +16,13 @@ from audit.metadata import ALLOWED_KEYS, BEFORE_AFTER_ALLOWLIST, METADATA_ALLOWL
 from audit.tests_route_coverage import CONCEALED_ROUTES
 from AutoGrader.reason_codes import REASON_CODES
 
-# Not built yet when the expectations are committed (red first).
-TAGS_SET = AuditAction("ASSIGNMENT_TAGS_SET")
+
+def tags_set():
+    # Looked up when a test runs, not at import: on the base this action
+    # does not exist yet, and an import-time error would stop the whole run
+    # instead of failing these tests (red first).
+    return AuditAction("ASSIGNMENT_TAGS_SET")
+
 
 APPROVED = {
     "TAG_NAME_TAKEN": (
@@ -70,8 +75,8 @@ class ReasonCodeTest(SimpleTestCase):
 
 class AuditRegistryTest(SimpleTestCase):
     def test_the_assignment_tags_action(self):
-        self.assertEqual(TAGS_SET.value, "ASSIGNMENT_TAGS_SET")
-        self.assertEqual(TAGS_SET.label, "Assignment tags changed")
+        self.assertEqual(tags_set().value, "ASSIGNMENT_TAGS_SET")
+        self.assertEqual(tags_set().label, "Assignment tags changed")
 
     def test_metadata_allow_lists(self):
         self.assertEqual(METADATA_ALLOWLIST[AuditAction.TAG_CREATE], {"tag_type"})
@@ -79,8 +84,8 @@ class AuditRegistryTest(SimpleTestCase):
         self.assertEqual(
             METADATA_ALLOWLIST[AuditAction.TAG_DELETE], {"tag_type", "affected_count"}
         )
-        self.assertEqual(METADATA_ALLOWLIST[TAGS_SET], {"course_id"})
-        self.assertEqual(BEFORE_AFTER_ALLOWLIST[TAGS_SET], {"tag_ids"})
+        self.assertEqual(METADATA_ALLOWLIST[tags_set()], {"course_id"})
+        self.assertEqual(BEFORE_AFTER_ALLOWLIST[tags_set()], {"tag_ids"})
         self.assertTrue({"tag_type", "affected_count", "tag_ids"} <= ALLOWED_KEYS)
 
     def test_no_tag_key_carries_a_name(self):
@@ -88,7 +93,7 @@ class AuditRegistryTest(SimpleTestCase):
             AuditAction.TAG_CREATE,
             AuditAction.TAG_RENAME,
             AuditAction.TAG_DELETE,
-            TAGS_SET,
+            tags_set(),
         ):
             keys = METADATA_ALLOWLIST[action] | BEFORE_AFTER_ALLOWLIST.get(
                 action, frozenset()
