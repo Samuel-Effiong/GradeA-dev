@@ -32,6 +32,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Exists, F, OuterRef, Q, Sum
 from django.utils import timezone
 
+from ai_processor.exceptions import NOT_CHARGED, ProviderFailureError
 from audit import metrics as audit_metrics
 from audit.context import current_request_actor
 from audit.emitter import emit
@@ -660,8 +661,26 @@ def current_unit():
     return _active_unit.get()
 
 
+class CreditHoldReturnedError(ProviderFailureError):
+    """A late message exits before any call (plan §3.2, R3-3b): its credit
+    hold was returned, or its row already settled. PROVIDER_FAILURE is the
+    code the sweep already set; its text says no credits were charged."""
+
+
+def _late(detail):
+    return CreditHoldReturnedError(params={"credit_clause": NOT_CHARGED}, detail=detail)
+
+
+#: Task-row statuses update_processing_task never moves back to STARTED.
+FINISHED_TASK_STATUSES = (
+    BackgroundTaskStatus.FAILURE,
+    BackgroundTaskStatus.SUCCESS,
+    BackgroundTaskStatus.CANCELLED,
+)
+
+
 class Unit:
-    """One logical AI operation. The ROOT unit owns the job; nested units
+    """One logical AI operation. The ROOT unit owns the holder; nested units
     keep their own tally and hand it to their parent on success (the refund
     scope's nesting rule). Nothing is charged until the root exits."""
 
@@ -672,8 +691,53 @@ class Unit:
         # Root only.
         self.job = None
         self.item = None
+        self.key = None
+        self.owns_job = False
+        self.attach_item = None
         self.settle_kwargs = None
         self.billed = None
+
+    def enter(self, processing_task_id):
+        """The entry rule through the task row (plan §3.4; SM rulings
+        2026-11-06). Raises the late-message error before any call."""
+        if not processing_task_id:
+            return
+        row = (
+            BackgroundProcessingTask.objects.select_related("job")
+            .filter(pk=processing_task_id)
+            .first()
+        )
+        if row is None:
+            return
+        if row.job_id is None:
+            # E-1 style: the first call opens a SINGLE_ITEM job for this row.
+            self.attach_item = row
+            return
+        if already_settled(row):
+            raise _late(f"task {row.pk} already settled for retry {row.retry_count}")
+        if row.hold_state == HoldState.HELD:
+            if claim_item_start(row):
+                self.job, self.item = row.job, BackgroundProcessingTask.objects.get(
+                    pk=row.pk
+                )
+                return
+            row = BackgroundProcessingTask.objects.select_related("job").get(pk=row.pk)
+        old_job = row.job
+        if old_job is None:  # its job was deleted since the row was read
+            self.attach_item = row
+            return
+        if row.status in FINISHED_TASK_STATUSES:
+            if old_job.job_type == AIJobType.UPLOAD:
+                self._run_as_successor(open_late_door_job(old_job, row, 0), row)
+                return
+            raise _late(f"task {row.pk}: its credit hold was returned")
+        # A retry of the row (E-2): a new SINGLE_ITEM job keyed on the row.
+        self._run_as_successor(open_retry_job(old_job, row, 0), row)
+
+    def _run_as_successor(self, job, row):
+        self.job = job
+        self.key = (row.pk, row.retry_count)
+        self.owns_job = True
 
     def root(self):
         unit = self
@@ -705,9 +769,16 @@ class Unit:
             )
             AIJob.objects.filter(pk=job.pk).update(status=AIJobStatus.RUNNING)
             root.job = AIJob.objects.get(pk=job.pk)
-            root.billed = target_teacher
+            root.owns_job = True
+            if root.attach_item is not None:
+                BackgroundProcessingTask.objects.filter(pk=root.attach_item.pk).update(
+                    job=root.job
+                )
+                root.item = BackgroundProcessingTask.objects.get(pk=root.attach_item.pk)
         elif root.job.wallet_id != wallet.pk:
             raise ValueError("a metered unit bills one wallet")
+        if root.billed is None:
+            root.billed = target_teacher
         ensure_call_fits(root.job, estimate, item=root.item, tally=self.open_tally())
 
     def after_call(self, actual, task_id, *, feature, task_type, course, school):
@@ -733,10 +804,13 @@ class Unit:
             self.job,
             self.tally,
             item=self.item,
+            key=self.key,
             call_task_ids=self.call_task_ids,
             **(self.settle_kwargs or {}),
         )
-        finish_job(self.job, AIJobStatus.SETTLED)
+        if self.owns_job:
+            # A shared batch or door job finishes in step 5, not here.
+            finish_job(self.job, AIJobStatus.SETTLED)
         if outcome.settled and outcome.chargeable and self.billed is not None:
             _record_analytics(
                 self.billed,
@@ -749,7 +823,8 @@ class Unit:
         if self.job is None:
             return
         fail_item(self.job, item=self.item)
-        finish_job(self.job, AIJobStatus.FAILED)
+        if self.owns_job:
+            finish_job(self.job, AIJobStatus.FAILED)
 
 
 def _record_analytics(teacher, amount, feature):
@@ -765,8 +840,8 @@ def metered_unit(*, processing_task_id=None, reason="task failed"):
     """A billed multi-call operation (decision 2: a failed AI call is not
     charged). With the flag off it is billing_refund_scope, unchanged.
 
-    3a: units without a task row only (processing_task_id is accepted for
-    the 3b entry rule and not used yet)."""
+    A root unit opened with a processing_task_id runs the entry rule
+    (Unit.enter) before its body; a nested unit joins its parent."""
     if not holds_enabled():
         from .refunds import billing_refund_scope
 
@@ -776,6 +851,8 @@ def metered_unit(*, processing_task_id=None, reason="task failed"):
 
     parent = _active_unit.get()
     unit = Unit(parent)
+    if parent is None:
+        unit.enter(processing_task_id)
     token = _active_unit.set(unit)
     try:
         yield unit

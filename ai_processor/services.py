@@ -38,7 +38,8 @@ from billing.access_control import (
     can_user_access_ai,
 )
 from billing.errors import InsufficientCreditsError, is_individual_teacher
-from billing.refunds import billing_refund_scope, record_billing_task_id
+from billing.holds import metered_unit
+from billing.refunds import record_billing_task_id
 from billing.services import AnalyticsService
 from billing.zero_credit import MODEL_CALL, assert_not_zero_credit
 from classrooms.models import StudentCourse
@@ -4633,7 +4634,9 @@ Do not include any explanatory text before or after the JSON
         of extract_grade_with_retry's loop is billed and refunded
         independently.
         """
-        with billing_refund_scope(reason="grading run failed"):
+        with metered_unit(
+            processing_task_id=processing_task_id, reason="grading run failed"
+        ):
             result = self._grade_student_submission_impl(
                 user=user,
                 rubric_json=rubric_json,

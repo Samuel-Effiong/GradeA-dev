@@ -28,7 +28,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
 
-from billing.refunds import billing_refund_scope
+from billing.holds import metered_unit
 from students.task_tracking import (
     ensure_task_not_cancelled,
     lock_processing_task_for_final_save,
@@ -129,7 +129,10 @@ def upload_assignment_file(
             processing_task_id, meta={"step": "Extracting assignment"}
         )
         ensure_task_not_cancelled(processing_task_id)
-        with billing_refund_scope(reason="assignment upload failed"):
+        with metered_unit(
+            processing_task_id=processing_task_id,
+            reason="assignment upload failed",
+        ):
             assignment_questions = AssignmentProcessingService.extract_assignment_data(
                 user,
                 content,
