@@ -694,6 +694,7 @@ class Unit:
         self.key = None
         self.owns_job = False
         self.attach_item = None
+        self.late_door_row = None
         self.settle_kwargs = None
         self.billed = None
 
@@ -729,6 +730,7 @@ class Unit:
         if row.status in FINISHED_TASK_STATUSES:
             if old_job.job_type == AIJobType.UPLOAD:
                 self._run_as_successor(open_late_door_job(old_job, row, 0), row)
+                self.late_door_row = row
                 return
             raise _late(f"task {row.pk}: its credit hold was returned")
         # A retry of the row (E-2): a new SINGLE_ITEM job keyed on the row.
@@ -856,10 +858,14 @@ def metered_unit(*, processing_task_id=None, reason="task failed"):
     token = _active_unit.set(unit)
     try:
         yield unit
-    except BaseException:
+    except BaseException as exc:
         _active_unit.reset(token)
         if parent is None:
             unit.fail_root()
+            if unit.late_door_row is not None and isinstance(
+                exc, InsufficientCreditsError
+            ):
+                notify_late_door_refusal(unit.late_door_row, unit.job)
         # A nested unit's calls are dropped: never charged (plan §3.4).
         raise
     _active_unit.reset(token)
@@ -905,3 +911,94 @@ def abandon_single_call(job):
     """The call failed or was cancelled: nothing charged, hold returned."""
     fail_item(job)
     finish_job(job, AIJobStatus.FAILED)
+
+
+# --------------------------------------------------------------------------
+# The upload door (plan 08 §3.2, E-7)
+# --------------------------------------------------------------------------
+
+
+def open_door_job(*, billed_user, requested_by, total_items, assignment=None):
+    """One UPLOAD job per door request; each queued file holds on its row."""
+    job = create_job(
+        wallet=billed_user.credit_wallet,
+        requested_by=requested_by,
+        job_type=AIJobType.UPLOAD,
+        total_items=total_items,
+        assignment=assignment,
+        school_id=getattr(billed_user, "school_id", None),
+    )
+    AIJob.objects.filter(pk=job.pk).update(status=AIJobStatus.RESERVED)
+    return AIJob.objects.get(pk=job.pk)
+
+
+def hold_door_item(job, item, estimate):
+    """Attach `item` to the door job and hold its estimate on it. False (and
+    the row detached again) when the hold does not fit. No estimate (the
+    door could not read the file): nothing is attached, and the task's
+    per-item rule applies."""
+    if not estimate:
+        return True
+    BackgroundProcessingTask.objects.filter(pk=item.pk).update(job=job)
+    if reserve(job.wallet, estimate, job, item=item):
+        return True
+    BackgroundProcessingTask.objects.filter(pk=item.pk).update(job=None)
+    return False
+
+
+# --------------------------------------------------------------------------
+# The late-door notice (plan 08 §3.5; owner ruling 2026-10-30)
+# --------------------------------------------------------------------------
+
+#: PENDING OWNER APPROVAL (SM 2026-11-06). Draft texts only: nothing is sent
+#: while LATE_DOOR_EMAIL_APPROVED is False.
+LATE_DOOR_EMAIL_TEXTS = {
+    "subject": "We couldn't process {file_name}",
+    "individual": (
+        "We couldn't process {file_name} because your credits ran out while "
+        "it was waiting. Nothing was charged for it. Top up your credits, "
+        "then upload the file again."
+    ),
+    "license": (
+        "We couldn't process {file_name} because your credits ran out while "
+        "it was waiting. Nothing was charged for it. Ask your school "
+        "administrator for more credits, then upload the file again."
+    ),
+}
+LATE_DOOR_EMAIL_APPROVED = False
+#: The student side reuses STUDENT_UPLOAD_NOT_PROCESSED; off until the owner
+#: answers whether a student is told (SM 2026-11-06).
+LATE_DOOR_STUDENT_NOTICE_APPROVED = False
+
+
+def notify_late_door_refusal(row, job):
+    """A late door file could not be held: the teacher is told which file,
+    once the texts are approved. Never logs the file name."""
+    from AutoGrader.tasks import send_email_task
+
+    teacher = job.wallet.user
+    name = row.file_name or "your file"
+    if not LATE_DOOR_EMAIL_APPROVED:
+        logger.warning(
+            "Late door file refused (task %s); the notice texts await owner "
+            "approval, so no email was sent.",
+            row.pk,
+        )
+    else:
+        variant = "individual" if is_individual_teacher(teacher) else "license"
+        send_email_task.delay(
+            subject=LATE_DOOR_EMAIL_TEXTS["subject"].format(file_name=name),
+            message=LATE_DOOR_EMAIL_TEXTS[variant].format(file_name=name),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[teacher.email],
+        )
+    student = row.requested_by
+    if LATE_DOOR_STUDENT_NOTICE_APPROVED and student.user_type == "STUDENT":
+        from students.exceptions import STUDENT_UPLOAD_NOT_PROCESSED
+
+        send_email_task.delay(
+            subject=LATE_DOOR_EMAIL_TEXTS["subject"].format(file_name=name),
+            message=str(STUDENT_UPLOAD_NOT_PROCESSED),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[student.email],
+        )

@@ -41,6 +41,7 @@ from ai_processor.services import ai_processor
 from assignments.services import AssignmentProcessingService
 from AutoGrader.reason_codes import credit_refusal_message
 from AutoGrader.uploads import validate_upload_size
+from billing import holds as credit_holds
 from billing.errors import InsufficientCreditsError, is_individual_teacher
 from billing.refusals import log_refusal
 from students.exceptions import STUDENT_UPLOAD_NOT_PROCESSED
@@ -57,6 +58,25 @@ def _billed_user(request_user, assignment):
         course = getattr(assignment, "course", None)
         return getattr(course, "teacher", None)
     return request_user
+
+
+def _balance(wallet):
+    """What the door compares with: spendable credit (total less what other
+    jobs hold) when credit holds are on (plan 08 §3.2), the total otherwise."""
+    if credit_holds.holds_enabled():
+        return credit_holds.spendable_credits(wallet)
+    return wallet.total_remaining_credits()
+
+
+def _refusal_response(request_user, refusal):
+    if request_user.user_type == UserTypes.STUDENT:
+        message = STUDENT_UPLOAD_NOT_PROCESSED
+    else:
+        message = credit_refusal_message(refusal)
+    return Response(
+        {"error": message, "code": "insufficient_credits"},
+        status=status.HTTP_402_PAYMENT_REQUIRED,
+    )
 
 
 def _estimate_for(uploaded_file, prompt):
@@ -80,7 +100,9 @@ def _estimate_for(uploaded_file, prompt):
         uploaded_file.seek(0)
 
 
-def upload_refusal_if_unaffordable(request_user, assignment, uploaded_files, prompt):
+def upload_refusal_if_unaffordable(
+    request_user, assignment, uploaded_files, prompt, estimates_out=None
+):
     """None when every file may be queued; otherwise the 402 Response, with
     the sentence the caller may read: the fixed one for a student, the usual
     generic credit message for a teacher. Nothing is queued by this function."""
@@ -90,9 +112,11 @@ def upload_refusal_if_unaffordable(request_user, assignment, uploaded_files, pro
     wallet = getattr(billed, "credit_wallet", None)
     if wallet is None:
         return None
-    balance = wallet.total_remaining_credits()
-    for uploaded_file in uploaded_files:
+    balance = _balance(wallet)
+    for index, uploaded_file in enumerate(uploaded_files):
         estimate = _estimate_for(uploaded_file, prompt)
+        if estimates_out is not None:
+            estimates_out[index] = estimate
         if estimate is None or balance >= estimate:
             continue
         refusal = InsufficientCreditsError(
@@ -100,18 +124,11 @@ def upload_refusal_if_unaffordable(request_user, assignment, uploaded_files, pro
             individual=is_individual_teacher(billed),
         )
         log_refusal(logger, "Upload door", refusal)
-        if request_user.user_type == UserTypes.STUDENT:
-            message = STUDENT_UPLOAD_NOT_PROCESSED
-        else:
-            message = credit_refusal_message(refusal)
-        return Response(
-            {"error": message, "code": "insufficient_credits"},
-            status=status.HTTP_402_PAYMENT_REQUIRED,
-        )
+        return _refusal_response(request_user, refusal)
     return None
 
 
-def parked_files(request_user, assignment, uploaded_files, prompt):
+def parked_files(request_user, assignment, uploaded_files, prompt, estimates_out=None):
     """H-223: {index: the refusal} for each file of a teacher's batch that
     does not fit, walking the files in upload order with a running balance
     (a file that fits takes its estimate off what is left). Empty when every
@@ -124,12 +141,14 @@ def parked_files(request_user, assignment, uploaded_files, prompt):
     wallet = getattr(billed, "credit_wallet", None)
     if wallet is None:
         return {}
-    left = wallet.total_remaining_credits()
+    left = _balance(wallet)
     parked = {}
     for index, uploaded_file in enumerate(uploaded_files):
         if not isinstance(uploaded_file, UploadedFile):
             continue  # its own item in the route (FR-A-07)
         estimate = _estimate_for(uploaded_file, prompt)
+        if estimates_out is not None:
+            estimates_out[index] = estimate
         if estimate is None:
             continue
         if estimate <= left:
@@ -152,3 +171,56 @@ def batch_refusal_response(billed_user):
         {"error": credit_refusal_message(refusal), "code": "insufficient_credits"},
         status=status.HTTP_402_PAYMENT_REQUIRED,
     )
+
+
+class DoorHoldRefused(Exception):
+    """A door hold did not fit, raised inside the request's transaction so
+    the queued row rolls back; `response` is the usual 402."""
+
+    def __init__(self, response):
+        super().__init__("door hold refused")
+        self.response = response
+
+
+class DoorHold:
+    """Epic B1a (plan 08 §3.2, E-7): one request's UPLOAD job, opened at the
+    first file it holds. A no-op while credit holds are off, for a super
+    admin, without a wallet, or for a file the door could not estimate."""
+
+    def __init__(self, request_user, assignment, total_items):
+        self.request_user = request_user
+        self.assignment = assignment
+        self.total_items = max(total_items, 1)
+        self.job = None
+        self.billed = None
+        self.active = credit_holds.holds_enabled() and not (
+            request_user.is_real_super_admin()
+        )
+        if self.active:
+            self.billed = _billed_user(request_user, assignment)
+            if getattr(self.billed, "credit_wallet", None) is None:
+                self.active = False
+
+    def hold(self, row, estimate):
+        """True when the file may be launched."""
+        if not self.active or not estimate:
+            return True
+        if self.job is None:
+            self.job = credit_holds.open_door_job(
+                billed_user=self.billed,
+                requested_by=self.request_user,
+                total_items=self.total_items,
+                assignment=self.assignment,
+            )
+        return credit_holds.hold_door_item(self.job, row, estimate)
+
+    def refusal(self, estimate):
+        error = InsufficientCreditsError(
+            f"Upload needs ~{estimate} credits, more than is free to hold",
+            individual=is_individual_teacher(self.billed),
+        )
+        log_refusal(logger, "Upload door (hold)", error)
+        return error
+
+    def refusal_response(self, estimate):
+        return _refusal_response(self.request_user, self.refusal(estimate))

@@ -37,7 +37,7 @@ from rest_framework.response import Response
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
 from assignments.exceptions import FileUnreadableError
-from assignments.upload_door import batch_refusal_response, parked_files
+from assignments.upload_door import DoorHold, batch_refusal_response, parked_files
 from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
@@ -61,6 +61,7 @@ from students.models import BackgroundTaskType, BatchUploadSession, BatchUploadT
 from students.task_tracking import (
     create_processing_task,
     launch_processing_task,
+    mark_processing_task_failure,
     record_refused_item,
 )
 from users.mixins import UserCacheMixin
@@ -1103,7 +1104,11 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # is parked as its own item below; only when no file fits is the
         # batch refused. A file that is not an upload or is too large is
         # left to the loop below, which refuses it as its own item.
-        parked = parked_files(request.user, None, files, prompt_text)
+        estimates = {}
+        parked = parked_files(
+            request.user, None, files, prompt_text, estimates_out=estimates
+        )
+        door = DoorHold(request.user, None, len(files) - len(parked))
         if parked and len(parked) == len(files):
             # A teacher-only route: the batch is billed to the caller.
             return batch_refusal_response(request.user)
@@ -1180,6 +1185,20 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 meta={"step": "Queued for batch assignment extraction"},
                 item_index=item_index,
             )
+            if not door.hold(processing_task, estimates.get(item_index - 1)):
+                # Epic B1a: the file's hold lost a race for the free balance.
+                mark_processing_task_failure(
+                    processing_task.id,
+                    door.refusal(estimates.get(item_index - 1)),
+                )
+                tasks_data.append(
+                    {
+                        "file_name": uploaded_file.name,
+                        "task_id": None,
+                        "item_id": processing_task.id,
+                    }
+                )
+                continue
             task = launch_processing_task(
                 upload_assignment_async,
                 processing_task,

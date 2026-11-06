@@ -53,6 +53,8 @@ from assignments.tasks import (
     upload_answers_engine_async,
 )
 from assignments.upload_door import (
+    DoorHold,
+    DoorHoldRefused,
     batch_refusal_response,
     parked_files,
     upload_refusal_if_unaffordable,
@@ -125,6 +127,7 @@ from .signals import invalidate_submission_caches
 from .task_tracking import (
     create_processing_task,
     launch_processing_task,
+    mark_processing_task_failure,
     record_refused_item,
 )
 
@@ -730,8 +733,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # H-180: refuse here, before anything is queued, an upload the
         # teacher's wallet cannot pay for (the gate in the task would refuse
         # it and the student's file would be lost).
+        estimates = {}
         refusal = upload_refusal_if_unaffordable(
-            request.user, assignment, [uploaded_file], prompt
+            request.user, assignment, [uploaded_file], prompt, estimates_out=estimates
         )
         if refusal is not None:
             return refusal
@@ -757,8 +761,15 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     file_name=uploaded_file.name,
                     meta={"step": "Queued for answer extraction"},
                 )
+                # Epic B1a: the file's hold, in this transaction. A refused
+                # hold rolls the row back; nothing is launched.
+                door = DoorHold(request.user, assignment, 1)
+                if not door.hold(processing_task, estimates.get(0)):
+                    raise DoorHoldRefused(door.refusal_response(estimates.get(0)))
         except SUBMISSION_CLOSED_ERRORS as exc:
             return _submission_closed_response(exc)
+        except DoorHoldRefused as refused:
+            return refused.response
 
         task = launch_processing_task(
             upload_answers_engine_async,
@@ -1469,7 +1480,10 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # is parked as its own item below; only when no file fits is the
         # batch refused. A file too large to read counts as "cannot say"
         # (it is that file's own item below, FR-A-07).
-        parked = parked_files(request.user, assignment, files, prompt)
+        estimates = {}
+        parked = parked_files(
+            request.user, assignment, files, prompt, estimates_out=estimates
+        )
         if parked and len(parked) == len(files):
             # A teacher-only route: the batch is billed to the caller.
             return batch_refusal_response(request.user)
@@ -1480,6 +1494,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             task_type=BatchUploadType.SUBMISSION,
             total_files=len(files),
         )
+        door = DoorHold(request.user, assignment, len(files) - len(parked))
 
         tasks_data = []
         task_ids = []
@@ -1556,6 +1571,20 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 meta={"step": "Queued for batch answer extraction"},
                 item_index=item_index,
             )
+            if not door.hold(processing_task, estimates.get(item_index - 1)):
+                # Epic B1a: the file's hold lost a race for the free balance.
+                mark_processing_task_failure(
+                    processing_task.id,
+                    door.refusal(estimates.get(item_index - 1)),
+                )
+                tasks_data.append(
+                    {
+                        "file_name": uploaded_file.name,
+                        "task_id": None,
+                        "item_id": processing_task.id,
+                    }
+                )
+                continue
             task = launch_processing_task(
                 upload_answers_engine_async,
                 processing_task,
