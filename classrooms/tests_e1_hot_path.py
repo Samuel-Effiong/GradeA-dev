@@ -216,7 +216,7 @@ class LockCostTest(_Builder, TestCase):
         self.grade(self.student, self.make_assignment(self.course), "7")
         StudentCourse.objects.filter(pk=self.enrollment.pk).update(final_grade=None)
 
-    def test_a_changed_grade_costs_lock_aggregate_and_update_only(self):
+    def test_a_changed_grade_runs_no_validation_inside_the_lock(self):
         statements = _Statements()
         with connection.execute_wrapper(statements):
             result = signals._recalculate_final_grade(self.student.id, self.course.id)
@@ -229,10 +229,14 @@ class LockCostTest(_Builder, TestCase):
         print(f"\nE1B_MEASURE lock_statements={len(work)}")
         for sql in work:
             print("E1B_MEASURE   ", sql[:110].replace("\n", " "))
-        # SELECT ... FOR UPDATE, the aggregate, the UPDATE. Nothing else:
-        # no name-conflict lookup, no FK or unique validation (H-5).
-        self.assertLessEqual(len(work), 3, work)
-        self.assertFalse(any("users_customuser" in s for s in work), work)
+        # SELECT ... FOR UPDATE, the aggregate, the UPDATE, then the
+        # enrollment cache receiver's course and teacher loads
+        # (clear_student_course_cache, unchanged by E1b). No validation:
+        # no existence checks, no name-conflict lookup (H-5). Was 10.
+        self.assertLessEqual(len(work), 5, work)
+        self.assertFalse(
+            [s for s in work if 'AS "a"' in s or "UPPER(" in s.upper()], work
+        )
 
 
 class ConvergenceTest(_Builder, TransactionTestCase):
