@@ -4523,12 +4523,16 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             for course in active_courses:
                 course_subs = course_submissions.get(course.id, [])
                 if course_subs:
-                    avg_pct = sum(float(s.score_percentage) for s in course_subs) / len(
-                        course_subs
+                    # Both unrounded, as before; rounded where shown below.
+                    avg_pct = grade_service.mean_of_values(
+                        [float(s.score_percentage) for s in course_subs], ndigits=None
                     )
-                    avg_score = sum(
-                        float(s.score) for s in course_subs if s.score is not None
-                    ) / len(course_subs)
+                    # Divides by every released row, scored or not, as before.
+                    avg_score = grade_service.mean_of_values(
+                        [float(s.score) for s in course_subs if s.score is not None],
+                        ndigits=None,
+                        count=len(course_subs),
+                    )
                     all_percentages.append(avg_pct)
                     all_scores.extend(
                         float(s.score) for s in course_subs if s.score is not None
