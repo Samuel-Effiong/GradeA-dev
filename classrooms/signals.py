@@ -13,6 +13,7 @@ from AutoGrader.cache_generation import (
     SCOPE_SCHOOL,
     SCOPE_USER,
     bump_many,
+    related_or_none,
 )
 from classrooms.final_grade import final_grade_from
 from classrooms.models import Course, School, Session, StudentCourse, Topic
@@ -42,7 +43,7 @@ def _course_owner_scopes(course):
     three scopes, whatever the size of the class."""
     if course is None:
         return []
-    teacher = getattr(course, "teacher", None)
+    teacher = related_or_none(course, "teacher")
     return [
         (SCOPE_COURSE, course.pk),
         (SCOPE_USER, getattr(course, "teacher_id", None)),

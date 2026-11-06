@@ -23,6 +23,7 @@ from AutoGrader.cache_generation import (
     SCOPE_SCHOOL,
     SCOPE_USER,
     bump_many,
+    related_or_none,
 )
 
 ASSIGNMENT_DUE_REMINDER_OFFSETS = (24, 1)
@@ -105,10 +106,13 @@ def _bump_assignment_scopes(assignment):
     teacher's and the course's - one query for the student ids, folded
     into the same pipelined bump.
     """
-    course = getattr(assignment, "course", None)
+    course = related_or_none(assignment, "course")
     course_id = getattr(assignment, "course_id", None)
-    course_teacher = getattr(course, "teacher", None) if course is not None else None
-    teacher_id = getattr(course_teacher, "id", None)
+    # H-298: read the teacher's id from the course's own column. When a
+    # teacher is deleted, the cascade removes this assignment after the
+    # teacher row is gone, so `course.teacher` would raise DoesNotExist.
+    teacher_id = getattr(course, "teacher_id", None)
+    course_teacher = related_or_none(course, "teacher")
     school_id = getattr(course_teacher, "school_id", None)
 
     scopes = [
