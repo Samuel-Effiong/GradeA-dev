@@ -247,9 +247,34 @@ def _recalculate_final_grade(student_id, course_id, *, allow_clear=True):
         return old, new_final_grade, True
 
 
+# The submission fields `grade_service.course_grade` reads: which rows count
+# (student, assignment, graded_at, score) and their weight (max_points, else
+# the assignment's total_points). Column names are listed too, because Django
+# passes `update_fields=["assignment_id"]` to the receiver as written.
+GRADE_INPUT_FIELDS = frozenset(
+    {
+        "score",
+        "max_points",
+        "graded_at",
+        "assignment",
+        "student",
+        "assignment_id",
+        "student_id",
+    }
+)
+
+
 @receiver(post_save, sender=StudentSubmission)
-def update_student_course_final_grade(sender, instance, **kwargs):
-    """When a submission is saved, recalculate the student's final grade."""
+def update_student_course_final_grade(sender, instance, update_fields=None, **kwargs):
+    """When a submission is saved, recalculate the student's final grade.
+
+    A save that names its fields and names none the grade reads (scheduling,
+    the formatted label, publishing, a regrade held behind a released grade)
+    cannot change the result, so it is skipped. A save without
+    `update_fields` always recalculates, and so does every delete (below).
+    """
+    if update_fields is not None and not GRADE_INPUT_FIELDS.intersection(update_fields):
+        return
     course_id = _course_id_for_assignment(instance.assignment_id)
     if course_id is None:
         return
