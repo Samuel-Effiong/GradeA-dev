@@ -1,0 +1,123 @@
+"""E1a mutation battery (plan 09 §5.2 M1-M8, plus X1-X4 for the sites added
+to E1a's scope). One planted bug per mechanism, the guard/parity/snapshot
+suites run, the file restored from a saved copy and its sha256 checked.
+
+Usage: python mutants.py <worktree> <python> <logdir> [ids,comma,separated]
+"""
+
+import hashlib
+import subprocess
+import sys
+from pathlib import Path
+
+WT, PY, LOGDIR = Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3])
+ONLY = set(sys.argv[4].split(",")) if len(sys.argv) > 4 else None
+LOGDIR.mkdir(parents=True, exist_ok=True)
+
+GS = "classrooms/grade_service.py"
+V = "dashboard/views.py"
+E1 = [
+    "classrooms.tests_e1_grade_guard",
+    "classrooms.tests_e1_grade_parity",
+    "classrooms.tests_e1_snapshots",
+]
+
+# (id, description, file, old, new, extra test labels, test that must fail)
+MUTANTS = [
+    ("M1", 'a second plain mean, Avg("submissions__score_percentage"), in a dashboard view',
+     V, None, '\n\ndef _m1_second_mean(qs):\n    return qs.aggregate(v=Avg("submissions__score_percentage"))\n',
+     [], "test_no_grade_maths_outside_the_service"),
+    ("M2", "the weight fallback Coalesce inlined at a new site",
+     V, None, '\n\ndef _m2_inline_weight(qs):\n    return qs.annotate(points=Coalesce("max_points", "assignment__total_points"))\n',
+     [], "test_no_grade_maths_outside_the_service"),
+    ("M3", "a hand-rolled total_score / total_points loop",
+     V, None, "\n\ndef _m3_local_grade(rows):\n    total_score = sum(r.score for r in rows)\n    total_points = sum(r.max_points for r in rows)\n    return total_score / total_points * 100\n",
+     [], "test_no_grade_maths_outside_the_service"),
+    ("M4a", "weight_of stops falling back to total_points (H-33), in Python",
+     GS, "        else submission.assignment.total_points\n", "        else None\n",
+     [], "test_weight_of_matches_legacy_ternary"),
+    ("M4b", "the SQL weight stops falling back to total_points (H-33)",
+     GS, 'annotate(points=Coalesce("max_points", "assignment__total_points"))', 'annotate(points=Coalesce("max_points", "max_points"))',
+     [], "test_course_grade_matches_legacy_r1"),
+    ("M5", "counts_toward_grade drops is_published when released_only (H-130)",
+     GS, "    return submission.is_published if released_only else True\n", "    return True\n",
+     ["classrooms.tests_student_final_grade_released_only"], "test_released_course_grade_matches_legacy_r2"),
+    ("M6", "rounding ROUND_HALF_UP -> ROUND_HALF_EVEN",
+     GS, 'clamped.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)', 'clamped.quantize(Decimal("0.01"), rounding="ROUND_HALF_EVEN")',
+     [], "test_points_weighted_edges"),
+    ("M7", "clamp removed",
+     GS, '    clamped = max(Decimal("0"), min(Decimal("100"), raw_grade))\n', "    clamped = raw_grade\n",
+     [], "test_points_weighted_edges"),
+    ("M8", "mean_percentage becomes points-weighted (an accidental 'fix' of D1)",
+     GS, "    return Avg(path, **extra)\n\n\ndef mean_of_final_grades",
+     "    from django.db.models import FloatField, Sum\n"
+     "    from django.db.models.functions import Cast\n"
+     '    prefix = path[: -len("score_percentage")]\n'
+     '    points = Coalesce(f"{prefix}max_points", f"{prefix}assignment__total_points")\n'
+     "    return (\n"
+     '        Cast(Sum(f"{prefix}score", **extra), FloatField())\n'
+     "        * 100.0\n"
+     "        / Cast(Sum(points, **extra), FloatField())\n"
+     "    )\n\n\ndef mean_of_final_grades",
+     [], "test_teacher_course_analytics"),
+    ("X1", "mean_of_values rounds to 1dp instead of 2dp (M1-M5, M8 sites)",
+     GS, "    return mean if ndigits is None else round(mean, ndigits)\n", "    return mean if ndigits is None else round(mean, 1)\n",
+     [], "test_mean_of_values_matches_legacy_rounded_mean"),
+    ("X2", "mean_of_values ignores count (student overview avg_score, M7)",
+     GS, "    denominator = len(values) if count is None else count\n", "    denominator = len(values)\n",
+     [], "test_unrounded_means_match_legacy_overview"),
+    ("X3", "risk_score_row drops the weight (W1-W5)",
+     GS, "        weight_of(submission),\n    )\n", "        None,\n    )\n",
+     [], "test_risk_score_row_matches_legacy_dated_score"),
+    ("X4", "graded_rows drops the points > 0 filter (R1)",
+     GS, "    ).filter(points__gt=0)\n", "    )\n",
+     [], "test_graded_rows_matches_legacy_r1_rows"),
+]
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+summary = []
+for mid, desc, rel, old, new, extra, must_fail in MUTANTS:
+    if ONLY and mid not in ONLY:
+        continue
+    path = WT / rel
+    saved = path.read_bytes()
+    before = sha(path)
+    text = saved.decode()
+    if old is None:
+        mutated = text + new
+    else:
+        assert text.count(old) == 1, f"{mid}: {old!r} found {text.count(old)} times"
+        mutated = text.replace(old, new)
+    path.write_text(mutated)
+    try:
+        proc = subprocess.run(
+            [PY, "-W", "ignore", "manage.py", "test", *E1, *extra,
+             "--settings=settings_worktree", "--noinput", "--keepdb", "-v", "2"],
+            cwd=WT, capture_output=True, text=True,
+        )
+    finally:
+        path.write_bytes(saved)
+    after = sha(path)
+    assert before == after, f"{mid}: restore failed"
+    out = proc.stdout + proc.stderr
+    (LOGDIR / f"{mid}.log").write_text(out)
+    # The "FAIL:"/"ERROR:" headers, not "... FAIL" result lines: a test that
+    # logs while it runs splits its result line, and the result is missed.
+    red = sorted({
+        line.split()[1]
+        for line in out.splitlines()
+        if line.startswith(("FAIL: ", "ERROR: "))
+    })
+    ran = next((l for l in out.splitlines() if l.startswith("Ran ")), "?")
+    killed = must_fail in red
+    line = (f"{mid:4} {'KILLED' if killed else 'SURVIVED'}  {desc}\n"
+            f"     planted in {rel}; must fail: {must_fail}; {ran}\n"
+            f"     red: {' '.join(red) or '(none)'}\n"
+            f"     sha256 before=after={after}")
+    print(line, flush=True)
+    summary.append(line)
+(LOGDIR / "SUMMARY.txt").write_text("\n".join(summary) + "\n")

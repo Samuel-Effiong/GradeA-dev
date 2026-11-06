@@ -1,0 +1,22 @@
+Grade parity: old code compared with the grade service
+R1  Stored final grade (per enrollment): 72 compared, 31 differences
+    first 10:
+    id 9f13b2ba-1604-404d-be80-4e58efbf2b0a: old=Decimal('84.44')  service=Decimal('85.44')
+    id d09ca30c-bd66-4d45-9eae-3d6110593f4f: old=Decimal('57.14')  service=Decimal('58.14')
+    id ee3a591c-208a-4384-8e9e-8759b03cfcea: old=Decimal('46.09')  service=Decimal('47.09')
+    id 9dc6d326-f682-4579-b18d-02d00bcad671: old=Decimal('50.00')  service=Decimal('51.00')
+    id b1e6cdae-e453-48c3-be41-c0bf1c42b1f2: old=Decimal('90.00')  service=Decimal('91.00')
+    id acdd57a5-e480-48b3-9da5-63ddcb1579aa: old=Decimal('3.64')  service=Decimal('4.64')
+    id 4b0355cc-c4de-45ba-839c-b0423c546c93: old=Decimal('86.96')  service=Decimal('87.96')
+    id 3227ffad-c084-441d-8a41-be9b968dfac4: old=Decimal('57.89')  service=Decimal('58.89')
+    id 2e2096be-86a5-4e27-9af9-e649c6714978: old=Decimal('10.00')  service=Decimal('11.00')
+    id a7dfd066-9cba-49a9-aa0b-0ce13c9bee1a: old=Decimal('90.00')  service=Decimal('91.00')
+R2  Final grade a student sees (per enrollment): 72 compared, 0 differences
+R3  Grade across a teacher's courses (per student): 38 compared, 0 differences
+R4  Assignment average (per assignment): 32 compared, 0 differences
+RR  At-risk inputs (per submission): 78 compared, 0 differences
+RS  Weight of each submission (per submission): 88 compared, 0 differences
+PM  Plain average of percentages (per course and assignment): 52 compared, 0 differences
+FG  Average of final grades (per course): 20 compared, 0 differences
+
+RESULT: DIFFERENCES FOUND - do not ship; send this output to engineering

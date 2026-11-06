@@ -1,0 +1,96 @@
+"""E1a site-coverage probe: plant one number-changing edit per grade site on
+the BASE code, run the snapshot + live-oracle tests, record which go red,
+restore by sha256. Usage: python coverage_probe.py <worktree> <python> <logdir>"""
+
+import hashlib
+import subprocess
+import sys
+from pathlib import Path
+
+WT, PY, LOGDIR = Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3])
+ONLY = set(sys.argv[4].split(",")) if len(sys.argv) > 4 else None
+LOGDIR.mkdir(parents=True, exist_ok=True)
+
+V, S, SER = "dashboard/views.py", "dashboard/services.py", "students/serializers.py"
+FX = 'Avg(F("final_grade") + 1)'
+# (id, file, old, new, occurrence-1-based)
+SITES = [
+    ("R1", "classrooms/signals.py", 'Coalesce("max_points", "assignment__total_points")', 'Coalesce("assignment__total_points", "max_points")', 1),
+    ("R2", "classrooms/final_grade.py", "and submission.is_published\n", "and True\n", 1),
+    ("R3", SER, "else submission.assignment.total_points", "else 0", 1),
+    ("R4", V, "else assignment.total_points", "else 0", 1),
+    ("R5", S, 'Coalesce("max_points", "assignment__total_points")', 'Coalesce("assignment__total_points", "max_points")', 1),
+    ("R6", S, 'Coalesce("max_points", "assignment__total_points")', 'Coalesce("assignment__total_points", "max_points")', 2),
+    ("P1", V, 'avg_score=Avg(\n                "submissions__score_percentage"', 'avg_score=Avg(\n                "submissions__score"', 1),
+    ("P2", V, 'Avg("assignments__submissions__score_percentage")', 'Avg("assignments__submissions__score")', 1),
+    ("P3", V, '"student__submissions__score_percentage"', '"student__submissions__score"', 1),
+    ("P4a", V, '.annotate(avg_score=Avg("score_percentage"))', '.annotate(avg_score=Avg("score"))', 1),
+    ("P4b", V, '.annotate(avg_score=Avg("score_percentage"))', '.annotate(avg_score=Avg("score"))', 2),
+    ("P4c", V, '.annotate(avg_score=Avg("score_percentage"))', '.annotate(avg_score=Avg("score"))', 3),
+    ("P5", V, '"student__submissions__score_percentage"', '"student__submissions__score"', 2),
+    ("P6", V, 'released.aggregate(avg=Avg("score_percentage"))', 'released.aggregate(avg=Avg("score"))', 1),
+    ("P7", S, 'average_score=Avg("submissions__score_percentage")', 'average_score=Avg("submissions__score")', 1),
+    ("P8", "dashboard/rigor.py", 'avg_percentage=Avg("score_percentage")', 'avg_percentage=Avg("score")', 1),
+    ("F856", V, 'Avg("final_grade")', FX, 1),
+    ("F960", V, 'Avg("final_grade")', FX, 2),
+    ("F1046", V, 'Avg("final_grade")', FX, 3),
+    ("F2636", V, 'Avg("final_grade")', FX, 4),
+    ("F2356", V, '"enrollments__final_grade"', '"assignments__total_points"', 1),
+    ("F2907", V, '"enrollments__final_grade"', '"assignments__total_points"', 2),
+    ("W3326", V, "else s.assignment.total_points", "else 0", 1),
+    ("W3840", V, "else s.assignment.total_points", "else 0", 2),
+    ("W4076", V, "else s.assignment.total_points", "else 0", 3),
+    ("W394", S, "else submission.assignment.total_points", "else 0", 1),
+    ("W1095", SER, "else submission.assignment.total_points", "else 0", 2),
+    ("M241", S, "round(sum(scores) / len(scores), 2)", "round(sum(scores) / len(scores) + 1, 2)", 1),
+    ("M483", S, "round(sum(graded_scores) / len(graded_scores), 2)", "round(sum(graded_scores) / len(graded_scores) + 1, 2)", 1),
+    ("M513", S, "round(sum(recent_graded_scores) / len(recent_graded_scores), 2)", "round(sum(recent_graded_scores) / len(recent_graded_scores) + 1, 2)", 1),
+    ("M518", S, "round(sum(previous_graded_scores) / len(previous_graded_scores), 2)", "round(sum(previous_graded_scores) / len(previous_graded_scores) + 1, 2)", 1),
+    ("M1245", S, "round(sum(scores) / len(scores), 2)", "round(sum(scores) / len(scores) + 1, 2)", 2),
+    ("M4578pct", V, "avg_pct = sum(", "avg_pct = 1 + sum(", 1),
+    ("M4580score", V, "avg_score = sum(", "avg_score = 1 + sum(", 1),
+    ("M4618", V, "sum(all_percentages) / len(all_percentages), 2", "sum(all_percentages) / len(all_percentages) + 1, 2", 1),
+]
+TESTS = ["classrooms.tests_e1_snapshots", "classrooms.tests_e1_grade_parity.LiveSitesMatchLegacyTest"]
+
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def replace_nth(text, old, new, n):
+    idx = -1
+    for _ in range(n):
+        idx = text.find(old, idx + 1)
+        if idx < 0:
+            raise SystemExit(f"occurrence {n} of {old!r} not found")
+    return text[:idx] + new + text[idx + len(old):]
+
+
+summary = []
+for sid, rel, old, new, occ in SITES:
+    if ONLY and sid not in ONLY:
+        continue
+    path = WT / rel
+    original = path.read_bytes()
+    before = sha(path)
+    path.write_text(replace_nth(original.decode(), old, new, occ))
+    try:
+        proc = subprocess.run(
+            [PY, "-W", "ignore", "manage.py", "test", *TESTS,
+             "--settings=settings_worktree", "--noinput", "--keepdb"],
+            cwd=WT, capture_output=True, text=True,
+        )
+    finally:
+        path.write_bytes(original)
+    after = sha(path)
+    assert before == after, f"{sid}: restore failed"
+    out = proc.stdout + proc.stderr
+    (LOGDIR / f"{sid}.log").write_text(out)
+    red = sorted({line.split()[1] for line in out.splitlines() if line.startswith(("FAIL:", "ERROR:"))})
+    ran = next((l for l in out.splitlines() if l.startswith("Ran ")), "?")
+    verdict = "RED" if red else "green (UNCOVERED)"
+    line = f"{sid:11} {rel}:{occ}  {verdict}  {ran}  {' '.join(red)}  sha256-restored={after[:12]}"
+    print(line, flush=True)
+    summary.append(line)
+(LOGDIR / "SUMMARY.txt").write_text("\n".join(summary) + "\n")

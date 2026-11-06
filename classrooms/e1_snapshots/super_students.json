@@ -1,0 +1,35 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "average_grade": 58.97,
+  "global_assignment_completion_rate": 47.27,
+  "grade_distribution": {
+   "A": {
+    "count": 2,
+    "percentage": 22.22
+   },
+   "B": {
+    "count": 2,
+    "percentage": 22.22
+   },
+   "C": {
+    "count": 0,
+    "percentage": 0.0
+   },
+   "D": {
+    "count": 0,
+    "percentage": 0.0
+   },
+   "E": {
+    "count": 0,
+    "percentage": 0.0
+   },
+   "F": {
+    "count": 5,
+    "percentage": 55.56
+   }
+  },
+  "total_active_enrollments": 49
+ }
+}

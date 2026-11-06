@@ -1,0 +1,369 @@
+{
+ "generated_at": "2026-10-15T12:00:00Z",
+ "limits": [
+  "Nothing was left out: every record is listed."
+ ],
+ "courses_total": 2,
+ "courses": [
+  {
+   "course": "Biology",
+   "session": "E1 Fall Tess",
+   "active": true,
+   "students": 3,
+   "published_assignments": 3,
+   "due_assignments": 3,
+   "submissions": 6,
+   "graded_submissions": 6,
+   "average_score": 44.58,
+   "at_risk_students": 3
+  },
+  {
+   "course": "Algebra",
+   "session": "E1 Fall Tess",
+   "active": true,
+   "students": 6,
+   "published_assignments": 6,
+   "due_assignments": 5,
+   "submissions": 17,
+   "graded_submissions": 16,
+   "average_score": 57.66,
+   "at_risk_students": 5
+  }
+ ],
+ "assignments_total": 9,
+ "recent_assignments": [
+  {
+   "title": "B3 Undated",
+   "course": "Biology",
+   "status": "PUBLISHED",
+   "type": "OBJECTIVE",
+   "due_date": null,
+   "submissions": 1,
+   "graded": 1,
+   "average_score": 10.0,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "B2 Quiz",
+   "course": "Biology",
+   "status": "PUBLISHED",
+   "type": "OBJECTIVE",
+   "due_date": "2026-10-03T12:00:00Z",
+   "submissions": 2,
+   "graded": 2,
+   "average_score": 18.75,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "A3 NoPts",
+   "course": "Algebra",
+   "status": "PUBLISHED",
+   "type": "OBJECTIVE",
+   "due_date": "2026-10-05T12:00:00Z",
+   "submissions": 3,
+   "graded": 3,
+   "average_score": 46.67,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "A1 Exam",
+   "course": "Algebra",
+   "status": "PUBLISHED",
+   "type": "ESSAY",
+   "due_date": "2026-09-15T12:00:00Z",
+   "submissions": 6,
+   "graded": 5,
+   "average_score": 47.4,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "A4 Zero",
+   "course": "Algebra",
+   "status": "PUBLISHED",
+   "type": "SHORT-ANSWER",
+   "due_date": "2026-10-10T12:00:00Z",
+   "submissions": 1,
+   "graded": 1,
+   "average_score": 50.0,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "A0 Old",
+   "course": "Algebra",
+   "status": "PUBLISHED",
+   "type": "OBJECTIVE",
+   "due_date": "2026-07-07T12:00:00Z",
+   "submissions": 2,
+   "graded": 2,
+   "average_score": 62.75,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "B1 Lab",
+   "course": "Biology",
+   "status": "PUBLISHED",
+   "type": "ESSAY",
+   "due_date": "2026-09-20T12:00:00Z",
+   "submissions": 3,
+   "graded": 3,
+   "average_score": 73.33,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "A2 Quiz",
+   "course": "Algebra",
+   "status": "PUBLISHED",
+   "type": "OBJECTIVE",
+   "due_date": "2026-09-25T12:00:00Z",
+   "submissions": 5,
+   "graded": 5,
+   "average_score": 74.0,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "A5 Future",
+   "course": "Algebra",
+   "status": "PUBLISHED",
+   "type": "ESSAY",
+   "due_date": "2026-10-20T12:00:00Z",
+   "submissions": 0,
+   "graded": 0,
+   "average_score": null,
+   "extraction_confidence": 80
+  }
+ ],
+ "lowest_scoring_assignments": [
+  {
+   "title": "B3 Undated",
+   "course": "Biology",
+   "status": "PUBLISHED",
+   "type": "OBJECTIVE",
+   "due_date": null,
+   "submissions": 1,
+   "graded": 1,
+   "average_score": 10.0,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "B2 Quiz",
+   "course": "Biology",
+   "status": "PUBLISHED",
+   "type": "OBJECTIVE",
+   "due_date": "2026-10-03T12:00:00Z",
+   "submissions": 2,
+   "graded": 2,
+   "average_score": 18.75,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "A3 NoPts",
+   "course": "Algebra",
+   "status": "PUBLISHED",
+   "type": "OBJECTIVE",
+   "due_date": "2026-10-05T12:00:00Z",
+   "submissions": 3,
+   "graded": 3,
+   "average_score": 46.67,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "A1 Exam",
+   "course": "Algebra",
+   "status": "PUBLISHED",
+   "type": "ESSAY",
+   "due_date": "2026-09-15T12:00:00Z",
+   "submissions": 6,
+   "graded": 5,
+   "average_score": 47.4,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "A4 Zero",
+   "course": "Algebra",
+   "status": "PUBLISHED",
+   "type": "SHORT-ANSWER",
+   "due_date": "2026-10-10T12:00:00Z",
+   "submissions": 1,
+   "graded": 1,
+   "average_score": 50.0,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "A0 Old",
+   "course": "Algebra",
+   "status": "PUBLISHED",
+   "type": "OBJECTIVE",
+   "due_date": "2026-07-07T12:00:00Z",
+   "submissions": 2,
+   "graded": 2,
+   "average_score": 62.75,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "B1 Lab",
+   "course": "Biology",
+   "status": "PUBLISHED",
+   "type": "ESSAY",
+   "due_date": "2026-09-20T12:00:00Z",
+   "submissions": 3,
+   "graded": 3,
+   "average_score": 73.33,
+   "extraction_confidence": 80
+  },
+  {
+   "title": "A2 Quiz",
+   "course": "Algebra",
+   "status": "PUBLISHED",
+   "type": "OBJECTIVE",
+   "due_date": "2026-09-25T12:00:00Z",
+   "submissions": 5,
+   "graded": 5,
+   "average_score": 74.0,
+   "extraction_confidence": 80
+  }
+ ],
+ "upcoming_assignments": [
+  {
+   "title": "A5 Future",
+   "course": "Algebra",
+   "status": "PUBLISHED",
+   "type": "ESSAY",
+   "due_date": "2026-10-20T12:00:00Z",
+   "submissions": 0,
+   "graded": 0,
+   "average_score": null,
+   "extraction_confidence": 80
+  }
+ ],
+ "student_enrolments_total": 9,
+ "at_risk_students_total": 8,
+ "students": [
+  {
+   "student": "Ada Snap",
+   "course": "Algebra",
+   "at_risk": false,
+   "average_score": 84.44,
+   "submitted": 4,
+   "due_assignments": 5,
+   "submission_rate_percent": 80.0,
+   "trend": "STABLE",
+   "risk_reasons": []
+  },
+  {
+   "student": "Dee Snap",
+   "course": "Algebra",
+   "at_risk": true,
+   "average_score": 3.64,
+   "submitted": 3,
+   "due_assignments": 5,
+   "submission_rate_percent": 60.0,
+   "trend": "IMPROVING",
+   "risk_reasons": [
+    "Submission rate is 60.0% with 2 missing assignment(s).",
+    "Average graded score is 3.64%, below the 70% target."
+   ]
+  },
+  {
+   "student": "Ben Snap",
+   "course": "Algebra",
+   "at_risk": true,
+   "average_score": 46.09,
+   "submitted": 4,
+   "due_assignments": 5,
+   "submission_rate_percent": 80.0,
+   "trend": "STABLE",
+   "risk_reasons": [
+    "Average graded score is 46.09%, which suggests conceptual gaps despite regular submission."
+   ]
+  },
+  {
+   "student": "Ben Snap",
+   "course": "Biology",
+   "at_risk": true,
+   "average_score": 50.0,
+   "submitted": 1,
+   "due_assignments": 3,
+   "submission_rate_percent": 33.33,
+   "trend": "INSUFFICIENT DATA",
+   "risk_reasons": [
+    "Submission rate is 33.3% with 2 missing assignment(s).",
+    "Average graded score is 50.0%, below the 70% target."
+   ]
+  },
+  {
+   "student": "Ada Snap",
+   "course": "Biology",
+   "at_risk": true,
+   "average_score": 57.14,
+   "submitted": 2,
+   "due_assignments": 3,
+   "submission_rate_percent": 66.67,
+   "trend": "DECLINING",
+   "risk_reasons": [
+    "Submission rate is 66.7% with 1 missing assignment(s).",
+    "Average graded score is 57.14%, below the 70% target.",
+    "Recent graded work is trending downward."
+   ]
+  },
+  {
+   "student": "Eve Snap",
+   "course": "Biology",
+   "at_risk": true,
+   "average_score": 57.89,
+   "submitted": 3,
+   "due_assignments": 3,
+   "submission_rate_percent": 100.0,
+   "trend": "DECLINING",
+   "risk_reasons": [
+    "Average graded score is 57.89%, which suggests conceptual gaps despite regular submission.",
+    "Recent graded work is trending downward."
+   ]
+  },
+  {
+   "student": "Cy Snap",
+   "course": "Algebra",
+   "at_risk": true,
+   "average_score": 80.0,
+   "submitted": 2,
+   "due_assignments": 5,
+   "submission_rate_percent": 40.0,
+   "trend": "INSUFFICIENT DATA",
+   "risk_reasons": [
+    "Submission rate is 40.0% with 3 missing assignment(s)."
+   ]
+  },
+  {
+   "student": "Eve Snap",
+   "course": "Algebra",
+   "at_risk": true,
+   "average_score": 86.96,
+   "submitted": 3,
+   "due_assignments": 5,
+   "submission_rate_percent": 60.0,
+   "trend": "DECLINING",
+   "risk_reasons": [
+    "Submission rate is 60.0% with 2 missing assignment(s).",
+    "Recent graded work is trending downward."
+   ]
+  },
+  {
+   "student": "Fay Snap",
+   "course": "Algebra",
+   "at_risk": true,
+   "average_score": null,
+   "submitted": 0,
+   "due_assignments": 5,
+   "submission_rate_percent": 0.0,
+   "trend": "INSUFFICIENT DATA",
+   "risk_reasons": [
+    "No submitted work for assignments due so far."
+   ]
+  }
+ ],
+ "ai_trust": {
+  "average_extraction_confidence": 80.0,
+  "average_grading_confidence": 78.91,
+  "low_confidence_rate_percent": 43.75,
+  "low_confidence_threshold": 80
+ }
+}

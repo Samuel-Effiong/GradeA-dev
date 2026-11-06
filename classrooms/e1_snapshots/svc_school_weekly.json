@@ -1,0 +1,96 @@
+{
+ "school": {
+  "id": "school:E1",
+  "name": "E1 Snapshot School",
+  "generated_at": "2026-10-15T12:00:00Z",
+  "window_days": 7
+ },
+ "overall": {
+  "active_teacher_count": 2,
+  "active_student_count": 8,
+  "active_course_count": 3,
+  "assignments_created_this_week": 11,
+  "assignments_graded_this_week": 4,
+  "avg_turnaround_days": 0.2
+ },
+ "overall_summary": "E1 Snapshot School has 2 active teacher(s) and 8 active student(s) across 3 active course(s). 11 assignment(s) were created and 4 were graded this week.",
+ "at_risk_students": [
+  {
+   "student_id": "user:Dee",
+   "student_name": "Dee Snap",
+   "average_score": 3.6
+  },
+  {
+   "student_id": "user:Gus",
+   "student_name": "Gus Snap",
+   "average_score": 48.3
+  },
+  {
+   "student_id": "user:Ben",
+   "student_name": "Ben Snap",
+   "average_score": 65.7
+  },
+  {
+   "student_id": "user:Fay",
+   "student_name": "Fay Snap",
+   "average_score": null
+  }
+ ],
+ "at_risk_student_count": 4,
+ "teacher_activity": [
+  {
+   "id": "user:Theo",
+   "name": "Theo Snap",
+   "email": "theo@e1-snapshot.test",
+   "courses": 1,
+   "students": 2,
+   "growth": 100.0,
+   "assignments_per_week": 0,
+   "turnaround": 0.2,
+   "ai_confidence": 78.0,
+   "rigor": null,
+   "rigor_breakdown": {
+    "score": null,
+    "demand": null,
+    "evidence": null,
+    "standards": null,
+    "coverage": 0.0,
+    "assignments_scored": 0,
+    "submissions_scored": 1,
+    "label": "Not enough data yet",
+    "meaning": "This teacher has no assignments with difficulty data recorded, so rigor cannot be scored.",
+    "tone": "unknown",
+    "standards_note": null,
+    "coverage_note": "Based on a minority of this teacher's assignments -- the rest have no difficulty data recorded."
+   },
+   "status": true
+  },
+  {
+   "id": "user:Tess",
+   "name": "Tess Snap",
+   "email": "tess@e1-snapshot.test",
+   "courses": 2,
+   "students": 6,
+   "growth": 100.0,
+   "assignments_per_week": 0,
+   "turnaround": 0.2,
+   "ai_confidence": 78.5,
+   "rigor": null,
+   "rigor_breakdown": {
+    "score": null,
+    "demand": null,
+    "evidence": 2.4,
+    "standards": null,
+    "coverage": 0.0,
+    "assignments_scored": 0,
+    "submissions_scored": 21,
+    "label": "Not enough data yet",
+    "meaning": "This teacher has no assignments with difficulty data recorded, so rigor cannot be scored.",
+    "tone": "unknown",
+    "standards_note": null,
+    "coverage_note": "Based on a minority of this teacher's assignments -- the rest have no difficulty data recorded."
+   },
+   "status": true
+  }
+ ]
+}

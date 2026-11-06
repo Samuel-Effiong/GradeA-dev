@@ -14,11 +14,11 @@ from django.db.models import (
     Q,
     Sum,
 )
-from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD
 from assignments.models import Assignment, AssignmentStatus, expected_q, is_expected
+from classrooms import grade_service
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -238,7 +238,7 @@ class StudentWeeklySummaryService:
             for submission in submissions
             if submission.score_percentage is not None
         ]
-        return round(sum(scores) / len(scores), 2) if scores else None
+        return grade_service.mean_of_values(scores)
 
     def _letter_grade(self, percentage):
         if percentage is None:
@@ -385,16 +385,7 @@ class WeeklyCourseSummaryService:
             float(submission.score_percentage) for submission in graded_submissions
         ]
         dated_scores = [
-            (
-                submission.submission_date,
-                float(submission.score_percentage),
-                submission.score,
-                (
-                    submission.max_points
-                    if submission.max_points is not None
-                    else submission.assignment.total_points
-                ),
-            )
+            grade_service.risk_score_row(submission)
             for submission in graded_submissions
         ]
 
@@ -479,9 +470,7 @@ class WeeklyCourseSummaryService:
             if expected_submissions
             else 100.0
         )
-        average_grade = (
-            round(sum(graded_scores) / len(graded_scores), 2) if graded_scores else None
-        )
+        average_grade = grade_service.mean_of_values(graded_scores)
 
         recent_submissions = [
             submission
@@ -509,16 +498,8 @@ class WeeklyCourseSummaryService:
             and previous_start <= submission.graded_at < recent_start
         ]
 
-        recent_average_grade = (
-            round(sum(recent_graded_scores) / len(recent_graded_scores), 2)
-            if recent_graded_scores
-            else None
-        )
-        previous_average_grade = (
-            round(sum(previous_graded_scores) / len(previous_graded_scores), 2)
-            if previous_graded_scores
-            else None
-        )
+        recent_average_grade = grade_service.mean_of_values(recent_graded_scores)
+        previous_average_grade = grade_service.mean_of_values(previous_graded_scores)
 
         grade_trend = self._trend_from_values(
             previous_average_grade,
@@ -1100,7 +1081,9 @@ class TeacherAIContextService:
                     "submissions",
                     filter=Q(submissions__score_percentage__isnull=False),
                 ),
-                average_score=Avg("submissions__score_percentage"),
+                average_score=grade_service.mean_percentage(
+                    "submissions__score_percentage"
+                ),
             )
             .values(
                 "id",
@@ -1131,9 +1114,9 @@ class TeacherAIContextService:
         )
 
         submissions = list(
-            StudentSubmission.objects.filter(assignment__course_id__in=course_ids)
-            .annotate(points=Coalesce("max_points", "assignment__total_points"))
-            .values(
+            grade_service.risk_rows(
+                StudentSubmission.objects.filter(assignment__course_id__in=course_ids)
+            ).values(
                 "student_id",
                 "assignment_id",
                 "assignment__course_id",
@@ -1241,9 +1224,7 @@ class TeacherAIContextService:
                     "due_assignments": due_by_course[course.id],
                     "submissions": submissions_by_course[course.id],
                     "graded_submissions": len(scores),
-                    "average_score": (
-                        round(sum(scores) / len(scores), 2) if scores else None
-                    ),
+                    "average_score": (grade_service.mean_of_values(scores)),
                     "at_risk_students": at_risk_by_course[course.id],
                 }
             )
@@ -1511,11 +1492,12 @@ class SchoolAdminWeeklySummaryService:
 
         submissions_by_student = defaultdict(list)
         submissions = (
-            StudentSubmission.objects.filter(
-                student_id__in=course_ids_by_student.keys(),
-                assignment__course_id__in=all_course_ids,
+            grade_service.risk_rows(
+                StudentSubmission.objects.filter(
+                    student_id__in=course_ids_by_student.keys(),
+                    assignment__course_id__in=all_course_ids,
+                )
             )
-            .annotate(points=Coalesce("max_points", "assignment__total_points"))
             .values_list(
                 "student_id",
                 "assignment_id",
