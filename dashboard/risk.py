@@ -11,7 +11,7 @@ from datetime import datetime
 
 import numpy as np
 
-from classrooms.final_grade import final_grade_from
+from classrooms import grade_service
 
 TREND_IMPROVING = "IMPROVING"
 TREND_DECLINING = "DECLINING"
@@ -27,7 +27,7 @@ class RiskInputs:
     # submission, any order. `score_percentage` alone drives the trend
     # calculation below (direction over time). `score`/`points` drive
     # average_grade through the same points-weighted formula as
-    # classrooms.final_grade.final_grade_from, so a student's "grade" is
+    # classrooms.grade_service.points_weighted, so a student's "grade" is
     # never two different sums depending on which screen shows it.
     graded_scores: list = field(default_factory=list)
 
@@ -68,7 +68,7 @@ class StudentRiskEvaluator:
         submission_rate = submitted / expected if expected else 1.0
 
         graded_scores = sorted(inputs.graded_scores, key=lambda row: row[0])
-        weighted = final_grade_from(
+        weighted = grade_service.points_weighted(
             (score, points) for _, _, score, points in graded_scores
         )
         average_grade = float(weighted) if weighted is not None else None
