@@ -1133,3 +1133,52 @@ Every other row matched.
 - **Activity-log labels APPROVED as written:** "Credit hold job" (target AIJob), "Credits held", "Credit hold settled", "Credit hold released", "Stale credit hold cleared". The placeholder notes in `audit/enums.py` and `audit/serializers.py` are dropped. This supersedes the "Still placeholders" line in §13.
 - **Late-door email NOT approved.** The owner wants the uploaded file kept temporarily, so the teacher resumes instead of re-uploading. That reopens F4/§0.9 and may change the 2026-10-30 late-door ruling. For 3c, the refusal path stays as built: refused before any provider call, FAILED/INSUFFICIENT_CREDITS, behind the flag, never sent. The texts stay a placeholder, and no test asserts "upload the file again".
 - **The §15a on-commit deviation is NOT accepted.** The three door routes get a literal `transaction.on_commit`, flag on only. It goes in as a 3c amendment (§15g), with expectations written before it runs. The response `task_id` question is open with the SM.
+
+### 15g. 3c amendment: door launches on commit (SM rulings 2026-11-06), expectations committed before any run
+
+Replaces the §15a "On-commit launch (deviation…)" entry, which the SM did not accept and which is withdrawn. Plan M5 / §3.7: every door launch is `transaction.on_commit`. That must hold whatever transaction a future caller opens (ATOMIC_REQUESTS, a wrapping service, a test). It does not rest on today's autocommit.
+
+**Code**
+
+- **`assignments/upload_door.py` `launch_at_door(launch, task_callable, row, *args, **kwargs)`** returns the task id the response carries.
+  - **Flag off:** `launch(task_callable, row, *args, **kwargs).id`. This is today's direct call, unchanged.
+  - **Flag on:** generate a uuid4. Write it onto the row now (`attach_celery_task`). Register `transaction.on_commit(partial(launch, task_callable, row, *args, _celery_task_id=uuid, **kwargs))`, then return the uuid.
+  - The views pass their own module's `launch_processing_task` as `launch`, so the existing tests that patch it by name still apply. `partial` binds each batch file's arguments per iteration, with no closure over loop variables.
+- **Ordering (SM condition 1):** the row is created first, then carries the pre-assigned `celery_task_id`, and the message is sent only at commit.
+  - The row id and its Celery id are in the same transaction as the hold (the student route) or committed before it (the batch routes, in autocommit).
+  - No worker or poll can see a message without its row. Under ATOMIC_REQUESTS the response itself only leaves after commit.
+- **`students/task_tracking.py` `launch_processing_task(task_callable, row, *args, _celery_task_id=None, **kwargs)`:**
+  - `_celery_task_id` is keyword-only and is never put into the task's kwargs. When it is given, the dispatch is `task_callable.apply_async(args=args, kwargs=kwargs, task_id=_celery_task_id)`.
+  - Without it, the dispatch is today's `task_callable.delay(*args, **kwargs)`, byte-identical. Only flag-on door callers pass it.
+- **Broker failure (SM condition 3), chosen: release on the error path.**
+  - The 36-hour unstarted backstop is step 5 and does not exist yet. The sweep never touches unstarted items (§11).
+  - So when the `_celery_task_id` dispatch raises, `launch_processing_task` marks the row FAILURE (as today), returns that row's door hold with `fail_item`, then raises as today.
+  - This also closes a leak in the committed 3c code: in autocommit a broker outage left the hold HELD.
+  - The flag-off path does not change, because the release is only on the `_celery_task_id` path.
+- **Default `on_commit` (robust=False)**, so a broker failure propagates as today: in autocommit at once, under an outer atomic at commit.
+  - **Recorded limit:** under an outer atomic, Django stops running the remaining callbacks after the first one that raises. Later files in the same batch keep their rows HELD and unstarted.
+  - Those holds are recovered by step 5's 36-hour backstop, which covers unstarted items of RESERVED UPLOAD jobs (plan §3.7). Until step 5 lands, the flag stays off in production, as it does for all of B1a.
+  - This goes on the §10 slice-summary list.
+
+**Tests: new file `billing/tests/test_holds_door_commit.py` (8)**
+
+| # | Test | Red (wrapper not applied: committed 093e0f24 code) | Green |
+|---|---|---|---|
+| C-1 | P-3/M-B20: student upload inside the test transaction. No launch before commit; exactly one callback; running it launches once | FAIL (launched before commit) | PASS |
+| C-2 | The launch gets `_celery_task_id`; response `task_id` equals it and equals the row's `celery_task_id` | FAIL | PASS |
+| C-3 | Batch (2 files that both fit): 2 callbacks; each launch's `_celery_task_id` equals that file's response task_id; the bound args are each file's own | FAIL | PASS |
+| C-4 | Assignment-file route: launch on commit with the pre-assigned id = response task_id | FAIL | PASS |
+| C-5 | A refused student hold queues no callback at all | PASS (nothing is launched either way) | PASS |
+| C-6 | `launch_processing_task` with `_celery_task_id`: `apply_async(task_id=…)`; the key is not in the task kwargs; `delay` not called | FAIL | PASS |
+| C-7 | `launch_processing_task` without it: `delay(*args, **kwargs)` exactly as today; `apply_async` not called | PASS | PASS |
+| C-8 | Broker error on the `_celery_task_id` dispatch: raises ProcessingTemporarilyUnavailable; row FAILURE and RETURNED; wallet reserved 0 | FAIL (hold left HELD) | PASS |
+
+Red expected: **Ran 8, 2 pass (C-5, C-7), 6 fail or error.** The red is the committed code without the wrapper, which is the SM's red check ("revert the wrapper").
+
+**My own 3c tests D-2, D-5, D-6** (step 3c, not yet accepted; not pre-existing) assert the launch inside the test transaction. Each request gets `captureOnCommitCallbacks(execute=True)`, with no other change. On the red code they pass either way, because execute=True only adds the run of the callbacks.
+
+**Flag-off door tests: untouched**, and they must stay green (39 OK).
+
+**Green (WIP):** test_holds_door_commit 8 OK; test_holds_door 8 OK; all holds tests OK (129 + 8 = 137); the flag-off door tests 39 OK.
+
+**Then:** the four-app flag-off near run on WIP. Expected: base 5654 plus the added B1a tests only, with 0 failures. Then plants (§15h, written before they run).

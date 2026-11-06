@@ -82,7 +82,8 @@ class StudentDoorTests(APITestCase):
         )
         submission.delete()
         with fixed_estimate(), patch("students.views.launch_processing_task") as launch:
-            response = self.upload(student, assignment)
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.upload(student, assignment)
         self.assertEqual(response.status_code, 200)
         launch.assert_called_once()
         job = AIJob.objects.get(job_type="UPLOAD")
@@ -123,7 +124,8 @@ class TeacherDoorTests(APITestCase):
         )
         files = [png_file("s1.png"), png_file("s2.png")]
         with fixed_estimate(), patch("students.views.launch_processing_task") as launch:
-            response = self.client.post(url, {"answers": files}, format="multipart")
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(url, {"answers": files}, format="multipart")
         self.assertEqual(response.status_code, 202)  # Accepted (batch)
         self.assertEqual(launch.call_count, 1)
         job = AIJob.objects.get(job_type="UPLOAD")
@@ -140,11 +142,12 @@ class TeacherDoorTests(APITestCase):
         with fixed_estimate(), patch(
             "assignments.views.launch_processing_task"
         ) as launch:
-            response = self.client.post(
-                reverse("assignment-upload-async"),
-                {"course": str(course.id), "assignments": [png_file("paper.png")]},
-                format="multipart",
-            )
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(
+                    reverse("assignment-upload-async"),
+                    {"course": str(course.id), "assignments": [png_file("paper.png")]},
+                    format="multipart",
+                )
         self.assertEqual(response.status_code, 202)  # Accepted (batch)
         launch.assert_called_once()
         job = AIJob.objects.get(job_type="UPLOAD")
