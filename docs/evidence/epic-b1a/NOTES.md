@@ -1411,3 +1411,18 @@ In every plant G-1 otherwise stayed green. The SC-7 break run (the old SC-7 text
 The C-11 case is a non-broker error raised before `launch_processing_task` reaches its own handling. There the guard's `fail_item` alone would return the hold but leave the row unfinished, with no message ever sent, so it would never resolve. **So the guard also marks the row FAILURE** (`mark_processing_task_failure(row id, exc)`, the existing failure path and text) when the row is not yet finished. It then returns the hold if it is still HELD, logs, and returns. C-11 asserts `("FAILURE", "RETURNED")`.
 
 Tests as committed with this addendum: C-9 and C-11 (`FailingCallbackUnderAnOuterAtomicTests`), C-10 (`FailingLaunchInAutocommitTests`, a TransactionTestCase), and D-10 (`TeacherDoorTests`). The red set is `billing.tests.test_holds_door billing.tests.test_holds_door_commit` plus G-1 (SM process rule): **Ran 54 (20 + 34), FAILED (errors=2): C-9, C-11.** C-10 and D-10 pass.
+
+### 15h, updated before any DP plant runs: the kill sets with C-9…C-11 and D-10 in place (code cf82437d)
+
+Each plant runs `billing.tests.test_holds_door billing.tests.test_holds_door_commit` (20 tests) plus G-1 (34). Exactly the listed tests are expected to fail; anything else, or a listed test passing, is a STOP.
+
+| Plant | Mutation | Expected kills |
+|---|---|---|
+| DP-1 | `_balance` always returns `wallet.total_remaining_credits()` | D-10 |
+| DP-2 | student route: the hold is taken after the `atomic()` block, and a refusal returns the 402 there | D-1 |
+| DP-3 | `notify_late_door_refusal` ignores `LATE_DOOR_EMAIL_APPROVED` | D-7 |
+| DP-4 | `launch_at_door`, under an atomic: `send()` directly instead of `transaction.on_commit(_DoorLaunchOnCommit(…))` | C-1, C-3, C-4 (sent before commit); C-9 (the view answers 503 at the first file); C-11 (the RuntimeError reaches the view) |
+| DP-5 | `launch_processing_task`: `_celery_task_id` also goes into the task kwargs | C-6 |
+| DP-6 | `launch_processing_task`: neither branch calls `_return_door_hold` | C-8; C-10 (autocommit: no guard, so the hold stays HELD). C-9 still passes because its guard returns the hold. |
+| DP-7 | `launch_at_door`: no `attach_celery_task` before commit | C-2, C-3 |
+| DP-8 | `_DoorLaunchOnCommit`: no `fail_item` | C-11 |
