@@ -1182,3 +1182,186 @@ Red expected: **Ran 8, 2 pass (C-5, C-7), 6 fail or error.** The red is the comm
 **Green (WIP):** test_holds_door_commit 8 OK; test_holds_door 8 OK; all holds tests OK (129 + 8 = 137); the flag-off door tests 39 OK.
 
 **Then:** the four-app flag-off near run on WIP. Expected: base 5654 plus the added B1a tests only, with 0 failures. Then plants (§15h, written before they run).
+
+**§15g results**
+
+- **Red** at d0f983b0, in a disposable detached worktree (`step3c_amend_red_d0f983b0.log`): Ran 16, FAILED (failures=5, errors=1).
+  - C-1, C-3, C-4 fail as declared: launched before commit.
+  - C-2 is an ERROR, `KeyError: '_celery_task_id'` (the launch got no pre-assigned id).
+  - C-6 fails: `delay` called.
+  - C-8 fails: `('FAILURE', 'HELD')`.
+  - C-5, C-7 and the 8 D-tests pass.
+  - This matches §15g: 6 fail or error, C-5 and C-7 pass.
+- **Green (WIP):**
+  - All holds, as previously defined: Ran 137, OK (`step3c_amend_green_allholds_WIP.log`).
+  - The flag-off door tests, untouched: Ran 39, OK (`step3c_amend_door_tests_flagoff_WIP.log`).
+  - A first holds run, `step3c_amend_green_holds_WIP.log` (Ran 122, OK), used only the `billing/tests/test_holds*.py` glob. It left out `test_wallet_save_guard`, `audit.tests_financial_retention` and `SweepSelfRecordTests`, which the "all holds" set has carried since 3a. That was a command slip, not a result mismatch. It was re-run with the declared set.
+- **Code commit 327ce23c:** isort reordered one import name in `students/views.py` on the first commit attempt, so it was re-staged. That change is import order only.
+- **Four-app flag-off near run on 327ce23c:** expected **Ran 5781 = base 5654 + 127** B1a billing tests (no test added or removed in ai_processor, students or assignments since 2f00c078), OK (skipped=20). Log `step3c_near4_flagoff_327ce23c.log`.
+
+### 15h. 3c plants: expectations, committed before any plant runs
+
+**One test added first: D-10** in `billing/tests/test_holds_door.py`. The planned plant "the door reads the total instead of spendable" would survive every existing test. D-1 still gets its 402 because the hold itself refuses.
+
+- **Setup:** a teacher batch of 2 files at 5,000 each, a wallet of 12,000, and another job holding 3,000 (spendable 9,000).
+- **Assertion:** the door parks one file, so the UPLOAD job has `total_items == 1` and exactly one HELD row.
+- **Under the plant:** both files pass the door, and the job has `total_items == 2`.
+- D-10 has no red on this code, because the guard already exists. Its red is DP-1 below.
+
+Each plant is applied to committed code, run against the listed tests, and restored by sha256 from a saved copy. One log per plant: `step3c_plant_DP-n.log`.
+
+| Plant | Mutation | Killed by (expected) |
+|---|---|---|
+| DP-1 | `upload_door._balance`: always `wallet.total_remaining_credits()` | D-10 |
+| DP-2 | Student route: the hold is taken after the `atomic()` block, not inside it | D-1 (the row survives the refusal) |
+| DP-3 | `notify_late_door_refusal` ignores `LATE_DOOR_EMAIL_APPROVED` | D-7 |
+| DP-4 | `launch_at_door`, flag on: calls `launch(..., _celery_task_id=…)` directly instead of `transaction.on_commit` | C-1, C-3, C-4 |
+| DP-5 | `launch_processing_task`: `_celery_task_id` is also put into the task kwargs | C-6 |
+| DP-6 | `launch_processing_task`: `_return_door_hold` is not called on a failure | C-8 |
+| DP-7 | `launch_at_door`: the pre-assigned id is not attached to the row before commit | C-2, C-3 |
+
+Test set for each plant: `billing.tests.test_holds_door billing.tests.test_holds_door_commit` (17 with D-10). A plant counts as killed when the named tests fail. Any other test failing, or a named test passing, is a STOP to the SM.
+
+**Ruling received during 3c (SM, owner F4, 2026-11-06), added after §15h:**
+- Uploaded files are to be kept in private Cloudinary storage for 30 days, and resume or retry uses the stored file. After 30 days the file is deleted and the teacher re-uploads. This reverses the §0.9 "no persistence" default and the 2026-10-30 "late door file is lost" outcome.
+- **No 3c change:** the late-door refusal stays exactly as built, and the email stays a placeholder behind the flag. **No file storage in B1a.**
+- Storage is B1b scope, with a plan amendment by the SM before B1b starts. Any changed user wording goes to the owner first.
+- On the §10 slice-summary list.
+
+### 15g addendum: a failing door callback under an outer atomic (SM rulings 2026-11-06), expectations before any run
+
+This replaces the "Recorded limit" bullet in §15g, where one raising callback stopped the later ones.
+
+**Why not `robust=True`** (checked on Django 5.2.17 / Python 3.12; the SM approved the guard instead):
+1. In autocommit, robust=True swallows the exception, so the view would stop surfacing `ProcessingTemporarilyUnavailable` (503).
+2. Django's handler formats `func.__qualname__`, which a `functools.partial` does not have. The handler raises AttributeError from inside its own `except`, and the later callbacks still do not run.
+3. It logs the message with `exc_info=True`, which puts the chained broker error text and the traceback in the log. That breaks H-208.
+
+**Code (`assignments/upload_door.py`):**
+- **Only when `connection.in_atomic_block`**, `launch_at_door` registers a named guard (`_DoorLaunchOnCommit`) with default robust=False. The guard calls the launch.
+- On any `Exception` the guard:
+  - re-reads the row and, if it is still HELD with a job, calls `fail_item`. It does not assume `launch_processing_task` already accounted for it, since the error may come from before that point. `fail_item` is idempotent on hold_state.
+  - logs one line, `Door launch for task %s failed on commit: %s`, with the row id and `describe_error_for_log(exc)`: the class only, with no message or traceback.
+  - returns, so the later callbacks still run.
+- **Autocommit** stays exactly as 327ce23c: the plain partial runs at once and raises to the view.
+
+**Tests, added to `billing/tests/test_holds_door_commit.py`:**
+
+| # | Test | Red (327ce23c) | Green |
+|---|---|---|---|
+| C-9 | Outer atomic (TestCase); batch of 2 files; the first file's real dispatch raises ConnectionError, the second launches. File 1 is FAILURE/RETURNED, file 2 HELD; wallet reserved = one estimate; the guard's log line carries no broker text | ERROR (ProcessingTemporarilyUnavailable escapes the first callback; the second never runs) | PASS |
+| C-10 | Autocommit (TransactionTestCase); student upload whose dispatch raises ConnectionError: the response is 503, and the row is FAILURE/RETURNED | PASS (327ce23c already does this; it pins that the guard leaves autocommit alone) | PASS |
+| C-11 | Outer atomic; student upload where the patched launch raises RuntimeError before any accounting: no exception escapes the commit, the row is RETURNED, wallet reserved 0 | ERROR (RuntimeError escapes) | PASS |
+
+**Also added: D-10** (§15h) in `billing/tests/test_holds_door.py`. Red: PASS. Its red is plant DP-1.
+
+**Red expected**, at the commit of these tests (code 327ce23c), for `test_holds_door` + `test_holds_door_commit`: **Ran 20, FAILED (errors=2): C-9, C-11.** All 18 others pass.
+
+**Green expected:** the same 20 OK; all holds (declared set) 137 + 4 = 141 OK; flag-off door tests 39 OK.
+
+**Near run:** the four-app flag-off near run on 327ce23c (expected 5781) stands for the amendment. The four-app near run is repeated once at the end of 3c, after the guard and the plants. Expected: **Ran 5785 = 5654 + 131** (127 + C-9, C-10, C-11, D-10), OK (skipped=20).
+
+**Plants (§15h) gain one: DP-8.** The guard does not call `fail_item` (it relies on `launch_processing_task`). Expected kill: C-11. The test set for every plant becomes the 20 tests above.
+
+(§15h plants are named DP-1…DP-8, so they do not collide with the 3a plants P-1…P-5b.)
+
+## 15i. 3c finding: the 3a code broke three static guards; fix the code, not the guards (SM approved 2026-11-06). Expectations committed before any run
+
+**Finding.** The four-app flag-off near run on 327ce23c (`step3c_near4_flagoff_327ce23c.log`) gave Ran 5781, FAILED (failures=3, skipped=67). The count matched; the result did not. STOP, reported to the SM.
+1. `ai_processor.tests_metering_chokepoint` `test___ai_model_is_called_only_from_execute_graded_task_twice`: 4 sites, not 2. The 3a flag-on branch copied the provider call, once for the unit path and once for the single call.
+2. `ai_processor.tests_call_record_static` `test_the_hooks_are_five_lines_in_all`: 10 != 5, because the copies also copied the call_record notes.
+3. The same module's `test_no_other_code_names_the_model`: `billing/holds.py` named AICallRecord (the 3a repoint in `settle`).
+
+These came from 3a and were missed in 3a and 3b: those targeted sets left both modules out. **Process rule (SM condition 4), from now on:** every targeted set includes `ai_processor.tests_metering_chokepoint`, `ai_processor.tests_call_record_static`, and any other `*_static` / `*chokepoint*` module in an app I touch. Today that is also `students.tests_reading_label_static` and `AutoGrader.tests_h271_static_files` (found with `find … -name '*static*' -o -name '*chokepoint*'`).
+
+**Skips: the new environment baseline is 67** (SM). Playwright's Chromium no longer launches anywhere on this machine. `assignments.tests_pdf_renderer` skips 34 of 59 in both the base worktree and epic-b1a. Playwright is not touched.
+
+### 15i-1. The fix
+
+**(a) One provider call and one set of notes in `execute_graded_task`.** The guards stay unedited. `tests_call_record_static` pins every note as a top-level statement beside its line, so the flow stays flat:
+
+    call_record.note_estimate(estimated_cost)
+    if not credit_holds.holds_enabled():
+        <today's two balance checks, unchanged>
+    ensure_task_not_cancelled(processing_task_id)
+    hold = credit_holds.hold_for_call(wallet=…, target_teacher=…, estimate=estimated_cost)   # None with the flag off
+    task_id = str(uuid.uuid4()) if hold is None else hold.usage_id
+    call_record.note_task_id(task_id)
+    try:
+        response = self.__ai_model(…)                       # the one metered call site
+        note_if_reply_cut_off(response, task_type)
+    except BaseException:
+        credit_holds.abandon_call(hold)                     # no-op for None or a unit
+        raise
+    call_record.note_response(response)
+    resolved_course = …
+    if hold is not None:
+        hold.finish(actual, feature=…, task_type=…, course=…, school=…, before_charge=<the cancellation check>)
+        return response
+    <today's charge block, unchanged>
+
+- **Flag off:** the same statements in the same order. The differences are (i) the two balance checks are indented under `if not holds_enabled()`; (ii) the `task_id` line gains `if hold is None else hold.usage_id`, because the guard allows exactly one top-level `task_id` assignment; and (iii) the provider call sits in a `try` whose `except` re-raises after a no-op.
+  - Evidence: `git diff -w` of `execute_graded_task` against 2f00c078, saved as `execute_graded_task_flagoff.diff`. It must show only those three points plus the added flag-on lines.
+- **Flag on, order:** the fit check (unit `before_call` or `begin_single_call`) now runs just after the cancellation check, so a cancelled task never takes a hold. The single call's hold is returned on any exception from the provider call through to the charge.
+- **`billing/holds.py`:** `hold_for_call` returns a unit hold (`before_call`, then `after_call` at finish) or a single-call hold (`begin_single_call`; finish = the cancellation check, `finish_single_call` and the analytics in one atomic block; on failure `abandon_single_call`; then `record_billing_task_id(usage_id)` as in 3a). `abandon_call(hold)` is the no-op-safe abandon.
+
+**(b) No repoint: the usage id is fixed before the call** (SM: accepted).
+- **The FENCE KEY is unchanged:** (item_id, retry_count). That is the task row id where a row exists, and (job.id, 0) on sync E-4/E-5/SINGLE_CALL. It is computed in `settle()` exactly as now, with the same IntegrityError → NOT_SETTLED, and a retry still gets its own successor job and key.
+- **What is fixed early is only the USAGE ID,** `SettlementRecord.id`, the task_id on the usage rows. A root `Unit` picks a uuid4 when it is created; a single call picks one at `hold_for_call`. Every call notes it once through the existing `note_task_id`, and `settle(record_id=…)` creates the SettlementRecord with that id.
+- `settle()` loses `call_task_ids` and its AICallRecord update; `Unit.after_call` loses its `task_id` argument; `call_task_ids` is gone. **`billing/holds.py` no longer names AICallRecord.**
+- **Refused duplicate settle** (accepted as today): that run's call rows carry a uuid with no SettlementRecord, and no credits move. Today they keep per-call uuids that join nothing.
+- **Nested drop** (recorded, SM framing): a nested unit's calls carry the ROOT's usage id. When a nested unit fails and is dropped while the root succeeds, the root settlement's call rows include the provider cost of those dropped calls. That is true provider spend the company absorbed, so the provider-cost view stays accurate. **Credits come only from the usage rows (the root tally):** a dropped nested call adds 0 credits.
+
+### 15i-2. Tests
+
+| # | Where | What | Red (327ce23c code) | Green |
+|---|---|---|---|---|
+| G-1 | `ai_processor.tests_metering_chokepoint` + `ai_processor.tests_call_record_static`, unedited | the three guards | Ran 34, failures=3 (the finding) | Ran 34 OK |
+| SC-7 (rewritten, my 3a test) | `test_holds_single_call.DominanceTests` | in `execute_graded_task`'s top-level body, exactly one statement after `hold = credit_holds.hold_for_call(…)` contains the provider call, and none between the cancellation check and the hold | FAIL (no `hold = …hold_for_call` statement) | PASS |
+| SC-7 break run | the OLD SC-7 text against the NEW code | shows the old test no longer describes the code | n/a | FAIL `no \`if holds_enabled()\` branch found` (expected) |
+| N-1 (new) | `test_holds_unit` | root call (100 tokens), nested unit's call (200) then the nested unit raises and is caught, root succeeds. Both AICallRecord rows carry the root's settlement id; the usage rows' sum for that id = 100 = the root tally; the dropped call adds 0 credits | FAIL (the dropped call's row keeps its own uuid; count 1 != 2) | PASS |
+| D-1 (+1 line, SM-approved edit) | `test_holds_settlement` | second settle passes `record_id=u2`: no SettlementRecord with pk u2, and no usage row for u2 | ERROR (`settle()` takes no `record_id`) | PASS |
+
+Unchanged and still meaningful under (b):
+- the unit settle-once join (`test_two_calls_in_a_unit_settle_once`: both call rows reach the usage rows);
+- SC-2 (`test_a_call_holds_settles_and_returns_the_rest`: the call row's task_id = the settlement id).
+
+**Red expected** at the tests commit (code 327ce23c), for G-1 + `test_holds_single_call` + `test_holds_unit` + `test_holds_settlement`:
+- **G-1:** 3 FAIL;
+- **SC-7:** 1 FAIL;
+- **N-1:** 1 FAIL;
+- **D-1:** 1 ERROR;
+- **everything else in those modules:** PASS.
+
+**Green expected (WIP):**
+- G-1: 34 OK;
+- the three hold modules: OK;
+- all holds (declared set): 137 + 1 (N-1) = 138 OK;
+- the static/chokepoint set (G-1 + `students.tests_reading_label_static` + `AutoGrader.tests_h271_static_files`): OK;
+- flag-off evidence (SM condition 1), each its own log:
+  - the 3a/3b targeted ai_processor sets, run as in §13/§14 (ai_processor grading/answer/reading pipelines, students async edit, h242 flags, assignments h219; and the audit app, ai_processor billing-gate tests, beat locks, zero-credit);
+  - the billing app (flag off; expected 2410 base + B1a billing tests, OK);
+  - and `execute_graded_task_flagoff.diff`.
+
+### 15i-3. Plants after the refactor (SM condition 3)
+
+Every 3a and 3b plant is re-run, each re-pointed at the same logic in its new place, plus two new plants. Each runs against the 3a/3b set it was declared against, plus G-1.
+
+| Plant | Mutation after the refactor | Killed by (expected) |
+|---|---|---|
+| P-1, P-2 | as in §13 (billing/services.py) | as in §13 |
+| P-3 (M-B4) | `hold_for_call`, single path: `begin_single_call(…)` → `create_job(…)` with no reserve | `test_a_call_that_cannot_be_held_is_refused_before_the_provider` (the provider is reached) |
+| P-4 (M-B5) | as in §13 (unit settles on exception) | as in §13 |
+| P-5 | `settle()` ignores `record_id` (the SettlementRecord gets a fresh uuid) | `test_two_calls_in_a_unit_settle_once` (join 0 != 2), SC-2 |
+| P-5b | `execute_graded_task`: `task_id = str(uuid.uuid4())` even with a hold | SC-2 (call row id ≠ settlement id) |
+| Q-1…Q-6 | as in §14 | as in §14 |
+| G-P1 (new) | a second copy of the provider call inside `if hold is not None:` | the chokepoint guard (3 sites) |
+| G-P2 (new) | `billing/holds.py` gains `from ai_processor.models import AICallRecord  # noqa` | `test_no_other_code_names_the_model` |
+
+**Then**, in the agreed order: the §15g addendum (C-9…C-11 and the guard), D-10, plants DP-1…DP-8, and the four-app near run. Expected: **Ran 5786 = 5654 + 132** (127 + C-9, C-10, C-11, D-10, N-1), OK (skipped=67 or as recounted).
+
+### 15i-4. §10 slice-summary additions
+
+- **B1b item (SM):** actual-cost reporting reads CREDITS only from the usage rows (`CreditUsageLog` by task_id) and PROVIDER COST from `AICallRecord`. It tells failed calls apart by the record's own `AICallRecord.outcome` field (`CallOutcome`), and it must never derive credits from AICallRecord.
+- The nested-drop nuance (15i-1).
+- The guard-coverage process rule (above).

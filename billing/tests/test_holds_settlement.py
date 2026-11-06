@@ -4,6 +4,8 @@ The key is (item_id, retry_count): the task row id whenever one exists, the
 job id (retry 0) only for paths with no task row.
 """
 
+import uuid
+
 from django.test import TestCase
 
 from billing.models import CreditUsageLog, SettlementRecord
@@ -18,9 +20,15 @@ class SettlementKeyTests(TestCase):
         item = make_item(job)
         holds().reserve(wallet, 50, job, item=item)
         first = holds().settle(job, 40, item=item)
-        second = holds().settle(job, 40, item=fresh(item))
+        second_run = uuid.uuid4()
+        second = holds().settle(job, 40, item=fresh(item), record_id=second_run)
         self.assertTrue(first.settled)
         self.assertFalse(second.settled)
+        # The refused run's fixed usage id names nothing (NOTES §15i).
+        self.assertFalse(SettlementRecord.objects.filter(pk=second_run).exists())
+        self.assertFalse(
+            CreditUsageLog.objects.filter(task_id=str(second_run)).exists()
+        )
         self.assertEqual(SettlementRecord.objects.filter(item_id=item.id).count(), 1)
         self.assertEqual(fresh(job).consumed_credits, 40)
         self.assertEqual(fresh(wallet).total_remaining_credits(), 460)

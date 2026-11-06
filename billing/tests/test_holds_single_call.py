@@ -114,56 +114,41 @@ def _call_names(node):
     }
 
 
-COMPOUND_FIELDS = ("body", "orelse", "finalbody")
-
-
-def _check_dominance(stmts, seen, hold_calls, found):
-    """Walk a statement list in order. A hold seen earlier in this list, or
-    in an enclosing one, dominates the statements after it, including those
-    nested inside later blocks; a hold inside a nested block does not leak
-    out of it. Appends (lineno, dominated) for each provider call."""
-    for stmt in stmts:
-        nested = [
-            getattr(stmt, f)
-            for f in COMPOUND_FIELDS
-            if isinstance(getattr(stmt, f, None), list)
-        ] + [h.body for h in getattr(stmt, "handlers", [])]
-        if nested:
-            for sub in nested:
-                _check_dominance(sub, seen, hold_calls, found)
-            continue
-        names = _call_names(stmt)
-        if names & hold_calls:
-            seen = True
-        if "__ai_model" in names:
-            found.append((stmt.lineno, seen))
+def _assigns(node, name):
+    return isinstance(node, ast.Assign) and any(
+        isinstance(t, ast.Name) and t.id == name for t in node.targets
+    )
 
 
 class DominanceTests(TestCase):
-    """M-B4: inside execute_graded_task's `if holds_enabled()` branch, every
-    statement that calls the provider is preceded, in its own statement
-    list, by a hold: the single-call reserve or the unit's pre-call check."""
+    """M-B4 (rewritten in 3c, NOTES §15i): execute_graded_task has one
+    metered provider call. In the function's top-level body it comes after
+    the hold (`hold = credit_holds.hold_for_call(...)`), and the hold comes
+    after the cancellation check, so no call reaches the provider unheld and
+    a cancelled task takes no hold."""
 
-    HOLD_CALLS = {"begin_single_call", "before_call"}
-
-    def test_every_held_provider_call_is_dominated_by_a_hold(self):
+    def test_the_metered_provider_call_comes_after_the_hold(self):
         source = textwrap.dedent(inspect.getsource(AIProcessor.execute_graded_task))
-        tree = ast.parse(source)
-        held_branches = [
-            n
-            for n in ast.walk(tree)
-            if isinstance(n, ast.If) and "holds_enabled" in _call_names(n.test)
+        function = ast.parse(source).body[0]
+        assert isinstance(function, ast.FunctionDef)  # nosec B101 (test)
+        body = function.body
+        holds_at = [
+            i
+            for i, stmt in enumerate(body)
+            if _assigns(stmt, "hold") and "hold_for_call" in _call_names(stmt)
         ]
-        self.assertTrue(held_branches, "no `if holds_enabled()` branch found")
-
-        found = []
-        for branch in held_branches:
-            _check_dominance(branch.body, False, self.HOLD_CALLS, found)
-        for lineno, dominated in found:
-            self.assertTrue(
-                dominated, f"provider call at line {lineno} is not preceded by a hold"
-            )
-        checked = len(found)
-        self.assertGreaterEqual(
-            checked, 2, "expected the unit and the single-call calls"
-        )
+        self.assertEqual(len(holds_at), 1, "no `hold = ...hold_for_call(...)` line")
+        hold = holds_at[0]
+        self.assertIn("ensure_task_not_cancelled", _call_names(body[hold - 1]))
+        after = [
+            i
+            for i in range(hold + 1, len(body))
+            if "__ai_model" in _call_names(body[i])
+        ]
+        self.assertEqual(len(after), 1, after)
+        before_unmetered = [
+            i
+            for i in range(hold)
+            if "__ai_model" in _call_names(body[i]) and not isinstance(body[i], ast.If)
+        ]
+        self.assertEqual(before_unmetered, [])

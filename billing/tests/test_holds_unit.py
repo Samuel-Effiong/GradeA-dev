@@ -110,6 +110,29 @@ class UnitTests(TestCase):
         self.assertEqual(AIJob.objects.get().consumed_credits, 100)
         self.assertEqual(wallet_of(teacher).reserved_credits, 0)
 
+    def test_n1_a_dropped_nested_call_carries_the_root_id_and_adds_no_credits(self):
+        # N-1 (NOTES §15i): every call in a unit notes the root's usage id
+        # before the call. A dropped nested call's row therefore joins the
+        # root settlement (true provider spend, absorbed), but CREDITS come
+        # only from the usage rows: the root tally.
+        teacher = ai_ready_teacher("u.n1@example.com", 3 * estimate_for())
+        responses = [ai_response(100), ai_response(200)]
+        with patch.object(AIProcessor, PROVIDER, side_effect=responses):
+            with holds().metered_unit(reason="outer"):
+                call_ai(teacher)
+                try:
+                    with holds().metered_unit(reason="inner"):
+                        call_ai(teacher)
+                        raise ValueError("inner step failed")
+                except ValueError:
+                    pass
+        record = SettlementRecord.objects.get()
+        self.assertEqual(AICallRecord.objects.filter(task_id=str(record.id)).count(), 2)
+        usage = CreditUsageLog.objects.filter(task_id=str(record.id))
+        self.assertEqual(sum(u.amount for u in usage), 100)
+        self.assertEqual(CreditUsageLog.objects.count(), usage.count())
+        self.assertEqual(AIJob.objects.get().consumed_credits, 100)
+
 
 class FlagOffUnitTests(TestCase):
     @override_settings(BILLING_HOLDS_ENABLED=False)
