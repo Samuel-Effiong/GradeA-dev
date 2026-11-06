@@ -466,6 +466,26 @@ class StudentCourse(models.Model):
                 code="name_clash",
             )
 
+    # Fields whose value cannot change what the name-conflict rule, the FK
+    # existence checks or the unique constraint see. A write that touches only
+    # these is validated field by field; anything else gets full_clean().
+    HOT_PATH_FIELDS = frozenset(
+        {"final_grade", "ai_summary", "ai_summary_generated_at"}
+    )
+
     def save(self, *args, **kwargs):
-        self.full_clean()
+        update_fields = kwargs.get("update_fields")
+        if update_fields and set(update_fields) <= self.HOT_PATH_FIELDS:
+            # H-5. The grading signal writes final_grade inside a
+            # select_for_update() row lock. Full validation there costs six
+            # queries (FK existence, the student and course loads, the name
+            # lookup, the unique lookup) for a rule that depends on none of
+            # these fields. The written fields are still validated.
+            self.clean_fields(
+                exclude=[
+                    f.name for f in self._meta.fields if f.name not in update_fields
+                ]
+            )
+        else:
+            self.full_clean()
         super().save(*args, **kwargs)

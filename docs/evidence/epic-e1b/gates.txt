@@ -1,0 +1,14 @@
+== 02b-h5-gate.log
+FAIL: test_a_formatted_grade_save_does_not_recalculate (classrooms.tests_e1_hot_path.GradeFieldSkipTest.test_a_formatted_grade_save_does_not_recalculate)
+FAIL: test_a_held_regrade_save_does_not_recalculate (classrooms.tests_e1_hot_path.GradeFieldSkipTest.test_a_held_regrade_save_does_not_recalculate)
+FAIL: test_a_publish_only_save_does_not_recalculate (classrooms.tests_e1_hot_path.GradeFieldSkipTest.test_a_publish_only_save_does_not_recalculate)
+FAIL: test_a_scheduling_save_does_not_recalculate (classrooms.tests_e1_hot_path.GradeFieldSkipTest.test_a_scheduling_save_does_not_recalculate)
+Ran 104 tests in 69.390s
+FAILED (failures=4)
+E1B_MEASURE lock_statements=5
+H5_MEASURE save_queries=3
+== 03-skip-gate.log
+Ran 104 tests in 61.992s
+OK
+E1B_MEASURE lock_statements=5
+H5_MEASURE save_queries=3

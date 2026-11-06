@@ -217,14 +217,16 @@ def _recalculate_final_grade(student_id, course_id, *, allow_clear=True):
     `recalculate_final_grades` management command exists for them.
 
     Locks the enrollment row for the duration of the aggregate + write.
-    Batch grading (grade-all) finishes several submissions for the same
-    (student, course) on different workers at nearly the same moment; an
-    unlocked read-aggregate-write here let a worker holding a stale
-    aggregate win the last write, permanently understating final_grade
-    (nothing re-triggers the recalc afterwards). Under the lock, the
-    second worker blocks until the first commits and then aggregates
-    fresh data, so the last write always reflects every graded
-    submission.
+    One Grade all run grades one assignment, one submission per student,
+    so a single run recalculates each student once. The lock matters when
+    runs on different assignments of the same course overlap (or a teacher
+    edits a score while one runs): two workers then finish the same
+    (student, course) at nearly the same moment, and an unlocked
+    read-aggregate-write let the worker holding a stale aggregate win the
+    last write, permanently understating final_grade (nothing re-triggers
+    the recalc afterwards). Under the lock, the second worker blocks until
+    the first commits and then aggregates fresh data, so the last write
+    always reflects every graded submission.
     """
     with transaction.atomic():
         enrollment = (
@@ -247,9 +249,34 @@ def _recalculate_final_grade(student_id, course_id, *, allow_clear=True):
         return old, new_final_grade, True
 
 
+# The submission fields `grade_service.course_grade` reads: which rows count
+# (student, assignment, graded_at, score) and their weight (max_points, else
+# the assignment's total_points). Column names are listed too, because Django
+# passes `update_fields=["assignment_id"]` to the receiver as written.
+GRADE_INPUT_FIELDS = frozenset(
+    {
+        "score",
+        "max_points",
+        "graded_at",
+        "assignment",
+        "student",
+        "assignment_id",
+        "student_id",
+    }
+)
+
+
 @receiver(post_save, sender=StudentSubmission)
-def update_student_course_final_grade(sender, instance, **kwargs):
-    """When a submission is saved, recalculate the student's final grade."""
+def update_student_course_final_grade(sender, instance, update_fields=None, **kwargs):
+    """When a submission is saved, recalculate the student's final grade.
+
+    A save that names its fields and names none the grade reads (scheduling,
+    the formatted label, publishing, a regrade held behind a released grade)
+    cannot change the result, so it is skipped. A save without
+    `update_fields` always recalculates, and so does every delete (below).
+    """
+    if update_fields is not None and not GRADE_INPUT_FIELDS.intersection(update_fields):
+        return
     course_id = _course_id_for_assignment(instance.assignment_id)
     if course_id is None:
         return

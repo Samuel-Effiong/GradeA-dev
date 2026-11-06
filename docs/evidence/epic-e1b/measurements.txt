@@ -1,0 +1,41 @@
+== 06-measure-before-8bebace57.log
+FAIL: test_a_changed_grade_runs_no_validation_inside_the_lock (classrooms.tests_e1_hot_path.LockCostTest.test_a_changed_grade_runs_no_validation_inside_the_lock)
+Ran 4 tests in 5.566s
+FAILED (failures=1)
+E1B_GRADE_ALL n=30 saves=90 recalculations=90 queries=914 lock_ms=852.6 total_ms=1410.5
+E1B_MEASURE lock_statements=10
+E1B_MEASURE    SELECT "classrooms_studentcourse"."id", "classrooms_studentcourse"."student_id", "classrooms_studentcourse"."c
+E1B_MEASURE    SELECT "students_studentsubmission"."score" AS "score", COALESCE("students_studentsubmission"."max_points", "a
+E1B_MEASURE    SELECT %s AS "a" FROM "users_customuser" WHERE "users_customuser"."id" = %s LIMIT 1
+E1B_MEASURE    SELECT %s AS "a" FROM "classrooms_course" WHERE "classrooms_course"."id" = %s LIMIT 1
+E1B_MEASURE    SELECT "users_customuser"."password", "users_customuser"."last_login", "users_customuser"."is_superuser", "use
+E1B_MEASURE    SELECT "classrooms_course"."id", "classrooms_course"."name", "classrooms_course"."teacher_id", "classrooms_cou
+E1B_MEASURE    SELECT %s AS "a" FROM "classrooms_studentcourse" INNER JOIN "users_customuser" ON ("classrooms_studentcourse".
+E1B_MEASURE    SELECT %s AS "a" FROM "classrooms_studentcourse" WHERE ("classrooms_studentcourse"."course_id" = %s AND "class
+E1B_MEASURE    UPDATE "classrooms_studentcourse" SET "final_grade" = %s WHERE "classrooms_studentcourse"."id" = %s
+E1B_MEASURE    SELECT "users_customuser"."password", "users_customuser"."last_login", "users_customuser"."is_superuser", "use
+H5_MEASURE writes=7 wall_s=0.297 save_p50_ms=26.48 save_p95_ms=27.61 save_total_ms=153.1 load1=5.86
+H5_MEASURE save_queries=8
+H5_MEASURE    SELECT %s AS "a" FROM "users_customuser" WHERE "users_customuser"."id" = %s LIMIT 1
+H5_MEASURE    SELECT %s AS "a" FROM "classrooms_course" WHERE "classrooms_course"."id" = %s LIMIT 1
+H5_MEASURE    SELECT "users_customuser"."password", "users_customuser"."last_login", "users_customuser"."is_superuser", "use
+H5_MEASURE    SELECT "classrooms_course"."id", "classrooms_course"."name", "classrooms_course"."teacher_id", "classrooms_cou
+H5_MEASURE    SELECT %s AS "a" FROM "classrooms_studentcourse" INNER JOIN "users_customuser" ON ("classrooms_studentcourse".
+H5_MEASURE    SELECT %s AS "a" FROM "classrooms_studentcourse" WHERE ("classrooms_studentcourse"."course_id" = %s AND "class
+H5_MEASURE    UPDATE "classrooms_studentcourse" SET "final_grade" = %s WHERE "classrooms_studentcourse"."id" = %s
+H5_MEASURE    SELECT "users_customuser"."password", "users_customuser"."last_login", "users_customuser"."is_superuser", "use
+== 05-measure-after-fb8adf068.log
+Ran 4 tests in 4.582s
+OK
+E1B_GRADE_ALL n=30 saves=90 recalculations=30 queries=474 lock_ms=208.6 total_ms=551.7
+E1B_MEASURE lock_statements=5
+E1B_MEASURE    SELECT "classrooms_studentcourse"."id", "classrooms_studentcourse"."student_id", "classrooms_studentcourse"."c
+E1B_MEASURE    SELECT "students_studentsubmission"."score" AS "score", COALESCE("students_studentsubmission"."max_points", "a
+E1B_MEASURE    UPDATE "classrooms_studentcourse" SET "final_grade" = %s WHERE "classrooms_studentcourse"."id" = %s
+E1B_MEASURE    SELECT "classrooms_course"."id", "classrooms_course"."name", "classrooms_course"."teacher_id", "classrooms_cou
+E1B_MEASURE    SELECT "users_customuser"."password", "users_customuser"."last_login", "users_customuser"."is_superuser", "use
+H5_MEASURE writes=10 wall_s=0.160 save_p50_ms=5.74 save_p95_ms=7.75 save_total_ms=59.1 load1=4.92
+H5_MEASURE save_queries=3
+H5_MEASURE    UPDATE "classrooms_studentcourse" SET "final_grade" = %s WHERE "classrooms_studentcourse"."id" = %s
+H5_MEASURE    SELECT "classrooms_course"."id", "classrooms_course"."name", "classrooms_course"."teacher_id", "classrooms_cou
+H5_MEASURE    SELECT "users_customuser"."password", "users_customuser"."last_login", "users_customuser"."is_superuser", "use
