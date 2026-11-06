@@ -1115,9 +1115,9 @@ class TeacherAIContextService:
         )
 
         submissions = list(
-            StudentSubmission.objects.filter(assignment__course_id__in=course_ids)
-            .annotate(points=Coalesce("max_points", "assignment__total_points"))
-            .values(
+            grade_service.risk_rows(
+                StudentSubmission.objects.filter(assignment__course_id__in=course_ids)
+            ).values(
                 "student_id",
                 "assignment_id",
                 "assignment__course_id",
