@@ -21,3 +21,11 @@ Merge had no conflicts.
   users classrooms students AutoGrader audit dashboard (Batch 36 apps):
   OK. Exact Ran recorded from the run.
 - Then: merge into staging (refresh 17), push origin + backup staging.
+
+## Results (2026-11-06)
+- E1: Ran 43, OK (b0-tests.txt) - same 43 as B0's original green run.
+- E2: all 12 mutants killed, every fragment matched, every file restored
+  (sha256 match) (mutants.txt). Script: b0_mutants.py.txt.
+- E3: No changes detected (migrations.txt).
+- E4: near run on 9 apps Ran 9029, OK (skipped=30) (near.txt; full log
+  GAP-a0-runs/b0-land-near.log).

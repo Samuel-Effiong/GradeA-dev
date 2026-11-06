@@ -1,0 +1,12 @@
+M1: KILLED; fragment MATCH ("'WALLET_CONSUME' != 'MODEL_CALL'"); restored sha256 match
+M3: KILLED; fragment MATCH ("'BUCKET_MUTATION' != 'WALLET_CONSUME'"); restored sha256 match
+M4: KILLED; fragment MATCH ('ZeroCreditViolation not raised'); restored sha256 match
+M5: KILLED; fragment MATCH ('ZeroCreditViolation not raised'); restored sha256 match
+M6: KILLED; fragment MATCH ('is not None'); restored sha256 match
+M7b: KILLED; fragment MATCH ("None != '_selftest'"); restored sha256 match
+M9: KILLED; fragment MATCH ('True is not false'); restored sha256 match
+M10: KILLED; fragment MATCH ('Lists differ'); restored sha256 match
+M12: KILLED; fragment MATCH ('ZeroCreditViolation not raised'); restored sha256 match
+M2: KILLED; fragment MATCH ('to not have been called'); restored sha256 match
+M8: KILLED; fragment MATCH ('ValueError not raised'); restored sha256 match
+M11: KILLED; fragment MATCH ('metrics down'); restored sha256 match
