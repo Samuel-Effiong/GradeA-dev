@@ -1224,9 +1224,7 @@ class TeacherAIContextService:
                     "due_assignments": due_by_course[course.id],
                     "submissions": submissions_by_course[course.id],
                     "graded_submissions": len(scores),
-                    "average_score": (
-                        round(sum(scores) / len(scores), 2) if scores else None
-                    ),
+                    "average_score": (grade_service.mean_of_values(scores)),
                     "at_risk_students": at_risk_by_course[course.id],
                 }
             )
