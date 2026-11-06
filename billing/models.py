@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
+from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
@@ -18,6 +19,7 @@ from audit.enums import AuditAction, AuditOutcome
 
 from .errors import InsufficientCreditsError, is_individual_teacher
 from .immutable import AppendOnlyModel, register_append_only_guards
+from .zero_credit import WALLET_CONSUME, assert_not_zero_credit, guard_bucket_save
 
 # Create your models here.
 
@@ -918,6 +920,10 @@ class CreditWallet(models.Model):
         Raises:
             InsufficientCreditsError: If total available credits are less than requested.
         """
+        # Zero-credit scope (billing/zero_credit.py): refuse before locking
+        # or touching any bucket.
+        assert_not_zero_credit(WALLET_CONSUME)
+
         # Lock CreditWallet row to serialize consumption requests
         locked = CreditWallet.objects.select_for_update().get(pk=self.pk)
 
@@ -1684,6 +1690,14 @@ class CreditUsageLog(AppendOnlyModel):
 
 
 register_append_only_guards(CreditLedger, CreditUsageLog)
+
+# A zero-credit operation must not move a bucket either (grant, spend, refund,
+# reversal all go through CreditBucket.save). Every used_credits writer also
+# writes a ledger row (audited for B0), so the ledger guards would catch them
+# too, but the bucket is mutated BEFORE the ledger row in several of them.
+pre_save.connect(
+    guard_bucket_save, sender=CreditBucket, dispatch_uid="zero_credit_bucket_guard"
+)
 
 
 class BetaProfile(models.Model):

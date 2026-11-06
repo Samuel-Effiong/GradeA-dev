@@ -103,7 +103,7 @@ def call(**arguments):
         chat=SimpleNamespace(completions=SimpleNamespace(create=capture))
     )
     del CAPTURED[:]
-    processor.get_ai_model_function()(**arguments)
+    processor._AIProcessor__ai_model(**arguments)  # type: ignore[attr-defined]
     assert len(CAPTURED) == 1, CAPTURED
     return CAPTURED[0]
 

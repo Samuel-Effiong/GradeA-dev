@@ -1,0 +1,26 @@
+M1 mutant: Remove assert_not_zero_credit(MODEL_CALL) at services.py:5502
+Killing test: billing.tests.test_zero_credit_scope.ViolationTests.test_execute_graded_task_raises_before_any_provider_call
+Run on: a9e4e836 (B0 r2 tip at time of run)
+
+======================================================================
+FAIL: test_execute_graded_task_raises_before_any_provider_call (billing.tests.test_zero_credit_scope.ViolationTests.test_execute_graded_task_raises_before_any_provider_call)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b0-r2/billing/tests/test_zero_credit_scope.py", line 230, in test_execute_graded_task_raises_before_any_provider_call
+    self._assert_violation(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b0-r2/billing/tests/test_zero_credit_scope.py", line 128, in _assert_violation
+    self.assertEqual(cm.exception.attempted, attempted)
+AssertionError: 'WALLET_CONSUME' != 'MODEL_CALL'
+- WALLET_CONSUME
++ MODEL_CALL
+
+----------------------------------------------------------------------
+Ran 1 test in 0.298s
+
+FAILED (failures=1)
+
+MUTANT KILLED: YES (fragment mismatch vs prediction, SM accepted)
+Predicted: ZeroCreditViolation not raised
+Actual: 'WALLET_CONSUME' != 'MODEL_CALL'
+Root cause: removing MODEL_CALL guard allows function to proceed; WALLET_CONSUME guard
+fires downstream in consume_credits via CreditBucket.save() → guard_bucket_save.
