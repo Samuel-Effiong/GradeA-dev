@@ -14,7 +14,6 @@ from django.db.models import (
     Q,
     Sum,
 )
-from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD
@@ -1495,11 +1494,12 @@ class SchoolAdminWeeklySummaryService:
 
         submissions_by_student = defaultdict(list)
         submissions = (
-            StudentSubmission.objects.filter(
-                student_id__in=course_ids_by_student.keys(),
-                assignment__course_id__in=all_course_ids,
+            grade_service.risk_rows(
+                StudentSubmission.objects.filter(
+                    student_id__in=course_ids_by_student.keys(),
+                    assignment__course_id__in=all_course_ids,
+                )
             )
-            .annotate(points=Coalesce("max_points", "assignment__total_points"))
             .values_list(
                 "student_id",
                 "assignment_id",
