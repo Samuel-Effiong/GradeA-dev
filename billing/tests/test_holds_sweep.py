@@ -13,7 +13,7 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from billing.models import AIJob
+from billing.models import AIJob, BillingSettings, CreditLedger, CreditUsageLog
 from billing.testing.holds import fresh, funded_wallet, holds, make_item, make_job
 
 
@@ -68,6 +68,20 @@ class ItemSweepTests(TestCase):
         self.assertEqual(job.released_credits, 80)
         self.assertEqual(fresh(self.wallet).reserved_credits, 0)
         self.assertEqual(holds().check_invariants(self.wallet), [])
+        # SM ruling (7): "No credits were charged." must be true.
+        self.assertFalse(CreditUsageLog.objects.exists())
+        self.assertFalse(
+            CreditLedger.objects.filter(user_id=self.wallet.user_id).exists()
+        )
+
+    def test_the_sweep_margin_is_an_editable_setting(self):
+        # SM ruling (6): the margin lives in BillingSettings (default 15 min).
+        settings_row = BillingSettings.load()
+        self.assertEqual(settings_row.hold_sweep_margin_minutes, 15)
+        before = holds().item_sweep_window()
+        settings_row.hold_sweep_margin_minutes = 45
+        settings_row.save()
+        self.assertEqual(holds().item_sweep_window() - before, timedelta(minutes=30))
 
     def test_a_settled_item_is_never_swept(self):
         started = timezone.now() - holds().item_sweep_window() - timedelta(minutes=1)
@@ -136,3 +150,11 @@ class SweepTaskTests(TestCase):
         with patch("billing.tasks.audit_metrics.count") as count:
             check_credit_hold_invariants.apply()
         count.assert_any_call("credit_ledger_anomaly", tags={"kind": "hold_drift"})
+
+    def test_the_invariant_task_is_silent_when_nothing_is_held(self):
+        # SM ruling: flag off, no holds - no log, no metric.
+        check_credit_hold_invariants = tasks().check_credit_hold_invariants
+        funded_wallet("sw.quiet@example.com", 100)
+        with patch("billing.tasks.audit_metrics.count") as count:
+            check_credit_hold_invariants.apply()
+        count.assert_not_called()

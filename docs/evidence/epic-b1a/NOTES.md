@@ -635,3 +635,44 @@ Any other count or fragment is a STOP.
 ### 11f. Green: expected
 
 The same command on the step-2 code: Ran 46 OK. Then the step-1 tests again (Ran 34 OK), and `makemigrations --check` (no changes; step 2 adds no model change). Each run gets its own log.
+
+### 11g. SM rulings 2026-11-06 after green attempt 1, and the changed tests (committed before green attempt 2)
+
+**Green attempt 1** (log `step2_green_attempt1.log`): Ran 46, errors=1. D-2 raised IntegrityError on `aijob_items_within_total`: a retry in place on the same job counts the item twice. This exposed a contradiction between plan §3.2 and §3.4 E-2.
+
+Rulings:
+- **Retry (approved).** E-2 wins (review r2 m-c is later than §3.2's wording).
+  - §3.2's "re-reserves on the same task row (`hold_credits += n`, `hold_state → HELD`)" now reads: **"re-reserves under a new SINGLE_ITEM job, settled with key `(task.id, task.retry_count)`; the task row's hold columns and the old job's counts are untouched"**.
+  - Service: `open_retry_job(old_job, item, amount)`, the same pattern as `open_late_door_job`.
+  - **The link:** 03a's AIJob has no "originated from" column, but has `trace_id`, "shared with AuditEvent rows and every item". The retry job takes the old job's `trace_id`, and `meta` records `{"retry_of": <old job id>, "task_id": <task id>}` (ids only). No column is added; the task row is the key.
+- **(2) Counting (approved as a necessary deviation; slice summary).** Settle → `completed_items`; failure or sweep → `failed_items`; done when `completed + failed = total`.
+- **(6) Sweep margin (approved), moved into `BillingSettings.hold_sweep_margin_minutes`** (default 15), beside `unstarted_backstop_hours`. Migration `billing/0077_billingsettings_hold_sweep_margin` (additive: a new column with default and `db_default` on an unreleased table).
+- **(7) Swept item → PROVIDER_FAILURE (approved)**, provided no ledger row is written. S-3 now asserts zero CreditUsageLog and zero CreditLedger rows.
+- **Invariant task** ungated (approved), but it must stay silent with the flag off and no holds. New test.
+
+Slice summary (§10) gains:
+- the counting deviation (2)
+- the invariant task: always on, read-only, silent when nothing is held
+
+**Changed/new tests (48 in total now):**
+- D-2 rewritten as `test_a_retry_runs_under_a_new_single_item_job_with_its_own_key`
+- S-3 gains the zero-ledger asserts
+- new `test_the_sweep_margin_is_an_editable_setting`
+- new `test_the_invariant_task_is_silent_when_nothing_is_held`
+
+**Red for these 4** (at the tests commit, step-1 code only, in a disposable worktree): **Ran 4, errors=4**.
+
+| Test | Fragment |
+|---|---|
+| D-2 | `ModuleNotFoundError: No module named 'billing.holds'` |
+| S-3 | `ModuleNotFoundError: No module named 'billing.holds'` |
+| margin | `AttributeError: 'BillingSettings' object has no attribute 'hold_sweep_margin_minutes'` |
+| silent | `AttributeError: module 'billing.tasks' has no attribute 'check_credit_hold_invariants'` |
+
+**Green attempt 2** (own log): all 6 step-2 files, **Ran 48, OK**. Then the step-1 tests (Ran 34 OK) and `makemigrations --check` (no changes after 0077).
+
+**Wallet saves** (SM: in scope for step 3; listed in NOTES before any fix). A first read-only grep over production code found every `CreditWallet` `.save(` already passing `update_fields`:
+- `billing/services.py` ×6, `license_service.py` ×4, `payment_refunds.py` ×2, `disputes.py` ×3, `stripe_service.py` ×1
+- `CreditWallet.consume_credits`' own `self.save(update_fields=[...])`
+
+None of the bare `row.save()` sites is a wallet. Step 3 extends the check to `.update()` and `bulk_update` paths and adds the interleaving tests.

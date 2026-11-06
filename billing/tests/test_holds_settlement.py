@@ -25,28 +25,63 @@ class SettlementKeyTests(TestCase):
         self.assertEqual(fresh(job).consumed_credits, 40)
         self.assertEqual(fresh(wallet).total_remaining_credits(), 460)
 
-    def test_a_retry_in_place_settles_again_under_its_new_key(self):
-        # D-2: the same task row, retry_count moved on.
+    def test_a_retry_runs_under_a_new_single_item_job_with_its_own_key(self):
+        # D-2 (SM ruling 2026-11-06, plan §3.4 E-2): the retry of a task row
+        # runs under a NEW SINGLE_ITEM job, keyed (task.id, new retry_count);
+        # the old job's counts and the task's hold columns stay untouched.
         wallet = funded_wallet("s.retry@example.com", 500)
-        job = make_job(wallet, "BATCH_GRADING", total_items=1)
-        item = make_item(job)
-        holds().reserve(wallet, 50, job, item=item)
-        holds().settle(job, 30, item=item)
+        old = make_job(wallet, "BATCH_GRADING", total_items=1)
+        item = make_item(old)
+        holds().reserve(wallet, 50, old, item=item)
+        holds().fail_item(old, item=item)
+        before_old, before_item = fresh(old), fresh(item)
         type(item).objects.filter(pk=item.pk).update(retry_count=1)
         item = fresh(item)
-        holds().reserve(wallet, 50, job, item=item)
-        self.assertTrue(holds().settle(job, 20, item=item).settled)
+
+        retry = holds().open_retry_job(old, item, 50)
+        self.assertEqual(retry.job_type, "SINGLE_ITEM")
+        self.assertEqual(retry.trace_id, old.trace_id)
+        self.assertTrue(
+            holds().settle(retry, 20, key=(item.id, item.retry_count)).settled
+        )
+
         keys = set(
             SettlementRecord.objects.filter(item_id=item.id).values_list(
                 "retry_count", flat=True
             )
         )
-        self.assertEqual(keys, {0, 1})
-        records = SettlementRecord.objects.filter(item_id=item.id)
-        for record in records:
-            self.assertTrue(
-                CreditUsageLog.objects.filter(task_id=str(record.id)).exists()
-            )
+        self.assertEqual(keys, {1})
+        record = SettlementRecord.objects.get(item_id=item.id)
+        self.assertEqual(record.job_id, retry.pk)
+        self.assertTrue(CreditUsageLog.objects.filter(task_id=str(record.id)).exists())
+        after_old, after_item = fresh(old), fresh(item)
+        self.assertEqual(
+            (
+                after_old.completed_items,
+                after_old.failed_items,
+                after_old.released_credits,
+            ),
+            (
+                before_old.completed_items,
+                before_old.failed_items,
+                before_old.released_credits,
+            ),
+        )
+        self.assertEqual(
+            (
+                after_item.hold_credits,
+                after_item.hold_drawn,
+                after_item.released_credits,
+            ),
+            (
+                before_item.hold_credits,
+                before_item.hold_drawn,
+                before_item.released_credits,
+            ),
+        )
+        self.assertEqual(fresh(retry).completed_items, 1)
+        self.assertEqual(fresh(wallet).reserved_credits, 0)
+        self.assertEqual(holds().check_invariants(wallet), [])
 
     def test_a_single_paper_settles_on_its_task_row_not_its_job(self):
         # D-3: an E-1 paper has a task row; the key is that row.
