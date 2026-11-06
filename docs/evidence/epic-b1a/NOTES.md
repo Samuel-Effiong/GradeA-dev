@@ -550,6 +550,10 @@ Commits:
 
 - **Always on, not behind `BILLING_HOLDS_ENABLED` (step 1):** the emitter stores CREDIT_TRANSACTION as FINANCIAL, and the retention sweep keeps financial actions 7 years. New credit rows are tagged FINANCIAL as soon as step 1 deploys. Plan §4 intends this (SM note 2026-11-06).
 - Every run has its own log file (attempt number or timestamp); nothing is overwritten (SM directive 2026-11-06).
+- **Counting deviation (step 2, SM-approved as necessary):** settle → `completed_items`; failure or sweep → `failed_items`; done when `completed + failed = total`. The plan's "sweep increments completed_items" would break 03a's CHECK.
+- **Always on, read-only (step 2):** the daily `check_credit_hold_invariants` beat task is not behind the flag. It is silent when nothing is held (tested). The sweep task is flag-gated.
+- **Retry (step 2, SM ruling):** an item retry runs under a new SINGLE_ITEM job (plan §3.4 E-2 over §3.2's wording), linked by the shared `trace_id`.
+- **Open:** the sweep writes no AuditEvent until B1's four audit actions are named (plan §9 item 12).
 
 ## 11. Step 2 (hold service, `billing/holds.py`): expectations, committed before any run (2026-11-06)
 
@@ -699,3 +703,30 @@ None of the bare `row.save()` sites is a wallet. Step 3 extends the check to `.u
 **Audit row:** the sweep writes **no AuditEvent** in step 2. B1's four audit actions are not named yet (plan §9 item 12: "B1 adds its four actions itself unless the Feature Lead rules for one shared task"). Flagged to the SM. The test pins "exactly once" on the books, not on an audit row.
 
 **Red** for the new test: at its tests commit there is no committed `billing/holds.py`, so it is expected to give Ran 1, errors=1, `ModuleNotFoundError: No module named 'billing.holds'`. It is run in the same disposable worktree as the break run, but the break run needs the step-2 code; so the red runs at the tests commit, and the break run runs in the main worktree with the old file swapped in.
+
+### 11i. Step 2 results (2026-11-06)
+
+| Run | Code | Result | Matches | Log (docs/evidence/epic-b1a/step2/) |
+|---|---|---|---|---|
+| Red | 8df4ec54 (tests only) | Ran 46, failures=1, errors=45 | yes (§11e) | red-run.log |
+| Green attempt 1 | WIP | Ran 46, errors=1: D-2 IntegrityError `aijob_items_within_total` | STOP, plan contradiction; SM ruling (§11g) | green-attempt1.log |
+| Red, 4 changed tests | 7c7d1bc6 | Ran 4, errors=4 | yes (§11g) | red-run-changed-tests.log |
+| Green attempt 2 | WIP | Ran 46+2 = 48, OK | yes | green-attempt2.log |
+| Targeted check 1 (beat locks/health, zero-credit, h28 alerting, audit sweep lock) | WIP | Ran 113, failures=2: lock lifetime (code fix) and the guarded-task pin (STOP, SM ruling) | STOP | targeted-check-1.log |
+| Beat locks after the TTL fix | WIP | Ran 27, failures=1 (the pin only) | as expected | beat-locks-after-ttl-fix.log |
+| Red, overlap test | 36e0befa | Ran 1, errors=1, `No module named 'billing.holds'` | yes (§11h) | red-run-overlap-test.log |
+| Break run, tests_beat_locks pin at old text (sha in §5c) vs step-2 code | WIP | Ran 1, failures=1, `23 != 21` | yes (§5c) | break-run-beat-locks.log |
+| Green | WIP = 2f3c5c45 | Ran 49, OK | yes | green-run.log |
+| Targeted check 2 | WIP = 2f3c5c45 | Ran 113, OK | yes | targeted-check-2.log |
+| Step-1 tests | WIP = 2f3c5c45 | Ran 34, OK | yes | step1-tests-recheck.log |
+| makemigrations --check | 2f3c5c45 | No changes detected | yes | — |
+| check_migration_safety --base origin/staging | 2f3c5c45 | 8 migrations, all "additive only" | yes | migration-safety.txt |
+
+The edited test file was restored from its saved copy (sha256 419f3287…), which equals the committed file. The pre-commit hooks left 2f3c5c45 unchanged, so the committed code is the code tested.
+
+Commits:
+- 8df4ec54: expectations and tests
+- 7c7d1bc6: rulings and the changed tests
+- 36e0befa: pin edit, overlap test, §5c/§11h
+- 2f3c5c45: step-2 code
+- this evidence commit

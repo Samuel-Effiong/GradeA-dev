@@ -1,0 +1,788 @@
+Creating test database for alias 'default'...
+Cloning test database for alias 'default'...
+Cloning test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Found 113 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+...F................./home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+
+
+django.request ERROR 2026-11-06 11:11:26,746 log 348784 134020169955200 [request_id=- client_request_id=-] Service Unavailable: /api/v1/health/beat
+
+
+
+
+django.request ERROR 2026-11-06 11:11:26,764 log 348784 134020169955200 [request_id=- client_request_id=-] Service Unavailable: /api/v1/health/beat
+
+
+
+
+django.request ERROR 2026-11-06 11:11:26,782 log 348784 134020169955200 [request_id=- client_request_id=-] Service Unavailable: /api/v1/health/beat
+
+
+
+
+django.request ERROR 2026-11-06 11:11:26,818 log 348784 134020169955200 [request_id=- client_request_id=-] Service Unavailable: /api/v1/health/beat
+
+
+...../home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request refused: Http404 (404)
+
+
+django.request ERROR 2026-11-06 11:11:26,837 log 348784 134020169955200 [request_id=- client_request_id=-] Service Unavailable: /api/v1/health
+
+
+...
+
+django.request ERROR 2026-11-06 11:11:26,844 log 348784 134020169955200 [request_id=- client_request_id=-] Service Unavailable: /api/v1/health
+
+
+........Free trial plan not found: no trial activated for user 9d0831ef-334a-4f09-86eb-2096a98e9154.
+Cannot activate automatic trial for user 9d0831ef-334a-4f09-86eb-2096a98e9154 (validation): ValueError
+Free trial plan not found: no trial activated for user 9481ecae-ae93-49a1-942d-4a2f4d3762f7.
+Cannot activate automatic trial for user 9481ecae-ae93-49a1-942d-4a2f4d3762f7 (validation): ValueError
+Free trial plan not found: no trial activated for user c7b1d19f-f686-41d0-aa30-6e4f4293d776.
+Cannot activate automatic trial for user c7b1d19f-f686-41d0-aa30-6e4f4293d776 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+..Free trial plan not found: no trial activated for user b1dca6a2-5895-4391-bfec-0d8827e901ed.
+Cannot activate automatic trial for user b1dca6a2-5895-4391-bfec-0d8827e901ed (validation): ValueError
+.........Free trial plan not found: no trial activated for user ffc36845-af1b-4b61-8940-c842dd2a530d.
+Cannot activate automatic trial for user ffc36845-af1b-4b61-8940-c842dd2a530d (validation): ValueError
+Free trial plan not found: no trial activated for user 5725edf1-bcd7-4bf1-ab9d-8ea54e6b41e2.
+Cannot activate automatic trial for user 5725edf1-bcd7-4bf1-ab9d-8ea54e6b41e2 (validation): ValueError
+Free trial plan not found: no trial activated for user de11a9a8-2022-4571-8011-17dba0e70572.
+Cannot activate automatic trial for user de11a9a8-2022-4571-8011-17dba0e70572 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=LEDGER_INSERT request_id=None
+....Free trial plan not found: no trial activated for user 788fabd9-8196-4c1e-9a2f-1138ff51ccc6.
+Cannot activate automatic trial for user 788fabd9-8196-4c1e-9a2f-1138ff51ccc6 (validation): ValueError
+...Zero-credit violation: operation=_selftest attempted=BUCKET_MUTATION request_id=None
+.Free trial plan not found: no trial activated for user 87222752-c09c-48a3-b0e2-5ee7a04cd531.
+Cannot activate automatic trial for user 87222752-c09c-48a3-b0e2-5ee7a04cd531 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=BULK_INSERT request_id=None
+...Free trial plan not found: no trial activated for user 8beeb12e-c8f9-4e2e-a96e-aca7ad5bc1b8.
+Cannot activate automatic trial for user 8beeb12e-c8f9-4e2e-a96e-aca7ad5bc1b8 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=MODEL_CALL request_id=None
+F.......Free trial plan not found: no trial activated for user d1cce6cc-aed4-4b58-816e-c593dd59ba6a.
+Cannot activate automatic trial for user d1cce6cc-aed4-4b58-816e-c593dd59ba6a (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=MODEL_CALL request_id=None
+Free trial plan not found: no trial activated for user 07862e4b-4dea-496a-884c-76be8ac0cddd.
+Cannot activate automatic trial for user 07862e4b-4dea-496a-884c-76be8ac0cddd (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=BULK_INSERT request_id=None
+Free trial plan not found: no trial activated for user 7cfdc460-e77c-4f64-9784-d5c6d024a944.
+Cannot activate automatic trial for user 7cfdc460-e77c-4f64-9784-d5c6d024a944 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=LEDGER_INSERT request_id=None
+Free trial plan not found: no trial activated for user 95410eb3-9f26-4567-b6b2-f24d9e46feaf.
+Cannot activate automatic trial for user 95410eb3-9f26-4567-b6b2-f24d9e46feaf (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=LEDGER_INSERT request_id=None
+Free trial plan not found: no trial activated for user 0dea1524-a759-4a25-bbc6-56de9685e633.
+Cannot activate automatic trial for user 0dea1524-a759-4a25-bbc6-56de9685e633 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Free trial plan not found: no trial activated for user a3b4610d-e972-4e22-990e-28a9747de7f1.
+Cannot activate automatic trial for user a3b4610d-e972-4e22-990e-28a9747de7f1 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=BUCKET_MUTATION request_id=None
+Free trial plan not found: no trial activated for user 4e33faaf-19e9-4b73-ab30-081fcafeb67a.
+Cannot activate automatic trial for user 4e33faaf-19e9-4b73-ab30-081fcafeb67a (validation): ValueError
+Free trial plan not found: no trial activated for user 7fdbe12b-e6cc-41e3-ac67-4da43ced065c.
+Cannot activate automatic trial for user 7fdbe12b-e6cc-41e3-ac67-4da43ced065c (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Free trial plan not found: no trial activated for user e7131ce1-ec3e-4d0a-8b07-5de1f8220a8c.
+Cannot activate automatic trial for user e7131ce1-ec3e-4d0a-8b07-5de1f8220a8c (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=USAGE_LOG_INSERT request_id=None
+Free trial plan not found: no trial activated for user c2f04237-78a2-4147-ad22-5a54d0fb2cc0.
+Cannot activate automatic trial for user c2f04237-78a2-4147-ad22-5a54d0fb2cc0 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Free trial plan not found: no trial activated for user f7e3806a-5aa4-4a89-958b-e361f9be72a2.
+Cannot activate automatic trial for user f7e3806a-5aa4-4a89-958b-e361f9be72a2 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Free trial plan not found: no trial activated for user e792cef5-9c17-457f-b0d3-15a2380ef868.
+Cannot activate automatic trial for user e792cef5-9c17-457f-b0d3-15a2380ef868 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=MODEL_CALL request_id=None
+.................Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t348784:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run crashed-run; this run direct:a604f6deaf45).
+Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t348784:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run direct:7679b8ee3290; this run direct:66202a5b5317).
+.............Free trial plan not found: no trial activated for user 099310bf-d98a-4e55-81aa-0913d8ca9636.
+Cannot activate automatic trial for user 099310bf-d98a-4e55-81aa-0913d8ca9636 (validation): ValueError
+Free trial plan not found: no trial activated for user 076993bc-03da-41e4-b881-880ae0fb83d9.
+Cannot activate automatic trial for user 076993bc-03da-41e4-b881-880ae0fb83d9 (validation): ValueError
+Free trial plan not found: no trial activated for user 1aa5828b-269c-4f1f-bbc4-e3835cd6c42e.
+Cannot activate automatic trial for user 1aa5828b-269c-4f1f-bbc4-e3835cd6c42e (validation): ValueError
+Free trial plan not found: no trial activated for user 51f270fd-2844-431c-8724-5dcac05e233e.
+Cannot activate automatic trial for user 51f270fd-2844-431c-8724-5dcac05e233e (validation): ValueError
+Free trial plan not found: no trial activated for user a3a27ac0-49ad-491e-b481-e90bc72cd056.
+Cannot activate automatic trial for user a3a27ac0-49ad-491e-b481-e90bc72cd056 (validation): ValueError
+Free trial plan not found: no trial activated for user 925eb268-7ef2-43d9-adc2-576ed3bb02b1.
+Cannot activate automatic trial for user 925eb268-7ef2-43d9-adc2-576ed3bb02b1 (validation): ValueError
+Free trial plan not found: no trial activated for user 1e3dedef-97d0-4b16-8674-3d851e22230f.
+Cannot activate automatic trial for user 1e3dedef-97d0-4b16-8674-3d851e22230f (validation): ValueError
+Free trial plan not found: no trial activated for user 1a42ffba-db78-477d-9845-aa25b1ae0692.
+Cannot activate automatic trial for user 1a42ffba-db78-477d-9845-aa25b1ae0692 (validation): ValueError
+Free trial plan not found: no trial activated for user 05cee345-86a4-4990-8fd9-aab332564914.
+Cannot activate automatic trial for user 05cee345-86a4-4990-8fd9-aab332564914 (validation): ValueError
+Free trial plan not found: no trial activated for user e273bd82-ebd2-4849-aacf-5026adc6776e.
+Cannot activate automatic trial for user e273bd82-ebd2-4849-aacf-5026adc6776e (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Free trial plan not found: no trial activated for user 6698f688-f3c5-4e21-9158-df2588ef2d04.
+Cannot activate automatic trial for user 6698f688-f3c5-4e21-9158-df2588ef2d04 (validation): ValueError
+Free trial plan not found: no trial activated for user 9dc52932-331d-40e4-b58e-d32aae9dc144.
+Cannot activate automatic trial for user 9dc52932-331d-40e4-b58e-d32aae9dc144 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+.Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+..Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+.....Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+........
+Guard check: 120.3 ns/call over 100000 iterations
+
+======================================================================
+FAIL: test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 58, in testPartExecutor
+    yield
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 634, in run
+    self._callTestMethod(testMethod)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 589, in _callTestMethod
+    if method() is not None:
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/AutoGrader/tests_beat_locks.py", line 427, in test_every_guarded_beat_task_skips_while_another_run_holds_it
+    self.assertEqual(len(beta_guarded), 21)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 885, in assertEqual
+    assertion_func(first, second, msg=msg)
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 878, in _baseAssertEqual
+    raise self.failureException(msg)
+    ^^^^^^^^^^^^^^^^^
+AssertionError: 23 != 21
+
+======================================================================
+FAIL: test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run (AutoGrader.tests_beat_locks.BeatScheduleCoverageTests.test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run) [sweep-stale-credit-holds]
+N1 (1a): a run's last heartbeat can land just before max_hold and
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 58, in testPartExecutor
+    yield
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 539, in subTest
+    yield
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/AutoGrader/tests_beat_locks.py", line 135, in test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run
+    self.assertLess(
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 1257, in assertLess
+    self.fail(self._formatMessage(msg, standardMsg))
+    ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/case.py", line 715, in fail
+    raise self.failureException(msg)
+    ^^^^^^^^^^^^^^^^^
+AssertionError: 480 not less than 300.0
+
+----------------------------------------------------------------------
+Ran 113 tests in 15.866s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
+Destroying test database for alias 'default'...
