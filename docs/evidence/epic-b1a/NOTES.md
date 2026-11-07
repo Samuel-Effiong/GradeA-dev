@@ -1498,3 +1498,63 @@ Every file was restored, sha256-checked against HEAD. G-1 stayed green in every 
 - **Four-app near run (flag off, HEAD 6f3e6dd5):** `billing ai_processor students assignments --parallel 3` gave **Ran 5788, OK (skipped=20)**, as expected (`step3c_near4_flagoff_6f3e6dd5.log.gz`). The ten `[PDF] Chromium is no longer connected` warnings match the base run (`step3c_near4_flagoff_BASE_2f00c078.log`, also 10). They come from the crash-recovery tests, not from a missing browser; there are no browser skips.
 - **Static set** (G-1 + `students.tests_reading_label_static` + `AutoGrader.tests_h271_static_files`): **Ran 58, OK** (`step3c_static_6f3e6dd5.log`).
 - **Step 3c status:** every expectation matched. Checkpoint sent to the SM; nothing pushed.
+
+---
+
+## 16. 2(b) pinning: H-279 held re-grades and billing. Expectations committed before any run (2026-11-07)
+
+**Ruling (owner, relayed by the SM 2026-11-06):** keep today's behavior and pin it with tests in B1a.
+1. A held re-grade gets exactly one grading charge, at the AI call, under its hold.
+2. Approval adds no further grading charge, plus exactly one student-summary call, held and settled to the approving (course) teacher.
+3. A newer re-grade that replaces a held one: the replaced one is **not** refunded, and the new one is charged.
+
+The SM added: "exactly one charge" is counted in real settlement rows (`SettlementRecord`, the usage rows), never in AICallRecord.
+
+**Where:** a new file `billing/tests/test_holds_regrade_pinning.py`, class `HeldRegradeBillingTests` (TestCase, `BILLING_HOLDS_ENABLED=True`). No production code changes, and no pre-existing test is edited.
+
+**Setup:**
+- `classroom()` from test_holds_entry, with 10 × estimate credits.
+- The submission is made a released grade: `is_published=True`, `graded_at` set. So `holds_a_released_grade` is true and the next AI grade is held (`_hold_if_released`).
+- Grading goes through the real `grade_engine(teacher, submission, processing_task_id=row.id)`, on a GRADING task row. `extract_grade_with_retry` is the `billed(teacher, 1, GRADING)` fake: one real billed `execute_graded_task` call. The provider is patched to `ai_response(300)`.
+- The follow-ups run with `captureOnCommitCallbacks(execute=True)`:
+  - `students.services.launch_processing_task` is patched, so the formatted-grade task is recorded, not run;
+  - `students.services.student_summary_async` is patched to record its `.delay` calls.
+- **Approval** is the real `promote_pending(submission.id, actor=teacher)` under `captureOnCommitCallbacks(execute=True)`.
+  - The summary's `.delay` is routed to `student_summary_async.apply(args=…)`, the real task. It makes the real `generate_student_summary` call through `execute_graded_task`, with the provider patched to `ai_response(120)`.
+
+**R-1 `test_r1_a_held_regrade_gets_exactly_one_grading_charge`. Expected PASS on the current code:**
+- the row is held: `pending_result` is not None, and the released columns are unchanged;
+- exactly 1 SettlementRecord: `item_id == row.id`, retry 0, `credits_charged == 300`, its job SINGLE_ITEM on the teacher's wallet;
+- the wallet's remaining credits drop by exactly 300, and `reserved_credits == 0`;
+- the summary is not dispatched at the held save (`delay` not called);
+- the formatted-grade follow-up is launched once (recorded, not run).
+
+**R-2 `test_r2_approval_adds_one_summary_call_settled_to_the_teacher_and_no_grading_charge`. Expected PASS:**
+- After R-1's grade and then the approval:
+  - the row is promoted: `pending_result` is None, and the released score is the held one;
+  - `student_summary_async.delay` is called exactly once, with the teacher's id;
+  - exactly 2 SettlementRecords: the grading one unchanged (300), plus one new one with `credits_charged == 120`, whose job is SINGLE_CALL, `requested_by` the teacher, on the teacher's wallet;
+  - the formatted-grade launch count is still 1 (approval starts no grading or formatting call);
+  - the wallet drops by 420 in total; `reserved_credits == 0`.
+
+**R-3 `test_r3_a_newer_regrade_replaces_the_held_one_without_a_refund`. Expected PASS:**
+- Two held re-grades in a row, on two GRADING task rows. The fake returns score 8, then score 9.
+  - Exactly 2 SettlementRecords, one per row, each `credits_charged == 300`.
+  - The first row's record and its job's `consumed_credits` (300) are unchanged after the second grade.
+  - There is no `CreditLedger` REFUND row for the teacher.
+  - The wallet drops by 600.
+  - The held result is the second one (score 9); the released score is unchanged.
+
+**Plants (each restored by sha256; run on the new file + G-1):**
+| Plant | Change | Expected kill |
+|---|---|---|
+| RP-1 | `students/services.py` `_after_promotion`: `refresh_student_summary(row, actor)` runs twice | R-2 (`2 != 1`, delay count) |
+| RP-2 | `students/services.py` follow-ups: `if not held:` becomes `if True:` (summary dispatched at the held save) | R-1 (delay called) |
+| RP-3 | `students/services.py` `refresh_student_summary`: `str(actor.id)` becomes `str(row.student_id)` (summary charged to someone else) | R-2 (summary not settled to the teacher's wallet) |
+| RP-4 | `students/services.py` `_hold_if_released`: always `return False` (the re-grade overwrites) | R-1, R-3 (`pending_result` None) |
+
+There is no plant for "the replaced one is refunded", because no refund path exists to switch on. R-3 pins its absence: no REFUND ledger row, and the first record is unchanged.
+
+**Observation for the SM (outside the ruling):** a held re-grade also queues the formatted-grade follow-up (`formatted_grade_async`), which is a separate billed AI call (wording of the feedback, not grading). These tests pin that it is launched once per re-grade and not again at approval. They do not run it.
+
+**Run, expected:** the new file (3) + G-1 + `students.tests_reading_label_static` + `AutoGrader.tests_h271_static_files`: Ran 3 + 58 = **61, OK**. Then the H-279 modules `students.tests_h279_regrade_pending_approval` and `students.tests_h279_regrade_pending_concurrency`, unchanged (count recorded at the run).
