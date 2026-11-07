@@ -1,0 +1,532 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user e953303c-bc5f-46f9-b942-50ec8339e2cb.
+Cannot activate automatic trial for user e953303c-bc5f-46f9-b942-50ec8339e2cb (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user 5bef6b1c-43a0-4560-9a5c-d1d49a657c2d.
+Cannot activate automatic trial for user 5bef6b1c-43a0-4560-9a5c-d1d49a657c2d (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~20806 credits, 5000 left in the batch
+.Free trial plan not found: no trial activated for user 9004cc3d-9b40-435a-ad88-0395f1c4afb2.
+Cannot activate automatic trial for user 9004cc3d-9b40-435a-ad88-0395f1c4afb2 (validation): ValueError
+Upload door could not estimate a.png: FileUnreadableError
+.Free trial plan not found: no trial activated for user 166da331-e073-4e35-923d-0935c21b3d7e.
+Cannot activate automatic trial for user 166da331-e073-4e35-923d-0935c21b3d7e (validation): ValueError
+.Free trial plan not found: no trial activated for user 13c593c6-9e7c-4032-a193-83ea55255e82.
+Cannot activate automatic trial for user 13c593c6-9e7c-4032-a193-83ea55255e82 (validation): ValueError
+.Free trial plan not found: no trial activated for user 689e3b6a-01df-48c6-91ac-a6b53a97f941.
+Cannot activate automatic trial for user 689e3b6a-01df-48c6-91ac-a6b53a97f941 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~20806 credits, balance 5000
+.Free trial plan not found: no trial activated for user a8b594c3-3161-4550-ab42-cca32e5b6c83.
+Cannot activate automatic trial for user a8b594c3-3161-4550-ab42-cca32e5b6c83 (validation): ValueError
+Free trial plan not found: no trial activated for user bfcf0ed2-7d4b-4d70-8c11-9ef0bece695e.
+Cannot activate automatic trial for user bfcf0ed2-7d4b-4d70-8c11-9ef0bece695e (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~1000000000 credits, balance 100000
+.Free trial plan not found: no trial activated for user 76fa6648-7e60-4d81-9626-6f257646e232.
+Cannot activate automatic trial for user 76fa6648-7e60-4d81-9626-6f257646e232 (validation): ValueError
+Free trial plan not found: no trial activated for user c735607d-d998-487b-adcc-76e18ea68b17.
+Cannot activate automatic trial for user c735607d-d998-487b-adcc-76e18ea68b17 (validation): ValueError
+Free trial plan not found: no trial activated for user 21b10a91-5b51-461e-8013-48f750777d4b.
+Cannot activate automatic trial for user 21b10a91-5b51-461e-8013-48f750777d4b (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~20806 credits, balance 20805
+.Free trial plan not found: no trial activated for user 6475ec46-99b5-42b2-b6c3-9d4a0d4f1bb4.
+Cannot activate automatic trial for user 6475ec46-99b5-42b2-b6c3-9d4a0d4f1bb4 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~20806 credits, balance 5000
+.Free trial plan not found: no trial activated for user 2bd096f9-c8a0-43c3-a6fa-3b9fb66a11d1.
+Cannot activate automatic trial for user 2bd096f9-c8a0-43c3-a6fa-3b9fb66a11d1 (validation): ValueError
+.Free trial plan not found: no trial activated for user e97f4346-3bf8-4d24-bcb7-40351f34bef5.
+Cannot activate automatic trial for user e97f4346-3bf8-4d24-bcb7-40351f34bef5 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~20806 credits, 5000 left in the batch
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~20806 credits, 5000 left in the batch
+.Free trial plan not found: no trial activated for user 4d2a4053-0641-4189-8efe-d890c8d93760.
+Cannot activate automatic trial for user 4d2a4053-0641-4189-8efe-d890c8d93760 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~20766 credits, balance 5000
+.Free trial plan not found: no trial activated for user 8c2d6057-5474-46df-80e4-b1692c84a00f.
+Cannot activate automatic trial for user 8c2d6057-5474-46df-80e4-b1692c84a00f (validation): ValueError
+.Free trial plan not found: no trial activated for user 71de6fdc-387d-4c5c-aa27-dde88113af98.
+Cannot activate automatic trial for user 71de6fdc-387d-4c5c-aa27-dde88113af98 (validation): ValueError
+..Free trial plan not found: no trial activated for user 833b0acf-018d-46ad-971c-8efa7bb0b045.
+Cannot activate automatic trial for user 833b0acf-018d-46ad-971c-8efa7bb0b045 (validation): ValueError
+Background task 5246e188-1913-4328-adb6-88b2a185417a refused: InsufficientCreditsError: Task requires ~25000 credits, but you only have 5000 credits. Please refill your wallet to continue
+
+
+students.task_tracking WARNING 2026-11-06 17:27:53,223 refusals 667619 137321457358720 [request_id=- client_request_id=-] Background task 5246e188-1913-4328-adb6-88b2a185417a refused: StudentUploadNotProcessedError: Your answers were not submitted. Your teacher's account can't process uploads right now. Please keep your file and try again later, or let your teacher know.
+
+
+.Free trial plan not found: no trial activated for user a242e1eb-f339-4492-a9ed-e1056e35b882.
+Cannot activate automatic trial for user a242e1eb-f339-4492-a9ed-e1056e35b882 (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-06 17:27:53,309 refusals 667619 137321457358720 [request_id=- client_request_id=-] Background task 1843811c-4b3c-48e8-bd0e-a992e2c4aed3 refused: InsufficientCreditsError: Task requires ~25000 credits, but you only have 5000 credits. Please refill your wallet to continue
+
+
+.Free trial plan not found: no trial activated for user 69ef1890-4df0-4327-bfdc-7b3f78216922.
+Cannot activate automatic trial for user 69ef1890-4df0-4327-bfdc-7b3f78216922 (validation): ValueError
+Upload door could not estimate big.pdf: PayloadTooLarge
+
+
+students.task_tracking ERROR 2026-11-06 17:27:53,504 task_tracking 667619 137321457358720 [request_id=fa2324b0-f162-45ec-9565-2bd951f76a81 client_request_id=-] Background task 1afb5c1a-79e5-4dfc-85d2-9f7711a76299 failed: error=PayloadTooLarge frames=views.py:1527:batch_upload <- uploads.py:74:validate_upload_size
+
+
+.Free trial plan not found: no trial activated for user 0cc784cc-c477-438a-b854-559036f41f5a.
+Cannot activate automatic trial for user 0cc784cc-c477-438a-b854-559036f41f5a (validation): ValueError
+Upload door could not estimate big.pdf: PayloadTooLarge
+
+
+students.task_tracking ERROR 2026-11-06 17:27:53,679 task_tracking 667619 137321457358720 [request_id=c9cef8e5-9c04-4576-b9c2-773bf9028d87 client_request_id=-] Background task c0f594de-531e-4b4d-b6c1-e787c6e35b9b failed: error=PayloadTooLarge frames=views.py:1154:upload_assignment_async <- uploads.py:74:validate_upload_size
+
+
+.Free trial plan not found: no trial activated for user 92a115f6-59de-4f02-af65-9ef191b98f75.
+Cannot activate automatic trial for user 92a115f6-59de-4f02-af65-9ef191b98f75 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-06 17:27:53,783 task_tracking 667619 137321457358720 [request_id=- client_request_id=-] Background task ef931fe7-d9fa-4c49-994d-ab28c6417d2e failed: error=RuntimeError
+
+
+
+
+students.task_tracking ERROR 2026-11-06 17:27:53,789 task_tracking 667619 137321457358720 [request_id=- client_request_id=-] Background task fc3b543c-c919-4bf0-b48a-7c61d22d7304 failed: error=RuntimeError
+
+
+
+
+students.task_tracking ERROR 2026-11-06 17:27:53,793 task_tracking 667619 137321457358720 [request_id=- client_request_id=-] Background task 17fea2d0-a65b-49d2-9d6e-2df3239354f4 failed: error=RuntimeError
+
+
+.Free trial plan not found: no trial activated for user 1fc59ca2-b6d1-427d-b84a-930716d22d0f.
+Cannot activate automatic trial for user 1fc59ca2-b6d1-427d-b84a-930716d22d0f (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-06 17:27:53,939 task_tracking 667619 137321457358720 [request_id=- client_request_id=-] Background task 14426b09-818c-4f61-90e9-f5003e9ebae4 failed: error=FileUnreadableError
+
+
+
+
+students.task_tracking WARNING 2026-11-06 17:27:53,944 refusals 667619 137321457358720 [request_id=- client_request_id=-] Background task d593f2a5-49b1-4a2e-b26e-201f998b017c refused: InsufficientCreditsError: balance 3, needs 9
+
+
+
+
+students.task_tracking ERROR 2026-11-06 17:27:53,948 task_tracking 667619 137321457358720 [request_id=- client_request_id=-] Background task a360d370-7353-490b-aaf8-610989c325bf failed: error=RuntimeError
+
+
+.Free trial plan not found: no trial activated for user 300285b8-65c0-4972-bd66-3491295dff37.
+Cannot activate automatic trial for user 300285b8-65c0-4972-bd66-3491295dff37 (validation): ValueError
+.Free trial plan not found: no trial activated for user 278290e1-50fa-4f11-b0e2-972e9d924fc3.
+Cannot activate automatic trial for user 278290e1-50fa-4f11-b0e2-972e9d924fc3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2eb81a7d-d52a-4df3-86c6-dcf3bde8da91.
+Cannot activate automatic trial for user 2eb81a7d-d52a-4df3-86c6-dcf3bde8da91 (validation): ValueError
+.Free trial plan not found: no trial activated for user 699db5b1-37d3-4f7a-a23c-808fa60c4870.
+Cannot activate automatic trial for user 699db5b1-37d3-4f7a-a23c-808fa60c4870 (validation): ValueError
+.Free trial plan not found: no trial activated for user a5d1855c-b2a5-4643-afa4-92b58b347e80.
+Cannot activate automatic trial for user a5d1855c-b2a5-4643-afa4-92b58b347e80 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-06 17:27:54,618 task_tracking 667619 137321457358720 [request_id=a521d077-0869-4d9e-af1f-3d714d894405 client_request_id=-] Background task b6141ec9-cbbd-400d-8553-e7c2cafaddf2 failed: error=RuntimeError frames=tasks.py:1069:upload_answers_engine_async <- services.py:1544:upload_answers_engine <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user f75aa630-b4a1-474c-b729-79361d33ff9e.
+Cannot activate automatic trial for user f75aa630-b4a1-474c-b729-79361d33ff9e (validation): ValueError
+Upload door could not estimate b.png: FileUnreadableError
+
+
+students.task_tracking ERROR 2026-11-06 17:27:54,784 task_tracking 667619 137321457358720 [request_id=b240fb66-cd69-49fc-9b3c-a22d5d8b9d79 client_request_id=-] Background task 71078a84-c229-48b1-be80-55aef4713466 failed: error=FileUnreadableError frames=tasks.py:1050:upload_answers_engine_async <- services.py:601:prepare_ai_content <- services.py:557:_compress_uploaded_image
+
+
+.Free trial plan not found: no trial activated for user 14c622a5-3014-47f3-8b28-f4973bbc8263.
+Cannot activate automatic trial for user 14c622a5-3014-47f3-8b28-f4973bbc8263 (validation): ValueError
+Upload door could not estimate big1.pdf: PayloadTooLarge
+Upload door could not estimate big2.pdf: PayloadTooLarge
+Upload door could not estimate junk1.png: FileUnreadableError
+Upload door could not estimate junk2.png: FileUnreadableError
+Upload door could not estimate notes1.txt: FileTypeUnsupportedError
+Upload door could not estimate notes2.txt: FileTypeUnsupportedError
+Upload door could not estimate blank1.pdf: SubmissionEmptyError
+Upload door could not estimate blank2.pdf: SubmissionEmptyError
+
+
+students.task_tracking ERROR 2026-11-06 17:27:55,215 task_tracking 667619 137321457358720 [request_id=488778ae-1ed0-4a5c-a73a-386bae58a66e client_request_id=-] Background task 90693df0-bb24-4eee-b359-747b9da7de0e failed: error=PayloadTooLarge frames=views.py:1527:batch_upload <- uploads.py:74:validate_upload_size
+
+
+
+
+students.task_tracking ERROR 2026-11-06 17:27:55,254 task_tracking 667619 137321457358720 [request_id=488778ae-1ed0-4a5c-a73a-386bae58a66e client_request_id=-] Background task bb9b02a1-5c30-4e80-bbe9-57ff56254b43 failed: error=PayloadTooLarge frames=views.py:1527:batch_upload <- uploads.py:74:validate_upload_size
+
+
+
+
+students.task_tracking ERROR 2026-11-06 17:27:55,315 task_tracking 667619 137321457358720 [request_id=488778ae-1ed0-4a5c-a73a-386bae58a66e client_request_id=-] Background task 068cc250-8477-4200-8c84-df9478393fe9 failed: error=FileUnreadableError frames=tasks.py:1050:upload_answers_engine_async <- services.py:601:prepare_ai_content <- services.py:557:_compress_uploaded_image
+
+
+
+
+students.task_tracking ERROR 2026-11-06 17:27:55,379 task_tracking 667619 137321457358720 [request_id=488778ae-1ed0-4a5c-a73a-386bae58a66e client_request_id=-] Background task 5972d34a-d26c-452d-a7e1-bdb202b8e881 failed: error=FileUnreadableError frames=tasks.py:1050:upload_answers_engine_async <- services.py:601:prepare_ai_content <- services.py:557:_compress_uploaded_image
+
+
+
+
+students.task_tracking ERROR 2026-11-06 17:27:55,445 task_tracking 667619 137321457358720 [request_id=488778ae-1ed0-4a5c-a73a-386bae58a66e client_request_id=-] Background task 87ed3e7e-7319-441c-82cc-021b718d5459 failed: error=FileTypeUnsupportedError frames=tasks.py:1050:upload_answers_engine_async <- services.py:590:prepare_ai_content
+
+
+
+
+students.task_tracking ERROR 2026-11-06 17:27:55,516 task_tracking 667619 137321457358720 [request_id=488778ae-1ed0-4a5c-a73a-386bae58a66e client_request_id=-] Background task bf1b74bf-3a23-4a90-a2e1-b9b6809b4c69 failed: error=FileTypeUnsupportedError frames=tasks.py:1050:upload_answers_engine_async <- services.py:590:prepare_ai_content
+
+
+
+
+students.task_tracking ERROR 2026-11-06 17:27:55,590 task_tracking 667619 137321457358720 [request_id=488778ae-1ed0-4a5c-a73a-386bae58a66e client_request_id=-] Background task 2d8223d9-a8ed-4767-ac11-b4f03a928776 failed: error=SubmissionEmptyError frames=tasks.py:1050:upload_answers_engine_async <- services.py:623:prepare_ai_content
+
+
+
+
+students.task_tracking ERROR 2026-11-06 17:27:55,667 task_tracking 667619 137321457358720 [request_id=488778ae-1ed0-4a5c-a73a-386bae58a66e client_request_id=-] Background task 5ee028ee-5c6e-43b1-81e0-7566cdcae88a failed: error=SubmissionEmptyError frames=tasks.py:1050:upload_answers_engine_async <- services.py:623:prepare_ai_content
+
+
+
+
+students.task_tracking ERROR 2026-11-06 17:27:55,758 task_tracking 667619 137321457358720 [request_id=488778ae-1ed0-4a5c-a73a-386bae58a66e client_request_id=-] Background task 73d87017-c8ca-4fcf-bc11-e780f7f77879 failed: error=StudentNameUnmatchedError frames=tasks.py:1069:upload_answers_engine_async <- services.py:1574:upload_answers_engine <- services.py:2000:_match_enrolled_student
+
+
+
+
+students.task_tracking ERROR 2026-11-06 17:27:55,871 task_tracking 667619 137321457358720 [request_id=488778ae-1ed0-4a5c-a73a-386bae58a66e client_request_id=-] Background task 3a6a039b-09ff-4384-9a26-bba440732d20 failed: error=StudentNameUnmatchedError frames=tasks.py:1069:upload_answers_engine_async <- services.py:1574:upload_answers_engine <- services.py:2036:_match_enrolled_student
+
+
+
+
+students.task_tracking ERROR 2026-11-06 17:27:55,972 task_tracking 667619 137321457358720 [request_id=488778ae-1ed0-4a5c-a73a-386bae58a66e client_request_id=-] Background task e6051584-f5b3-4a3a-a6ce-1aba97256983 failed: error=StudentNotOnRosterError frames=tasks.py:1069:upload_answers_engine_async <- services.py:1574:upload_answers_engine <- services.py:2022:_match_enrolled_student
+
+
+
+
+students.task_tracking ERROR 2026-11-06 17:27:56,063 task_tracking 667619 137321457358720 [request_id=488778ae-1ed0-4a5c-a73a-386bae58a66e client_request_id=-] Background task 02b16c9a-eaac-47b9-97c7-a1290c12e7ae failed: error=StudentNotOnRosterError frames=tasks.py:1069:upload_answers_engine_async <- services.py:1574:upload_answers_engine <- services.py:2022:_match_enrolled_student
+
+
+.Free trial plan not found: no trial activated for user 99f1abe0-155d-4848-85c6-c740851ecd91.
+Cannot activate automatic trial for user 99f1abe0-155d-4848-85c6-c740851ecd91 (validation): ValueError
+
+
+students.views ERROR 2026-11-06 17:27:56,793 views 667619 137321457358720 [request_id=d017fd5b-655d-44cb-b1ff-81ce405bb5a7 client_request_id=-] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/views.py", line 826, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/services.py", line 1889, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 2998, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 2434, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/call_record.py", line 363, in wrapper
+    result = function(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 5651, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~28440 credits, but you only have 5000 credits. Please refill your wallet to continue
+.Free trial plan not found: no trial activated for user cb9eb083-b006-48f8-b4b2-79cee042f826.
+Cannot activate automatic trial for user cb9eb083-b006-48f8-b4b2-79cee042f826 (validation): ValueError
+
+
+ai_processor.services WARNING 2026-11-06 17:27:56,931 services 667619 137321457358720 [request_id=fd2cd8c1-a01a-4050-9560-a9c3ae123433 client_request_id=-] AI access denied for assignment 191d2aee-803e-4803-b242-670b987a6c4d (teacher cb9eb083-b006-48f8-b4b2-79cee042f826): No active subscription
+
+
+
+
+students.views ERROR 2026-11-06 17:27:56,933 views 667619 137321457358720 [request_id=fd2cd8c1-a01a-4050-9560-a9c3ae123433 client_request_id=-] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/views.py", line 826, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/services.py", line 1889, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 2998, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 2434, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/call_record.py", line 363, in wrapper
+    result = function(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 5574, in execute_graded_task
+    raise AIFeatureNotAvailableError(STUDENT_AI_UNAVAILABLE_MESSAGE)
+billing.access_control.AIFeatureNotAvailableError: AI features aren't available for this assignment right now. Please ask your teacher to check their account.
+.Free trial plan not found: no trial activated for user af10fca6-1169-4111-a5f2-fa7f015844e0.
+Cannot activate automatic trial for user af10fca6-1169-4111-a5f2-fa7f015844e0 (validation): ValueError
+
+
+students.views ERROR 2026-11-06 17:27:57,043 views 667619 137321457358720 [request_id=9cf3deb5-ef9b-4c2e-8df5-c9c0be9bd7f1 client_request_id=-] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/views.py", line 826, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+ai_processor.exceptions.ProviderFailureError: The grading service couldn't finish this item. No credits were charged.
+
+
+django.request ERROR 2026-11-06 17:27:57,048 log 667619 137321457358720 [request_id=- client_request_id=-] Service Unavailable: /api/v1/submissions/81f25a6d-24d7-408f-885b-3534294c5d8e
+
+
+.Free trial plan not found: no trial activated for user 0c940501-5f23-4cc9-b64f-44039c7e54e0.
+Cannot activate automatic trial for user 0c940501-5f23-4cc9-b64f-44039c7e54e0 (validation): ValueError
+
+
+students.views ERROR 2026-11-06 17:27:57,129 views 667619 137321457358720 [request_id=2b4cefb8-50fa-4aae-b16e-15c85d5155f0 client_request_id=-] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/views.py", line 826, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: internal detail H216-NOT-SHOWN
+
+
+django.request ERROR 2026-11-06 17:27:57,134 log 667619 137321457358720 [request_id=- client_request_id=-] Internal Server Error: /api/v1/submissions/d392d4ba-6aa3-4502-beb0-265f5240ea77
+
+
+.Free trial plan not found: no trial activated for user 8f3d9d22-989a-435f-8700-4a18e3af066a.
+Cannot activate automatic trial for user 8f3d9d22-989a-435f-8700-4a18e3af066a (validation): ValueError
+
+
+students.views ERROR 2026-11-06 17:27:57,287 views 667619 137321457358720 [request_id=380344cd-02ed-4964-8593-32a728e9426d client_request_id=-] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/views.py", line 826, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/services.py", line 1889, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 2998, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 2434, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/call_record.py", line 363, in wrapper
+    result = function(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 5651, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~28440 credits, but you only have 5000 credits. Please refill your wallet to continue
+.Free trial plan not found: no trial activated for user 0bc2170a-5f13-4f8a-9475-1af775dc94b0.
+Cannot activate automatic trial for user 0bc2170a-5f13-4f8a-9475-1af775dc94b0 (validation): ValueError
+
+
+students.views ERROR 2026-11-06 17:27:57,445 views 667619 137321457358720 [request_id=a29e595c-a78a-45a9-8058-5864f7fb26fa client_request_id=-] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/views.py", line 826, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/services.py", line 1889, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 2998, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 2434, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/call_record.py", line 363, in wrapper
+    result = function(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 5651, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~28440 credits, but you only have 5000 credits. Please refill your wallet to continue
+.Free trial plan not found: no trial activated for user 9b6940ec-7a61-43e3-8ea1-68cec70aa789.
+Cannot activate automatic trial for user 9b6940ec-7a61-43e3-8ea1-68cec70aa789 (validation): ValueError
+
+
+students.views ERROR 2026-11-06 17:27:57,590 views 667619 137321457358720 [request_id=b0b94560-49e9-4e63-a227-ae0340d3ca80 client_request_id=-] Failed to process submission upload
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/views.py", line 632, in upload_answers
+    submission = upload_answers_engine(assignment, content, request.user)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/services.py", line 1544, in upload_answers_engine
+    student_submission = ai_processor.extract_answer_with_retry(
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 2998, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 2434, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/call_record.py", line 363, in wrapper
+    result = function(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/services.py", line 5651, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~29195 credits, but you only have 5000 credits. Please refill your wallet to continue
+.Free trial plan not found: no trial activated for user dc34334c-11be-4ab4-8903-f862d2bddb57.
+Cannot activate automatic trial for user dc34334c-11be-4ab4-8903-f862d2bddb57 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~20806 credits, balance 5000
+.Free trial plan not found: no trial activated for user b6db8d50-6ef3-4acc-b0ca-3757e9f3761f.
+Cannot activate automatic trial for user b6db8d50-6ef3-4acc-b0ca-3757e9f3761f (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-06 17:27:57,847 refusals 667619 137321457358720 [request_id=- client_request_id=-] Background task 24456db1-f14a-4e11-9160-d6486b4fd2b3 refused: InsufficientCreditsError: Task requires ~25000 credits, but you only have 5000 credits. Please refill your wallet to continue
+
+
+.Free trial plan not found: no trial activated for user 37d6467a-073d-420c-874d-c7fa2d6faa24.
+Cannot activate automatic trial for user 37d6467a-073d-420c-874d-c7fa2d6faa24 (validation): ValueError
+Background task aafc66f3-559c-4d3d-a910-9e02edcb5285 refused: InsufficientCreditsError: Task requires ~25000 credits, but you only have 5000 credits. Please refill your wallet to continue
+
+
+students.task_tracking WARNING 2026-11-06 17:27:57,920 refusals 667619 137321457358720 [request_id=- client_request_id=-] Background task aafc66f3-559c-4d3d-a910-9e02edcb5285 refused: StudentUploadNotProcessedError: Your answers were not submitted. Your teacher's account can't process uploads right now. Please keep your file and try again later, or let your teacher know.
+
+
+.Free trial plan not found: no trial activated for user 8a23deab-dd4f-4937-8dd1-109ba51c3d9b.
+Cannot activate automatic trial for user 8a23deab-dd4f-4937-8dd1-109ba51c3d9b (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-06 17:27:58,001 refusals 667619 137321457358720 [request_id=- client_request_id=-] Background task 27136477-1326-4cef-a3a7-7fe553496524 refused: InsufficientCreditsError: Task requires ~25000 credits, but you only have 5000 credits. Please refill your wallet to continue
+
+
+..
+
+django.request ERROR 2026-11-06 17:28:01,377 log 667619 137321457358720 [request_id=8d5eb24a-6b40-4700-abd6-97384eb7616b client_request_id=-] Internal Server Error: /admin/login/
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 172, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 116, in render
+    url = self.url(context)
+          ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 113, in url
+    return self.handle_simple(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 129, in handle_simple
+    return staticfiles_storage.url(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 204, in url
+    return self._url(self.stored_name, name, force)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 183, in _url
+    hashed_name = hashed_name_func(*args)
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 518, in stored_name
+    raise ValueError(
+ValueError: Missing staticfiles manifest entry for 'admin/css/base.css'
+.
+
+ai_processor.call_record WARNING 2026-11-06 17:28:01,390 call_record 667619 137321457358720 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:28:01,392 call_record 667619 137321457358720 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:28:01,393 call_record 667619 137321457358720 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:28:01,394 call_record 667619 137321457358720 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:28:01,394 call_record 667619 137321457358720 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+........................................................
+----------------------------------------------------------------------
+Ran 97 tests in 19.489s
+
+OK
+Destroying test database for alias 'default'...
+Found 97 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

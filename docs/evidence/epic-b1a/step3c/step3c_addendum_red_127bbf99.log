@@ -1,0 +1,171 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user f5d2b979-866f-4d70-b301-a4588feb7d38.
+Cannot activate automatic trial for user f5d2b979-866f-4d70-b301-a4588feb7d38 (validation): ValueError
+Late door file refused (task dd5d0e05-d60f-43e6-b4d0-94bd667d550e); the notice texts await owner approval, so no email was sent.
+.Free trial plan not found: no trial activated for user eddc203c-2fc9-4c75-9656-7590b3fb644b.
+Cannot activate automatic trial for user eddc203c-2fc9-4c75-9656-7590b3fb644b (validation): ValueError
+..Free trial plan not found: no trial activated for user 55c0226e-98f3-44f1-932c-d2ae422d4b6d.
+Cannot activate automatic trial for user 55c0226e-98f3-44f1-932c-d2ae422d4b6d (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user 9e0ce0bd-24ba-4ddb-80c7-04a2e070c6a1.
+Cannot activate automatic trial for user 9e0ce0bd-24ba-4ddb-80c7-04a2e070c6a1 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~5000 credits, balance 4000
+.Free trial plan not found: no trial activated for user 3d8869c8-0f22-4aa3-a2ca-81dacb4ce5c6.
+Cannot activate automatic trial for user 3d8869c8-0f22-4aa3-a2ca-81dacb4ce5c6 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2c0dd67f-7915-42a7-9552-3bc982c13f8e.
+Cannot activate automatic trial for user 2c0dd67f-7915-42a7-9552-3bc982c13f8e (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~5000 credits, 2000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-06 17:25:41,267 refusals 660867 128482750384000 [request_id=0e88039d-8f80-47d1-848e-1521d4200894 client_request_id=-] Background task cc82043b-2983-44d9-b60a-085859084841 refused: InsufficientCreditsError: Upload needs ~5000 credits, 2000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user 81fe19d7-58cb-4873-9cf3-91d0a0d31929.
+Cannot activate automatic trial for user 81fe19d7-58cb-4873-9cf3-91d0a0d31929 (validation): ValueError
+.Free trial plan not found: no trial activated for user e1604c19-75fa-4ea6-91e9-fa4b2187e90d.
+Cannot activate automatic trial for user e1604c19-75fa-4ea6-91e9-fa4b2187e90d (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~5000 credits, 4000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-06 17:25:41,622 refusals 660867 128482750384000 [request_id=6d13794d-5ade-4167-9c6c-f6c989cf47de client_request_id=-] Background task d9622ab2-c9fa-4f97-b049-e5b7e6089dde refused: InsufficientCreditsError: Upload needs ~5000 credits, 4000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user ea623543-dce8-41f5-84e1-33985bf10351.
+Cannot activate automatic trial for user ea623543-dce8-41f5-84e1-33985bf10351 (validation): ValueError
+.Free trial plan not found: no trial activated for user 57c857fb-4197-4e2d-becd-88c86e25f770.
+Cannot activate automatic trial for user 57c857fb-4197-4e2d-becd-88c86e25f770 (validation): ValueError
+.Free trial plan not found: no trial activated for user 10d2b093-8011-4307-bf72-67d6512da390.
+Cannot activate automatic trial for user 10d2b093-8011-4307-bf72-67d6512da390 (validation): ValueError
+.Free trial plan not found: no trial activated for user 252558ac-b48c-42e3-b4ee-b6b2158a25c7.
+Cannot activate automatic trial for user 252558ac-b48c-42e3-b4ee-b6b2158a25c7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8a4cf8a1-ec2a-4dff-93ad-08d004afdac7.
+Cannot activate automatic trial for user 8a4cf8a1-ec2a-4dff-93ad-08d004afdac7 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~5000 credits, balance 4000
+.Free trial plan not found: no trial activated for user 9b6e1656-7a42-4817-8abe-a94d54ad74d8.
+Cannot activate automatic trial for user 9b6e1656-7a42-4817-8abe-a94d54ad74d8 (validation): ValueError
+EFree trial plan not found: no trial activated for user 7fc603b3-a755-449a-a994-b0c72e29bed2.
+Cannot activate automatic trial for user 7fc603b3-a755-449a-a994-b0c72e29bed2 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-06 17:25:42,984 task_tracking 660867 128482750384000 [request_id=- client_request_id=-] Background task 5b1b4770-e718-4688-80ce-ab5d481b89d9 failed: error=ConnectionError
+
+
+EFree trial plan not found: no trial activated for user 6e84c084-53c5-452f-923e-27d941a0d3cb.
+Cannot activate automatic trial for user 6e84c084-53c5-452f-923e-27d941a0d3cb (validation): ValueError
+.Free trial plan not found: no trial activated for user a1adbdef-23bb-4a4b-ad3a-eb8f7c3cf732.
+Cannot activate automatic trial for user a1adbdef-23bb-4a4b-ad3a-eb8f7c3cf732 (validation): ValueError
+.Free trial plan not found: no trial activated for user 83d6f191-7d17-4d9a-a1fa-7117d4d6ab3a.
+Cannot activate automatic trial for user 83d6f191-7d17-4d9a-a1fa-7117d4d6ab3a (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-06 17:25:43,390 task_tracking 660867 128482750384000 [request_id=- client_request_id=-] Background task b1b6880a-f5ff-432f-8b2f-adad645f7cfc failed: error=ConnectionError
+
+
+.Free trial plan not found: no trial activated for user 0509e519-0755-4aa3-a51b-6ba179b4677e.
+Cannot activate automatic trial for user 0509e519-0755-4aa3-a51b-6ba179b4677e (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-06 17:25:43,743 task_tracking 660867 128482750384000 [request_id=2a8c04e1-b712-4dd3-b45e-a21be73de520 client_request_id=-] Background task 5947b65e-3545-4fd1-af73-637acb2c7442 failed: error=ConnectionError
+
+
+API request refused: ProcessingTemporarilyUnavailable (503)
+
+
+django.request ERROR 2026-11-06 17:25:43,778 log 660867 128482750384000 [request_id=- client_request_id=-] Service Unavailable: /api/v1/submissions/7068fbe5-92ea-40ed-ae15-02711c2a8839/upload-async
+
+
+.
+
+ai_processor.call_record WARNING 2026-11-06 17:25:44,142 call_record 660867 128482750384000 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:25:44,144 call_record 660867 128482750384000 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:25:44,145 call_record 660867 128482750384000 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:25:44,147 call_record 660867 128482750384000 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:25:44,150 call_record 660867 128482750384000 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+..................................
+======================================================================
+ERROR: test_c11_an_early_non_broker_error_still_returns_the_hold (billing.tests.test_holds_door_commit.FailingCallbackUnderAnOuterAtomicTests.test_c11_an_early_non_broker_error_still_returns_the_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_door_commit.py", line 210, in test_c11_an_early_non_broker_error_still_returns_the_hold
+    with self.captureOnCommitCallbacks(execute=True):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/testcases.py", line 1524, in captureOnCommitCallbacks
+    callback()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: before any accounting
+
+======================================================================
+ERROR: test_c9_the_first_file_fails_and_the_second_still_launches (billing.tests.test_holds_door_commit.FailingCallbackUnderAnOuterAtomicTests.test_c9_the_first_file_fails_and_the_second_still_launches)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/task_tracking.py", line 99, in launch_processing_task
+    async_result = task_callable.apply_async(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1202, in _execute_mock_call
+    raise result
+ConnectionError: redis://10.0.0.9:6379
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_door_commit.py", line 185, in test_c9_the_first_file_fails_and_the_second_still_launches
+    with self.captureOnCommitCallbacks(execute=True):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/testcases.py", line 1524, in captureOnCommitCallbacks
+    callback()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/task_tracking.py", line 109, in launch_processing_task
+    raise ProcessingTemporarilyUnavailable() from exc
+AutoGrader.dispatch.ProcessingTemporarilyUnavailable: Processing is temporarily unavailable right now. Please try again in a few minutes.
+
+----------------------------------------------------------------------
+Ran 54 tests in 9.055s
+
+FAILED (errors=2)
+Destroying test database for alias 'default'...
+Found 54 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -1,0 +1,212 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 1bb3d4b2-54c9-4604-b338-fe94e35fd55e.
+Cannot activate automatic trial for user 1bb3d4b2-54c9-4604-b338-fe94e35fd55e (validation): ValueError
+Late door file refused (task 6b38076d-826d-4dbd-ac3d-e769f850b45d); the notice texts await owner approval, so no email was sent.
+.Free trial plan not found: no trial activated for user 8313eacd-232d-45be-b376-30adc5e6aa95.
+Cannot activate automatic trial for user 8313eacd-232d-45be-b376-30adc5e6aa95 (validation): ValueError
+..Free trial plan not found: no trial activated for user c0546933-15ab-4228-a395-47c75db5f637.
+Cannot activate automatic trial for user c0546933-15ab-4228-a395-47c75db5f637 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user 2eb6ac0d-84a9-4d0e-b731-1ff0316a07b9.
+Cannot activate automatic trial for user 2eb6ac0d-84a9-4d0e-b731-1ff0316a07b9 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~5000 credits, balance 4000
+.Free trial plan not found: no trial activated for user 37d59210-f9f8-4525-8f94-3f070845d59a.
+Cannot activate automatic trial for user 37d59210-f9f8-4525-8f94-3f070845d59a (validation): ValueError
+Upload door (hold) refused: InsufficientCreditsError: Upload needs ~5000 credits, more than is free to hold
+.Free trial plan not found: no trial activated for user 04388cd8-b318-46d7-aa52-01b18cce9210.
+Cannot activate automatic trial for user 04388cd8-b318-46d7-aa52-01b18cce9210 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6486b09f-ebbc-4e14-859c-f8215e26a012.
+Cannot activate automatic trial for user 6486b09f-ebbc-4e14-859c-f8215e26a012 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~5000 credits, 2000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-06 17:37:08,446 refusals 686139 125347544250240 [request_id=31ffb2ce-56df-4559-becf-f168a3a5731a client_request_id=-] Background task 3f4b6187-e714-4a75-a3ee-4e6be5eef828 refused: InsufficientCreditsError: Upload needs ~5000 credits, 2000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user 49f583ad-699f-4103-baa9-eeded010d407.
+Cannot activate automatic trial for user 49f583ad-699f-4103-baa9-eeded010d407 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7ad6ee63-cd9b-4199-99df-199fdcdf9aa4.
+Cannot activate automatic trial for user 7ad6ee63-cd9b-4199-99df-199fdcdf9aa4 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~5000 credits, 4000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-06 17:37:08,875 refusals 686139 125347544250240 [request_id=2a4c8085-2237-4371-8d9c-387a4d33ac76 client_request_id=-] Background task 966db70c-6d50-4fa1-b4df-706eb308a1ff refused: InsufficientCreditsError: Upload needs ~5000 credits, 4000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user 598375fc-e089-48a5-831e-04eb1c105fb7.
+Cannot activate automatic trial for user 598375fc-e089-48a5-831e-04eb1c105fb7 (validation): ValueError
+Upload door (hold) refused: InsufficientCreditsError: Upload needs ~5000 credits, more than is free to hold
+
+
+students.task_tracking WARNING 2026-11-06 17:37:09,120 refusals 686139 125347544250240 [request_id=52a57e70-2899-4fac-9e22-bef15049446b client_request_id=-] Background task 9e0edd94-4b94-4d67-81a6-0a3363914f09 refused: InsufficientCreditsError: Upload needs ~5000 credits, more than is free to hold
+
+
+.Free trial plan not found: no trial activated for user f25247d1-9573-4e6e-95d6-e45698f97a5f.
+Cannot activate automatic trial for user f25247d1-9573-4e6e-95d6-e45698f97a5f (validation): ValueError
+FFree trial plan not found: no trial activated for user 4371c915-cd1e-499d-9487-fab001399263.
+Cannot activate automatic trial for user 4371c915-cd1e-499d-9487-fab001399263 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2480a582-74c2-4866-9f12-917deee24b7a.
+Cannot activate automatic trial for user 2480a582-74c2-4866-9f12-917deee24b7a (validation): ValueError
+FFree trial plan not found: no trial activated for user eea884c9-9c72-436e-857f-cfb346ef10ef.
+Cannot activate automatic trial for user eea884c9-9c72-436e-857f-cfb346ef10ef (validation): ValueError
+FFree trial plan not found: no trial activated for user 8bb0f872-a3c9-4333-967e-3743811e5b8a.
+Cannot activate automatic trial for user 8bb0f872-a3c9-4333-967e-3743811e5b8a (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~5000 credits, balance 4000
+.Free trial plan not found: no trial activated for user bb98af2c-822d-4956-bf01-488a94ba8c2f.
+Cannot activate automatic trial for user bb98af2c-822d-4956-bf01-488a94ba8c2f (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/views.py", line 523, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/students/views.py", line 775, in upload_answers_async
+    task_id = launch_at_door(
+              ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/assignments/upload_door.py", line 206, in launch_at_door
+    send()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: before any accounting
+
+
+django.request ERROR 2026-11-06 17:37:10,336 log 686139 125347544250240 [request_id=- client_request_id=-] Internal Server Error: /api/v1/submissions/35cd4b5a-5624-4ee5-95f6-8079f72ca27b/upload-async
+
+
+FFree trial plan not found: no trial activated for user d029305f-86f2-48fd-ac03-51f55889836b.
+Cannot activate automatic trial for user d029305f-86f2-48fd-ac03-51f55889836b (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-06 17:37:10,469 task_tracking 686139 125347544250240 [request_id=13156080-1b1b-4733-b1e8-bca3cc9e0b67 client_request_id=-] Background task 22ce8a6c-a350-4819-8f43-abcb1690bb85 failed: error=ConnectionError
+
+
+
+
+django.request ERROR 2026-11-06 17:37:10,508 log 686139 125347544250240 [request_id=- client_request_id=-] Service Unavailable: /api/v1/submissions/55cac86e-6aab-4dd7-81f8-8db1e0947034/batch-upload
+
+
+FFree trial plan not found: no trial activated for user 5e8646ae-767d-497b-b7b7-15b6772ea16d.
+Cannot activate automatic trial for user 5e8646ae-767d-497b-b7b7-15b6772ea16d (validation): ValueError
+.Free trial plan not found: no trial activated for user fd3126e5-b799-4778-9a7e-f2f023f17fcc.
+Cannot activate automatic trial for user fd3126e5-b799-4778-9a7e-f2f023f17fcc (validation): ValueError
+.Free trial plan not found: no trial activated for user 75263414-b439-4837-bd8f-aafb1810bf89.
+Cannot activate automatic trial for user 75263414-b439-4837-bd8f-aafb1810bf89 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-06 17:37:10,951 task_tracking 686139 125347544250240 [request_id=- client_request_id=-] Background task 2d9c59a7-c9cb-4a4f-99b8-750195af1430 failed: error=ConnectionError
+
+
+.Free trial plan not found: no trial activated for user 190860d6-ab02-4880-b158-71d71c6f2976.
+Cannot activate automatic trial for user 190860d6-ab02-4880-b158-71d71c6f2976 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-06 17:37:11,337 task_tracking 686139 125347544250240 [request_id=f98d5f4a-d791-430f-a6b7-adac14abceb8 client_request_id=-] Background task 29c20bf5-5f14-4585-abc0-995833dfdeea failed: error=ConnectionError
+
+
+API request refused: ProcessingTemporarilyUnavailable (503)
+
+
+django.request ERROR 2026-11-06 17:37:11,374 log 686139 125347544250240 [request_id=- client_request_id=-] Service Unavailable: /api/v1/submissions/cd376e1a-7b3d-4071-a414-40f3bb1e8201/upload-async
+
+
+.
+
+ai_processor.call_record WARNING 2026-11-06 17:37:11,669 call_record 686139 125347544250240 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:37:11,671 call_record 686139 125347544250240 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:37:11,672 call_record 686139 125347544250240 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:37:11,673 call_record 686139 125347544250240 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:37:11,675 call_record 686139 125347544250240 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+..................................
+======================================================================
+FAIL: test_c1_no_message_before_commit_then_exactly_one (billing.tests.test_holds_door_commit.DoorLaunchOnCommitTests.test_c1_no_message_before_commit_then_exactly_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_door_commit.py", line 54, in test_c1_no_message_before_commit_then_exactly_one
+    launch.assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'launch_processing_task' to not have been called. Called 1 times.
+Calls: [call(<@task: assignments.tasks.upload_answers_engine_async of AutoGrader at 0x7200beba9bb0>, <BackgroundProcessingTask: answer_extraction::a.png>, '7fc47ac5-f34a-419f-a8de-3cfdcee70f7b', {'name': 'a.png', 'content_type': 'image/png', 'content_b64': 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAYElEQVR4nO3PQQ0AIBDAMMC/50MEj4ZkVbDtmVk/OzrgVQNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgPaBXKqA31N0fbGAAAAAElFTkSuQmCC'}, '\n        Analyze the image of an educational assignment and return a JSON\n\n        IMPORTANT: Return only valid JSON matching the required structure.\n        Do not include any explanatory text before or after the JSON\n        ', 'd6bf035a-c4aa-4431-ae71-aec2fa8f8a9e', _celery_task_id='a716bd39-696a-4b27-9764-53c2057bc015')].
+
+======================================================================
+FAIL: test_c3_each_batch_file_launches_on_commit_with_its_own_id (billing.tests.test_holds_door_commit.DoorLaunchOnCommitTests.test_c3_each_batch_file_launches_on_commit_with_its_own_id)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_door_commit.py", line 84, in test_c3_each_batch_file_launches_on_commit_with_its_own_id
+    launch.assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'launch_processing_task' to not have been called. Called 2 times.
+Calls: [call(<@task: assignments.tasks.upload_answers_engine_async of AutoGrader at 0x7200beba9bb0>, <BackgroundProcessingTask: batch_answer_upload::s1.png>, '4b431eae-27bc-4ce3-8a91-085a62c68b67', {'name': 's1.png', 'content_type': 'image/png', 'content_b64': 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAYElEQVR4nO3PQQ0AIBDAMMC/50MEj4ZkVbDtmVk/OzrgVQNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgPaBXKqA31N0fbGAAAAAElFTkSuQmCC'}, '\n            Analyze the image of an educational assignment and return a JSON\n\n            IMPORTANT: Return only valid JSON matching the required structure.\n            Do not include any explanatory text before or after the JSON\n            ', '2480a582-74c2-4866-9f12-917deee24b7a', _celery_task_id='3a28edeb-1e8d-4da7-9415-2cbe67925497', session_id='971c52b5-bec8-4f33-a219-ae8a76db7228', file_name='s1.png'),
+ call(<@task: assignments.tasks.upload_answers_engine_async of AutoGrader at 0x7200beba9bb0>, <BackgroundProcessingTask: batch_answer_upload::s2.png>, '4b431eae-27bc-4ce3-8a91-085a62c68b67', {'name': 's2.png', 'content_type': 'image/png', 'content_b64': 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAYElEQVR4nO3PQQ0AIBDAMMC/50MEj4ZkVbDtmVk/OzrgVQNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgPaBXKqA31N0fbGAAAAAElFTkSuQmCC'}, '\n            Analyze the image of an educational assignment and return a JSON\n\n            IMPORTANT: Return only valid JSON matching the required structure.\n            Do not include any explanatory text before or after the JSON\n            ', '2480a582-74c2-4866-9f12-917deee24b7a', _celery_task_id='0e6dd7bb-45fb-4907-a1ee-e33d8c5d30f8', session_id='971c52b5-bec8-4f33-a219-ae8a76db7228', file_name='s2.png')].
+
+======================================================================
+FAIL: test_c4_an_assignment_file_launches_on_commit_with_the_preassigned_id (billing.tests.test_holds_door_commit.DoorLaunchOnCommitTests.test_c4_an_assignment_file_launches_on_commit_with_the_preassigned_id)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_door_commit.py", line 108, in test_c4_an_assignment_file_launches_on_commit_with_the_preassigned_id
+    launch.assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'launch_processing_task' to not have been called. Called 1 times.
+Calls: [call(<@task: assignments.tasks.upload_assignment_async of AutoGrader at 0x7200beba9bb0>, <BackgroundProcessingTask: batch_assignment_upload::paper.png>, _celery_task_id='481790b2-3c9d-4ee7-9816-f48b0ec9ea45', user_id='eea884c9-9c72-436e-857f-cfb346ef10ef', course_id='30595a7a-27c3-4f72-a661-421d22ab4d3f', topic_id=None, session_id='bd116387-86ec-443a-b6ef-5a76fe0866af', file_payload={'name': 'paper.png', 'content_type': 'image/png', 'content_b64': 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAYElEQVR4nO3PQQ0AIBDAMMC/50MEj4ZkVbDtmVk/OzrgVQNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgPaBXKqA31N0fbGAAAAAElFTkSuQmCC'}, prompt_text='\n            Analyze the image of an educational assignment and return a JSON\n\n            IMPORTANT: Return only valid JSON matching the required structure.\n            Do not include any explanatory text before or after the JSON\n            ', file_name='paper.png')].
+
+======================================================================
+FAIL: test_c11_an_early_non_broker_error_still_returns_the_hold (billing.tests.test_holds_door_commit.FailingCallbackUnderAnOuterAtomicTests.test_c11_an_early_non_broker_error_still_returns_the_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_door_commit.py", line 209, in test_c11_an_early_non_broker_error_still_returns_the_hold
+    ), self.assertLogs("assignments.upload_door", level="ERROR"):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level ERROR or higher triggered on assignments.upload_door
+
+======================================================================
+FAIL: test_c9_the_first_file_fails_and_the_second_still_launches (billing.tests.test_holds_door_commit.FailingCallbackUnderAnOuterAtomicTests.test_c9_the_first_file_fails_and_the_second_still_launches)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_door_commit.py", line 187, in test_c9_the_first_file_fails_and_the_second_still_launches
+    self.assertEqual(response.status_code, 202)
+AssertionError: 503 != 202
+
+----------------------------------------------------------------------
+Ran 56 tests in 9.950s
+
+FAILED (failures=5)
+Destroying test database for alias 'default'...
+Found 56 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

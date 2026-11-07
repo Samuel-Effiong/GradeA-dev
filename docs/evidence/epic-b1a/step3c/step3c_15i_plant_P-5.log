@@ -1,0 +1,66 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 215e7389-de8a-4984-a21a-6d1d36ebe816.
+Cannot activate automatic trial for user 215e7389-de8a-4984-a21a-6d1d36ebe816 (validation): ValueError
+FFree trial plan not found: no trial activated for user 5914a192-58ad-4ce9-a475-69856a4f9848.
+Cannot activate automatic trial for user 5914a192-58ad-4ce9-a475-69856a4f9848 (validation): ValueError
+F
+
+ai_processor.call_record WARNING 2026-11-06 17:18:44,024 call_record 651913 133061243832192 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:18:44,029 call_record 651913 133061243832192 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:18:44,030 call_record 651913 133061243832192 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:18:44,031 call_record 651913 133061243832192 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:18:44,033 call_record 651913 133061243832192 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+..................................
+======================================================================
+FAIL: test_two_calls_in_a_unit_settle_once (billing.tests.test_holds_unit.UnitTests.test_two_calls_in_a_unit_settle_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_unit.py", line 54, in test_two_calls_in_a_unit_settle_once
+    self.assertEqual(AICallRecord.objects.filter(task_id__in=usage_ids).count(), 2)
+AssertionError: 0 != 2
+
+======================================================================
+FAIL: test_a_call_holds_settles_and_returns_the_rest (billing.tests.test_holds_single_call.FlagOnSingleCallTests.test_a_call_holds_settles_and_returns_the_rest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_single_call.py", line 59, in test_a_call_holds_settles_and_returns_the_rest
+    self.assertEqual(call.task_id, str(record.id))
+AssertionError: 'eddfe490-7ff6-4525-b6b6-260d11dfeb92' != '70766a0c-7a41-4131-bf4a-326ed7ecbd06'
+- eddfe490-7ff6-4525-b6b6-260d11dfeb92
++ 70766a0c-7a41-4131-bf4a-326ed7ecbd06
+
+
+----------------------------------------------------------------------
+Ran 36 tests in 4.747s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...
+Found 36 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -1,0 +1,94 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 6de6f849-c4f2-4d5b-8d16-baedc689c01c.
+Cannot activate automatic trial for user 6de6f849-c4f2-4d5b-8d16-baedc689c01c (validation): ValueError
+FFree trial plan not found: no trial activated for user 0adccdd4-902e-49c0-b277-b62d928241f6.
+Cannot activate automatic trial for user 0adccdd4-902e-49c0-b277-b62d928241f6 (validation): ValueError
+.Free trial plan not found: no trial activated for user a2b07767-27db-48f6-ae2b-3d693589bf06.
+Cannot activate automatic trial for user a2b07767-27db-48f6-ae2b-3d693589bf06 (validation): ValueError
+.Free trial plan not found: no trial activated for user a94ae510-6d1f-4fd8-a140-527f3bbc68c7.
+Cannot activate automatic trial for user a94ae510-6d1f-4fd8-a140-527f3bbc68c7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8f6aed59-c09d-4bbd-90c6-7f8ca103fd17.
+Cannot activate automatic trial for user 8f6aed59-c09d-4bbd-90c6-7f8ca103fd17 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2b67c6b5-d9b5-4b2e-a08d-0f552c696d67.
+Cannot activate automatic trial for user 2b67c6b5-d9b5-4b2e-a08d-0f552c696d67 (validation): ValueError
+.Free trial plan not found: no trial activated for user 31909dad-df4d-495e-8c0f-757f587264fe.
+Cannot activate automatic trial for user 31909dad-df4d-495e-8c0f-757f587264fe (validation): ValueError
+.Free trial plan not found: no trial activated for user 80fce6df-24bb-492e-bb75-5ee6ffa597f3.
+Cannot activate automatic trial for user 80fce6df-24bb-492e-bb75-5ee6ffa597f3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6125526b-9cb1-4684-a765-9c08ffe157d5.
+Cannot activate automatic trial for user 6125526b-9cb1-4684-a765-9c08ffe157d5 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3c950fe7-29b8-421d-bf6b-332e3704d472.
+Cannot activate automatic trial for user 3c950fe7-29b8-421d-bf6b-332e3704d472 (validation): ValueError
+.Free trial plan not found: no trial activated for user 519525aa-e3fa-47fa-bac2-d40b6156b5a8.
+Cannot activate automatic trial for user 519525aa-e3fa-47fa-bac2-d40b6156b5a8 (validation): ValueError
+.Free trial plan not found: no trial activated for user 786a1a08-2467-4b90-8f8a-a1751ac1ddb1.
+Cannot activate automatic trial for user 786a1a08-2467-4b90-8f8a-a1751ac1ddb1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4c7bd793-1aee-4444-9c84-3f37338645e7.
+Cannot activate automatic trial for user 4c7bd793-1aee-4444-9c84-3f37338645e7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1f2483d0-73fb-4cc4-bd09-dab7ac550d68.
+Cannot activate automatic trial for user 1f2483d0-73fb-4cc4-bd09-dab7ac550d68 (validation): ValueError
+..F
+
+ai_processor.call_record WARNING 2026-11-06 17:21:47,928 call_record 654298 132587551692672 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:21:47,929 call_record 654298 132587551692672 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:21:47,930 call_record 654298 132587551692672 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:21:47,931 call_record 654298 132587551692672 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:21:47,932 call_record 654298 132587551692672 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+..................................
+======================================================================
+FAIL: test_e1_a_single_paper_grade_settles_once_on_its_task_row (billing.tests.test_holds_entry.EntryPointTests.test_e1_a_single_paper_grade_settles_once_on_its_task_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_entry.py", line 261, in test_e1_a_single_paper_grade_settles_once_on_its_task_row
+    self.assertEqual((record.item_id, record.retry_count), (row.id, 0))
+AssertionError: Tuples differ: (UUID('dbe437c0-c1d4-4f1a-9c14-22b6c5b940e6'), 0) != (UUID('bc1f2d1f-a79d-41d7-9859-b0d585a362a9'), 0)
+
+First differing element 0:
+UUID('dbe437c0-c1d4-4f1a-9c14-22b6c5b940e6')
+UUID('bc1f2d1f-a79d-41d7-9859-b0d585a362a9')
+
+- (UUID('dbe437c0-c1d4-4f1a-9c14-22b6c5b940e6'), 0)
++ (UUID('bc1f2d1f-a79d-41d7-9859-b0d585a362a9'), 0)
+
+======================================================================
+FAIL: test_the_five_sites_open_a_metered_unit_with_their_task_id (billing.tests.test_holds_entry.WiringTests.test_the_five_sites_open_a_metered_unit_with_their_task_id) (site='students/services.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_entry.py", line 381, in test_the_five_sites_open_a_metered_unit_with_their_task_id
+    self.assertIn("processing_task_id", {k.arg for k in call.keywords})
+AssertionError: 'processing_task_id' not found in {'reason'}
+
+----------------------------------------------------------------------
+Ran 50 tests in 8.492s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...
+Found 50 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

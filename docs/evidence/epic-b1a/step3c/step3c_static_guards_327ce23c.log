@@ -1,0 +1,85 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+
+
+ai_processor.call_record WARNING 2026-11-06 16:58:59,823 call_record 619140 128868182423424 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 16:58:59,825 call_record 619140 128868182423424 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 16:58:59,949 call_record 619140 128868182423424 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 16:58:59,950 call_record 619140 128868182423424 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 16:58:59,951 call_record 619140 128868182423424 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+.F.....F.....................F....
+======================================================================
+FAIL: test___ai_model_is_called_only_from_execute_graded_task_twice (ai_processor.tests_metering_chokepoint.MeteringChokepointTests.test___ai_model_is_called_only_from_execute_graded_task_twice)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/tests_metering_chokepoint.py", line 111, in test___ai_model_is_called_only_from_execute_graded_task_twice
+    self.assertEqual(sites, ["execute_graded_task", "execute_graded_task"])
+AssertionError: Lists differ: ['exe[24 chars]ute_graded_task', 'execute_graded_task', 'execute_graded_task'] != ['exe[24 chars]ute_graded_task']
+
+First list contains 2 additional elements.
+First extra element 2:
+'execute_graded_task'
+
++ ['execute_graded_task', 'execute_graded_task']
+- ['execute_graded_task',
+-  'execute_graded_task',
+-  'execute_graded_task',
+-  'execute_graded_task']
+
+======================================================================
+FAIL: test_no_other_code_names_the_model (ai_processor.tests_call_record_static.NothingReadsOrExposesTheTable.test_no_other_code_names_the_model)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/tests_call_record_static.py", line 388, in test_no_other_code_names_the_model
+    self.assertEqual(found, [])
+AssertionError: Lists differ: ['billing/holds.py'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'billing/holds.py'
+
+- ['billing/holds.py']
++ []
+
+======================================================================
+FAIL: test_the_hooks_are_five_lines_in_all (ai_processor.tests_call_record_static.TheHooks.test_the_hooks_are_five_lines_in_all)
+One decorator line and four notes: the seam exception granted is
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/ai_processor/tests_call_record_static.py", line 258, in test_the_hooks_are_five_lines_in_all
+    self.assertEqual(len(notes) + len(function.decorator_list), 5)
+AssertionError: 10 != 5
+
+----------------------------------------------------------------------
+Ran 34 tests in 4.367s
+
+FAILED (failures=3)
+Destroying test database for alias 'default'...
+Found 34 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

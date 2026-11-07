@@ -1,0 +1,77 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+.Free trial plan not found: no trial activated for user b6e809eb-698b-4e01-bcff-51f858903820.
+Cannot activate automatic trial for user b6e809eb-698b-4e01-bcff-51f858903820 (validation): ValueError
+.Free trial plan not found: no trial activated for user f0c9af50-377f-48ae-b75b-3f65cb3e6c18.
+Cannot activate automatic trial for user f0c9af50-377f-48ae-b75b-3f65cb3e6c18 (validation): ValueError
+.Free trial plan not found: no trial activated for user 22e9b348-2bea-4752-9692-92752688bc21.
+Cannot activate automatic trial for user 22e9b348-2bea-4752-9692-92752688bc21 (validation): ValueError
+.Free trial plan not found: no trial activated for user ce060d77-8870-4af8-9fcd-044b10b5f6e4.
+Cannot activate automatic trial for user ce060d77-8870-4af8-9fcd-044b10b5f6e4 (validation): ValueError
+..Free trial plan not found: no trial activated for user 9a3541c8-900b-463b-b27a-7554bfb8f17e.
+Cannot activate automatic trial for user 9a3541c8-900b-463b-b27a-7554bfb8f17e (validation): ValueError
+.Free trial plan not found: no trial activated for user a24eecb3-6ebe-4404-b50e-2009a565664b.
+Cannot activate automatic trial for user a24eecb3-6ebe-4404-b50e-2009a565664b (validation): ValueError
+.Free trial plan not found: no trial activated for user 8c91350e-3636-4588-9695-97addbe231f2.
+Cannot activate automatic trial for user 8c91350e-3636-4588-9695-97addbe231f2 (validation): ValueError
+.Free trial plan not found: no trial activated for user 93feb14c-aa7d-4c5f-8bf3-9b2aea069397.
+Cannot activate automatic trial for user 93feb14c-aa7d-4c5f-8bf3-9b2aea069397 (validation): ValueError
+.Free trial plan not found: no trial activated for user fc7d34da-65ed-424b-885f-102e88ca3067.
+Cannot activate automatic trial for user fc7d34da-65ed-424b-885f-102e88ca3067 (validation): ValueError
+.Free trial plan not found: no trial activated for user 09592f49-367c-492b-abf8-7113a48f5873.
+Cannot activate automatic trial for user 09592f49-367c-492b-abf8-7113a48f5873 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5a8417f8-40b1-49d3-9803-6ec8e08e3bfd.
+Cannot activate automatic trial for user 5a8417f8-40b1-49d3-9803-6ec8e08e3bfd (validation): ValueError
+.Free trial plan not found: no trial activated for user 0eeec861-8c93-413e-aaa7-a75f21fdd704.
+Cannot activate automatic trial for user 0eeec861-8c93-413e-aaa7-a75f21fdd704 (validation): ValueError
+.Free trial plan not found: no trial activated for user 767aaeef-7c6b-4650-aca1-0fcf755ea147.
+Cannot activate automatic trial for user 767aaeef-7c6b-4650-aca1-0fcf755ea147 (validation): ValueError
+.Free trial plan not found: no trial activated for user e2f8082f-bfd0-4c92-8b1b-7369adf85e5f.
+Cannot activate automatic trial for user e2f8082f-bfd0-4c92-8b1b-7369adf85e5f (validation): ValueError
+.Free trial plan not found: no trial activated for user decc6e85-32f6-4d3f-86a0-e672df2f2ebf.
+Cannot activate automatic trial for user decc6e85-32f6-4d3f-86a0-e672df2f2ebf (validation): ValueError
+.Free trial plan not found: no trial activated for user d322f6db-86ff-4804-a8b2-0749d425bd0e.
+Cannot activate automatic trial for user d322f6db-86ff-4804-a8b2-0749d425bd0e (validation): ValueError
+.Free trial plan not found: no trial activated for user c3038288-30b1-45b5-b91d-207bf0a0c10f.
+Cannot activate automatic trial for user c3038288-30b1-45b5-b91d-207bf0a0c10f (validation): ValueError
+.
+
+ai_processor.call_record WARNING 2026-11-06 17:07:33,813 call_record 626008 127426992514944 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:07:33,814 call_record 626008 127426992514944 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:07:33,816 call_record 626008 127426992514944 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:07:33,817 call_record 626008 127426992514944 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:07:33,819 call_record 626008 127426992514944 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+..................................
+----------------------------------------------------------------------
+Ran 53 tests in 7.176s
+
+OK
+Destroying test database for alias 'default'...
+Found 53 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -1,0 +1,105 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 815b9045-04d6-4b05-a687-fe1e20713084.
+Cannot activate automatic trial for user 815b9045-04d6-4b05-a687-fe1e20713084 (validation): ValueError
+.EEFree trial plan not found: no trial activated for user 296bb907-ed9b-4e40-9962-8ac10dea557a.
+Cannot activate automatic trial for user 296bb907-ed9b-4e40-9962-8ac10dea557a (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red9/staticfiles/
+  mw_instance = middleware(adapted_handler)
+EFree trial plan not found: no trial activated for user 393f91c5-4dd3-4e01-b993-972db577b2ce.
+Cannot activate automatic trial for user 393f91c5-4dd3-4e01-b993-972db577b2ce (validation): ValueError
+FFree trial plan not found: no trial activated for user 174051ec-336f-4ddc-902e-4f12805cb48a.
+Cannot activate automatic trial for user 174051ec-336f-4ddc-902e-4f12805cb48a (validation): ValueError
+.Free trial plan not found: no trial activated for user 39af049f-35e9-47a5-889e-770fe1b18709.
+Cannot activate automatic trial for user 39af049f-35e9-47a5-889e-770fe1b18709 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~5000 credits, 2000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-06 12:38:07,422 refusals 475302 130916985309056 [request_id=c0eca872-7697-42f1-af3c-97806fdd645c client_request_id=-] Background task be03cba6-c6e2-4d29-a5d0-53c07291f934 refused: InsufficientCreditsError: Upload needs ~5000 credits, 2000 left in the batch
+
+
+FFree trial plan not found: no trial activated for user c548bf07-d36b-4e6c-ada2-e7ea107e4d30.
+Cannot activate automatic trial for user c548bf07-d36b-4e6c-ada2-e7ea107e4d30 (validation): ValueError
+F
+======================================================================
+ERROR: test_once_approved_the_teacher_is_emailed_naming_the_file (billing.tests.test_holds_door.LateDoorNoticeTests.test_once_approved_the_teacher_is_emailed_naming_the_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red9/billing/tests/test_holds_door.py", line 178, in test_once_approved_the_teacher_is_emailed_naming_the_file
+    with patch("AutoGrader.tasks.send_email_task.delay") as send, patch.object(
+                                                                  ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1467, in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1437, in get_original
+    raise AttributeError(
+AttributeError: <module 'billing.holds' from '/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red9/billing/holds.py'> does not have the attribute 'LATE_DOOR_EMAIL_APPROVED'
+
+======================================================================
+ERROR: test_the_texts_are_one_pending_constant_and_both_switches_are_off (billing.tests.test_holds_door.LateDoorNoticeTests.test_the_texts_are_one_pending_constant_and_both_switches_are_off)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red9/billing/tests/test_holds_door.py", line 188, in test_the_texts_are_one_pending_constant_and_both_switches_are_off
+    texts = holds().LATE_DOOR_EMAIL_TEXTS
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'LATE_DOOR_EMAIL_TEXTS'
+
+======================================================================
+ERROR: test_a_granted_hold_is_taken_on_the_row_and_the_task_settles_on_it (billing.tests.test_holds_door.StudentDoorTests.test_a_granted_hold_is_taken_on_the_row_and_the_task_settles_on_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red9/billing/tests/test_holds_door.py", line 88, in test_a_granted_hold_is_taken_on_the_row_and_the_task_settles_on_it
+    job = AIJob.objects.get(job_type="UPLOAD")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 635, in get
+    raise self.model.DoesNotExist(
+billing.models.AIJob.DoesNotExist: AIJob matching query does not exist.
+
+======================================================================
+FAIL: test_a_refused_hold_rolls_the_request_back_and_launches_nothing (billing.tests.test_holds_door.StudentDoorTests.test_a_refused_hold_rolls_the_request_back_and_launches_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red9/billing/tests/test_holds_door.py", line 73, in test_a_refused_hold_rolls_the_request_back_and_launches_nothing
+    self.assertEqual(response.status_code, 402)
+AssertionError: 200 != 402
+
+======================================================================
+FAIL: test_a_batch_holds_the_files_that_fit_and_parks_the_rest (billing.tests.test_holds_door.TeacherDoorTests.test_a_batch_holds_the_files_that_fit_and_parks_the_rest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red9/billing/tests/test_holds_door.py", line 127, in test_a_batch_holds_the_files_that_fit_and_parks_the_rest
+    self.assertEqual(response.status_code, 200)
+AssertionError: 202 != 200
+
+======================================================================
+FAIL: test_an_assignment_file_is_held_on_its_row (billing.tests.test_holds_door.TeacherDoorTests.test_an_assignment_file_is_held_on_its_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1a-red9/billing/tests/test_holds_door.py", line 148, in test_an_assignment_file_is_held_on_its_row
+    self.assertEqual(response.status_code, 200)
+AssertionError: 202 != 200
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.525s
+
+FAILED (failures=3, errors=3)
+Destroying test database for alias 'default'...
+Found 8 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

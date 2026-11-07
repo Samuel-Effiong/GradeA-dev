@@ -1,0 +1,173 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user c522aeaf-6ae0-41b3-bbcd-4460e2db26b7.
+Cannot activate automatic trial for user c522aeaf-6ae0-41b3-bbcd-4460e2db26b7 (validation): ValueError
+Late door file refused (task 85eedb32-315d-4d2d-b894-80c48d6983b3); the notice texts await owner approval, so no email was sent.
+.Free trial plan not found: no trial activated for user 1d65fcb3-eec1-47d5-b0ca-ddc53ad3299d.
+Cannot activate automatic trial for user 1d65fcb3-eec1-47d5-b0ca-ddc53ad3299d (validation): ValueError
+..Free trial plan not found: no trial activated for user c69f026a-a35c-48ed-b56b-39a94b169515.
+Cannot activate automatic trial for user c69f026a-a35c-48ed-b56b-39a94b169515 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user 476a236c-ff00-4fe9-8165-b554f99ab997.
+Cannot activate automatic trial for user 476a236c-ff00-4fe9-8165-b554f99ab997 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~5000 credits, balance 4000
+.Free trial plan not found: no trial activated for user 6f779cd3-c01a-48af-8749-a0acf41f38fe.
+Cannot activate automatic trial for user 6f779cd3-c01a-48af-8749-a0acf41f38fe (validation): ValueError
+Upload door (hold) refused: InsufficientCreditsError: Upload needs ~5000 credits, more than is free to hold
+.Free trial plan not found: no trial activated for user 0d4fee94-8047-4dc8-a367-7b756dd54c06.
+Cannot activate automatic trial for user 0d4fee94-8047-4dc8-a367-7b756dd54c06 (validation): ValueError
+.Free trial plan not found: no trial activated for user 260d0268-6f97-454c-a03b-10b5d592b25a.
+Cannot activate automatic trial for user 260d0268-6f97-454c-a03b-10b5d592b25a (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~5000 credits, 2000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-06 17:38:06,342 refusals 686652 132440778286976 [request_id=23cd5645-b06f-449d-86cd-0d8b25efabf4 client_request_id=-] Background task 8c2dc298-8c90-4849-a8ea-b519aaafbff8 refused: InsufficientCreditsError: Upload needs ~5000 credits, 2000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user d2fb3141-c5a9-4392-b8fc-c6a8a4231018.
+Cannot activate automatic trial for user d2fb3141-c5a9-4392-b8fc-c6a8a4231018 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0d2e35ba-4a69-4ae6-bf8b-aba8440cedf1.
+Cannot activate automatic trial for user 0d2e35ba-4a69-4ae6-bf8b-aba8440cedf1 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~5000 credits, 4000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-06 17:38:06,752 refusals 686652 132440778286976 [request_id=c871ebbb-4588-49b4-af7b-145fa40cfa72 client_request_id=-] Background task 886a0a04-c48a-4a31-8b35-0b2769acae94 refused: InsufficientCreditsError: Upload needs ~5000 credits, 4000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user f233394b-5dfc-47ac-acac-2c42cb3f9548.
+Cannot activate automatic trial for user f233394b-5dfc-47ac-acac-2c42cb3f9548 (validation): ValueError
+Upload door (hold) refused: InsufficientCreditsError: Upload needs ~5000 credits, more than is free to hold
+
+
+students.task_tracking WARNING 2026-11-06 17:38:06,956 refusals 686652 132440778286976 [request_id=1d517518-29ac-46f0-96aa-76e55ad646ea client_request_id=-] Background task 4b21d41b-157c-4f20-a732-ca096f838abf refused: InsufficientCreditsError: Upload needs ~5000 credits, more than is free to hold
+
+
+.Free trial plan not found: no trial activated for user e6fa61da-bd7c-4169-911d-c3b92f045857.
+Cannot activate automatic trial for user e6fa61da-bd7c-4169-911d-c3b92f045857 (validation): ValueError
+.Free trial plan not found: no trial activated for user 96f91a9d-ecad-4ec3-8e4e-3839dc1090a5.
+Cannot activate automatic trial for user 96f91a9d-ecad-4ec3-8e4e-3839dc1090a5 (validation): ValueError
+.Free trial plan not found: no trial activated for user e1b0203d-d9b2-4d79-8b37-5abbb545a3e2.
+Cannot activate automatic trial for user e1b0203d-d9b2-4d79-8b37-5abbb545a3e2 (validation): ValueError
+.Free trial plan not found: no trial activated for user 420531d5-7045-441c-a3b8-fd93be742431.
+Cannot activate automatic trial for user 420531d5-7045-441c-a3b8-fd93be742431 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7a48f9be-5954-4c8b-96b2-bf4c8e6debcc.
+Cannot activate automatic trial for user 7a48f9be-5954-4c8b-96b2-bf4c8e6debcc (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~5000 credits, balance 4000
+.Free trial plan not found: no trial activated for user da550ae5-5777-4262-945a-4b43a2c6454f.
+Cannot activate automatic trial for user da550ae5-5777-4262-945a-4b43a2c6454f (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-06 17:38:08,157 task_tracking 686652 132440778286976 [request_id=- client_request_id=-] Background task 67730fdf-0033-477e-b0a1-793e2c43e179 failed: error=RuntimeError frames=upload_door.py:226:__call__ <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 8b5324ab-8557-4b98-b269-95996cd15685.
+Cannot activate automatic trial for user 8b5324ab-8557-4b98-b269-95996cd15685 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-06 17:38:08,374 task_tracking 686652 132440778286976 [request_id=- client_request_id=-] Background task 8627cc9b-0488-4302-a564-cf72195c0a70 failed: error=ConnectionError
+
+
+.Free trial plan not found: no trial activated for user f61bcc5c-47b8-4688-9fef-e2b9bda9b17a.
+Cannot activate automatic trial for user f61bcc5c-47b8-4688-9fef-e2b9bda9b17a (validation): ValueError
+.Free trial plan not found: no trial activated for user 16b80edf-0a1d-412a-8b7d-5cf9e8d2ebb4.
+Cannot activate automatic trial for user 16b80edf-0a1d-412a-8b7d-5cf9e8d2ebb4 (validation): ValueError
+.Free trial plan not found: no trial activated for user ff36e397-86f4-41e1-b25a-14420fec6110.
+Cannot activate automatic trial for user ff36e397-86f4-41e1-b25a-14420fec6110 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-06 17:38:08,853 task_tracking 686652 132440778286976 [request_id=- client_request_id=-] Background task 3e5a54fc-1dd7-4eb8-b653-964b448c83dd failed: error=ConnectionError
+
+
+FFree trial plan not found: no trial activated for user 50354f00-e288-4ddb-8aad-568b370c6ccc.
+Cannot activate automatic trial for user 50354f00-e288-4ddb-8aad-568b370c6ccc (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-06 17:38:09,046 task_tracking 686652 132440778286976 [request_id=450bcd87-54e9-4305-af68-1f700ea14961 client_request_id=-] Background task 185b0d5c-9b54-4c45-8df8-9bce9559592b failed: error=ConnectionError
+
+
+API request refused: ProcessingTemporarilyUnavailable (503)
+
+
+django.request ERROR 2026-11-06 17:38:09,055 log 686652 132440778286976 [request_id=- client_request_id=-] Service Unavailable: /api/v1/submissions/4ecc7ed6-7d40-4c6f-af40-8ffcd0700543/upload-async
+
+
+F
+
+ai_processor.call_record WARNING 2026-11-06 17:38:09,278 call_record 686652 132440778286976 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:38:09,280 call_record 686652 132440778286976 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:38:09,282 call_record 686652 132440778286976 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:38:09,284 call_record 686652 132440778286976 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:38:09,286 call_record 686652 132440778286976 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+..................................
+======================================================================
+FAIL: test_c8_a_broker_failure_returns_the_files_hold (billing.tests.test_holds_door_commit.LaunchProcessingTaskIdTests.test_c8_a_broker_failure_returns_the_files_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_door_commit.py", line 158, in test_c8_a_broker_failure_returns_the_files_hold
+    self.assertEqual((row.status, row.hold_state), ("FAILURE", "RETURNED"))
+AssertionError: Tuples differ: ('FAILURE', 'HELD') != ('FAILURE', 'RETURNED')
+
+First differing element 1:
+'HELD'
+'RETURNED'
+
+- ('FAILURE', 'HELD')
+?              ^ ^
+
++ ('FAILURE', 'RETURNED')
+?              ^ ^^^^^
+
+
+======================================================================
+FAIL: test_c10_a_broker_failure_still_answers_503 (billing.tests.test_holds_door_commit.FailingLaunchInAutocommitTests.test_c10_a_broker_failure_still_answers_503)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_door_commit.py", line 243, in test_c10_a_broker_failure_still_answers_503
+    self.assertEqual((row.status, row.hold_state), ("FAILURE", "RETURNED"))
+AssertionError: Tuples differ: ('FAILURE', 'HELD') != ('FAILURE', 'RETURNED')
+
+First differing element 1:
+'HELD'
+'RETURNED'
+
+- ('FAILURE', 'HELD')
+?              ^ ^
+
++ ('FAILURE', 'RETURNED')
+?              ^ ^^^^^
+
+
+----------------------------------------------------------------------
+Ran 56 tests in 9.673s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...
+Found 56 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

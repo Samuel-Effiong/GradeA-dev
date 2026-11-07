@@ -1,0 +1,125 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user f5dd9638-9129-4e49-99a0-7d6a89994016.
+Cannot activate automatic trial for user f5dd9638-9129-4e49-99a0-7d6a89994016 (validation): ValueError
+.Free trial plan not found: no trial activated for user 77c41131-199e-4f44-a3c6-07fa7680400c.
+Cannot activate automatic trial for user 77c41131-199e-4f44-a3c6-07fa7680400c (validation): ValueError
+.Free trial plan not found: no trial activated for user 4042f8e5-a418-45af-8517-d56d6e369b8b.
+Cannot activate automatic trial for user 4042f8e5-a418-45af-8517-d56d6e369b8b (validation): ValueError
+.Free trial plan not found: no trial activated for user 10537c63-ce1f-4486-b043-7437ce41e335.
+Cannot activate automatic trial for user 10537c63-ce1f-4486-b043-7437ce41e335 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2c318e99-3191-462f-8d09-61fcfbf5a79e.
+Cannot activate automatic trial for user 2c318e99-3191-462f-8d09-61fcfbf5a79e (validation): ValueError
+.Free trial plan not found: no trial activated for user 1694e9c6-cff0-47fa-9df4-33a0540803de.
+Cannot activate automatic trial for user 1694e9c6-cff0-47fa-9df4-33a0540803de (validation): ValueError
+.Free trial plan not found: no trial activated for user 0f21749b-67a6-45cd-a554-7e5f91735bae.
+Cannot activate automatic trial for user 0f21749b-67a6-45cd-a554-7e5f91735bae (validation): ValueError
+.Free trial plan not found: no trial activated for user 7261201f-2d7a-4d57-a24d-3bee4040df22.
+Cannot activate automatic trial for user 7261201f-2d7a-4d57-a24d-3bee4040df22 (validation): ValueError
+.Free trial plan not found: no trial activated for user a3c1c887-a674-4628-80f5-1f967022ffd2.
+Cannot activate automatic trial for user a3c1c887-a674-4628-80f5-1f967022ffd2 (validation): ValueError
+.Free trial plan not found: no trial activated for user dda7ef1f-aad7-475e-a972-ac5684dbe782.
+Cannot activate automatic trial for user dda7ef1f-aad7-475e-a972-ac5684dbe782 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6d043dfa-24d3-4ee5-914f-cbf1f592157e.
+Cannot activate automatic trial for user 6d043dfa-24d3-4ee5-914f-cbf1f592157e (validation): ValueError
+.Free trial plan not found: no trial activated for user b6b84085-5c87-4ce6-8a7d-00897bf8928d.
+Cannot activate automatic trial for user b6b84085-5c87-4ce6-8a7d-00897bf8928d (validation): ValueError
+EFree trial plan not found: no trial activated for user 98394267-686d-45eb-ac76-f2138704c557.
+Cannot activate automatic trial for user 98394267-686d-45eb-ac76-f2138704c557 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5152c61d-04a0-47f8-a946-dd1665b92317.
+Cannot activate automatic trial for user 5152c61d-04a0-47f8-a946-dd1665b92317 (validation): ValueError
+...
+
+ai_processor.call_record WARNING 2026-11-06 17:20:25,007 call_record 653007 129435752667008 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:20:25,008 call_record 653007 129435752667008 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:20:25,009 call_record 653007 129435752667008 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:20:25,010 call_record 653007 129435752667008 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-06 17:20:25,011 call_record 653007 129435752667008 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+..................................
+======================================================================
+ERROR: test_er5_a_retried_row_runs_under_a_new_single_item_job (billing.tests.test_holds_entry.EntryRuleTests.test_er5_a_retried_row_runs_under_a_new_single_item_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_aijob" violates check constraint "aijob_items_within_total"
+DETAIL:  Failing row contains (313e1040-a832-46ee-8473-ca4e4d583ba2, BATCH_GRADING, RUNNING, null, null, null, null, 20053, 2026-11-06 17:20:24.42894+00, 100, 19953, 100, 0, 0, 0, 1, 1, 1, null, null, null, null, null, 901065c1-f36a-4a5a-9685-f058aab1cb75, {}, 2026-11-06 17:20:24.364201+00, 2026-11-06 17:20:24.364219+00, null, null, b6b84085-5c87-4ce6-8a7d-00897bf8928d, 1c4ae298-7b37-4255-9c70-38b5403b8ada).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_entry.py", line 197, in test_er5_a_retried_row_runs_under_a_new_single_item_job
+    self.run_unit(fresh(row), calls=1)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_entry.py", line 128, in run_unit
+    with holds().metered_unit(processing_task_id=row.id, reason="t"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/holds.py", line 874, in metered_unit
+    unit.settle_root()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/holds.py", line 804, in settle_root
+    outcome = settle(
+              ^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/holds.py", line 310, in settle
+    AIJob.objects.filter(pk=job_row.pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1263, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_aijob" violates check constraint "aijob_items_within_total"
+DETAIL:  Failing row contains (313e1040-a832-46ee-8473-ca4e4d583ba2, BATCH_GRADING, RUNNING, null, null, null, null, 20053, 2026-11-06 17:20:24.42894+00, 100, 19953, 100, 0, 0, 0, 1, 1, 1, null, null, null, null, null, 901065c1-f36a-4a5a-9685-f058aab1cb75, {}, 2026-11-06 17:20:24.364201+00, 2026-11-06 17:20:24.364219+00, null, null, b6b84085-5c87-4ce6-8a7d-00897bf8928d, 1c4ae298-7b37-4255-9c70-38b5403b8ada).
+
+
+----------------------------------------------------------------------
+Ran 50 tests in 7.424s
+
+FAILED (errors=1)
+Destroying test database for alias 'default'...
+Found 50 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
