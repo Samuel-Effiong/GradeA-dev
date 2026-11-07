@@ -1477,3 +1477,24 @@ Every file was restored, sha256-checked against HEAD. G-1 stayed green in every 
 **Final DP record:** DP-1…DP-9 on the full door set (`test_holds_door` 11 + `test_holds_door_commit` 11 = 22) plus G-1. The expected kills are as in the updated §15h table, plus DP-2 → D-11 and DP-9 → D-12. D-11 and D-12 must pass in every other plant.
 
 **Four-app near run, expected:** **Ran 5788 = 5654 + 134** (127 + C-9, C-10, C-11, D-10, N-1, D-11, D-12), OK (skipped=20). It is followed by the static set as its own run.
+
+### 15h-2 results (code cf82437d, tests 6f3e6dd5)
+
+- **Green:** door set + G-1, Ran 56, OK (`step3c_d11_d12_green.log`). D-11 and D-12 pass on the current code.
+- **Final DP record:** DP-1…DP-9, each on the 22 door tests + G-1 (Ran 56 each), logs `step3c_plant_DP-n_final.log`. Every file was restored and sha256-checked. **All 9 matched:**
+
+| Plant | Killed by | Fragment |
+|---|---|---|
+| DP-1 | D-10 | `2 != 1` |
+| DP-2 | **D-11** | `True is not false` (the row survives the refusal) |
+| DP-3 | D-7 | `delay` called |
+| DP-4 | C-1, C-3, C-4, C-9, C-11 | as in the first record |
+| DP-5 | C-6 | `expected call not found` |
+| DP-6 | C-8, C-10 | `('FAILURE', 'HELD')` |
+| DP-7 | C-2, C-3 | `None != '<uuid>'` |
+| DP-8 | C-11 | `('FAILURE', 'HELD')` |
+| DP-9 | **D-12** | `2 != 1` (the refused file launched) |
+
+- **Four-app near run (flag off, HEAD 6f3e6dd5):** `billing ai_processor students assignments --parallel 3` gave **Ran 5788, OK (skipped=20)**, as expected (`step3c_near4_flagoff_6f3e6dd5.log.gz`). The ten `[PDF] Chromium is no longer connected` warnings match the base run (`step3c_near4_flagoff_BASE_2f00c078.log`, also 10). They come from the crash-recovery tests, not from a missing browser; there are no browser skips.
+- **Static set** (G-1 + `students.tests_reading_label_static` + `AutoGrader.tests_h271_static_files`): **Ran 58, OK** (`step3c_static_6f3e6dd5.log`).
+- **Step 3c status:** every expectation matched. Checkpoint sent to the SM; nothing pushed.
