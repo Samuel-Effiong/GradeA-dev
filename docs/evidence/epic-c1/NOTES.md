@@ -46,6 +46,8 @@ FR-C-08's documented rule changes as follows:
 | 17-backfill-after-lint | backfill | after the flake8 B904 fix: Ran 13, OK |
 | 18-red-symbols | symbols, red | Ran 53: 7 failures, 2 errors (the normalize module failed to import) |
 | 19-red-symbols | symbols, red | Ran 66: 41 failures, 1 error, as expected; snapshots green |
+| 20-gate-symbols | symbols | full C1 set: Ran 426, OK; C1_RACE delete_won=86 attach_won=14 |
+| 21*, 21b | symbols, plants | see the visible-character section |
 
 ## The backfill and the audit trail
 
@@ -89,3 +91,16 @@ five snapshots are green. The 41 failures are the 30 refused classes, the
 apostrophe case, the order and table checks, and the API and backfill cases.
 `18-red-symbols` was the same run before mypy made the test look up
 `ALLOWED_MARKS` at run time instead of importing it.
+
+Green: `20-gate-symbols`. Full C1 set: Ran 426, OK; the snapshots are
+byte-identical; C1_RACE delete_won=86 attach_won=14.
+
+Plants, each run against tags normalize, api and backfill. Each restore was
+from a saved copy, sha256 ebbde4c0…eb33, and matched:
+
+| Log | Plant | Result |
+|---|---|---|
+| 21-plant-no-char-check | the character check removed | killed: 38 failures |
+| 21-plant-no-apostrophe | did **not** apply: the match string was wrong, so the run tested unmutated code (OK). Not counted. | — |
+| 21b-plant-no-apostrophe | the U+2019 mapping removed | killed: 1 failure, 1 error |
+| 21-plant-marks-plus-amp | `&` added to ALLOWED_MARKS | killed: 4 failures |
