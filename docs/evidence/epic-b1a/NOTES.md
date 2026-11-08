@@ -2990,3 +2990,8 @@ It runs at the commit that adds this section, with no `BILLING_HOLDS_ENABLED` in
 **Prediction: Ran 7509, OK (skipped=30)**, that is 26 decorated plus the 4 at run time, as in §21r and §21w.
 - `ai_processor.tests_call_record_static.NothingReadsOrExposesTheTable.test_no_other_code_names_the_model` now passes.
 - Any failure, or a different count or skip number, is a STOP.
+
+**Result (run at 063181dee, flag unset, under `flock`, with 13883 MB available): Found 7509, Ran 7509 tests in 352.382s, OK (skipped=30), rc 0, with 0 FAIL or ERROR lines.**
+- **Matched exactly.**
+- `test_no_other_code_names_the_model` passes.
+- Log: `step21/step21x_near_allguards_063181dee.log.gz`.
