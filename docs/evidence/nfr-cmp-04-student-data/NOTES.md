@@ -42,3 +42,75 @@ Prediction for run 04 (`students.tests_student_data_map`): Ran 9, exactly
 1 failure, `test_every_relation_to_a_user_is_in_the_map`, naming
 `[('tags.Tag', 'teacher')]` and nothing else. The bare-column test passes,
 because of the gap. Nothing is classified before the SM rules.
+
+Run 04 result (`04_guard_after_merge.log`): Ran 9, 1 failure,
+`test_every_relation_to_a_user_is_in_the_map`, naming exactly
+`[('tags.Tag', 'teacher')]`. **As predicted.**
+
+### Step 0.2: survey of today's code (read-only)
+
+**Who may call.** Roles come from `CustomUser.user_type`. A super admin is
+`is_real_super_admin` (user_type SUPER_ADMIN and is_superuser), which is
+the `IsSuperAdmin` check. That check also writes the ADMIN_ACTION audit
+event. `IsSchoolAdmin` checks the type only, so a school admin's scope is
+their `school_id`. The pattern to copy is `SchoolAdminAuditEventListView`:
+when an admin has no school, it shows nothing. A student's school is
+`CustomUser.school`, which can be null. A teacher's courses are those
+where `Course.teacher` is the teacher.
+
+**Routes.** The houses are `super-admin/...` and `school-admin/...`
+(audit/urls.py), and course routes go under `courses/<id>/...`. There is
+no Django admin action today. One should not be added, because it would
+skip the scope checks.
+
+**The nearest code that exists:**
+`classrooms.services.enrollment.remove_student_from_course` deletes one
+StudentCourse and nothing else, by design (it once called
+`student.delete()`). It then sends the `student_course_removal` email.
+A teacher's erasure (D3) goes further: it also removes the student's
+submissions in that teacher's courses.
+
+**Delete side effects (called, not edited):**
+- A StudentSubmission delete recalculates the final grade
+  (`classrooms/signals.py`) and writes a GRADE_CHANGE history event (ids
+  and numbers only, never answer text).
+- A StudentCourse delete writes ROSTER_CHANGE and refreshes caches.
+- On a full erasure, StudentCourse should be deleted before the
+  submissions, so the grade recalculation finds no enrollment to rewrite.
+  To check in step 3.
+
+**How the user model deletes today (introspection):**
+- `token_blacklist.OutstandingToken.user` is SET_NULL. A cascade would
+  leave the rows, unlinked. Erasure must delete them explicitly, so it
+  works from the map, not from the cascade.
+- **KEEP_RECORD rows that are SET_NULL:** `BillingTransaction.user` and
+  `.performed_by`, and `PaymentDispute.user`. Deleting the user would
+  remove those records' only link to the student. The erased-student
+  record would no longer resolve them, unlike CreditLedger and
+  CreditUsageLog, which keep a bare `user_id` and `user_email`, and
+  AuditEvent, which keeps `actor_id` and `actor_email`. **Needs a ruling.**
+- Some NOT_A_STUDENT columns are PROTECT (license rows). The refusal check
+  runs first, so these are never reached.
+- `CreditWallet` is not under the append-only guard (only AuditEvent,
+  CreditLedger and CreditUsageLog are), so an empty wallet can be deleted.
+
+**Data the map does not cover:**
+- `CustomUser.profile_image` is a file on the user row. It needs exporting
+  and deleting from storage.
+- `users.BetaWhitelist.email` and `users.Waitlist.email` are keyed by email
+  address, not user id, so the guard cannot see them.
+- `StudentRiskAlertState` is marked `course_scoped`, but it has no course
+  column, only student and school. A teacher's erasure cannot scope it
+  by course.
+- `ChatSession` has a course column but is not `course_scoped`.
+- No StudentSubmission has a file field. Uploaded files are not stored as
+  rows yet; per F4 they join with B1b.
+
+**Export (D6):** nothing in the app builds a zip today (`zipfile` is used
+only by `scripts/credscan.py`). The proposal is to build one in memory per
+student and send it as an `application/zip` download.
+
+**The erased-student record:** a new table holding the original user id
+(unique), first, middle and last name, email, erased_at, erased_by (id and
+email) and `keep_until` (erased_at + 7 years). It is written only by a full
+erasure; a teacher's erasure keeps the account. No purge job exists yet.
