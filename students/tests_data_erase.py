@@ -29,7 +29,9 @@ from django.contrib.admin.models import LogEntry
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.core.files.storage import InMemoryStorage
+from django.db import connection
 from django.test import TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
@@ -411,6 +413,21 @@ class FullErasureTests(_EraseCase):
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
         response = client.get(f"{API}students/{self.w.classmate.pk}/data-export")
         self.assertNotFound(response)
+
+    def test_the_wallet_is_locked_for_the_check(self):  # SM W-1
+        # Without the lock, a credit grant committing a bucket between the
+        # wallet check and the delete would be cascaded away silently.
+        with CaptureQueriesContext(connection) as captured:
+            response = self.erase(self.w.superadmin)
+        self.assertEqual(response.status_code, 200, response.content[:400])
+        locked = [
+            query["sql"]
+            for query in captured.captured_queries
+            if query["sql"].lstrip().upper().startswith("SELECT")
+            and '"billing_creditwallet"' in query["sql"]
+            and "FOR UPDATE" in query["sql"]
+        ]
+        self.assertTrue(locked, "W-1: the wallet is read without FOR UPDATE")
 
     def test_a_second_erasure_is_not_found(self):
         self.erase(self.w.superadmin)

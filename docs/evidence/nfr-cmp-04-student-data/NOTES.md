@@ -1428,3 +1428,56 @@ predicted.**
   before the first record turns 7 (the SM files it).
 - **F4:** uploaded files join the map when B1b stores them.
 - The SM pushes after the final review. I don't push.
+
+## SM final review (60d404bfb): ACCEPTED, with one change, W-1
+
+**W-1, the wallet race in `_refusal`.** The wallet was read without a lock,
+and `CreditBucket.wallet` is CASCADE.
+- If a credit grant committed a bucket after the check but before
+  `wallets.delete()` collected, that bucket and its credits would be
+  cascaded away silently.
+- If the bucket were inserted after collection instead, the result would
+  be an IntegrityError at commit.
+
+**The fix:** `_refusal` reads the wallet with `select_for_update()`. The
+lock order is the student row (already locked in `erase_student`), then
+the wallet.
+
+**The lock order is checked across the codebase.** Every production
+`select_for_update()` on a user row was read:
+- `billing/services.py:418` and `:2043` (the free-plan and trial
+  activations);
+- `students/views.py:749`;
+- `users/views.py:2060`;
+- `classrooms/views.py:2233`.
+
+Each takes the user lock first in its transaction, and none locks a
+wallet before a user row. Billing's wallet locks (e.g.
+`billing/disputes.py:400`) never take a user-row lock after them. So
+"user row, then wallet" agrees with the rest of the code, and it can't
+deadlock against billing's "wallet first" rule between wallets.
+
+**Test (red first):** `test_the_wallet_is_locked_for_the_check`. A full
+erasure, recorded with `CaptureQueriesContext`, must include a SELECT on
+`"billing_creditwallet"` that carries `FOR UPDATE`.
+
+**Prediction for run 39 (red, `students.tests_data_erase`):** Ran 45,
+FAILED (failures=1). The new test fails with the fragment "W-1: the
+wallet is read without FOR UPDATE". The other 44 pass.
+
+**Plant W1 (declared now, run after green):** `select_for_update()`
+dropped from the wallet read. **Killed** only by
+`test_the_wallet_is_locked_for_the_check`, with the same fragment.
+
+**Added to the open follow-ups:**
+- R9, the purge;
+- F4, uploaded files with B1b;
+- when B1a meets this branch on staging, `AIJob.requested_by` must be
+  added to the student data map. B1a isn't on this branch, so the guard
+  can't see it yet. The SM does this at the merge.
+
+Run 39 result (`39_red_wallet_lock.log`): Ran 45, FAILED (failures=1).
+`test_the_wallet_is_locked_for_the_check` failed with "W-1: the wallet is
+read without FOR UPDATE". **As predicted.** (The first commit attempt was
+stopped by black re-wrapping a line after isort. The run tested the same
+content, and the commit follows with black's formatting.)
