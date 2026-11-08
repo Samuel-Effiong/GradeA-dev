@@ -1,0 +1,228 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+.
+
+django.request ERROR 2026-11-08 15:27:09,002 log 175108 129515163174784 [request_id=a3298caa-75c4-4cc7-b267-026140395be4 client_request_id=-] Internal Server Error: /admin/login/
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 172, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 116, in render
+    url = self.url(context)
+          ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 113, in url
+    return self.handle_simple(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 129, in handle_simple
+    return staticfiles_storage.url(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 204, in url
+    return self._url(self.stored_name, name, force)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 183, in _url
+    hashed_name = hashed_name_func(*args)
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 518, in stored_name
+    raise ValueError(
+ValueError: Missing staticfiles manifest entry for 'admin/css/base.css'
+.Free trial plan not found: no trial activated for user 9e64cf14-417e-453f-9023-904098b30e6e.
+Cannot activate automatic trial for user 9e64cf14-417e-453f-9023-904098b30e6e (validation): ValueError
+Free trial plan not found: no trial activated for user 161f7c73-cc0d-4929-b8f4-43cf26d71f8e.
+Cannot activate automatic trial for user 161f7c73-cc0d-4929-b8f4-43cf26d71f8e (validation): ValueError
+Free trial plan not found: no trial activated for user c9c53c63-8e48-441e-8cad-86569049cd4f.
+Cannot activate automatic trial for user c9c53c63-8e48-441e-8cad-86569049cd4f (validation): ValueError
+EFree trial plan not found: no trial activated for user 5215425e-c6f2-4357-bee6-7ad4ced60ed4.
+Cannot activate automatic trial for user 5215425e-c6f2-4357-bee6-7ad4ced60ed4 (validation): ValueError
+Free trial plan not found: no trial activated for user 7debeb11-192e-4429-be58-6999b2f26507.
+Cannot activate automatic trial for user 7debeb11-192e-4429-be58-6999b2f26507 (validation): ValueError
+Free trial plan not found: no trial activated for user 1f9348d2-a08b-4ff7-af15-1f8d833b597b.
+Cannot activate automatic trial for user 1f9348d2-a08b-4ff7-af15-1f8d833b597b (validation): ValueError
+EFree trial plan not found: no trial activated for user 59075f39-c29c-4a57-b63f-15a609dc7f38.
+Cannot activate automatic trial for user 59075f39-c29c-4a57-b63f-15a609dc7f38 (validation): ValueError
+Free trial plan not found: no trial activated for user ed11be83-605b-4e88-bf80-5921c28144c6.
+Cannot activate automatic trial for user ed11be83-605b-4e88-bf80-5921c28144c6 (validation): ValueError
+Free trial plan not found: no trial activated for user cd1d0421-b7f6-41b4-9a38-f824612c2c30.
+Cannot activate automatic trial for user cd1d0421-b7f6-41b4-9a38-f824612c2c30 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6c21d19d-3b06-4d7e-a7a3-7f5f933b5d20.
+Cannot activate automatic trial for user 6c21d19d-3b06-4d7e-a7a3-7f5f933b5d20 (validation): ValueError
+Free trial plan not found: no trial activated for user b432234a-029b-4baa-b474-9b7d705433e0.
+Cannot activate automatic trial for user b432234a-029b-4baa-b474-9b7d705433e0 (validation): ValueError
+Free trial plan not found: no trial activated for user 6e5a743e-571e-49ed-86d1-83970684edb0.
+Cannot activate automatic trial for user 6e5a743e-571e-49ed-86d1-83970684edb0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 416eff0f-9875-4439-9f5b-460b93216fa2.
+Cannot activate automatic trial for user 416eff0f-9875-4439-9f5b-460b93216fa2 (validation): ValueError
+Free trial plan not found: no trial activated for user 6c16b889-9ab2-4c6c-86c7-f2760725a79e.
+Cannot activate automatic trial for user 6c16b889-9ab2-4c6c-86c7-f2760725a79e (validation): ValueError
+Free trial plan not found: no trial activated for user 1ad9e8bc-8905-492d-b298-6d8f4d38025b.
+Cannot activate automatic trial for user 1ad9e8bc-8905-492d-b298-6d8f4d38025b (validation): ValueError
+.Free trial plan not found: no trial activated for user d7adc52f-fcbd-45b7-99f0-a7a70a684d97.
+Cannot activate automatic trial for user d7adc52f-fcbd-45b7-99f0-a7a70a684d97 (validation): ValueError
+Free trial plan not found: no trial activated for user a3675b5d-7192-4e53-b740-7a302c66b5c0.
+Cannot activate automatic trial for user a3675b5d-7192-4e53-b740-7a302c66b5c0 (validation): ValueError
+Free trial plan not found: no trial activated for user 144284fe-a7dd-481a-bbce-7f246ed22a26.
+Cannot activate automatic trial for user 144284fe-a7dd-481a-bbce-7f246ed22a26 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6cc67ce1-3d96-4d81-b723-27b405b7d98d.
+Cannot activate automatic trial for user 6cc67ce1-3d96-4d81-b723-27b405b7d98d (validation): ValueError
+Free trial plan not found: no trial activated for user ae9e5428-8600-4d0e-9c9d-0b70c3840a00.
+Cannot activate automatic trial for user ae9e5428-8600-4d0e-9c9d-0b70c3840a00 (validation): ValueError
+Free trial plan not found: no trial activated for user faf3fca8-f48a-40e8-8a54-27c67eb6a6f4.
+Cannot activate automatic trial for user faf3fca8-f48a-40e8-8a54-27c67eb6a6f4 (validation): ValueError
+.
+
+ai_processor.call_record WARNING 2026-11-08 15:27:12,860 call_record 175108 129515163174784 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 15:27:12,860 call_record 175108 129515163174784 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 15:27:12,861 call_record 175108 129515163174784 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 15:27:12,862 call_record 175108 129515163174784 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 15:27:12,862 call_record 175108 129515163174784 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+........................................................
+======================================================================
+ERROR: test_f3_failure_on_the_second_teacher_leaves_nothing (billing.tests.test_overage_grant_atomicity.OfflineApprovalPathTests.test_f3_failure_on_the_second_teacher_leaves_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_overage_grant_atomicity.py", line 349, in test_f3_failure_on_the_second_teacher_leaves_nothing
+    before, mocks = self.approve(self.fail_on_second_ledger_row("F-3"), "F-3")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_overage_grant_atomicity.py", line 332, in approve
+    LicenseSubscriptionService.approve_overage_offline_request(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/license_service.py", line 3478, in approve_overage_offline_request
+    request_obj = LicenseOverageOfflineRequest.objects.select_for_update().get(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 631, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 368, in __len__
+    self._fetch_all()
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1954, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1610, in execute_sql
+    sql, params = self.as_sql()
+                  ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 846, in as_sql
+    raise TransactionManagementError(
+django.db.transaction.TransactionManagementError: select_for_update cannot be used outside of a transaction.
+
+======================================================================
+ERROR: test_f3b_failure_after_the_billing_transaction_leaves_nothing (billing.tests.test_overage_grant_atomicity.OfflineApprovalPathTests.test_f3b_failure_after_the_billing_transaction_leaves_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_overage_grant_atomicity.py", line 356, in test_f3b_failure_after_the_billing_transaction_leaves_nothing
+    before, mocks = self.approve(
+                    ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_overage_grant_atomicity.py", line 332, in approve
+    LicenseSubscriptionService.approve_overage_offline_request(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/license_service.py", line 3478, in approve_overage_offline_request
+    request_obj = LicenseOverageOfflineRequest.objects.select_for_update().get(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 631, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 368, in __len__
+    self._fetch_all()
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1954, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1610, in execute_sql
+    sql, params = self.as_sql()
+                  ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 846, in as_sql
+    raise TransactionManagementError(
+django.db.transaction.TransactionManagementError: select_for_update cannot be used outside of a transaction.
+
+----------------------------------------------------------------------
+Ran 65 tests in 21.214s
+
+FAILED (errors=2)
+Destroying test database for alias 'default'...
+Found 65 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

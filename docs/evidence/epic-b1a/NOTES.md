@@ -2042,3 +2042,24 @@ Any mismatch is a STOP, reported to the SM.
    - **The rollback assertions:** in the three failing tests they were not reached, because the inside-check comes first. Wherever they were reached, they passed.
    - **What the survey missed:** the jsonb key order.
    - **The SM ruled (2026-11-08):** fix the check in the tests only, so that it checks the bucket of the teacher from the first record call. Commit the fix separately. Then re-run from run 1: 5× Ran 7 OK, then the targeted Ran 200, then PF-1/2/3 at errors 3/2/2 with no failures, then the near run at Ran 3102 OK (skipped=2).
+
+### 20e. Results, part 2: the re-run after the fix (2026-11-08)
+
+The test fix was committed separately at fca151db; no production file changed. Every re-run matched.
+
+1. **New file 5×** (fca151db): each run gave Ran 7, OK. Matched (`step20_rerun1_x1..x5.log`).
+2. **Targeted set** (fca151db): Ran 200, OK. Matched (`step20_targeted_fca151db.log`).
+3. **Plants**, each run on the new file + G-1/static (Ran 65), with no failures:
+   - **PF-1:** `FAILED (errors=3)`, F-1, F-1b and F-1c, `TransactionManagementError` at the intent lock.
+   - **PF-2:** `FAILED (errors=2)`, F-2 and F-2b, at `license_service.py:3188`.
+   - **PF-3:** `FAILED (errors=2)`, F-3 and F-3b, at `:3478`.
+   - **Matched** (`step20_replant_PF-*.log`).
+   - **Where the errors point.** The lines are the declared ones, one lower because the plant deletes the decorator line above them. For PF-1 the traceback names the call at `stripe_service.py:3055` and the end line, 3371, of the statement starting at :3367 (declared :3368).
+   - **Restored.** Every plant was restored by sha256 OK.
+   - **The manifest warning.** The one `Missing staticfiles manifest entry for 'admin/css/base.css'` warning in each log is also in the §19 baseline logs (green, near): it is not new.
+   - **What the plants prove (as accepted, and no more).** Each path depends on its own atomic: without it, the path stops at its first row lock before any write. F-1..F-3b prove the rollback.
+4. **Near run** (fca151db, under `flock`, h284_deps_env, `--parallel 4`): `billing audit AutoGrader.tests_migration_rollback_defaults` + G-1/static gave **Ran 3102, OK (skipped=2)**, as declared (`step20_near_fca151db.log.gz`).
+
+**FR-B-08 / NFR-CRD-05: proven on all three grant paths.** A failure forced after the first teacher's bucket, and a failure forced after the BillingTransaction, each leave nothing behind for anyone. That covers buckets, ledger rows, block counts, billing records, BillingTransactions, credit audit events, the intent or request, emails and refunds.
+
+**Next (plan):** step 9, the gate, with expectations first.
