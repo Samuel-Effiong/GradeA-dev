@@ -1292,3 +1292,22 @@ and its sha256 checked. "Only" means no other test fails.
 **Still to run:** the step 3 gate, under the lock. It covers students,
 users, audit, tags and AutoGrader's reason codes and migration rollback,
 for the new migration. Its prediction is written first, on the SM's go.
+
+### SM review of step 3 (accepted at ed3405e11)
+
+- **(A), approved:** a wallet with any bucket counts as not empty. It is
+  the same code and needs no new wording. The SM will tell the owner the
+  refusal also covers a wallet that ever held credits.
+- **(B), approved as narrowed:** the structural pin plus the 5 real-row
+  tests. **Added:** one real-row test for a PROTECT entry,
+  `test_a_license_row_refuses_before_the_cascade`
+  (`LicenseSubscription.admin_user`). It proves the refusal runs before
+  the cascade, so the caller gets the coded 409 and not a ProtectedError
+  500. It is a **characterization test**: it is expected to pass at once,
+  because the check already runs first.
+
+**Prediction for run 36** (`students.tests_data_erase`): Ran 44, OK. The
+new test passes on the first run.
+
+Run 36 result (`36_protect_characterization.log`): Ran 44, OK. **As
+predicted.** The refusal runs before any delete.

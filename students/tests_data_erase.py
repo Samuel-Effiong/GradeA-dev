@@ -47,7 +47,13 @@ from billing.models import (
     CreditLedger,
     CreditUsageLog,
     CreditWallet,
+    LicenseBillingMethod,
+    LicenseSubscription,
     PaymentDispute,
+    PlanCategory,
+    PlanTier,
+    PlanType,
+    SubscriptionPlan,
 )
 from classrooms.models import EnrollmentStatusType, School, StudentCourse
 from dashboard.models import StudentRiskAlertState
@@ -478,6 +484,32 @@ class RefusalTests(_EraseCase):
     def test_django_admin_history_refuses(self):
         LogEntry.objects.create(
             user=self.w.target, action_flag=1, object_repr="x", change_message=""
+        )
+        self.assertRefused("STUDENT_ERASE_NOT_ONLY_A_STUDENT")
+
+    def test_a_license_row_refuses_before_the_cascade(self):  # SM (B)
+        # LicenseSubscription.admin_user is PROTECT: if the refusal ran after
+        # the cascade, the caller would get a ProtectedError 500. A
+        # characterization test: the check already runs first.
+        plan = SubscriptionPlan.objects.create(
+            name=PlanType.PRO,
+            display_name="Erase test license plan",
+            category=PlanCategory.LICENSE,
+            tier=PlanTier.PRO,
+            monthly_credits=100,
+            overage_block_size=10,
+            overage_block_price=1,
+            stripe_price_id="price_erase_test",
+        )
+        LicenseSubscription.objects.create(
+            school=self.w.school,
+            admin_user=self.w.target,
+            plan=plan,
+            billing_method=LicenseBillingMethod.OFFLINE,
+            max_seats=1,
+            billing_cycle_start=timezone.now(),
+            billing_cycle_end=timezone.now() + timedelta(days=30),
+            is_active=True,
         )
         self.assertRefused("STUDENT_ERASE_NOT_ONLY_A_STUDENT")
 
