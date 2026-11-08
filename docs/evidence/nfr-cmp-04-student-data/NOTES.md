@@ -264,3 +264,15 @@ Prediction for run 05 (red, `students.tests_student_data_map`), Ran 20:
 Open follow-up (R9, the SM files it): the erased-student record promises
 7 years. A purge has to exist before the first record turns 7 years old.
 No purge is built now.
+
+Run 05 result (`05_red_step1b.log`): Ran 20, FAILED (failures=51, errors=5).
+- **Failures:** 45 come from `test_every_other_entry_matches_by_user` (one per
+  entry), and 6 from the other predicted tests, which each failed exactly
+  as predicted.
+- **Errors:** the whitelist/waitlist test ×2 and the profile-image test
+  ×1, as predicted. The tag-columns test errored on **both** subtests,
+  not only the first: a KeyError inside a subTest is reported per subtest,
+  so the second subtest ran too.
+- **Verdict: prediction incomplete** (the tag-columns error count was
+  1 predicted, 2 actual). Every failure and error is for the predicted
+  reason. The prediction above is left as it was written.

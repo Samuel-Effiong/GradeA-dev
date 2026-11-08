@@ -149,3 +149,82 @@ class OwnerRulingsTests(SimpleTestCase):
         for key, entry in entries_with_role(Role.KEEP_RECORD):
             with self.subTest(key=key):
                 self.assertFalse(entry.course_scoped)
+
+
+class StepOneBRulingsTests(SimpleTestCase):
+    """The SM's step 1b rulings of 2026-11-08 (R1, R3, R4, R7, R8)."""
+
+    def test_tag_columns_are_not_a_student(self):  # R1
+        for key in (("tags.Tag", "teacher"), ("tags.Tag", "created_by_id")):
+            with self.subTest(key=key):
+                self.assertEqual(STUDENT_DATA_MAP[key].role, Role.NOT_A_STUDENT)
+
+    def test_the_guard_sees_a_bare_created_by_id(self):  # R1
+        self.assertIn(("tags.Tag", "created_by_id"), _bare_user_id_columns())
+
+    def test_any_name_ending_in_by_id_is_a_user_id_column(self):  # R1
+        for name in ("created_by_id", "reviewed_by_id", "erased_by_id"):
+            with self.subTest(name=name):
+                self.assertTrue(USER_ID_COLUMN.search(name))
+        for name in ("graded_by", "by_id_count", "nearby"):
+            with self.subTest(name=name):
+                self.assertFalse(USER_ID_COLUMN.search(name))
+
+    def test_risk_alerts_go_only_with_a_full_erasure(self):  # R3
+        entry = STUDENT_DATA_MAP[("dashboard.StudentRiskAlertState", "student")]
+        self.assertEqual(entry.role, Role.DELETE)
+        self.assertFalse(entry.course_scoped)
+
+    def test_chat_sessions_go_with_a_teachers_erasure(self):  # R4
+        entry = STUDENT_DATA_MAP[("ai_processor.ChatSession", "user")]
+        self.assertEqual(entry.role, Role.DELETE)
+        self.assertTrue(entry.course_scoped)
+
+    def test_a_course_scoped_table_can_be_scoped_by_course(self):  # R3, R4
+        # A teacher's erasure (D3) finds the rows through a course: the
+        # table needs a course, or an assignment that has one.
+        for (label, _), entry in STUDENT_DATA_MAP.items():
+            if not entry.course_scoped:
+                continue
+            with self.subTest(label=label):
+                names = {f.name for f in apps.get_model(label)._meta.concrete_fields}
+                self.assertTrue(names & {"course", "assignment"}, label)
+
+    def test_whitelist_and_waitlist_rows_go_by_email(self):  # R7
+        for key in (("users.BetaWhitelist", "email"), ("users.Waitlist", "email")):
+            with self.subTest(key=key):
+                entry = STUDENT_DATA_MAP[key]
+                self.assertEqual(entry.role, Role.DELETE)
+                self.assertFalse(entry.export)
+                self.assertFalse(entry.course_scoped)
+                self.assertEqual(getattr(entry, "match", None), "EMAIL")
+
+    def test_an_email_matched_entry_is_an_email_column(self):  # R7
+        for (label, field_name), entry in STUDENT_DATA_MAP.items():
+            if getattr(entry, "match", None) != "EMAIL":
+                continue
+            with self.subTest(key=(label, field_name)):
+                field = apps.get_model(label)._meta.get_field(field_name)
+                self.assertIsInstance(field, models.EmailField)
+
+    def test_the_profile_image_is_exported_then_deleted(self):  # R8
+        entry = STUDENT_DATA_MAP[("users.CustomUser", "profile_image")]
+        self.assertEqual(entry.role, Role.DELETE)
+        self.assertTrue(entry.export)
+        self.assertFalse(entry.course_scoped)
+        self.assertEqual(getattr(entry, "match", None), "OWN_ROW")
+        self.assertTrue(getattr(entry, "stored_file", False))
+
+    def test_own_row_entries_are_on_the_user_model(self):  # R8
+        for (label, field_name), entry in STUDENT_DATA_MAP.items():
+            if getattr(entry, "match", None) != "OWN_ROW":
+                continue
+            with self.subTest(key=(label, field_name)):
+                self.assertIs(apps.get_model(label), get_user_model())
+
+    def test_every_other_entry_matches_by_user(self):
+        for key, entry in STUDENT_DATA_MAP.items():
+            with self.subTest(key=key):
+                self.assertIn(
+                    getattr(entry, "match", None), ("USER", "EMAIL", "OWN_ROW")
+                )
