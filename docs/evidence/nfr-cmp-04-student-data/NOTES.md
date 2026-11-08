@@ -209,3 +209,58 @@ audit, billing, tags and dashboard, plus
 - The README inside the zip, and the zip's file and folder names.
 - Audit action labels: "Student data exported" and "Student data erased".
 - A Django admin label for the erased-student record, if it is registered.
+
+## Step 1b: map fixes (SM rulings 2026-11-08)
+
+Rulings:
+- **R1:** Tag.teacher and Tag.created_by_id are NOT_A_STUDENT. The guard
+  regex widens to any name ending in `_by_id`. Before the widening, a
+  search of every bare UUID, integer or char column found that the wider
+  pattern catches only `tags.Tag.created_by_id`. No column that isn't a
+  user would be caught, so no exception list is needed.
+  (`BenchmarkQuestionOutcome.graded_by` has no `_id` and stays unmatched.)
+- **R3:** StudentRiskAlertState goes with a full erasure only
+  (course_scoped=False), with no recompute.
+- **R4:** ChatSession is course_scoped.
+- **R7:** BetaWhitelist and Waitlist are DELETE with no export, matched by
+  email, case-insensitively. The test that a different email is untouched
+  belongs to step 3, the erasure.
+- **R8:** the profile image is exported, then deleted from storage
+  on_commit. The tests that a storage failure doesn't undo the erasure and
+  is logged at ERROR belong to step 3.
+- **R2, R5:** still with the owner, so not part of this step.
+- **R9:** later; see the open follow-ups.
+- **R10:** in lane, with ORM calls only.
+- **R11:** steps 2 and 3.
+
+Map design: `Entry` gains
+- `match`:
+  - `USER`: the column is the student, as an FK or a bare id;
+  - `EMAIL`: the column equals the student's email, ignoring case;
+  - `OWN_ROW`: a column on the student's own user row.
+- `stored_file`: the column names a file in storage.
+
+The tests read both with `getattr`, so the red fails test by test, not on
+the import.
+
+Prediction for run 05 (red, `students.tests_student_data_map`), Ran 20:
+- **Failures:**
+  - the old relation test, naming `tags.Tag.teacher`;
+  - `test_the_guard_sees_a_bare_created_by_id`;
+  - `test_any_name_ending_in_by_id_...`, on the 3 positive names only;
+  - the risk-alert test (R3);
+  - the chat test (R4);
+  - `test_a_course_scoped_table_...`, for StudentRiskAlertState only;
+  - `test_every_other_entry_matches_by_user`, for all 45 entries.
+- **Errors (KeyError):**
+  - the tag-columns test, on its first subtest;
+  - the whitelist/waitlist test, on both subtests;
+  - the profile-image test.
+- **Pass:**
+  - the 8 other old tests;
+  - the email-column and own-row tests, which pass with no entries to
+    check (vacuously).
+
+Open follow-up (R9, the SM files it): the erased-student record promises
+7 years. A purge has to exist before the first record turns 7 years old.
+No purge is built now.
