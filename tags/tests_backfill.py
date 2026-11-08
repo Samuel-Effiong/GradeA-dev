@@ -6,6 +6,7 @@ not depend on the flag. Its last line is a parseable summary:
 
     RESULT tags_created=.. tags_reused=.. links_created=.. links_present=..
            skipped_no_course=.. skipped_no_teacher=.. skipped_bad_name=..
+           skipped_symbols=..
     RESULT links_removed=.. tags_removed=..          (with --reverse)
 """
 
@@ -87,6 +88,7 @@ class BackfillTest(TestCase):
                 "skipped_no_course": 0,
                 "skipped_no_teacher": 0,
                 "skipped_bad_name": 0,
+                "skipped_symbols": 0,
             },
         )
         tags = {(t.teacher_id, t.normalized_name): t for t in Tag.objects.all()}
@@ -174,8 +176,11 @@ class BackfillTest(TestCase):
                 result["skipped_no_course"],
                 result["skipped_no_teacher"],
                 result["skipped_bad_name"],
+                result["skipped_symbols"],
             ),
-            (1, 1, 2),
+            # SM (a): symbols have their own count (empty and too long
+            # stay in skipped_bad_name).
+            (1, 1, 1, 1),
         )
         self.assertEqual(result["links_created"], 4)
         symbols.refresh_from_db()
