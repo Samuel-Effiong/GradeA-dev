@@ -65,6 +65,8 @@ class AuditAction(models.TextChoices):
     TAG_CREATE = "TAG_CREATE", "Tag created"
     TAG_RENAME = "TAG_RENAME", "Tag renamed"
     TAG_DELETE = "TAG_DELETE", "Tag deleted"
+    # Epic C1: an assignment's tags replaced as one set (plan 11 §3.3).
+    ASSIGNMENT_TAGS_SET = "ASSIGNMENT_TAGS_SET", "Assignment tags changed"
     ROSTER_CHANGE = "ROSTER_CHANGE", "Roster changed"
     SUBMISSION_UPLOAD = "SUBMISSION_UPLOAD", "Submission uploaded"
     CREDIT_TRANSACTION = "CREDIT_TRANSACTION", "Credit transaction"
@@ -254,6 +256,12 @@ class ReasonCode(models.TextChoices):
     # Audit-only: the refusal itself stays uncoded, and a client is told only
     # "This course wasn't found."
     COURSE_NOT_REACHABLE = "COURSE_NOT_REACHABLE", "Course not reachable"
+    # Epic C1 tags (plan 11 D6; owner-approved wording in reason_codes.py).
+    TAG_NAME_TAKEN = "TAG_NAME_TAKEN", "Tag name taken"
+    TAG_CHANGED_SINCE_CHECK = "TAG_CHANGED_SINCE_CHECK", "Tag changed since check"
+    TAG_NAME_MISSING = "TAG_NAME_MISSING", "Tag name missing"
+    TAG_NAME_TOO_LONG = "TAG_NAME_TOO_LONG", "Tag name too long"
+    TOO_MANY_TAGS = "TOO_MANY_TAGS", "Too many tags"
 
 
 # The ten FR-A-06 conditions, as QA-ERR-02 lists them.

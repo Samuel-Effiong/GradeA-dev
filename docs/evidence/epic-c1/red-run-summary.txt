@@ -1,0 +1,24 @@
+Red run on staging 8aafa47dd + expectations 7ab34eb09 (05-red-run-7ab34eb09.log).
+Run 04 (97969573d) aborted at load: tests_catalog raised ValueError at import; fixed in 7ab34eb09 (lookup at run time).
+
+Ran 17 tests in 0.542s
+FAILED (failures=2, errors=14)
+
+GREEN (recorded on this base, must stay green):
+  test_student_detail
+  test_student_list
+  test_teacher_detail
+  test_teacher_list
+  test_teacher_list_filtered_by_course
+
+RED, by cause:
+      1 AssertionError: False is not true
+      1 AssertionError: frozenset() != {'tag_type'}
+      6 ModuleNotFoundError: No module named 'tags.models'
+      1 ModuleNotFoundError: No module named 'tags.normalize'
+      2 ValueError: 'ASSIGNMENT_TAGS_SET' is not a valid AuditAction
+      1 ValueError: 'TAG_CHANGED_SINCE_CHECK' is not a valid ReasonCode
+      1 ValueError: 'TAG_NAME_MISSING' is not a valid ReasonCode
+      1 ValueError: 'TAG_NAME_TAKEN' is not a valid ReasonCode
+      1 ValueError: 'TAG_NAME_TOO_LONG' is not a valid ReasonCode
+      1 ValueError: 'TOO_MANY_TAGS' is not a valid ReasonCode

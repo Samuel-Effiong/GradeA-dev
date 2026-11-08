@@ -388,6 +388,7 @@ INSTALLED_APPS = [
     "dashboard",
     "billing",
     "audit",
+    "tags",
     "django_celery_results",
     "django_celery_beat",
     # Third-party packages
@@ -1482,6 +1483,11 @@ FIELD_ENCRYPTION_KEY = env.str("FIELD_ENCRYPTION_KEY", "")
 # turn it on only long enough to read the value, set NUM_PROXIES, and
 # turn it back off. See docs/ops/rate-limiting.md.
 EXPOSE_CLIENT_DIAGNOSTICS = env.bool("EXPOSE_CLIENT_DIAGNOSTICS", default=False)
+
+# Epic C1: teacher tags (plan 11 §3.4). Off by default: the tag routes then
+# answer exactly as an unknown URL does, and assignment responses carry no
+# `tags` field. The backfill command does not depend on it.
+TAGS_ENABLED = env.bool("TAGS_ENABLED", default=False)
 
 MAILERLITE_API_KEY = env.str("MAILERLITE_API_KEY", default="")
 MAILERLITE_GROUP_ID_TEACHER = env.str("MAILERLITE_GROUP_ID_TEACHER", default="")

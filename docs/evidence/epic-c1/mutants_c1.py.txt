@@ -1,0 +1,176 @@
+"""C1 mutation battery (EXPECTATIONS.md M1-M14, plus M11b for the
+serializer half of M11, plus MS: the symbol refusal re-added, which the
+owner's 2026-11-08 reversal must catch; it replaces plants 21 and 21b). One planted bug each; the C1 tests run; the file
+is restored from its saved bytes and its sha256 checked.
+
+Usage: python mutants_c1.py <worktree> <python> <logdir> [ids,comma,separated]
+
+M3 changes the migration, so it runs without --keepdb (the test database is
+rebuilt from the mutated migration and dropped afterwards).
+"""
+
+import hashlib
+import subprocess
+import sys
+from pathlib import Path
+
+WT, PY, LOGDIR = Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3])
+ONLY = set(sys.argv[4].split(",")) if len(sys.argv) > 4 else None
+LOGDIR.mkdir(parents=True, exist_ok=True)
+
+N = "tags/normalize.py"
+MIG = "tags/migrations/0001_initial.py"
+MOD = "tags/models.py"
+V = "tags/views.py"
+SV = "tags/services.py"
+AF = "tags/assignment_field.py"
+BF = "tags/management/commands/backfill_topic_tags.py"
+
+C1 = [
+    "tags.tests_normalize",
+    "tags.tests_models",
+    "tags.tests_services",
+    "tags.tests_api",
+    "tags.tests_dark",
+    "tags.tests_backfill",
+    "tags.tests_catalog",
+    "assignments.tests_c1_dark_snapshot",
+]
+RACE = ["tags.tests_concurrency"]
+
+DISPATCH = (
+    "    def dispatch(self, request, *args, **kwargs):\n"
+    '        if not getattr(settings, "TAGS_ENABLED", False):\n'
+    "            return json_404(request)\n"
+    "        return super().dispatch(request, *args, **kwargs)\n"
+)
+UNIQUE = (
+    "                    models.UniqueConstraint(\n"
+    '                        condition=models.Q(("owner_type", "TEACHER")),\n'
+    '                        fields=("teacher", "tag_type", "normalized_name"),\n'
+    '                        name="tags_tag_teacher_type_name_uniq",\n'
+    "                    ),\n"
+)
+
+# (id, description, file, [(old, new), ...], extra labels, keepdb, must fail)
+# `must fail` is the test id's tail: "Class.method" or a module for snapshots.
+MUTANTS = [
+    ("M1", "drop .lower()", N,
+     [("    key = display.lower()\n", "    key = display\n")],
+     [], True, "NormalizeTest.test_variants_resolve_to_one_key"),
+    ("M2", "split() collapse replaced by strip()", N,
+     [('    display = " ".join("".join(_keep(c) for c in text).split())\n',
+       '    display = "".join(_keep(c) for c in text).strip()\n')],
+     [], True, "NormalizeTest.test_variants_resolve_to_one_key"),
+    ("M3", "the partial unique constraint removed (migration)", MIG,
+     [(UNIQUE, "")],
+     [], False, "TagConstraintTest.test_one_tag_per_teacher_type_and_normalized_name"),
+    ("M4", "the tag list not filtered by teacher", V,
+     [("            owner_type=OwnerType.TEACHER, teacher_id=self.request.user.pk\n",
+       "            owner_type=OwnerType.TEACHER\n")],
+     [], True, "ListTest.test_the_other_teacher_sees_only_theirs"),
+    ("M5", "set_assignment_tags accepts a foreign tag", SV,
+     [(".filter(pk__in=ids, owner_type=OwnerType.TEACHER, teacher=teacher)",
+       ".filter(pk__in=ids, owner_type=OwnerType.TEACHER)")],
+     [], True,
+     "SetAssignmentTagsTest.test_another_teachers_tag_is_not_found_and_nothing_changes"),
+    ("M6", "delete_tag ignores expected_count", SV,
+     [("            if count != expected_count:\n", "            if False:\n")],
+     [], True, "ImpactAndDeleteTest.test_a_stale_count_is_refused_and_nothing_is_deleted"),
+    ("M7", "AssignmentTag.tag on_delete=PROTECT", MOD,
+     [('        Tag, on_delete=models.CASCADE, related_name="assignment_links"\n',
+       '        Tag, on_delete=models.PROTECT, related_name="assignment_links"\n')],
+     [], True,
+     "DeleteDirectionTest.test_deleting_a_tag_keeps_every_assignment_and_submission"),
+    ("M8", "tag_impact outside its zero-credit scope", SV,
+     [('    with zero_credit_scope("tag.impact"):\n', "    if True:\n")],
+     [], True, "ZeroCreditTest.test_impact"),
+    ("M9", "backfill without the existence check or ignore_conflicts", BF,
+     [("            new = [a for a in assignment_ids if a not in present]\n",
+       "            new = assignment_ids\n"),
+      ("                ignore_conflicts=True,\n", "")],
+     [], True, "BackfillTest.test_a_second_run_changes_nothing"),
+    ("M10", "reverse deletes USER links too", BF,
+     [("        links = AssignmentTag.objects.filter(source=LinkSource.TOPIC_BACKFILL)\n",
+       "        links = AssignmentTag.objects.all()\n")],
+     [], True, "BackfillTest.test_reverse_removes_exactly_what_the_backfill_made"),
+    ("M11", "flag check removed from dispatch", V,
+     [('        if not getattr(settings, "TAGS_ENABLED", False):\n'
+       "            return json_404(request)\n", "")],
+     [], True, "DarkRoutesTest.test_every_route_answers_like_an_unknown_url_for_everyone"),
+    ("M11b", "flag check removed from the assignment serializer field", AF,
+     [("        if tags_enabled():\n", "        if True:\n")],
+     [], True, "assignments.tests_c1_dark_snapshot"),
+    ("M12", "get_or_create without the IntegrityError re-read", SV,
+     [("        # Another caller created it first: theirs is the tag.\n"
+       '        with zero_credit_scope("tag.get_or_create"):\n'
+       "            return Tag.objects.get(**scope), False\n",
+       "        raise\n")],
+     RACE, True, "CreateRaceTest.test_one_row_and_one_id_for_every_caller"),
+    ("M13", "Cf/Cc removal dropped (owner D5)", N,
+     [('    return character if rule == "keep" else ""\n', "    return character\n")],
+     [], True, "NormalizeTest.test_invisible_characters_are_removed"),
+    ("M14", "flag check moved after authentication and permissions", V,
+     [(DISPATCH,
+       "    def initial(self, request, *args, **kwargs):\n"
+       "        super().initial(request, *args, **kwargs)\n"
+       '        if not getattr(settings, "TAGS_ENABLED", False):\n'
+       "            from django.http import Http404\n\n"
+       "            raise Http404\n")],
+     [], True, "DarkRoutesTest.test_every_route_answers_like_an_unknown_url_for_everyone"),
+    ("MS", "the symbol refusal re-added (owner reversal, 2026-11-08)", N,
+     [('    key = display.lower()\n',
+       '    if any(unicodedata.category(c)[0] in "PS" and c not in " -\'.()"\n'
+       '           for c in display):\n'
+       '        raise CodedError("TAG_NAME_MISSING")\n'
+       '    key = display.lower()\n')],
+     [], True,
+     "NormalizeTest.test_the_names_the_old_rule_refused_are_kept_as_typed"),
+]
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+summary = []
+for mid, desc, rel, edits, extra, keepdb, must_fail in MUTANTS:
+    if ONLY and mid not in ONLY:
+        continue
+    path = WT / rel
+    saved = path.read_bytes()
+    before = sha(path)
+    text = saved.decode()
+    for old, new in edits:
+        assert text.count(old) == 1, f"{mid}: {old!r} found {text.count(old)} times"
+        text = text.replace(old, new)
+    path.write_text(text)
+    try:
+        proc = subprocess.run(
+            [PY, "-W", "ignore", "manage.py", "test", *C1, *extra,
+             "--settings=settings_worktree", "--noinput", "-v", "2",
+             *(["--keepdb"] if keepdb else [])],
+            cwd=WT, capture_output=True, text=True,
+        )
+    finally:
+        path.write_bytes(saved)
+    after = sha(path)
+    assert before == after, f"{mid}: restore failed"
+    out = proc.stdout + proc.stderr
+    (LOGDIR / f"{mid}.log").write_text(out)
+    # The "FAIL:"/"ERROR:" headers carry the full test id in parentheses.
+    red = sorted({
+        line.split("(", 1)[1].split(")", 1)[0]
+        for line in out.splitlines()
+        if line.startswith(("FAIL: ", "ERROR: ")) and "(" in line
+    })
+    ran = next((l for l in out.splitlines() if l.startswith("Ran ")), "?")
+    killed = any(r.endswith(must_fail) or must_fail in r for r in red)
+    line = (f"{mid:5} {'KILLED' if killed else 'SURVIVED'}  {desc}\n"
+            f"      planted in {rel}; must fail: {must_fail}; {ran}\n"
+            f"      red ({len(red)}): {' '.join(red[:6]) or '(none)'}"
+            f"{' ...' if len(red) > 6 else ''}\n"
+            f"      sha256 before=after={after}")
+    print(line, flush=True)
+    summary.append(line)
+(LOGDIR / "SUMMARY.txt").write_text("\n".join(summary) + "\n")
