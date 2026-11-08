@@ -292,3 +292,18 @@ OK.
 
 Run 06 result (`06_green_step1b.log`): Ran 20, OK. **As predicted.** The map
 holds 50 entries.
+
+**Correction (counted from the code, 2026-11-08).** At 677ef2ebd,
+`STUDENT_DATA_MAP` held **43** entries, not 45. Step 1's line "45 entries"
+was wrong. (Its own sum is also off: 38 + 5 + TokenProxy = 44.) I copied
+45 without counting, so:
+- The run 05 prediction said "for all 45 entries". The log shows 43
+  (`grep -c` of `test_every_other_entry_matches_by_user` FAIL lines). That
+  is a second miss in the prediction, which stays **prediction incomplete**
+  and is not amended.
+- The run 05 result line above misstates the split. Correctly: 51 failures
+  = 43 from `test_every_other_entry_matches_by_user` + 8 subtest failures
+  from the other predicted tests (relation 1, created_by_id 1, `_by_id`
+  names 3, R3 1, R4 1, course-scoped 1).
+- The run 06 line "50 entries" is wrong: the map now holds **48**
+  (43 + 5).
