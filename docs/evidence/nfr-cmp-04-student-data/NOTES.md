@@ -325,3 +325,146 @@ Step 1b is done. Open for later steps:
 - The R7 test that a different email is untouched, and the R8 tests (a
   storage failure keeps the erasure and is logged at ERROR) are in step 3.
 - R9: the purge follow-up.
+
+## Step 2: export (SM go 2026-11-08, with the teacher row OFF)
+
+### Design (expectations, before any test)
+
+**Route.** One route: `GET students/<uuid:pk>/data-export`, named
+`student-data-export`.
+- While `STUDENT_DATA_TOOLS_ENABLED` is off (the default), `dispatch()`
+  answers json_404 before authentication, as the tags routes do. The route
+  is listed in `CONCEALED_ROUTES`.
+- It is one route, not separate `super-admin/` and `school-admin/` ones,
+  so the caller matrix lives in one function. `IsSuperAdmin`'s automatic
+  ADMIN_ACTION event therefore doesn't apply, and the route writes its own
+  event (below).
+
+**Who may call.** This is decided in one place:
+`students.data_export.EXPORT_CALLERS`.
+- **SUPER_ADMIN** (the `is_real_super_admin` check): any student, in full.
+- **SCHOOL_ADMIN:** a student whose own `school_id` equals the admin's, in
+  full. If either school is null, the answer is "not found" (SM R6).
+- **TEACHER:** governed by `TEACHER_EXPORT_ALLOWED = False`, the R5 switch,
+  which stays off until the owner answers. With it switched on, a teacher
+  gets only the course-scoped tables, limited to their own courses, plus
+  the student's name and email. A student outside their courses is "not
+  found".
+- **Everyone else**, including the student themselves (D2): "not found".
+
+Every refusal gives the same response: the house not-found answer.
+- A target that is not a student, an unknown id, a caller out of scope,
+  the student exporting themselves and a teacher while the switch is off
+  all get it, so the response never shows whether a student exists.
+- An anonymous caller with the flag on gets the house 401.
+- A refusal writes no event.
+
+**The zip** is built in memory, one per student, as `application/zip`.
+- It holds one JSON file per map entry with `export=True`, a
+  `profile.json`, a manifest (the counts per file, the time it was made and
+  the scope) and the profile image file, if there is one.
+- ChatMessage rows are nested under their ChatSession.
+- Rows are in a fixed order (time, then id), and the keys are sorted.
+- Values: a UUID becomes a string, a time is ISO 8601, a decimal becomes a
+  string, and a foreign key becomes the target's id.
+- **Every file and folder name, the download's file name and the README
+  are PENDING placeholders.** They live in one `EXPORT_NAMES` dict with
+  `EXPORT_NAMES_APPROVED = False`, the same pattern as the late-door texts.
+  Tests refer to the dict, never to literal names.
+- JSON keys are the model field names. They are listed for the owner.
+
+**Field lists.** `EXPORT_FIELDS` and `EXPORT_OMITTED` say, for every
+exported model, which fields go in and which are left out (each left-out
+field with a reason).
+- **The guard:** for every exported model, including ChatMessage, the
+  fields listed for export and the fields left out together equal all of
+  the model's concrete fields, with no overlap. A model gaining a field
+  fails the test until someone decides about it.
+- Every map entry with `export=True` has a field list.
+- No entry with `export=False` (the security tables, BetaWhitelist and
+  Waitlist) has one.
+
+| Model | Exported | Left out (reason) |
+|---|---|---|
+| CustomUser (profile.json) | id, first_name, middle_name, last_name, email, user_type, school, bio, date_joined, last_login, email_verified_at, registration_method, is_active, profile_image, profile_image_url | password, activation_token, activation_expires, failed_login_attempts, locked_until, token_epoch, must_change_password (sign-in and security); is_superuser, is_staff (always false for a student, internal) |
+| StudentCourse | id, course, created_at, enrollment_status, withdrawal_date, final_grade, ai_summary, ai_summary_generated_at | student (the student themselves); auto_added (internal) |
+| StudentSubmission | id, assignment, submission_date, answers, raw_input, score, score_percentage, max_points, feedback, formatted_grade, graded_at, is_published, ai_score, ai_feedback, ai_graded_at, was_regraded, regraded_at | student; grading_state, grading_started_at, grading_confidence, extraction_confidence, grading_prompt_version, grading_config_version, grading_strictness, grading_model, grading_fallback_used, grading_release, answers_model, answers_prompt_version, answers_config_version, answers_release, answers_recheck_model, answers_recheck_result, extraction_flags, ai_grading_completed_at, scheduled_grading_at, grading_task_name, attempt_count (how grading ran, internal); needs_review, review_reasons, review_severity, review_tier (the teacher's review queue: **Q2**); pending_result, pending_graded_at (a regrade not yet approved: **Q1**) |
+| StudentRiskAlertState | is_at_risk, average_score, last_checked_at, last_alerted_at | id, student, school; alert_pending (internal) |
+| BackgroundProcessingTask | id, assignment, submission, task_type, status, file_name, reason_code, created_at, finished_at | requested_by; celery_task_id, trace_id, batch_session, meta, error, retry_count, item_index, cancel_requested_at, started_at, updated_at (internal processing) |
+| ChatSession | id, course, assistant_type, created_at, updated_at | user |
+| ChatMessage (nested) | role, content, timestamp | id, session (nesting stands for it) |
+| UserActivity | timestamp | id, user |
+| Settings | theme, notify_student_submission, notify_weekly_summary, notify_assignment_due_reminder, notify_grading_complete, notify_assignment_edited, notify_new_assignment_posted, notify_teacher_activity_alerts, notify_at_risk_student_alerts | id, user |
+
+**Audit.** A new action, `STUDENT_DATA_EXPORT`.
+- Its label is a PENDING placeholder, and it goes on the wording list.
+- Metadata: student_id, scope (`all`, `school` or `courses`) and the count
+  per file. No names.
+- It needs no migration: the TAG_* actions were added the same way.
+- The metadata allow-list and `audit/tests_enums.py` gain the action.
+- One event per export, written on success only.
+
+### Expected tests, all in `students/tests_data_export.py`
+- **The field guard**, as described above.
+- **Every file present:** each `export=True` entry produces its file, even
+  when it is empty (`[]`).
+- **No security data:** a student with a token, both OTP codes, Google
+  credentials, an outstanding token, a password hash and an activation
+  token. A search of the zip's raw bytes, and of every file in it, finds
+  none of those values.
+- **Only the target's rows:** two students share a course, an assignment,
+  a chat course, settings and activity. The other student's ids, answers
+  and chat text never appear.
+- **The caller matrix:**
+  - a super admin gets 200;
+  - a school admin of the same school gets 200;
+  - a school admin of another school gets "not found";
+  - an admin with no school gets "not found";
+  - a student with no school, asked for by a school admin, gets "not
+    found";
+  - the student themselves gets "not found" (D2);
+  - another student gets "not found";
+  - a teacher with the switch at its default gets "not found", even for
+    their own course's student;
+  - a target that is a teacher gets "not found", and so does an unknown id.
+- **Teacher switched on** (patched): the teacher's own courses only. Rows
+  from another teacher's course are absent, and so are UserActivity,
+  Settings and the profile image. A student outside their courses is "not
+  found".
+- **The flag:** off gives 404 for every caller, anonymous included. On,
+  an anonymous caller gets 401.
+- **Audit:** one event after a success, none after a refusal. Its metadata
+  is on the allow-list.
+- **The zip:** it opens, every file is valid JSON, the names come from
+  `EXPORT_NAMES`, and the profile image's bytes match what is stored.
+
+### Plants (one per run; each restored by sha256)
+- **E1:** the student filter dropped on the StudentSubmission export.
+- **E2:** a security entry exported (Token set to `export=True` in the
+  map).
+- **E3:** the school check dropped for a school admin.
+- **E4:** one `export=True` entry skipped when the zip is built.
+- **E5:** `TEACHER_EXPORT_ALLOWED` defaulted to True.
+
+**Logs:** 08 red, 09 green, 10–14 the plants, then a gate (students,
+audit's route coverage and enums, users) as 15.
+
+### Questions for the SM before the red run
+- **Q1:** StudentSubmission's score and feedback when `is_published` is
+  False. The proposal: export them as they are, since this is the
+  student's data held by the school. The other option is to leave them out
+  until the teacher publishes. `pending_result` (a regrade not yet
+  approved) is left out either way.
+- **Q2:** review flags (`needs_review`, `review_reasons`, the severity and
+  the tier). The proposal: leave them out, as the teacher's workflow.
+- **Q3:** the profile image can't be read from storage during an export.
+  The proposal: still export, log at ERROR, and list the file as missing
+  in the manifest, rather than failing the whole export.
+- **Q4:** the school admin's full export includes the student's rows from
+  courses at other schools (a student's school is one field; their courses
+  can be anywhere). The proposal: yes, in full, as R6 scopes by the
+  student's school.
+
+Wording added to the list (all PENDING): every file and folder name in the
+zip, the download's file name, the README, the manifest's keys, the JSON
+keys (field names) and the `STUDENT_DATA_EXPORT` label.
