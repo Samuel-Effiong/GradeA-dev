@@ -2865,3 +2865,43 @@ Anything else is a STOP. No map entry or field decision is made until the SM rul
 **Declared before the checks run:**
 - `check_migration_safety.py --base HEAD~1` reports 0040_merge with no unsafe operation and exits 0.
 - `migrate` forward on the scratch DB `test_epic_b1a_migrate`, as in §21p, applies everything with no error, ending with `students.0040_merge` applied. The DB is then dropped. The SM waived the round trip.
+
+**R1 results (at 6074b2c95):**
+- `check_migration_safety.py --base HEAD~1`: "OK students/migrations/0040_merge.py: additive only", rc 0. **Matched.**
+- Forward migrate on the scratch DB `test_epic_b1a_migrate`: rc 0, ending with `students.0040_merge... OK`; `showmigrations` shows all five students leaves [X]; `migrate --check` rc 0; the DB was dropped. **Matched** (`step21/step21v_migrate_forward.log`).
+
+### 21v-2. R2: `AIJob.requested_by` becomes SET_NULL (billing 0080). Tests first; red, green and PR-1 declared
+
+**A changed expectation, recorded here and not amended in §21n:** §21n said a deleted teacher's own requested jobs CASCADE away with the teacher. After R2, they **survive**, with `requested_by` NULL and, from §21n, `wallet` NULL. The D-1 tests (d1a, d1b) assert only that the teacher and the wallet are gone, so they are unchanged and still pass. D-2's student-requested job is unaffected. The new survival is pinned by r2 below.
+
+**Tests:**
+- New file `billing/tests/test_holds_requester_kept.py`, 5 tests (`TransactionTestCase`; flag on for the first class):
+  - **r1:** a student's upload is billed to a teacher's wallet, and its item settles (one SettlementRecord). After a full erasure of the student (`erase_student`, scope full), the student and their processing row are gone. The job survives with `requested_by` None and the teacher's wallet, and the SettlementRecord is unchanged as `(item_id, 100)`. That `item_id` now names a deleted row, which is accepted.
+  - **r2:** a deleted teacher's own SETTLED job survives, with requested_by None and wallet None, and the same status and reserved_credits.
+  - **r3:** the map entry is KEEP_RECORD, not exported and not course-scoped.
+  - **r4a and r4b:** the 0080 reverse guard, imported with `importlib`.
+- The existing `billing.tests.test_holds_schema.AIJobColumnsTests.test_aijob_on_delete_rules_follow_03a` pin changes from CASCADE to SET_NULL. This is a direct consequence of R2, and it is declared here before the run, unlike §21o.
+
+**Red prediction** (the tests committed, the model still CASCADE; the new file plus that one schema test; under `flock`): **Ran 6, FAILED (failures=1, errors=5).**
+- **r1, error:** `AIJob.DoesNotExist: AIJob matching query does not exist.`, at the first `AIJob.objects.get`. The erasure itself succeeds, and the CASCADE takes the job and its SettlementRecord.
+- **r2, error:** the same DoesNotExist.
+- **r3, error:** `KeyError: ('billing.AIJob', 'requested_by')`.
+- **r4a and r4b, errors:** `ModuleNotFoundError: No module named 'billing.migrations.0080_aijob_requested_by_set_null'`.
+- **The schema pin, failure:** CASCADE != SET_NULL.
+
+**The fix** (its own commits after the red):
+- billing 0080: an AlterField to `SET_NULL, null=True, blank=True`, followed by a `RunPython(noop, refuse_reverse_with_requesterless_jobs)`, the same shape as 0079. Its message is "Refusing to reverse billing 0080: {n} AIJob rows have no requesting user."
+- The model field.
+- The map entry `("billing.AIJob", "requested_by"): _keep("Credit hold records (SET_NULL)")`.
+- R3: `job`, `hold_state`, `hold_credits`, `hold_drawn` and `released_credits` are added to `EXPORT_OMITTED["students.BackgroundProcessingTask"]` with `_PROCESSING`.
+
+**Green prediction** (`billing.tests.test_holds_requester_kept billing.tests.test_holds_schema billing.tests.test_holds_wallet_deletion students.tests_student_data_map students.tests_data_export students.tests_data_erase`): **Ran 148 (5 + 23 + 9 + 21 + 45 + 45), OK.**
+
+**Plant PR-1** (the model's `on_delete` back to CASCADE, null kept; the new file plus `test_holds_schema`; restored by sha256): **Ran 28, FAILED (failures=1, errors=2).**
+- Killed by r1, with the fragment `AIJob matching query does not exist`.
+- Collateral: r2 (the same error) and the schema pin (a failure).
+
+**Checks after the fix:**
+- `check_migration_safety.py --base HEAD~1` on the 0080 commit: "additive only".
+- `makemigrations --check`: no changes.
+- A forward migrate on the scratch DB, ending with `billing.0080` applied. A round trip is not run, by analogy with R1; the reverse guard is covered by r4a and r4b.

@@ -121,7 +121,8 @@ class AIJobColumnsTests(TestCase):
         }
         # NOTES §21n: was PROTECT (03a); a finished job now outlives its wallet.
         self.assertEqual(rules["wallet"], models.SET_NULL)
-        self.assertEqual(rules["requested_by"], models.CASCADE)
+        # NOTES §21v R2: was CASCADE; a job is a credit record (owner D1/D4).
+        self.assertEqual(rules["requested_by"], models.SET_NULL)
         self.assertEqual(rules["course"], models.SET_NULL)
         self.assertEqual(rules["assignment"], models.SET_NULL)
         self.assertIsInstance(aijob._meta.get_field("school_id"), models.UUIDField)
