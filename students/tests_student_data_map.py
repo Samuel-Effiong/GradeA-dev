@@ -230,3 +230,8 @@ class StepOneBRulingsTests(SimpleTestCase):
                 self.assertIn(
                     getattr(entry, "match", None), ("USER", "EMAIL", "OWN_ROW")
                 )
+
+    def test_processing_records_go_with_a_teachers_erasure(self):  # E-Q2
+        entry = STUDENT_DATA_MAP[("students.BackgroundProcessingTask", "requested_by")]
+        self.assertEqual(entry.role, Role.DELETE)
+        self.assertTrue(entry.course_scoped)
