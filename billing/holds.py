@@ -152,6 +152,27 @@ def _move_wallet(wallet_pk, delta):
         )
 
 
+def _lock_wallet_of(job):
+    """lock_wallet_first for `job`'s wallet, or None when that wallet was
+    deleted (NOTES §21n): a stale instance's wallet is gone from the
+    database, a fresh one's wallet_id is NULL. Only a terminal job has no
+    wallet (release_open_holds_on_delete), so None means nothing may move.
+    The lock read is the check: no query is added while the wallet exists."""
+    try:
+        if job.wallet_id is not None:
+            return lock_wallet_first(job.wallet)
+    except CreditWallet.DoesNotExist:
+        pass
+    logger.warning("Credit hold job %s: its wallet was deleted; nothing moved.", job.pk)
+    return None
+
+
+def _refuse_walletless(job):
+    """No provider call and no successor on a job whose wallet was deleted:
+    the existing late-message error, which names no wallet (NOTES §21n)."""
+    return _late(f"job {job.pk}: its wallet was deleted")
+
+
 # --------------------------------------------------------------------------
 # Jobs and reserving
 # --------------------------------------------------------------------------
@@ -224,7 +245,9 @@ def ensure_call_fits(job, estimate, *, item=None, tally=0):
     InsufficientCreditsError before the call if it cannot. Returns the
     shortfall reserved (0 when the hold covers it)."""
     with transaction.atomic():
-        locked = lock_wallet_first(job.wallet)
+        locked = _lock_wallet_of(job)
+        if locked is None:
+            raise _refuse_walletless(job)
         job_row, item_row = _lock_rows(job, item)
         available = _left(job_row, item_row) - tally
         if estimate <= available:
@@ -266,7 +289,9 @@ def settle(
     if actual < 0:
         raise ValueError("actual cost cannot be negative")
     with transaction.atomic():
-        locked = lock_wallet_first(job.wallet)
+        locked = _lock_wallet_of(job)
+        if locked is None:
+            return NOT_SETTLED
         job_row, item_row = _lock_rows(job, item)
         if key is None:
             key = (
@@ -344,7 +369,9 @@ def fail_item(job, *, item=None):
     """No charge; return the holder's whole remaining hold and count the
     failure (plan §3.4 on an exception). Returns the credits returned."""
     with transaction.atomic():
-        locked = lock_wallet_first(job.wallet)
+        locked = _lock_wallet_of(job)
+        if locked is None:
+            return 0
         job_row, item_row = _lock_rows(job, item)
         count_it = item_row is None or item_row.hold_state == HoldState.HELD
         amount = max(_left(job_row, item_row), 0)
@@ -376,7 +403,9 @@ def finish_job(job, to_status):
     if to_status not in TERMINAL_STATUSES:
         raise ValueError(f"{to_status} is not a terminal status")
     with transaction.atomic():
-        locked = lock_wallet_first(job.wallet)
+        locked = _lock_wallet_of(job)
+        if locked is None:
+            return None
         moved = AIJob.objects.filter(pk=job.pk, status__in=OPEN_STATUSES).update(
             status=to_status
         )
@@ -438,7 +467,16 @@ def _open_successor_job(old_job, item, amount, job_type, link_key):
     trace_id (03a: shared with AuditEvent rows and every item) and by ids in
     meta. It holds `amount` or is left FAILED and InsufficientCreditsError is
     raised. The old job and the task row are untouched; settle it with
-    key=(item.id, item.retry_count)."""
+    key=(item.id, item.retry_count). A job whose wallet was deleted gets no
+    successor (NOTES §21n)."""
+    if (
+        old_job.wallet_id is None
+        or not CreditWallet.objects.filter(pk=old_job.wallet_id).exists()
+    ):
+        logger.warning(
+            "Credit hold job %s: its wallet was deleted; no successor.", old_job.pk
+        )
+        raise _refuse_walletless(old_job)
     new_job = create_job(
         wallet=old_job.wallet,
         requested_by=old_job.requested_by,
@@ -508,7 +546,9 @@ def single_sweep_window():
 def _sweep_item(item_pk, job_pk, cutoff):
     job = AIJob.objects.get(pk=job_pk)
     with transaction.atomic():
-        locked = lock_wallet_first(job.wallet)
+        locked = _lock_wallet_of(job)
+        if locked is None:
+            return None
         job_row = AIJob.objects.select_for_update().get(pk=job_pk)
         # Conditional: a run that re-claimed the item since it was read is
         # not swept (review r4 R4-1).
@@ -1089,3 +1129,17 @@ def notify_late_door_refusal(row, job):
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[student.email],
         )
+
+
+# --------------------------------------------------------------------------
+# A wallet that is deleted (NOTES §21n)
+# --------------------------------------------------------------------------
+
+
+def release_open_holds_on_delete(sender, instance, **kwargs):
+    """pre_delete on CreditWallet (connected in BillingConfig.ready): every
+    open job of the wallet is CANCELLED and its holds returned before the
+    collector sets AIJob.wallet NULL, so no open job is ever left without a
+    wallet. Whatever the flag says: jobs made while it was on outlive it."""
+    for job in AIJob.objects.filter(wallet=instance, status__in=OPEN_STATUSES):
+        finish_job(job, AIJobStatus.CANCELLED)
