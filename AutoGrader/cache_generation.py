@@ -23,6 +23,7 @@ the only thing that refreshes a cached response, and
 import logging
 
 from django.core.cache import cache
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 
 logger = logging.getLogger(__name__)
@@ -204,6 +205,23 @@ def _incr_or_create(key):
             return FIRST_BUMP_GENERATION
         # Lost the creation race; the winner set it, so increment theirs.
         return cache.incr(key)
+
+
+def related_or_none(obj, name):
+    """`obj.<name>`, or None when obj is None or the related row is gone.
+
+    Cache bumps run inside post_delete receivers. During a cascade (H-298:
+    deleting a teacher removes their courses, assignments and submissions)
+    a related row can already be deleted, and reading it raises a plain
+    DoesNotExist that `getattr(obj, name, None)` does not catch. A bump that
+    raises would fail the delete itself.
+    """
+    if obj is None:
+        return None
+    try:
+        return getattr(obj, name)
+    except ObjectDoesNotExist:
+        return None
 
 
 def bump_many(scopes):
