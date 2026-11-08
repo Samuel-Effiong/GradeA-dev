@@ -2796,3 +2796,18 @@ Every result below was declared in NOTES before its run. Where a declaration was
 - `billing/holds.py` sha256 is `2761591e25131e412b950cbb749459535abf8229b6fb36a0b6568c73e263dca8`.
 - Nothing is pushed; the SM pushes.
 - Stash cfd89cc2 is untouched.
+
+### 21t. PR #123 CI (draft, DO NOT MERGE, into dev): results as the SM reported them (2026-11-08)
+
+The SM pushed `task/epic-b1a` at 5899077ee and opened draft PR #123 for one CI run, which the owner approved. The PR is now closed unmerged.
+
+**Tests on postgres:16 (run 42505252513):** Ran 9483, FAILED (errors=1, skipped=81).
+- The one error is `users.tests_login_lockout.LoginLockoutLiveServerTests.test_concurrent_brute_force_against_live_http_server_is_held`: a `ConnectionResetError` against the live server.
+- B1a's diff does not touch `users/`. The SM re-ran `users.tests_login_lockout` locally: Ran 13, OK.
+- **SM ruling:** a CI flake, not B1a.
+- No holds test failed, so R-4a matched on PG 16.
+
+**Migration safety (run 42505252439):** FAILED.
+- The cause is the base: `dev` dates from May 2026, so every migration added since then counts as new.
+- Every B1a migration reports additive.
+- **SM ruling:** not B1a.
