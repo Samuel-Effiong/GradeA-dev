@@ -2454,3 +2454,59 @@ The method follows plan §9 item 13:
   - `assignments.tests_upload_batch_billing`: `FailedFilesAreRefundedTest` ×2, `LeftoverClaimsTest` ×1 (3);
   - `assignments.tests_upload_task_retry_policy.AssignmentUploadTaskBillingTest.test_an_unusable_response_is_refunded_and_the_file_released` (1).
 - **B4. The patched balance (1):** `billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r8_execute_graded_task_nothing_left_individual`. It patches `total_remaining_credits` to 0 and the estimate to 0. The flag-on path skips the flag-off balance check, and `begin_single_call` reserves only when the estimate is above 0, so the call reaches the provider. A production estimate carries the flat 20,000, so an estimate of 0 is not reachable there. Noted for the SM's view.
+
+### 21m addendum. SM rulings on §21m (2026-11-08), and the flag-on-day list
+
+**SM rulings:**
+- **A is fixed in B1a** (§21n), because it is a defect B1a introduces. The gate run comes after the fix, so `ai_processor.tests_call_record.TheRowsOutliveTheirRecords.test_deleting_the_teacher_or_the_assignment_leaves_the_rows` must **PASS** in it. It is not on the expected-failure list.
+- **The 45 in B are not fixed in B1a.**
+  - The declared flag-on gate run uses the same labels as the exploratory run.
+  - The 45 are declared by full name as expected failures, each with its class, committed before the run.
+  - A failure not on the list, or a listed test that passes, is a STOP.
+- **B4 is accepted** as not reachable in production, because a real estimate carries the flat 20,000.
+
+**Flag-on-day list**, for B1b or whatever turns the flag on. These 45 tests must be brought to the flag-on behavior before the flag goes on anywhere:
+- **B1 (6):** decide the flag-off-only intent of `test_holds_schema`'s default and reverse tests, and run `test_audit_identity_migration` with the flag off (`override_settings`).
+- **B2 (26):** make the tests `on_commit`-aware (`captureOnCommitCallbacks(execute=True)`, or `TransactionTestCase`), so the deferred door launch runs.
+- **B3 (12):** move the tests to the hold ledger shape: a failed call has no usage row, a unit charges once at settle, and there is no refund row.
+- **B4 (1):** `test_r8` reaches the provider with a mocked estimate of 0. Give it a flag-on refusal that is reachable, or mark it flag-off.
+
+### 21n. Design note: AIJob.wallet PROTECT stops teacher deletion (A). For SM review before any code (2026-11-08)
+
+**The defect:**
+- `CreditWallet.user` is CASCADE and `AIJob.wallet` is PROTECT.
+- With the flag on, every billed call leaves an AIJob, so deleting any teacher with AI history raises ProtectedError. That undoes H-298.
+- `AIJob.requested_by` is CASCADE (03a: "an operational row, not history; the ledger keeps the money trail"). `BackgroundProcessingTask.job` and `AICallRecord` are untouched by this note.
+
+**The design: SET_NULL, and open holds are released first.**
+1. **The field:** `AIJob.wallet` becomes `on_delete=SET_NULL, null=True`. A finished job survives its wallet being deleted (job id, status, amounts), as the SM's shape asks.
+   - For a teacher's own deletion, the jobs that teacher requested still go with `requested_by` (CASCADE, 03a, unchanged).
+   - Jobs requested by someone else but billed to the wallet, such as a student's upload, survive with `wallet = NULL`.
+   - The money trail stays where it is today: the ledger and the usage log.
+2. **Open holds are released first, not refused.**
+   - A `pre_delete` receiver on `CreditWallet` (billing, registered in `ready()`, the pattern of `billing/immutable.py`) moves every open job of that wallet (`OPEN_STATUSES`) to **CANCELLED** through the existing `finish_job`. That takes the wallet lock first, returns each held item's remainder, and emits `CREDIT_HOLD_RELEASED` with `reason_label="cancelled"`.
+   - It runs inside the delete's own transaction, before the collector's SET_NULL updates and deletes. So no open job is ever left with `wallet = NULL`, and the sweep, `check_invariants` and settle never see an open job without a wallet.
+   - It runs whatever the flag says, because jobs made while the flag was on can outlive a later flag-off. With no open job it is one query.
+   - **Why release rather than block:**
+     - The wallet and its buckets are deleted in the same transaction, so releasing a hold changes no balance anyone can spend.
+     - Blocking would need a refusal sentence on the delete paths (admin and account deletion). That is new user-facing text for the owner, and it would make teacher deletion fail again while any upload is in flight.
+     - With the flag off today, deleting a teacher mid-call is already allowed; the worker's later charge meets a missing wallet. Releasing keeps that behavior.
+3. **An in-flight worker.** A unit or single call whose job was cancelled this way finds it terminal: its conditional settle and finish UPDATEs move nothing. This is the existing "late message" and idempotence path. The fix adds a test of that path and no new branch, unless the test shows one is needed. If it does, that is a STOP back to the SM.
+
+**User-facing text: none needed.** Nothing is refused. The release is silent to users, and the audit row is internal (ids and amounts only).
+
+**Migration (its own commit):** `billing/0079`, an AlterField making `wallet` nullable with SET_NULL.
+- **Forward** only drops NOT NULL. `on_delete` is Django-side; the FK constraint is unchanged. `check_migration_safety.py` treats it as additive (a loosening).
+- **Reverse:** a RunPython guard, in the style of 0074's, refuses the reverse while any `AIJob.wallet IS NULL` row exists ("Refusing to reverse billing 0079: N AIJob rows have no wallet."). That message is operator-facing, like 0074's. Otherwise the reverse restores NOT NULL.
+- The reverse of 0079 does not pass through 0074, so 0074's guard is not involved unless a rollback goes on past 0079. In that case it applies as today.
+- **Checks:** `python scripts/check_migration_safety.py --base origin/dev` and `AutoGrader.tests_migration_rollback_defaults` must pass, plus a migrate forward/back/forward on the worktree DB with the flag off.
+
+**Tests first** (new file `billing/tests/test_holds_wallet_deletion.py`, flag on via `override_settings`):
+- **D-1 (the red characterization):** a teacher with finished AI jobs (a SINGLE_CALL that was settled), and `teacher.delete()` succeeds. Red today: ProtectedError.
+- **D-2:** a job requested by a student but billed to the teacher's wallet survives the teacher's deletion with `wallet_id = None`, and its status and amounts are unchanged.
+- **D-3:** a teacher with an open hold (an UPLOAD job, one item HELD). The delete succeeds; the job is CANCELLED first, the item RETURNED, and one `CREDIT_HOLD_RELEASED` emitted.
+- **D-4:** an in-flight unit whose job was cancelled by the delete; its settle moves nothing and raises nothing new.
+- **D-5:** the 0079 reverse guard refuses while a NULL-wallet row exists, and allows the reverse when there is none.
+- **Red:** D-1, D-2 and D-3 ERROR with ProtectedError. D-4 and D-5 are red as well, because there is no receiver and no 0079 (exact counts are declared at the red commit).
+- **The plant, declared with its kill before the fix:** **PD-1** removes the receiver's call to `finish_job`. Kill: D-3 fails with the fragment `'CANCELLED' != ` (the job is left open).
+- `tests_call_record`'s deletion test then passes flag on, and stays passing flag off.
