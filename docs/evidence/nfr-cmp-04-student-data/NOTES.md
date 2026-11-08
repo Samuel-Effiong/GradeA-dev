@@ -1624,3 +1624,65 @@ Near run 44 result (`GAP-a0-runs/nfr-cmp-04/44_near_final.log`): Ran
 5118, OK (skipped=7), in 655 s. **As predicted.**
 
 The branch is ready for the SM to push. No push from Lane 2.
+
+## Post-push miss: the AICallRecord guard (SM, 2026-11-08)
+
+After the push to staging (e813dc61c), the Fixes Worker merged staging into
+B1a and found staging red on one guard:
+`ai_processor.tests_call_record_static.NothingReadsOrExposesTheTable.test_no_other_code_names_the_model`
+gives "Lists differ: ['students/student_data_map.py'] != []". The map's
+`("ai_processor.AICallRecord", "billed_user_id")` entry names the model, and
+the guard allows that string only in `ai_processor/models.py` and
+`ai_processor/call_record.py`.
+
+**Prediction incomplete:** the near runs (38, 44) did not include the
+ai_processor source-scanning guards, so they could not see this.
+
+SM ruling, option (a): add `students/student_data_map.py` to the guard's
+allowed set, with a comment that the map holds only a label string for the
+erasure map and neither reads nor exposes the table. The guard is not
+weakened otherwise. Branch `task/nfr-cmp-04-guard-fix` off origin/staging
+e813dc61c.
+
+**Prediction for red 45** (the guard alone, before the fix,
+`45_red_call_record_guard.log`): Ran 1, FAILED (failures=1), with "Lists
+differ: ['students/student_data_map.py'] != []", matching staging.
+
+Red 45 result (`45_red_call_record_guard.log`): Ran 1, FAILED
+(failures=1), "Lists differ: ['students/student_data_map.py'] != []".
+**As predicted.**
+
+**Prediction for green 46** (the same test after the fix,
+`46_green_call_record_guard.log`): Ran 1, OK.
+
+Green 46 result (`46_green_call_record_guard.log`): Ran 1, OK. **As
+predicted.**
+
+**Prediction for guard sweep 47 (under flock).** All 22 source-scanning
+guard labels on staging, as listed by the SM:
+`AutoGrader.tests_credscan AutoGrader.tests_h271_static_files
+AutoGrader.tests_network_guard AutoGrader.tests_student_classmates_guard
+AutoGrader.tests_student_feedback_guard
+AutoGrader.tests_submission_audience_guard
+ai_processor.tests_call_record_static
+ai_processor.tests_h2_grading_benchmark_guard ai_processor.tests_ssrf_guard
+audit.tests_history_guard audit.tests_route_coverage
+audit.tests_h273_query_filters billing.tests.test_license_admin_user_guard
+billing.tests.test_qa_console_guardrail
+billing.tests.test_qa_time_travel_guardrail billing.tests.test_renewal_guards
+classrooms.tests_e1_grade_guard students.tests_reading_label_static
+students.tests_app_boundaries students.tests_h279_regrade_pending_approval
+students.tests_student_data_map users.tests_roads_that_sign_in_or_activate`.
+Counted with `DiscoverRunner.build_suite(labels).countTestCases()`:
+**395**. One class, `ai_processor.tests_ssrf_guard.PeerIntrospectionAgainstARealConnectionTest`
+(1 test), is `skipUnless(CI_REQUIRE_NETWORK)`, which is not set here.
+
+Predicted: **Ran 395, OK (skipped=1)**. Any other failure is a STOP.
+Log: `47_guard_sweep.log`.
+
+Guard sweep 47 result (`47_guard_sweep.log`): Ran 395, OK (skipped=1), in
+60 s. **As predicted.**
+
+Standing rule from now (SM): every near run includes this whole guard list.
+
+The branch is ready for the SM to push. No push from Lane 2.
