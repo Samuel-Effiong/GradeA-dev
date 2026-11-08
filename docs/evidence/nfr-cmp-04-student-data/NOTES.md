@@ -1070,3 +1070,61 @@ done.
   **This is a declaration change, pinned by a map test.**
 - **E-Q3:** after a course erasure, the risk alert is left alone, with no
   recompute (R3). Pinned by a test.
+
+### Step 3 declarations, completed before the red
+
+**Found while designing the fixtures: the wallet's history is tied to kept
+records.**
+- `CreditUsageLog.wallet`, `CreditUsageLog.bucket` and `CreditLedger.bucket`
+  are `DO_NOTHING` foreign keys. Deleting the user cascades to the wallet
+  and on to its buckets. If any kept ledger or usage row points at those,
+  the database's foreign keys fail at commit, and a kept record would lose
+  its target.
+- A student's uploads bill the **teacher's** wallet (`upload_door`), so a
+  student's own wallet is normally an empty row with no buckets. That case
+  is safe to delete.
+- **Declared:** "wallet not empty" also covers **a wallet that has any
+  bucket** (credit history), not only one with credits or a deficit. It is
+  the same refusal and the same code, so no new wording. **For the SM to
+  confirm at the checkpoint.**
+- Test: a wallet holding one spent bucket (0 remaining) that a CreditLedger
+  row references is refused, and nothing changes.
+
+**Refusal codes** (new `ReasonCode` entries in `REASON_CODES`). Each is
+ErrorClass VALIDATION, HTTP 409, not retryable. The message and the enum
+label are both the placeholder "PENDING OWNER APPROVAL", with no new
+wording:
+- `STUDENT_ERASE_NOT_ONLY_A_STUDENT`
+- `STUDENT_ERASE_WALLET_NOT_EMPTY`
+- `STUDENT_ERASE_BILLING_RECORDS` (R2)
+
+**Success:** 200 with the house envelope, "Request Successful", which is
+existing wording. The data is `{scope, item_count}`. The success texts on
+the wording list belong to the frontend, and the backend adds none.
+
+**How NOT_A_STUDENT is tested.** I'd declared "one test per entry, driven
+from the map", but the map has 23 such entries, across models with very
+different required fields. So the test has two parts:
+- a structural test: the refusal check's entry list equals
+  `entries_with_role(NOT_A_STUDENT)` exactly, so a new map entry is
+  enforced without a test change;
+- real-row tests for the entries a student account can plausibly hold:
+  `Course.teacher`, `Tag.teacher`, the bare `Tag.created_by_id`, and
+  `BatchUploadSession.teacher`.
+
+That is a narrowing of "one test per entry", for the SM to rule on.
+
+**The map gains** (with the model): `students.ErasedStudentRecord`
+`original_user_id` as KEEP_RECORD, and `erased_by_id` as NOT_A_STUDENT
+(an admin's or teacher's id). The guard requires both once the model
+exists. **E-Q2:** BackgroundProcessingTask becomes `course_scoped=True`.
+
+**Prediction for run 22 (red):**
+- The modules: `students.tests_data_erase`, `students.tests_student_data_map`
+  and `audit.tests_route_coverage`.
+- `tests_data_erase` can't import `students.data_erase`, which doesn't
+  exist, so the loader reports 1 error.
+- 1 failure: the new map pin, `test_processing_records_go_with_a_teachers_erasure`.
+- 1 failure: the route-registry test, on the subtest
+  `route='student-data-erase'`.
+- Ran 44 (21 + 22 + 1), FAILED (failures=2, errors=1).
