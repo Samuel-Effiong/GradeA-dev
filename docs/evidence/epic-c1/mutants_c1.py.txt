@@ -1,5 +1,6 @@
 """C1 mutation battery (EXPECTATIONS.md M1-M14, plus M11b for the
-serializer half of M11). One planted bug each; the C1 tests run; the file
+serializer half of M11, plus MS: the symbol refusal re-added, which the
+owner's 2026-11-08 reversal must catch; it replaces plants 21 and 21b). One planted bug each; the C1 tests run; the file
 is restored from its saved bytes and its sha256 checked.
 
 Usage: python mutants_c1.py <worktree> <python> <logdir> [ids,comma,separated]
@@ -58,8 +59,8 @@ MUTANTS = [
      [("    key = display.lower()\n", "    key = display\n")],
      [], True, "NormalizeTest.test_variants_resolve_to_one_key"),
     ("M2", "split() collapse replaced by strip()", N,
-     [('    display = " ".join("".join(_strip(c) for c in text).split())\n',
-       '    display = "".join(_strip(c) for c in text).strip()\n')],
+     [('    display = " ".join("".join(_keep(c) for c in text).split())\n',
+       '    display = "".join(_keep(c) for c in text).strip()\n')],
      [], True, "NormalizeTest.test_variants_resolve_to_one_key"),
     ("M3", "the partial unique constraint removed (migration)", MIG,
      [(UNIQUE, "")],
@@ -107,7 +108,7 @@ MUTANTS = [
        "        raise\n")],
      RACE, True, "CreateRaceTest.test_one_row_and_one_id_for_every_caller"),
     ("M13", "Cf/Cc removal dropped (owner D5)", N,
-     [('    if _rule(character) == "remove":\n        return ""\n', "")],
+     [('    return character if rule == "keep" else ""\n', "    return character\n")],
      [], True, "NormalizeTest.test_invisible_characters_are_removed"),
     ("M14", "flag check moved after authentication and permissions", V,
      [(DISPATCH,
@@ -117,6 +118,14 @@ MUTANTS = [
        "            from django.http import Http404\n\n"
        "            raise Http404\n")],
      [], True, "DarkRoutesTest.test_every_route_answers_like_an_unknown_url_for_everyone"),
+    ("MS", "the symbol refusal re-added (owner reversal, 2026-11-08)", N,
+     [('    key = display.lower()\n',
+       '    if any(unicodedata.category(c)[0] in "PS" and c not in " -\'.()"\n'
+       '           for c in display):\n'
+       '        raise CodedError("TAG_NAME_MISSING")\n'
+       '    key = display.lower()\n')],
+     [], True,
+     "NormalizeTest.test_the_names_the_old_rule_refused_are_kept_as_typed"),
 ]
 
 
