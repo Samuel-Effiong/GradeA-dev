@@ -613,3 +613,8 @@ are in that list, so it isn't affected.
   the subtest `route='student-data-export'` (the route doesn't exist yet).
 - The other 21 route-coverage tests pass. (22 tests are counted from the
   file, plus the one failed import, makes 23.)
+
+Run 08 result (`08_red_export.log`): Ran 23, FAILED (failures=1, errors=1).
+- The error: `ModuleNotFoundError: No module named 'students.data_export'`.
+- The failure: the registry test, on `route='student-data-export'`.
+- **As predicted.**
