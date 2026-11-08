@@ -1,0 +1,647 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+.Free trial plan not found: no trial activated for user b63058bc-8334-40f6-8d71-b593c5758079.
+Cannot activate automatic trial for user b63058bc-8334-40f6-8d71-b593c5758079 (validation): ValueError
+Free trial plan not found: no trial activated for user 8f69f6e2-d9a3-4db5-a2de-46a7754432d7.
+Cannot activate automatic trial for user 8f69f6e2-d9a3-4db5-a2de-46a7754432d7 (validation): ValueError
+Free trial plan not found: no trial activated for user d8ff78c0-6547-4275-bc43-52814e6f3038.
+Cannot activate automatic trial for user d8ff78c0-6547-4275-bc43-52814e6f3038 (validation): ValueError
+.Free trial plan not found: no trial activated for user 797ee4b3-f618-4bab-b649-4fe1b3acbb15.
+Cannot activate automatic trial for user 797ee4b3-f618-4bab-b649-4fe1b3acbb15 (validation): ValueError
+Free trial plan not found: no trial activated for user 4f106dd8-eff3-42ba-bbf2-d20e33671875.
+Cannot activate automatic trial for user 4f106dd8-eff3-42ba-bbf2-d20e33671875 (validation): ValueError
+Free trial plan not found: no trial activated for user 5764247a-a8f0-42af-a6c9-effe74eeec16.
+Cannot activate automatic trial for user 5764247a-a8f0-42af-a6c9-effe74eeec16 (validation): ValueError
+Overage purchase intent f534618d-6057-4813-affd-a526175ea64e (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License ff7899b2-438c-4f41-b0c8-77b13114923c.
+Refunded 299 cents of PaymentIntent pi_dr: the share of teacher(s) who left before overage intent f534618d-6057-4813-affd-a526175ea64e was fulfilled.
+FFree trial plan not found: no trial activated for user afbb675d-5c7a-4c1d-97ab-7f8aac844970.
+Cannot activate automatic trial for user afbb675d-5c7a-4c1d-97ab-7f8aac844970 (validation): ValueError
+Free trial plan not found: no trial activated for user cd6ca724-1418-4a27-98aa-7f05515f8856.
+Cannot activate automatic trial for user cd6ca724-1418-4a27-98aa-7f05515f8856 (validation): ValueError
+Free trial plan not found: no trial activated for user 133f9dc8-d728-4986-9775-31e0342a3412.
+Cannot activate automatic trial for user 133f9dc8-d728-4986-9775-31e0342a3412 (validation): ValueError
+Overage purchase intent 47eb87bb-212f-43c4-9231-d00f603a0c5e (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License ecc4ff57-5e94-452f-ad3e-b2ac0143eb77.
+Refunded 299 cents of PaymentIntent pi_dr: the share of teacher(s) who left before overage intent 47eb87bb-212f-43c4-9231-d00f603a0c5e was fulfilled.
+FFree trial plan not found: no trial activated for user c4af9190-8ba2-4da7-bb0a-0895d5d7362b.
+Cannot activate automatic trial for user c4af9190-8ba2-4da7-bb0a-0895d5d7362b (validation): ValueError
+Free trial plan not found: no trial activated for user 96cdfdbf-0fbf-4ceb-af20-0d3387dbf69a.
+Cannot activate automatic trial for user 96cdfdbf-0fbf-4ceb-af20-0d3387dbf69a (validation): ValueError
+Free trial plan not found: no trial activated for user 4123a5c5-bc9c-4b6f-8d50-753a19d552d8.
+Cannot activate automatic trial for user 4123a5c5-bc9c-4b6f-8d50-753a19d552d8 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9e755df4-8142-4bbc-9777-02335aed3cae.
+Cannot activate automatic trial for user 9e755df4-8142-4bbc-9777-02335aed3cae (validation): ValueError
+Free trial plan not found: no trial activated for user 23fc974a-7e6b-43f3-a7f7-98c3306ae953.
+Cannot activate automatic trial for user 23fc974a-7e6b-43f3-a7f7-98c3306ae953 (validation): ValueError
+Free trial plan not found: no trial activated for user aa946e08-2a9e-4ca9-adcc-d0c7f03b44d1.
+Cannot activate automatic trial for user aa946e08-2a9e-4ca9-adcc-d0c7f03b44d1 (validation): ValueError
+Overage purchase intent de1aead4-8f34-445d-9e32-ce89cb23d0f2 (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License f5176eeb-5086-4684-8c7a-431921b2d5cc.
+Refunded 299 cents of PaymentIntent pi_dr: the share of teacher(s) who left before overage intent de1aead4-8f34-445d-9e32-ce89cb23d0f2 was fulfilled.
+.Free trial plan not found: no trial activated for user edaed2db-bf7e-4893-97cd-cf98ede43cf0.
+Cannot activate automatic trial for user edaed2db-bf7e-4893-97cd-cf98ede43cf0 (validation): ValueError
+Free trial plan not found: no trial activated for user 8f11ff8d-f659-4851-9deb-96b5228fde6f.
+Cannot activate automatic trial for user 8f11ff8d-f659-4851-9deb-96b5228fde6f (validation): ValueError
+Free trial plan not found: no trial activated for user a6427406-c659-489b-8e17-3a85ce72eeef.
+Cannot activate automatic trial for user a6427406-c659-489b-8e17-3a85ce72eeef (validation): ValueError
+Overage purchase intent c5a7ff2f-dddd-4de9-a64d-69b4fe5f8c59 (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License b34d209a-2db4-4e77-9668-a0dc2be2c7c2.
+.Free trial plan not found: no trial activated for user 4ee27e51-3b56-4f87-8e88-c703b9e3ed9e.
+Cannot activate automatic trial for user 4ee27e51-3b56-4f87-8e88-c703b9e3ed9e (validation): ValueError
+Free trial plan not found: no trial activated for user e9609dd7-f991-41dc-9b77-78cbafdfdf5c.
+Cannot activate automatic trial for user e9609dd7-f991-41dc-9b77-78cbafdfdf5c (validation): ValueError
+Free trial plan not found: no trial activated for user 5ca2db09-952c-4690-8bb9-6812d8fde66d.
+Cannot activate automatic trial for user 5ca2db09-952c-4690-8bb9-6812d8fde66d (validation): ValueError
+Overage purchase intent ac5dd30d-9aa1-48bd-bc8d-ca8cd25099ea (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 761ec38d-3099-4189-91b7-c24003dae5a7.
+.Free trial plan not found: no trial activated for user 05ac5ae2-8b35-4b76-b245-dc0344db7a8d.
+Cannot activate automatic trial for user 05ac5ae2-8b35-4b76-b245-dc0344db7a8d (validation): ValueError
+Free trial plan not found: no trial activated for user 060e034a-1596-4b5b-9e0b-4c725d15b7af.
+Cannot activate automatic trial for user 060e034a-1596-4b5b-9e0b-4c725d15b7af (validation): ValueError
+Free trial plan not found: no trial activated for user 635dc584-8886-4d33-b95d-d1ff15dddf16.
+Cannot activate automatic trial for user 635dc584-8886-4d33-b95d-d1ff15dddf16 (validation): ValueError
+Overage purchase intent b3c33fcb-2905-474b-baee-2b7d1472996c (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 591a9c29-8b47-4a5e-b3c2-3a08ff875a15.
+Refunded 299 cents of PaymentIntent pi_dr: the share of teacher(s) who left before overage intent b3c33fcb-2905-474b-baee-2b7d1472996c was fulfilled.
+Refund of payment pi_dr carries retain_credits: 299 cents returned and 10000 credit(s) deliberately LEFT with the customer.
+.Free trial plan not found: no trial activated for user ff32cfba-0cc0-4035-baa0-9c58ffa3a8ae.
+Cannot activate automatic trial for user ff32cfba-0cc0-4035-baa0-9c58ffa3a8ae (validation): ValueError
+Free trial plan not found: no trial activated for user bf703522-5a90-45e6-b9f2-40bcf1d8ade6.
+Cannot activate automatic trial for user bf703522-5a90-45e6-b9f2-40bcf1d8ade6 (validation): ValueError
+Free trial plan not found: no trial activated for user e0e4d9da-a9b4-4f83-b7cd-0d2f91df6fa1.
+Cannot activate automatic trial for user e0e4d9da-a9b4-4f83-b7cd-0d2f91df6fa1 (validation): ValueError
+.Free trial plan not found: no trial activated for user faccc92c-da9a-4277-9e4e-66db7c2b6dca.
+Cannot activate automatic trial for user faccc92c-da9a-4277-9e4e-66db7c2b6dca (validation): ValueError
+Free trial plan not found: no trial activated for user 83e3a858-5713-493d-a2bf-66db84b80cd4.
+Cannot activate automatic trial for user 83e3a858-5713-493d-a2bf-66db84b80cd4 (validation): ValueError
+Free trial plan not found: no trial activated for user 859b33ef-4b65-42c1-8236-a2a17b9127bb.
+Cannot activate automatic trial for user 859b33ef-4b65-42c1-8236-a2a17b9127bb (validation): ValueError
+Overage purchase intent dd730067-beac-4f4c-94b5-a71d0aa2c32b (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 8c910e53-1800-455f-a501-439dff15ed6b.
+Refunded 197 cents of PaymentIntent pi_dr: the share of teacher(s) who left before overage intent dd730067-beac-4f4c-94b5-a71d0aa2c32b was fulfilled.
+.Free trial plan not found: no trial activated for user 6b188d96-164f-41c9-92c2-69bfe3579c83.
+Cannot activate automatic trial for user 6b188d96-164f-41c9-92c2-69bfe3579c83 (validation): ValueError
+Free trial plan not found: no trial activated for user 28d862be-2912-485b-84a4-3d33a3066f83.
+Cannot activate automatic trial for user 28d862be-2912-485b-84a4-3d33a3066f83 (validation): ValueError
+Free trial plan not found: no trial activated for user c04a083b-01e5-4038-8076-d9e8a57dd864.
+Cannot activate automatic trial for user c04a083b-01e5-4038-8076-d9e8a57dd864 (validation): ValueError
+MANUAL RECONCILIATION NEEDED: overage intent e0a7d316-7cd1-41a1-8bfc-07c948ca4806 owes a departed teacher's share of 299 cents but has no PaymentIntent to refund.
+Overage purchase intent e0a7d316-7cd1-41a1-8bfc-07c948ca4806 (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License f94d09b3-b0e5-4e78-b076-cf55cd69cee5.
+.Free trial plan not found: no trial activated for user d6fd90eb-d040-4bec-8d29-a844745b3e23.
+Cannot activate automatic trial for user d6fd90eb-d040-4bec-8d29-a844745b3e23 (validation): ValueError
+Free trial plan not found: no trial activated for user 7512e09b-a4fd-4d7c-83f3-a66713cfcb50.
+Cannot activate automatic trial for user 7512e09b-a4fd-4d7c-83f3-a66713cfcb50 (validation): ValueError
+Free trial plan not found: no trial activated for user d45f98ba-6556-44eb-9415-586414344c6c.
+Cannot activate automatic trial for user d45f98ba-6556-44eb-9415-586414344c6c (validation): ValueError
+Overage purchase intent 11add874-a5de-4051-9582-91e9a7bdf9e8 (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 00b821a8-60b1-4b2b-8f1e-523f66684636.
+.Free trial plan not found: no trial activated for user 4b01ea4f-947b-49c9-85b7-1fbea987fbd9.
+Cannot activate automatic trial for user 4b01ea4f-947b-49c9-85b7-1fbea987fbd9 (validation): ValueError
+Free trial plan not found: no trial activated for user 3b5f9a9d-bf06-4595-84cc-165ba8de58ad.
+Cannot activate automatic trial for user 3b5f9a9d-bf06-4595-84cc-165ba8de58ad (validation): ValueError
+Free trial plan not found: no trial activated for user 02ce49a5-2c35-4165-bcde-035edd36eee9.
+Cannot activate automatic trial for user 02ce49a5-2c35-4165-bcde-035edd36eee9 (validation): ValueError
+Overage purchase intent f8bd0938-5743-49c3-923c-4a0b0f2cf87a (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 1f8bbce7-1356-4f8b-8167-80871f1b8da0.
+.Free trial plan not found: no trial activated for user d7d9f897-7e83-4959-8661-2ed086ed552b.
+Cannot activate automatic trial for user d7d9f897-7e83-4959-8661-2ed086ed552b (validation): ValueError
+Free trial plan not found: no trial activated for user ea94eb31-ba4c-47c7-a102-9307e0e93de7.
+Cannot activate automatic trial for user ea94eb31-ba4c-47c7-a102-9307e0e93de7 (validation): ValueError
+Free trial plan not found: no trial activated for user 3d0ffa60-f1b6-40e8-9ad5-6be2cecbdf3e.
+Cannot activate automatic trial for user 3d0ffa60-f1b6-40e8-9ad5-6be2cecbdf3e (validation): ValueError
+.Free trial plan not found: no trial activated for user f780062b-bc52-4c64-8c9c-a6dbc5dcbad9.
+Cannot activate automatic trial for user f780062b-bc52-4c64-8c9c-a6dbc5dcbad9 (validation): ValueError
+Free trial plan not found: no trial activated for user 04649e16-1bc9-42a4-a4c4-0ac92a112765.
+Cannot activate automatic trial for user 04649e16-1bc9-42a4-a4c4-0ac92a112765 (validation): ValueError
+Free trial plan not found: no trial activated for user 4866a546-fec5-482f-b7d6-00127fd8b088.
+Cannot activate automatic trial for user 4866a546-fec5-482f-b7d6-00127fd8b088 (validation): ValueError
+Offline overage request c8e89f47-48ad-4466-8975-e66c04680c5c PARTIALLY fulfilled on approval: 2/3 teachers granted, 1 skipped (no longer active). License e25d3f1c-b8b2-46c5-a75f-cd0fe5c0dd09.
+FFree trial plan not found: no trial activated for user 5dc5d881-660c-4b6a-9771-d673ccde2036.
+Cannot activate automatic trial for user 5dc5d881-660c-4b6a-9771-d673ccde2036 (validation): ValueError
+Free trial plan not found: no trial activated for user 6a5038e8-78a0-4061-bb24-ce031b315826.
+Cannot activate automatic trial for user 6a5038e8-78a0-4061-bb24-ce031b315826 (validation): ValueError
+Free trial plan not found: no trial activated for user 89d6791e-38c0-4b19-8360-adeb924eead2.
+Cannot activate automatic trial for user 89d6791e-38c0-4b19-8360-adeb924eead2 (validation): ValueError
+Offline overage request 37cdb825-fca3-4407-9211-2c2fa1a942cb PARTIALLY fulfilled on approval: 2/3 teachers granted, 1 skipped (no longer active). License 7f42b9c6-8cf7-4124-b18e-a18fe9df6eb1.
+FFree trial plan not found: no trial activated for user 8b34cce5-67d5-4392-b91d-eebf1ff0457f.
+Cannot activate automatic trial for user 8b34cce5-67d5-4392-b91d-eebf1ff0457f (validation): ValueError
+Free trial plan not found: no trial activated for user a9f58312-bc65-4b8c-ab0f-67c50025776f.
+Cannot activate automatic trial for user a9f58312-bc65-4b8c-ab0f-67c50025776f (validation): ValueError
+Free trial plan not found: no trial activated for user 48dc0393-889b-4356-82ec-18e8fc69290d.
+Cannot activate automatic trial for user 48dc0393-889b-4356-82ec-18e8fc69290d (validation): ValueError
+Overage purchase intent d31ddaa1-924b-4b05-9cb0-e89eef49202c (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 276459d1-c52e-4218-ad81-2840a3c5f060.
+FFFree trial plan not found: no trial activated for user 4535431b-1ad9-474d-bf04-d7320ac9a612.
+Cannot activate automatic trial for user 4535431b-1ad9-474d-bf04-d7320ac9a612 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request refused: PermissionDenied (403)
+.Free trial plan not found: no trial activated for user 7e7efc2f-d589-4823-9612-7ac3c25897fb.
+Cannot activate automatic trial for user 7e7efc2f-d589-4823-9612-7ac3c25897fb (validation): ValueError
+API request refused: PermissionDenied (403)
+.Free trial plan not found: no trial activated for user b0c3cab5-0538-4120-aa8f-7011c3078721.
+Cannot activate automatic trial for user b0c3cab5-0538-4120-aa8f-7011c3078721 (validation): ValueError
+API request refused: PermissionDenied (403)
+.Free trial plan not found: no trial activated for user bf9e8180-d950-4607-8c80-b57305add703.
+Cannot activate automatic trial for user bf9e8180-d950-4607-8c80-b57305add703 (validation): ValueError
+.Free trial plan not found: no trial activated for user d9659afa-adaf-40d8-b1a0-e879c89e7c4a.
+Cannot activate automatic trial for user d9659afa-adaf-40d8-b1a0-e879c89e7c4a (validation): ValueError
+.Free trial plan not found: no trial activated for user 3cf7971e-46ab-476e-acea-157dcf456e48.
+Cannot activate automatic trial for user 3cf7971e-46ab-476e-acea-157dcf456e48 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7fbeca31-3e2f-4a77-8a79-c3f7a0c192a6.
+Cannot activate automatic trial for user 7fbeca31-3e2f-4a77-8a79-c3f7a0c192a6 (validation): ValueError
+.Free trial plan not found: no trial activated for user e9c92601-267c-4f13-9a3d-c7716178179d.
+Cannot activate automatic trial for user e9c92601-267c-4f13-9a3d-c7716178179d (validation): ValueError
+BillingTransactionService.record called with no stripe_invoice_id, stripe_payment_intent_id, or license_billing_record (type=LICENSE_OVERAGE_PURCHASE) — creating an un-deduplicated row.
+.Free trial plan not found: no trial activated for user 2cd8232c-9b4b-4afd-8be5-9ad5cd34ff15.
+Cannot activate automatic trial for user 2cd8232c-9b4b-4afd-8be5-9ad5cd34ff15 (validation): ValueError
+.Free trial plan not found: no trial activated for user f3963f91-4c8f-4ef7-890c-dd46ce6cde84.
+Cannot activate automatic trial for user f3963f91-4c8f-4ef7-890c-dd46ce6cde84 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3e8c0a82-07e1-49a0-af5a-e0c979c55cbb.
+Cannot activate automatic trial for user 3e8c0a82-07e1-49a0-af5a-e0c979c55cbb (validation): ValueError
+.Free trial plan not found: no trial activated for user b13dfd3f-04fb-4d54-af28-b7a2a33b47b8.
+Cannot activate automatic trial for user b13dfd3f-04fb-4d54-af28-b7a2a33b47b8 (validation): ValueError
+.Free trial plan not found: no trial activated for user dd82a332-a94f-434f-ae4d-b9e73622ff58.
+Cannot activate automatic trial for user dd82a332-a94f-434f-ae4d-b9e73622ff58 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7567ce72-81fe-4656-8c44-c648903a92ad.
+Cannot activate automatic trial for user 7567ce72-81fe-4656-8c44-c648903a92ad (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 947b84c5-f9fa-4dec-a8d3-3909c834ff1d.
+Cannot activate automatic trial for user 947b84c5-f9fa-4dec-a8d3-3909c834ff1d (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user d703e7b2-7800-48b3-b0fb-829f05a4be78.
+Cannot activate automatic trial for user d703e7b2-7800-48b3-b0fb-829f05a4be78 (validation): ValueError
+Refund of payment pi_ref_1 carries retain_credits: 1000 cents returned and 500 credit(s) deliberately LEFT with the customer.
+.Free trial plan not found: no trial activated for user 93a1ed6e-ac5d-42fc-a7e9-14066bc68467.
+Cannot activate automatic trial for user 93a1ed6e-ac5d-42fc-a7e9-14066bc68467 (validation): ValueError
+Refund of payment pi_ref_1 carries retain_credits: 1000 cents returned and 500 credit(s) deliberately LEFT with the customer.
+.Free trial plan not found: no trial activated for user 345e8a2e-41d0-465e-aebd-a99edf83361b.
+Cannot activate automatic trial for user 345e8a2e-41d0-465e-aebd-a99edf83361b (validation): ValueError
+Refund of payment pi_ref_1 carries retain_credits: 1000 cents returned and 500 credit(s) deliberately LEFT with the customer.
+.Free trial plan not found: no trial activated for user ed8cca6a-db12-4339-9eec-91fee018226f.
+Cannot activate automatic trial for user ed8cca6a-db12-4339-9eec-91fee018226f (validation): ValueError
+Refund of payment pi_ref_1 carries retain_credits: 1000 cents returned and 500 credit(s) deliberately LEFT with the customer.
+.Free trial plan not found: no trial activated for user 41b32e0b-6124-40da-aa8d-08e9a599f7e9.
+Cannot activate automatic trial for user 41b32e0b-6124-40da-aa8d-08e9a599f7e9 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 00f7e9f6-7c75-4450-8f5d-026cd3a5fcf5.
+Cannot activate automatic trial for user 00f7e9f6-7c75-4450-8f5d-026cd3a5fcf5 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 77859819-0d4e-43cb-81c9-62fe936de71b.
+Cannot activate automatic trial for user 77859819-0d4e-43cb-81c9-62fe936de71b (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 58f52e12-e210-45f8-aa82-b6fc5fd99108.
+Cannot activate automatic trial for user 58f52e12-e210-45f8-aa82-b6fc5fd99108 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user e636d0f9-43be-4b2c-ad17-ff437df72b3d.
+Cannot activate automatic trial for user e636d0f9-43be-4b2c-ad17-ff437df72b3d (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 45f79b35-d39a-4421-b47a-512d25252a6a.
+Cannot activate automatic trial for user 45f79b35-d39a-4421-b47a-512d25252a6a (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 12313564-e41c-4210-8223-5065b3eef77f.
+Cannot activate automatic trial for user 12313564-e41c-4210-8223-5065b3eef77f (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 2d9d0ba6-22b2-4233-812b-87dac6a9d980.
+Cannot activate automatic trial for user 2d9d0ba6-22b2-4233-812b-87dac6a9d980 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user aa464309-0df7-4e28-a362-5ac7c0b6618c.
+Cannot activate automatic trial for user aa464309-0df7-4e28-a362-5ac7c0b6618c (validation): ValueError
+Refund of payment pi_ref_1 (500/1000 cents): reclaimed 250 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 4fa96160-060d-4c77-a647-ad8e0cd961f1.
+Cannot activate automatic trial for user 4fa96160-060d-4c77-a647-ad8e0cd961f1 (validation): ValueError
+Refund of payment pi_ref_1: 250 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet 3c2399fc-e3f2-46b7-a789-5ac14b7fc73e until settled.
+Refund of payment pi_ref_1 (500/1000 cents): reclaimed 0 credit(s), 250 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 98d2a9e4-6223-4d8e-99aa-368340a8955d.
+Cannot activate automatic trial for user 98d2a9e4-6223-4d8e-99aa-368340a8955d (validation): ValueError
+Refund of payment pi_ref_1 (500/1000 cents): reclaimed 250 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 524588d3-f6bf-42f9-987b-56b9109c5f89.
+Cannot activate automatic trial for user 524588d3-f6bf-42f9-987b-56b9109c5f89 (validation): ValueError
+Refund of payment pi_ref_1 (333/1000 cents): reclaimed 166 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user f23ea1c9-b396-4624-8da3-8f4d0158421a.
+Cannot activate automatic trial for user f23ea1c9-b396-4624-8da3-8f4d0158421a (validation): ValueError
+Refund of payment pi_ref_1 (500/1000 cents): reclaimed 250 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user c3cdc50e-29a9-4101-82d9-9332c4142feb.
+Cannot activate automatic trial for user c3cdc50e-29a9-4101-82d9-9332c4142feb (validation): ValueError
+Refund of payment pi_ref_1: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet e98be8e0-b8c4-4b3a-9ced-5dfdd6214ada until settled.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 0 credit(s), 500 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 24edfe7c-b4ca-4d5d-b6bb-00fe18b76abf.
+Cannot activate automatic trial for user 24edfe7c-b4ca-4d5d-b6bb-00fe18b76abf (validation): ValueError
+Refund of payment pi_ref_1: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet 6206253c-75e7-480c-9157-4cb184fc639b until settled.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 0 credit(s), 500 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user b9bcd19d-c990-4ff5-a72d-00b41d78d68a.
+Cannot activate automatic trial for user b9bcd19d-c990-4ff5-a72d-00b41d78d68a (validation): ValueError
+Refund of payment pi_ref_1: 300 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet a49b8c8a-3d0c-4229-b50c-05c4758ba76e until settled.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 200 credit(s), 300 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 201a3877-90af-4502-8e83-1bf4f9f6a915.
+Cannot activate automatic trial for user 201a3877-90af-4502-8e83-1bf4f9f6a915 (validation): ValueError
+Refund of payment pi_ref_1: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet bfbb1594-4ace-4daf-84e1-4d1b0b79ce9d until settled.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 0 credit(s), 500 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 87bdd180-da73-46e8-a8b2-b70494432bfc.
+Cannot activate automatic trial for user 87bdd180-da73-46e8-a8b2-b70494432bfc (validation): ValueError
+Refund of payment pi_ref_1: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet de46ad9c-ce34-44ab-8e95-16871845f913 until settled.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 0 credit(s), 500 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user c6f5966e-4aa2-42cd-a1e6-ad57e2688a03.
+Cannot activate automatic trial for user c6f5966e-4aa2-42cd-a1e6-ad57e2688a03 (validation): ValueError
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 500, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user 269fbdae-cc33-4393-9354-e78284a8df8e.
+Cannot activate automatic trial for user 269fbdae-cc33-4393-9354-e78284a8df8e (validation): ValueError
+Refund of payment pi_both (500/1000 cents): reclaimed 250 credit(s), 0 could not be reclaimed and are now a debt.
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 250, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user 9d27d540-b822-4636-8893-2120531f06ed.
+Cannot activate automatic trial for user 9d27d540-b822-4636-8893-2120531f06ed (validation): ValueError
+Refund of payment pi_both (500/1000 cents): reclaimed 250 credit(s), 0 could not be reclaimed and are now a debt.
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 250, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user a58d1344-c735-4a78-82ba-b9079e3cdfe6.
+Cannot activate automatic trial for user a58d1344-c735-4a78-82ba-b9079e3cdfe6 (validation): ValueError
+Refund of payment pi_both: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet 7fe45af9-9f97-49dc-a24e-4473d9b62442 until settled.
+Refund of payment pi_both (1000/1000 cents): reclaimed 0 credit(s), 500 could not be reclaimed and are now a debt.
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 0, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user 7ebced31-d795-40c5-b5f2-b3df959ae281.
+Cannot activate automatic trial for user 7ebced31-d795-40c5-b5f2-b3df959ae281 (validation): ValueError
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 500, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user bf2d42ec-bb35-4f31-8698-33bf9ccd92a0.
+Cannot activate automatic trial for user bf2d42ec-bb35-4f31-8698-33bf9ccd92a0 (validation): ValueError
+Refund of payment pi_both (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 0, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user a98ad811-27e6-4b01-9960-29bd1c2aab7f.
+Cannot activate automatic trial for user a98ad811-27e6-4b01-9960-29bd1c2aab7f (validation): ValueError
+Refund of payment pi_both: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet faffcc91-1794-435c-8e3e-a9c8a347bdc9 until settled.
+Refund of payment pi_both (1000/1000 cents): reclaimed 0 credit(s), 500 could not be reclaimed and are now a debt.
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 0, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user 23c934c1-a313-40b5-9081-ec2fc2336a1b.
+Cannot activate automatic trial for user 23c934c1-a313-40b5-9081-ec2fc2336a1b (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 4d83eb30-e252-44b6-a532-9078f5308cce.
+Cannot activate automatic trial for user 4d83eb30-e252-44b6-a532-9078f5308cce (validation): ValueError
+Refund of payment pi_ref_1: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet 99d20e5c-a2c6-4724-9f76-8f6848eb38ac until settled.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 0 credit(s), 500 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 4fa8e4b9-2ec5-4016-b0b9-3af74ad051ca.
+Cannot activate automatic trial for user 4fa8e4b9-2ec5-4016-b0b9-3af74ad051ca (validation): ValueError
+Refund of payment pi_ref_1 (500/1000 cents): reclaimed 250 credit(s), 0 could not be reclaimed and are now a debt.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 250 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user e08d99c2-9cbd-4f90-8989-adf381be9311.
+Cannot activate automatic trial for user e08d99c2-9cbd-4f90-8989-adf381be9311 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 1a4e282a-f7fb-4f87-889d-f2a343bc935b.
+Cannot activate automatic trial for user 1a4e282a-f7fb-4f87-889d-f2a343bc935b (validation): ValueError
+Refund of payment pi_ref_1 (10000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 2bf262dc-0505-4dc3-8b18-c5e98a224139.
+Cannot activate automatic trial for user 2bf262dc-0505-4dc3-8b18-c5e98a224139 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 3a4fc712-4867-419f-b54b-48ed42f09e47.
+Cannot activate automatic trial for user 3a4fc712-4867-419f-b54b-48ed42f09e47 (validation): ValueError
+Refund of payment pi_ref_1 (200/1000 cents): reclaimed 100 credit(s), 0 could not be reclaimed and are now a debt.
+Refund of payment pi_ref_1 (400/1000 cents): reclaimed 100 credit(s), 0 could not be reclaimed and are now a debt.
+Refund of payment pi_ref_1 (600/1000 cents): reclaimed 100 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 2b73bad3-8cfb-456b-a9b6-f7bf023d3310.
+Cannot activate automatic trial for user 2b73bad3-8cfb-456b-a9b6-f7bf023d3310 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 5b9e22e9-a47e-46ee-893a-68e5c0e228a8.
+Cannot activate automatic trial for user 5b9e22e9-a47e-46ee-893a-68e5c0e228a8 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 550729e0-1259-4bc4-ba2d-3a699479eaf7.
+Cannot activate automatic trial for user 550729e0-1259-4bc4-ba2d-3a699479eaf7 (validation): ValueError
+Free trial plan not found: no trial activated for user 61dac2ed-c1e2-466c-8f4e-f435051d7bd9.
+Cannot activate automatic trial for user 61dac2ed-c1e2-466c-8f4e-f435051d7bd9 (validation): ValueError
+Refund of payment pi_mine (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user a76ba70b-5b9b-45b8-8f90-7e33e8fbe434.
+Cannot activate automatic trial for user a76ba70b-5b9b-45b8-8f90-7e33e8fbe434 (validation): ValueError
+Free trial plan not found: no trial activated for user b1d4a999-8d71-4aa0-9314-e7aef6db4075.
+Cannot activate automatic trial for user b1d4a999-8d71-4aa0-9314-e7aef6db4075 (validation): ValueError
+.Free trial plan not found: no trial activated for user 02ea49c2-d629-4bf2-88a7-532f1968712b.
+Cannot activate automatic trial for user 02ea49c2-d629-4bf2-88a7-532f1968712b (validation): ValueError
+Free trial plan not found: no trial activated for user f57cc050-28dc-4738-befa-8998c4de91b2.
+Cannot activate automatic trial for user f57cc050-28dc-4738-befa-8998c4de91b2 (validation): ValueError
+Refund of payment pi_first (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 49d23f49-a1d5-47d1-9085-84bafffa0a0d.
+Cannot activate automatic trial for user 49d23f49-a1d5-47d1-9085-84bafffa0a0d (validation): ValueError
+Free trial plan not found: no trial activated for user 00f6a4b3-715b-49b3-a189-1676ddaa370e.
+Cannot activate automatic trial for user 00f6a4b3-715b-49b3-a189-1676ddaa370e (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=None) has no matching BillingTransaction — creating a standalone record for manual review.
+.Free trial plan not found: no trial activated for user 7df87e02-ba90-4d0e-ae1f-1e89711e2677.
+Cannot activate automatic trial for user 7df87e02-ba90-4d0e-ae1f-1e89711e2677 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3df2b485-7f9e-489b-9059-2b09a075c171.
+Cannot activate automatic trial for user 3df2b485-7f9e-489b-9059-2b09a075c171 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0d2c4276-88dd-46b4-988d-d3988e64c9cc.
+Cannot activate automatic trial for user 0d2c4276-88dd-46b4-988d-d3988e64c9cc (validation): ValueError
+.Free trial plan not found: no trial activated for user a7802d6b-368d-4ee5-a5de-d99faa9a30bb.
+Cannot activate automatic trial for user a7802d6b-368d-4ee5-a5de-d99faa9a30bb (validation): ValueError
+.Free trial plan not found: no trial activated for user a0c8ae70-45ed-4320-a368-5ea457fac108.
+Cannot activate automatic trial for user a0c8ae70-45ed-4320-a368-5ea457fac108 (validation): ValueError
+.Free trial plan not found: no trial activated for user b3f435f7-1e47-4236-aca0-72c19dd9acd8.
+Cannot activate automatic trial for user b3f435f7-1e47-4236-aca0-72c19dd9acd8 (validation): ValueError
+Free trial plan not found: no trial activated for user d6dc01ab-53e7-4aaf-89f2-d6b56dfcbfbf.
+Cannot activate automatic trial for user d6dc01ab-53e7-4aaf-89f2-d6b56dfcbfbf (validation): ValueError
+Free trial plan not found: no trial activated for user 1b705a9f-9873-4c09-9639-b126120b7be2.
+Cannot activate automatic trial for user 1b705a9f-9873-4c09-9639-b126120b7be2 (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_school) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_school: 250 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet 17e23ea9-a1c6-4df3-966c-7fc042953a06 until settled.
+Refund of payment pi_school (1000/2000 cents): reclaimed 250 credit(s), 250 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 53d00862-0887-4b04-acd3-5525a3450322.
+Cannot activate automatic trial for user 53d00862-0887-4b04-acd3-5525a3450322 (validation): ValueError
+Free trial plan not found: no trial activated for user be609b72-4c08-4c2d-876f-0df6b9cc1d32.
+Cannot activate automatic trial for user be609b72-4c08-4c2d-876f-0df6b9cc1d32 (validation): ValueError
+Free trial plan not found: no trial activated for user 17c76f1b-765a-4612-aedf-d849e098afc6.
+Cannot activate automatic trial for user 17c76f1b-765a-4612-aedf-d849e098afc6 (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_school) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_school (1000/2000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 88d52fdc-a35a-46fb-8c5b-7588ace76be1.
+Cannot activate automatic trial for user 88d52fdc-a35a-46fb-8c5b-7588ace76be1 (validation): ValueError
+Free trial plan not found: no trial activated for user e6a16772-20cb-4bac-98a8-6df4b7b087c8.
+Cannot activate automatic trial for user e6a16772-20cb-4bac-98a8-6df4b7b087c8 (validation): ValueError
+Free trial plan not found: no trial activated for user 87d6065d-9ee0-447c-8471-7c9a15f694de.
+Cannot activate automatic trial for user 87d6065d-9ee0-447c-8471-7c9a15f694de (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_school) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_school (2000/2000 cents): reclaimed 1000 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 5cd8f36b-1238-4e0b-9319-3d3f3d7ad79b.
+Cannot activate automatic trial for user 5cd8f36b-1238-4e0b-9319-3d3f3d7ad79b (validation): ValueError
+Free trial plan not found: no trial activated for user 0289ad77-2a1f-41b1-a869-dc348b22c6cd.
+Cannot activate automatic trial for user 0289ad77-2a1f-41b1-a869-dc348b22c6cd (validation): ValueError
+Free trial plan not found: no trial activated for user 29b8408c-d287-414e-a2cd-97f437aca6b4.
+Cannot activate automatic trial for user 29b8408c-d287-414e-a2cd-97f437aca6b4 (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_school) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_school (2000/2000 cents): reclaimed 1000 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 332e3ec4-a33c-4584-84a9-f6230fd7b46f.
+Cannot activate automatic trial for user 332e3ec4-a33c-4584-84a9-f6230fd7b46f (validation): ValueError
+Free trial plan not found: no trial activated for user e0a3cf7b-0bdc-4f55-bee5-8a85ae975a7b.
+Cannot activate automatic trial for user e0a3cf7b-0bdc-4f55-bee5-8a85ae975a7b (validation): ValueError
+Free trial plan not found: no trial activated for user cd12f99e-c9ee-455f-9d9a-f71680156a3b.
+Cannot activate automatic trial for user cd12f99e-c9ee-455f-9d9a-f71680156a3b (validation): ValueError
+DISPUTE WITH NO MATCHING PAYMENT: dp_1 (1000 usd) has no local BillingTransaction for payment_intent='pi_school_cb' charge='ch_dispute'. The money has already left the Stripe balance. This needs manual reconciliation.
+Dispute dp_1: 500 credit(s) bought by payment pi_school_cb had already been spent from wallet 8f7c60fd-8f91-4425-877b-44904feff8e8. Recorded as a deficit; consumption is now BLOCKED until settled.
+Dispute dp_1: 500 credit(s) bought by payment pi_school_cb had already been spent from wallet a9583261-57ef-47b3-b4b7-1b379a835685. Recorded as a deficit; consumption is now BLOCKED until settled.
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 0, unreclaimable deficit: 1000.
+.Free trial plan not found: no trial activated for user 3377f650-1e61-4645-9c68-f83df0ef64b0.
+Cannot activate automatic trial for user 3377f650-1e61-4645-9c68-f83df0ef64b0 (validation): ValueError
+Free trial plan not found: no trial activated for user 29dd43dd-711f-49f2-ac71-b231cdf5b1cd.
+Cannot activate automatic trial for user 29dd43dd-711f-49f2-ac71-b231cdf5b1cd (validation): ValueError
+Free trial plan not found: no trial activated for user 8ae01844-2fe0-4269-9e05-ab0d9c3bdce8.
+Cannot activate automatic trial for user 8ae01844-2fe0-4269-9e05-ab0d9c3bdce8 (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_uneven) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_uneven (1000/3000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 1c5d0251-a47f-4614-bf0d-e4c0330693ce.
+Cannot activate automatic trial for user 1c5d0251-a47f-4614-bf0d-e4c0330693ce (validation): ValueError
+Free trial plan not found: no trial activated for user 41bbe2c1-99c3-456e-9dcf-2319cb727a7f.
+Cannot activate automatic trial for user 41bbe2c1-99c3-456e-9dcf-2319cb727a7f (validation): ValueError
+Free trial plan not found: no trial activated for user f79f94ef-3b0f-4637-956a-064d1eeb18df.
+Cannot activate automatic trial for user f79f94ef-3b0f-4637-956a-064d1eeb18df (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_uneven) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_uneven (1000/3000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 5f276926-70fb-4c3f-a217-34c7e2f3f778.
+Cannot activate automatic trial for user 5f276926-70fb-4c3f-a217-34c7e2f3f778 (validation): ValueError
+Free trial plan not found: no trial activated for user 3878f0a2-2b77-4cd6-accb-1363ccf6bc37.
+Cannot activate automatic trial for user 3878f0a2-2b77-4cd6-accb-1363ccf6bc37 (validation): ValueError
+Free trial plan not found: no trial activated for user 2d763702-39db-4882-af01-1f90ecf333e5.
+Cannot activate automatic trial for user 2d763702-39db-4882-af01-1f90ecf333e5 (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_school) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_school: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet c43f9cf3-e3ed-41ff-8339-ef6d2d0fc8fc until settled.
+Refund of payment pi_school (2000/2000 cents): reclaimed 500 credit(s), 500 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 6f131b9e-7be1-4fe5-ac13-e72b00646e82.
+Cannot activate automatic trial for user 6f131b9e-7be1-4fe5-ac13-e72b00646e82 (validation): ValueError
+Free trial plan not found: no trial activated for user 6e17df08-e267-4a8d-af81-036e61749483.
+Cannot activate automatic trial for user 6e17df08-e267-4a8d-af81-036e61749483 (validation): ValueError
+Free trial plan not found: no trial activated for user 083565c6-6543-4805-a38b-e618f45a30c4.
+Cannot activate automatic trial for user 083565c6-6543-4805-a38b-e618f45a30c4 (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_school) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_school: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet 60755156-5722-449e-bfbd-134008e9c809 until settled.
+Refund of payment pi_school (2000/2000 cents): reclaimed 500 credit(s), 500 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user be47ee55-c5e5-4e63-8f9b-ff6a0cbb3204.
+Cannot activate automatic trial for user be47ee55-c5e5-4e63-8f9b-ff6a0cbb3204 (validation): ValueError
+.Free trial plan not found: no trial activated for user 86a9f7ac-fb10-4cf1-8e7c-ef7cea8e1e67.
+Cannot activate automatic trial for user 86a9f7ac-fb10-4cf1-8e7c-ef7cea8e1e67 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5b33fcc0-d166-4636-9e26-193e314a4368.
+Cannot activate automatic trial for user 5b33fcc0-d166-4636-9e26-193e314a4368 (validation): ValueError
+.Free trial plan not found: no trial activated for user 97fa6fea-01cf-4467-8429-ae1c70e07b72.
+Cannot activate automatic trial for user 97fa6fea-01cf-4467-8429-ae1c70e07b72 (validation): ValueError
+.Free trial plan not found: no trial activated for user 12a1a0b7-8c50-4826-8ef0-295df7f995e7.
+Cannot activate automatic trial for user 12a1a0b7-8c50-4826-8ef0-295df7f995e7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 50ae3e4a-a61e-408b-81e3-a53e22a3b6c9.
+Cannot activate automatic trial for user 50ae3e4a-a61e-408b-81e3-a53e22a3b6c9 (validation): ValueError
+.Free trial plan not found: no trial activated for user ec08b80b-a07c-4483-9da7-799b8ecb7e44.
+Cannot activate automatic trial for user ec08b80b-a07c-4483-9da7-799b8ecb7e44 (validation): ValueError
+.Free trial plan not found: no trial activated for user 982b8a1c-ec9e-44ad-a352-6df8dbbddc77.
+Cannot activate automatic trial for user 982b8a1c-ec9e-44ad-a352-6df8dbbddc77 (validation): ValueError
+.Free trial plan not found: no trial activated for user e610e24a-4c70-45fe-a4e3-862050ee2e05.
+Cannot activate automatic trial for user e610e24a-4c70-45fe-a4e3-862050ee2e05 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3419f867-a0f4-425a-b629-a5e407844f63.
+Cannot activate automatic trial for user 3419f867-a0f4-425a-b629-a5e407844f63 (validation): ValueError
+.Free trial plan not found: no trial activated for user d8480c08-861b-4ac4-8e8a-e22aae87940a.
+Cannot activate automatic trial for user d8480c08-861b-4ac4-8e8a-e22aae87940a (validation): ValueError
+.Free trial plan not found: no trial activated for user acd714a5-b384-4b7c-954f-8100cbf6ec5a.
+Cannot activate automatic trial for user acd714a5-b384-4b7c-954f-8100cbf6ec5a (validation): ValueError
+.charge.refunded for charge ch_orphan3 (invoice=None, payment_intent=None) has no matching BillingTransaction — creating a standalone record for manual review.
+.charge.refunded for charge ch_orphan (invoice=in_never_seen, payment_intent=None) has no matching BillingTransaction — creating a standalone record for manual review.
+.charge.refunded for charge ch_orphan2 (invoice=None, payment_intent=None) has no matching BillingTransaction — creating a standalone record for manual review.
+...
+
+django.request ERROR 2026-11-08 15:03:28,198 log 147131 133580291299200 [request_id=5e047fd4-178a-436b-9243-7032cdea78de client_request_id=-] Internal Server Error: /admin/login/
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 172, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 116, in render
+    url = self.url(context)
+          ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 113, in url
+    return self.handle_simple(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 129, in handle_simple
+    return staticfiles_storage.url(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 204, in url
+    return self._url(self.stored_name, name, force)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 183, in _url
+    hashed_name = hashed_name_func(*args)
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 518, in stored_name
+    raise ValueError(
+ValueError: Missing staticfiles manifest entry for 'admin/css/base.css'
+..Free trial plan not found: no trial activated for user a83ee375-23cd-4aa7-b7e4-4752909d9556.
+Cannot activate automatic trial for user a83ee375-23cd-4aa7-b7e4-4752909d9556 (validation): ValueError
+Offline overage request 47e09155-52e8-4f28-89e1-4873b3aec3d0 auto-rejected on approval attempt: license f7c198b1-6494-451c-b3d0-594413ee2bec is no longer active.
+.Free trial plan not found: no trial activated for user d58aeb2a-73a2-4358-a38e-63273113b2eb.
+Cannot activate automatic trial for user d58aeb2a-73a2-4358-a38e-63273113b2eb (validation): ValueError
+.Free trial plan not found: no trial activated for user fc29a49e-8aa3-4d7d-8e29-aa3362387e2c.
+Cannot activate automatic trial for user fc29a49e-8aa3-4d7d-8e29-aa3362387e2c (validation): ValueError
+Offline overage request 4f68e767-401f-4382-9e70-b94eccc3ed5c approved but EVERY allocated teacher was no longer active — 0/1 granted. Needs manual follow-up. License 7849e89d-c762-447d-b0ea-6ace416baa40.
+.Free trial plan not found: no trial activated for user f433b4c9-8527-423c-90db-6bad4719311a.
+Cannot activate automatic trial for user f433b4c9-8527-423c-90db-6bad4719311a (validation): ValueError
+.Free trial plan not found: no trial activated for user 9e54cbde-a36f-4f69-90e1-12f6ac845aed.
+Cannot activate automatic trial for user 9e54cbde-a36f-4f69-90e1-12f6ac845aed (validation): ValueError
+.Free trial plan not found: no trial activated for user 7328bbdf-4258-4cb6-8586-d9a499724cb6.
+Cannot activate automatic trial for user 7328bbdf-4258-4cb6-8586-d9a499724cb6 (validation): ValueError
+.Free trial plan not found: no trial activated for user 615a63ab-7b3a-41e8-9fda-e3c460be2870.
+Cannot activate automatic trial for user 615a63ab-7b3a-41e8-9fda-e3c460be2870 (validation): ValueError
+.Free trial plan not found: no trial activated for user 92e3c237-14e6-4ffb-855d-8cb367815baa.
+Cannot activate automatic trial for user 92e3c237-14e6-4ffb-855d-8cb367815baa (validation): ValueError
+.Free trial plan not found: no trial activated for user 753e3a11-bba7-41bf-8245-faeda40a69f6.
+Cannot activate automatic trial for user 753e3a11-bba7-41bf-8245-faeda40a69f6 (validation): ValueError
+.Free trial plan not found: no trial activated for user cbb8c92d-8869-4116-9733-d75b980f8415.
+Cannot activate automatic trial for user cbb8c92d-8869-4116-9733-d75b980f8415 (validation): ValueError
+.Free trial plan not found: no trial activated for user 50b434f9-7cf4-4304-8e3e-53e7ef9e235e.
+Cannot activate automatic trial for user 50b434f9-7cf4-4304-8e3e-53e7ef9e235e (validation): ValueError
+.Free trial plan not found: no trial activated for user 54d4313a-604c-4f40-a9a7-ef15eee7b394.
+Cannot activate automatic trial for user 54d4313a-604c-4f40-a9a7-ef15eee7b394 (validation): ValueError
+.Free trial plan not found: no trial activated for user ae5d7747-9a6b-4cc7-88de-70fcafe7000d.
+Cannot activate automatic trial for user ae5d7747-9a6b-4cc7-88de-70fcafe7000d (validation): ValueError
+.Free trial plan not found: no trial activated for user cd4abb31-223f-41ac-819f-2ee60f6945c2.
+Cannot activate automatic trial for user cd4abb31-223f-41ac-819f-2ee60f6945c2 (validation): ValueError
+Refund of payment pi_race (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+CHARGEBACK LOST: dispute dp_3. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 0, unreclaimable deficit: 0.
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 0, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user 3b02321b-441e-4852-8a82-20d1a5bf1aaf.
+Cannot activate automatic trial for user 3b02321b-441e-4852-8a82-20d1a5bf1aaf (validation): ValueError
+Refund of payment pi_ref_1: 300 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet 7a2ab6d0-a415-49b4-9419-1661be1ac10d until settled.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 200 credit(s), 300 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 73683542-38b8-4b80-9f30-9f26d7fc457f.
+Cannot activate automatic trial for user 73683542-38b8-4b80-9f30-9f26d7fc457f (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 2fa125f6-f886-4b6b-951d-ce9328e14aab.
+Cannot activate automatic trial for user 2fa125f6-f886-4b6b-951d-ce9328e14aab (validation): ValueError
+Free trial plan not found: no trial activated for user 7a819f9a-07fa-4138-a2c6-6e4177b8535f.
+Cannot activate automatic trial for user 7a819f9a-07fa-4138-a2c6-6e4177b8535f (validation): ValueError
+Free trial plan not found: no trial activated for user fd14fc71-8afd-42cc-a998-f871bcc23b29.
+Cannot activate automatic trial for user fd14fc71-8afd-42cc-a998-f871bcc23b29 (validation): ValueError
+Free trial plan not found: no trial activated for user 63e62c32-f71c-4b2a-b5b7-13bd8408cfa7.
+Cannot activate automatic trial for user 63e62c32-f71c-4b2a-b5b7-13bd8408cfa7 (validation): ValueError
+............
+
+ai_processor.call_record WARNING 2026-11-08 15:03:34,861 call_record 147131 133580291299200 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 15:03:34,862 call_record 147131 133580291299200 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 15:03:34,863 call_record 147131 133580291299200 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 15:03:34,864 call_record 147131 133580291299200 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 15:03:34,864 call_record 147131 133580291299200 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+........................................................
+======================================================================
+FAIL: test_dr11_the_admin_is_emailed_the_pending_card_text (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr11_the_admin_is_emailed_the_pending_card_text)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 442, in test_dr11_the_admin_is_emailed_the_pending_card_text
+    self.assertTrue(mine[0]["message"].startswith("PENDING OWNER TEXT"))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_dr12_the_purchase_note_and_history_suffix_are_pending (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr12_the_purchase_note_and_history_suffix_are_pending)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 452, in test_dr12_the_purchase_note_and_history_suffix_are_pending
+    self.assertTrue(
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_dr13_switch_on_records_the_share_owed_and_tells_the_admin (billing.tests.test_departed_teacher_refund.OfflinePathTests.test_dr13_switch_on_records_the_share_owed_and_tells_the_admin)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 562, in test_dr13_switch_on_records_the_share_owed_and_tells_the_admin
+    self.assertTrue(record.notes.startswith("PENDING OWNER TEXT"))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_dr2_switch_off_keeps_todays_offline_behavior (billing.tests.test_departed_teacher_refund.OfflinePathTests.test_dr2_switch_off_keeps_todays_offline_behavior)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 544, in test_dr2_switch_off_keeps_todays_offline_behavior
+    self.assertFalse(self.refund_due().exists())
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_dr1_switch_off_keeps_todays_card_behavior_and_texts (billing.tests.test_departed_teacher_refund.SwitchOffTests.test_dr1_switch_off_keeps_todays_card_behavior_and_texts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 218, in test_dr1_switch_off_keeps_todays_card_behavior_and_texts
+    self.assertTrue((self.intent.failure_reason or "").endswith(TODAY_REVIEW))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_dr3_the_switch_is_off_and_every_text_is_pending (billing.tests.test_departed_teacher_refund.SwitchTests.test_dr3_the_switch_is_off_and_every_text_is_pending)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 230, in test_dr3_the_switch_is_off_and_every_text_is_pending
+    self.assertIs(drs().DEPARTED_SHARE_REFUND_APPROVED, False)
+AssertionError: True is not False
+
+----------------------------------------------------------------------
+Ran 193 tests in 26.344s
+
+FAILED (failures=6)
+Destroying test database for alias 'default'...
+Found 193 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

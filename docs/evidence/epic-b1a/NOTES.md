@@ -1934,3 +1934,14 @@ The approved file's W-2 values begin with a space (" (…)"). The key holds them
 4. **Near run:** under `flock ~/.machine-fullsuite.lock` with h284_deps_env, `--parallel 4`: `billing audit` + `AutoGrader.tests_migration_rollback_defaults` + G-1/static. Expected OK; the count is recorded at the run.
 
 Any mismatch is a STOP, reported to the SM.
+
+### 19d. Results (2026-11-08)
+
+Every run matched its declared expectation. Logs are in `docs/evidence/epic-b1a/step19/`.
+
+1. **Break run** (tests as at c89e8c93, new code): `FAILED (failures=6)` on DR-1, DR-2, DR-3, DR-11, DR-12 and DR-13, each at its declared line; everything else passed. Matched (`step19_break_run.log`).
+2. **Green:** Ran 193, OK, both on the working tree (`step19_green_WIP.log`) and on e879bbf2 (`step19_green_e879bbf2.log`). `makemigrations --check` is clean. A script compared `DEPARTED_SHARE_REFUND_TEXTS` with the approved file (with rulings G-1 b and G-2 a): verbatim.
+3. **Plant AP-1** (switch back to `False`): `FAILED (failures=1)`, DR-3 only, `False is not True`. Matched. `billing/departed_share_refund.py` was restored by sha256 (10f409b2…), OK (`step19_plant_AP-1.log`).
+4. **Near run** (HEAD e879bbf2, under `flock`, h284_deps_env, `--parallel 4`): `billing audit AutoGrader.tests_migration_rollback_defaults` + G-1/static gave **Ran 3095, OK (skipped=2)**. Matched: OK was declared and the count is recorded here (`step19_near_e879bbf2.log.gz`).
+
+**Next (plan):** step 8, the FR-B-08 forced-failure proofs F-1..F-3, with expectations first. Then step 9, the gate.
