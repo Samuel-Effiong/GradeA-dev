@@ -2470,6 +2470,7 @@ The method follows plan §9 item 13:
 - **B2 (26):** make the tests `on_commit`-aware (`captureOnCommitCallbacks(execute=True)`, or `TransactionTestCase`), so the deferred door launch runs.
 - **B3 (12):** move the tests to the hold ledger shape: a failed call has no usage row, a unit charges once at settle, and there is no refund row.
 - **B4 (1):** `test_r8` reaches the provider with a mocked estimate of 0. Give it a flag-on refusal that is reachable, or mark it flag-off.
+- **FB-1 (MUST-FIX; added 2026-11-08 per SM R4, see §21v-3):** deleting a HELD BackgroundProcessingTask row in a partly settled UPLOAD job leaves its credits in `wallet.reserved_credits` forever. The proposed fix is a BPT `pre_delete` that returns the hold.
 
 ### 21n. Design note: AIJob.wallet PROTECT stops teacher deletion (A). For SM review before any code (2026-11-08)
 
@@ -2951,3 +2952,15 @@ It runs at the commit that adds this section, with no `BILLING_HOLDS_ENABLED` in
   - B1a's diff of the map, against the merge's second parent, only adds the AIJob entry; the AICallRecord line appears in it as unchanged context.
   - §21r's near passed because the map arrived only with this merge. §21u did not predict it either.
 - **Not edited:** both files are pre-existing, and the guard and the map belong to other lanes. The fix is the SM's ruling.
+
+**SM ruling on the baaf778d2 STOP (2026-11-08):**
+- The diagnosis is accepted, and the result stands as recorded.
+- The fix is option (a), `students/student_data_map.py` added to the guard's ALLOWED set. Lane 2 makes it **on staging**, because the break and the lane are staging's.
+- R1–R3 are accepted on the reports. The SM reads the diffs at the final review.
+- The FB-1 pointer is now in the §21m flag-on-day list.
+- **New standing rule:** every near run includes all 22 source-scanning guards the SM listed. Each label was checked to exist in this tree.
+- Next, after the SM confirms the guard fix is on staging:
+  - merge staging again (`--no-ff`);
+  - run `makemigrations --check`;
+  - re-derive and commit the §21w near prediction with every guard, counted with `build_suite`;
+  - run it, then check in with the SM.
