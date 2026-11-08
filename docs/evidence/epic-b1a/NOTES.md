@@ -1768,3 +1768,7 @@ DR-4 also asserts the task was enqueued with `(str(intent.id), 299)`. No other e
    - DR-15 stays.
 
 Red is otherwise as declared: DR-1 and DR-2 PASS, DR-3..DR-15 ERROR (13), every other test passes, with `tests_migration_rollback_defaults` passing on red too. The targeted-set count is recorded at the run.
+
+### 18 addendum 3, amended before any run: test-level counts
+
+DR-5 (after-commit; a rolled-back webhook), DR-7 (the cap; nothing left to refund) and DR-9 (a connection error retried; a refused refund reported) are each two tests. So the new file has **18 tests**. The red declaration "DR-3..DR-15 ERROR (13)" counted IDs. At test level, red is **DR-1 and DR-2 PASS, 16 ERROR** (ModuleNotFoundError or AttributeError for the missing module or task, and DR-15 a missing 0078). Nothing else changes.
