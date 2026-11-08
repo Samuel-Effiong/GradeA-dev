@@ -817,3 +817,33 @@ Run 19 result (`19_green_head_anonymous.log`): Ran 117, OK. **As predicted.**
   - `audit/tests_metadata.py:151`, a conditional guard.
 - No migration was added, so `AutoGrader.tests_migration_rollback_defaults`
   isn't needed (makemigrations --check: no changes).
+
+Run 20 result (`20_gate_step2.log`): Ran 2445, **FAILED (failures=4,
+skipped=7). The prediction (OK) was wrong**, and it is left as written.
+The 7 skips are all opt-in: AUDIT_BENCH ×2, CI_REQUIRE_NETWORK ×3 (1 plus
+2 live Google tests), CI_REQUIRE_REDIS ×1 and RUN_REAL_AI ×1. Every
+failure is a source-scanning guard I didn't run before the gate:
+1. `students.tests_h279_regrade_pending_approval` ...
+   `test_the_names_are_read_nowhere_a_student_route_reads`.
+   `students/data_export.py` names `pending_result` and `pending_graded_at`,
+   but only as keys of `EXPORT_OMITTED`, to leave them out. It is not on
+   the guard's allowed list.
+2. `students.tests_reading_label_static` ...
+   `test_only_the_listed_files_name_a_reading_column`. The same cause, for
+   the six `answers_*` reading columns, which are in `EXPORT_OMITTED`.
+3. `audit.tests_h273_query_filters` ...
+   `test_every_target_type_the_code_writes_has_a_label`. The SM ruled the
+   target type `"Student"`, which has no entry in `audit/serializers.py`
+   `_TARGET_LABEL`. A label there is user-facing wording.
+4. `users.tests_roads_that_sign_in_or_activate` ...
+   `test_every_site_is_on_the_named_list_with_its_count`:
+   `('tags/_c1_fixtures.py', 'PASSWORD_KEYWORD'): found 1, pinned 0`.
+   **This predates this branch.** The same test fails on the C1 branch at
+   703310b47, which is staging now, re-run in the C1 worktree. It was
+   introduced by C1 (my lane), and my C1 near runs didn't include `users`.
+
+The fixes are proposed to the SM, and none is applied before the ruling.
+
+The log is too large for the repo's large-file hook, so the gate log lives
+outside the repo, as C1's near-run logs do:
+`~/Documents/Projects/GAP-a0-runs/nfr-cmp-04/20_gate_step2.log`.
