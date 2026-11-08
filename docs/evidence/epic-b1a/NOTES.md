@@ -1964,6 +1964,7 @@ SM rulings on the survey (2026-11-08): M-1 yes, M-2 (b), M-3 notes only, M-4 yes
 - **"The intent or offline request is unchanged"** does not fit path 2, which has neither. Its record is the `MANUAL_OVERAGE_GRANT` LicenseBillingRecord, written *before* the grants (`:3214`). F-2 asserts that it does not survive (M-1).
 - **The BillingTransaction clause.** In all three paths the BillingTransaction is written *after* the grants (`stripe_service.py:3560`, `license_service.py:3244`, `:3640`). A failure on the second teacher's ledger row happens before it exists. **So in F-1..F-3 "no BillingTransaction survives" proves nothing on its own.** The pairing is proven by F-1b..F-3b (M-2 b).
 - **For the Feature Lead (plan §9 item 2):** FR-B-08 and NFR-CRD-05 say "dispersal debits the admin and credits the teacher". There is no admin balance. The admin's side is the payment (Stripe or offline) plus the LicenseBillingRecord and BillingTransaction written in the same transaction as the teachers' grants. FR-B-08 is met by allocate-at-purchase; F-1..F-3b below prove its atomicity.
+- **For the Feature Lead, a note for B1's R-tests (SM, 2026-11-08):** on paths 1 and 3 the grant order is set by jsonb key order, because `allocations` is read back from a JSONField and jsonb sorts its keys by length and then by bytes, and teacher ids are UUIDs. So concurrent grants lock teachers' wallets in an order the code does not control. That may matter for deadlock ordering. Only a note; nothing is changed for it.
 
 ### 20b. The tests: `billing/tests/test_overage_grant_atomicity.py` (new, 7 tests)
 
@@ -2025,3 +2026,19 @@ It runs on the local PG (18.6). It is **not** quoted as the PG16 CI job.
 4. **Near run:** under `flock ~/.machine-fullsuite.lock`, `--parallel 4`: `billing audit AutoGrader.tests_migration_rollback_defaults` plus G-1/static. Expected **Ran 3102 = 3095 + 7, OK (skipped=2)**.
 
 Any mismatch is a STOP, reported to the SM.
+
+### 20d. Results, part 1 (2026-11-08)
+
+1. **Run 1** (new file alone, WIP): Ran 7, OK. Matched (`step20_run1_WIP.log`).
+2. **Run 2** (targeted set, d86e02fa): Ran 200, OK. Matched (`step20_targeted_d86e02fa.log`).
+3. **Run 3 (plants): did not match. Prediction incomplete (jsonb key order).** Each run was Ran 65.
+   - **PF-1:** `FAILED (failures=1, errors=3)`. The declared 3 errors happened: F-1, F-1b and F-1c, with `TransactionManagementError: select_for_update cannot be used outside of a transaction.`. There was also one undeclared FAIL, on **F-3**.
+   - **PF-2:** `FAILED (failures=1, errors=2)`. The declared F-2 and F-2b errors happened, with the same error. There was also one undeclared FAIL, on **F-3**.
+   - **PF-3:** `FAILED (failures=1, errors=2)`. The declared F-3 and F-3b errors happened, with the same error. There was also one undeclared FAIL, on **F-1**.
+   - **Every plant was restored by sha256:** stripe_service d2fa42ab…, license_service b350e0d1…, both OK.
+   - **The extra FAILs all fail at one line:** `{'first_bucket': False, 'ledger_calls': 2} != {'first_bucket': True, 'ledger_calls': 2}`.
+   - **Cause: a defect in the test's non-vacuity check, not an FR-B-08 finding.** The wrapper checked for *teacher A's* bucket at the second ledger call, which assumed the grants ran in the order a, b, c. But paths 1 and 3 iterate `allocations` read back from a JSONField. jsonb does not keep key order: it sorts keys by length and then by bytes. `CustomUser.id` is a UUID (`users/models.py:100`), so the first teacher granted is whichever UUID sorts lowest, and that changes from test to test. Path 2 iterates the in-memory dict, so it is stable.
+   - **What this means for runs 1 and 2:** they passed by luck.
+   - **The rollback assertions:** in the three failing tests they were not reached, because the inside-check comes first. Wherever they were reached, they passed.
+   - **What the survey missed:** the jsonb key order.
+   - **The SM ruled (2026-11-08):** fix the check in the tests only, so that it checks the bucket of the teacher from the first record call. Commit the fix separately. Then re-run from run 1: 5× Ran 7 OK, then the targeted Ran 200, then PF-1/2/3 at errors 3/2/2 with no failures, then the near run at Ran 3102 OK (skipped=2).
