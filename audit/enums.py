@@ -262,7 +262,6 @@ class ReasonCode(models.TextChoices):
     TAG_NAME_MISSING = "TAG_NAME_MISSING", "Tag name missing"
     TAG_NAME_TOO_LONG = "TAG_NAME_TOO_LONG", "Tag name too long"
     TOO_MANY_TAGS = "TOO_MANY_TAGS", "Too many tags"
-    TAG_NAME_HAS_SYMBOLS = "TAG_NAME_HAS_SYMBOLS", "Tag name has symbols"
 
 
 # The ten FR-A-06 conditions, as QA-ERR-02 lists them.

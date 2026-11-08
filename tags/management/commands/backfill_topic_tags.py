@@ -44,8 +44,6 @@ FORWARD_KEYS = (
     "skipped_no_course",
     "skipped_no_teacher",
     "skipped_bad_name",
-    # A name with symbols (TAG_NAME_HAS_SYMBOLS): counted apart (SM, C1 (a)).
-    "skipped_symbols",
 )
 REVERSE_KEYS = ("links_removed", "tags_removed")
 
@@ -117,9 +115,8 @@ class Command(BaseCommand):
                 continue
             try:
                 display, key = clean_tag_name(topic.name)
-            except CodedError as refused:
-                symbols = refused.reason_code == "TAG_NAME_HAS_SYMBOLS"
-                counts["skipped_symbols" if symbols else "skipped_bad_name"] += 1
+            except CodedError:
+                counts["skipped_bad_name"] += 1
                 continue
             tag, created = self._unit_tag(course.teacher_id, display, key)
             counts["tags_created" if created else "tags_reused"] += 1

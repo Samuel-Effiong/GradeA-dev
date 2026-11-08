@@ -640,14 +640,6 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "",
         retryable=False,
     ),
-    # Owner, 2026-11-06: the visible-character rule (tags/normalize.py).
-    ReasonCode.TAG_NAME_HAS_SYMBOLS: ReasonSpec(
-        ErrorClass.VALIDATION,
-        status.HTTP_400_BAD_REQUEST,
-        "Tag names can only use letters, numbers, spaces and - ' . ( )",
-        "",
-        retryable=False,
-    ),
 }
 
 #: Recorded in the audit trail only; the auth views shape their responses.
