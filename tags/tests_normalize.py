@@ -72,8 +72,8 @@ VISIBLE_KEPT = [
         "Family \U0001f468\U0001f469\U0001f467",
         "family \U0001f468\U0001f469\U0001f467",
     ),
-    # U+2019 is kept as typed: it is not mapped to '.
-    ("Newton\u2019s Laws", "Newton\u2019s Laws", "newton\u2019s laws"),
+    # Owner, 2026-11-08: U+2019 is the straight apostrophe.
+    ("Newton\u2019s Laws", "Newton's Laws", "newton's laws"),
     ("Grade 10 (Advanced)", "Grade 10 (Advanced)", "grade 10 (advanced)"),
     ("\u00c9nergie", "\u00c9nergie", "\u00e9nergie"),
     ("E\u0301nergie", "\u00c9nergie", "\u00e9nergie"),  # combining accent, NFKC
@@ -103,7 +103,6 @@ NO_LONGER_REFUSED = [
     "Star*",
     '"Quoted"',
     "\u201cQuoted\u201d",
-    "\u2018Single\u2019",
     "Cells \u2013 Tissues",
     "Cells \u2014 Tissues",
     "Cell\u2010Biology",
@@ -114,6 +113,18 @@ NO_LONGER_REFUSED = [
     "a ~ b",
     "Back`tick",
     "Pipe|Line",
+]
+
+
+# Owner, 2026-11-08: U+2019 only becomes '. Every other quote and
+# look-alike is kept as typed. (typed, display name kept)
+ONLY_U2019_MAPPED = [
+    ("\u2018Single\u2019", "\u2018Single'"),  # U+2018 kept, U+2019 mapped
+    ("\u201cQuoted\u201d", "\u201cQuoted\u201d"),  # double quotes kept
+    ("Hawai\u02bbi", "Hawai\u02bbi"),  # U+02BB turned comma
+    ("Newton\u02bcs Laws", "Newton\u02bcs Laws"),  # U+02BC modifier apostrophe
+    ("Angle 30\u2032", "Angle 30\u2032"),  # U+2032 prime
+    ("Newton`s Laws", "Newton`s Laws"),  # backtick
 ]
 
 
@@ -208,3 +219,37 @@ class NormalizeTest(SimpleTestCase):
             dict(CHARACTER_RULES),
             {"Cf": "remove", "Cc": "remove", "visible": "keep"},
         )
+
+
+class CurlyApostropheTest(SimpleTestCase):
+    """Owner, 2026-11-08: a tag typed with U+2019 is the same tag as one
+    typed with a straight apostrophe, and it is stored with the straight
+    one."""
+
+    def test_curly_and_straight_are_one_tag(self):
+        straight = clean_tag_name("Newton's Laws")
+        for typed in (
+            "Newton\u2019s Laws",
+            "NEWTON\u2019S LAWS",
+            " Newton\u2019s  Laws ",
+        ):
+            with self.subTest(typed=typed):
+                self.assertEqual(normalize_tag_name(typed), straight[1])
+        self.assertEqual(clean_tag_name("Newton\u2019s Laws"), straight)
+
+    def test_every_u2019_is_mapped(self):
+        self.assertEqual(
+            clean_tag_name("Rock \u2019n\u2019 Roll\u2019s"),
+            ("Rock 'n' Roll's", "rock 'n' roll's"),
+        )
+
+    def test_the_mapping_does_not_change_the_length(self):
+        self.assertEqual(clean_tag_name("\u2019" * 100)[1], "'" * 100)
+        with self.assertRaises(CodedError) as caught:
+            clean_tag_name("\u2019" * 101)
+        self.assertEqual(caught.exception.reason_code, "TAG_NAME_TOO_LONG")
+
+    def test_only_u2019_is_mapped(self):
+        for typed, shown in ONLY_U2019_MAPPED:
+            with self.subTest(typed=typed):
+                self.assertEqual(clean_tag_name(typed), (shown, shown.lower()))

@@ -109,6 +109,21 @@ class CreateTest(_ApiCase):
                 self.assertEqual(data(response)["name"], name)
         self.assertEqual(Tag.objects.count(), len(names))
 
+    def test_the_curly_apostrophe_reuses_the_straight_tag(self):  # owner, 2026-11-08
+        for first, second in (
+            ("Newton's Laws", "Newton\u2019s Laws"),
+            ("Hooke\u2019s Law", "Hooke's Law"),
+        ):
+            with self.subTest(first=first):
+                made = self.create(first)
+                self.assertEqual(made.status_code, 201, made.content[:400])
+                again = self.create(second)
+                self.assertEqual(again.status_code, 200, again.content[:400])
+                self.assertEqual(data(again)["id"], data(made)["id"])
+                self.assertEqual(data(again)["name"], first.replace("\u2019", "'"))
+                self.assertNotIn("\u2019", Tag.objects.get(pk=data(made)["id"]).name)
+        self.assertEqual(Tag.objects.count(), 2)
+
     def test_a_lesson_or_unknown_type_is_refused(self):  # FR-C-01, C1 part
         for tag_type in ("LESSON", "", "unit", None):
             with self.subTest(tag_type=tag_type):
@@ -190,6 +205,27 @@ class RenameDeleteTest(_ApiCase):
         self.assertCoded(response, "TAG_NAME_TAKEN", 400)
         self.assertEqual(
             envelope(response)["error"], 'You already have a Unit tag named "Genetics".'
+        )
+
+    def test_rename_to_the_curly_spelling_of_another_tag(self):  # 2026-11-08
+        self.make("Newton's Laws")
+        response = fire(
+            self.api, "patch", f"tags/{self.tag.pk}", {"name": "Newton\u2019s Laws"}
+        )
+        self.assertCoded(response, "TAG_NAME_TAKEN", 400)
+        self.assertEqual(
+            envelope(response)["error"],
+            'You already have a Unit tag named "Newton\'s Laws".',
+        )
+
+    def test_rename_with_the_curly_apostrophe_stores_the_straight_one(self):
+        response = fire(
+            self.api, "patch", f"tags/{self.tag.pk}", {"name": "Cell\u2019s Parts"}
+        )
+        self.assertEqual(response.status_code, 200, response.content[:400])
+        self.tag.refresh_from_db()
+        self.assertEqual(
+            (self.tag.name, self.tag.normalized_name), ("Cell's Parts", "cell's parts")
         )
 
     def test_rename_to_symbols_is_accepted(self):  # owner, 2026-11-08

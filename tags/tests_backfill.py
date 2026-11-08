@@ -192,6 +192,36 @@ class BackfillTest(TestCase):
         topic.refresh_from_db()
         self.assertEqual(topic.name, "Q&A \U0001f52c")
 
+    def test_a_curly_apostrophe_topic_becomes_the_straight_tag(self):  # 2026-11-08
+        mine, _ = services.get_or_create_tag(
+            self.w.teacher, TagType.UNIT, "Newton's Laws"
+        )
+        topic = Topic.objects.create(name="Newton\u2019s Laws", course=self.w.course_a)
+        assignment = Assignment.objects.create(
+            title="Forces lab", course=self.w.course_a, topic=topic, total_points=5
+        )
+        result = run()
+        self.assertEqual(result["skipped_bad_name"], 0)
+        tag = Tag.objects.get(teacher=self.w.teacher, normalized_name="newton's laws")
+        self.assertEqual((tag.pk, tag.name), (mine.pk, "Newton's Laws"))
+        self.assertTrue(
+            AssignmentTag.objects.filter(assignment=assignment, tag=tag).exists()
+        )
+        self.assertFalse(Tag.objects.filter(name__contains="\u2019").exists())
+        topic.refresh_from_db()
+        self.assertEqual(topic.name, "Newton\u2019s Laws")
+
+    def test_a_new_tag_from_a_curly_topic_is_stored_straight(self):
+        topic = Topic.objects.create(name="Hooke\u2019s Law", course=self.w.course_a)
+        Assignment.objects.create(
+            title="Springs", course=self.w.course_a, topic=topic, total_points=5
+        )
+        run()
+        tag = Tag.objects.get(teacher=self.w.teacher, normalized_name="hooke's law")
+        self.assertEqual(tag.name, "Hooke's Law")
+        topic.refresh_from_db()
+        self.assertEqual(topic.name, "Hooke\u2019s Law")
+
     def test_reverse_removes_exactly_what_the_backfill_made(self):
         run()
         user_tag, _ = services.get_or_create_tag(self.w.teacher, TagType.UNIT, "Mine")
