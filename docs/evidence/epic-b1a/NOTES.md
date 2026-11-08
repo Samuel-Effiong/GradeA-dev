@@ -1734,3 +1734,12 @@ The targeted set is the new file + `billing.tests.test_license_overage_offline` 
 **Open question for the SM (R-Q1):** the offline record has no amount-owed field. I plan to put the amount in `amount_paid_cents`, since the record type says it is a refund due. The alternative is notes only. Answer before green, not before red.
 
 Any mismatch is a STOP, reported to the SM.
+
+### 18 addendum, amended before any run: where the share comes from
+
+18b step 1 is replaced as follows. The intent stores no skipped list: on the Stripe path it exists only inside the `failure_reason` text. Rebuilding it from ledger metadata is indirect and fragile. Instead:
+- The handler, which already holds `skipped`, enqueues `refund_departed_teacher_share.delay(intent_id, share_cents)`, where `share_cents = sum(skipped blocks) × unit_price_cents_snapshot`.
+- The task never re-derives the share.
+- Guard 2 and the cap still run in the task, against Stripe's current state, so a replay with the same arguments is still a no-op.
+
+DR-4 also asserts the task was enqueued with `(str(intent.id), 299)`. No other expectation changes.
