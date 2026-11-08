@@ -79,3 +79,19 @@ classrooms, and this guard is not in the 22-guard list. It is a real H-38
 issue, not only a listing one: a teacher removed from the school keeps
 export/erase reach over students of their old courses. STOP: no fix made;
 reported to the SM.
+
+## SM ruling and the H-38 fix (2026-11-08)
+
+SM: fix the H-38 red on this branch, one push with the merge. Done on
+NFR-CMP-04's side (its NOTES, "Second post-push miss"): tests first
+9c3d705fac5ffc11f75134084477eb9b95529111 (red 48 Ran 2 failures=2), fix
+5d82e4b07901bbe0c7aba01d3c2f75aca46c570e (green 49 Ran 11 OK; plant H38
+killed). No allow-list change.
+
+## Near run 02 (declared before the run)
+
+Labels: near 01's 23 plus students.tests_data_export and
+students.tests_data_erase (25). Count from build_suite: **3088** (2996 + 46
++ 46). The two added modules have no skips.
+Predicted: **Ran 3088, OK (skipped=18)**, the same 18 as run 01. Any
+failure is a STOP. Log: `02_near.log`.
