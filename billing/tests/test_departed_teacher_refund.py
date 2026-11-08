@@ -111,6 +111,7 @@ class SchoolFixture:
             billing_cycle_start=timezone.now(),
             billing_cycle_end=timezone.now() + timedelta(days=30),
             is_active=True,
+            max_seats=3,
         )
         self.teachers = []
         for tag in ("a", "b", "c"):
