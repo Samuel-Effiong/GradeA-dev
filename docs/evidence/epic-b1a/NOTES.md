@@ -2063,3 +2063,159 @@ The test fix was committed separately at fca151db; no production file changed. E
 **FR-B-08 / NFR-CRD-05: proven on all three grant paths.** A failure forced after the first teacher's bucket, and a failure forced after the BillingTransaction, each leave nothing behind for anyone. That covers buckets, ledger rows, block counts, billing records, BillingTransactions, credit audit events, the intent or request, emails and refunds.
 
 **Next (plan):** step 9, the gate, with expectations first.
+
+## 21. Plan step 9: the B1a gate. Expectations committed before any code or run (2026-11-08)
+
+The SM's rulings on the survey (2026-11-08) are listed below. PG 16 CI (G) is with the owner, and this section claims nothing for it.
+
+### 21a. Scope rulings and plan deviations, recorded
+
+- **R-1 runs 32 threads, not 200 (C-4).** Each thread holds its own connection, and `max_connections` (300) is shared with other sessions on this machine. Accepted as a plan deviation. **For the Feature Lead:** the plan's 200 threads are not proven; only 32 are.
+- **R-2 moves to B1b (C-5).** It needs batches and the queue.
+- **M-B28's kill test is swapped to `test_holds.py` `SettleAndFailTests.test_settle_charges_from_the_hold_and_returns_the_leftover` (C-3).** P-5 needs promotion and stays with B1b.
+- **Kill tests are mapped by exact test name, never by label (C-6).** `test_holds_schema.py` uses its own S-1…S-7 for schema tests, and those are not plan §6.3's S-ids.
+- **Adversarial rows (§6.3) are N/A for B1a (D).** Each is re-opened in the B1b/B1c gate once its endpoint exists:
+  - "a teacher reserving against another teacher's job id (404)": B1a has no job or reserve endpoint. The job API is step 6 (B1b), and holds are server-side only.
+  - "a forged `reservation_claimed_at`": it is written only at `billing/holds.py:200` (`_reserve_locked`), and no request input reaches it.
+  - "approving a request from another license" and "withdrawing someone else's request": these are CreditRequest rows, which belong to B1c.
+- **Failure rows (E).**
+  - "Redis down during promotion" moves to B1b, with promotion.
+  - "Worker killed between reserve and settle" is evidenced by `test_holds_sweep.ItemSweepTests.test_a_started_item_past_the_window_is_failed_counted_and_released`.
+  - "Provider times out inside a unit" gets a new test, T-1 (§21b).
+- **Gate 6 (H).** Reserve/settle latency is in B1a (§21d). The estimate-endpoint half moves to B1b.
+- **U-3 (C-2) is not barrier-based.** It is `test_holds.py` `SettleAndFailTests.test_settle_draws_only_the_items_own_hold`, run single-threaded: two items, then one settle. The barrier case is U-2, which is new.
+
+### 21b. New tests: `billing/tests/test_holds_gate.py` (4, `TransactionTestCase`, flag on via `override_settings`)
+
+- **R-4a: the §0.3 EPQ question, as characterization.** The test runs a raw conditional UPDATE with a bucket-sum subquery and no wallet lock:
+  ```sql
+  UPDATE billing_creditwallet SET reserved_credits = reserved_credits + 70
+  WHERE id = %s AND reserved_credits + 70 <= (SELECT sum(total_credits - used_credits) FROM billing_creditbucket WHERE wallet_id = %s)
+  ```
+  The race:
+  1. The wallet holds 100 credits.
+  2. Thread A, inside `transaction.atomic()`, runs `wallet.consume_credits(60)`. This takes the wallet row lock, `select_for_update`, at models.py:~1007.
+  3. A sets an Event, then sleeps 1 s before committing.
+  4. Thread B waits for the Event, then runs the UPDATE. B blocks on A's row lock, and PostgreSQL re-checks after A commits.
+
+  **Prediction on PG 18.6 READ COMMITTED: it over-reserves.** The EPQ re-check reads the new wallet row, but the subquery keeps the statement's snapshot, which still shows 100. The asserts:
+  - B's rowcount is 1;
+  - `reserved_credits` is 70;
+  - `total_remaining_credits()` is 40.
+
+  This proves the §0.3 rationale for `lock_wallet_first`. If PG behaves otherwise, the test fails. That is a STOP: the finding is recorded and M-B2's kill test is re-ruled. On PG 16 this is pending, the same as G.
+- **R-4b: the production `reserve()` in the same race.** Thread B calls `holds.reserve(wallet, 70, job)`. Expected:
+  - B blocks on `lock_wallet_first` until A commits;
+  - it then reads 40 and is refused, `assertFalse(granted)`;
+  - `reserved_credits` is 0;
+  - `check_invariants(wallet)` is `[]`.
+
+  This is M-B2's kill test.
+- **U-2: barrier, two units on one free balance.** E = `estimate_for()` = 20003 (measured on this tree).
+  - One teacher holds 1.5E.
+  - Two threads pass a barrier, and each runs `metered_unit()` → `call_ai(teacher)`, with the provider stubbed at `ai_response(E)`.
+  - After the pre-call check, both threads wait at a second barrier (timeout 30 s), whether they were refused or granted. Then each unit exits.
+  - The asserts:
+    - refused count is 1 (`InsufficientCreditsError`);
+    - the provider is called once;
+    - the sum of `CreditUsageLog.amount` is E, which is at most the starting 1.5E;
+    - the sum of `AIJob.unbilled_credits` is 0;
+    - `reserved_credits` is 0;
+    - the invariants are `[]`.
+- **T-1: a provider timeout inside a unit, on a two-item batch.**
+  - Setup:
+    - The teacher holds exactly 2E, so there is no free balance.
+    - One `BATCH_GRADING` job has 2 items, each reserved E.
+  - Item 1 runs `metered_unit(processing_task_id=item1)` → `call_ai`. The provider raises `openai.APITimeoutError` (openai 1.107.1; `execute_graded_task` re-raises it unchanged at `ai_processor/services.py:5686–5688`).
+  - Asserts after item 1:
+    - `APITimeoutError` is raised;
+    - there are no `CreditUsageLog` rows;
+    - item 1 has `hold_state` `RETURNED` and `released_credits` E;
+    - the wallet's `reserved_credits` is E;
+    - `item_hold_left(item2)` is E;
+    - `total_remaining_credits()` is 2E.
+  - Item 2 runs `metered_unit(processing_task_id=item2)` → `call_ai`, with the provider returning `ai_response(E)`. Asserts:
+    - item 2 has `hold_drawn` E;
+    - the job has `overrun_charged` 0, `unbilled_credits` 0 and `consumed_credits` E;
+    - `total_remaining_credits()` is E;
+    - `reserved_credits` is 0;
+    - the invariants are `[]`.
+  - **Wording vs code.** §6.3 says "hold kept for the next item". In the code, the failed item's own hold is *returned* (`fail_item`) and is not passed on. The next item runs on its own hold, which the failure does not touch. Because the wallet holds exactly 2E, item 2 could not run if item 1's failure had consumed anything, or had taken item 2's hold. T-1 asserts exactly that.
+
+**First run: all four are expected to PASS against today's code.** This step changes no code, so there is no red run. The plants in §21c stand in for red (M-B2 → R-4b, M-B21 → U-2, TP-1 → T-1). A failing R-4b, U-2 or T-1 is a real finding: STOP, with no fix.
+
+### 21c. The mutant battery: 19.5 mutants plus TP-1, fragments committed here
+
+**Run set for every plant:** `billing.tests.test_holds billing.tests.test_holds_concurrency billing.tests.test_holds_overrun billing.tests.test_holds_settlement billing.tests.test_holds_sweep billing.tests.test_holds_unit billing.tests.test_holds_zero_credit billing.tests.test_holds_entry billing.tests.test_holds_single_call billing.tests.test_holds_gate` plus G-1/static. The settings are `settings_worktree` on h284_deps_env, with no `--parallel`. Each plant is restored by sha256 of `billing/holds.py`, recorded at the run.
+
+**Kill criterion (proposed for SM approval at this checkpoint):**
+- A mutant is **killed** when its named kill test fails, or errors, with the declared fragment in that test's output.
+- Other tests that also fail are listed as **collateral**, as observed. They are not a mismatch.
+- A named kill test that passes is a **survivor**: STOP.
+- A named kill test that fails without its fragment is a **mismatch**: STOP.
+
+Where the anchor text is unique, each mutant is one text replacement in `billing/holds.py`. The line numbers are hints at 4f5f9a85.
+
+| # | Function: exact change | Kill test (exact name) | Fragment |
+|---|---|---|---|
+| M-B1 | `_reserve_locked` (:192): `pk=locked_wallet.pk, reserved_credits__lte=total - amount` → `pk=locked_wallet.pk` | `test_holds_concurrency.ReserveRaceTests.test_concurrent_reserves_grant_exactly_what_fits` | `32 != 7` |
+| M-B2 | `reserve` (:217): `locked = lock_wallet_first(wallet)` → `locked = CreditWallet.objects.get(pk=wallet.pk)` | `test_holds_gate.…test_r4b_…` (R-4b) | `True is not false` |
+| M-B3 | `settle` (:296): `chargeable = min(actual, left + _free(locked))` → `chargeable = min(actual, locked.total_remaining_credits())` | `test_holds_overrun.OverrunTests.test_an_overrun_never_takes_another_jobs_hold` | `(200, 0) != (100, 100)` |
+| M-B6 | `settle` (:282): `item_id=key[0],` → `item_id=uuid.uuid4(),` | `test_holds_settlement.SettlementKeyTests.test_a_redelivered_settlement_settles_once` | `True is not false` |
+| M-B7 | `finish_job` (:380): `AIJob.objects.filter(pk=job.pk, status__in=OPEN_STATUSES).update(` → `AIJob.objects.filter(pk=job.pk).update(` | `test_holds.SettleAndFailTests.test_finish_job_releases_the_remainder_exactly_once` | `0 is not None` |
+| M-B11 | `sweep_stale_holds` candidates: `started_at__isnull=False,` + `started_at__lt=cutoff,` → `job__updated_at__lt=cutoff,`; and `_sweep_item`: `hold_state=HoldState.HELD, started_at__lt=cutoff` → `hold_state=HoldState.HELD, job__updated_at__lt=cutoff` | `test_holds_sweep.ItemSweepTests.test_an_unstarted_item_keeps_its_hold_however_old` | `1 != 0` |
+| M-B13 | `reserve` (:213): remove its `assert_not_zero_credit(CREDIT_RESERVE)` line (the one before `if amount <= 0`) | `test_holds_zero_credit.ZeroCreditHoldTests.test_reserve_is_refused_inside_a_zero_credit_scope` | `ZeroCreditViolation not raised` |
+| M-B14 | `settle`: `chargeable = min(actual, left + _free(locked))` → `chargeable = actual` | `test_holds_overrun.OverrunTests.test_beyond_hold_and_free_balance_the_excess_is_absorbed` | `InsufficientCreditsError` (ERROR from `consume_credits`) |
+| M-B15 | `finish_job` (:400): `returned = max(_left(job_row, None), 0)` → `returned = max(job_row.reserved_credits - job_row.consumed_credits, 0)` | `test_holds_unit.UnitTests.test_two_calls_in_a_unit_settle_once` | `creditwallet_reserved_credits_nonneg` (ERROR, IntegrityError) |
+| M-B16 | `Unit.before_call`: a `return` added as the last line of the `if root.job is None:` block (after `root.item = …attach_item.pk)`), so the first call opens its job without reserving | `test_holds_unit.UnitTests.test_a_call_the_unit_cannot_hold_is_refused_before_the_provider` | `InsufficientCreditsError not raised` |
+| M-B18 | `Unit.before_call`: the `ensure_call_fits(root.job, estimate, item=root.item, tally=self.open_tally())` line → `pass` | same U-1 test | `InsufficientCreditsError not raised` |
+| M-B21 | `ensure_call_fits`: the three lines `assert_not_zero_credit(CREDIT_RESERVE)` / `if not _reserve_locked(locked, shortfall, job_row, item_row):` / `raise _refusal(locked)` + `return shortfall` → `if shortfall > _free(locked):` / `raise _refusal(locked)` / `return 0` | `test_holds_gate.…test_u2_…` (U-2) | `0 != 1` (refused count) |
+| M-B22 | `_sweep_item`: remove `status=BackgroundTaskStatus.FAILURE,` and `failed_items=F("failed_items") + 1,` | `test_holds_sweep.ItemSweepTests.test_a_started_item_past_the_window_is_failed_counted_and_released` | `'PENDING' != 'FAILURE'` |
+| M-B23 | `settle`: the `key = ((item_row.id, item_row.retry_count) if item_row is not None else (job_row.id, 0))` block → `key = (job_row.id, 0)` | `test_holds_settlement.SettlementKeyTests.test_a_single_paper_settles_on_its_task_row_not_its_job` | `Tuples differ` |
+| M-B25 | `_sweep_item`, the task-row update: `released_credits=F("released_credits") + amount,` (the line above `status=BackgroundTaskStatus.FAILURE,`) removed | the S-3 test above | `0 != 80` |
+| M-B26 | candidates: `started_at__isnull=False,` + `started_at__lt=cutoff,` removed; `_sweep_item`: `, started_at__lt=cutoff` removed | `test_holds_sweep.ItemSweepTests.test_an_unstarted_item_keeps_its_hold_however_old` | `1 != 0` |
+| M-B27 | `Unit.enter`: `raise _late(f"task {row.pk}: its credit hold was returned")` → `self._run_as_successor(open_retry_job(old_job, row, 0), row)` / `return`. This is the 3b plant Q-2, re-run under its M-B name | `test_holds_entry.EntryRuleTests.test_er3_a_late_grading_message_exits_before_any_call` | `CreditHoldReturnedError not raised` |
+| M-B28 | `settle` (:306): `leftover = left - drawn` → `leftover = 0` | `test_holds.SettleAndFailTests.test_settle_charges_from_the_hold_and_returns_the_leftover` | `(60, 60, 0) != (60, 60, 40)` |
+| M-B30 | `ensure_call_fits` (:229): `available = _left(job_row, item_row) - tally` → `available = _left(job_row, item_row)` | the U-1 test above | `InsufficientCreditsError not raised` |
+| M-B31 (sweep half) | `_sweep_item` only: `, started_at__lt=cutoff` removed (the candidate query is unchanged) | `test_holds_concurrency.StartClaimSweepRaceTests.test_a_start_claim_and_the_sweep_have_exactly_one_winner` | `True == True` |
+| TP-1 (T-1's plant) | `fail_item`: `amount = max(_left(job_row, item_row), 0)` → `amount = max(_left(job_row, None), 0)` | `test_holds_gate.…test_t1_…` (T-1) | `0 != 20003` |
+
+**Notes on the predictions:**
+- **M-B2 against R-1: expected to SURVIVE R-1.** Every thread reads the same total, and the wallet-row UPDATE's EPQ re-check on `reserved_credits` still caps the reserves at 7. That is why R-4b is its kill test.
+- **M-B15: plan mismatch.** The plan names H-1 as the kill. H-1(a) has `consumed` (80) ≥ `reserved` (50), so `reserved − consumed` floors at 0, the same as the correct value. **So H-1 is expected NOT to kill it.** The unit test kills it, because 2E reserved against 400 consumed returns too much, and the wallet's `CHECK` fires.
+- **M-B31's sweep half is non-deterministic.** It is killed only in a round where the start claim commits before the sweep's conditional UPDATE. Over 10 rounds that is expected, but not certain. A run in which every round goes to the sweep first is reported as a survivor, with no re-run without approval.
+- **Collateral is expected for most mutants** (U-1, D-4, the single-call tests, and the E-refused tests), and is recorded as observed.
+- **Already evidenced, not re-run:**
+  - M-B4 and M-B5 (§13h, P-3/P-4);
+  - M-B20 (§15h, DP-4);
+  - M-B31's entry half (§14g, Q-5);
+  - M-B33 (§18, RF-1);
+  - F-1…F-3b (§20).
+
+### 21d. Gate 6: `billing/tests/test_holds_gate6_latency.py` (1 test, opt-in: `RUN_LOAD_TESTS=1`, the repo convention, skipped otherwise)
+
+The method follows plan §9 item 13:
+- **Calls.** M = 500 billed single calls through `call_ai` (the real `execute_graded_task`), with the provider stubbed at `ai_response(150)` and a warm-up of 20. They run with the flag off and then the flag on, in one test on one database, local PG 18.6.
+- **Wall time.** `time.perf_counter()` is taken around each call.
+- **Reserve and settle, separately.** In the flag-on block, `holds.begin_single_call` (reserve) and `holds.finish_single_call` (settle plus release) are timed through `patch.object(…, wraps=…)`.
+- **Reported:**
+  - p50 and p95 of each block;
+  - **added** = flag-on minus flag-off, at p50 and at p95;
+  - reserve p50/p95 and settle p50/p95;
+  - bytes per `AIJob` row and per `SettlementRecord` row (`pg_total_relation_size(table) / count`);
+  - storage per month from `audit/volume.py`, the formula declared here: 30 gradings per active teacher per busy day (`PER_TEACHER_DAY`). Each grading writes one AIJob row, one SettlementRecord row and two hold audit rows (RESERVED, SETTLED), the audit rows at the measured bytes. That is × 22 school days, stated per 100 active teachers.
+- **Pass (plan):** added p95 ≤ 5 ms per call. This is asserted. A fail is a STOP: the plan's fallback, a wallet-counter hold for SINGLE_CALL, is a design decision for the SM and the owner.
+- The numbers are recorded in NOTES at the run.
+
+### 21e. Runs, in the approved order (each a STOP on mismatch)
+
+1. **New tests, first run:** `billing.tests.test_holds_gate`, Ran 4, OK, 5× in a row (the step 8 lesson). Then the Gate 6 test with `RUN_LOAD_TESTS=1`: Ran 1, OK, with its numbers recorded.
+2. **Hold targeted set** (the run set above): OK, with Ran equal to the log's `Found N test(s)`.
+3. **The mutant battery** (§21c): 20 plants. Each is killed with its fragment, plus M-B2 surviving R-1.
+4. **Flag-on exploratory run (§3b; not the gate):**
+   - Command: `BILLING_HOLDS_ENABLED=True flock ~/.machine-fullsuite.lock timeout -k 60 5400 python manage.py test billing ai_processor assignments students users --settings=settings_worktree --parallel 4 --noinput`, on h284_deps_env, with free -m ≥ 4000.
+   - The flag goes through the environment variable only (`settings.py:697` reads `env.bool`). No settings file is created or edited.
+   - **No expected result is declared; the result is recorded as it comes.** Checkpoint with the SM, then classify every failure. A real bug is a STOP, with no fix. An old-behavior assertion is declared by exact test id.
+   - Then the declared flag-on gate run.
+5. **Flag-off near run:** the five apps, flag off, under `flock`, `--parallel 4`. Expected: OK, with the count recorded against §3a's discovery. The billing near alone is expected at **Ran 3107 = 3102 + 5, OK (skipped=3)**: the Gate 6 test adds one skip.
+6. **Gate summary** in NOTES: every B1a kill target with its evidence, every deviation, and every row deferred to B1b/B1c or the owner (PG 16).
