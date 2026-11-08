@@ -1583,3 +1583,33 @@ Every plant was restored to 8b8881ac…. In every plant G-1 and static stayed gr
 | RP-4 | 3 FAIL: R-1 line 101 `unexpectedly None` (`pending_result`); R-2 line 93 `unexpectedly None` (`promote_pending` returns None, nothing pending); R-3 line 156 `Decimal('9.00') != Decimal('5')` (the re-grade overwrote the released score) | **RP-4 killed. Predicted R-1 and R-3, which fired. Prediction incomplete:** R-2 also fired, because with nothing held the approval finds nothing to promote. R-3 fired on the released-score assertion, not on `pending_result` None, because the score check comes first. | step16/step16_plant_RP-4.log |
 
 No plant survived. The formatted-grade observation above stands for the SM. It is outside the ruling and not changed here.
+
+## 17. Late-door student notice switched on. Expectations committed before any run (2026-11-08)
+
+**Ruling (owner, relayed by the SM 2026-11-08):** yes, the student is told. `LATE_DOOR_STUDENT_NOTICE_APPROVED = True` (billing/holds.py) lands in B1a. It reuses `STUDENT_UPLOAD_NOT_PROCESSED` unchanged, so there is no new wording. The email subject is the owner-listed, unchanged `LATE_DOOR_EMAIL_TEXTS["subject"]` (team/approved_wording_2026-11-08.md §3; the SM confirmed it does not breach "no new wording").
+
+What stays untouched:
+- `LATE_DOOR_EMAIL_APPROVED` stays False, and `LATE_DOOR_EMAIL_TEXTS` is not changed. The three F4 wordings go in B1b.
+- The comment at holds.py:1056-1057 is updated to cite the 2026-11-08 ruling. That is a code comment, not user-facing text.
+
+**Pre-existing test edit (SM approved 2026-11-08):** in `billing/tests/test_holds_door.py:270`, `test_the_texts_are_one_pending_constant_and_both_switches_are_off`:
+- the assertion `assertIs(holds().LATE_DOOR_STUDENT_NOTICE_APPROVED, False)` becomes `True`;
+- the test is renamed `test_the_texts_are_one_pending_constant_the_email_switch_is_off_and_the_student_notice_is_on`;
+- the texts-keys and `LATE_DOOR_EMAIL_APPROVED is False` assertions are kept.
+
+**New file `billing/tests/test_holds_late_door_student.py`, `LateDoorStudentNoticeTests` (APITestCase, `BILLING_HOLDS_ENABLED=True`).** The setup is the one from `LateDoorNoticeTests.late_door_refusal`, with one difference: the swept UPLOAD job and its row have `requested_by` set to the enrolled student. `send_email_task.delay` is patched.
+
+| Id | Test | Red (flag False) | Green |
+|---|---|---|---|
+| L-1 | a student's late-door refusal sends exactly one email, to the student, whose `message == STUDENT_UPLOAD_NOT_PROCESSED` | FAIL (`Expected 'delay' to have been called once. Called 0 times.`) | PASS |
+| L-2 | exactly one message goes to the student (`0 != 1` on red), and it contains none of `credit`, `balance` or `wallet` (any case) and no digit | FAIL (`0 != 1`) | PASS |
+| L-3 | control: no email goes to the teacher, and the teacher-side warning (`billing.holds`, "no email was sent") is still logged | PASS | PASS |
+| L-4 | control: a teacher-requested late-door refusal sends no email at all | PASS | PASS |
+
+**Runs.** The targeted set is the new file + `billing.tests.test_holds_door` + G-1 + `students.tests_reading_label_static` + `AutoGrader.tests_h271_static_files`. Counts are recorded at the run.
+1. **Red** on HEAD + the new file, flag False: `FAILED (failures=2)`, which are L-1 and L-2. Everything else passes.
+2. **Break run:** the flag switched on, `test_holds_door.py` not yet edited. `FAILED (failures=1)`: only `test_the_texts_are_one_pending_constant_and_both_switches_are_off`, `True is not False`. L-1..L-4 pass.
+3. **Green:** the flag on, the test edited. OK.
+4. **Plant LP-1:** `LATE_DOOR_STUDENT_NOTICE_APPROVED = True` back to `False`, restored and checked by sha256. Expected `FAILED (failures=3)`: L-1, L-2, and the renamed door test (`False is not True`).
+
+Any mismatch is a STOP, reported to the SM.
