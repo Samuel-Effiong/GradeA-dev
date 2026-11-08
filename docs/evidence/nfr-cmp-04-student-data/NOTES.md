@@ -1331,3 +1331,39 @@ to `GAP-a0-runs/nfr-cmp-04/37_gate_step3.log`.
 Run 37 result (`GAP-a0-runs/nfr-cmp-04/37_gate_step3.log`): Ran 2696, OK
 (skipped=7), with the same 7 opt-in skips. **As predicted.** Step 3 is
 done.
+
+## Step 4: the plant summary, the near run and the summary
+
+### Every plant in NFR-CMP-04 (each run on its own, each restored by sha256)
+
+| Step | Plant | Run | Killed | Verdict |
+|---|---|---|---|---|
+| 1 | P1: a map entry dropped | 03 | yes | (previous owner) |
+| 1 | P2: the activity log deleted | 03 | yes | (previous owner) |
+| 1 | P3: security data exported | 03 | yes | (previous owner) |
+| 1b | the `_by_id` guard branch removed | 07 | yes, 4 | as predicted |
+| 2 | E1: the student filter dropped (export) | 13 | yes, 4 | as predicted |
+| 2 | E2: Token exported | 14 | yes, 18 | as predicted |
+| 2 | E3: the school check dropped | 15 | yes, 4 | **prediction incomplete** (missed `test_a_refusal_writes_no_event`) |
+| 2 | E4: UserActivity skipped | 16 | yes, 1 failure and 1 error | as predicted |
+| 2 | E5: the teacher's course filter dropped | 17 | yes, 2 | as predicted |
+| 3 | X1: one delete filter dropped | 29 | yes, 1 | as predicted |
+| 3 | X2: the course scope dropped | 30 | yes, 1 failure and 1 error | as predicted |
+| 3 | X3: the NOT_A_STUDENT check skipped | 31 | yes, 5 | as predicted |
+| 3 | X4: the wallet check skipped | 32 | yes, 4 | as predicted |
+| 3 | X5: the R2 billing check skipped | 33 | yes, 3 | as predicted |
+| 3 | X6: the erased-student record not written | 34 | yes, 1 error | as predicted |
+| 3 | X7: iexact changed to exact | 35 | yes, 2 | as predicted |
+
+16 of 16 killed. The plants 1b and E1–X7 (13) were predicted by me: 12 as
+predicted and 1 incomplete.
+
+**Prediction for run 38 (the near run**, under
+`flock ~/.machine-fullsuite.lock`): gate 37's set plus `billing`, because
+the wallet and billing refusals read billing tables.
+- `students users audit tags billing AutoGrader.tests_reason_codes
+  AutoGrader.tests_migration_rollback_defaults`
+- Ran 5116 (2696 + billing 2420, from `build_suite`), OK (skipped=7).
+  `billing` has no skip conditions (searched; C1's near run 34 shows no
+  billing skips either).
+- The log goes to `GAP-a0-runs/nfr-cmp-04/38_near_run.log`.
