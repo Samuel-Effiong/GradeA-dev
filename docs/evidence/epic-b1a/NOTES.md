@@ -1781,3 +1781,39 @@ On 035d0ffb: Ran 191, FAILED (errors=18). All 18 new tests errored in setUp, so 
 - Every other test in the set passed.
 - Log: step18/step18_red_035d0ffb.log.
 - SM approved the fix on 2026-11-08, following the dd7687f4f precedent: `max_seats=3` in `make_school()` only, committed separately, with no change to the expectations. Red is re-run against the declaration as it stands: DR-1 and DR-2 PASS, 16 ERROR. If that run does not match exactly, STOP again.
+
+### 18 red attempt 2 (6fea0ae3, the seat fix only): recorded as it stands, not amended
+
+Ran 191, FAILED (failures=1, errors=16).
+- DR-1 PASS, and DR-3..DR-15 16 ERROR (15 ModuleNotFoundError `billing.departed_share_refund`, DR-15 KeyError 0078), as declared.
+- **DR-2: declared PASS, observed FAIL. Prediction incomplete: the survey missed the existing approval email.** `send.assert_not_called()` → `Called 1 times`. `approve_overage_offline_request` already sends the requester, the school admin, "Your overage request has been approved — {school}" on commit. That is `_notify_school_admin_offline_overage_approved`, license_service.py:~3770, template `templates/email/license_overage_offline_request_approved.html`.
+  - Its skipped section (template :81-92) says "<strong>Not credited</strong> — these teachers are no longer active under the license and were skipped. Contact support if this needs manual follow-up." and lists the skipped teachers.
+  - The survey read the approval only up to ~:3697.
+- **Accepted existing noise (SM):** "ValueError: Missing staticfiles manifest entry for 'admin/css/base.css'" is logged once from a template render. It also appears in attempt 1 and in step16_h279_modules.log, a run that came back OK. It is not a test result.
+- Log: step18/step18_red_6fea0ae3.log.
+
+### 18 addendum 4, committed before any further run (SM ruling (b), 2026-11-08)
+
+**The offline admin gets ONE email: the existing approval email.** No separate W-3 offline email.
+
+1. **The text keys (still 7).** `email_body_offline` is dropped and `approval_email_not_credited` (W-6) is added, formatted with `{amount}`. The keys are now:
+   - `purchase_note`, `history_suffix_card`, `history_suffix_offline`, `email_subject`, `email_body_card`, `offline_record_notes`, `approval_email_not_credited`.
+   - All are PENDING. `email_subject` and `email_body_card` are for the card path only.
+   - DR-3 checks these 7.
+2. **The template.** It switches between today's sentence and the PENDING one through one context value, `not_credited_text`.
+   - Unset or empty: today's `<p><strong>Not credited</strong> — … Contact support if this needs manual follow-up.</p>`, byte for byte.
+   - Set: `<p>{{ not_credited_text }}</p>` in its place.
+   - The skipped-teacher list and every other part of the template stay as they are.
+   - `_notify_school_admin_offline_overage_approved` sets `not_credited_text` only while the switch is on and teachers were skipped.
+3. **DR-2 (switch off, offline): corrected, SM approved.**
+   - Exactly one `send_email_task.delay`, to the requester (the admin): today's approval email, with today's subject and plain message.
+   - Its `html_message` contains today's sentence "Contact support if this needs manual follow-up." and no `PENDING OWNER TEXT`.
+   - The other DR-2 assertions stay: `skipped_allocations` holds C, no refund-due record, today's suffix, no Stripe call.
+4. **DR-13 (switch on, offline): corrected.**
+   - Still exactly one email to the admin, the approval email with today's subject.
+   - Its `html_message` contains the formatted `approval_email_not_credited`: starts `PENDING OWNER TEXT`, contains the amount 299.
+   - It does not contain "Contact support if this needs manual follow-up.".
+   - It still lists C's skipped row.
+   - No second email.
+   - The record assertions stay: `amount_paid_cents is None`, the notes contain the amount. So do the PENDING offline history suffix and "no Stripe call".
+5. **Red attempt 3**, against this addendum on the code as it stands: DR-1 and DR-2 PASS; DR-3..DR-15 16 ERROR; everything else passes. If it does not match: STOP.
