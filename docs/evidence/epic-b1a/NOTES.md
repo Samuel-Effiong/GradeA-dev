@@ -1945,3 +1945,83 @@ Every run matched its declared expectation. Logs are in `docs/evidence/epic-b1a/
 4. **Near run** (HEAD e879bbf2, under `flock`, h284_deps_env, `--parallel 4`): `billing audit AutoGrader.tests_migration_rollback_defaults` + G-1/static gave **Ran 3095, OK (skipped=2)**. Matched: OK was declared and the count is recorded here (`step19_near_e879bbf2.log.gz`).
 
 **Next (plan):** step 8, the FR-B-08 forced-failure proofs F-1..F-3, with expectations first. Then step 9, the gate.
+
+## 20. Plan step 8: FR-B-08 forced-failure proofs. Expectations committed before any code or run (2026-11-08)
+
+SM rulings on the survey (2026-11-08): M-1 yes, M-2 (b), M-3 notes only, M-4 yes, M-5 yes, with F-1c on path 1 only. No production code changes, and no pre-existing test is edited.
+
+### 20a. Plan corrections (the plan doc is not edited)
+
+- **Line refs in §0.6, at 302d6ae12:**
+  - `handle_checkout_completed`'s `@transaction.atomic` is at `billing/stripe_service.py:3044–3045`, not `:2907–2908`.
+  - `_handle_license_overage_checkout_completed` is at `:3341`, not `:3204`.
+  - `_grant_overage_offline` is at `billing/license_service.py:3169–3170`; `approve_overage_offline_request` is at `:3446–3447`; `_grant_overage_blocks` is at `:3089`. These three are unchanged.
+- **Ledger type.** §0.6 says the helper writes "the CreditLedger PURCHASE row". The helper writes the type its caller passes:
+  - path 1 (webhook) writes **PURCHASE** (`stripe_service.py:3502`);
+  - path 2 (super-admin grant) writes **GRANT** (`license_service.py:3230`);
+  - path 3 (offline approval) writes **PURCHASE** (`:3545`).
+  The tests match the type per path.
+- **"The intent or offline request is unchanged"** does not fit path 2, which has neither. Its record is the `MANUAL_OVERAGE_GRANT` LicenseBillingRecord, written *before* the grants (`:3214`). F-2 asserts that it does not survive (M-1).
+- **The BillingTransaction clause.** In all three paths the BillingTransaction is written *after* the grants (`stripe_service.py:3560`, `license_service.py:3244`, `:3640`). A failure on the second teacher's ledger row happens before it exists. **So in F-1..F-3 "no BillingTransaction survives" proves nothing on its own.** The pairing is proven by F-1b..F-3b (M-2 b).
+- **For the Feature Lead (plan §9 item 2):** FR-B-08 and NFR-CRD-05 say "dispersal debits the admin and credits the teacher". There is no admin balance. The admin's side is the payment (Stripe or offline) plus the LicenseBillingRecord and BillingTransaction written in the same transaction as the teachers' grants. FR-B-08 is met by allocate-at-purchase; F-1..F-3b below prove its atomicity.
+
+### 20b. The tests: `billing/tests/test_overage_grant_atomicity.py` (new, 7 tests)
+
+**Class.** `TransactionTestCase` (M-4), so each path's own `@transaction.atomic` is the only transaction, and on_commit callbacks run only on a real commit.
+
+**`serialized_rollback` is not needed:**
+- The repo's 10 `RunPython` migrations are all backfills or repairs over existing rows, or a reverse guard (`billing/0074`). None seeds a row the tests read. Content types and permissions are rebuilt by `post_migrate` after each flush.
+- The fixture creates everything it uses.
+- The repo already has many `TransactionTestCase` files, none with `serialized_rollback`.
+
+It runs on the local PG (18.6). It is **not** quoted as the PG16 CI job.
+
+**Fixture.** As in the 3b tests: a school, an admin, a super admin, a plan (block 5000, price 299), a license with max_seats=3, and teachers A, B and C added through `add_teacher_to_license`. Each has 1 block, in dict order a, b, c.
+- Path 1: a PENDING intent, with session `cs_ga` and `pi_ga`, `amount_total` 897, usd. It is driven through `StripeWebhookHandler.handle_checkout_completed(session)`, with `metadata` in the session, so that path's real atomic is in play.
+- Path 2: `LicenseSubscriptionService._grant_overage_offline(license_sub, super_admin, 3, allocations)`.
+- Path 3: the request is created through `request_overage_offline` with its email patched, then `approve_overage_offline_request(request, super_admin, 897, ...)`.
+
+**How the failure is forced (approved).**
+- **F-1, F-2, F-3, F-1c:** `CreditLedger.record` is wrapped. On its first call it goes through to the real `record`. On its second call it checks that the first teacher's OVERAGE bucket exists in the open transaction, notes the result, and raises `RuntimeError("forced F-n")`.
+- **The b-tests: hook points surveyed per path (M-2 b).** Each one is a real call that comes after the BillingTransaction and stays inside the path's atomic:
+  - **F-1b:** `billing.stripe_service.schedule_receipt_url_fill`, called at `stripe_service.py:3583`, right after the BillingTransaction at `:3560`. It is patched to check that the BillingTransaction exists in the open transaction, then raise.
+  - **F-3b:** `LicenseSubscriptionService._notify_school_admin_offline_overage_approved`, called at `license_service.py:3680`, after the BillingTransaction (`:3640`). It is patched the same way. It is called before its own on_commit is registered, so no email is queued.
+  - **F-2b: path 2 has no call after its BillingTransaction except `logger.info` (`:3261`) and `return`.** No seam is invented. I use the only honest point instead: `BillingTransactionService.record` is wrapped to go through to the real method, check that its row exists in the open transaction, and then raise. This is the end of the BillingTransaction write itself, still inside `_grant_overage_offline`'s atomic. **Flagged for the SM.** The alternative is patching the module logger, which I do not propose.
+
+**Each test asserts:**
+1. The forced `RuntimeError` reaches the caller, with its message. A swallowed failure fails the test.
+2. The in-transaction check passed: the first teacher's bucket (F-1/2/3/1c) or the BillingTransaction (b-tests) existed before the rollback. This shows the test is not vacuous.
+3. Afterward, against the counts taken before the call:
+   - no OVERAGE bucket for any teacher;
+   - the CreditLedger count is unchanged;
+   - every teacher's `overage_blocks_used` is unchanged (0);
+   - the BillingTransaction count is unchanged;
+   - the LicenseBillingRecord count is unchanged. On path 3 this covers both APPROVED and OFFLINE_OVERAGE_REFUND_DUE; on path 2, MANUAL_OVERAGE_GRANT;
+   - the `CREDIT_TRANSACTION` AuditEvent count is unchanged (M-5).
+4. Path 1: the intent is still PENDING, with no `failure_reason` and no `fulfilled_allocations`. Path 3: the request is still PENDING, with `reviewed_by` None.
+5. With `send_email_task.delay`, `stripe.Refund.create`, `stripe.Refund.list` and the refund task's `delay` all patched, none of them is called (M-5).
+
+| Id | Path | Failure | Extra |
+|---|---|---|---|
+| F-1 | 1 webhook | 2nd `CreditLedger.record` (teacher B) | — |
+| F-1b | 1 webhook | `schedule_receipt_url_fill` after the BillingTransaction | — |
+| F-1c | 1 webhook | 2nd `CreditLedger.record`, with teacher C departed first, so the failure is on B, an active teacher | `refund_share` is on (switch True, PI, usd); asserts no `Refund.create`/`Refund.list` and no refund task |
+| F-2 | 2 super-admin | 2nd `CreditLedger.record` (teacher B) | no MANUAL_OVERAGE_GRANT record (M-1) |
+| F-2b | 2 super-admin | `BillingTransactionService.record`, call-through then raise | — |
+| F-3 | 3 offline approval | 2nd `CreditLedger.record` (teacher B) | — |
+| F-3b | 3 offline approval | `_notify_school_admin_offline_overage_approved` | — |
+
+### 20c. Runs (h284_deps_env, `settings_worktree`)
+
+**There is no red run.** This step changes no code, and the plan says the property holds today. The plants below take its place.
+
+1. **First run:** the new file alone. Expected **Ran 7, OK**. A failure here would be a real FR-B-08 finding: STOP, reported to the SM, with no fix.
+2. **Targeted set:** §18's set (`test_departed_teacher_refund`, `test_license_overage_offline`, `test_overage_never_expires`, `test_overage_refund_lifecycle`, `test_billing_transaction_refunds`, `AutoGrader.tests_migration_rollback_defaults`, plus G-1/static) and the new file. Expected **Ran 200 = 193 + 7, OK**.
+3. **Plants**, each restored by sha256. Each is run on the new file plus G-1/static.
+   - **PF-1:** remove the `@transaction.atomic` line above `def handle_checkout_completed` (`stripe_service.py:3044`). Expected **FAILED (errors=3)**: F-1, F-1b and F-1c each fail with `TransactionManagementError` at the intent `select_for_update()` (`:3368`). Everything else passes.
+   - **PF-2:** remove the `@transaction.atomic` above `def _grant_overage_offline` (`license_service.py:3169`). Expected **FAILED (errors=2)**: F-2 and F-2b, `TransactionManagementError` at `:3189`.
+   - **PF-3:** remove the `@transaction.atomic` above `def approve_overage_offline_request` (`:3446`). Expected **FAILED (errors=2)**: F-3 and F-3b, `TransactionManagementError` at `:3479`.
+   - **What the plants prove, and what they don't.** Without its atomic, each path stops at its first row lock, before any write. So each plant is killed by the error type, not by a row that survived. They prove that each F test runs its path under that path's own transaction, and notices when it is gone. A plant that let a partial grant *commit* would need a per-teacher commit seam that the code does not have, so none is invented.
+4. **Near run:** under `flock ~/.machine-fullsuite.lock`, `--parallel 4`: `billing audit AutoGrader.tests_migration_rollback_defaults` plus G-1/static. Expected **Ran 3102 = 3095 + 7, OK (skipped=2)**.
+
+Any mismatch is a STOP, reported to the SM.
