@@ -20,14 +20,14 @@ FR-C-08's documented rule changes as follows:
 | # | What | Done | Source |
 |---|---|---|---|
 | 11 | `tags/tests_models.py` deleted a teacher who has courses with assignments. That fails today in `assignments/signals.py:110`, before any tag code runs: `course.teacher` raises DoesNotExist during the cascade. | The test uses a teacher with no courses and still proves the CASCADE. The signal is not touched in C1. | **H-298** (pre-existing; a bug fix goes to beta with owner permission); SM accepted |
-| 12 | Billing's append-only guard is registered on AuditEvent and treats an AuditEvent insert inside `zero_credit_scope` as a ledger insert. The emitter then drops the event silently (FR-A-11). | Every tag write stays inside its zero-credit scope. Its audit event is written just after the scope closes, inside the same transaction. `tags.tests_services.RollbackTest` pins this: a rolled-back write leaves neither the row nor the event. When H-299 lands, the emit placement stays as it is (SM: don't churn it). | **H-299** (Lane 1: exempt AuditEvent in billing/immutable.py); SM accepted |
+| 12 | Billing's append-only guard is registered on AuditEvent and treats an AuditEvent insert inside `zero_credit_scope` as a ledger insert. The emitter then drops the event silently (FR-A-11). | Every tag write stays inside its zero-credit scope. Its audit event is written just after the scope closes, inside the same transaction. `tags.tests_services.RollbackTest` pins this: a rolled-back write leaves neither the row nor the event. When H-299 lands, the emit placement stays as it is (SM: don't churn it). **2026-11-08:** H-299 is on staging (908856152) and merged here (01a39a0c9). The emit stays after the scope by choice; the `_audit` docstring now says so. | **H-299** (Lane 1: exempt AuditEvent in billing/immutable.py); SM accepted |
 | 13 | makemigrations wrote the unique key and the CHECKs as separate AddConstraint operations, which the H-217 migration-safety check refuses. | They are in the CreateModel options. The tables are new and empty, so this creates the same constraints with no lock on existing rows. `check_migration_safety.py` reports "additive only". | SM accepted |
 | 14 | A backfilled link that a teacher keeps in a set. | It stays TOPIC_BACKFILL, so `backfill_topic_tags --reverse` (a rollback of a bad backfill) removes it. Only a link the teacher adds becomes USER. | SM ruling (ii) |
-| 18 | D5 kept visible punctuation and emoji (pending the owner). | The owner's visible-character rule (section below) and the new code TAG_NAME_HAS_SYMBOLS. | Owner, 2026-11-06, via the SM |
+| 18 | D5 kept visible punctuation and emoji (pending the owner). | The owner's visible-character rule (section below) and the new code TAG_NAME_HAS_SYMBOLS. **Reversed 2026-11-08** (section at the end): the rule and the code are gone. | Owner, 2026-11-06, via the SM |
 | 15 | TAG_NAME_TAKEN. | params `{tag_type: <code>, name: <stored spelling>}`. The message shows the TagType label (`display`), with no new label text. | SM ruling (i) |
 | 16 | `tags/tests_api.py` expected the "item" not-found text when another teacher, or an unknown id, PUTs tags on an assignment. | That case answers with the house H-296 text for an assignment: "We couldn't find that assignment. It may have been deleted." (`get_object_or_404`, as every assignment route does). A foreign or unknown **tag** still gets the "item" text. Both are existing approved wording, and neither tells the caller whether the thing exists. | H-296 house wording |
 | 17 | The query-count test measured the first request of the test, which also warms per-request caches (5 queries against 3). | An unmeasured warm-up request first. After that, page sizes 2 and 7 cost the same number of queries. | test fix |
-| 19 | The backfill counted a topic name with symbols in `skipped_bad_name`. | It is counted in its own key, `skipped_symbols`. Empty and too-long names stay in `skipped_bad_name`. Either way the topic is skipped, nothing is written, and the Topic is unchanged. Skip vs strip for such names is still with the owner. | SM ruling (a) |
+| 19 | The backfill counted a topic name with symbols in `skipped_bad_name`. | It is counted in its own key, `skipped_symbols`. Empty and too-long names stay in `skipped_bad_name`. Either way the topic is skipped, nothing is written, and the Topic is unchanged. Skip vs strip for such names is still with the owner. **Withdrawn 2026-11-08:** the red (e368a179b) and the code (325f115d5) were already committed when the reversal arrived, so they are undone by new commits, not dropped from history; `skipped_symbols` no longer exists. | SM ruling (a) |
 
 ## Gates
 
@@ -51,6 +51,18 @@ FR-C-08's documented rule changes as follows:
 | 21*, 21b | symbols, plants | see the visible-character section |
 | 22-red-skipped-symbols | backfill, red | tags.tests_backfill Ran 9: 1 failure, 1 error, as expected (deviation 19) |
 | 23-gate-skipped-symbols | backfill | tags.tests_backfill + the snapshot: Ran 14, OK |
+| 24-mutants (mutants/) | battery, old rule | M1–M14 + M11b: 15 of 15 killed, each restore sha256-matched. Superseded by 29 |
+| 25-gate6-500-tags | Gate 6, old rule | Ran 2, OK, flat. Superseded by 30 |
+| 26-near-run | near run, old rule | **stopped** when the 2026-11-08 reversal arrived; not a result |
+| 27-red-symbols-reversed | reversal, red | Ran 62: 13 failures, 33 errors, all from the old refusal, the `skipped_symbols` key, the U+2019 mapping or the registered code |
+| 28-gate-symbols-reversed | reversal | tags + the snapshot: Ran 129, OK; C1_GATE6 flat 2/2; C1_RACE delete_won=96 attach_won=4; makemigrations --check: no changes |
+| 29-mutants (mutants-29/) | battery | M1–M14 + M11b + MS: 16 of 16 killed, each restore sha256-matched |
+| 30-gate6-500-tags | Gate 6 | Ran 2, OK; 2 queries for 2 tags and for 500, on page 1, page 5, `tag_type` and `q` |
+| 31-near-run | near run | **stopped**: the SM asked for the staging merge (H-299) first; not a result |
+| merge 01a39a0c9 | base | origin/staging 908856152 (H-299 only) merged; `_audit` docstring reworded (fddc3b209) |
+| 32-mutants-merged (mutants-32/) | battery, merged base | M1–M14 + M11b + MS: 16 of 16 killed, each restore sha256-matched |
+| 33-gate6-merged | Gate 6, merged base | Ran 2, OK; 2 queries for 2 tags and for 500 |
+| 34-near-run-merged | near run, merged base | tags classrooms assignments audit billing + AutoGrader.tests_migration_rollback_defaults, under the machine lock: **Ran 4637, OK (skipped=15)**; C1_GATE6 flat 2/2; C1_RACE delete_won=97 attach_won=3. See the skips section. |
 
 ## The backfill and the audit trail
 
@@ -60,6 +72,9 @@ user) and ids and labels only. It writes no event for a link, and nothing
 during a dry run: the dry run runs inside a transaction that is rolled back.
 
 ## Owner ruling (2026-11-06): the visible-character rule, a second change to FR-C-08
+
+> **Reversed by the owner on 2026-11-08.** Kept here as the record of what
+> was built and removed; see the last section.
 
 It replaces the D5 "visible: keep" row. After the Cf/Cc strip and the
 whitespace collapse, a tag name may contain only:
@@ -107,3 +122,53 @@ from a saved copy, sha256 ebbde4c0…eb33, and matched:
 | 21-plant-no-apostrophe | did **not** apply: the match string was wrong, so the run tested unmutated code (OK). Not counted. | — |
 | 21b-plant-no-apostrophe | the U+2019 mapping removed | killed: 1 failure, 1 error |
 | 21-plant-marks-plus-amp | `&` added to ALLOWED_MARKS | killed: 4 failures |
+
+## Owner ruling (2026-11-08): the visible-character rule reversed
+
+Tag names can contain symbols, punctuation and emoji again. Via the SM:
+- **Removed:** TAG_NAME_HAS_SYMBOLS in full: the check, the reason code,
+  its message and its catalogue entry. No new wording is needed, because a
+  message is being removed.
+- **Kept:** D5 (strip Cf/Cc, collapse whitespace; empty after the strip
+  gives TAG_NAME_MISSING), the 100-character cap, the 50-tag cap and the
+  duplicate rules.
+- **Code:** `tags/normalize.py` and `backfill_topic_tags.py` are
+  byte-identical to 445ae769a, the last commit before the 2026-11-06 rule.
+- **Backfill:** a Topic name with symbols is copied, normalized like any
+  other. There is no `skipped_symbols`; the other skip counts are unchanged.
+- **History:** new commits on top, none rewritten: expectations
+  6c178042d, code 559d6b648, battery 2a14cb4a5.
+
+Consequences of restoring 445ae769a, now pinned by tests:
+- **U+2019 is no longer mapped to '.** "Newton’s Laws" and "Newton's
+  Laws" are two different tags. Raised with the SM.
+- **"Year ½"** is accepted. Its NFKC form is "Year 1⁄2", and that is
+  the stored name.
+- **Zero-width joiners inside an emoji sequence are still removed** (they
+  are Cf, under D5), so "👨‍👩‍👧" is stored as
+  three separate emoji.
+
+Tests:
+- The tests that pinned refusal now assert acceptance. None is skipped.
+  - The 26 refused names are kept as typed.
+  - The SM's examples are accepted: "Reading & Writing", "C#", "Year ½",
+    and an emoji name.
+  - API create and rename with symbols succeed.
+  - A backfilled Topic name with symbols is copied.
+  - The catalogue asserts that TAG_NAME_HAS_SYMBOLS is gone.
+- Plants 21 and 21b are replaced by one plant, MS, in the battery: the
+  symbol refusal re-added to `normalize`. It was killed in 29 with 6
+  failures.
+
+## Final near run: the skips (log 34)
+
+All 15 skips are opt-in by environment variable, and none is missing
+infrastructure. Chromium is present: none skipped for a missing browser.
+- 9 load tests (`RUN_LOAD_TESTS=1`)
+- 4 real AI calls, which are billed (`RUN_REAL_AI=1`)
+- 2 audit benchmarks (`AUDIT_BENCH=1`)
+
+The pre-loss baseline is the E1a near run (`e1a/near-run-1e28a9952.log`):
+Ran 2954, OK (skipped=16). That log was written at low verbosity, so it
+names no skips, and its label set differed from this run's. The comparison
+is by count only: 15 now against 16 then, with no new kind of skip.
