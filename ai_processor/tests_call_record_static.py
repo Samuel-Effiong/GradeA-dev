@@ -359,6 +359,10 @@ class NothingReadsOrExposesTheTable(SimpleTestCase):
     ALLOWED = {
         "ai_processor/models.py",
         "ai_processor/call_record.py",
+        # NFR-CMP-04: the student data map holds only the label string
+        # "ai_processor.AICallRecord" for the erasure map; it neither reads
+        # nor exposes the table.
+        "students/student_data_map.py",
     }
 
     def test_no_other_code_names_the_model(self):
