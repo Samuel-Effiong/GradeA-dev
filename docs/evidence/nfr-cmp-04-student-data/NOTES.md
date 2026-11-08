@@ -1311,3 +1311,19 @@ new test passes on the first run.
 
 Run 36 result (`36_protect_characterization.log`): Ran 44, OK. **As
 predicted.** The refusal runs before any delete.
+
+**Prediction for run 37 (the step 3 gate**, under
+`flock ~/.machine-fullsuite.lock`). The labels, with counts from
+`build_suite`:
+
+| Label | Tests |
+|---|---|
+| `students` | 1062 (gate 21's 1017, plus the 44 erase tests and 1 map pin) |
+| `users` | 982 |
+| `audit` | 446 |
+| `tags` | 133 |
+| `AutoGrader.tests_reason_codes` | 61 |
+| `AutoGrader.tests_migration_rollback_defaults` | 12 |
+
+Ran 2696, OK (skipped=7), the same 7 opt-in skips as gate 21. The log goes
+to `GAP-a0-runs/nfr-cmp-04/37_gate_step3.log`.
