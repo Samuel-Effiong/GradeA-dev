@@ -1037,3 +1037,19 @@ outside the repo, as C1's near-run logs do:
 
 Gate 21 runs after the staging merge that brings G4, with its own
 prediction.
+
+### Gate 21 (after the staging merge that brings G4)
+
+`origin/staging` 79a8fcd48 (G4, the fixture rename) is merged at
+604848e74. `students/tests_data_export.py` now imports
+`tags._c1_test_fixtures`.
+
+**Prediction for run 21**, under `flock ~/.machine-fullsuite.lock`:
+`students users audit tags`. This includes `users` and every students and
+audit source-scanning guard, per the SM's process note.
+- **Count:** Ran 2578 (students 1017, users 982, audit 446, tags 133, from
+  `build_suite`, nothing run), OK.
+- **Skips: 7**, the same opt-in ones as gate 20: AUDIT_BENCH ×2,
+  CI_REQUIRE_NETWORK ×3, CI_REQUIRE_REDIS ×1, RUN_REAL_AI ×1.
+- makemigrations --check: no changes.
+- The log goes to `~/Documents/Projects/GAP-a0-runs/nfr-cmp-04/21_gate_step2.log`.

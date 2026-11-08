@@ -44,7 +44,7 @@ from classrooms.models import EnrollmentStatusType, School, StudentCourse
 from dashboard.models import StudentRiskAlertState
 from students.models import BackgroundProcessingTask, StudentSubmission
 from students.student_data_map import STUDENT_DATA_MAP
-from tags._c1_fixtures import World, client_for
+from tags._c1_test_fixtures import World, client_for
 from users.models import (
     PasswordChangeOTP,
     PasswordResetOTP,
