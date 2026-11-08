@@ -618,3 +618,92 @@ Run 08 result (`08_red_export.log`): Ran 23, FAILED (failures=1, errors=1).
 - The error: `ModuleNotFoundError: No module named 'students.data_export'`.
 - The failure: the registry test, on `route='student-data-export'`.
 - **As predicted.**
+
+**A test corrected before green (recorded, not hidden).** `DATA_EXPORT`
+already had an allow-list entry, `{file_count, file_size_bytes}`
+(audit/metadata.py), and I hadn't read it when I wrote the audit tests.
+The code widens that entry and does not narrow it, so the entry is now
+`{file_count, file_size_bytes, item_count, scope}`, and the export records
+`file_size_bytes` too. The two audit tests that asserted the exact key set
+now include `file_size_bytes`. `scope` is added to `ALLOWED_KEYS`. No schema
+change.
+
+Code: `students/data_export.py` (the declarations, `EXPORT_CALLERS`,
+`build_export`) and `students/views_data_export.py`.
+- The view returns `json_404` for every refusal.
+- Submissions are shown through the student's own helpers:
+  `max_points_shown` (H-133), `answer_document_for_student` (H-130),
+  `student_safe_feedback` and `student_safe_formatted_grade`.
+- The final grade is `released_course_grade`.
+- The route `students/<uuid:pk>/data-export` is added, along with
+  `STUDENT_DATA_TOOLS_ENABLED` (default False) in settings.
+
+**Prediction for run 09 (green):** these modules:
+- `students.tests_data_export`
+- `students.tests_student_data_map`
+- `audit.tests_route_coverage`
+- `audit.tests_metadata`
+- `audit.tests_enums`
+
+Ran 115 (42 + 20 + 22 + 28 + 3, counted from the files), OK.
+
+Run 09 result (`09_green_export.log`): Ran 115, **FAILED (failures=3).
+The prediction was wrong** (it said OK), and it is left as written. The
+causes:
+1. **A real code bug, caught by the SM's added matrix row:**
+   `test_an_account_that_is_not_a_real_super_admin_is_refused`. The
+   account with user_type SUPER_ADMIN but no `is_superuser` got 200.
+   `_super_admin` read `caller.is_real_super_admin` without calling it.
+   It is a method (users/models.py:192), so the bare reference is always
+   truthy, and any SUPER_ADMIN-typed account passed. Fixed by calling it.
+   The other subtest, a TEACHER with `is_superuser`, was correctly refused.
+2. **My fixture was wrong:** `test_a_released_grade_is_in_the_export`. The
+   student's whitelist (`student_safe_feedback`) copies
+   `overall_performance_analysis` only when it is a dict, and my fixture
+   stored a string, so the projection was `{}` (correctly). The fixture
+   now stores `{"summary": "Good work"}`. The code is unchanged.
+3. **My registry entry was wrong:**
+   `test_every_registry_entry_names_a_real_route`. `CONCEALED_ROUTES`
+   belongs to the **write**-route sweep (`write_routes()` keeps only
+   routes with POST, PUT, PATCH or DELETE). The export route is GET only,
+   so it can't be listed there. The entry is removed. My
+   `test_the_route_is_concealed_in_the_route_sweep` is replaced by
+   `test_the_route_is_read_only`: the route answers no write method, so the
+   write sweep can't miss it. The dark behavior is still pinned by
+   `test_off_by_default_everyone_gets_the_unknown_url_answer`. The erasure
+   route (step 3, POST) is a write route and **will** be listed in
+   `CONCEALED_ROUTES`. This changes R11 for the export route, which I'm
+   reporting to the SM.
+
+Log numbers shift by one: 10 green again, 11–15 the plants E1–E5, 16 the
+gate.
+
+**Prediction for run 10 (green, the same 5 modules):** Ran 115, OK. The
+count is unchanged, because one test is replaced by another.
+
+Run 10 result (`10_green_export.log`): Ran 115, OK. **As predicted.**
+`makemigrations --check`: no changes.
+
+**After lint (pre-commit refused the commit; no behavior change intended):**
+- mypy: the view returns `json_404` for a missing student before computing
+  the scope, so the student is never None. That was the same branch before.
+- flake8 F811: the released-grade lookup is `partial(released_course_grade,
+  submissions)` instead of a nested def.
+- flake8 B907: `Content-Disposition` is built with Django's
+  `content_disposition_header`.
+
+Log numbers shift again: 11 green after lint, 12–16 the plants E1–E5, 17
+the gate.
+
+**Prediction for run 11 (the same 5 modules):** Ran 115, OK.
+
+Run 11 result (`11_green_after_lint.log`): Ran 115, OK. **As predicted.**
+
+mypy again: `content_disposition_header` is typed `str | None`. The header
+now falls back with `or "attachment"`; it is never None for an attachment,
+so behavior is the same. Logs: 12 green, 13–17 the plants E1–E5, 18 the
+gate.
+
+**Prediction for run 12 (the same 5 modules):** Ran 115, OK.
+
+Run 12 result (`12_green_after_typing.log`): Ran 115, OK. **As predicted.**

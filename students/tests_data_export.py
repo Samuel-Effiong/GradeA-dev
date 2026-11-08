@@ -39,7 +39,7 @@ from ai_processor.models import ChatMessage, ChatSession
 from audit.enums import AuditAction
 from audit.metadata import ALLOWED_KEYS, METADATA_ALLOWLIST
 from audit.models import AuditEvent
-from audit.tests_route_coverage import CONCEALED_ROUTES
+from audit.tests_route_coverage import write_routes
 from classrooms.models import EnrollmentStatusType, School, StudentCourse
 from dashboard.models import StudentRiskAlertState
 from students.models import BackgroundProcessingTask, StudentSubmission
@@ -133,7 +133,7 @@ class _World(World):
             score=Decimal("8"),
             score_percentage=Decimal("80"),
             max_points=10,
-            feedback={"overall_performance_analysis": "Good work"},
+            feedback={"overall_performance_analysis": {"summary": "Good work"}},
             graded_at=now,
             is_published=True,
         )
@@ -144,7 +144,9 @@ class _World(World):
             score=Decimal("3"),
             score_percentage=Decimal("30"),
             max_points=7,
-            feedback={"overall_performance_analysis": UNPUBLISHED_FEEDBACK},
+            feedback={
+                "overall_performance_analysis": {"summary": UNPUBLISHED_FEEDBACK}
+            },
             graded_at=now,
             is_published=False,
         )
@@ -556,14 +558,18 @@ class AuditTests(_ExportCase):
         self.assertEqual(event.action, AuditAction.DATA_EXPORT)  # SM (1)
         self.assertEqual(event.target_type, "Student")
         self.assertEqual(
-            set(event.metadata), {"file_count", "item_count", "scope"}, event.metadata
+            set(event.metadata),
+            {"file_count", "file_size_bytes", "item_count", "scope"},
+            event.metadata,
         )
         self.assertNotIn(self.w.student.email, json.dumps(event.metadata))
         self.assertEqual(event.metadata["scope"], "school")
 
     def test_the_scope_key_passes_the_allow_list(self):  # SM (1)
         allowed = METADATA_ALLOWLIST[AuditAction.DATA_EXPORT]
-        self.assertEqual(allowed, {"file_count", "item_count", "scope"})
+        self.assertEqual(
+            allowed, {"file_count", "file_size_bytes", "item_count", "scope"}
+        )
         self.assertTrue(allowed <= ALLOWED_KEYS)
 
 
@@ -582,5 +588,8 @@ class FlagTests(_ExportCase):
 
         self.assertIs(getattr(settings, "STUDENT_DATA_TOOLS_ENABLED", None), False)
 
-    def test_the_route_is_concealed_in_the_route_sweep(self):
-        self.assertIn("student-data-export", CONCEALED_ROUTES)
+    def test_the_route_is_read_only(self):
+        # The write-route sweep (and CONCEALED_ROUTES) covers write routes;
+        # this one answers GET only, so there is nothing for it to miss.
+        names = {name for name, _method in write_routes()}
+        self.assertNotIn("student-data-export", names)
