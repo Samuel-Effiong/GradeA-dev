@@ -2848,3 +2848,20 @@ Anything else is a STOP. No map entry or field decision is made until the SM rul
   - B1a adds `0037_backgroundprocessingtask_credit_hold`, then `0038_validate_backgroundprocessingtask_job_fk`, then `0039_backgroundprocessingtask_job_index` (`atomic = False`, the concurrent index).
 - **Nothing is fixed.** The choice of fix goes to the SM.
 - A `test_epic_b1a` database was left behind by the failed start. It has 0 connections. I could not drop it ("must be owner"), so it is left for the next run's `--noinput` to recreate.
+
+### 21v. SM rulings on the f90be2a85 STOP (2026-11-08), and R1: the students merge migration
+
+**SM rulings:**
+- **R1:** option (a), an empty merge migration.
+- **R2:** `AIJob.requested_by` is KEEP_RECORD. Billing 0080 makes it SET_NULL, with tests first and plant PR-1.
+- **R3:** the five new BackgroundProcessingTask columns are omitted from the export, with the existing `_PROCESSING` reason.
+- **R4:** the leaked reservation is flag-on blocker FB-1. It is not fixed in B1a.
+- **`SettlementRecord.item_id`** (a bare UUID that can dangle) is accepted as a credit record, like AICallRecord. It gets no map entry, because it is not a user column.
+
+**My own checklist, added per R1:** run `makemigrations --check` after every merge, before declaring any run.
+
+**R1, the migration:** `students/0040_merge.py`, created with `makemigrations students --merge --name merge`. It has no operations and depends on `0037_erasedstudentrecord` and `0039_backgroundprocessingtask_job_index`. `makemigrations --check --dry-run` reports "No changes detected" (run before this commit).
+
+**Declared before the checks run:**
+- `check_migration_safety.py --base HEAD~1` reports 0040_merge with no unsafe operation and exits 0.
+- `migrate` forward on the scratch DB `test_epic_b1a_migrate`, as in §21p, applies everything with no error, ending with `students.0040_merge` applied. The DB is then dropped. The SM waived the round trip.
