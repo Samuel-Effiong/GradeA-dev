@@ -2811,3 +2811,30 @@ The SM pushed `task/epic-b1a` at 5899077ee and opened draft PR #123 for one CI r
 - The cause is the base: `dev` dates from May 2026, so every migration added since then counts as new.
 - Every B1a migration reports additive.
 - **SM ruling:** not B1a.
+
+### 21u. Staging e813dc61c merged (NFR-CMP-04), and the student-data guards declared before they run (2026-11-08)
+
+**The merge:** `origin/staging` at **e813dc61c** (NFR-CMP-04 student data export and erasure), merged into `task/epic-b1a` as **8dec2f443** (`--no-ff`).
+- No conflicts.
+- It brings `students/0037_erasedstudentrecord`.
+
+**What the guards will see, by introspection (no database, no test run):**
+- `_user_relations() - STUDENT_DATA_MAP` is exactly `{("billing.AIJob", "requested_by")}` (CASCADE, NOT NULL).
+- `_bare_user_id_columns() - STUDENT_DATA_MAP` is empty.
+- No map entry is stale.
+- B1a's other relations do not point at a user:
+  - `AIJob.wallet` (SET_NULL, §21n), `AIJob.course` (SET_NULL) and `AIJob.assignment` (SET_NULL);
+  - `SettlementRecord.job` (CASCADE);
+  - `BackgroundProcessingTask.job` (SET_NULL).
+- `SettlementRecord.item_id` is a bare UUID naming a `BackgroundProcessingTask` row, or the job, with no FK. The guard's name pattern does not match it.
+- **The export field guard:** `students.BackgroundProcessingTask` is an exported table, and B1a's five new columns on it are not decided anywhere: `hold_credits`, `hold_drawn`, `hold_state`, `job`, `released_credits`.
+
+**Counts (`DiscoverRunner.build_suite`, after the merge):** `students.tests_student_data_map` 21, `students.tests_data_export` 45, `students.tests_data_erase` 45, for 111 in all, with no decorated skips.
+
+**Prediction for those three modules (flag unset, under `flock`): Ran 111, FAILED (failures=2):**
+- `students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_relation_to_a_user_is_in_the_map`, with the message naming `('billing.AIJob', 'requested_by')`;
+- `students.tests_data_export.FieldListGuardTests.test_every_field_is_decided_exactly_once`, failing in one subTest, `label='students.BackgroundProcessingTask'`.
+
+Anything else is a STOP. No map entry or field decision is made until the SM rules on the roles.
+
+**The near run's count after the merge:** the §21r labels now count 7420; `students` is 1064, up from 953 by these 111. The skips are still 26 decorated plus 4 at run time.
