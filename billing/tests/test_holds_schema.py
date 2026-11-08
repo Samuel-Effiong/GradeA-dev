@@ -119,7 +119,8 @@ class AIJobColumnsTests(TestCase):
             name: aijob._meta.get_field(name).remote_field.on_delete
             for name in ("wallet", "requested_by", "course", "assignment")
         }
-        self.assertEqual(rules["wallet"], models.PROTECT)
+        # NOTES §21n: was PROTECT (03a); a finished job now outlives its wallet.
+        self.assertEqual(rules["wallet"], models.SET_NULL)
         self.assertEqual(rules["requested_by"], models.CASCADE)
         self.assertEqual(rules["course"], models.SET_NULL)
         self.assertEqual(rules["assignment"], models.SET_NULL)
