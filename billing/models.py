@@ -1801,9 +1801,15 @@ class AIJob(models.Model):
     requested_by = models.ForeignKey(
         "users.CustomUser", on_delete=models.CASCADE, related_name="ai_jobs"
     )
-    # 03a: a wallet with open reservations must not vanish.
+    # NOTES §21n: a finished job outlives its wallet (SET_NULL); a wallet's
+    # open holds are released by billing.holds.release_open_holds_on_delete
+    # (pre_delete) before it goes, so only a terminal job has no wallet.
     wallet = models.ForeignKey(
-        CreditWallet, on_delete=models.PROTECT, related_name="ai_jobs"
+        CreditWallet,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ai_jobs",
     )
     school_id = models.UUIDField(null=True, blank=True, db_index=True)
     course = models.ForeignKey(
