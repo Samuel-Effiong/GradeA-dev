@@ -2405,3 +2405,16 @@ The method follows plan §9 item 13:
 | 3 (here) | `TransactionTestCase`, 2000 calls per mode, interleaved | 22.7 ms | 32.6 ms | FAIL |
 
 - **All three measurements FAIL** the plan's 5 ms. Committing each call removed measurement 2's slowdown in both modes, but the added cost is still above 20 ms at p50. This is consistent with the profile's +22 queries per call. The decision stays with the owner (SM): the wallet-counter fallback for SINGLE_CALL, or a changed budget.
+
+### 21l. Gate 6: the owner's decision (2026-11-08, relayed by the SM)
+
+**ACCEPT.**
+- The added-latency budget is raised from 5 ms to **40 ms at p95**.
+- The wallet-counter fallback is **not** built.
+- Trimming the ~22 extra queries per call (§21i) moves to **B1b**. It goes on the B1b plan list; nothing is built now.
+
+**How it is recorded:**
+- Measurements 1, 2 and 3 stay recorded as **FAIL against 5 ms** (§21g, §21i, §21k). Nothing is amended.
+- **Gate 6 against the new budget is judged on measurement 3**, the declared realistic method (`TransactionTestCase`): added p95 32.593 ms ≤ 40 ms, **PASS**.
+- The opt-in assertion in `test_holds_gate6_latency.py` and `test_holds_gate6_m3.py` changes from 5 to 40 ms in a separate commit that cites this decision. `test_holds_gate6_m2.py` keeps its 5 ms, as the record of measurement 2.
+- The load tests are **not** re-run for this; they are opt-in and the measurement 3 numbers stand.
