@@ -274,3 +274,7 @@ labels, with counts from `DiscoverRunner.build_suite`, nothing run:
 | `audit.tests_route_coverage` | 22 |
 
 Ran 284, OK. Any skips are counted after the run.
+
+Run 39 result (`GAP-a0-runs/c1/39-gate-fixture-rename.log`): Ran 284, OK,
+0 skipped. **As predicted.** The sign-in guard passes: the renamed
+fixture has "test" in its name and is skipped as a test file.
