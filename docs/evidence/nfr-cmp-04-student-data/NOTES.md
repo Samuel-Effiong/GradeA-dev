@@ -550,3 +550,66 @@ assertions:
 
 The exact counts are written down after the test file is written, before
 the run.
+
+### SM rulings (2026-11-08, second message) and the changed declaration
+
+- **Audit: reuse `AuditAction.DATA_EXPORT`** (its label "Data export" is
+  already approved; no new label). The target is `Student` with the
+  student's id. The metadata is `file_count`, `item_count` and `scope`
+  (`all`, `school` or `courses`).
+  - **How the allow-list works:** an action's entry in
+    `METADATA_ALLOWLIST` is the only set of keys it accepts, and every
+    such key must also be in `ALLOWED_KEYS` (`audit/tests_metadata.py`).
+    So `scope` is added to `ALLOWED_KEYS`, and `DATA_EXPORT` gets
+    `{file_count, item_count, scope}`. Its values are short strings with
+    no `@`, so they pass `sanitise`'s shape and personal-data rules.
+  - **No schema change:** `metadata` is a JSON column, and the action
+    already exists.
+  - My first audit test assumed the global list and the per-action list
+    combine; they don't. Corrected before any run.
+- **a4c6f1fd9** (H-130 parity) is accepted as written.
+- **Q5:** ai_summary stays out. The owner is told, with the AI draft fields.
+- **R5, the owner's decision of 2026-11-08: YES.**
+  - `TEACHER_EXPORT_ALLOWED = True`, scope `courses`.
+  - **What "the teacher's courses" means:** a course has exactly one link
+    to a teacher, `Course.teacher`, its owner. The code has no co-teacher
+    or assignment model; I searched every relation to the user model and
+    to Course. So a teacher's courses are the ones they own.
+  - **The teacher's export:** the course-scoped tables (StudentCourse,
+    StudentSubmission through the assignment, ChatSession) in those
+    courses only, plus a profile limited to `TEACHER_PROFILE_FIELDS` (id,
+    first_name, middle_name, last_name, email). It has no activity,
+    settings, risk alert, processing records or image.
+  - **Every refusal is json_404**, the unknown-URL answer: the same bytes
+    for the flag being off, an unknown student, a caller out of scope and
+    a target that isn't a student.
+  - **The row added to the matrix:** a teacher at the student's school with
+    a course of their own, which the student isn't in, gets exactly the
+    same response as a teacher from another school. Patching the switch
+    off gives json_404 to every teacher.
+- **Plant E5 changes** (the old E5, "defaulted to True", is now the
+  default): **E5 is the teacher's course filter dropped**, so a teacher
+  gets every course.
+- **R2** is still with the owner, and step 3 is unchanged.
+
+The test file is `students/tests_data_export.py`, with 42 tests:
+- the field guard: 6;
+- content: 11;
+- the caller matrix: 14;
+- teachers: 6;
+- audit: 2;
+- the flag: 3.
+
+`audit/tests_route_coverage.py` lists `student-data-export` in
+`CONCEALED_ROUTES`. `tags/tests_catalog.py` only checks that its own routes
+are in that list, so it isn't affected.
+
+**Prediction for run 08 (red):** `students.tests_data_export` and
+`audit.tests_route_coverage`. Ran 23, FAILED (failures=1, errors=1).
+- **The 1 error:** `students.tests_data_export` fails to import (it
+  imports `students.data_export`, which doesn't exist). The loader reports
+  that as one failed test, so none of the 42 tests run.
+- **The 1 failure:** `test_every_registry_entry_names_a_real_route`, on
+  the subtest `route='student-data-export'` (the route doesn't exist yet).
+- The other 21 route-coverage tests pass. (22 tests are counted from the
+  file, plus the one failed import, makes 23.)
