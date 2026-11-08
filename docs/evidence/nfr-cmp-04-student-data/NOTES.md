@@ -114,3 +114,98 @@ student and send it as an `application/zip` download.
 (unique), first, middle and last name, email, erased_at, erased_by (id and
 email) and `keep_until` (erased_at + 7 years). It is written only by a full
 erasure; a teacher's erasure keeps the account. No purge job exists yet.
+
+### Step 0.3: proposed step plan (for the SM's ruling)
+
+**Flag:** `STUDENT_DATA_TOOLS_ENABLED`, default False. While it is off,
+every route answers json_404, as the tags routes do.
+
+**Step 1b: map fixes, after the rulings (red, then green, then one plant):**
+- Classify `tags.Tag.teacher` and `tags.Tag.created_by_id`.
+- Widen `USER_ID_COLUMN` so a name ending in `_by_id` is caught, which
+  closes the `created_by_id` gap.
+- Add email-keyed entries (BetaWhitelist, Waitlist) and the profile image,
+  as ruled.
+- Fix `StudentRiskAlertState.course_scoped` and `ChatSession`, as ruled.
+- Plant: drop the new regex branch. It must be killed.
+
+**Step 2: export.** A service, `students.data_tools.export_student(student,
+*, scope)`. It builds the files from the map: one JSON file for each
+entry with `export=True`, plus `profile.json` and a README (wording).
+Each model gets an explicit list of exported fields.
+- Tests:
+  - Every `export=True` entry produces a file.
+  - Every field of an exported model is either listed for export or
+    listed as left out; this guard fails on a new field.
+  - Security data is never in the zip: the bytes are searched for the
+    token, the OTP code and the Google credential values.
+  - Two students in the same course: the other student's rows and values
+    never appear.
+  - Callers: a student exporting themselves is refused (D2). A school admin
+    is limited to their own school, and one with no school sees nothing.
+    A super admin may export anyone. A teacher only as ruled.
+  - Flag off: 404.
+  - One audit event for each export.
+- Plants (one per run): the student filter dropped on one table; a
+  security table exported; the school check dropped; a mapped table
+  skipped.
+
+**Step 3: erasure.** A service, `erase_student(student, *, by)`. It is one
+transaction with the student row locked. Refusals come first:
+- the account is not a student;
+- any NOT_A_STUDENT column points at the student (checked from the map,
+  so a new entry is enforced automatically);
+- the wallet is not empty;
+- [billing records, if ruled].
+
+Then it deletes every DELETE entry from the map, explicitly, with the
+course scope for a teacher. A full erasure also deletes the empty wallet,
+writes the erased-student record and deletes the user row. The profile
+image file is removed after commit.
+- Tests:
+  - Two students share every table. Every DELETE table loses only the
+    target's rows; the other student's rows are unchanged, checked by
+    count and by id.
+  - A teacher's erasure: rows in another teacher's course are untouched,
+    and the account remains.
+  - KEEP_RECORD rows are byte-identical before and after.
+  - Each refusal, driven from the map; a refusal changes nothing.
+  - The erased-student record is written with all its fields.
+  - A failure injected midway rolls everything back.
+  - OutstandingToken rows are deleted, not unlinked.
+  - The erased account cannot sign in.
+  - A second erasure answers "not found".
+  - Final grades in the target's other courses are unchanged by a
+    teacher's erasure.
+- Plants (one per run): the student filter dropped on one delete (it would
+  delete another student's rows); the course scope dropped; the
+  NOT_A_STUDENT check skipped; the wallet check skipped; the
+  erased-student record not written.
+
+**Step 4: battery and gate.** All plants run again, each restored by sha256.
+Then a near run under the machine lock: students, classrooms, users,
+audit, billing, tags and dashboard, plus
+`AutoGrader.tests_migration_rollback_defaults` for the new table.
+
+### Step 0.4: wording that needs owner approval (none written yet)
+- Refusal messages:
+  - the account is not a student;
+  - the account owns courses, licenses or other staff data;
+  - the wallet still holds credits;
+  - [the student has billing records, if ruled];
+  - the student is not in your courses or your school. The proposal is
+    to reuse the H-296 "not found" text, which needs no new wording.
+- Success messages: export ready (the download itself has none); student
+  data erased (full); student removed from your courses and their work
+  erased (teacher).
+- The frontend's second confirmation (D7) is frontend wording, listed so
+  the owner sees it.
+- Email, if any:
+  - to the student after a full erasure (sent before the address is
+    removed);
+  - after a teacher's erasure, either the existing `student_course_removal`
+    email or a new one.
+  - Proposal: no new email.
+- The README inside the zip, and the zip's file and folder names.
+- Audit action labels: "Student data exported" and "Student data erased".
+- A Django admin label for the erased-student record, if it is registered.
