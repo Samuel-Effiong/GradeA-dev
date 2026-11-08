@@ -2745,3 +2745,27 @@ Totals: B1 6 (2 FAIL, 4 ERROR), B2 26 (23 FAIL, 3 ERROR), B3 12 (11 FAIL, 1 ERRO
 **Result** (042c2642, 2026-11-08): **Found 6875, Ran 6875, FAILED (failures=37, errors=8, skipped=28). Matched** (`step21/step21q_flagon_gate_042c2642.log.gz`).
 - The failing set compared by name and kind with `step21/step21q_expected_failures.tsv`: 45 of 45. Nothing unexpected, nothing missing.
 - `tests_call_record`'s deletion test, `test_aijob_on_delete_rules_follow_03a` and the 9 wallet-deletion tests passed.
+
+### 21r. The staging merge, and the flag-off near run declared before it runs (2026-11-08)
+
+**SM rulings (b1b2913ab):**
+- The flag-on gate is accepted, 45/45 by name.
+- The scratch database for the 0079 round trip is approved. The shared AutoGrader dev database is never migrated from a branch.
+
+**The merge:** `origin/staging` at **79a8fcd48** (the C1 fixture rename), merged into `task/epic-b1a` as merge commit **77ebb6937** (`--no-ff`, no rebase).
+- No conflicts.
+- It brings `assignments/0041_topic_set_null` and `tags/0001_initial`.
+- `makemigrations --check`: no changes.
+
+**The flag-off near run.** It runs at the commit that adds this section, with no `BILLING_HOLDS_ENABLED` in the environment (default off), under `flock`, `--parallel 4`.
+- **Labels:** `billing ai_processor assignments students users audit AutoGrader.tests_migration_rollback_defaults AutoGrader.tests_h271_static_files`.
+- This is the superset of what the SM listed and of §21e's "five apps":
+  - billing and the hold targeted set;
+  - the users app, which holds G4's guard `users.tests_roads_that_sign_in_or_activate`;
+  - the students and audit source-scanning guards, all inside their apps: `students.tests_reading_label_static`, `students.tests_h279_regrade_pending_approval`, `students.tests_app_boundaries`, `audit.tests_h273_query_filters`, `audit.tests_route_coverage`;
+  - the 0079 rollback check;
+  - G-1/static.
+- **Counted with `DiscoverRunner.build_suite` after the merge:** billing 2605, ai_processor 1474, assignments 822, students 953, users 982, audit 454, the rollback test 12, static files 7. **Combined: 7309.**
+- **Skips:** 26 are decorated: billing 4 (the opt-in Gate 6 files), ai_processor 6, assignments 13, students 1, audit 2. The flag-on gate's labels count 24 decorated skips against the 28 that run showed, so 4 skips happen at run time; they are expected again here.
+- **Prediction: Ran 7309, OK (skipped=30).** Any failure, or a different count or skip number, is a STOP, recorded as it is.
+- §21j's billing-only "Ran 3110 (skipped=6)" was a different label set (`billing audit` + the rollback test + G-1/static). This run replaces it as the flag-off near.
