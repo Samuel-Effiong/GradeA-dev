@@ -1625,3 +1625,112 @@ Any mismatch is a STOP, reported to the SM.
 | LP-1: `LATE_DOOR_STUDENT_NOTICE_APPROVED` back to False, restored by sha256 (d19bbf1a…, HEAD) | c5bb2e19 + plant | Ran 73, FAILED (failures=3): L-1, L-2 (same messages as red); the renamed door test `False is not True` | yes | step17/step17_plant_LP-1.log |
 
 `LATE_DOOR_EMAIL_APPROVED` (False) and `LATE_DOOR_EMAIL_TEXTS` are unchanged in c5bb2e19. The late-door student notice is on in B1a.
+
+## 18. Plan step 3b: the departed-teacher share refund (§9 item 3). Expectations committed before any code or run (2026-11-08)
+
+**Owner ruling 2026-10-29 (plan §9.3):** a teacher skipped at fulfillment after the school paid has that share refunded automatically to the school, and the admin is notified. Stripe payments get a partial refund; offline payments get an offline refund record for the super admin.
+
+**Plan correction (SM Q1, 2026-11-08).** §9.3 says "through the existing payment_refunds.py path". That module only applies an inbound `charge.refunded`, so the phrase describes the inbound side. The refund is issued the way `stripe_service.py:1710` issues the interval-change refund, and the inbound `charge.refunded` then goes through `RefundService.apply` with `retain_credits=true`.
+
+### 18a. Survey findings (sent to the SM, rulings Q1–Q5 on 2026-11-08)
+
+- **F-1.** Nothing in the code issues a refund for this. The precedent is `stripe.Refund.create(payment_intent=…, idempotency_key=…, metadata={system_refund_reason: …})` (stripe_service.py:1710).
+- **F-2 (the key risk).** Our partial refund comes back as `charge.refunded`. By default `RefundService` reclaims `granted × refunded // captured` from the teachers who WERE granted. The refund must carry `retain_credits=true`.
+  - payment_refunds.py: the retain branch returns before `reverse_credits_for_payment` and `_restore_block_allowance`, so credits and the block allowance are left alone.
+  - `system_refund_reason` only changes the no-matching-transaction branch of `handle_refund`. Ours matches the overage purchase's BillingTransaction, which becomes PARTIALLY_REFUNDED.
+- **F-3.** The handler skips only COMPLETED intents, and a partial-skip intent ends FAILED, so a re-invocation re-grants. **Filed by the SM as H-300 and not fixed here.** Guard 2 makes a second refund impossible.
+- **F-4.** Offline: `approve_overage_offline_request` skips the same way (`skipped_allocations`). There is no refund record today.
+- **F-5.** The handler runs inside `handle_checkout_completed`'s atomic block, so the refund goes to `transaction.on_commit`, as a Celery task.
+
+### 18b. Design (SM rulings Q1–Q5)
+
+**One switch.** `DEPARTED_SHARE_REFUND_APPROVED = False`, in a new module `billing/departed_share_refund.py`.
+- **While off:** today's behavior and today's texts, byte for byte. The switch exists because a refund running while W-1 still says "Needs manual review (partial refund…)" invites a second, manual refund of real money.
+- **While on:** the refund, plus the PENDING texts below.
+
+**PENDING texts.** `DEPARTED_SHARE_REFUND_TEXTS`, one constant marked PENDING OWNER APPROVAL, following the `LATE_DOOR_EMAIL_TEXTS` pattern. The SM is drafting the texts for the owner, so I write none.
+- The keys are `failure_reason` (W-1), `transaction_suffix` (W-2), `email_subject` and `email_body` (W-3), and `offline_notes` (W-4 notes).
+- Every value is a placeholder starting `PENDING OWNER TEXT`.
+
+**Offline record.** A new `LicenseBillingRecordType.OFFLINE_OVERAGE_REFUND_DUE`, with the placeholder label `"PENDING OWNER TEXT: offline overage refund due"`.
+- Migration `0078`: a choices-only `AlterField` on `LicenseBillingRecord.record_type`.
+- The record is created only while the switch is on.
+
+**W-5.** A failure is logged only, at ERROR, containing `MANUAL RECONCILIATION`. No message is sent.
+
+**Stripe path, switch on.** In `_handle_license_overage_checkout_completed`, when `skipped` is non-empty, `transaction.on_commit(lambda: refund_departed_teacher_share.delay(str(intent.id)))`. Nothing is sent to Stripe inside the webhook transaction.
+
+The task `billing.tasks.refund_departed_teacher_share(intent_id)` does this:
+1. Reads the intent. The share is `sum(skipped blocks) × unit_price_cents_snapshot`. The skipped blocks are recomputed from `allocations` minus the granted ledger rows' `metadata.intent_id`.
+   - **Code-time confirmation:** if that turns out too indirect, the skipped list is parsed from nowhere else. A non-empty share that cannot be computed is an ERROR `MANUAL RECONCILIATION`. Either way the tests pin the amount.
+2. If there is no `stripe_payment_intent_id`: no Stripe call, ERROR `MANUAL RECONCILIATION`.
+3. **Guard 2:** `stripe.Refund.list(payment_intent=pi, limit=100)`.
+   - If any refund carries `metadata.system_refund_reason == "departed_teacher_share"` and `metadata.intent_id == intent.id`, the task returns and does nothing.
+   - **Cap (SM Q2):** refundable = `amount_total` (the intent's paid amount: session `amount_total`, or else `amount_cents`) minus the sum of existing refunds on the PI whose status is not `failed` or `canceled`. amount = `min(share, refundable)`. If amount ≤ 0: no refund, ERROR `MANUAL RECONCILIATION`.
+4. `stripe.Refund.create(payment_intent=pi, amount=amount, idempotency_key=f"departed-share-refund-{intent.id}", metadata={"system_refund_reason": "departed_teacher_share", "retain_credits": "true", "intent_id": str(intent.id)})`.
+5. Failures:
+   - On `stripe.error.APIConnectionError`, `RateLimitError` or `APIError`, the task retries: `max_retries=5`, exponential countdown, everything inside 24 hours so the idempotency key still holds.
+   - On any other `StripeError`, or once the retries are used up, the task logs at ERROR with `MANUAL RECONCILIATION` and stops.
+   - Grants, the intent and the BillingTransaction are never rolled back or edited by the task.
+6. The W-3 email to `license_sub.admin_user` (falling back to `intent.initiated_by`) goes through `send_email_task.delay` with the PENDING subject and body, in the handler's on_commit, switch on only.
+
+**W-1/W-2, switch on.** `failure_reason` and the BillingTransaction suffix use the PENDING texts, and the intent status stays FAILED (plan m3-a: FAILED handling unchanged).
+
+**Offline path, switch on.** In `approve_overage_offline_request`, when `skipped` is non-empty, one `LicenseBillingRecord(record_type=OFFLINE_OVERAGE_REFUND_DUE, amount_paid_cents=min(share, amount_confirmed_cents), notes=TEXTS["offline_notes"], performed_by=…)` is written in the same transaction, and the W-2 suffix uses the PENDING text. No Stripe call. `amount_paid_cents` holds the amount owed back (open question R-Q1 below).
+
+**Scope.** No change to `payment_refunds.py`, to H-300 (the re-grant), to the late-door or holds code, or to live_qa.
+
+### 18c. Tests: new file `billing/tests/test_departed_teacher_refund.py`
+
+**Fixture.** The school-license fixture from `test_overage_never_expires.LicenseOverageCheckoutWebhookNeverExpiresTestCase`, with 3 teachers on the license.
+- The intent is 3 teachers × 1 block at `overage_block_price` 299. The session is paid, with `payment_intent="pi_dr"` and `amount_total=897`.
+- **Departure between checkout and webhook:** after the intent is created, teacher C's `SchoolCreditAllocation` gets `is_active=False`, the condition the handler re-checks under lock.
+- `stripe.Refund.create` and `stripe.Refund.list` are patched in `billing.departed_share_refund`, and `send_email_task.delay` is patched. `refund_departed_teacher_share.delay` is routed to `.apply`.
+- The handler runs under `captureOnCommitCallbacks(execute=True)`.
+- **No live Stripe call anywhere.** The switch is patched on per test with `patch.object(drs, "DEPARTED_SHARE_REFUND_APPROVED", True)`. The module is reached through a lazy helper, so on red each test fails on its own rather than the whole file failing to import.
+
+| Id | Test | Red (no module) | Green |
+|---|---|---|---|
+| DR-1 | switch off, Stripe path: A and B granted, C not. Intent FAILED, with today's `failure_reason` (contains `Needs manual review (partial refund or manual grant).`) and today's suffix ` (1 skipped, needs review)`. No Refund.list or Refund.create, no task, no email | PASS (control) | PASS |
+| DR-2 | switch off, offline path: today's approval (`skipped_allocations` holds C). No `OFFLINE_OVERAGE_REFUND_DUE` record, no Stripe call | PASS (control) | PASS |
+| DR-3 | `DEPARTED_SHARE_REFUND_APPROVED is False`; the texts keys equal the 5 above and every value starts `PENDING OWNER TEXT`; the new choice's label is the placeholder | ERROR (ModuleNotFoundError) | PASS |
+| DR-4 | switch on, the departure: A and B granted exactly as in DR-1. Exactly one Refund.list(payment_intent="pi_dr") and exactly one Refund.create with `amount=299`, `idempotency_key="departed-share-refund-<intent>"` and metadata `{system_refund_reason: departed_teacher_share, retain_credits: "true", intent_id}` | ERROR | PASS |
+| DR-5 | on-commit: switch on, the handler under `captureOnCommitCallbacks(execute=False)`. Refund.create not called, ≥ 1 callback captured. A handler run inside an atomic block that then rolls back: no Refund.create, ever | ERROR | PASS |
+| DR-6 | round trip (F-2): a `charge.refunded` fixture built from DR-4's Refund.create call (amount_refunded 299, captured 897, `refunds.data[0].metadata` = the call's metadata) goes through `RefundService.apply`. A's and B's OVERAGE bucket credits are unchanged, as is the license's overage block count. `PaymentRefund.retain_credits` is True, the purchase BillingTransaction is PARTIALLY_REFUNDED, and no standalone manual-review transaction is created | ERROR | PASS |
+| DR-7 | cap: Refund.list returns an unrelated succeeded refund of 700, so the refundable amount is 197: Refund.create `amount=197`. A second case with a 897 refund already made: no Refund.create, ERROR `MANUAL RECONCILIATION`. A `failed` refund in the list is not subtracted | ERROR | PASS |
+| DR-8 | guard 2: Refund.list returns our own refund (matching metadata), so a second task run makes no Refund.create. Re-invoking the handler for the same intent also makes no second Refund.create; the re-grant (H-300) is not asserted on | ERROR | PASS |
+| DR-9 | Stripe failure: Refund.create raises `APIConnectionError`, so the task retries (`Retry` raised, retries ≤ 5). Raising `InvalidRequestError` instead: no retry, ERROR `MANUAL RECONCILIATION`. In both cases A's and B's grants and the intent are unchanged | ERROR | PASS |
+| DR-10 | no `payment_intent` on the session: no Stripe call, ERROR `MANUAL RECONCILIATION` | ERROR | PASS |
+| DR-11 | switch on, W-3: exactly one `send_email_task.delay` to the license admin, with the PENDING subject and body | ERROR | PASS |
+| DR-12 | switch on, W-1/W-2: `failure_reason` is the PENDING text and the transaction suffix is the PENDING text. The intent stays FAILED | ERROR | PASS |
+| DR-13 | switch on, offline: exactly one `OFFLINE_OVERAGE_REFUND_DUE` record (amount 299, the notes text). No Stripe call | ERROR | PASS |
+| DR-14 | switch on, no teacher skipped: no Refund.list or Refund.create, no task, no email, no record | ERROR | PASS |
+| DR-15 | migration 0078 is choices-only: forward then back with `MigrationExecutor` changes no column. `makemigrations --check` is clean (run separately) | ERROR (no 0078) | PASS |
+
+DR-15 is the "rollback-defaults" test the SM asked for. I found no existing test by that name. `test_holds_schema.py` S-5 (reversal) is the nearest precedent, so DR-15 lives in the new file and leaves S-5 untouched.
+
+No pre-existing test is edited. With the switch off, every text and behavior is today's, and `test_license_overage_offline.py`, the only file touching `skipped_allocations`, runs in the targeted set unchanged.
+
+### 18d. Runs
+
+The targeted set is the new file + `billing.tests.test_license_overage_offline` + `billing.tests.test_overage_never_expires` + `billing.tests.test_overage_refund_lifecycle` + `billing.tests.test_billing_transaction_refunds` + G-1 + `students.tests_reading_label_static` + `AutoGrader.tests_h271_static_files`. The count is recorded at the run.
+
+1. **Red** (tests committed, no code): DR-1 and DR-2 PASS; DR-3 to DR-15 ERROR, 13 errors. Everything else passes.
+2. **Green:** OK. `makemigrations --check` is clean after 0078.
+3. **Plants**, each restored by sha256 and run on the targeted set:
+
+| Plant | Change | Expected kill |
+|---|---|---|
+| RF-1 (M-B33) | the handler's on_commit enqueue removed | DR-4, DR-6, DR-11 |
+| RF-2 | `retain_credits` dropped from the Refund.create metadata | DR-4 (metadata), DR-6 (A's/B's credits reclaimed) |
+| RF-3 | guard 2 removed (no Refund.list match check) | DR-8 |
+| RF-4 | the refund called inline in the handler instead of on commit | DR-5 |
+| RF-5 | the cap is `min(share, amount_total)` (existing refunds ignored) | DR-7 |
+| RF-6 | the handler's switch check becomes `if True` | DR-1 |
+| RF-7 | `idempotency_key` dropped | DR-4 |
+
+4. **Near run:** under `flock ~/.machine-fullsuite.lock` with h284_deps_env, `billing` + G-1/static, `--parallel 4`. Expected OK; the count is recorded at the run.
+
+**Open question for the SM (R-Q1):** the offline record has no amount-owed field. I plan to put the amount in `amount_paid_cents`, since the record type says it is a refund due. The alternative is notes only. Answer before green, not before red.
+
+Any mismatch is a STOP, reported to the SM.
