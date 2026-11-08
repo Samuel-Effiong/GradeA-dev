@@ -847,3 +847,169 @@ The fixes are proposed to the SM, and none is applied before the ruling.
 The log is too large for the repo's large-file hook, so the gate log lives
 outside the repo, as C1's near-run logs do:
 `~/Documents/Projects/GAP-a0-runs/nfr-cmp-04/20_gate_step2.log`.
+
+## Step 3: erasure (EXPECTATIONS ONLY: no code and no red until the SM rules)
+
+### Route and flag
+- **Route:** `POST students/<uuid:pk>/erase`, named `student-data-erase`.
+  It sits behind the same `STUDENT_DATA_TOOLS_ENABLED` and the same
+  `dispatch()` and `handle_exception` as the export: flag off, anonymous, a
+  bad token and every refusal by scope all give the unknown-URL bytes.
+- It is a write route, so it **is** listed in `CONCEALED_ROUTES` (SM
+  confirmed). Only POST and OPTIONS are allowed.
+- No request body: the caller's role decides the scope. There is no
+  server-side confirmation count; D7 makes the second confirmation
+  frontend-only.
+
+### Who may erase, and how much: `ERASE_CALLERS`, one place
+- **Super admin** (`is_real_super_admin()`): a full erasure of any student.
+- **School admin:** a full erasure of a student whose own `school_id`
+  equals the admin's, never null (R6, D3).
+- **Teacher:** a course erasure (D3) of a student in a course the teacher
+  owns. The student is removed from that teacher's courses only, and the
+  account stays.
+- **Everyone else**, including the student themselves and another
+  student: json_404, as are an unknown id and a target that isn't a
+  student.
+
+### What a full erasure does, in one transaction with the student row locked
+1. **Refusals, checked first, in this order.** Any refusal changes nothing
+   and writes no erasure event. Each has its own reason code, and its text
+   is PENDING:
+   - **NOT_A_STUDENT:** any `NOT_A_STUDENT` column in the map points at
+     the student. One `exists()` per entry, driven by the map, so a new
+     entry is enforced automatically.
+   - **Wallet not empty:** `CreditWallet.total_remaining_credits() > 0`,
+     or either `dispute_deficit_credits` or `refund_deficit_credits` is
+     above 0. A deficit means credits are owed, so the wallet isn't empty.
+   - **Billing records (owner R2, 2026-11-08: REFUSE):** any
+     `BillingTransaction.user`, `BillingTransaction.performed_by` or
+     `PaymentDispute.user` row points at the student. Those columns are
+     SET_NULL, so deleting the user would cut the records' only link.
+2. **Deletes, each from the map and explicit (never left to a cascade):**
+   - StudentCourse first, then StudentSubmission. With the enrollment
+     already gone, the grade recalculation fired by a submission delete
+     finds nothing to rewrite.
+   - Then every other DELETE entry matched to the user, including
+     `OutstandingToken`, which is SET_NULL and would otherwise be left
+     unlinked.
+   - The EMAIL entries: BetaWhitelist and Waitlist, `email__iexact` the
+     student's email (R7).
+   - The empty CreditWallet, along with its empty buckets by cascade.
+     This is ORM calls only; billing/* is not edited (R10).
+3. **The erased-student record:** a new model,
+   `students.ErasedStudentRecord`, written before the user row goes.
+   - Fields: `original_user_id` (a UUID, unique), first, middle and last
+     name, email, `erased_at`, `erased_by_id` (a bare UUID), and
+     `keep_until` = `erased_at` + 7 years.
+   - The migration is additive, a new table with its constraints in
+     CreateModel (H-217).
+   - The record is **not** registered in the Django admin, so no label or
+     wording is needed (SM: read-only or not at all).
+   - Its own guard entries: `original_user_id` is KEEP_RECORD, and
+     `erased_by_id` is NOT_A_STUDENT. The widened `_by_id` pattern catches
+     `erased_by_id`.
+4. **Then the user row is deleted.** Anything left that references the
+   user must be a KEEP_RECORD bare id (AuditEvent, CreditLedger,
+   CreditUsageLog, AICallRecord), which the deletion leaves alone.
+5. **The profile image (R8):** deleted from storage on commit. A storage
+   failure doesn't undo the erasure (the row is already gone) and is
+   logged at ERROR.
+6. **One erasure audit event** (the action needs your ruling: **E-Q1**).
+   Target `CustomUser` with the student's id, if G3 is approved.
+   Metadata: `item_count` and `scope` (`full` or `courses`), no names.
+
+### What a course erasure (teacher, D3) does
+- It runs the course-scoped entries only, filtered to the teacher's
+  courses: StudentCourse, then StudentSubmission (through the assignment),
+  then ChatSession.
+- BackgroundProcessingTask rows whose submission is deleted go with it,
+  by the existing CASCADE. Rows with no submission stay. **E-Q2:** should
+  BackgroundProcessingTask be course-scoped too, through its assignment?
+- The account, the wallet, the risk alert, activity, settings, security
+  data and the image all stay. There's no erased-student record.
+- The only refusal is that the target must be a student in one of the
+  teacher's courses (json_404 otherwise). NOT_A_STUDENT, the wallet and
+  billing refusals don't apply, because the account stays.
+
+### Tests (all in `students/tests_data_erase.py`)
+- **Only the target's rows:** two students share every table (course,
+  assignment, chat, settings, activity, tokens, OTPs, the whitelist and the
+  waitlist). For every DELETE entry, the target's rows go, and the other
+  student's rows are unchanged, by count and by id.
+- **Course scope:** rows in another teacher's course are untouched, and
+  the account stays. Final grades in the student's other courses are
+  unchanged.
+- **KEEP_RECORD rows** (AuditEvent, CreditLedger, CreditUsageLog,
+  AICallRecord) are identical before and after: the same rows, with every
+  column equal.
+- **Refusals,** each changing nothing (row counts in every mapped table
+  unchanged, no erasure event):
+  - one test per NOT_A_STUDENT entry, driven from the map;
+  - wallet credits;
+  - a dispute deficit;
+  - a refund deficit;
+  - **R2, one test per table:** BillingTransaction.user,
+    BillingTransaction.performed_by and PaymentDispute.user;
+  - **R2:** a student with **only** a `performed_by` row is refused.
+- **The erased-student record** is written with every field, and
+  `keep_until` = `erased_at` + 7 years.
+- **R7:** a whitelist or waitlist row whose email differs only in case is
+  deleted. A different email is untouched.
+- **R8:**
+  - the image is deleted from storage after commit;
+  - a storage failure leaves the erasure done and logs ERROR;
+  - a rolled-back erasure deletes no image.
+- **Grade history:** no event written during the erasure (GRADE_CHANGE,
+  ROSTER_CHANGE, the erasure event) carries the student's name or email
+  in any field. Ids only.
+- **Atomic:** a failure injected at the user-row delete rolls everything
+  back, including the record and the deletes.
+- **OutstandingToken rows** are deleted, not unlinked.
+- **The erased account** can't sign in, and its old JWT gets the
+  unknown-URL bytes.
+- **A second erasure** gets json_404.
+- **The caller matrix:**
+  - super admin;
+  - school admin of the same school, of another school, with no school;
+  - a student with no school (school admin refused, super admin allowed);
+  - the student themselves, another student;
+  - a teacher of the course, a teacher of another course at the same
+    school (the same bytes as a stranger);
+  - a non-student target, an unknown id;
+  - anonymous, a bad token;
+  - HEAD and GET (405, nothing deleted);
+  - flag off.
+- **The route:** it is in `CONCEALED_ROUTES`, and the route sweep passes.
+
+### Plants (one per run)
+- X1: the student filter dropped on one DELETE entry (it deletes the other
+  student's rows).
+- X2: the course scope dropped for a teacher.
+- X3: the NOT_A_STUDENT check skipped.
+- X4: the wallet check skipped.
+- X5: the R2 billing check skipped.
+- X6: the erased-student record not written.
+- X7: `iexact` changed to `exact` (R7).
+
+### Wording (all PENDING, for the owner's single list)
+- The refusal texts: not only a student (NOT_A_STUDENT), the wallet holds
+  or owes credits, and billing records (R2).
+- The success messages: the full erasure, and the course erasure.
+- The erasure audit action's label, if E-Q1 is a new action.
+
+### Questions for the SM
+- **E-Q1, the audit action for an erasure.** Nothing existing fits
+  exactly. The options:
+  - a new `STUDENT_DATA_ERASE` with a PENDING label;
+  - `ADMIN_ACTION` for full erasure, which doesn't fit a teacher's;
+  - `ROSTER_CHANGE` for a course erasure, which is already written for
+    each StudentCourse delete.
+
+  I propose a new `STUDENT_DATA_ERASE` with the label PENDING, one action
+  for both scopes, and `scope` in the metadata.
+- **E-Q2:** BackgroundProcessingTask is course-scoped through its
+  assignment, so a course erasure removes processing rows that have no
+  submission. I propose yes.
+- **E-Q3:** after a course erasure, should the student's risk alert be
+  left alone (R3 said no recompute)? I propose yes, left alone.
