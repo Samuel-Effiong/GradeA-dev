@@ -2219,3 +2219,16 @@ The method follows plan §9 item 13:
    - Then the declared flag-on gate run.
 5. **Flag-off near run:** the five apps, flag off, under `flock`, `--parallel 4`. Expected: OK, with the count recorded against §3a's discovery. The billing near alone is expected at **Ran 3107 = 3102 + 5, OK (skipped=3)**: the Gate 6 test adds one skip.
 6. **Gate summary** in NOTES: every B1a kill target with its evidence, every deviation, and every row deferred to B1b/B1c or the owner (PG 16).
+
+### 21f. SM rulings on §21 (2026-11-08), committed before any code or run
+
+- **GO on §21. The kill criterion is approved, with two additions:**
+  - (a) Every mutant's collateral is listed by test name in the results table, not as a count.
+  - (b) A mutant that breaks import or collection of a module, with an ERROR before any test runs, is a **STOP**, not a kill, even when the named test is among the errors.
+- **R-4a is accepted as a characterization test.** If PG 18.6 does not over-reserve, STOP. PG 16 is pending with G: the owner is choosing between a manual workflow trigger (needs main) and a throwaway PR into dev.
+- **Plan-wording amendment, §6.3 "Failure":** "the provider times out inside a unit (nothing charged, hold kept for the next item)". It should read: "nothing charged for the failed item; its hold is returned (`fail_item`), and the next item runs on its own hold, untouched". The code is right, so T-1 asserts the code. The SM folds this into the B1 plan amendment. No code change.
+- **M-B15 is recorded as "prediction incomplete" in the plan mapping, not as an amended plan.** The plan's H-1 does not kill it. Its kill is `test_holds_unit.UnitTests.test_two_calls_in_a_unit_settle_once`, by IntegrityError on `creditwallet_reserved_credits_nonneg`.
+- **M-B31's sweep half is accepted as written.** The claim-first count over the 10 rounds is recorded. At 0/10 it is reported as a nondeterministic survivor, with no re-run and no seed tricks without the SM.
+- **M-B2 surviving R-1 is the expected survivor.** R-4b kills it.
+- **Gate 6 is accepted** (opt-in, asserted p95 ≤ 5 ms added, a fail is a STOP).
+- **Run order §21e is accepted.** **Every run goes under `flock ~/.machine-fullsuite.lock` with h284_deps_env.** There is a checkpoint after the flag-on exploratory run, before the declared gate run. The flag-off near prediction, billing Ran 3107 OK (skipped=3), stands; any other count is "prediction incomplete".
