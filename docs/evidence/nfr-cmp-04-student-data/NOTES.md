@@ -18,3 +18,27 @@ Owner rulings (2026-11-06):
 - NOT_A_STUDENT columns make erasure refuse rather than cascade: an account that owns a course or a license is not only a student.
 - The credit wallet is deleted only when empty; otherwise erasure refuses.
 - BackgroundProcessingTask.requested_by is the student's own data (students can upload answers, H-141). Its export carries file names only.
+
+## Handover to Lane 2 (2026-11-08)
+
+The owner approved Lane 2 taking over NFR-CMP-04 (via the SM). Step 0 is a
+read-only survey and a checkpoint.
+
+### Step 0.1: staging merged, guard expectations (before the run)
+
+`origin/staging` 703310b47 is merged at 3512a7fb5. Since 8aafa47dd the only
+new models are C1's `tags.Tag` and `tags.AssignmentTag`. Their user links:
+- `tags.Tag.teacher`: a ForeignKey to the user model, not in the map.
+- `tags.Tag.created_by_id`: a bare UUID holding a user's id, not in the map.
+  The guard's column pattern (`USER_ID_COLUMN`) does not match
+  `created_by_id`, so the guard cannot see it. That is a gap in the guard.
+- `tags.AssignmentTag`: no user link (it points at an assignment and a tag).
+
+A wider search of bare columns found one other unmatched name,
+`ai_processor.BenchmarkQuestionOutcome.graded_by`. It is a CharField naming
+the benchmark grader, not a user, so it is out of scope.
+
+Prediction for run 04 (`students.tests_student_data_map`): Ran 9, exactly
+1 failure, `test_every_relation_to_a_user_is_in_the_map`, naming
+`[('tags.Tag', 'teacher')]` and nothing else. The bare-column test passes,
+because of the gap. Nothing is classified before the SM rules.
