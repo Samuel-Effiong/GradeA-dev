@@ -1798,8 +1798,15 @@ class AIJob(models.Model):
     )
 
     # 03a: an operational row, not history; the ledger keeps the money trail.
+    # NOTES §21v R2: a job is a credit record (owner D1/D4), kept when its
+    # requester is deleted or erased (SET_NULL; the student data map lists it
+    # as KEEP_RECORD).
     requested_by = models.ForeignKey(
-        "users.CustomUser", on_delete=models.CASCADE, related_name="ai_jobs"
+        "users.CustomUser",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ai_jobs",
     )
     # NOTES §21n: a finished job outlives its wallet (SET_NULL); a wallet's
     # open holds are released by billing.holds.release_open_holds_on_delete
