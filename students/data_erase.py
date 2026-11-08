@@ -33,7 +33,7 @@ from django.utils import timezone
 from audit.emitter import emit
 from audit.enums import AuditAction
 from AutoGrader.reason_codes import CodedError
-from classrooms.models import Course, StudentCourse
+from classrooms.models import StudentCourse, reachable_courses
 from students.data_export import COURSE_PATH
 from students.student_data_map import STUDENT_DATA_MAP, Match, Role, entries_with_role
 from users.models import CustomUser, UserTypes
@@ -72,9 +72,9 @@ def _school_admin(caller, student):
 
 
 def _teacher(caller, student):
-    owned = frozenset(
-        Course.objects.filter(teacher=caller).values_list("id", flat=True)
-    )
+    # H-38: only the courses the teacher can still reach; a teacher removed
+    # from the school loses its school-session courses.
+    owned = frozenset(reachable_courses(caller).values_list("id", flat=True))
     if not StudentCourse.objects.filter(student=student, course_id__in=owned).exists():
         return None
     return EraseScope("courses", owned)

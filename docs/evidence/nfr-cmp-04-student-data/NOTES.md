@@ -1686,3 +1686,50 @@ Guard sweep 47 result (`47_guard_sweep.log`): Ran 395, OK (skipped=1), in
 Standing rule from now (SM): every near run includes this whole guard list.
 
 The branch is ready for the SM to push. No push from Lane 2.
+
+## Second post-push miss: the H-38 teacher access guard (SM, 2026-11-08)
+
+Found by the beta-into-staging near run 01
+(docs/evidence/beta-into-staging-2026-11-08/NOTES.md); the SM confirmed it
+on 240567975 (Ran 9, failures=1).
+`classrooms.tests_teacher_access_sweep.test_no_unlisted_direct_owner_scoping`
+flags `Course.objects.filter(teacher=caller).values_list("id", flat=True)`
+in `data_export._teacher` and `data_erase._teacher`. **Prediction
+incomplete**: no NFR-CMP-04 near run included classrooms, and this guard
+was not in the guard list. It is a real gap (H-38): `course.teacher` never
+changes, so a teacher removed from the school kept export and erase reach
+over the students of their old school-session courses.
+
+SM ruling: fix on task/beta-into-staging-2026-11-08 (one push with the
+merge). Scope both through `classrooms.models.reachable_courses`; tests
+first; one plant; the guard passes with NO allow-list change.
+
+Red 48 (declared before the run): two new tests,
+`TeacherTests.test_a_teacher_removed_from_the_school_loses_export_reach`
+(students.tests_data_export) and
+`CourseErasureTests.test_a_teacher_removed_from_the_school_loses_erase_reach`
+(students.tests_data_erase). Each puts course_a on a SCHOOL session of the
+student's school with the teacher a member (export answers 200; erase_scope
+is not None), then clears the teacher's school. Count from build_suite: 2.
+Predicted: **Ran 2, FAILED (failures=2)**, each `200 != 404` in
+assertNotFound (today's code still finds the course by its owner; the erase
+then actually runs). Log: `48_red_h38.log`.
+Red 48 result (`48_red_h38.log`): Ran 2, FAILED (failures=2), each `200 != 404`. **As predicted.**
+
+The fix: `data_export._teacher` and `data_erase._teacher` take the
+teacher's courses from `reachable_courses(caller)` (H-38's
+`teacher_course_access_q`) instead of `Course.objects.filter(teacher=caller)`.
+The `Course` import goes (unused); no allow-list change.
+
+Green 49 (declared before the run): the two red tests plus
+`classrooms.tests_teacher_access_sweep` (9). Count from build_suite: 11.
+Predicted: **Ran 11, OK**. Log: `49_green_h38.log`.
+Green 49 result (`49_green_h38.log`): Ran 11, OK. **As predicted.**
+
+Plant H38 (declared before the run; one plant): `data_erase._teacher`
+back to `Course.objects.filter(teacher=caller)` (local import). Labels:
+green 49's 11. Predicted kill: **Ran 11, FAILED (failures=2)**: the erase
+test `200 != 404`, and the guard listing exactly one line,
+`students/data_erase.py`; the export test passes. File restored from a
+saved copy, sha256 checked. Log: `50_plant_h38.log`.
+Plant H38 result (`50_plant_h38.log`): Ran 11, FAILED (failures=2), the erase test `200 != 404` and the guard listing exactly `students/data_erase.py`. Killed. **As predicted.** Restored, sha256 MATCHED.

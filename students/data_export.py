@@ -42,7 +42,7 @@ from django.utils import timezone
 
 from audit.enums import AuditAction
 from classrooms.grade_service import released_course_grade
-from classrooms.models import Course, StudentCourse
+from classrooms.models import StudentCourse, reachable_courses
 from students.feedback_projection import (
     student_safe_feedback,
     student_safe_formatted_grade,
@@ -329,9 +329,9 @@ def _school_admin(caller, student):
 def _teacher(caller, student):
     if not TEACHER_EXPORT_ALLOWED:
         return None
-    owned = frozenset(
-        Course.objects.filter(teacher=caller).values_list("id", flat=True)
-    )
+    # H-38: only the courses the teacher can still reach; a teacher removed
+    # from the school loses its school-session courses.
+    owned = frozenset(reachable_courses(caller).values_list("id", flat=True))
     if not StudentCourse.objects.filter(student=student, course_id__in=owned).exists():
         return None
     return Scope("courses", owned)

@@ -1,0 +1,55 @@
+Using existing test database for alias 'default' ('test_student_data_erase_export')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_a_teacher_removed_from_the_school_loses_export_reach (students.tests_data_export.TeacherTests.test_a_teacher_removed_from_the_school_loses_export_reach) ... Free trial plan not found: no trial activated for user a9d82c9e-4426-4201-919b-6a416d2be9b0.
+Cannot activate automatic trial for user a9d82c9e-4426-4201-919b-6a416d2be9b0 (validation): ValueError
+Free trial plan not found: no trial activated for user 0c5d3762-09ed-4d92-90a2-e9d008f898ae.
+Cannot activate automatic trial for user 0c5d3762-09ed-4d92-90a2-e9d008f898ae (validation): ValueError
+ok
+test_a_teacher_removed_from_the_school_loses_erase_reach (students.tests_data_erase.CourseErasureTests.test_a_teacher_removed_from_the_school_loses_erase_reach) ... Free trial plan not found: no trial activated for user 2d71e7c3-48a4-4b3e-9de6-31d5fa7f6a4a.
+Cannot activate automatic trial for user 2d71e7c3-48a4-4b3e-9de6-31d5fa7f6a4a (validation): ValueError
+Free trial plan not found: no trial activated for user 7c03779b-2e40-48e4-aa69-84ea334c3471.
+Cannot activate automatic trial for user 7c03779b-2e40-48e4-aa69-84ea334c3471 (validation): ValueError
+ok
+test_the_two_helpers_agree_for_every_ownership_and_school_shape (classrooms.tests_teacher_access_sweep.HelperAgreementTests.test_the_two_helpers_agree_for_every_ownership_and_school_shape) ... Free trial plan not found: no trial activated for user f7aff394-7135-4785-831b-7dd99ea04d98.
+Cannot activate automatic trial for user f7aff394-7135-4785-831b-7dd99ea04d98 (validation): ValueError
+Free trial plan not found: no trial activated for user bc65a1c8-e0ec-44a7-bc79-7215cb2f6320.
+Cannot activate automatic trial for user bc65a1c8-e0ec-44a7-bc79-7215cb2f6320 (validation): ValueError
+ok
+test_retry_failed_is_not_found_for_a_removed_teacher (classrooms.tests_teacher_access_sweep.TasksNamespaceRoutesFollowTheRule.test_retry_failed_is_not_found_for_a_removed_teacher)
+F6.2's session-level rule, as on status and session-results (SM ... Free trial plan not found: no trial activated for user 48721df1-8200-4df2-80d9-b7253f15c638.
+Cannot activate automatic trial for user 48721df1-8200-4df2-80d9-b7253f15c638 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+ok
+test_retry_item_is_not_found_for_a_removed_teacher (classrooms.tests_teacher_access_sweep.TasksNamespaceRoutesFollowTheRule.test_retry_item_is_not_found_for_a_removed_teacher)
+The session-level rule answers, not item_retry's own item check ... Free trial plan not found: no trial activated for user aa268858-2bd9-4d34-b22a-74df96cec094.
+Cannot activate automatic trial for user aa268858-2bd9-4d34-b22a-74df96cec094 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+ok
+test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) ... ok
+test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) ... ok
+test_allowlist_has_no_stale_entries (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_allowlist_has_no_stale_entries) ... ok
+test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping) ... ok
+test_scanner_flags_every_shape_it_exists_to_catch (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_flags_every_shape_it_exists_to_catch) ... ok
+test_scanner_ignores_the_shapes_it_must_not_flag (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_ignores_the_shapes_it_must_not_flag) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 3.577s
+
+OK
+Preserving test database for alias 'default' ('test_student_data_erase_export')...
+Found 11 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, tags, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
