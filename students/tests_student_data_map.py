@@ -25,9 +25,11 @@ from django.test import SimpleTestCase
 from students.student_data_map import ROLES, STUDENT_DATA_MAP, Role, entries_with_role
 
 # A bare (non-FK) column whose name says it holds a user's id.
+# SM R1: also any name ending in "_by_id" (created_by_id, reviewed_by_id).
 USER_ID_COLUMN = re.compile(
     r"(^|_)(user|student|actor|teacher|target|billed_user|requested_by|"
     r"performed_by|owner|member)_id$"
+    r"|^[a-z0-9_]+_by_id$"
 )
 
 

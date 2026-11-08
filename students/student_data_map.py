@@ -18,6 +18,12 @@ Roles, from the owner's rulings of 2026-11-06:
 * ``FINANCIAL_ACCOUNT``: the student's credit wallet. Deleted only when it
   holds nothing; otherwise erasure refuses.
 
+``match`` says how a row is found for a student: ``USER`` (the column is
+the student, as a foreign key or a bare id), ``EMAIL`` (the column equals
+the student's email address, ignoring case) or ``OWN_ROW`` (a column on the
+student's own user row). ``stored_file`` marks a column that names a file in
+storage, deleted after the erasure commits.
+
 ``course_scoped`` marks rows that a teacher's erasure (D3: removes the
 student from that teacher's courses only) also removes. Everything else is
 removed only by a full erasure (school admin or super admin).
@@ -37,12 +43,20 @@ class Role(str, Enum):
 ROLES = frozenset(Role)
 
 
+class Match(str, Enum):
+    USER = "USER"
+    EMAIL = "EMAIL"
+    OWN_ROW = "OWN_ROW"
+
+
 @dataclass(frozen=True)
 class Entry:
     role: Role
     why: str
     export: bool = False
     course_scoped: bool = False
+    match: Match = Match.USER
+    stored_file: bool = False
 
 
 def _own(why, *, export=True, course_scoped=False):
@@ -71,14 +85,24 @@ STUDENT_DATA_MAP = {
         "Answers, extracted text, scores, feedback and AI grading results",
         course_scoped=True,
     ),
+    # SM R3: no course column, so removed by a full erasure only.
     ("dashboard.StudentRiskAlertState", "student"): _own(
-        "The at-risk flags teachers see", course_scoped=True
+        "The at-risk flags teachers see"
     ),
     ("students.BackgroundProcessingTask", "requested_by"): _own(
         "Processing records for files the student uploaded (file names only)"
     ),
+    # SM R4: a chat belongs to a course, so a teacher's erasure removes it.
     ("ai_processor.ChatSession", "user"): _own(
-        "Conversations with the in-app assistant"
+        "Conversations with the in-app assistant", course_scoped=True
+    ),
+    # SM R8: exported, then deleted from storage after the erasure commits.
+    ("users.CustomUser", "profile_image"): Entry(
+        Role.DELETE,
+        "The student's profile picture",
+        export=True,
+        match=Match.OWN_ROW,
+        stored_file=True,
     ),
     ("users.UserActivity", "user"): _own("Last seen and activity counts"),
     ("users.Settings", "user"): _own("The student's app settings"),
@@ -92,6 +116,13 @@ STUDENT_DATA_MAP = {
     ("users.PasswordChangeOTP", "user"): _security("Password-change code"),
     ("users.RevokedSession", "user"): _security("Signed-out sessions"),
     ("users.UserGoogleCredentials", "user"): _security("Google sign-in link"),
+    # SM R7: kept by email address, not by user id; matched ignoring case.
+    ("users.BetaWhitelist", "email"): Entry(
+        Role.DELETE, "Beta access list entry", match=Match.EMAIL
+    ),
+    ("users.Waitlist", "email"): Entry(
+        Role.DELETE, "Waitlist entry", match=Match.EMAIL
+    ),
     # Activity log and credit records: kept, with name and email (D1, D4).
     ("audit.AuditEvent", "actor_id"): _keep("Activity log: who did it"),
     ("audit.AuditEvent", "target_id"): _keep("Activity log: what it was done to"),
@@ -134,6 +165,11 @@ STUDENT_DATA_MAP = {
         "Teacher inactivity alert"
     ),
     ("students.BatchUploadSession", "teacher"): _staff("Teacher batch upload"),
+    # SM R1: tags are teacher-only (Epic C1).
+    ("tags.Tag", "teacher"): _staff("Tag owner"),
+    ("tags.Tag", "created_by_id"): _staff(
+        "Teacher who made the tag (empty for backfilled tags)"
+    ),
 }
 
 

@@ -276,3 +276,19 @@ Run 05 result (`05_red_step1b.log`): Ran 20, FAILED (failures=51, errors=5).
 - **Verdict: prediction incomplete** (the tag-columns error count was
   1 predicted, 2 actual). Every failure and error is for the predicted
   reason. The prediction above is left as it was written.
+
+Code:
+- `Match` (USER, EMAIL, OWN_ROW) and `stored_file` are added to `Entry`.
+- The map gains 5 entries, for 50 in all:
+  - Tag.teacher and Tag.created_by_id (NOT_A_STUDENT);
+  - BetaWhitelist.email and Waitlist.email (DELETE, EMAIL, no export);
+  - CustomUser.profile_image (DELETE, OWN_ROW, export, stored_file).
+- StudentRiskAlertState: course_scoped False. ChatSession: course_scoped
+  True.
+- `USER_ID_COLUMN` gains `|^[a-z0-9_]+_by_id$`.
+
+Prediction for run 06 (green, `students.tests_student_data_map`): Ran 20,
+OK.
+
+Run 06 result (`06_green_step1b.log`): Ran 20, OK. **As predicted.** The map
+holds 50 entries.
