@@ -1508,3 +1508,90 @@ Open follow-ups after the push:
 - F4, uploaded files with B1b;
 - `AIJob.requested_by` in the map when B1a meets this branch (the SM, at
   the merge).
+
+## Owner-approved wording (SM, 2026-11-08)
+
+The owner approved all 25 items on 2026-11-08. The record is
+`team/approved_wording_student_data_2026-11-08.md` in the main checkout,
+and everything below is copied from it verbatim:
+- the 17 export names;
+- `EXPORT_NAMES_APPROVED = True`;
+- the README draft plus one line, "If a teacher made this download, it
+  covers only that teacher's courses.", placed after the "profile.json
+  holds..." line;
+- JSON keys unchanged;
+- the 3 refusal messages and 3 labels, with remediation left empty;
+- STUDENT_DATA_ERASE labeled "Student data erased".
+
+The profile picture is named "profile-picture" plus the stored file's
+extension. That is a small code change, tested first.
+
+**Expectations, written before any run.**
+
+Tests changed (`students.tests_data_export`, 44 tests, becomes 45):
+- `test_names_are_pending_placeholders` becomes
+  `test_names_are_the_approved_wording`. It checks that `EXPORT_NAMES`
+  equals the approved 17 verbatim, that `README_TEXT` equals the approved
+  text verbatim, and that `EXPORT_NAMES_APPROVED` is True.
+- `test_the_profile_image_is_the_stored_bytes` becomes
+  `test_the_profile_picture_keeps_its_extension`, which expects
+  "profile-picture.png", because the fixture stores face.png.
+- New: `test_a_picture_without_an_extension_has_none`. The stored name is
+  "<email name>_<date>_<ext>" (`users.models.get_user_name`). With email
+  "no.ext@..." and no extension, a plain `splitext` would give the false
+  extension ".ext_<date>_". The file must be named "profile-picture".
+- Three tests switch from `name("profile_image")` to the literal
+  "profile-picture.png":
+  - `test_every_file_is_json_except_the_image`;
+  - `test_an_unreadable_image_is_listed_as_missing`;
+  - `test_a_teacher_gets_no_data_outside_courses`.
+
+Tests changed (`students.tests_data_erase`, 45 tests, still 45):
+`test_the_new_wording_is_pending` becomes
+`test_the_wording_is_the_approved_wording`. It checks each of the 3
+messages, labels and empty remediations verbatim (subTests), and the
+STUDENT_DATA_ERASE label.
+
+**Prediction for run 42 (red; `students.tests_data_export` and
+`students.tests_data_erase`; tests changed, code not):** Ran 90,
+FAILED (failures=6, errors=3).
+
+Failures (6):
+- `test_names_are_the_approved_wording`: 1 (APPROVED is False).
+- `test_an_unreadable_image_is_listed_as_missing`: 1. The missing list is
+  ["PENDING-profile-image"].
+- `test_the_wording_is_the_approved_wording`: 4, which is 3 subTests (the
+  messages) plus the final label assert.
+
+Errors (3):
+- `test_every_file_is_json_except_the_image`: 1. "PENDING-profile-image"
+  is not skipped, and its PNG bytes raise UnicodeDecodeError in
+  `json.loads`.
+- `test_the_profile_picture_keeps_its_extension`: 1, a KeyError.
+- `test_a_picture_without_an_extension_has_none`: 1, a KeyError.
+
+`test_a_teacher_gets_no_data_outside_courses` still passes (assertNotIn).
+
+**Planned code change after the red:**
+- `EXPORT_NAMES`, `README_TEXT` and `EXPORT_NAMES_APPROVED` in
+  `students/data_export.py`.
+- A `_picture_name(student)` helper: the base name, plus the extension of
+  the stored file's basename, but only when it is "." followed by 1–10
+  letters or digits. Otherwise no extension.
+- The 3 messages in `AutoGrader/reason_codes.py`.
+- The 3 labels and STUDENT_DATA_ERASE in `audit/enums.py`.
+- Comments that said PENDING.
+
+**Prediction for run 43 (green, same two labels):** Ran 90, OK.
+
+Run 42 result (`42_red_approved_wording.log`): Ran 90, FAILED (failures=6,
+errors=3). **As predicted.**
+- Failures:
+  - `test_names_are_the_approved_wording`: 1;
+  - `test_an_unreadable_image_is_listed_as_missing`: 1;
+  - `test_the_wording_is_the_approved_wording`: 4, the 3 subTests plus the
+    label.
+- Errors:
+  - UnicodeDecodeError on "PENDING-profile-image";
+  - KeyError 'profile-picture.png';
+  - KeyError 'profile-picture'.

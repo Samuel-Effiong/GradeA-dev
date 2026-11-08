@@ -749,15 +749,32 @@ class FlagAndCatalogueTests(_EraseCase):
         self.assertEqual(allowed, {"scope", "item_count"})
         self.assertTrue(allowed <= ALLOWED_KEYS)
 
-    def test_the_new_wording_is_pending(self):
+    def test_the_wording_is_the_approved_wording(self):
+        # The owner's approved wording, verbatim (2026-11-08,
+        # team/approved_wording_student_data_2026-11-08.md, D and E).
         from audit.enums import ReasonCode
         from AutoGrader.reason_codes import REASON_CODES
 
-        for code in (
-            "STUDENT_ERASE_NOT_ONLY_A_STUDENT",
-            "STUDENT_ERASE_WALLET_NOT_EMPTY",
-            "STUDENT_ERASE_BILLING_RECORDS",
-        ):
+        approved = {
+            "STUDENT_ERASE_NOT_ONLY_A_STUDENT": (
+                "We can't erase this account because it is also used as a"
+                " teacher or administrator account.",
+                "Erase refused: not only a student",
+            ),
+            "STUDENT_ERASE_WALLET_NOT_EMPTY": (
+                "We can't erase this account because its credit wallet has"
+                " credits or a credit history.",
+                "Erase refused: credit wallet",
+            ),
+            "STUDENT_ERASE_BILLING_RECORDS": (
+                "We can't erase this account because it has billing records.",
+                "Erase refused: billing records",
+            ),
+        }
+        for code, (message, label) in approved.items():
             with self.subTest(code=code):
-                self.assertIn("PENDING", REASON_CODES[ReasonCode(code)].message)
-        self.assertIn("PENDING", AuditAction("STUDENT_DATA_ERASE").label)
+                spec = REASON_CODES[ReasonCode(code)]
+                self.assertEqual(spec.message, message)
+                self.assertEqual(spec.remediation, "")
+                self.assertEqual(ReasonCode(code).label, label)
+        self.assertEqual(AuditAction("STUDENT_DATA_ERASE").label, "Student data erased")

@@ -15,8 +15,10 @@ docs/evidence/nfr-cmp-04-student-data/NOTES.md, "Step 2":
 * Q1 (H-130 parity): a grade the teacher has not released is not in the
   export, in any form. Q2: no review flags. Q3: an unreadable profile
   image does not stop the export; it is logged and listed as missing.
-* Every name in the zip is a PENDING placeholder (`EXPORT_NAMES`), so the
-  tests read names from there.
+* Every name in the zip is the owner's approved wording (2026-11-08,
+  team/approved_wording_student_data_2026-11-08.md), pinned verbatim in
+  `APPROVED_NAMES` and `APPROVED_README`. The other tests read names from
+  `EXPORT_NAMES`. The profile picture keeps its stored file's extension.
 """
 
 import importlib
@@ -75,6 +77,44 @@ UNPUBLISHED_FEEDBACK = "UNRELEASED-FEEDBACK-must-not-leave"
 OTHER_STUDENT_ANSWER = "OTHER-STUDENT-ANSWER-must-not-leave"
 OTHER_STUDENT_CHAT = "OTHER-STUDENT-CHAT-must-not-leave"
 IMAGE_BYTES = b"\x89PNG\r\n\x1a\nplanted-image-bytes"
+#: The profile picture's name in the zip: the approved base plus the stored
+#: file's extension (the fixture stores face.png).
+PICTURE = "profile-picture.png"
+
+#: The owner's approved wording, verbatim (2026-11-08).
+APPROVED_NAMES = {
+    "download": "student-data.zip",
+    "readme": "README.txt",
+    "manifest": "manifest.json",
+    "profile": "profile.json",
+    "profile_image": "profile-picture",
+    "classrooms.StudentCourse": "enrollments.json",
+    "students.StudentSubmission": "submissions.json",
+    "dashboard.StudentRiskAlertState": "at-risk-status.json",
+    "students.BackgroundProcessingTask": "file-uploads.json",
+    "ai_processor.ChatSession": "assistant-chats.json",
+    "users.UserActivity": "activity.json",
+    "users.Settings": "settings.json",
+    "messages": "messages",
+    "manifest_counts": "record_counts",
+    "manifest_scope": "scope",
+    "manifest_generated_at": "created_at",
+    "manifest_missing": "missing_files",
+}
+APPROVED_README = (
+    "This download holds the data we keep about one student, as of the time"
+    " in manifest.json.\n"
+    "Each .json file lists one kind of record: enrollments, submissions,"
+    " at-risk status, file uploads, assistant chats, activity and settings."
+    " profile.json holds the student's account details, and profile-picture"
+    " is their profile picture, if they set one.\n"
+    "If a teacher made this download, it covers only that teacher's"
+    " courses.\n"
+    "A grade appears only after the teacher has released it.\n"
+    "Sign-in and security details are never included.\n"
+    "If a file is listed under missing_files in manifest.json, it couldn't be"
+    " read when this download was made. Try again later.\n"
+)
 
 
 def url(student_id):
@@ -326,8 +366,10 @@ class FieldListGuardTests(TestCase):
             with self.subTest(field=field_name):
                 self.assertNotIn(field_name, user)
 
-    def test_names_are_pending_placeholders(self):
-        self.assertFalse(data_export.EXPORT_NAMES_APPROVED)
+    def test_names_are_the_approved_wording(self):
+        self.assertTrue(data_export.EXPORT_NAMES_APPROVED)
+        self.assertEqual(data_export.EXPORT_NAMES, APPROVED_NAMES)
+        self.assertEqual(data_export.README_TEXT, APPROVED_README)
         names = list(data_export.EXPORT_NAMES.values())
         self.assertEqual(len(names), len(set(names)))
 
@@ -348,13 +390,23 @@ class ExportContentTests(_ExportCase):
     def test_every_file_is_json_except_the_image(self):
         files = self.files()
         for file_name, content in files.items():
-            if file_name in (name("profile_image"), name("readme")):
+            if file_name in (PICTURE, name("readme")):
                 continue
             with self.subTest(file=file_name):
                 json.loads(content)
 
-    def test_the_profile_image_is_the_stored_bytes(self):
-        self.assertEqual(self.files()[name("profile_image")], IMAGE_BYTES)
+    def test_the_profile_picture_keeps_its_extension(self):
+        self.assertEqual(self.files()[PICTURE], IMAGE_BYTES)
+
+    def test_a_picture_without_an_extension_has_none(self):
+        # The stored name is "<email name>_<date>_<ext>": with a dot in the
+        # email name and no extension, a plain splitext would find a false
+        # one (".ext_<date>_").
+        self.w.student.email = "no.ext@example.com"
+        self.w.student.profile_image.save("face", ContentFile(IMAGE_BYTES), save=True)
+        files = self.files()
+        self.assertEqual(files["profile-picture"], IMAGE_BYTES)
+        self.assertNotIn(PICTURE, files)
 
     def test_no_sign_in_or_security_value_is_in_the_zip(self):
         files = self.files()
@@ -432,9 +484,9 @@ class ExportContentTests(_ExportCase):
             self.storage, "open", side_effect=OSError("storage down")
         ), self.assertLogs("students.data_export", level="ERROR"):
             files = self.files()
-        self.assertNotIn(name("profile_image"), files)
+        self.assertNotIn(PICTURE, files)
         manifest = json.loads(files[name("manifest")])
-        self.assertEqual(manifest[name("manifest_missing")], [name("profile_image")])
+        self.assertEqual(manifest[name("manifest_missing")], [PICTURE])
         self.assertIn(name("profile"), files)
 
 
@@ -530,7 +582,7 @@ class TeacherTests(_ExportCase):
         for label in ("users.UserActivity", "users.Settings"):
             with self.subTest(label=label):
                 self.assertNotIn(name(label), files)
-        self.assertNotIn(name("profile_image"), files)
+        self.assertNotIn(PICTURE, files)
         profile = json.loads(files[name("profile")])
         self.assertEqual(set(profile), set(data_export.TEACHER_PROFILE_FIELDS))
 
