@@ -49,10 +49,10 @@ register_zero_credit_operations(
 
 def _audit(action, **fields):
     """Record the event after the operation's zero-credit scope has closed,
-    inside the same transaction (a rollback removes both). Inside the scope
-    the billing append-only guard, which AuditEvent shares with the credit
-    ledger, refuses the insert as a ledger write and the emitter drops it.
-    Reported to the SM; the guard is billing's (Lane 1)."""
+    inside the same transaction (a rollback removes both). This placement is
+    a choice: the scope covers the tag work alone. Since H-299, billing's
+    append-only guard exempts AuditEvent, so an event written inside a scope
+    is stored as well (it was dropped before that fix)."""
     emit(action, **fields)
 
 
