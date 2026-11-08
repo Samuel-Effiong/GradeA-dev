@@ -739,3 +739,15 @@ test fails.
   teacher gets every course of the course-scoped tables). **Killed** by
   `test_a_teacher_gets_their_own_courses_only` and
   `test_the_other_courses_teacher_sees_only_that_course`, and only those.
+
+### Plant results (each restored from a saved copy, sha256 matched)
+
+| Run | Plant | Result | Verdict |
+|---|---|---|---|
+| 13 | E1: student filter dropped (submissions) | killed, 4 failures: `test_only_the_students_own_rows` (the other student's answer and submission id, plus the id set) and `test_a_teacher_gets_their_own_courses_only` | **as predicted** |
+| 14 | E2: Token exported | killed, 18 failures: the map pin, the field guard (`authtoken.Token`), and all 15 tests that build a full export, each answering 500 from `KeyError: 'authtoken.Token'`. The teacher tests pass. | **as predicted** |
+| 15 | E3: school check dropped | killed, 4 failures: the 3 predicted, plus `test_a_refusal_writes_no_event`. Its refused caller is the other school's admin, who now succeeds and writes an event. | **prediction incomplete**: I missed that this test depends on the school check |
+| 16 | E4: UserActivity skipped | killed: 1 failure (`..._has_its_file...`, on the subtest `users.UserActivity`) and 1 error (`test_only_the_students_own_rows`, a KeyError reading the missing file) | **as predicted** |
+| 17 | E5: teacher's course filter dropped | killed, 2 failures: the 2 predicted | **as predicted** |
+
+5 of 5 killed. 4 were as predicted and 1 was incomplete. Nothing was amended.
