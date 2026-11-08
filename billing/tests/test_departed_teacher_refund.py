@@ -16,6 +16,7 @@ from django.db import connection, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
+from django.utils.html import escape
 
 from billing.license_service import LicenseSubscriptionService
 from billing.models import (
@@ -60,7 +61,33 @@ KEYS = {
     "approval_email_not_credited",
     "offline_record_notes",
 }
-LABEL = "PENDING OWNER TEXT: offline overage refund due"
+LABEL = "Overage Refund Owed (Offline)"
+#: The owner-approved wording (2026-11-08), verbatim, with the SM's two
+#: rulings: the bare amount for the record notes, and W-6 without the
+#: "Not credited — " heading the template keeps.
+APPROVED = {
+    "purchase_note": (
+        "Paid for {blocks} block(s). {n} teacher(s) had left before the "
+        "purchase went through, so they weren't given credits: {skipped}. "
+        "Their share, {amount}, is being refunded automatically to the card "
+        "used."
+    ),
+    "history_suffix_card": "({n} teacher(s) had left; their share is being refunded)",
+    "history_suffix_offline": "({n} teacher(s) had left; their share is owed back)",
+    "email_subject": "Part of your credit purchase is being refunded",
+    "email_body_card": (
+        "{n} teacher(s) in your credit purchase had left your school before it "
+        "went through, so they weren't given credits. The other teachers "
+        "received theirs. We're refunding {amount} for the credits that "
+        "weren't given to the card you paid with."
+    ),
+    "offline_record_notes": "{amount}",
+    "approval_email_not_credited": (
+        "these teachers had left your school before the purchase went "
+        "through, so they weren't given credits. Our team will refund "
+        "{amount} to you directly."
+    ),
+}
 #: The literal, not the formatter: a broken formatter must not pass.
 SHARE_SHOWN = "$2.99"
 # Named, not attribute access: neither exists before the change.
@@ -80,6 +107,10 @@ def task():
 
 def switch_on():
     return patch.object(drs(), "DEPARTED_SHARE_REFUND_APPROVED", True)
+
+
+def switch_off():
+    return patch.object(drs(), "DEPARTED_SHARE_REFUND_APPROVED", False)
 
 
 def refund_list(*refunds):
@@ -205,7 +236,9 @@ class CardPathBase(TestCase, SchoolFixture):
 
 class SwitchOffTests(CardPathBase):
     def test_dr1_switch_off_keeps_todays_card_behavior_and_texts(self):
-        with patch(CREATE) as create, patch(LIST) as listing, patch(SEND) as send:
+        with switch_off(), patch(CREATE) as create, patch(LIST) as listing, patch(
+            SEND
+        ) as send:
             with self.captureOnCommitCallbacks(execute=True):
                 StripeWebhookHandler._handle_license_overage_checkout_completed(
                     self.session, self.metadata
@@ -224,14 +257,13 @@ class SwitchOffTests(CardPathBase):
 
 
 class SwitchTests(TestCase):
-    def test_dr3_the_switch_is_off_and_every_text_is_pending(self):
+    def test_dr3_the_switch_is_on_and_every_text_is_the_approved_wording(self):
         from billing.models import LicenseBillingRecordType
 
-        self.assertIs(drs().DEPARTED_SHARE_REFUND_APPROVED, False)
+        self.assertIs(drs().DEPARTED_SHARE_REFUND_APPROVED, True)
         texts = drs().DEPARTED_SHARE_REFUND_TEXTS
         self.assertEqual(set(texts), KEYS)
-        for key, value in texts.items():
-            self.assertTrue(value.startswith("PENDING OWNER TEXT"), key)
+        self.assertEqual(texts, APPROVED)
         self.assertEqual(getattr(LicenseBillingRecordType, REFUND_DUE).label, LABEL)
 
 
@@ -426,7 +458,7 @@ class CardRefundTests(CardPathBase):
         listing.assert_not_called()
         self.assertTrue(any("MANUAL RECONCILIATION" in line for line in logs.output))
 
-    def test_dr11_the_admin_is_emailed_the_pending_card_text(self):
+    def test_dr11_the_admin_is_emailed_the_approved_card_text(self):
         texts = drs().DEPARTED_SHARE_REFUND_TEXTS
         with switch_on(), patch(CREATE), patch(LIST, return_value=refund_list()), patch(
             SEND
@@ -438,25 +470,34 @@ class CardRefundTests(CardPathBase):
             if c.kwargs.get("recipient_list") == [self.admin.email]
         ]
         self.assertEqual(len(mine), 1)
-        self.assertEqual(mine[0]["subject"], texts["email_subject"])
-        self.assertTrue(mine[0]["message"].startswith("PENDING OWNER TEXT"))
-        self.assertIn(SHARE_SHOWN, mine[0]["message"])
+        self.assertEqual(mine[0]["subject"], APPROVED["email_subject"])
+        self.assertEqual(
+            mine[0]["message"],
+            APPROVED["email_body_card"].format(n=1, amount=SHARE_SHOWN),
+        )
+        self.assertEqual(texts, APPROVED)
 
-    def test_dr12_the_purchase_note_and_history_suffix_are_pending(self):
+    def test_dr12_the_purchase_note_and_history_suffix_are_approved(self):
         with switch_on(), patch(CREATE), patch(LIST, return_value=refund_list()), patch(
             SEND
         ):
             self.fulfill()
         self.intent.refresh_from_db()
         self.assertEqual(self.intent.status, LicenseOveragePurchaseStatus.FAILED)
-        self.assertTrue(
-            (self.intent.failure_reason or "").startswith("PENDING OWNER TEXT")
+        skipped = [{"teacher_id": str(self.c.id), "blocks": 1}]
+        self.assertEqual(
+            self.intent.failure_reason,
+            APPROVED["purchase_note"].format(
+                blocks=3, n=1, skipped=skipped, amount=SHARE_SHOWN
+            ),
         )
+        self.assertIn(SHARE_SHOWN, self.intent.failure_reason or "")
         self.assertNotIn("Needs manual review", self.intent.failure_reason or "")
         txn = BillingTransaction.objects.get(stripe_payment_intent_id=PI)
-        self.assertIn("PENDING OWNER TEXT", txn.description)
+        self.assertTrue(
+            txn.description.endswith(" " + APPROVED["history_suffix_card"].format(n=1))
+        )
         self.assertNotIn("needs review", txn.description)
-        self.assertIn(SHARE_SHOWN, self.intent.failure_reason or "")
 
     def test_dr17_a_non_usd_payment_is_reported_not_refunded(self):
         self.session["currency"] = "eur"
@@ -534,7 +575,9 @@ class OfflinePathTests(TestCase, SchoolFixture):
         ).latest("created_at")
 
     def test_dr2_switch_off_keeps_todays_offline_behavior(self):
-        with patch(CREATE) as create, patch(LIST) as listing, patch(SEND) as send:
+        with switch_off(), patch(CREATE) as create, patch(LIST) as listing, patch(
+            SEND
+        ) as send:
             self.approve()
         self.request.refresh_from_db()
         self.assertEqual(
@@ -559,15 +602,23 @@ class OfflinePathTests(TestCase, SchoolFixture):
             self.approve()
         record = self.refund_due().get()
         self.assertIsNone(record.amount_paid_cents)
-        self.assertTrue(record.notes.startswith("PENDING OWNER TEXT"))
-        self.assertIn(SHARE_SHOWN, record.notes)
-        self.assertIn("PENDING OWNER TEXT", self.offline_txn().description)
+        self.assertEqual(record.notes, SHARE_SHOWN)
+        self.assertTrue(
+            self.offline_txn().description.endswith(
+                " " + APPROVED["history_suffix_offline"].format(n=1)
+            )
+        )
         self.assertNotIn("needs review", self.offline_txn().description)
         mail = self.approval_email(send)
         self.assertEqual(mail["subject"], APPROVAL_SUBJECT)
         html = mail["html_message"]
-        self.assertIn("PENDING OWNER TEXT", html)
-        self.assertIn(SHARE_SHOWN, html)
+        self.assertIn(
+            "<strong>Not credited</strong> — "
+            + escape(
+                APPROVED["approval_email_not_credited"].format(amount=SHARE_SHOWN)
+            ),
+            html,
+        )
         self.assertNotIn(TODAY_NOT_CREDITED, html)
         self.assertIn(str(self.c.id), html)
         create.assert_not_called()
