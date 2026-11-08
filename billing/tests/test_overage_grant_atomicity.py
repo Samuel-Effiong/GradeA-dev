@@ -111,14 +111,18 @@ class GrantAtomicityBase(TransactionTestCase):
     def fail_on_second_ledger_row(self, label):
         """The first teacher's grant goes through; the second's ledger row
         raises, after checking that the first bucket exists in the open
-        transaction (so the rollback below is not vacuous)."""
+        transaction (so the rollback below is not vacuous).
+
+        "First" is whoever the path granted first: paths 1 and 3 iterate
+        allocations read back from jsonb, which sorts its keys, and teacher
+        ids are UUIDs, so the order is not a, b, c (NOTES §20d)."""
         calls = []
 
         def record(*args, **kwargs):
             calls.append(kwargs.get("user"))
             if len(calls) == 2:
                 self.inside["first_bucket"] = CreditBucket.objects.filter(
-                    wallet__user=self.a, bucket_type=CreditBucketType.OVERAGE
+                    wallet__user=calls[0], bucket_type=CreditBucketType.OVERAGE
                 ).exists()
                 self.inside["ledger_calls"] = len(calls)
                 raise Forced(f"forced {label}")
