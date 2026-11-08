@@ -1,18 +1,13 @@
 """Epic C1, FR-C-08: one normalization rule (plan 11 §3.2), with the
-owner's rulings of 2026-11-06.
+owner's D5 ruling of 2026-11-06: tag names hold no invisible characters.
+Every Unicode format (Cf) and control (Cc) character is removed before the
+trim and length checks; a whitespace control (tab, newline) becomes a space
+first.
 
-D5: tag names hold no invisible characters. Every Unicode format (Cf) and
-control (Cc) character is removed before the checks; a whitespace control
-(tab, newline) becomes a space first.
-
-The visible-character rule (replacing D5's "visible: keep" row): after the
-strip and the collapse, a name may use only letters (L*), combining marks
-(M*), numbers (N*), the space and - ' . ( ); the typographic apostrophe
-U+2019 becomes '. Anything else is TAG_NAME_HAS_SYMBOLS. The order is:
-empty (TAG_NAME_MISSING), then characters, then length.
+Owner, 2026-11-08: the visible-character rule of 2026-11-06 is reversed.
+Visible symbols, punctuation and emoji are kept as typed (NFKC applied);
+there is no TAG_NAME_HAS_SYMBOLS.
 """
-
-import importlib
 
 from django.test import SimpleTestCase
 
@@ -62,33 +57,37 @@ INVISIBLE = [
 # Only invisible characters: nothing left, so the name is missing.
 ONLY_INVISIBLE = ["\u200b", "\u200b\u2060\ufeff", "\x07", "\u202e\u200d", "\t\u200b\n"]
 
-# Owner rule of 2026-11-06 (replaces D5's "visible: keep" row): after the
-# Cf/Cc strip and the collapse, only letters (L*), combining marks (M*),
-# numbers (N*), the space and - ' . ( ) are allowed. The typographic
-# apostrophe U+2019 is the same approved mark and becomes '.
+# Owner, 2026-11-08: every visible character is kept as typed, after NFKC.
 # (typed, display name kept, normalized key)
-ALLOWED = [
-    ("Newton\u2019s Laws", "Newton's Laws", "newton's laws"),
+VISIBLE_KEPT = [
+    ("Reading & Writing", "Reading & Writing", "reading & writing"),
+    ("C#", "C#", "c#"),
+    # NFKC turns \u00bd into 1, U+2044 FRACTION SLASH, 2.
+    ("Year \u00bd", "Year 1\u20442", "year 1\u20442"),
+    ("Cells \U0001f52c", "Cells \U0001f52c", "cells \U0001f52c"),
+    ("\U0001f600", "\U0001f600", "\U0001f600"),  # an emoji alone is a name
+    # D5 still removes the zero-width joiners (Cf) between the emoji.
+    (
+        "Family \U0001f468\u200d\U0001f469\u200d\U0001f467",
+        "Family \U0001f468\U0001f469\U0001f467",
+        "family \U0001f468\U0001f469\U0001f467",
+    ),
+    # U+2019 is kept as typed: it is not mapped to '.
+    ("Newton\u2019s Laws", "Newton\u2019s Laws", "newton\u2019s laws"),
     ("Grade 10 (Advanced)", "Grade 10 (Advanced)", "grade 10 (advanced)"),
-    ("Ch. 3", "Ch. 3", "ch. 3"),
-    ("Cell-Biology", "Cell-Biology", "cell-biology"),
     ("\u00c9nergie", "\u00c9nergie", "\u00e9nergie"),
     ("E\u0301nergie", "\u00c9nergie", "\u00e9nergie"),  # combining accent, NFKC
     (
-        "\u0930\u0938\u093e\u092f\u0928",
-        "\u0930\u0938\u093e\u092f\u0928",
-        "\u0930\u0938\u093e\u092f\u0928",
-    ),
-    (
         "\u0627\u0644\u0643\u064a\u0645\u064a\u0627\u0621",
         "\u0627\u0644\u0643\u064a\u0645\u064a\u0627\u0621",
         "\u0627\u0644\u0643\u064a\u0645\u064a\u0627\u0621",
     ),
-    ("\uff08Part 1\uff09", "(Part 1)", "(part 1)"),  # full-width ( ) are ( ) after NFKC
+    ("\uff08Part 1\uff09", "(Part 1)", "(part 1)"),  # full-width ( ) after NFKC
 ]
 
-# One case per refused class (the SM's list), each with the owner's message.
-REFUSED = [
+# The names the 2026-11-06 rule refused: each is now kept exactly as typed
+# (none changes under NFKC).
+NO_LONGER_REFUSED = [
     "C# Basics",
     "Q&A",
     "Email @ School",
@@ -103,27 +102,19 @@ REFUSED = [
     "Why?",
     "Star*",
     '"Quoted"',
-    "\u201cQuoted\u201d",  # typographic double quotes
-    "\u2018Single\u2019",  # U+2018 is not the approved apostrophe
-    "Cells \u2013 Tissues",  # en dash
-    "Cells \u2014 Tissues",  # em dash
-    "Cell\u2010Biology",  # Unicode hyphen, not -
-    "\u00a9 Science",  # Unicode symbol (So)
-    "Cost $5",  # currency symbol (Sc)
-    "x^2",  # modifier symbol (Sk)
-    "a < b",  # math symbol (Sm)
+    "\u201cQuoted\u201d",
+    "\u2018Single\u2019",
+    "Cells \u2013 Tissues",
+    "Cells \u2014 Tissues",
+    "Cell\u2010Biology",
+    "\u00a9 Science",
+    "Cost $5",
+    "x^2",
+    "a < b",
     "a ~ b",
     "Back`tick",
     "Pipe|Line",
-    "Cells \U0001f52c",  # emoji
-    "Family \U0001f468\u200d\U0001f469\u200d\U0001f467",  # ZWJ family
-    "\U0001f600",  # an emoji alone is not missing: it is refused
-    # NFKC turns \u00bd into 1, U+2044, 2, and U+2044 FRACTION SLASH is a math
-    # symbol (Sm), so a vulgar fraction is refused (flagged to the SM).
-    "Year \u00bd",
 ]
-
-HAS_SYMBOLS = "Tag names can only use letters, numbers, spaces and - ' . ( )"
 
 
 class NormalizeTest(SimpleTestCase):
@@ -187,25 +178,22 @@ class NormalizeTest(SimpleTestCase):
     def test_invisible_characters_do_not_count_toward_the_limit(self):
         self.assertEqual(clean_tag_name("a" * 100 + "\u200b" * 20)[1], "a" * 100)
 
-    def test_the_allowed_characters_are_kept(self):
-        for typed, shown, key in ALLOWED:
+    def test_visible_symbols_punctuation_and_emoji_are_kept(self):
+        for typed, shown, key in VISIBLE_KEPT:
             with self.subTest(typed=typed):
                 self.assertEqual(clean_tag_name(typed), (shown, key))
 
-    def test_every_other_visible_character_is_refused(self):
-        for typed in REFUSED:
+    def test_the_names_the_old_rule_refused_are_kept_as_typed(self):
+        for typed in NO_LONGER_REFUSED:
             with self.subTest(typed=typed):
-                with self.assertRaises(CodedError) as caught:
-                    clean_tag_name(typed)
-                self.assertEqual(caught.exception.reason_code, "TAG_NAME_HAS_SYMBOLS")
-                self.assertEqual(str(caught.exception), HAS_SYMBOLS)
+                self.assertEqual(clean_tag_name(typed), (typed, typed.lower()))
 
-    def test_the_order_missing_then_symbols_then_length(self):
+    def test_the_order_missing_then_length(self):
         # Empty after the strip is missing, even with a stripped ZWJ.
         for typed, code in (
             ("\u200d", "TAG_NAME_MISSING"),
-            ("#" * 101, "TAG_NAME_HAS_SYMBOLS"),
-            ("a" * 100 + "!", "TAG_NAME_HAS_SYMBOLS"),
+            ("#" * 101, "TAG_NAME_TOO_LONG"),
+            ("a" * 100 + "!", "TAG_NAME_TOO_LONG"),
             ("a" * 101, "TAG_NAME_TOO_LONG"),
         ):
             with self.subTest(typed=typed[:12]):
@@ -214,18 +202,9 @@ class NormalizeTest(SimpleTestCase):
                 self.assertEqual(caught.exception.reason_code, code)
 
     def test_the_rule_is_one_table(self):
-        # One row per Unicode class, plus the five approved marks.
+        # One row per character class (D5); the 2026-11-08 reversal is the
+        # "visible" row back to "keep".
         self.assertEqual(
             dict(CHARACTER_RULES),
-            {
-                "Cf": "remove",
-                "Cc": "remove",
-                "L": "allow",
-                "M": "allow",
-                "N": "allow",
-                "other": "refuse",
-            },
+            {"Cf": "remove", "Cc": "remove", "visible": "keep"},
         )
-        # Looked up at run time: not on the base when this was written.
-        normalize = importlib.import_module("tags.normalize")
-        self.assertEqual(normalize.ALLOWED_MARKS, frozenset(" -'.()"))
