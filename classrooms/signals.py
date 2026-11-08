@@ -1,7 +1,6 @@
 import logging
 
 from django.db import transaction
-from django.db.models.functions import Coalesce
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
@@ -14,7 +13,7 @@ from AutoGrader.cache_generation import (
     SCOPE_USER,
     bump_many,
 )
-from classrooms.final_grade import final_grade_from
+from classrooms import grade_service
 from classrooms.models import Course, School, Session, StudentCourse, Topic
 from students.models import StudentSubmission
 
@@ -186,33 +185,17 @@ def _course_id_for_assignment(assignment_id):
 def compute_final_grade(student_id, course_id):
     """The final grade the student's graded work implies, or None.
 
-    A points-weighted average across all graded submissions: the
-    arithmetic is `classrooms.final_grade.final_grade_from`, and this
-    function decides which submissions count and with what weight.
+    The stored (staff) figure: `classrooms.grade_service.course_grade`,
+    which owns the row rule (graded and scored), the weight rule (stored
+    `max_points`, else the assignment's `total_points`, H-33) and the
+    points-weighted formula. Kept here as the name the receivers, the
+    `recalculate_final_grades` command and `scale_my_students.py` call.
 
     Pure read: `_recalculate_final_grade` writes the result, and the
     `recalculate_final_grades` command previews it for existing rows. Both
-    must agree, so this is the only place the stored figure's rows are
-    chosen.
+    must agree, so both come through here.
     """
-    # Submissions graded before `max_points` was stored have it NULL.
-    # Weight them by the assignment's total_points - the same fallback the
-    # submission serializers display - rather than dropping them: filtering
-    # on `max_points > 0` alone silently left a graded 4/5 out of a
-    # student's final grade (H-33). A stored max_points always wins; a row
-    # with no maximum anywhere still can't be weighted.
-    scored = (
-        StudentSubmission.objects.filter(
-            student_id=student_id,
-            assignment__course_id=course_id,
-            graded_at__isnull=False,
-            score__isnull=False,
-        )
-        .annotate(points=Coalesce("max_points", "assignment__total_points"))
-        .filter(points__gt=0)
-        .values_list("score", "points")
-    )
-    return final_grade_from(scored)
+    return grade_service.course_grade(student_id, course_id)
 
 
 def _recalculate_final_grade(student_id, course_id, *, allow_clear=True):
@@ -234,14 +217,16 @@ def _recalculate_final_grade(student_id, course_id, *, allow_clear=True):
     `recalculate_final_grades` management command exists for them.
 
     Locks the enrollment row for the duration of the aggregate + write.
-    Batch grading (grade-all) finishes several submissions for the same
-    (student, course) on different workers at nearly the same moment; an
-    unlocked read-aggregate-write here let a worker holding a stale
-    aggregate win the last write, permanently understating final_grade
-    (nothing re-triggers the recalc afterwards). Under the lock, the
-    second worker blocks until the first commits and then aggregates
-    fresh data, so the last write always reflects every graded
-    submission.
+    One Grade all run grades one assignment, one submission per student,
+    so a single run recalculates each student once. The lock matters when
+    runs on different assignments of the same course overlap (or a teacher
+    edits a score while one runs): two workers then finish the same
+    (student, course) at nearly the same moment, and an unlocked
+    read-aggregate-write let the worker holding a stale aggregate win the
+    last write, permanently understating final_grade (nothing re-triggers
+    the recalc afterwards). Under the lock, the second worker blocks until
+    the first commits and then aggregates fresh data, so the last write
+    always reflects every graded submission.
     """
     with transaction.atomic():
         enrollment = (
@@ -264,9 +249,34 @@ def _recalculate_final_grade(student_id, course_id, *, allow_clear=True):
         return old, new_final_grade, True
 
 
+# The submission fields `grade_service.course_grade` reads: which rows count
+# (student, assignment, graded_at, score) and their weight (max_points, else
+# the assignment's total_points). Column names are listed too, because Django
+# passes `update_fields=["assignment_id"]` to the receiver as written.
+GRADE_INPUT_FIELDS = frozenset(
+    {
+        "score",
+        "max_points",
+        "graded_at",
+        "assignment",
+        "student",
+        "assignment_id",
+        "student_id",
+    }
+)
+
+
 @receiver(post_save, sender=StudentSubmission)
-def update_student_course_final_grade(sender, instance, **kwargs):
-    """When a submission is saved, recalculate the student's final grade."""
+def update_student_course_final_grade(sender, instance, update_fields=None, **kwargs):
+    """When a submission is saved, recalculate the student's final grade.
+
+    A save that names its fields and names none the grade reads (scheduling,
+    the formatted label, publishing, a regrade held behind a released grade)
+    cannot change the result, so it is skipped. A save without
+    `update_fields` always recalculates, and so does every delete (below).
+    """
+    if update_fields is not None and not GRADE_INPUT_FIELDS.intersection(update_fields):
+        return
     course_id = _course_id_for_assignment(instance.assignment_id)
     if course_id is None:
         return

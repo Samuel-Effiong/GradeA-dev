@@ -1,0 +1,43 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "course": "course:Biology",
+  "assignment_submitted": 0,
+  "assignment_not_submitted": 1,
+  "assignment_graded": 2,
+  "assignment_assigned": 3,
+  "completion_rate": 66.66666666666666,
+  "missing_or_overdue": 0,
+  "average_grade": 43.75,
+  "grade_trend": "stable",
+  "best_assignments": [
+   {
+    "assignment_id": "assignment:B1 Lab",
+    "assignment_name": "B1 Lab",
+    "score": 15.0,
+    "score_percentage": 75.0
+   },
+   {
+    "assignment_id": "assignment:B2 Quiz",
+    "assignment_name": "B2 Quiz",
+    "score": 1.0,
+    "score_percentage": 12.5
+   }
+  ],
+  "worst_assignments": [
+   {
+    "assignment_id": "assignment:B1 Lab",
+    "assignment_name": "B1 Lab",
+    "score": 15.0,
+    "score_percentage": 75.0
+   },
+   {
+    "assignment_id": "assignment:B2 Quiz",
+    "assignment_name": "B2 Quiz",
+    "score": 1.0,
+    "score_percentage": 12.5
+   }
+  ]
+ }
+}

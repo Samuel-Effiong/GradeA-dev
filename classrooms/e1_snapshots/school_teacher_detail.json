@@ -1,0 +1,302 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "id": "user:Tess",
+  "name": "Tess Snap",
+  "email": "tess@e1-snapshot.test",
+  "courses": 2,
+  "students": 6,
+  "growth": 100.0,
+  "assignments_per_week": 0.0,
+  "turnaround": 0.2,
+  "ai_confidence": 78.5,
+  "rigor": null,
+  "rigor_breakdown": {
+   "score": null,
+   "demand": null,
+   "evidence": 2.4,
+   "standards": null,
+   "coverage": 0.0,
+   "assignments_scored": 0,
+   "submissions_scored": 21,
+   "label": "Not enough data yet",
+   "meaning": "This teacher has no assignments with difficulty data recorded, so rigor cannot be scored.",
+   "tone": "unknown",
+   "standards_note": null,
+   "coverage_note": "Based on a minority of this teacher's assignments -- the rest have no difficulty data recorded."
+  },
+  "status": true,
+  "credits_used": 0,
+  "credits_used_percentage": 0.0,
+  "days_active": 0,
+  "daily_usage": [
+   {
+    "date": "2026-08-16",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-17",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-18",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-19",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-20",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-21",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-22",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-23",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-24",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-25",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-26",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-27",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-28",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-29",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-30",
+    "credits": 0
+   },
+   {
+    "date": "2026-08-31",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-01",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-02",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-03",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-04",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-05",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-06",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-07",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-08",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-09",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-10",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-11",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-12",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-13",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-14",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-15",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-16",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-17",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-18",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-19",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-20",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-21",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-22",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-23",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-24",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-25",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-26",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-27",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-28",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-29",
+    "credits": 0
+   },
+   {
+    "date": "2026-09-30",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-01",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-02",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-03",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-04",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-05",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-06",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-07",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-08",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-09",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-10",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-11",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-12",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-13",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-14",
+    "credits": 0
+   },
+   {
+    "date": "2026-10-15",
+    "credits": 0
+   }
+  ],
+  "credits_remaining": {
+   "monthly": 0,
+   "carry_over": 0,
+   "overage": 0,
+   "total": 0
+  },
+  "grading": {
+   "amount": 0,
+   "percent": 0.0
+  },
+  "creation": {
+   "amount": 0,
+   "percent": 0.0
+  },
+  "feedback": {
+   "amount": 0,
+   "percent": 0.0
+  },
+  "other": {
+   "amount": 0,
+   "percent": 0.0
+  }
+ }
+}

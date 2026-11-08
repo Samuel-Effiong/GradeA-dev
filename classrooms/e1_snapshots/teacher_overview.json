@@ -1,0 +1,135 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "total_assignments_assigned": 9,
+  "total_assignments_graded": 8,
+  "total_assignment_pending_grade": 1,
+  "total_students": 6,
+  "percentage_graded": 88.89,
+  "grade_distribution": {
+   "A": {
+    "count": 0,
+    "percentage": 0.0
+   },
+   "B": {
+    "count": 2,
+    "percentage": 28.57
+   },
+   "C": {
+    "count": 0,
+    "percentage": 0.0
+   },
+   "D": {
+    "count": 0,
+    "percentage": 0.0
+   },
+   "E": {
+    "count": 0,
+    "percentage": 0.0
+   },
+   "F": {
+    "count": 5,
+    "percentage": 71.43
+   }
+  },
+  "course_performance": [
+   {
+    "id": "course:Biology",
+    "name": "Biology",
+    "average_grade": 44.58,
+    "total_submissions": 0.0,
+    "submission_rate": 66.67
+   },
+   {
+    "id": "course:Algebra",
+    "name": "Algebra",
+    "average_grade": 57.66,
+    "total_submissions": 0.0,
+    "submission_rate": 40.48
+   }
+  ],
+  "upcoming_assignments": [
+   {
+    "id": "assignment:A5 Future",
+    "title": "A5 Future",
+    "course_id": "course:Algebra",
+    "course_name": "Algebra",
+    "remaining_time": "5 days from now",
+    "exact_due_date": "Oct 20, 2026, 12:00 PM"
+   }
+  ],
+  "at_risk_students": [
+   {
+    "student_id": "user:Dee",
+    "student_name": "Dee Snap",
+    "course_id": "course:Algebra",
+    "course_name": "Algebra",
+    "average_grade": 3.64,
+    "grade_trend": "IMPROVING"
+   },
+   {
+    "student_id": "user:Ben",
+    "student_name": "Ben Snap",
+    "course_id": "course:Algebra",
+    "course_name": "Algebra",
+    "average_grade": 46.09,
+    "grade_trend": "STABLE"
+   },
+   {
+    "student_id": "user:Ben",
+    "student_name": "Ben Snap",
+    "course_id": "course:Biology",
+    "course_name": "Biology",
+    "average_grade": 50.0,
+    "grade_trend": "INSUFFICIENT DATA"
+   },
+   {
+    "student_id": "user:Ada",
+    "student_name": "Ada Snap",
+    "course_id": "course:Biology",
+    "course_name": "Biology",
+    "average_grade": 57.14,
+    "grade_trend": "DECLINING"
+   },
+   {
+    "student_id": "user:Eve",
+    "student_name": "Eve Snap",
+    "course_id": "course:Biology",
+    "course_name": "Biology",
+    "average_grade": 57.89,
+    "grade_trend": "DECLINING"
+   },
+   {
+    "student_id": "user:Cy",
+    "student_name": "Cy Snap",
+    "course_id": "course:Algebra",
+    "course_name": "Algebra",
+    "average_grade": 80.0,
+    "grade_trend": "INSUFFICIENT DATA"
+   },
+   {
+    "student_id": "user:Eve",
+    "student_name": "Eve Snap",
+    "course_id": "course:Algebra",
+    "course_name": "Algebra",
+    "average_grade": 86.96,
+    "grade_trend": "DECLINING"
+   },
+   {
+    "student_id": "user:Fay",
+    "student_name": "Fay Snap",
+    "course_id": "course:Algebra",
+    "course_name": "Algebra",
+    "average_grade": null,
+    "grade_trend": "INSUFFICIENT DATA"
+   }
+  ],
+  "average_grading_turnaround": "6h",
+  "ai_trust": {
+   "average_ai_extraction_confidence": 80.0,
+   "average_ai_grading_confidence": 78.67,
+   "low_confidence_rate": 43.33
+  }
+ }
+}

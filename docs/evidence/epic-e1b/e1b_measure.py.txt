@@ -1,0 +1,103 @@
+"""E1b Gate 6 measurement (temporary, not committed: copied into the
+evidence as e1b_measure.py.txt). A Grade all over 30 submissions, saved the
+way assignments/tasks.py and students/services.py save them: the scheduling
+clear, the grading engine's save, the formatted label. Counts the queries,
+the recalculations, and the time spent inside _recalculate_final_grade (the
+enrollment row lock is held for all of it)."""
+
+import time
+from datetime import timedelta
+from decimal import Decimal
+from unittest import mock
+
+from django.db import connection
+from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
+
+from assignments.models import Assignment, AssignmentStatus
+from classrooms import signals
+from classrooms.models import Course, Session, StudentCourse
+from students.models import StudentSubmission
+from students.services import GRADING_RESULT_FIELDS
+from users.models import CustomUser, UserTypes
+
+N = 30
+
+
+class GradeAllMeasure(TestCase):
+    def test_grade_all_30(self):
+        teacher = CustomUser.objects.create_user(
+            email="m-t@e1b.test", password="x-measure-pass",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER, first_name="Tess", last_name="M",
+            is_active=True,
+        )
+        course = Course.objects.create(
+            name="Measure", teacher=teacher,
+            session=Session.objects.create(name="T", teacher=teacher),
+        )
+        # An earlier graded assignment, so every student has a grade to keep.
+        earlier = Assignment.objects.create(
+            title="A0", course=course, total_points=10,
+            due_date=timezone.now() + timedelta(days=1),
+            status=AssignmentStatus.PUBLISHED,
+        )
+        target = Assignment.objects.create(
+            title="A1", course=course, total_points=20,
+            due_date=timezone.now() + timedelta(days=7),
+            status=AssignmentStatus.PUBLISHED,
+        )
+        subs = []
+        for i in range(N):
+            s = CustomUser.objects.create_user(
+                email=f"m-s{i}@e1b.test", password="x-measure-pass",  # pragma: allowlist secret
+                user_type=UserTypes.STUDENT, first_name=f"S{i}", last_name="M",
+                is_active=True,
+            )
+            StudentCourse.objects.create(student=s, course=course)
+            StudentSubmission.objects.create(
+                student=s, assignment=earlier, answers={}, score=Decimal(i % 10),
+                max_points=10, graded_at=timezone.now(),
+            )
+            subs.append(StudentSubmission.objects.create(
+                student=s, assignment=target, answers={},
+                scheduled_grading_at=timezone.now(), grading_task_name=f"t{i}",
+            ))
+
+        lock_time = [0.0]
+        real = signals._recalculate_final_grade
+
+        def timed(*a, **k):
+            t0 = time.perf_counter()
+            try:
+                return real(*a, **k)
+            finally:
+                lock_time[0] += time.perf_counter() - t0
+
+        with mock.patch.object(signals, "_recalculate_final_grade", side_effect=timed) as spy, \
+                CaptureQueriesContext(connection) as q:
+            t0 = time.perf_counter()
+            for i, sub in enumerate(subs):
+                sub.scheduled_grading_at = None
+                sub.grading_task_name = None
+                sub.save(update_fields=["scheduled_grading_at", "grading_task_name"])
+                sub.score = Decimal(i % 20)
+                sub.max_points = 20
+                sub.score_percentage = Decimal(i % 20) * 5
+                sub.graded_at = timezone.now()
+                sub.ai_graded_at = timezone.now()
+                sub.ai_grading_completed_at = timezone.now()
+                sub.formatted_grade = f"{i % 20}/20"
+                sub.save(update_fields=list(GRADING_RESULT_FIELDS))
+                sub.formatted_grade = f"{i % 20} out of 20"
+                sub.save(update_fields=["formatted_grade"])
+            total = time.perf_counter() - t0
+        print(
+            f"\nE1B_GRADE_ALL n={N} saves={3 * N} recalculations={spy.call_count} "
+            f"queries={len(q.captured_queries)} lock_ms={lock_time[0] * 1000:.1f} "
+            f"total_ms={total * 1000:.1f}"
+        )
+        # Every student's stored grade still matches the service.
+        from classrooms import grade_service
+        for sc in StudentCourse.objects.filter(course=course):
+            self.assertEqual(sc.final_grade, grade_service.course_grade(sc.student_id, course.id))

@@ -600,6 +600,46 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "Grade it first, then publish.",
         retryable=False,
     ),
+    # Epic C1 tags (plan 11 D6). No remediation: each message already says
+    # what to do (SM ruling 3). TAG_NAME_TAKEN names the existing tag's type
+    # label and its stored spelling, not what the requester typed.
+    ReasonCode.TAG_NAME_TAKEN: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_400_BAD_REQUEST,
+        'You already have a {tag_type} tag named "{name}".',
+        "",
+        retryable=False,
+        params=frozenset({"tag_type", "name"}),
+    ),
+    ReasonCode.TAG_CHANGED_SINCE_CHECK: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_409_CONFLICT,
+        "This tag's assignments changed since you checked. Review the new "
+        "count and try again.",
+        "",
+        retryable=True,
+    ),
+    ReasonCode.TAG_NAME_MISSING: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_400_BAD_REQUEST,
+        "Enter a tag name.",
+        "",
+        retryable=False,
+    ),
+    ReasonCode.TAG_NAME_TOO_LONG: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_400_BAD_REQUEST,
+        "Tag names can be up to 100 characters.",
+        "",
+        retryable=False,
+    ),
+    ReasonCode.TOO_MANY_TAGS: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_400_BAD_REQUEST,
+        "An assignment can have up to 50 tags.",
+        "",
+        retryable=False,
+    ),
 }
 
 #: Recorded in the audit trail only; the auth views shape their responses.

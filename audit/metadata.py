@@ -68,6 +68,11 @@ ALLOWED_KEYS = frozenset(
         "course_id",
         "lesson_id",
         "tag_id",
+        # Epic C1: a tag's type (a label, never its name), the links a tag
+        # delete removed, and an assignment's tag ids before and after a set.
+        "tag_type",
+        "affected_count",
+        "tag_ids",
         "session_id",
         # H-278: the scope's active session before the change
         "previous_active_session_id",
@@ -297,9 +302,12 @@ METADATA_ALLOWLIST = {
     AuditAction.LESSON_CREATE: frozenset(),
     AuditAction.LESSON_UPDATE: frozenset(),
     AuditAction.LESSON_DELETE: frozenset(),
-    AuditAction.TAG_CREATE: frozenset(),
-    AuditAction.TAG_RENAME: frozenset(),
-    AuditAction.TAG_DELETE: frozenset(),
+    # Epic C1: ids, counts and the type label only. A tag's name is text a
+    # teacher wrote, so neither a create nor a rename records it.
+    AuditAction.TAG_CREATE: frozenset({"tag_type"}),
+    AuditAction.TAG_RENAME: frozenset({"tag_type"}),
+    AuditAction.TAG_DELETE: frozenset({"tag_type", "affected_count"}),
+    AuditAction.ASSIGNMENT_TAGS_SET: frozenset({"course_id"}),
     AuditAction.ROSTER_CHANGE: frozenset(
         {
             "course_id",
@@ -410,6 +418,9 @@ BEFORE_AFTER_ALLOWLIST = {
     # the one GRADING_COMPLETED event, with no GRADE_CHANGE beside it.
     AuditAction.GRADING_COMPLETED: _GRADE_FIELDS,
     AuditAction.ROSTER_CHANGE: frozenset({"enrollment_status", "course_id"}),
+    # Epic C1: the tag ids before and after (at most 50, the per-assignment
+    # cap, which is also MAX_LIST_ITEMS).
+    AuditAction.ASSIGNMENT_TAGS_SET: frozenset({"tag_ids"}),
     # Not token_epoch (SM note 1): logout, password change and reset have
     # their own events, and it would add a second event to each of them.
     AuditAction.PERMISSION_CHANGE: frozenset(

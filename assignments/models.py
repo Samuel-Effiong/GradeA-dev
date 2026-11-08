@@ -70,9 +70,11 @@ class Assignment(models.Model):
         "classrooms.Course", on_delete=models.CASCADE, related_name="assignments"
     )
 
+    # H-297: SET_NULL, not CASCADE. Removing a topic unfiles its
+    # assignments; it must never delete them (or their submissions).
     topic = models.ForeignKey(
         "classrooms.Topic",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="assignments",
         null=True,
         blank=True,

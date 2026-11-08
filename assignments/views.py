@@ -69,6 +69,7 @@ from students.task_tracking import (
     mark_processing_task_failure,
     record_refused_item,
 )
+from tags.assignment_field import prefetch_tags
 from users.mixins import UserCacheMixin
 from users.models import UserTypes
 from users.permissions import HasCreditBalance
@@ -355,7 +356,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             # trips on a default page. distinct=True because the filter
             # backend can join (?course__session=...), and a join would
             # otherwise multiply the count.
-            return (
+            # prefetch_tags: Epic C1's `tags` field, only while the flag is
+            # on (one query for the page, none per row).
+            return prefetch_tags(
                 Assignment.objects.select_related("course__teacher")
                 .annotate(
                     annotated_submission_count=Count("submissions", distinct=True)

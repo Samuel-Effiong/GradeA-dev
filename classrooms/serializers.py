@@ -28,7 +28,7 @@ from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
 from users.serializers import CustomUserSerializer
 
-from .final_grade import released_final_grade
+from . import grade_service
 from .models import (
     Course,
     CourseCategory,
@@ -233,14 +233,18 @@ class CourseSerializer(serializers.ModelSerializer):
         topic_names = validated_data.pop("topic_names", None)
         course = super().update(instance, validated_data)
 
-        # If topic_names is provided, replace existing topics
+        # If topic_names is provided, make the course's topics match it.
+        # H-297: match by name, never delete-and-recreate. A topic whose name
+        # is still listed keeps its row, so the assignments filed under it
+        # stay filed under it. A topic no longer listed is deleted, and its
+        # assignments stay, unfiled (Assignment.topic is SET_NULL). The old
+        # code deleted every topic and, through a CASCADE, every assignment
+        # filed under one, with its submissions and grades.
         if topic_names is not None:
-            # Delete existing topics
-            instance.topics.all().delete()
-
-            # Create new topics from the list of names
-            for topic_name in topic_names:
-                Topic.objects.get_or_create(name=topic_name.strip(), course=course)
+            wanted = list(dict.fromkeys(name.strip() for name in topic_names))
+            instance.topics.exclude(name__in=wanted).delete()
+            for topic_name in wanted:
+                Topic.objects.get_or_create(name=topic_name, course=course)
 
         return course
 
@@ -438,7 +442,9 @@ class StudentCourseSerializer(serializers.ModelSerializer):
             return obj.final_grade
         # The viewset's own prefetch (student__submissions, each with its
         # assignment): no query per enrollment.
-        return released_final_grade(obj.student.submissions.all(), obj.course_id)
+        return grade_service.released_course_grade(
+            obj.student.submissions.all(), obj.course_id
+        )
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
