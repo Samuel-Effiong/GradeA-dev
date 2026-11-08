@@ -1841,3 +1841,33 @@ Red attempt 3 (f17c40b1) **matched** addendum 4: Ran 191, FAILED (errors=16). DR
   - The automatic path needs the switch on, skipped teachers, a PaymentIntent and currency usd. Otherwise the handler keeps today's texts, logs ERROR `MANUAL RECONCILIATION`, and enqueues nothing.
   - The task and the admin email are enqueued in one on_commit.
   - The offline share is capped at `amount_confirmed_cents`.
+
+### 18 results: green and plants (tests 60ce83fa, code 55c1ed41)
+
+| Run | Code | Result | Matches? | Log |
+|---|---|---|---|---|
+| Green attempt 3 (after the DR-9a fix) | WIP | Ran 193 (20 new), OK | yes | step18/step18_green_WIP3.log |
+| Code commit | 55c1ed41 | black reformatted license_service.py and stripe_service.py; flake8 B904 on the task's `raise self.retry(…)`, fixed with `from exc`; re-staged | — | — |
+| Green on the commit | 55c1ed41 | Ran 193, OK. `makemigrations --check`: no changes | yes | step18/step18_green_55c1ed41.log |
+
+**Plants on 55c1ed41.** Runner `plant18.py`, one plant per command. For each plant it:
+- checks both base sha256s (stripe_service.py d2fa42ab…, departed_share_refund.py e284485f…);
+- requires the anchor text to occur exactly once;
+- runs the targeted set (193 tests);
+- restores the file in a `finally` block and checks both hashes.
+
+Every plant was restored OK. G-1, static and the rollback-defaults module stayed green in every plant.
+
+| Plant | Exact change | Result | Matches? | Log |
+|---|---|---|---|---|
+| RF-1 (M-B33) | stripe_service: `transaction.on_commit(_after_commit)` → `pass` | FAILED (failures=4, errors=1): DR-4, DR-11 FAIL; DR-6 ERROR (no Refund.create call to read); DR-7 ×2 FAIL | **RF-1 killed. Predicted DR-4, DR-6 and DR-11, which fired. Prediction incomplete:** both DR-7 tests also fired, because with no task there is no Refund.create to cap and no MANUAL RECONCILIATION log | step18/step18_plant_RF-1.log |
+| RF-2 | `"retain_credits": "true"` removed from the refund metadata | FAILED (failures=2): DR-4 (metadata), DR-6 (A's and B's credits reclaimed on the round trip) | yes | step18/step18_plant_RF-2.log |
+| RF-3 | guard 2 disabled: `if meta.get(` → `if False and meta.get(` | FAILED (failures=1): DR-8 | yes | step18/step18_plant_RF-3.log |
+| RF-4 | stripe_service: `transaction.on_commit(_after_commit)` → `_after_commit()` (inline) | FAILED (failures=2): both DR-5 tests | yes | step18/step18_plant_RF-4.log |
+| RF-5 | `refundable = _paid_cents(intent) - already` → `_paid_cents(intent)` | FAILED (failures=2): both DR-7 tests | yes | step18/step18_plant_RF-5.log |
+| RF-6 | the switch ignored: `if not (skipped and enabled()):` → `if not skipped:` (the handler's switch check lives in `can_refund_automatically`) | FAILED (failures=1): DR-1 | yes | step18/step18_plant_RF-6.log |
+| RF-7 | the `idempotency_key=…` line removed | FAILED (errors=1): DR-4 ERROR (the key is missing from the call's kwargs) | yes. The declaration named no failure form (cf. HP-3) | step18/step18_plant_RF-7.log |
+
+No plant survived.
+
+**Next (SM, 2026-11-08):** the approved-texts sub-step, with its own expectations, then the near run.
