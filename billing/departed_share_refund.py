@@ -32,8 +32,8 @@ amount is capped at what is still refundable on the payment.
 
 THE SWITCH
 ----------
-Off until the owner approves the texts. With it off, today's behavior and
-today's texts are unchanged: a refund running while the purchase still
+On since the owner approved the texts (2026-11-08). With it off, today's
+behavior and today's texts are unchanged: a refund running while the purchase still
 says "Needs manual review (partial refund ...)" invites a second, manual
 refund of the same money.
 """
@@ -44,23 +44,37 @@ from .imports import stripe
 
 logger = logging.getLogger(__name__)
 
-#: Off until the owner approves DEPARTED_SHARE_REFUND_TEXTS (SM 2026-11-08).
-DEPARTED_SHARE_REFUND_APPROVED = False
+#: On: the owner approved DEPARTED_SHARE_REFUND_TEXTS on 2026-11-08
+#: (relayed by the SM). Off restores today's behavior and texts exactly.
+DEPARTED_SHARE_REFUND_APPROVED = True
 
-#: PENDING OWNER APPROVAL. Placeholders only: the owner's wording is in
-#: team/draft_wording_departed_share_2026-11-08.md, awaiting approval. Not
-#: shown to anyone while DEPARTED_SHARE_REFUND_APPROVED is False.
+#: Approved by the owner 2026-11-08, verbatim
+#: (team/approved_wording_departed_share_2026-11-08.md). Two SM rulings on
+#: that file: `offline_record_notes` is the bare amount (no prose), and
+#: `approval_email_not_credited` is W-6 without its "Not credited — "
+#: heading, which the template keeps. The history suffixes omit their
+#: leading space; the callers add it.
 DEPARTED_SHARE_REFUND_TEXTS = {
     "purchase_note": (
-        "PENDING OWNER TEXT: purchase_note {blocks} {n} {skipped} {amount}"
+        "Paid for {blocks} block(s). {n} teacher(s) had left before the "
+        "purchase went through, so they weren't given credits: {skipped}. "
+        "Their share, {amount}, is being refunded automatically to the card "
+        "used."
     ),
-    "history_suffix_card": "PENDING OWNER TEXT: history_suffix_card {n}",
-    "history_suffix_offline": "PENDING OWNER TEXT: history_suffix_offline {n}",
-    "email_subject": "PENDING OWNER TEXT: email_subject",
-    "email_body_card": "PENDING OWNER TEXT: email_body_card {n} {amount}",
-    "offline_record_notes": "PENDING OWNER TEXT: offline_record_notes {amount}",
+    "history_suffix_card": "({n} teacher(s) had left; their share is being refunded)",
+    "history_suffix_offline": "({n} teacher(s) had left; their share is owed back)",
+    "email_subject": "Part of your credit purchase is being refunded",
+    "email_body_card": (
+        "{n} teacher(s) in your credit purchase had left your school before it "
+        "went through, so they weren't given credits. The other teachers "
+        "received theirs. We're refunding {amount} for the credits that "
+        "weren't given to the card you paid with."
+    ),
+    "offline_record_notes": "{amount}",
     "approval_email_not_credited": (
-        "PENDING OWNER TEXT: approval_email_not_credited {amount}"
+        "these teachers had left your school before the purchase went "
+        "through, so they weren't given credits. Our team will refund "
+        "{amount} to you directly."
     ),
 }
 
