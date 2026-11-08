@@ -2256,3 +2256,28 @@ The method follows plan §9 item 13:
   - **Storage:** 283.3 MB per month per 100 active teachers (30 gradings × 22 days × (AIJob + Settlement + 2 audit rows)).
   - **Conditions:** the load average was about 5.5 on 8 cores (the machine is shared; `flock` was held). The test ran inside one `TestCase` transaction, so every `atomic()` is a savepoint.
 - **The SM's ruling (2026-11-08):** the FAIL stands. The decision goes to the owner after measurement 2 and the profile (§21h): build the plan's wallet-counter fallback for SINGLE_CALL, or change the 5 ms budget. **The step 9 summary and any "B1a done" claim are held until the owner decides.**
+
+### 21h. Gate 6 investigation (c) and measurement 2 (b): declared before either runs (SM, 2026-11-08)
+
+**(c) Profile, investigation only.** File: `billing/tests/test_holds_gate6_profile.py`, opt-in with `RUN_LOAD_TESTS=1`. There is no production code change, and the test asserts nothing about speed.
+- **Calls.** 200 billed single calls after a 20-call warm-up, with the provider stubbed (150 tokens), flag on and then flag off, in one `TestCase`.
+- **Timing.** Every SQL statement is timed through `connection.execute_wrapper`. Inside the TestCase each `atomic()` is a savepoint, so statements are grouped into the call's top-level transactions by SAVEPOINT / RELEASE depth.
+- **Printed per mode:**
+  - per transaction, in call order: the mean query count, the mean wall ms from SAVEPOINT to RELEASE, the first statement (which identifies it), and the statement shape with the most total time;
+  - the transactions per call;
+  - the queries and ms outside any transaction;
+  - the call's mean wall, SQL and non-SQL ms.
+- **The flag-off block shows the consume path's own cost**, so the true added cost is visible.
+- **Prediction: none beyond the run completing (Ran 1, OK).** The numbers are recorded as they come.
+
+**(b) Gate 6 measurement 2**, recorded beside measurement 1 and never replacing it. File: `billing/tests/test_holds_gate6_m2.py`, opt-in.
+- **Method changes, declared:**
+  - M = 2000 calls per mode;
+  - off and on interleaved in blocks of 100 (off first), after a 20-call warm-up in each mode;
+  - `os.getloadavg()` logged at the start and the end.
+- **Unchanged from measurement 1:** the threshold (added p95 ≤ 5 ms, asserted), the provider stub, the single `TestCase`, and reserve/settle timed by wrapping. It is run once, under `flock`.
+- **Prediction: added p95 > 5 ms, so it remains a FAIL** (FAILED (failures=1) at the threshold assert). That would be the declared outcome, not a new STOP. Any other outcome is recorded as it is and reported.
+
+**The billing near-run count is updated because of these two files.** Both are opt-in and skip without the environment variable. The billing near is therefore expected at **Ran 3109 = 3102 + 4 gate + 3 opt-in, OK (skipped=5)**. This replaces §21e/§21f's 3107/skipped=3, declared here before the run.
+
+**Order (SM):** (c), then (b), then the mutant battery, the targeted set, the flag-on exploratory run (checkpoint), and the flag-off near. The step 9 summary and any "B1a done" claim are held until the owner decides.
