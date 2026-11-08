@@ -17,7 +17,7 @@ from django.test import TestCase
 
 from assignments.models import Assignment
 from classrooms.models import Course, Topic
-from tags._c1_fixtures import World, flag_off
+from tags._c1_test_fixtures import World, flag_off
 from tags.models import AssignmentTag, LinkSource, Tag, TagType
 
 # Not built yet when the expectations are committed (red first).

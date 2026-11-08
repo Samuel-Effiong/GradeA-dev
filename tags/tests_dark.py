@@ -12,7 +12,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from audit.models import AuditEvent
-from tags._c1_fixtures import API, TAG_ROUTES, World, client_for, fire, flag_off
+from tags._c1_test_fixtures import API, TAG_ROUTES, World, client_for, fire, flag_off
 from tags.models import AssignmentTag, Tag, TagType
 
 

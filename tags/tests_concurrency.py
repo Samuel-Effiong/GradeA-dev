@@ -16,7 +16,7 @@ from django.test import TransactionTestCase
 
 from AutoGrader.reason_codes import CodedError
 from AutoGrader.testing.concurrency import run_concurrently
-from tags._c1_fixtures import World
+from tags._c1_test_fixtures import World
 from tags.models import AssignmentTag, Tag, TagType
 
 # Not built yet when the expectations are committed (red first).

@@ -9,7 +9,7 @@ from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 
-from tags._c1_fixtures import World, client_for, data, fire, flag_on
+from tags._c1_test_fixtures import World, client_for, data, fire, flag_on
 from tags.models import AssignmentTag, OwnerType, Tag, TagType
 
 MANY = 500
