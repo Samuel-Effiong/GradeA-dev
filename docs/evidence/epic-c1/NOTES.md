@@ -234,3 +234,47 @@ Existing data (the SM's question):
   `SELECT count(*) FROM tags_tag WHERE normalized_name LIKE '%’%';`
   0 means nothing to do. Otherwise those rows need a one-off fix, which is
   not built and would go to the SM.
+
+## Follow-up (2026-11-08): the C1 test fixture trips a production guard
+
+**Found** by NFR-CMP-04's gate 20, and confirmed on staging 703310b47:
+`users.tests_roads_that_sign_in_or_activate`
+`test_every_site_is_on_the_named_list_with_its_count` fails with
+`('tags/_c1_fixtures.py', 'PASSWORD_KEYWORD'): found 1, pinned 0`.
+- The guard scans production files for sign-in roads and skips any file
+  with "test" in its name. `tags/_c1_fixtures.py` is a test fixture whose
+  name lacks "test", so its `PASSWORD` constant counted as a production
+  sign-in road.
+- **My miss:** C1's near runs (tags classrooms assignments audit billing)
+  never included `users`. From now on, every near run includes `users`
+  and the students and audit source-scanning guards (SM process note).
+
+**SM ruling: a rename, not a pin.** Pinning would list a test fixture as
+a production sign-in road, which is false. On branch
+`task/c1-fixture-rename`, off origin/staging 703310b47:
+- `tags/_c1_fixtures.py` becomes `tags/_c1_test_fixtures.py`, and the 7
+  imports are updated (tags/tests_api, tests_backfill, tests_concurrency,
+  tests_dark, tests_gate6, tests_models, tests_services). The file's
+  content is unchanged.
+- A search of every `.py`, `.md`, `.txt` and config file for the old path
+  finds only those 7 imports. No source-scanning guard lists it, so no
+  guard changes.
+
+**Prediction for run 39** (under `flock ~/.machine-fullsuite.lock`). The
+labels, with counts from `DiscoverRunner.build_suite`, nothing run:
+
+| Label | Tests |
+|---|---|
+| `users.tests_roads_that_sign_in_or_activate` | 10 |
+| `tags` | 133 |
+| `students.tests_h279_regrade_pending_approval` | 64 |
+| `students.tests_reading_label_static` | 17 |
+| `students.tests_app_boundaries` | 6 |
+| `audit.tests_h273_query_filters` | 32 |
+| `audit.tests_route_coverage` | 22 |
+
+Ran 284, OK. Any skips are counted after the run.
+
+Run 39 result (`GAP-a0-runs/c1/39-gate-fixture-rename.log`): Ran 284, OK,
+0 skipped. **As predicted.** The sign-in guard passes: the renamed
+fixture has "test" in its name and is skipped as a test file.

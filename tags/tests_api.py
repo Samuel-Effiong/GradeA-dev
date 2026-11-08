@@ -14,7 +14,7 @@ from django.test import TestCase
 
 from audit.enums import AuditAction
 from audit.models import AuditEvent
-from tags._c1_fixtures import (
+from tags._c1_test_fixtures import (
     TAG_ROUTES,
     World,
     client_for,

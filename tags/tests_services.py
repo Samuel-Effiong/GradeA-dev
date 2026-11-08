@@ -14,7 +14,7 @@ from audit.models import AuditEvent
 from AutoGrader.reason_codes import CodedError
 from billing import zero_credit
 from billing.testing.zero_credit import assert_operation_is_zero_credit
-from tags._c1_fixtures import World
+from tags._c1_test_fixtures import World
 from tags.models import AssignmentTag, LinkSource, Tag, TagType
 
 # Not built yet when the expectations are committed (red first).

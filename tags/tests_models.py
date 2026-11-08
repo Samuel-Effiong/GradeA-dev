@@ -9,7 +9,7 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from students.models import StudentSubmission
-from tags._c1_fixtures import World
+from tags._c1_test_fixtures import World
 from tags.models import AssignmentTag, LinkSource, OwnerType, Tag, TagType
 
 
