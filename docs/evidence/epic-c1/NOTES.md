@@ -63,6 +63,10 @@ FR-C-08's documented rule changes as follows:
 | 32-mutants-merged (mutants-32/) | battery, merged base | M1–M14 + M11b + MS: 16 of 16 killed, each restore sha256-matched |
 | 33-gate6-merged | Gate 6, merged base | Ran 2, OK; 2 queries for 2 tags and for 500 |
 | 34-near-run-merged | near run, merged base | tags classrooms assignments audit billing + AutoGrader.tests_migration_rollback_defaults, under the machine lock: **Ran 4637, OK (skipped=15)**; C1_GATE6 flat 2/2; C1_RACE delete_won=97 attach_won=3. See the skips section. |
+| 35-red-u2019 | U+2019, red | tags.tests_normalize, tests_api, tests_backfill: Ran 65, 14 failures and 1 error, all because the mapping was missing (the error is the backfill's `Tag.DoesNotExist` for the straight key) |
+| 36-gate-u2019 | U+2019 | tags + the dark snapshot: Ran 138, OK; C1_GATE6 flat 2/2; C1_RACE delete_won=85 attach_won=15; makemigrations --check: no changes |
+| 37-plant-no-u2019-map | U+2019, plant | the mapping removed (`CHARACTER_MAP` empty): **killed**, 14 failures and 1 error, the red set; restored from a saved copy, sha256 matched |
+| 38-near-run-u2019 | U+2019, near run | at 290b8aded, under the machine lock, tags + the dark snapshot: **Ran 138, OK**, 0 skipped; C1_GATE6 flat 2/2; C1_RACE delete_won=90 attach_won=10 |
 
 ## The backfill and the audit trail
 
@@ -202,3 +206,31 @@ Expectations, written before any code:
 - **Plant:** the mapping removed. It must be killed.
 - **Logs:** 35 red, 36 green, 37 plant, 38 targeted near run (tags and the
   dark snapshot).
+
+Results:
+- **Code:** `tags/normalize.py` gains `CHARACTER_MAP = {"\u2019": "'"}`,
+  applied to each character after the whitespace check and before the
+  Cf/Cc rules. The backfill is unchanged and gets the mapping through
+  `clean_tag_name`. No reason code, message or migration is added.
+- **History:** expectations 746558b1c, red 64b48d44c, code 290b8aded.
+- **Tests:** "‘Single’" moves from the list of names kept as typed to its
+  own case, stored as "‘Single'". "Newton’s Laws" in the kept-as-typed
+  table now expects "Newton's Laws".
+
+Existing data (the SM's question):
+- **How tag rows can exist on staging:** only by the API with
+  TAGS_ENABLED on (off by default; no settings file in the repo turns it
+  on), or by someone running `backfill_topic_tags` by hand. No migration,
+  deploy script or signal runs the backfill.
+- **If none exist** (expected while C1 is dark): no migration and no merge
+  are needed.
+- **If some exist:** a row whose key holds U+2019 keeps it, because keys
+  are worked out only on create and rename. A later "Newton's Laws" (curly
+  or straight), or a backfill rerun over the same Topic, makes a second
+  tag beside it, which is the duplicate the owner ruled out. Renaming the
+  old row works it out again. If the teacher already has the straight tag,
+  the rename is refused with TAG_NAME_TAKEN, and a merge would be needed.
+- **Check before turning the flag on:**
+  `SELECT count(*) FROM tags_tag WHERE normalized_name LIKE '%’%';`
+  0 means nothing to do. Otherwise those rows need a one-off fix, which is
+  not built and would go to the SM.
