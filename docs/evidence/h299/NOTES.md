@@ -82,3 +82,30 @@ Every targeted set is the new file + G-1 (`ai_processor.tests_metering_chokepoin
 4. **Near run**, under `flock ~/.machine-fullsuite.lock` with h284_deps_env: `billing audit` (the B0 guard tests `test_zero_credit_scope`, `test_zero_credit_registry` and `test_holds_zero_credit` are in billing) + G-1/static, `--parallel 4`. Expected OK; the count is recorded at the run.
 
 Any mismatch is a STOP, reported to the SM.
+
+## 6. Results (2026-11-08; expectations b5fe1a5a, tests c97b380a, fix efc35ddf)
+
+| Run | Code | Result | Matches? | Log |
+|---|---|---|---|---|
+| Red: new file + G-1 + static | c97b380a (staging 8aafa47d + tests) | Ran 68 (10 + 58), FAILED (failures=4, errors=1). FAIL: Z-1 `unexpectedly None`; Z-2a `Unexpected logs found: ['ERROR:billing.zero_credit:Zero-credit violation: operation=_selftest attempted=LEDGER_INSERT …']`; Z-2b (alarm metrics counted); Z-5 `unexpectedly None`. ERROR: Z-3 `ZeroCreditViolation … BULK_INSERT`. | yes | logs/red_c97b380a.log |
+| Green, the same set | WIP | Ran 68, OK | yes | logs/green_WIP.log |
+| Fix commit | efc35ddf | black added one blank line on the first attempt; re-staged (format only) | — | — |
+| Green, the same set | efc35ddf | Ran 68, OK | yes | logs/green_efc35ddf.log |
+| Near run, under `flock ~/.machine-fullsuite.lock`, h284_deps_env, `--parallel 4`: `billing audit` + G-1/static | efc35ddf | Ran 2924, OK (skipped=2) | yes (count recorded at the run, as declared) | logs/near_efc35ddf.log.gz |
+
+**Plants on efc35ddf.** Runner `plant_h299.py`, one plant per command. For each plant it:
+- checks the base sha256 (3c3e3060…);
+- requires the anchor text to occur exactly once;
+- runs the targeted set (HP-3 adds `billing.tests.test_zero_credit_scope`);
+- restores the file in a `finally` block and checks the sha256.
+
+Every plant was restored to 3c3e3060…. G-1 and static stayed green in every plant.
+
+| Plant | Result | Matches? | Log |
+|---|---|---|---|
+| HP-1 | Ran 68, FAILED (failures=4): Z-1, Z-2a, Z-2b, Z-5. Z-3 passed. | yes | logs/plant_HP-1.log |
+| HP-2 | Ran 68, FAILED (errors=1): Z-3 | yes | logs/plant_HP-2.log |
+| HP-3 | Ran 103, FAILED (failures=9, errors=1). FAIL: Z-4a, Z-4b, Z-4c, Z-4d; B0 `test_ledger_record_raises`, `test_ledger_objects_create_raises`, `test_usage_log_record_raises`, `test_ledger_bulk_create_raises`, `test_allow_unsafe_mutation_does_not_lift_the_scope`. ERROR: B0 `test_bulk_create_update_conflicts_form_raises_the_scope_error_first`. No other B0 failures. | yes. The kill set is exactly the declared 10. The declaration named no FAIL/ERROR form; the update_conflicts test ERRORs because, with the scope check gone, the call reaches `ImmutableRecordError`, which its `assertRaises(ZeroCreditViolation)` does not catch. | logs/plant_HP-3.log |
+| HP-4 | Ran 68, FAILED (failures=1): Z-4d | yes | logs/plant_HP-4.log |
+
+No plant survived. H-299 is fixed on `task/h299-zero-credit-audit`, pending the SM's review. Not pushed.
