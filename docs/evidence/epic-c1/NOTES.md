@@ -27,6 +27,7 @@ FR-C-08's documented rule changes as follows:
 | 15 | TAG_NAME_TAKEN. | params `{tag_type: <code>, name: <stored spelling>}`. The message shows the TagType label (`display`), with no new label text. | SM ruling (i) |
 | 16 | `tags/tests_api.py` expected the "item" not-found text when another teacher, or an unknown id, PUTs tags on an assignment. | That case answers with the house H-296 text for an assignment: "We couldn't find that assignment. It may have been deleted." (`get_object_or_404`, as every assignment route does). A foreign or unknown **tag** still gets the "item" text. Both are existing approved wording, and neither tells the caller whether the thing exists. | H-296 house wording |
 | 17 | The query-count test measured the first request of the test, which also warms per-request caches (5 queries against 3). | An unmeasured warm-up request first. After that, page sizes 2 and 7 cost the same number of queries. | test fix |
+| 19 | The backfill counted a topic name with symbols in `skipped_bad_name`. | It is counted in its own key, `skipped_symbols`. Empty and too-long names stay in `skipped_bad_name`. Either way the topic is skipped, nothing is written, and the Topic is unchanged. Skip vs strip for such names is still with the owner. | SM ruling (a) |
 
 ## Gates
 
@@ -48,6 +49,8 @@ FR-C-08's documented rule changes as follows:
 | 19-red-symbols | symbols, red | Ran 66: 41 failures, 1 error, as expected; snapshots green |
 | 20-gate-symbols | symbols | full C1 set: Ran 426, OK; C1_RACE delete_won=86 attach_won=14 |
 | 21*, 21b | symbols, plants | see the visible-character section |
+| 22-red-skipped-symbols | backfill, red | tags.tests_backfill Ran 9: 1 failure, 1 error, as expected (deviation 19) |
+| 23-gate-skipped-symbols | backfill | tags.tests_backfill + the snapshot: Ran 14, OK |
 
 ## The backfill and the audit trail
 
@@ -77,8 +80,8 @@ The checks run in this order:
 3. Length, which gives TAG_NAME_TOO_LONG.
 
 The rule applies to create, rename and the backfill. In the backfill, a
-topic whose name fails is counted in `skipped_bad_name`, is never written,
-and its Topic is left unchanged.
+topic whose name has symbols is counted in `skipped_symbols` (deviation 19),
+is never written, and its Topic is left unchanged.
 
 Edge case, raised with the SM: NFKC turns a vulgar fraction such as ½ into
 1, U+2044, 2. U+2044 FRACTION SLASH is a math symbol (Sm), so "Year ½" is
