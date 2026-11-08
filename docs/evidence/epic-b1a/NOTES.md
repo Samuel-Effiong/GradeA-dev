@@ -2741,3 +2741,7 @@ Output beyond the prediction, from a fresh database: the `billing.W001` PlanFeat
 | B4 | FAIL | `billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r8_execute_graded_task_nothing_left_individual` |
 
 Totals: B1 6 (2 FAIL, 4 ERROR), B2 26 (23 FAIL, 3 ERROR), B3 12 (11 FAIL, 1 ERROR), B4 1 (FAIL): 37 FAIL, 8 ERROR.
+
+**Result** (042c2642, 2026-11-08): **Found 6875, Ran 6875, FAILED (failures=37, errors=8, skipped=28). Matched** (`step21/step21q_flagon_gate_042c2642.log.gz`).
+- The failing set compared by name and kind with `step21/step21q_expected_failures.tsv`: 45 of 45. Nothing unexpected, nothing missing.
+- `tests_call_record`'s deletion test, `test_aijob_on_delete_rules_follow_03a` and the 9 wallet-deletion tests passed.
