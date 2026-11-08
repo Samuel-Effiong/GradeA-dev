@@ -1558,3 +1558,28 @@ There is no plant for "the replaced one is refunded", because no refund path exi
 **Observation for the SM (outside the ruling):** a held re-grade also queues the formatted-grade follow-up (`formatted_grade_async`), which is a separate billed AI call (wording of the feedback, not grading). These tests pin that it is launched once per re-grade and not again at approval. They do not run it.
 
 **Run, expected:** the new file (3) + G-1 + `students.tests_reading_label_static` + `AutoGrader.tests_h271_static_files`: Ran 3 + 58 = **61, OK**. Then the H-279 modules `students.tests_h279_regrade_pending_approval` and `students.tests_h279_regrade_pending_concurrency`, unchanged (count recorded at the run).
+
+### 16 results (code = HEAD 81158b31; expectations fde0abe4). 2(b) RESOLVED
+
+| Run | Code | Result | Matches? | Log |
+|---|---|---|---|---|
+| Green: new file + G-1 + static | 81158b31 working tree before the mypy-only rewrite of `grading()` | Ran 61, OK | yes | step16/step16_green.log |
+| Green, the same set, re-run | 81158b31 | Ran 61, OK | yes | step16/step16_green_81158b31.log |
+| H-279 modules (`students.tests_h279_regrade_pending_approval`, `students.tests_h279_regrade_pending_concurrency`) + G-1 + static | 81158b31 | Ran 126 (= 68 + 58), OK | yes (count recorded at the run, as declared) | step16/step16_h279_modules.log |
+
+**Plants on 81158b31.** The first attempt ran all four plants in one command. It was killed (exit 137) with RP-1 still applied and no output. The SM held all work. With the owner's approval (8 Nov) the file was restored with `git checkout` and its sha256 checked: 8b8881ac…, which is HEAD. The plants were then re-run one per command with a new runner, `plant16.py`. For each plant it:
+- checks the base sha256;
+- requires the anchor text to occur exactly once;
+- runs the new file + G-1 + static (61 tests);
+- restores the file in a `finally` block and checks the sha256 against HEAD.
+
+Every plant was restored to 8b8881ac…. In every plant G-1 and static stayed green.
+
+| Plant | Result | Matches? | Log |
+|---|---|---|---|
+| RP-1 | 1 FAIL: R-2 `2 != 1` (delay count, line 122) | yes | step16/step16_plant_RP-1.log |
+| RP-2 | 2 FAIL: R-1 `Expected 'delay' to not have been called. Called 1 times.`; R-2 `2 != 1` (line 122) | **RP-2 killed. Predicted R-1, which fired. Prediction incomplete:** R-2 also fired, because it counts every summary dispatch across the held save and the approval, so a dispatch at the held save makes it 2 != 1 (SM ruling (a), 2026-11-08). | step16/step16_plant_RP-2.log |
+| RP-3 | 1 FAIL: R-2, line 123, `delay` args[1] is the student's id, not the teacher's | yes. R-2 fired as predicted. It failed on the dispatch-args assertion, which comes before the settlement assertions. | step16/step16_plant_RP-3.log |
+| RP-4 | 3 FAIL: R-1 line 101 `unexpectedly None` (`pending_result`); R-2 line 93 `unexpectedly None` (`promote_pending` returns None, nothing pending); R-3 line 156 `Decimal('9.00') != Decimal('5')` (the re-grade overwrote the released score) | **RP-4 killed. Predicted R-1 and R-3, which fired. Prediction incomplete:** R-2 also fired, because with nothing held the approval finds nothing to promote. R-3 fired on the released-score assertion, not on `pending_result` None, because the score check comes first. | step16/step16_plant_RP-4.log |
+
+No plant survived. The formatted-grade observation above stands for the SM. It is outside the ruling and not changed here.
