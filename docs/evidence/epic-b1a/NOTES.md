@@ -2964,3 +2964,29 @@ It runs at the commit that adds this section, with no `BILLING_HOLDS_ENABLED` in
   - run `makemigrations --check`;
   - re-derive and commit the §21w near prediction with every guard, counted with `build_suite`;
   - run it, then check in with the SM.
+
+### 21x. Staging c25519939 merged (the guard fix), and the near with every guard declared before it runs (2026-11-08)
+
+**The merge:** `origin/staging` at **c25519939**, Lane 2's ALLOWED entry in `ai_processor/tests_call_record_static.py` plus their NOTES, merged as **1befe7e31** (`--no-ff`).
+- No conflicts.
+- `makemigrations --check --dry-run`: "No changes detected".
+
+**Labels** (flag unset, under `flock`, `--parallel 4`): the §21w labels plus the SM's 22 source-scanning guards.
+- **AutoGrader:** `tests_credscan`, `tests_h271_static_files`, `tests_network_guard`, `tests_student_classmates_guard`, `tests_student_feedback_guard`, `tests_submission_audience_guard`.
+- **ai_processor:** `tests_call_record_static`, `tests_h2_grading_benchmark_guard`, `tests_ssrf_guard`.
+- **audit:** `tests_history_guard`, `tests_route_coverage`, `tests_h273_query_filters`.
+- **billing.tests:** `test_license_admin_user_guard`, `test_qa_console_guardrail`, `test_qa_time_travel_guardrail`, `test_renewal_guards`.
+- **classrooms:** `tests_e1_grade_guard`.
+- **students:** `tests_reading_label_static`, `tests_app_boundaries`, `tests_h279_regrade_pending_approval`, `tests_student_data_map`.
+- **users:** `tests_roads_that_sign_in_or_activate`.
+
+**Counted with `DiscoverRunner.build_suite`:**
+- The §21w labels alone: 7425, with 26 decorated skips.
+- With every guard: **7509**, still with 26 decorated skips.
+- 16 of the guards are already inside the §21w apps. The 6 outside them add **84** tests: credscan 28, network 8, classmates 7, feedback 16, audience 17, e1 grade 8.
+- None of those 6 files has a decorated skip or a `skipTest` call.
+- `tests_ssrf_guard`'s 1 decorated skip is already among the 26.
+
+**Prediction: Ran 7509, OK (skipped=30)**, that is 26 decorated plus the 4 at run time, as in §21r and §21w.
+- `ai_processor.tests_call_record_static.NothingReadsOrExposesTheTable.test_no_other_code_names_the_model` now passes.
+- Any failure, or a different count or skip number, is a STOP.
