@@ -172,3 +172,33 @@ The pre-loss baseline is the E1a near run (`e1a/near-run-1e28a9952.log`):
 Ran 2954, OK (skipped=16). That log was written at low verbosity, so it
 names no skips, and its label set differed from this run's. The comparison
 is by count only: 15 now against 16 then, with no new kind of skip.
+
+## Owner ruling (2026-11-08): U+2019 is the straight apostrophe
+
+Via the SM: a tag typed with the curly apostrophe U+2019 is the same tag
+as one typed with a straight `'`. On top of 3f50ef40d (already on staging).
+
+Expectations, written before any code:
+- **normalize:** U+2019 becomes `'` before the duplicate check and before
+  storing. "Newton’s Laws" and "Newton's Laws" give one key,
+  `newton's laws`, and the stored display name has the straight `'`. The
+  mapping does not change the length (one character for one).
+- **Only U+2019.** U+2018 and the double quotes U+201C and U+201D are kept
+  as typed, and so are look-alikes the owner was not asked about: U+02BC
+  (modifier letter apostrophe) and U+2032 (prime). "‘Single’" is stored as
+  "‘Single'".
+- **API:** creating "Newton’s Laws" after "Newton's Laws" (or the other
+  way around) reuses the first tag (200, the same id, the straight `'`).
+  Renaming another tag to the curly spelling is refused with
+  TAG_NAME_TAKEN, as any other duplicate is.
+- **Backfill:** it gets the mapping through `clean_tag_name`. A Topic named
+  with U+2019 becomes a Unit tag with `'`, and it reuses the teacher's
+  existing straight-apostrophe tag. The Topic itself is unchanged.
+- **No new wording.** No reason code, message or migration is added.
+- **Accepted as they are, for information:** "Year ½" is stored in its
+  NFKC form "Year 1⁄2", and the zero-width joiners in an emoji family are
+  removed (D5), so it is stored as separate emoji. Both stay pinned by
+  tests.
+- **Plant:** the mapping removed. It must be killed.
+- **Logs:** 35 red, 36 green, 37 plant, 38 targeted near run (tags and the
+  dark snapshot).
