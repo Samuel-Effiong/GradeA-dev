@@ -2650,3 +2650,21 @@ Django's Collector picks what it deletes or sets NULL before it sends `pre_delet
 - **No other pin, so no STOP.**
 
 **Re-run prediction** (the same 3 labels, flag off, after the edit): **Ran 83, OK.**
+
+**Re-run result** (9b9dbb47): Ran 83, OK. **Matched** (`step21/step21o_rerun3.log`).
+
+### 21p. The 0079 migrate round trip on a real database: declared before it runs (2026-11-08)
+
+**Which database:** `settings_worktree` changes only the TEST database name. Its default database is `AutoGrader` on 127.0.0.1:5432, the dev database every worktree shares, where billing 0074–0079 are not applied. Migrating it would change a database other branches use, so it is not touched. Instead:
+- a scratch database **`test_epic_b1a_migrate`** is created on the same server, used with `settings_worktree` plus that NAME (a scratchpad settings module), and then dropped;
+- the flag is off;
+- every step runs under `flock`.
+
+**Steps and predictions:**
+1. `migrate` (all apps) on the empty scratch database: OK, billing ends at `[X] 0079_aijob_wallet_set_null`.
+2. Create one teacher, a wallet and a SETTLED AIJob, then set its `wallet` to NULL. `migrate billing 0078`: **refused**, with `RuntimeError: Refusing to reverse billing 0079: 1 AIJob rows have no wallet.` 0079 is still `[X]`, because the migration is atomic on PostgreSQL.
+3. Delete that AIJob. `migrate billing 0078`: OK; 0079 is `[ ]` and `aijob.wallet_id` is NOT NULL again (`information_schema.columns.is_nullable = 'NO'`).
+4. `migrate billing`: OK; 0079 is `[X]` and `is_nullable = 'YES'`.
+5. Drop `test_epic_b1a_migrate`.
+
+Any other outcome is recorded as it is and reported.
