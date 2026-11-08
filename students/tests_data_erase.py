@@ -57,7 +57,14 @@ from billing.models import (
     PlanType,
     SubscriptionPlan,
 )
-from classrooms.models import EnrollmentStatusType, School, StudentCourse
+from classrooms.models import (
+    Course,
+    EnrollmentStatusType,
+    School,
+    Session,
+    SessionOwnerType,
+    StudentCourse,
+)
 from dashboard.models import StudentRiskAlertState
 from students.models import (
     BackgroundProcessingTask,
@@ -144,6 +151,24 @@ def students_rows(*users):
 def _row(obj):
     """Every column of a row (Django's model_to_dict leaves out the id)."""
     return {f.attname: getattr(obj, f.attname) for f in obj._meta.concrete_fields}
+
+
+def on_a_school_session(world, teacher, course):
+    """H-38: the course sits in a SCHOOL session of the student's school and
+    the teacher is a member of that school."""
+    session = Session.objects.create(
+        name=f"School term {world.uid()}",
+        owner_type=SessionOwnerType.SCHOOL,
+        school=world.school,
+    )
+    Course.objects.filter(pk=course.pk).update(session=session)
+    get_user_model().objects.filter(pk=teacher.pk).update(school=world.school)
+    teacher.refresh_from_db()
+
+
+def remove_from_school(teacher):
+    get_user_model().objects.filter(pk=teacher.pk).update(school=None)
+    teacher.refresh_from_db()
 
 
 class _EraseWorld(World):
@@ -676,6 +701,14 @@ class CourseErasureTests(_EraseCase):
             student=self.w.target, course=self.w.course_a
         ).delete()
         self.assertNotFound(self.erase(self.w.teacher))
+
+    def test_a_teacher_removed_from_the_school_loses_erase_reach(self):  # H-38
+        on_a_school_session(self.w, self.w.teacher, self.w.course_a)
+        self.assertIsNotNone(data_erase.erase_scope(self.w.teacher, self.w.target))
+        remove_from_school(self.w.teacher)
+        before = self.snapshot()
+        self.assertNotFound(self.erase(self.w.teacher))
+        self.assertNothingChanged(before)
 
 
 @flag_on

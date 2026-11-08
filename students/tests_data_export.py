@@ -42,7 +42,14 @@ from audit.enums import AuditAction
 from audit.metadata import ALLOWED_KEYS, METADATA_ALLOWLIST
 from audit.models import AuditEvent
 from audit.tests_route_coverage import write_routes
-from classrooms.models import EnrollmentStatusType, School, StudentCourse
+from classrooms.models import (
+    Course,
+    EnrollmentStatusType,
+    School,
+    Session,
+    SessionOwnerType,
+    StudentCourse,
+)
 from dashboard.models import StudentRiskAlertState
 from students.models import BackgroundProcessingTask, StudentSubmission
 from students.student_data_map import STUDENT_DATA_MAP
@@ -135,6 +142,24 @@ def response_bytes(response):
 
 def name(key):
     return data_export.EXPORT_NAMES[key]
+
+
+def on_a_school_session(world, teacher, course):
+    """H-38: the course sits in a SCHOOL session of the student's school and
+    the teacher is a member of that school."""
+    session = Session.objects.create(
+        name=f"School term {world.uid()}",
+        owner_type=SessionOwnerType.SCHOOL,
+        school=world.school,
+    )
+    Course.objects.filter(pk=course.pk).update(session=session)
+    get_user_model().objects.filter(pk=teacher.pk).update(school=world.school)
+    teacher.refresh_from_db()
+
+
+def remove_from_school(teacher):
+    get_user_model().objects.filter(pk=teacher.pk).update(school=None)
+    teacher.refresh_from_db()
 
 
 class _World(World):
@@ -606,6 +631,12 @@ class TeacherTests(_ExportCase):
         files = self.files(self.w.other_teacher)
         subs = {r["id"] for r in self.rows(files, "students.StudentSubmission")}
         self.assertEqual(subs, {str(self.w.in_b.pk)})
+
+    def test_a_teacher_removed_from_the_school_loses_export_reach(self):  # H-38
+        on_a_school_session(self.w, self.w.teacher, self.w.course_a)
+        self.assertEqual(self.export(self.w.teacher).status_code, 200)
+        remove_from_school(self.w.teacher)
+        self.assertNotFound(self.export(self.w.teacher))
 
     def test_a_teachers_export_says_its_scope(self):
         self.export(self.w.teacher)
