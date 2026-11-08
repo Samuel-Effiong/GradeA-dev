@@ -9,7 +9,9 @@ same tag (plan 11 §3.2), with the owner's D5 ruling of 2026-11-06.
    category: format (Cf) and control (Cc) characters are removed, so a
    zero-width space or a direction override can't make a second tag that
    looks the same. Visible characters, punctuation and emoji included, are
-   kept as typed.
+   kept as typed, except one: the curly apostrophe U+2019 becomes the
+   straight one, ' (owner, 2026-11-08), so "Newton’s Laws" and
+   "Newton's Laws" are one tag, stored with '. No other quote is mapped.
 4. Runs of spaces collapse to one, and the ends are trimmed. This is the
    display name: it keeps the teacher's casing.
 5. The key is the display name in lower case: `str.lower()`, not
@@ -36,10 +38,17 @@ CHARACTER_RULES = (
 
 _RULES = dict(CHARACTER_RULES)
 
+#: Owner, 2026-11-08: these characters are replaced, one for one (so a
+#: name's length is unchanged). U+2019 only; U+2018 and the double quotes
+#: were not part of the ruling and are kept.
+CHARACTER_MAP = {"\u2019": "'"}
+
 
 def _keep(character):
     if character.isspace():
         return " "
+    if character in CHARACTER_MAP:
+        return CHARACTER_MAP[character]
     rule = _RULES.get(unicodedata.category(character), _RULES["visible"])
     return character if rule == "keep" else ""
 
