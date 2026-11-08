@@ -1,0 +1,51 @@
+create ok
+== 1 migrate all
+  Applying users.0040_db_defaults_for_rollback... OK
+  Applying users.0041_revokedsession... OK
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+ [X] 0079_aijob_wallet_set_null
+75 objects imported automatically (use -v 2 for details).
+
+wallet_id is_nullable = YES
+== 2 null-wallet job, reverse refused
+Free trial plan not found: no trial activated for user 98d16dc1-8921-4d8c-a6c7-ce6bc7d9a62d.
+Cannot activate automatic trial for user 98d16dc1-8921-4d8c-a6c7-ce6bc7d9a62d (validation): ValueError
+75 objects imported automatically (use -v 2 for details).
+
+walletless jobs: 1
+  Unapplying billing.0079_aijob_wallet_set_null...Traceback (most recent call last):
+    raise RuntimeError(
+RuntimeError: Refusing to reverse billing 0079: 1 AIJob rows have no wallet.
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+ [X] 0079_aijob_wallet_set_null
+== 3 delete it, reverse allowed
+75 objects imported automatically (use -v 2 for details).
+
+deleted 1
+  Unapplying billing.0079_aijob_wallet_set_null... OK
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+ [ ] 0079_aijob_wallet_set_null
+75 objects imported automatically (use -v 2 for details).
+
+wallet_id is_nullable = NO
+== 4 forward again
+  Applying billing.0079_aijob_wallet_set_null... OK
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+ [X] 0079_aijob_wallet_set_null
+75 objects imported automatically (use -v 2 for details).
+
+wallet_id is_nullable = YES
+== 5 drop
+drop ok

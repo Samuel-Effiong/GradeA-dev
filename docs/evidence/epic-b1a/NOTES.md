@@ -2668,3 +2668,76 @@ Django's Collector picks what it deletes or sets NULL before it sends `pre_delet
 5. Drop `test_epic_b1a_migrate`.
 
 Any other outcome is recorded as it is and reported.
+
+**Result** (2026-11-08): matched at every step (`step21/step21p_migrate_roundtrip.log`).
+1. Forward: `[X] 0079`, `is_nullable = YES`.
+2. With one NULL-wallet job, the reverse was refused: `RuntimeError: Refusing to reverse billing 0079: 1 AIJob rows have no wallet.` 0079 stayed `[X]`.
+3. With the job deleted, the reverse was OK: `[ ] 0079`, `is_nullable = NO`.
+4. Forward again: `[X] 0079`, `is_nullable = YES`.
+5. The scratch database was dropped.
+
+Output beyond the prediction, from a fresh database: the `billing.W001` PlanFeature warning and the "Free trial plan not found" messages when the demo teacher was created. Both are environment noise, not about 0079.
+
+### 21q. The declared flag-on gate run: expectations committed before it runs (2026-11-08)
+
+**Run:** `BILLING_HOLDS_ENABLED=True` from the environment only, under `flock`, `--parallel 4`, at this commit. The labels are the exploratory run's (§21m): `billing ai_processor assignments students users audit.tests_h273_query_filters audit.tests_route_coverage`.
+
+**Prediction:** **Found 6875 = Ran 6875** (6866 at §21m + the 9 in `test_holds_wallet_deletion`, counted with `DiscoverRunner.build_suite`), **FAILED (failures=37, errors=8, skipped=28)**.
+- The failing set is **exactly** the 45 below, each as its listed kind (FAIL or ERROR).
+- A failure not on the list, a listed test that passes, a listed test failing as the other kind, or a different skip count: **STOP**.
+- **Expected to PASS** (not on the list):
+  - `ai_processor.tests_call_record.TheRowsOutliveTheirRecords.test_deleting_the_teacher_or_the_assignment_leaves_the_rows` (finding A, fixed);
+  - `billing.tests.test_holds_schema.AIJobColumnsTests.test_aijob_on_delete_rules_follow_03a`;
+  - all 9 of `billing.tests.test_holds_wallet_deletion`.
+
+**The 45 expected failures** (class from §21m: B1 = the flag and migration guards, B2 = the door launch deferred to `on_commit`, B3 = the charge-then-refund ledger shape, B4 = the patched balance):
+
+| Class | Kind | Test |
+|---|---|---|
+| B1 | ERROR | `billing.tests.test_audit_identity_migration.AuditIdentityMigrationTests.test_backfill_is_idempotent` |
+| B1 | ERROR | `billing.tests.test_audit_identity_migration.AuditIdentityMigrationTests.test_the_restore_brings_back_every_apps_leaf` |
+| B1 | ERROR | `billing.tests.test_audit_identity_migration.AuditIdentityMigrationTests.test_user_id_survives_and_email_is_backfilled` |
+| B1 | ERROR | `billing.tests.test_holds_schema.ReverseGuardTests.test_reverse_is_allowed_with_the_flag_off_and_no_hold_open` |
+| B1 | FAIL | `billing.tests.test_holds_schema.PlanAndSettingsTests.test_holds_flag_defaults_off` |
+| B1 | FAIL | `billing.tests.test_holds_schema.ReverseGuardTests.test_reverse_is_refused_while_a_wallet_holds_credits` |
+| B2 | ERROR | `students.tests_batch_item_results.TheSessionResultsShape.test_an_overwrite_is_lifted_into_the_item_result` |
+| B2 | ERROR | `students.tests_batch_item_results.TheSessionResultsShape.test_an_unclassified_failure_is_visible_as_system_with_no_code` |
+| B2 | ERROR | `students.tests_batch_item_results.TheSessionResultsShape.test_each_item_answers_for_itself_and_the_old_keys_stay` |
+| B2 | FAIL | `assignments.tests_h274_empty_upload_doors.TheAsyncTeacherUploadIsNeverHalfQueued.test_one_empty_file_fails_as_its_item_and_the_rest_are_queued` |
+| B2 | FAIL | `billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherCourseGuardRouteTests.test_batch_upload_answers_succeeds_for_active_teacher` |
+| B2 | FAIL | `students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_batch_upload_runs_the_rest_of_the_batch` |
+| B2 | FAIL | `students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_upload_async_is_never_half_queued` |
+| B2 | FAIL | `students.tests_batch_item_results.ThirtyFilesTwelveFailures.test_every_failure_is_listed_with_its_own_code` |
+| B2 | FAIL | `students.tests_credits_mid_batch.AnUploadBatchThatRunsOutOfCredits.test_the_rest_stops_uncharged_and_resumes_by_re_upload` |
+| B2 | FAIL | `students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t1_a_dear_file_in_the_middle_is_parked_and_the_others_run` |
+| B2 | FAIL | `students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t2_the_balance_runs_down_as_files_are_queued` |
+| B2 | FAIL | `students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t3_a_cheap_file_after_a_dear_one_still_runs` |
+| B2 | FAIL | `students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t5_the_door_does_not_stamp_the_session` |
+| B2 | FAIL | `students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t1_a_dear_file_in_the_middle_is_parked_and_the_others_run` |
+| B2 | FAIL | `students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t2_the_balance_runs_down_as_files_are_queued` |
+| B2 | FAIL | `students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t3_a_cheap_file_after_a_dear_one_still_runs` |
+| B2 | FAIL | `students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t5_the_door_does_not_stamp_the_session` |
+| B2 | FAIL | `students.tests_h274_empty_student_answer_doors.AnEmptyFileInABatchFailsAsItsItem.test_an_empty_unsupported_file_is_the_type_first_and_the_rest_run` |
+| B2 | FAIL | `students.tests_h274_empty_student_answer_doors.AnEmptyFileInABatchFailsAsItsItem.test_a_zero_byte_answer_is_submission_empty_and_the_rest_run` |
+| B2 | FAIL | `students.tests_h274_empty_student_answer_doors.TheAsyncStudentUploadKeepsS6.test_an_empty_file_of_an_unsupported_type_is_the_type_first` |
+| B2 | FAIL | `students.tests_h274_empty_student_answer_doors.TheAsyncStudentUploadKeepsS6.test_a_zero_byte_answer_is_submission_empty` |
+| B2 | FAIL | `students.tests_upload_credit_door.AssignmentUploadDoorTest.test_a_funded_teacher_is_queued_as_before` |
+| B2 | FAIL | `students.tests_upload_credit_door.StudentUploadDoorTest.test_a_file_the_door_cannot_read_is_left_to_the_task` |
+| B2 | FAIL | `students.tests_upload_credit_door.StudentUploadDoorTest.test_a_teacher_without_a_wallet_is_left_to_the_permission` |
+| B2 | FAIL | `students.tests_upload_credit_door.StudentUploadDoorTest.test_a_wallet_above_the_estimate_is_queued_as_before` |
+| B2 | FAIL | `students.tests_upload_credit_door.TeacherBatchDoorTest.test_a_funded_teacher_is_queued_as_before` |
+| B3 | ERROR | `ai_processor.tests_grading_pipeline.FailedGradingRunRefundsEveryChargeTest.test_successful_run_keeps_every_charge` |
+| B3 | FAIL | `ai_processor.tests_grading_pipeline.PerAttemptRefundSemanticsTest.test_failed_attempt_is_refunded_successful_attempt_is_kept` |
+| B3 | FAIL | `ai_processor.tests_h256_provider_timeout.TimedOutRunRefundsTest.test_a_run_that_times_out_refunds_what_it_charged` |
+| B3 | FAIL | `assignments.tests_upload_batch_billing.FailedFilesAreRefundedTest.test_a_failed_save_refunds_the_file_and_it_can_be_retried` |
+| B3 | FAIL | `assignments.tests_upload_batch_billing.FailedFilesAreRefundedTest.test_an_unusable_provider_response_is_charged_then_refunded_in_full` |
+| B3 | FAIL | `assignments.tests_upload_batch_billing.LeftoverClaimsTest.test_a_claim_taken_over_mid_extraction_does_not_save_a_second_copy` |
+| B3 | FAIL | `assignments.tests_upload_task_retry_policy.AssignmentUploadTaskBillingTest.test_an_unusable_response_is_refunded_and_the_file_released` |
+| B3 | FAIL | `billing.tests.test_grading_refund_scope.GradingRefundScopeTest.test_failure_during_persistence_refunds_the_ai_charge` |
+| B3 | FAIL | `billing.tests.test_grading_refund_scope.GradingRefundScopeTest.test_malformed_summary_also_refunds` |
+| B3 | FAIL | `students.tests_answers_unreadable.TheWritersRefuseWhatTheBuilderRefusedForThem.test_the_edits_refusal_refunds_the_charge` |
+| B3 | FAIL | `students.tests_async_edit_path.ExtractionTaskTest.test_failure_after_the_charge_refunds_it` |
+| B3 | FAIL | `students.tests_s6d_extraction_refund.ExtractionRefundTests.test_a_mid_chunk_failure_nets_the_ledger_to_zero` |
+| B4 | FAIL | `billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r8_execute_graded_task_nothing_left_individual` |
+
+Totals: B1 6 (2 FAIL, 4 ERROR), B2 26 (23 FAIL, 3 ERROR), B3 12 (11 FAIL, 1 ERROR), B4 1 (FAIL): 37 FAIL, 8 ERROR.
