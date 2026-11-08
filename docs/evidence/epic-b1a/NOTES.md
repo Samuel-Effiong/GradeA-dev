@@ -2769,3 +2769,5 @@ Totals: B1 6 (2 FAIL, 4 ERROR), B2 26 (23 FAIL, 3 ERROR), B3 12 (11 FAIL, 1 ERRO
 - **Skips:** 26 are decorated: billing 4 (the opt-in Gate 6 files), ai_processor 6, assignments 13, students 1, audit 2. The flag-on gate's labels count 24 decorated skips against the 28 that run showed, so 4 skips happen at run time; they are expected again here.
 - **Prediction: Ran 7309, OK (skipped=30).** Any failure, or a different count or skip number, is a STOP, recorded as it is.
 - §21j's billing-only "Ran 3110 (skipped=6)" was a different label set (`billing audit` + the rollback test + G-1/static). This run replaces it as the flag-off near.
+
+**Result (run at 6e8e8ccc2, flag unset, free -m available 5399 MB before the run): Ran 7309 tests in 633.721s, OK (skipped=30), rc 0.** It matches the prediction exactly: the count, the skips, and no FAIL or ERROR lines. The log is `step21/step21r_near_flagoff_6e8e8ccc2.log.gz`, and the raw copy is in `GAP-a0-runs/epic-b1a/step21r_near_flagoff.log`.
