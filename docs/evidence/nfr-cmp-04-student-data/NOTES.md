@@ -1491,3 +1491,20 @@ removed from the wallet read. It runs on `students.tests_data_erase` and
 `students.tests_student_data_map` (66 tests). Predicted: **killed** only by
 `test_the_wallet_is_locked_for_the_check`, with the fragment "W-1: the
 wallet is read without FOR UPDATE".
+
+Run 41 result (`41_plant_W1_no_wallet_lock.log`): Ran 66, FAILED
+(failures=1), only `test_the_wallet_is_locked_for_the_check`, with
+"W-1: the wallet is read without FOR UPDATE". **Killed, as predicted.**
+Restored from a saved copy, sha256 matched. Plants are now 17 of 17
+killed.
+
+Open before the push:
+- the owner's wording approval (25 items). When it arrives: swap the
+  placeholders, set `EXPORT_NAMES_APPROVED = True`, then a final near run
+  of the same 7 labels, with its prediction first. The SM pushes.
+
+Open follow-ups after the push:
+- R9, the purge;
+- F4, uploaded files with B1b;
+- `AIJob.requested_by` in the map when B1a meets this branch (the SM, at
+  the merge).
