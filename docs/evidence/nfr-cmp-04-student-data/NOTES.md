@@ -1240,3 +1240,37 @@ imports. Neither changes behavior.
 **Prediction for run 28 (the same modules):** Ran 234, OK.
 
 Run 28 result (`28_green_after_lint.log`): Ran 234, OK. **As predicted.**
+
+### Erasure plants (predictions, before any plant runs)
+
+Each plant is run on `students.tests_data_erase` and
+`students.tests_student_data_map` (64 tests), restored from a saved copy,
+and its sha256 checked. "Only" means no other test fails.
+- **29, X1:** the student filter dropped on one DELETE entry
+  (`users.RevokedSession`: every user's rows are deleted). **Killed** only
+  by `test_every_delete_table_loses_only_the_targets_rows`, on the subtest
+  `users.RevokedSession` (the classmate's rows go).
+- **30, X2:** the course scope dropped for a teacher. **Killed** only by
+  `test_only_the_teachers_courses_rows_go` and
+  `test_the_grade_in_the_other_course_is_unchanged`. The second errors
+  with DoesNotExist, because the course B enrollment goes.
+- **31, X3:** the NOT_A_STUDENT check skipped. **Killed** only by the five
+  real-row refusal tests (owning a course, owning a tag, having made a
+  tag, a batch upload session, Django admin history): each gets 200, not
+  409. The structural test still passes, because the declared list is
+  unchanged.
+- **32, X4:** the wallet check skipped. **Killed** only by the four wallet
+  tests (credits, the dispute deficit, the refund deficit, credit
+  history). The history test may also error when the deferred foreign keys
+  are checked at teardown.
+- **33, X5:** the R2 billing check skipped. **Killed** only by the three R2
+  tests: a billing transaction, `performed_by` alone, and a payment
+  dispute.
+- **34, X6:** the erased-student record not written. **Killed** only by
+  `test_the_account_is_gone_and_the_record_is_written`, which errors with
+  DoesNotExist.
+- **35, X7:** `iexact` changed to `exact` (R7). **Killed** only by
+  `test_whitelist_and_waitlist_go_by_email_ignoring_case`, and by
+  `test_every_delete_table_loses_only_the_targets_rows` on the subtest
+  `users.BetaWhitelist` (the fixture stores the target's whitelist email
+  in upper case).
