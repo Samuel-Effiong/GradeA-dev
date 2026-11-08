@@ -1013,3 +1013,27 @@ outside the repo, as C1's near-run logs do:
   submission. I propose yes.
 - **E-Q3:** after a course erasure, should the student's risk alert be
   left alone (R3 said no recompute)? I propose yes, left alone.
+
+### SM rulings on gate 20 (2026-11-08), applied
+
+- **G1, G2 (approved as proposed):** `students/data_export.py` is added to
+  the H-279 guard's `allowed` set and to the reading-label guard's
+  `MAY_NAME`. The reason given: it names those columns only to leave them
+  out of the export (`EXPORT_OMITTED`), pinned by
+  `test_the_q1_q2_declarations`. The explicit `EXPORT_OMITTED` list stays,
+  because default-deny would lose the "every new field is decided" guard.
+- **G3 (approved):** the export event's `target_type` is `"CustomUser"`,
+  with the approved label "User account". No new wording. The audit test
+  is updated to match.
+- **G4 (the SM's ruling: a rename, not a pin):** done on
+  `task/c1-fixture-rename` at 79a8fcd48, off staging 703310b47. Its gate
+  39 ran 284, OK. It is waiting for the SM's review and push. This branch
+  takes it through the next staging merge.
+- **Process (SM):** every near run or gate now includes `users` and the
+  students and audit source-scanning guards.
+- **The order:** the SM's G4-first message arrived after the step 3
+  expectations were committed (efe737a18). They are documentation only,
+  and the SM has been told.
+
+Gate 21 runs after the staging merge that brings G4, with its own
+prediction.

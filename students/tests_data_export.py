@@ -571,7 +571,7 @@ class AuditTests(_ExportCase):
         self.assertEqual(event.target_id, self.w.student.pk)
         self.assertEqual(event.actor_id, self.w.school_admin.pk)
         self.assertEqual(event.action, AuditAction.DATA_EXPORT)  # SM (1)
-        self.assertEqual(event.target_type, "Student")
+        self.assertEqual(event.target_type, "CustomUser")  # SM G3
         self.assertEqual(
             set(event.metadata),
             {"file_count", "file_size_bytes", "item_count", "scope"},

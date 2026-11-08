@@ -52,7 +52,7 @@ class StudentDataExportView(APIView):
         emit(
             data_export.EXPORT_AUDIT_ACTION,
             actor=request.user,
-            target_type="Student",
+            target_type="CustomUser",  # SM G3: the approved "User account" label
             target_id=student.pk,
             request=request,
             school_id=student.school_id,
