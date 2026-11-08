@@ -1481,3 +1481,13 @@ Run 39 result (`39_red_wallet_lock.log`): Ran 45, FAILED (failures=1).
 read without FOR UPDATE". **As predicted.** (The first commit attempt was
 stopped by black re-wrapping a line after isort. The run tested the same
 content, and the commit follows with black's formatting.)
+
+**Prediction for run 40 (green, `students.tests_data_erase`):** Ran 45, OK.
+
+Run 40 result (`40_green_wallet_lock.log`): Ran 45, OK. **As predicted.**
+
+**Plant W1, run 41** (declared above, before the red): `.select_for_update()`
+removed from the wallet read. It runs on `students.tests_data_erase` and
+`students.tests_student_data_map` (66 tests). Predicted: **killed** only by
+`test_the_wallet_is_locked_for_the_check`, with the fragment "W-1: the
+wallet is read without FOR UPDATE".

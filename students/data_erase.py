@@ -102,7 +102,16 @@ def _refusal(student):
         model = apps.get_model(label)
         if model.objects.filter(**{field_name: student.pk}).exists():
             return "STUDENT_ERASE_NOT_ONLY_A_STUDENT"
-    wallet = apps.get_model("billing.CreditWallet").objects.filter(user=student).first()
+    # SM W-1: locked, so a credit grant can't add a bucket between this check
+    # and the delete (the bucket would be cascaded away). Lock order: the
+    # student row (erase_student), then the wallet; nothing locks a user row
+    # after a wallet (NOTES, W-1).
+    wallet = (
+        apps.get_model("billing.CreditWallet")
+        .objects.select_for_update()
+        .filter(user=student)
+        .first()
+    )
     if wallet is not None and (
         wallet.buckets.exists()  # credits, or credit history kept records point at
         or wallet.dispute_deficit_credits
