@@ -2418,3 +2418,39 @@ The method follows plan §9 item 13:
 - **Gate 6 against the new budget is judged on measurement 3**, the declared realistic method (`TransactionTestCase`): added p95 32.593 ms ≤ 40 ms, **PASS**.
 - The opt-in assertion in `test_holds_gate6_latency.py` and `test_holds_gate6_m3.py` changes from 5 to 40 ms in a separate commit that cites this decision. `test_holds_gate6_m2.py` keeps its 5 ms, as the record of measurement 2.
 - The load tests are **not** re-run for this; they are opt-in and the measurement 3 numbers stand.
+
+### 21m. The flag-on exploratory run: results and classification (2026-11-08, at b66a6d19)
+
+**Run:** `BILLING_HOLDS_ENABLED=True` from the environment only, under `flock`, `--parallel 4`. Labels: `billing ai_processor assignments students users audit.tests_h273_query_filters audit.tests_route_coverage`. The students guards are inside `students`. There was no expectation (exploratory).
+
+**Result:** Found 6866, Ran 6866, **FAILED (failures=37, errors=9, skipped=28)** (`step21/step21_flagon_explore_b66a6d19.log.gz`). Nothing was fixed.
+
+**Classification** of all 46, by reading the failing assertion and the flag-on code path. Groups B2 to B4 were classified from representative tests and the shared code path; no test was re-run.
+
+**A. Hold-path defect candidate (1).**
+- `ai_processor.tests_call_record.TheRowsOutliveTheirRecords.test_deleting_the_teacher_or_the_assignment_leaves_the_rows`: ProtectedError at `teacher.delete()`.
+  - `CreditWallet.user` is CASCADE and `AIJob.wallet` is PROTECT (models.py, "a wallet with open reservations must not vanish").
+  - With the flag on, every billed call leaves an AIJob (SINGLE_CALL, or the unit's job). So a teacher who has ever made an AI call cannot be deleted. PROTECT applies to finished jobs, not only to open reservations.
+  - This bears on teacher deletion (H-298) and on NFR-CMP-04 erasure.
+
+**B. Tests that assume the flag is off (45).**
+- **B1. The flag and migration guards, by design (6):**
+  - `billing.tests.test_holds_schema`: `PlanAndSettingsTests.test_holds_flag_defaults_off` (reads the env-set value); `ReverseGuardTests.test_reverse_is_allowed_with_the_flag_off_and_no_hold_open` and `test_reverse_is_refused_while_a_wallet_holds_credits`.
+  - `billing.tests.test_audit_identity_migration.AuditIdentityMigrationTests`: `test_backfill_is_idempotent`, `test_the_restore_brings_back_every_apps_leaf`, `test_user_id_survives_and_email_is_backfilled`.
+  - All six hit 0074's "Refusing to reverse billing 0074: BILLING_HOLDS_ENABLED is on."
+- **B2. The door launch is deferred to `on_commit` (plan M5, NOTES §15g), and under `TestCase` the callbacks never run, so the patched `launch_processing_task` is never called (26):**
+  - `students.tests_h223_batch_runs_what_fits`: t1, t2, t3 and t5 on both `TheAnswerBatchRunsWhatFits` and `TheAssignmentUploadRunsWhatFits` (8).
+  - `students.tests_h274_empty_student_answer_doors`: `TheAsyncStudentUploadKeepsS6` ×2, `AnEmptyFileInABatchFailsAsItsItem` ×2 (4).
+  - `assignments.tests_h274_empty_upload_doors.TheAsyncTeacherUploadIsNeverHalfQueued.test_one_empty_file_fails_as_its_item_and_the_rest_are_queued` (1).
+  - `students.tests_batch_item_results`: `TheSessionResultsShape` ×3 (the ValueError unpacks), `ATooLargeFileFailsAsItsItem` ×2, `ThirtyFilesTwelveFailures` ×1 (6).
+  - `students.tests_upload_credit_door`: `StudentUploadDoorTest` ×3 (the task id is the door's uuid, not the mock's), `TeacherBatchDoorTest` ×1, `AssignmentUploadDoorTest` ×1 (5).
+  - `students.tests_credits_mid_batch.AnUploadBatchThatRunsOutOfCredits.test_the_rest_stops_uncharged_and_resumes_by_re_upload` (1).
+  - `billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherCourseGuardRouteTests.test_batch_upload_answers_succeeds_for_active_teacher` (1).
+- **B3. The charge-then-refund ledger shape.** With the flag on, `metered_unit` charges at `settle_root`, a failed call is never charged (decision 2), and `record_billing_task_id` is a no-op (no refund scope is open). So fakes that call `wallet.consume_credits` directly are never refunded, and tests that expect a charged-then-refunded usage row find none (12):
+  - `billing.tests.test_grading_refund_scope.GradingRefundScopeTest`: `test_failure_during_persistence_refunds_the_ai_charge`, `test_malformed_summary_also_refunds` (2);
+  - `students.tests_answers_unreadable.TheWritersRefuseWhatTheBuilderRefusedForThem.test_the_edits_refusal_refunds_the_charge`; `students.tests_async_edit_path.ExtractionTaskTest.test_failure_after_the_charge_refunds_it`; `students.tests_s6d_extraction_refund.ExtractionRefundTests.test_a_mid_chunk_failure_nets_the_ledger_to_zero` (3);
+  - `ai_processor.tests_grading_pipeline`: `PerAttemptRefundSemanticsTest.test_failed_attempt_is_refunded_successful_attempt_is_kept`, and `FailedGradingRunRefundsEveryChargeTest.test_successful_run_keeps_every_charge` (its fake picks the batch by the usage-log count, which stays 0 until settle, hence GradingCompletenessError) (2);
+  - `ai_processor.tests_h256_provider_timeout.TimedOutRunRefundsTest.test_a_run_that_times_out_refunds_what_it_charged` (1);
+  - `assignments.tests_upload_batch_billing`: `FailedFilesAreRefundedTest` ×2, `LeftoverClaimsTest` ×1 (3);
+  - `assignments.tests_upload_task_retry_policy.AssignmentUploadTaskBillingTest.test_an_unusable_response_is_refunded_and_the_file_released` (1).
+- **B4. The patched balance (1):** `billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r8_execute_graded_task_nothing_left_individual`. It patches `total_remaining_credits` to 0 and the estimate to 0. The flag-on path skips the flag-off balance check, and `begin_single_call` reserves only when the estimate is above 0, so the call reaches the provider. A production estimate carries the flat 20,000, so an estimate of 0 is not reachable there. Noted for the SM's view.
