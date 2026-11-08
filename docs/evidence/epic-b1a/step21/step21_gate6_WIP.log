@@ -1,0 +1,30 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 67e3032e-bd6f-4364-a220-8a57c24c4c65.
+Cannot activate automatic trial for user 67e3032e-bd6f-4364-a220-8a57c24c4c65 (validation): ValueError
+F
+======================================================================
+FAIL: test_gate6_holds_add_at_most_5ms_per_call_at_p95 (billing.tests.test_holds_gate6_latency.Gate6LatencyTests.test_gate6_holds_add_at_most_5ms_per_call_at_p95)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_gate6_latency.py", line 138, in test_gate6_holds_add_at_most_5ms_per_call_at_p95
+    self.assertLessEqual(added_p95, PASS_P95_ADDED_MS)
+AssertionError: 16.152760348904852 not less than or equal to 5.0
+
+----------------------------------------------------------------------
+Ran 1 test in 53.927s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+GATE6 calls=500 off_p50_ms=41.344 off_p95_ms=55.698 on_p50_ms=60.164 on_p95_ms=71.850 added_p50_ms=18.819 added_p95_ms=16.153 reserve_p50_ms=8.562 reserve_p95_ms=11.106 settle_p50_ms=31.734 settle_p95_ms=39.076 aijob_bytes_per_row=2363.1 settlement_bytes_per_row=504.1 audit_bytes_per_row=712.5 storage_per_month_per_100_teachers_MB=283.3

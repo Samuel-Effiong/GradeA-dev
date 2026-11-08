@@ -2232,3 +2232,27 @@ The method follows plan §9 item 13:
 - **M-B2 surviving R-1 is the expected survivor.** R-4b kills it.
 - **Gate 6 is accepted** (opt-in, asserted p95 ≤ 5 ms added, a fail is a STOP).
 - **Run order §21e is accepted.** **Every run goes under `flock ~/.machine-fullsuite.lock` with h284_deps_env.** There is a checkpoint after the flag-on exploratory run, before the declared gate run. The flag-off near prediction, billing Ran 3107 OK (skipped=3), stands; any other count is "prediction incomplete".
+
+### 21g. Run 1 results, and Gate 6 measurement 1: FAIL (2026-11-08)
+
+- **`test_holds_gate` 5×** (WIP): Ran 4, OK each time. Matched (`step21_gate_x1..x5.log`).
+  - **R-4a confirms on PG 18.6** that the unlocked bucket-subquery UPDATE over-reserves: rowcount 1, reserved 70, remaining 40. §0.3's [UNVERIFIED] claim holds on 18.6; PG 16 is pending with G.
+  - R-4b, U-2 and T-1 pass on today's code.
+- **Committed at cfd598b6:**
+  - At commit, black reformatted both new files. mypy also required the race mixin to become a `TransactionTestCase` base (`ConsumeRaceBase`), a structural change only.
+  - The committed files were re-run: `test_holds_gate` + `test_holds_gate6_latency` without the env var gave Ran 5, OK (skipped=1) (`step21_gate_cfd598b6.log`).
+- **Gate 6 measurement 1: FAIL.** This is the recorded result. It is not amended and not replaced (SM).
+  - **Setup:** `RUN_LOAD_TESTS=1`, under `flock`, `step21_gate6_WIP.log`. The logic is the same as the committed file, before black. 500 calls after a 20-call warm-up, with the provider stubbed (150 tokens), on local PG 18.6, all inside one `TestCase`.
+
+    | | p50 | p95 |
+    |---|---|---|
+    | Flag off | 41.344 ms | 55.698 ms |
+    | Flag on | 60.164 ms | 71.850 ms |
+    | **Added** | **18.819 ms** | **16.153 ms**, against ≤ 5 ms: **FAIL** |
+    | Reserve (`begin_single_call`) | 8.562 ms | 11.106 ms |
+    | Settle (`finish_single_call`, including `consume_credits` and `finish_job`) | 31.734 ms | 39.076 ms |
+
+  - **Bytes per row** (`pg_total_relation_size` / rows, on small tables, so the index and fixed pages inflate them): AIJob 2363.1, SettlementRecord 504.1, AuditEvent 712.5.
+  - **Storage:** 283.3 MB per month per 100 active teachers (30 gradings × 22 days × (AIJob + Settlement + 2 audit rows)).
+  - **Conditions:** the load average was about 5.5 on 8 cores (the machine is shared; `flock` was held). The test ran inside one `TestCase` transaction, so every `atomic()` is a savepoint.
+- **The SM's ruling (2026-11-08):** the FAIL stands. The decision goes to the owner after measurement 2 and the profile (§21h): build the plan's wallet-counter fallback for SINGLE_CALL, or change the 5 ms budget. **The step 9 summary and any "B1a done" claim are held until the owner decides.**
