@@ -44,7 +44,7 @@ from users.models import CustomUser, RegistrationMethod, UserTypes
 from users.services import generate_temporary_password
 from users.utils import is_business_email, is_exempt_email_domain
 
-from . import license_stripe_mutation
+from . import departed_share_refund, license_stripe_mutation
 from .billing_transaction_service import BillingTransactionService
 from .context import clear_license_invitation_context, set_license_invitation_context
 from .imports import stripe
@@ -3602,6 +3602,26 @@ class LicenseSubscriptionService:
                 performed_by=performed_by,
             )
             request_obj.license_billing_record = billing_record
+            # B1a 3b: with the switch on, the skipped share is recorded as
+            # owed back, for the super admin to refund by hand.
+            refund_due = departed_share_refund.enabled() and bool(skipped)
+            if refund_due:
+                LicenseBillingRecord.objects.create(
+                    license_subscription=license_sub,
+                    record_type=LicenseBillingRecordType.OFFLINE_OVERAGE_REFUND_DUE,
+                    amount_paid_cents=None,
+                    payment_reference=payment_reference,
+                    payment_method_label=payment_method_label,
+                    notes=departed_share_refund.text(
+                        "offline_record_notes",
+                        amount=departed_share_refund.format_amount(
+                            LicenseSubscriptionService._offline_share_owed(
+                                request_obj, skipped
+                            )
+                        ),
+                    ),
+                    performed_by=performed_by,
+                )
             request_obj.save(
                 update_fields=[
                     "status",
@@ -3630,7 +3650,18 @@ class LicenseSubscriptionService:
                     f"Offline overage request approved — "
                     f"{request_obj.total_blocks * (request_obj.block_size_snapshot // CONVERSION_FACTOR):,} "
                     f"AI credit(s) across {len(request_obj.allocations)} teacher(s)"
-                    + (f" ({len(skipped)} skipped, needs review)" if skipped else "")
+                    + (
+                        " "
+                        + departed_share_refund.text(
+                            "history_suffix_offline", n=len(skipped)
+                        )
+                        if refund_due
+                        else (
+                            f" ({len(skipped)} skipped, needs review)"
+                            if skipped
+                            else ""
+                        )
+                    )
                 ),
                 occurred_at=timezone.now(),
             )
@@ -3768,6 +3799,15 @@ class LicenseSubscriptionService:
         transaction.on_commit(_dispatch)
 
     @staticmethod
+    def _offline_share_owed(request_obj, skipped) -> int:
+        """The skipped teachers' share of an offline payment, never more
+        than what was confirmed as paid."""
+        share = departed_share_refund.share_cents(
+            skipped, request_obj.unit_price_cents_snapshot
+        )
+        return min(share, int(request_obj.amount_confirmed_cents or 0))
+
+    @staticmethod
     def _notify_school_admin_offline_overage_approved(
         request_obj: LicenseOverageOfflineRequest,
     ) -> None:
@@ -3788,6 +3828,15 @@ class LicenseSubscriptionService:
             "current_year": timezone.now().year,
             "support_email": settings.SUPPORT_EMAIL,
         }
+        skipped = request_obj.skipped_allocations or []
+        if departed_share_refund.enabled() and skipped:
+            # B1a 3b: the not-credited sentence says the share is owed back.
+            context["not_credited_text"] = departed_share_refund.text(
+                "approval_email_not_credited",
+                amount=departed_share_refund.format_amount(
+                    LicenseSubscriptionService._offline_share_owed(request_obj, skipped)
+                ),
+            )
         recipient_email = requested_by.email if requested_by else None
 
         def _dispatch():

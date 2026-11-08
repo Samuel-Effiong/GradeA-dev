@@ -134,6 +134,12 @@ class LicenseBillingRecordType(models.TextChoices):
         _("Offline Overage Request Approved"),
     )
     CANCELLED = "CANCELLED", _("Cancelled")
+    # B1a plan step 3b. The label is a PENDING OWNER TEXT placeholder; the
+    # record is only written while DEPARTED_SHARE_REFUND_APPROVED is on.
+    OFFLINE_OVERAGE_REFUND_DUE = (
+        "OFFLINE_OVERAGE_REFUND_DUE",
+        _("PENDING OWNER TEXT: offline overage refund due"),
+    )
 
 
 class PendingChangeType(models.TextChoices):

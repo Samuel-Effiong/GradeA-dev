@@ -1801,3 +1801,38 @@ def check_credit_hold_invariants(self):
         logger.error("Credit hold invariant: %s", problem)
         audit_metrics.count("credit_ledger_anomaly", tags={"kind": "hold_drift"})
     return f"Credit hold invariants: {len(problems)} problem(s)"
+
+
+#: A connection problem is retried with backoff (60s, 2m, 4m, 8m, 16m):
+#: about half an hour in all, well inside the 24 hours Stripe honours the
+#: refund's idempotency key for.
+DEPARTED_SHARE_REFUND_MAX_RETRIES = 5
+
+
+@shared_task(bind=True, max_retries=DEPARTED_SHARE_REFUND_MAX_RETRIES)
+def refund_departed_teacher_share(self, intent_id, share_cents):
+    """Refund a departed teacher's share of an overage purchase (B1a 3b).
+
+    Enqueued on commit by the checkout handler, never run inside the
+    webhook's transaction. Safe to run again: the refund is guarded by an
+    idempotency key and by a check of the payment's existing refunds
+    (billing/departed_share_refund.py).
+    """
+    from celery.exceptions import MaxRetriesExceededError
+
+    from .departed_share_refund import RetryableRefundError, issue_share_refund
+
+    try:
+        issue_share_refund(intent_id, share_cents)
+    except RetryableRefundError as exc:
+        try:
+            raise self.retry(exc=exc, countdown=60 * 2**self.request.retries) from exc
+        except MaxRetriesExceededError:
+            logger.error(
+                "MANUAL RECONCILIATION NEEDED: the departed-teacher share "
+                "refund for overage intent %s could not reach Stripe after %d "
+                "attempts (%s).",
+                intent_id,
+                DEPARTED_SHARE_REFUND_MAX_RETRIES + 1,
+                exc,
+            )

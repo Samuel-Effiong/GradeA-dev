@@ -48,7 +48,7 @@ from billing.invoice_wording import invoice_description
 from classrooms.models import School
 from users.models import CustomUser
 
-from . import license_stripe_mutation
+from . import departed_share_refund, license_stripe_mutation
 from .billing_transaction_service import BillingTransactionService
 from .imports import stripe
 from .license_service import (
@@ -3524,7 +3524,23 @@ class StripeWebhookHandler:
         )
         intent.stripe_payment_intent_id = session.get("payment_intent")
         intent.completed_at = timezone.now()
-        if skipped:
+        # B1a 3b: with the switch on, a usd payment's skipped share is
+        # refunded after commit (billing/departed_share_refund.py).
+        refund_share = departed_share_refund.can_refund_automatically(
+            skipped, intent.stripe_payment_intent_id, session.get("currency", "usd")
+        )
+        share = departed_share_refund.share_cents(
+            skipped, intent.unit_price_cents_snapshot
+        )
+        if refund_share:
+            intent.failure_reason = departed_share_refund.text(
+                "purchase_note",
+                blocks=intent.total_blocks,
+                n=len(skipped),
+                skipped=skipped,
+                amount=departed_share_refund.format_amount(share),
+            )
+        elif skipped:
             intent.failure_reason = (
                 f"Paid for {intent.total_blocks} block(s) but {len(skipped)} "
                 f"teacher(s) were no longer active at fulfillment time and "
@@ -3556,10 +3572,20 @@ class StripeWebhookHandler:
                 f"Overage purchase — "
                 f"{intent.total_blocks * (intent.block_size_snapshot // CONVERSION_FACTOR):,} "
                 f"AI credit(s) across {len(intent.allocations)} teacher(s)"
-                + (f" ({len(skipped)} skipped, needs review)" if skipped else "")
+                + (
+                    " "
+                    + departed_share_refund.text("history_suffix_card", n=len(skipped))
+                    if refund_share
+                    else (f" ({len(skipped)} skipped, needs review)" if skipped else "")
+                )
             ),
         )
         schedule_receipt_url_fill(billing_transaction)
+
+        if refund_share:
+            StripeWebhookHandler._refund_departed_share_on_commit(
+                intent, license_sub, len(skipped), share
+            )
 
         if skipped:
             logger.error(
@@ -3583,6 +3609,36 @@ class StripeWebhookHandler:
                 len(fulfilled),
                 license_sub.id,
             )
+
+    @staticmethod
+    def _refund_departed_share_on_commit(intent, license_sub, skipped_count, share):
+        """After commit: refund the skipped share, and tell the admin.
+        Nothing reaches Stripe inside the webhook's transaction."""
+        from django.conf import settings
+
+        from AutoGrader.tasks import send_email_task
+
+        from .tasks import refund_departed_teacher_share
+
+        intent_id = str(intent.id)
+        admin = license_sub.admin_user or intent.initiated_by
+        recipient = admin.email if admin else None
+
+        def _after_commit():
+            refund_departed_teacher_share.delay(intent_id, share)
+            if recipient:
+                send_email_task.delay(
+                    subject=departed_share_refund.text("email_subject"),
+                    message=departed_share_refund.text(
+                        "email_body_card",
+                        n=skipped_count,
+                        amount=departed_share_refund.format_amount(share),
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[recipient],
+                )
+
+        transaction.on_commit(_after_commit)
 
     @staticmethod
     def _handle_individual_upgrade_checkout_completed(session, metadata):
