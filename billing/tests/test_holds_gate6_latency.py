@@ -3,7 +3,8 @@
 M = 500 billed single calls with the provider stubbed, flag off and then on,
 on one database. Reports the added wall time per call (p50, p95), reserve
 and settle on their own, bytes per AIJob and SettlementRecord row, and the
-storage a month of busy days would take. Pass: added p95 <= 5 ms.
+storage a month of busy days would take. Pass: added p95 <= 40 ms (the
+owner's budget of 2026-11-08, NOTES §21l; it was 5 ms).
 
 Opt-in like the repo's other load tests: set RUN_LOAD_TESTS=1.
 """
@@ -35,7 +36,7 @@ CALLS = 500
 WARM_UP = 20
 SCHOOL_DAYS_PER_MONTH = 22
 TEACHERS = 100
-PASS_P95_ADDED_MS = 5.0
+PASS_P95_ADDED_MS = 40.0
 
 
 def p50(values):

@@ -5,8 +5,9 @@ Declared method change from measurement 2: a TransactionTestCase, so each
 call runs in its own committed transactions (no single test transaction
 holding dead row versions). Otherwise as measurement 2: M = 2000 calls per
 mode; off and on interleaved in blocks of 100 (off first), after a 20-call
-warm-up in each mode; the load average logged at start and end. Pass
-threshold unchanged: added p95 <= 5 ms.
+warm-up in each mode; the load average logged at start and end. Measured
+against 5 ms (FAIL, NOTES §21k); the pass threshold is now added p95 <= 40 ms,
+the owner's budget of 2026-11-08 (NOTES §21l).
 
 Opt-in like the repo's other load tests: set RUN_LOAD_TESTS=1.
 """
@@ -33,7 +34,7 @@ PROVIDER = "_AIProcessor__ai_model"
 CALLS = 2000
 BLOCK = 100
 WARM_UP = 20
-PASS_P95_ADDED_MS = 5.0
+PASS_P95_ADDED_MS = 40.0
 
 
 def p50(values):
