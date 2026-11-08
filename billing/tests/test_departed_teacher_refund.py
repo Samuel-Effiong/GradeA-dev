@@ -48,13 +48,16 @@ CREATE = "stripe.Refund.create"
 LIST = "stripe.Refund.list"
 TODAY_REVIEW = "Needs manual review (partial refund or manual grant)."
 TODAY_SUFFIX = " (1 skipped, needs review)"
+TODAY_NOT_CREDITED = "Contact support if this needs manual follow-up."
+APPROVAL_SUBJECT = "Your overage request has been approved — DR School"
+APPROVAL_MESSAGE = "Your offline overage request for 3 block(s) has been approved."
 KEYS = {
     "purchase_note",
     "history_suffix_card",
     "history_suffix_offline",
     "email_subject",
     "email_body_card",
-    "email_body_offline",
+    "approval_email_not_credited",
     "offline_record_notes",
 }
 LABEL = "PENDING OWNER TEXT: offline overage refund due"
@@ -519,10 +522,14 @@ class OfflinePathTests(TestCase, SchoolFixture):
         self.assertTrue(self.offline_txn().description.endswith(TODAY_SUFFIX))
         create.assert_not_called()
         listing.assert_not_called()
-        send.assert_not_called()
+        mail = self.approval_email(send)
+        self.assertEqual(mail["subject"], APPROVAL_SUBJECT)
+        self.assertEqual(mail["message"], APPROVAL_MESSAGE)
+        self.assertIn(TODAY_NOT_CREDITED, mail["html_message"])
+        self.assertNotIn("PENDING OWNER TEXT", mail["html_message"])
 
     def test_dr13_switch_on_records_the_share_owed_and_tells_the_admin(self):
-        texts = drs().DEPARTED_SHARE_REFUND_TEXTS
+        drs()
         with switch_on(), patch(CREATE) as create, patch(LIST) as listing, patch(
             SEND
         ) as send:
@@ -533,17 +540,26 @@ class OfflinePathTests(TestCase, SchoolFixture):
         self.assertIn(str(PRICE), record.notes.replace(",", ""))
         self.assertIn("PENDING OWNER TEXT", self.offline_txn().description)
         self.assertNotIn("needs review", self.offline_txn().description)
+        mail = self.approval_email(send)
+        self.assertEqual(mail["subject"], APPROVAL_SUBJECT)
+        html = mail["html_message"]
+        self.assertIn("PENDING OWNER TEXT", html)
+        self.assertIn(str(PRICE), html.replace(",", "").replace(".", ""))
+        self.assertNotIn(TODAY_NOT_CREDITED, html)
+        self.assertIn(str(self.c.id), html)
+        create.assert_not_called()
+        listing.assert_not_called()
+
+    def approval_email(self, send):
+        """Exactly one email goes to the admin: the approval email."""
         mine = [
             c.kwargs
             for c in send.call_args_list
             if c.kwargs.get("recipient_list") == [self.admin.email]
         ]
         self.assertEqual(len(mine), 1)
-        self.assertEqual(mine[0]["subject"], texts["email_subject"])
-        self.assertTrue(mine[0]["message"].startswith("PENDING OWNER TEXT"))
-        self.assertIn(str(PRICE), mine[0]["message"].replace(",", ""))
-        create.assert_not_called()
-        listing.assert_not_called()
+        self.assertEqual(send.call_count, 1)
+        return mine[0]
 
 
 class ChoicesMigrationTests(TransactionTestCase):
