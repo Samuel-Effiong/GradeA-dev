@@ -95,3 +95,5 @@ students.tests_data_erase (25). Count from build_suite: **3088** (2996 + 46
 + 46). The two added modules have no skips.
 Predicted: **Ran 3088, OK (skipped=18)**, the same 18 as run 01. Any
 failure is a STOP. Log: `02_near.log`.
+
+Near run 02 result (`02_near.log.gz`, under flock, `--parallel 2`, 312 s): **Ran 3088, OK (skipped=18)**. **As predicted.** Ready for the SM to push; no push from Lane 2.
