@@ -1327,3 +1327,7 @@ predicted.** The refusal runs before any delete.
 
 Ran 2696, OK (skipped=7), the same 7 opt-in skips as gate 21. The log goes
 to `GAP-a0-runs/nfr-cmp-04/37_gate_step3.log`.
+
+Run 37 result (`GAP-a0-runs/nfr-cmp-04/37_gate_step3.log`): Ran 2696, OK
+(skipped=7), with the same 7 opt-in skips. **As predicted.** Step 3 is
+done.
