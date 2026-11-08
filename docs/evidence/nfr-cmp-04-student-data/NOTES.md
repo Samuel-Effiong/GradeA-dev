@@ -1608,3 +1608,14 @@ Before the run, a script compared the code with the approved file
 
 No "PENDING OWNER" or "PENDING-" text is left in non-test code under
 students, audit or AutoGrader.
+
+**Prediction for near run 44 (final, under flock).** It uses the same 7
+labels as run 38: `students users audit tags billing
+AutoGrader.tests_reason_codes AutoGrader.tests_migration_rollback_defaults`.
+These include the users app and the students/audit source-scanning guards.
+Counted from the code with `DiscoverRunner.build_suite(...).countTestCases()`:
+**5118**. That is run 38's 5116, plus 1 from W-1, plus 1 new picture test.
+
+Predicted: **Ran 5118, OK (skipped=7)**. The log goes to
+`~/Documents/Projects/GAP-a0-runs/nfr-cmp-04/44_near_final.log`, because
+it is too large for the repo hook.
