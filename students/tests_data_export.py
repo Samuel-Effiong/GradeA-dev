@@ -492,8 +492,23 @@ class CallerMatrixTests(_ExportCase):
             AuditEvent.objects.filter(action=data_export.EXPORT_AUDIT_ACTION).exists()
         )
 
-    def test_anonymous_is_refused_with_401(self):
-        self.assertEqual(client_for(None).get(url(self.w.student.pk)).status_code, 401)
+    def test_anonymous_gets_the_unknown_url_answer(self):  # SM (2)
+        # Not 401: that would tell an anonymous caller the route exists.
+        self.assertNotFound(client_for(None).get(url(self.w.student.pk)))
+
+    def test_a_bad_token_gets_the_unknown_url_answer(self):  # SM (2)
+        client = client_for(None)
+        client.credentials(HTTP_AUTHORIZATION="Bearer not-a-real-token")
+        self.assertNotFound(client.get(url(self.w.student.pk)))
+
+    def test_head_is_refused_and_writes_no_event(self):  # SM (1)
+        # HEAD would run get(): build the zip and record an export that
+        # nobody downloaded.
+        response = client_for(self.w.superadmin).head(url(self.w.student.pk))
+        self.assertEqual(response.status_code, 405)
+        self.assertFalse(
+            AuditEvent.objects.filter(action=data_export.EXPORT_AUDIT_ACTION).exists()
+        )
 
 
 @flag_on

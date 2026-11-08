@@ -751,3 +751,46 @@ test fails.
 | 17 | E5: teacher's course filter dropped | killed, 2 failures: the 2 predicted | **as predicted** |
 
 5 of 5 killed. 4 were as predicted and 1 was incomplete. Nothing was amended.
+
+### SM review of step 2 (accepted at df4b5c138, with two fixes)
+
+Approved:
+- the widened DATA_EXPORT allow-list and the `scope` key;
+- R11 for the GET route as built: the read-only assertion, plus the dark
+  bytes pinned for every caller;
+- the step 3 POST erasure route goes in `CONCEALED_ROUTES` (confirmed).
+
+The SM also searched the tree and found no other bare `is_real_super_admin`
+reference.
+
+**Fix (1), HEAD.** The view allowed `head`, and Django serves HEAD
+through `get()`, so a HEAD request built the whole zip and wrote a
+DATA_EXPORT event for an export nobody downloaded. `head` is dropped (get
+and options remain), so a HEAD request answers 405 (DRF's method not
+allowed). Test: `test_head_is_refused_and_writes_no_event`.
+
+**Fix (2), an anonymous caller with the flag on.** `IsAuthenticated`
+answered 401, which told an anonymous caller the route exists. The
+preferred fix is chosen: an anonymous caller gets the unknown-URL answer,
+in the exact bytes.
+- **Where:** not in `dispatch()`. The JWT is read inside DRF's `initial()`
+  (authentication), which runs after `dispatch()` begins, so `dispatch()`
+  can't yet tell an anonymous caller from a signed-in one.
+- The view overrides `handle_exception`: `NotAuthenticated` and
+  `AuthenticationFailed` (a missing login and a bad or expired token)
+  answer `json_404`. Every other exception goes to DRF as before.
+- **Tests:** `test_anonymous_is_refused_with_401` is **replaced** by
+  `test_anonymous_gets_the_unknown_url_answer`. That changes an existing
+  assertion, as the SM ruled. `test_a_bad_token_gets_the_unknown_url_answer`
+  is added.
+- The module docstring stays true: every refusal gets the unknown-URL
+  answer.
+
+**Prediction for run 18 (red, `students.tests_data_export`):** Ran 44
+(42 - 1 replaced + 3 new), FAILED (failures=3):
+- HEAD: 200 != 405;
+- anonymous: 401 != 404;
+- bad token: 401 != 404.
+
+Log numbers: 18 red, 19 green, 20 the gate. The fixes get no plant of
+their own; the SM's list didn't ask for one.
