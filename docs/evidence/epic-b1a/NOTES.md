@@ -2599,3 +2599,38 @@ Django's Collector picks what it deletes or sets NULL before it sends `pre_delet
 - The hold targeted set (§21c's run set plus this file) is **Ran 150, OK**.
 - PD-1 and PD-2 are killed as declared above. Each is run on the new file alone and restored by sha256.
 - The migration checks are as in §21n.
+
+### 21o. Finding A: red, the fix, the plants and the checks (2026-11-08)
+
+**Commits:**
+- c4d12e90f: the tests and the declarations (§21n addendum 2).
+- cb08f4848: billing 0079 and the model field, in their own commit.
+- a965a5491: the receiver, its `ready()` connection and the guards. isort reordered the imports in `ready()` at commit.
+
+**Red** (c4d12e90): Ran 9, FAILED (errors=9). Seven ProtectedError ("…referenced through protected foreign keys: 'CreditWallet.user'") and two `ModuleNotFoundError: No module named 'billing.migrations.0079_aijob_wallet_set_null'`. **Matched** (`step21/step21n_red_c4d12e90.log`).
+
+**Green** (the same code as a965a549, before the commit): Ran 9, OK. **Matched** (`step21/step21n_green_WIP.log`).
+
+**One implementation deviation from addendum 2, recorded:** the NULL-wallet guard does not read `wallet_id` with a separate query. `_lock_wallet_of(job)` returns None both when `job.wallet_id` is None (a fresh read) and when `lock_wallet_first` raises `CreditWallet.DoesNotExist` (a stale instance). So the existing lock read is the check, and no query is added on the normal path. That keeps Gate 6's measured cost (§21k/§21l) unchanged. The successor path makes one `exists()` read, only on a late door or retry. The behavior is as declared.
+
+**The hold targeted set plus the new file** (a965a549): Ran 150, OK, equal to `Found 150`. **Matched** (`step21/step21n_targeted_a965a549.log`).
+
+**Plants** (each on the new file only, under `flock`, restored to sha256 `2761591e25131e412b950cbb749459535abf8229b6fb36a0b6568c73e263dca8`; `step21/step21n_plants_summary.jsonl`):
+
+| Plant | Result (Ran 9) | Kill test | Killed with fragment | Collateral |
+|---|---|---|---|---|
+| PD-1 (the receiver's `finish_job` removed) | FAILED (failures=3) | `test_d3a_an_open_hold_is_cancelled_and_returned_before_the_wallet_goes` | yes (`'CANCELLED' != `) | `FAIL test_d3b_the_same_through_a_queryset_delete`; `FAIL test_d4a_work_on_a_job_whose_wallet_was_deleted_moves_nothing` |
+| PD-2 (settle's guard removed) | FAILED (errors=1) | `test_d4a_work_on_a_job_whose_wallet_was_deleted_moves_nothing` | yes (`'NoneType' object has no attribute 'pk'`) | none |
+
+**Migration checks:**
+- `scripts/check_migration_safety.py --base HEAD~1` at cb08f484: "OK billing/migrations/0079_aijob_wallet_set_null.py: additive only".
+- `makemigrations --check`: no changes.
+
+**The exploratory run's failing test:**
+- `ai_processor.tests_call_record.TheRowsOutliveTheirRecords` with `billing.tests.test_holds_audit`, flag on from the env: Ran 6, OK (`step21/step21n_callrecord_on_a965a549.log`).
+
+**STOP, not predicted:** a flag-off run of `ai_processor.tests_call_record`, `billing.tests.test_holds_schema` and `AutoGrader.tests_migration_rollback_defaults` (added by me as a check, with no declared prediction): Ran 83, **FAILED (failures=1)** (`step21/step21n_callrecord_off_rollback_a965a549.log`).
+- The failure is the existing `billing.tests.test_holds_schema.AIJobColumnsTests.test_aijob_on_delete_rules_follow_03a`, at line 122: `assertEqual(rules["wallet"], models.PROTECT)`.
+- It pins the old 03a rule that §21n replaces. The rest of the 83 pass, including `tests_migration_rollback_defaults` and `tests_call_record` flag off.
+- **Not edited:** changing a pre-existing test is the SM's ruling.
+- **Not yet run, held with this STOP:** the migrate forward/back/forward on the worktree DB.

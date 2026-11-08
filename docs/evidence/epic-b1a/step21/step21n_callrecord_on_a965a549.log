@@ -1,0 +1,30 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user b842d55f-f84a-4851-a5ed-b4bf8b523944.
+Cannot activate automatic trial for user b842d55f-f84a-4851-a5ed-b4bf8b523944 (validation): ValueError
+Free trial plan not found: no trial activated for user a219eba5-cb9a-4318-a274-bd97c12e21b3.
+Cannot activate automatic trial for user a219eba5-cb9a-4318-a274-bd97c12e21b3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7d6c38a1-5920-40d8-83a6-d615815a2327.
+Cannot activate automatic trial for user 7d6c38a1-5920-40d8-83a6-d615815a2327 (validation): ValueError
+.Free trial plan not found: no trial activated for user 79b3697f-3a3c-4fba-a5b3-e608220c65ac.
+Cannot activate automatic trial for user 79b3697f-3a3c-4fba-a5b3-e608220c65ac (validation): ValueError
+.Free trial plan not found: no trial activated for user 04f52809-3218-4fbe-a5a6-f3bbcb12d4fc.
+Cannot activate automatic trial for user 04f52809-3218-4fbe-a5a6-f3bbcb12d4fc (validation): ValueError
+.Free trial plan not found: no trial activated for user 43832aa3-002c-4ce0-9b8c-7de893612349.
+Cannot activate automatic trial for user 43832aa3-002c-4ce0-9b8c-7de893612349 (validation): ValueError
+..
+----------------------------------------------------------------------
+Ran 6 tests in 0.459s
+
+OK
+Destroying test database for alias 'default'...
+Found 6 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
