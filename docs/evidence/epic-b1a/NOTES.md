@@ -2546,3 +2546,56 @@ Django's Collector picks what it deletes or sets NULL before it sends `pre_delet
   - A NULL-wallet job is terminal by construction (the receiver cancels it first), so this is the same answer the conditional UPDATE would give.
   - In `ensure_call_fits`, and for a late door or retry on a NULL-wallet job: raise the existing refusal (`InsufficientCreditsError` with the existing `REFUSAL_MESSAGE`, "Refill your wallet to continue"). That stops the provider call, using an existing sentence.
   - D-4 then asserts each of these.
+
+### 21n addendum 2. SM ruling on the finding; the (b) text trace, PD-2 and the red declaration (2026-11-08)
+
+**SM ruling:**
+- **(a) APPROVED:** `settle`, `fail_item`, `finish_job` and `_sweep_item` return their existing nothing-moved result when the job has no wallet, before any lock, and log one WARNING with the job id (operator-only text).
+- **(b) APPROVED IN PRINCIPLE:** no provider call on a NULL-wallet job. The text is conditional: "Refill your wallet to continue" must not reach anyone who does not own the wallet.
+
+**One correction to (a), from the trace:** a worker that loaded the job before the delete holds an in-memory `job` whose `wallet_id` is still set. Its `lock_wallet_first(job.wallet)` then raises `CreditWallet.DoesNotExist`, not AttributeError. So the guard reads the job's `wallet_id` **from the database** (`AIJob.objects.filter(pk=job.pk).values_list("wallet_id", flat=True)`) instead of trusting the instance. The existing nothing-moved results are: `settle` → `NOT_SETTLED`, `fail_item` → `0`, `finish_job` → `None`, `_sweep_item` → `None`.
+
+**(b), which text a user can see, traced:**
+- **What survives a teacher's deletion.**
+  - `Course.teacher`, `Assignment.course` and `BackgroundProcessingTask.assignment` are all CASCADE (classrooms/models.py:136, assignments/models.py:69, students/models.py). So every task row on the deleted teacher's assignments is deleted with them, and so is every job the teacher requested (`requested_by`).
+  - What is left with `wallet = NULL` is a job someone else requested, such as a student's upload job (`requested_by = student`, `assignment` SET_NULL). Its items on that teacher's assignments are already gone.
+- **`ensure_call_fits`.** Its only caller is `Unit.before_call` (holds.py:785), reached from `execute_graded_task` → `hold_for_call` inside a `metered_unit`: grading (students/services.py:1130), answer upload (:1539) and submission edit (:1884).
+  - A NULL-wallet root job reaches it only through a worker that entered before the delete.
+  - Its refusal propagates to the task handlers. `assignments/tasks.py:484` and `:1131` swap an `InsufficientCreditsError` for `STUDENT_UPLOAD_NOT_PROCESSED` only for a **STUDENT** requester; any other requester would read the refusal's own text.
+  - The row it would be written to is normally cascaded away, but a non-owner (a student, or a school admin acting for the teacher) is the only person left who could read it.
+  - So `InsufficientCreditsError` with the refill text is **not** used here.
+- **The late door** (`Unit.enter` → `open_late_door_job`) and **the retry successor** (`open_retry_job`): both go through `_open_successor_job` (436–459). That would `create_job(wallet=None)` and then refuse with the refill text, read by the row's requester, who is never the deleted owner.
+  - The late door's own notice, `notify_late_door_refusal`, is reached only when a successor exists (`late_door_row` is set after `_run_as_successor`). It reads `job.wallet.user`, so it must not be reached for a NULL-wallet job. With the guard it is not.
+- **The text used on all three (b) paths: the existing late-message error, `CreditHoldReturnedError` (`_late`, holds.py:669).**
+  - It is the PROVIDER_FAILURE coded message with `credit_clause = NOT_CHARGED` ("No credits were charged."). Students and teachers already read it when a hold was returned (the sweep, plan §3.2 R3-3b).
+  - It has no refill or wallet wording, so it is right for whoever reads it. The item ends not processed.
+  - In the guarded paths it is raised before `create_job`, so no successor job is made, and before any provider call.
+  - Compared with the SM's suggestion (`STUDENT_UPLOAD_NOT_PROCESSED`): that sentence is reached only by mapping an `InsufficientCreditsError` for STUDENT requesters. A non-student non-owner would still read the refill text. The late-message error is approved, existing text that fits every requester. **No new text.**
+  - This is declared here for the SM's review at the checkpoint, not taken as already approved.
+
+**Plants, declared before the fix:**
+- **PD-1:** remove the receiver's `finish_job` call. Kill: **D-3a** fails with the fragment `'CANCELLED' != ` (the test asserts `assertEqual("CANCELLED", fresh(job).status)`).
+- **PD-2:** remove the NULL-wallet guard from `settle`. Kill: **D-4a** errors with the fragment `'NoneType' object has no attribute 'pk'`. D-4a's first call after the delete is `settle` on a fresh read of the job, whose `wallet` is None, so `lock_wallet_first(None)` fails on `.pk`.
+
+**The tests:** `billing/tests/test_holds_wallet_deletion.py`, 9 tests, `TransactionTestCase`, flag on.
+- **D-1a / D-1b:** a teacher with a settled SINGLE_CALL job (a real billed call, provider stubbed) is deleted by `teacher.delete()` (1a) and by `CustomUser.objects.filter(pk=…).delete()` (1b). The user and the wallet are gone.
+- **D-2:** a SETTLED job billed to the wallet but requested by a student survives with `wallet_id None`, and its status and amounts are unchanged.
+- **D-3a / D-3b** (instance / QuerySet): an open UPLOAD job requested by a student, with one item HELD (300). After the delete:
+  - the job is CANCELLED;
+  - the item is RETURNED with `released_credits` 300;
+  - exactly one `CREDIT_HOLD_RELEASED` AuditEvent exists for the job, with `credits` 300 and `reason_label` "cancelled", read after the commit.
+- **D-4a:** on that job after the delete:
+  - `settle` (fresh, then the stale pre-delete instance) returns `NOT_SETTLED`;
+  - `fail_item` returns 0;
+  - `finish_job` returns None;
+  - `_sweep_item` returns None;
+  - a WARNING naming the job id is logged.
+- **D-4b:** `ensure_call_fits`, `open_late_door_job` and `open_retry_job` on that job each raise `CreditHoldReturnedError`, not `InsufficientCreditsError`. Its text has no "Refill", and no AIJob is created.
+- **D-5a / D-5b:** the 0079 reverse guard (loaded with `importlib`, so a missing module fails only these two tests). It refuses with "Refusing to reverse billing 0079" while a NULL-wallet job exists, and allows the reverse when none does.
+
+**Red prediction** (at this commit, before any code): **Ran 9, FAILED (errors=9).** D-1a, D-1b, D-2, D-3a, D-3b, D-4a and D-4b ERROR with `ProtectedError` at the delete (7). D-5a and D-5b ERROR with `ModuleNotFoundError` for `billing.migrations.0079_aijob_wallet_set_null` (2). Any other outcome is recorded as it is and reported.
+
+**Green prediction** (after 0079, the receiver and the guards): **Ran 9, OK.**
+- The hold targeted set (§21c's run set plus this file) is **Ran 150, OK**.
+- PD-1 and PD-2 are killed as declared above. Each is run on the new file alone and restored by sha256.
+- The migration checks are as in §21n.
