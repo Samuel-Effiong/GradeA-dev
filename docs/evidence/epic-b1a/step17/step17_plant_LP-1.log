@@ -1,0 +1,206 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 0dabf57b-0a66-4f12-8f34-9830a32122e3.
+Cannot activate automatic trial for user 0dabf57b-0a66-4f12-8f34-9830a32122e3 (validation): ValueError
+Late door file refused (task 451ff064-12bb-4593-9301-768c4a32c26f); the notice texts await owner approval, so no email was sent.
+FFree trial plan not found: no trial activated for user fc4a0296-b6fc-44e7-8a80-80cdd5eb6a36.
+Cannot activate automatic trial for user fc4a0296-b6fc-44e7-8a80-80cdd5eb6a36 (validation): ValueError
+Late door file refused (task 74614437-49db-49fb-8ba4-2d30189f521e); the notice texts await owner approval, so no email was sent.
+FFree trial plan not found: no trial activated for user c536fd39-e9d2-46f8-8917-28eacbc7290e.
+Cannot activate automatic trial for user c536fd39-e9d2-46f8-8917-28eacbc7290e (validation): ValueError
+.Free trial plan not found: no trial activated for user ece02686-516d-467d-a043-a126c386f835.
+Cannot activate automatic trial for user ece02686-516d-467d-a043-a126c386f835 (validation): ValueError
+Late door file refused (task 28d4b32c-9e70-44c2-83bc-bcbb51fadd9d); the notice texts await owner approval, so no email was sent.
+.Free trial plan not found: no trial activated for user bf118274-f424-4c3d-9ac0-995f604a7aa3.
+Cannot activate automatic trial for user bf118274-f424-4c3d-9ac0-995f604a7aa3 (validation): ValueError
+Late door file refused (task d9a4e734-bbb1-4d30-939d-48cb34e1bbee); the notice texts await owner approval, so no email was sent.
+.Free trial plan not found: no trial activated for user 3fbe7572-62c6-4a6d-ae5b-9a253237e512.
+Cannot activate automatic trial for user 3fbe7572-62c6-4a6d-ae5b-9a253237e512 (validation): ValueError
+.FFree trial plan not found: no trial activated for user 6a1a2142-cd9d-42b7-a34a-6e5240aee63a.
+Cannot activate automatic trial for user 6a1a2142-cd9d-42b7-a34a-6e5240aee63a (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user 8036f4d3-d462-407c-9dbd-c02d6dd516d0.
+Cannot activate automatic trial for user 8036f4d3-d462-407c-9dbd-c02d6dd516d0 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~5000 credits, balance 4000
+.Free trial plan not found: no trial activated for user 88525d3b-4e6f-44aa-a854-340394306771.
+Cannot activate automatic trial for user 88525d3b-4e6f-44aa-a854-340394306771 (validation): ValueError
+Upload door (hold) refused: InsufficientCreditsError: Upload needs ~5000 credits, more than is free to hold
+.Free trial plan not found: no trial activated for user 55b0c0c9-0516-4e56-a789-d60c4e576dfb.
+Cannot activate automatic trial for user 55b0c0c9-0516-4e56-a789-d60c4e576dfb (validation): ValueError
+.Free trial plan not found: no trial activated for user 2f36f4a6-a641-4391-900d-2f367bfb39ed.
+Cannot activate automatic trial for user 2f36f4a6-a641-4391-900d-2f367bfb39ed (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~5000 credits, 2000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-08 14:27:38,403 refusals 88523 130715538790272 [request_id=e791e662-fe56-4f71-abfe-fdcf5480509d client_request_id=-] Background task afb59697-da8d-4b2f-b448-d2fbe884bc76 refused: InsufficientCreditsError: Upload needs ~5000 credits, 2000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user 76e0422d-6e6a-4a4f-86da-d22d3c648e75.
+Cannot activate automatic trial for user 76e0422d-6e6a-4a4f-86da-d22d3c648e75 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8743ec5c-7588-4b37-9b80-34ef31388d7a.
+Cannot activate automatic trial for user 8743ec5c-7588-4b37-9b80-34ef31388d7a (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~5000 credits, 4000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-08 14:27:38,585 refusals 88523 130715538790272 [request_id=c4c06bed-226e-4d4a-a9b6-14c9ccf6c10b client_request_id=-] Background task a7174f49-0b0f-4128-bf96-5954520cff05 refused: InsufficientCreditsError: Upload needs ~5000 credits, 4000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user 18f1c7f2-798e-43c5-9eaf-ec39aff50592.
+Cannot activate automatic trial for user 18f1c7f2-798e-43c5-9eaf-ec39aff50592 (validation): ValueError
+Upload door (hold) refused: InsufficientCreditsError: Upload needs ~5000 credits, more than is free to hold
+
+
+students.task_tracking WARNING 2026-11-08 14:27:38,691 refusals 88523 130715538790272 [request_id=843ee91d-66a5-4945-8505-edaa7a454e48 client_request_id=-] Background task c82217c4-8fee-4c54-a68f-80914ab533e9 refused: InsufficientCreditsError: Upload needs ~5000 credits, more than is free to hold
+
+
+..
+
+django.request ERROR 2026-11-08 14:27:42,121 log 88523 130715538790272 [request_id=7909345b-70ed-4e86-8f4c-bc761ddc4919 client_request_id=-] Internal Server Error: /admin/login/
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 172, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 116, in render
+    url = self.url(context)
+          ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 113, in url
+    return self.handle_simple(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 129, in handle_simple
+    return staticfiles_storage.url(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 204, in url
+    return self._url(self.stored_name, name, force)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 183, in _url
+    hashed_name = hashed_name_func(*args)
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 518, in stored_name
+    raise ValueError(
+ValueError: Missing staticfiles manifest entry for 'admin/css/base.css'
+.
+
+ai_processor.call_record WARNING 2026-11-08 14:27:42,133 call_record 88523 130715538790272 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 14:27:42,134 call_record 88523 130715538790272 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 14:27:42,135 call_record 88523 130715538790272 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 14:27:42,135 call_record 88523 130715538790272 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 14:27:42,136 call_record 88523 130715538790272 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+........................................................
+======================================================================
+FAIL: test_l1_the_student_is_emailed_the_existing_notice (billing.tests.test_holds_late_door_student.LateDoorStudentNoticeTests.test_l1_the_student_is_emailed_the_existing_notice)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_late_door_student.py", line 56, in test_l1_the_student_is_emailed_the_existing_notice
+    send.assert_called_once()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 928, in assert_called_once
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to have been called once. Called 0 times.
+
+======================================================================
+FAIL: test_l2_the_notice_names_no_balance_or_credits (billing.tests.test_holds_late_door_student.LateDoorStudentNoticeTests.test_l2_the_notice_names_no_balance_or_credits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_late_door_student.py", line 69, in test_l2_the_notice_names_no_balance_or_credits
+    self.assertEqual(len(messages), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_the_texts_are_one_pending_constant_the_email_switch_is_off_and_the_student_notice_is_on (billing.tests.test_holds_door.LateDoorNoticeTests.test_the_texts_are_one_pending_constant_the_email_switch_is_off_and_the_student_notice_is_on)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_holds_door.py", line 272, in test_the_texts_are_one_pending_constant_the_email_switch_is_off_and_the_student_notice_is_on
+    self.assertIs(holds().LATE_DOOR_STUDENT_NOTICE_APPROVED, True)
+AssertionError: False is not True
+
+----------------------------------------------------------------------
+Ran 73 tests in 15.104s
+
+FAILED (failures=3)
+Destroying test database for alias 'default'...
+Found 73 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

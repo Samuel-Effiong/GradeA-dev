@@ -1613,3 +1613,15 @@ What stays untouched:
 4. **Plant LP-1:** `LATE_DOOR_STUDENT_NOTICE_APPROVED = True` back to `False`, restored and checked by sha256. Expected `FAILED (failures=3)`: L-1, L-2, and the renamed door test (`False is not True`).
 
 Any mismatch is a STOP, reported to the SM.
+
+### 17 results (expectations 16052e3b, tests 8fad134a, code c5bb2e19)
+
+| Run | Code | Result | Matches? | Log |
+|---|---|---|---|---|
+| Red: new file + test_holds_door + G-1 + static, flag False | 8fad134a | Ran 73, FAILED (failures=2): L-1 `Expected 'delay' to have been called once. Called 0 times.`; L-2 `0 != 1` | yes | step17/step17_red_8fad134a.log |
+| Break run: flag on, test_holds_door.py not edited | WIP | Ran 73, FAILED (failures=1): `test_the_texts_are_one_pending_constant_and_both_switches_are_off` `True is not False`. L-1..L-4 passed. | yes | step17/step17_break_run.log |
+| Green: flag on, door test edited | WIP | Ran 73, OK | yes | step17/step17_green_WIP.log |
+| Green, the same set | c5bb2e19 | Ran 73, OK | yes | step17/step17_green_c5bb2e19.log |
+| LP-1: `LATE_DOOR_STUDENT_NOTICE_APPROVED` back to False, restored by sha256 (d19bbf1a…, HEAD) | c5bb2e19 + plant | Ran 73, FAILED (failures=3): L-1, L-2 (same messages as red); the renamed door test `False is not True` | yes | step17/step17_plant_LP-1.log |
+
+`LATE_DOOR_EMAIL_APPROVED` (False) and `LATE_DOOR_EMAIL_TEXTS` are unchanged in c5bb2e19. The late-door student notice is on in B1a.
