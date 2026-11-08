@@ -78,6 +78,9 @@ ALLOWED_KEYS = frozenset(
         "previous_active_session_id",
         "submission_id",
         "student_id",
+        # NFR-CMP-04: how much of a student's data an export covered
+        # ("all", "school" or "courses"), never whose
+        "scope",
         # short labels and versions
         "http_status",
         "auth_method",
@@ -359,7 +362,12 @@ METADATA_ALLOWLIST = {
         }
         | _FAILED_AUTH_SUMMARY_KEYS
     ),
-    AuditAction.DATA_EXPORT: frozenset({"file_count", "file_size_bytes"}),
+    # NFR-CMP-04: a student's data erased (students/data_erase.py).
+    AuditAction.STUDENT_DATA_ERASE: frozenset({"scope", "item_count"}),
+    # NFR-CMP-04: a student's data export (students/data_export.py).
+    AuditAction.DATA_EXPORT: frozenset(
+        {"file_count", "file_size_bytes", "item_count", "scope"}
+    ),
     AuditAction.PERMISSION_CHANGE: frozenset({"changed_fields", "source"}),
     # Plus S1b's summary keys: a capped anonymous crash (SERVER_ERROR) is
     # summarised under its own action.

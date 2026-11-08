@@ -675,3 +675,26 @@ class BackgroundProcessingTask(models.Model):
     def __str__(self):
         label = self.file_name or self.celery_task_id or str(self.id)
         return f"{self.task_type}::{label}"
+
+
+class ErasedStudentRecord(models.Model):
+    """NFR-CMP-04 (owner, 2026-11-06): who a fully erased student was.
+
+    Written by a full erasure, just before the account is deleted, so the
+    rows kept with the student's id alone (the activity log and the credit
+    records, D1/D4) still resolve to a name and an email. Kept 7 years
+    (`keep_until`). No purge is built yet (R9, an open follow-up). Not in
+    the Django admin (no new wording).
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    original_user_id = models.UUIDField(unique=True)
+    first_name = models.CharField(max_length=150, blank=True, default="")
+    middle_name = models.CharField(max_length=255, blank=True, default="")
+    last_name = models.CharField(max_length=150, blank=True, default="")
+    email = models.EmailField()
+    erased_at = models.DateTimeField()
+    #: The super admin or school admin who erased the account (a bare id:
+    #: the erasure must not depend on that account staying).
+    erased_by_id = models.UUIDField(null=True, blank=True)
+    keep_until = models.DateTimeField()

@@ -484,6 +484,10 @@ class AStudentLearnsNothingOfAHeldResult(HeldBase):
             "students/views.py",
             "students/models.py",
             "assignments/tasks.py",
+            # NFR-CMP-04 (SM G1): names them only to leave them out of a
+            # student's data export (EXPORT_OMITTED); pinned by
+            # students.tests_data_export ... test_the_q1_q2_declarations.
+            "students/data_export.py",
         }
         found = set()
         for path in Path(django_settings.BASE_DIR).glob("*/**/*.py"):

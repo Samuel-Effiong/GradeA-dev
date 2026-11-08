@@ -1,0 +1,12 @@
+== P1 drop the StudentSubmission entry
+ERROR: test_a_students_own_work_is_exported_then_deleted (students.tests_student_data_map.OwnerRulingsTests.test_a_students_own_work_is_exported_then_deleted) (key=('students.StudentSubmission', 'student'))
+FAIL: test_every_relation_to_a_user_is_in_the_map (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_relation_to_a_user_is_in_the_map)
+FAIL: test_the_map_names_only_columns_that_exist (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_the_map_names_only_columns_that_exist)
+FAILED (failures=2, errors=1)
+== P2 activity log actor deleted instead of kept
+FAIL: test_the_activity_log_is_kept (students.tests_student_data_map.OwnerRulingsTests.test_the_activity_log_is_kept)
+FAILED (failures=1)
+== P3 password-reset code exported
+FAIL: test_sign_in_data_is_deleted_and_never_exported (students.tests_student_data_map.OwnerRulingsTests.test_sign_in_data_is_deleted_and_never_exported) (key=('users.PasswordResetOTP', 'user'))
+FAILED (failures=1)
+restored, sha ok

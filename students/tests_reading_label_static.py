@@ -78,6 +78,12 @@ class TheSixColumnsHaveOneWriterTest(SimpleTestCase):
         "students/reading_label.py": "the one writer: builds and applies the six",
         "students/admin.py": "lists them as read-only",
         "ai_processor/reading_run.py": "names the keys of the dict it builds",
+        # NFR-CMP-04 (SM G2).
+        "students/data_export.py": (
+            "names them only to leave them out of a student's data export "
+            "(EXPORT_OMITTED); pinned by students.tests_data_export "
+            "test_the_q1_q2_declarations"
+        ),
     }
 
     def test_only_the_listed_files_name_a_reading_column(self):

@@ -1,0 +1,532 @@
+test_a_students_own_work_is_exported_then_deleted (students.tests_student_data_map.OwnerRulingsTests.test_a_students_own_work_is_exported_then_deleted) ... ok
+test_credit_records_are_kept (students.tests_student_data_map.OwnerRulingsTests.test_credit_records_are_kept) ... ok
+test_kept_records_are_never_part_of_a_course_scoped_erasure (students.tests_student_data_map.OwnerRulingsTests.test_kept_records_are_never_part_of_a_course_scoped_erasure) ... ok
+test_sign_in_data_is_deleted_and_never_exported (students.tests_student_data_map.OwnerRulingsTests.test_sign_in_data_is_deleted_and_never_exported) ... ok
+test_the_activity_log_is_kept (students.tests_student_data_map.OwnerRulingsTests.test_the_activity_log_is_kept) ... ok
+test_a_course_scoped_table_can_be_scoped_by_course (students.tests_student_data_map.StepOneBRulingsTests.test_a_course_scoped_table_can_be_scoped_by_course) ...
+  test_a_course_scoped_table_can_be_scoped_by_course (students.tests_student_data_map.StepOneBRulingsTests.test_a_course_scoped_table_can_be_scoped_by_course) (label='dashboard.StudentRiskAlertState') ... FAIL
+test_an_email_matched_entry_is_an_email_column (students.tests_student_data_map.StepOneBRulingsTests.test_an_email_matched_entry_is_an_email_column) ... ok
+test_any_name_ending_in_by_id_is_a_user_id_column (students.tests_student_data_map.StepOneBRulingsTests.test_any_name_ending_in_by_id_is_a_user_id_column) ...
+  test_any_name_ending_in_by_id_is_a_user_id_column (students.tests_student_data_map.StepOneBRulingsTests.test_any_name_ending_in_by_id_is_a_user_id_column) (name='created_by_id') ... FAIL
+  test_any_name_ending_in_by_id_is_a_user_id_column (students.tests_student_data_map.StepOneBRulingsTests.test_any_name_ending_in_by_id_is_a_user_id_column) (name='reviewed_by_id') ... FAIL
+  test_any_name_ending_in_by_id_is_a_user_id_column (students.tests_student_data_map.StepOneBRulingsTests.test_any_name_ending_in_by_id_is_a_user_id_column) (name='erased_by_id') ... FAIL
+test_chat_sessions_go_with_a_teachers_erasure (students.tests_student_data_map.StepOneBRulingsTests.test_chat_sessions_go_with_a_teachers_erasure) ... FAIL
+test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) ...
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('classrooms.StudentCourse', 'student')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('students.StudentSubmission', 'student')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('dashboard.StudentRiskAlertState', 'student')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('students.BackgroundProcessingTask', 'requested_by')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('ai_processor.ChatSession', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('users.UserActivity', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('users.Settings', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('authtoken.Token', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('authtoken.TokenProxy', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('token_blacklist.OutstandingToken', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('users.PasswordResetOTP', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('users.PasswordChangeOTP', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('users.RevokedSession', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('users.UserGoogleCredentials', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('audit.AuditEvent', 'actor_id')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('audit.AuditEvent', 'target_id')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.CreditLedger', 'user_id')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.CreditUsageLog', 'user_id')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('ai_processor.AICallRecord', 'billed_user_id')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.BillingTransaction', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.BillingTransaction', 'performed_by')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.PaymentDispute', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.CreditWallet', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('admin.LogEntry', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('assignments.Assignment', 'teacher')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('assignments.AssignmentGenerationHistory', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('assignments.AssignmentGenerationSession', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.BetaProfile', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LicenseBillingRecord', 'performed_by')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LicenseOverageOfflineRequest', 'requested_by')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LicenseOverageOfflineRequest', 'reviewed_by')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LicenseOveragePurchaseIntent', 'initiated_by')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LicenseStripeMutationIntent', 'performed_by')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LicenseStripeMutationIntent', 'resolved_by')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LicenseSubscription', 'admin_user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LiveQARun', 'triggered_by')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.SchoolCreditAllocation', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.UserSubscription', 'user')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('classrooms.Course', 'teacher')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('classrooms.Session', 'teacher')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('classrooms.Session', 'created_by')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('dashboard.TeacherInactivityAlertState', 'teacher')) ... FAIL
+  test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('students.BatchUploadSession', 'teacher')) ... FAIL
+test_own_row_entries_are_on_the_user_model (students.tests_student_data_map.StepOneBRulingsTests.test_own_row_entries_are_on_the_user_model) ... ok
+test_risk_alerts_go_only_with_a_full_erasure (students.tests_student_data_map.StepOneBRulingsTests.test_risk_alerts_go_only_with_a_full_erasure) ... FAIL
+test_tag_columns_are_not_a_student (students.tests_student_data_map.StepOneBRulingsTests.test_tag_columns_are_not_a_student) ...
+  test_tag_columns_are_not_a_student (students.tests_student_data_map.StepOneBRulingsTests.test_tag_columns_are_not_a_student) (key=('tags.Tag', 'teacher')) ... ERROR
+  test_tag_columns_are_not_a_student (students.tests_student_data_map.StepOneBRulingsTests.test_tag_columns_are_not_a_student) (key=('tags.Tag', 'created_by_id')) ... ERROR
+test_the_guard_sees_a_bare_created_by_id (students.tests_student_data_map.StepOneBRulingsTests.test_the_guard_sees_a_bare_created_by_id) ... FAIL
+test_the_profile_image_is_exported_then_deleted (students.tests_student_data_map.StepOneBRulingsTests.test_the_profile_image_is_exported_then_deleted) ... ERROR
+test_whitelist_and_waitlist_rows_go_by_email (students.tests_student_data_map.StepOneBRulingsTests.test_whitelist_and_waitlist_rows_go_by_email) ...
+  test_whitelist_and_waitlist_rows_go_by_email (students.tests_student_data_map.StepOneBRulingsTests.test_whitelist_and_waitlist_rows_go_by_email) (key=('users.BetaWhitelist', 'email')) ... ERROR
+  test_whitelist_and_waitlist_rows_go_by_email (students.tests_student_data_map.StepOneBRulingsTests.test_whitelist_and_waitlist_rows_go_by_email) (key=('users.Waitlist', 'email')) ... ERROR
+test_every_bare_user_id_column_is_in_the_map (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_bare_user_id_column_is_in_the_map) ... ok
+test_every_entry_has_a_known_role_and_a_reason (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_entry_has_a_known_role_and_a_reason) ... ok
+test_every_relation_to_a_user_is_in_the_map (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_relation_to_a_user_is_in_the_map) ... FAIL
+test_the_map_names_only_columns_that_exist (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_the_map_names_only_columns_that_exist) ... ok
+
+======================================================================
+ERROR: test_tag_columns_are_not_a_student (students.tests_student_data_map.StepOneBRulingsTests.test_tag_columns_are_not_a_student) (key=('tags.Tag', 'teacher'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 160, in test_tag_columns_are_not_a_student
+    self.assertEqual(STUDENT_DATA_MAP[key].role, Role.NOT_A_STUDENT)
+                     ~~~~~~~~~~~~~~~~^^^^^
+KeyError: ('tags.Tag', 'teacher')
+
+======================================================================
+ERROR: test_tag_columns_are_not_a_student (students.tests_student_data_map.StepOneBRulingsTests.test_tag_columns_are_not_a_student) (key=('tags.Tag', 'created_by_id'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 160, in test_tag_columns_are_not_a_student
+    self.assertEqual(STUDENT_DATA_MAP[key].role, Role.NOT_A_STUDENT)
+                     ~~~~~~~~~~~~~~~~^^^^^
+KeyError: ('tags.Tag', 'created_by_id')
+
+======================================================================
+ERROR: test_the_profile_image_is_exported_then_deleted (students.tests_student_data_map.StepOneBRulingsTests.test_the_profile_image_is_exported_then_deleted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 211, in test_the_profile_image_is_exported_then_deleted
+    entry = STUDENT_DATA_MAP[("users.CustomUser", "profile_image")]
+            ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: ('users.CustomUser', 'profile_image')
+
+======================================================================
+ERROR: test_whitelist_and_waitlist_rows_go_by_email (students.tests_student_data_map.StepOneBRulingsTests.test_whitelist_and_waitlist_rows_go_by_email) (key=('users.BetaWhitelist', 'email'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 196, in test_whitelist_and_waitlist_rows_go_by_email
+    entry = STUDENT_DATA_MAP[key]
+            ~~~~~~~~~~~~~~~~^^^^^
+KeyError: ('users.BetaWhitelist', 'email')
+
+======================================================================
+ERROR: test_whitelist_and_waitlist_rows_go_by_email (students.tests_student_data_map.StepOneBRulingsTests.test_whitelist_and_waitlist_rows_go_by_email) (key=('users.Waitlist', 'email'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 196, in test_whitelist_and_waitlist_rows_go_by_email
+    entry = STUDENT_DATA_MAP[key]
+            ~~~~~~~~~~~~~~~~^^^^^
+KeyError: ('users.Waitlist', 'email')
+
+======================================================================
+FAIL: test_a_course_scoped_table_can_be_scoped_by_course (students.tests_student_data_map.StepOneBRulingsTests.test_a_course_scoped_table_can_be_scoped_by_course) (label='dashboard.StudentRiskAlertState')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 191, in test_a_course_scoped_table_can_be_scoped_by_course
+    self.assertTrue(names & {"course", "assignment"}, label)
+AssertionError: set() is not true : dashboard.StudentRiskAlertState
+
+======================================================================
+FAIL: test_any_name_ending_in_by_id_is_a_user_id_column (students.tests_student_data_map.StepOneBRulingsTests.test_any_name_ending_in_by_id_is_a_user_id_column) (name='created_by_id')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 168, in test_any_name_ending_in_by_id_is_a_user_id_column
+    self.assertTrue(USER_ID_COLUMN.search(name))
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_any_name_ending_in_by_id_is_a_user_id_column (students.tests_student_data_map.StepOneBRulingsTests.test_any_name_ending_in_by_id_is_a_user_id_column) (name='reviewed_by_id')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 168, in test_any_name_ending_in_by_id_is_a_user_id_column
+    self.assertTrue(USER_ID_COLUMN.search(name))
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_any_name_ending_in_by_id_is_a_user_id_column (students.tests_student_data_map.StepOneBRulingsTests.test_any_name_ending_in_by_id_is_a_user_id_column) (name='erased_by_id')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 168, in test_any_name_ending_in_by_id_is_a_user_id_column
+    self.assertTrue(USER_ID_COLUMN.search(name))
+AssertionError: None is not true
+
+======================================================================
+FAIL: test_chat_sessions_go_with_a_teachers_erasure (students.tests_student_data_map.StepOneBRulingsTests.test_chat_sessions_go_with_a_teachers_erasure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 181, in test_chat_sessions_go_with_a_teachers_erasure
+    self.assertTrue(entry.course_scoped)
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('classrooms.StudentCourse', 'student'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('students.StudentSubmission', 'student'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('dashboard.StudentRiskAlertState', 'student'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('students.BackgroundProcessingTask', 'requested_by'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('ai_processor.ChatSession', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('users.UserActivity', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('users.Settings', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('authtoken.Token', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('authtoken.TokenProxy', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('token_blacklist.OutstandingToken', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('users.PasswordResetOTP', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('users.PasswordChangeOTP', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('users.RevokedSession', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('users.UserGoogleCredentials', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('audit.AuditEvent', 'actor_id'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('audit.AuditEvent', 'target_id'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.CreditLedger', 'user_id'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.CreditUsageLog', 'user_id'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('ai_processor.AICallRecord', 'billed_user_id'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.BillingTransaction', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.BillingTransaction', 'performed_by'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.PaymentDispute', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.CreditWallet', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('admin.LogEntry', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('assignments.Assignment', 'teacher'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('assignments.AssignmentGenerationHistory', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('assignments.AssignmentGenerationSession', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.BetaProfile', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LicenseBillingRecord', 'performed_by'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LicenseOverageOfflineRequest', 'requested_by'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LicenseOverageOfflineRequest', 'reviewed_by'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LicenseOveragePurchaseIntent', 'initiated_by'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LicenseStripeMutationIntent', 'performed_by'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LicenseStripeMutationIntent', 'resolved_by'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LicenseSubscription', 'admin_user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.LiveQARun', 'triggered_by'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.SchoolCreditAllocation', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('billing.UserSubscription', 'user'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('classrooms.Course', 'teacher'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('classrooms.Session', 'teacher'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('classrooms.Session', 'created_by'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('dashboard.TeacherInactivityAlertState', 'teacher'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) (key=('students.BatchUploadSession', 'teacher'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 228, in test_every_other_entry_matches_by_user
+    self.assertIn(
+AssertionError: None not found in ('USER', 'EMAIL', 'OWN_ROW')
+
+======================================================================
+FAIL: test_risk_alerts_go_only_with_a_full_erasure (students.tests_student_data_map.StepOneBRulingsTests.test_risk_alerts_go_only_with_a_full_erasure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 176, in test_risk_alerts_go_only_with_a_full_erasure
+    self.assertFalse(entry.course_scoped)
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_the_guard_sees_a_bare_created_by_id (students.tests_student_data_map.StepOneBRulingsTests.test_the_guard_sees_a_bare_created_by_id)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 163, in test_the_guard_sees_a_bare_created_by_id
+    self.assertIn(("tags.Tag", "created_by_id"), _bare_user_id_columns())
+AssertionError: ('tags.Tag', 'created_by_id') not found in {('billing.CreditLedger', 'user_id'), ('audit.AuditEvent', 'actor_id'), ('audit.AuditEvent', 'target_id'), ('billing.CreditUsageLog', 'user_id'), ('ai_processor.AICallRecord', 'billed_user_id')}
+
+======================================================================
+FAIL: test_every_relation_to_a_user_is_in_the_map (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_relation_to_a_user_is_in_the_map)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_student_data_map.py", line 65, in test_every_relation_to_a_user_is_in_the_map
+    self.assertFalse(
+AssertionError: {('tags.Tag', 'teacher')} is not false : These columns point at a user but the student data map doesn't say what export and erasure do with them. Add each one to students/student_data_map.py: [('tags.Tag', 'teacher')]
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.016s
+
+FAILED (failures=51, errors=5)
+Found 20 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).

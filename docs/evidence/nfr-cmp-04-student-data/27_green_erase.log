@@ -1,0 +1,1160 @@
+Using existing test database for alias 'default' ('test_student_data_erase_export')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_a_bad_token_is_not_found (students.tests_data_erase.CallerMatrixTests.test_a_bad_token_is_not_found) ... Free trial plan not found: no trial activated for user 7f12f386-bb6e-42f0-a98f-0493e8654cd3.
+Cannot activate automatic trial for user 7f12f386-bb6e-42f0-a98f-0493e8654cd3 (validation): ValueError
+Free trial plan not found: no trial activated for user afd98d07-9ae3-4a8e-a201-451c87abe269.
+Cannot activate automatic trial for user afd98d07-9ae3-4a8e-a201-451c87abe269 (validation): ValueError
+ok
+test_a_school_admin_of_the_school_erases_in_full (students.tests_data_erase.CallerMatrixTests.test_a_school_admin_of_the_school_erases_in_full) ... Free trial plan not found: no trial activated for user 858636f3-9713-415c-84c6-fa34dc4f4264.
+Cannot activate automatic trial for user 858636f3-9713-415c-84c6-fa34dc4f4264 (validation): ValueError
+Free trial plan not found: no trial activated for user a86111d8-dd55-4345-b005-191054d591c7.
+Cannot activate automatic trial for user a86111d8-dd55-4345-b005-191054d591c7 (validation): ValueError
+ok
+test_a_student_with_no_school_is_for_a_super_admin_only (students.tests_data_erase.CallerMatrixTests.test_a_student_with_no_school_is_for_a_super_admin_only) ... Free trial plan not found: no trial activated for user 700059be-6502-4482-aa1c-517776d44cc1.
+Cannot activate automatic trial for user 700059be-6502-4482-aa1c-517776d44cc1 (validation): ValueError
+Free trial plan not found: no trial activated for user bbf3dee8-763c-42e0-befd-6ab02533b5da.
+Cannot activate automatic trial for user bbf3dee8-763c-42e0-befd-6ab02533b5da (validation): ValueError
+ok
+test_an_unknown_id_is_not_found (students.tests_data_erase.CallerMatrixTests.test_an_unknown_id_is_not_found) ... Free trial plan not found: no trial activated for user 6185a0ee-8cec-481f-9111-6a5c93c30c02.
+Cannot activate automatic trial for user 6185a0ee-8cec-481f-9111-6a5c93c30c02 (validation): ValueError
+Free trial plan not found: no trial activated for user 9ed9b7a4-ca60-4795-854a-8d0b8d6101dc.
+Cannot activate automatic trial for user 9ed9b7a4-ca60-4795-854a-8d0b8d6101dc (validation): ValueError
+ok
+test_get_and_head_are_refused_and_erase_nothing (students.tests_data_erase.CallerMatrixTests.test_get_and_head_are_refused_and_erase_nothing) ... Free trial plan not found: no trial activated for user 99e415f6-bf88-4cd6-a071-3877b29d7d4d.
+Cannot activate automatic trial for user 99e415f6-bf88-4cd6-a071-3877b29d7d4d (validation): ValueError
+Free trial plan not found: no trial activated for user adcecd48-8876-48ff-adcb-69b540e2b889.
+Cannot activate automatic trial for user adcecd48-8876-48ff-adcb-69b540e2b889 (validation): ValueError
+API request refused: MethodNotAllowed (405)
+API request refused: MethodNotAllowed (405)
+ok
+test_refused_callers_change_nothing (students.tests_data_erase.CallerMatrixTests.test_refused_callers_change_nothing) ... Free trial plan not found: no trial activated for user 86057c96-693d-44ab-8805-0722e0f1b78b.
+Cannot activate automatic trial for user 86057c96-693d-44ab-8805-0722e0f1b78b (validation): ValueError
+Free trial plan not found: no trial activated for user a6573e3d-6630-498b-976c-032d4f20a03b.
+Cannot activate automatic trial for user a6573e3d-6630-498b-976c-032d4f20a03b (validation): ValueError
+Free trial plan not found: no trial activated for user f8c40eed-f74b-4245-9b2e-e44614800a39.
+Cannot activate automatic trial for user f8c40eed-f74b-4245-9b2e-e44614800a39 (validation): ValueError
+Free trial plan not found: no trial activated for user 47569c29-3161-473d-9bb1-2d04d5c6491c.
+Cannot activate automatic trial for user 47569c29-3161-473d-9bb1-2d04d5c6491c (validation): ValueError
+ok
+test_the_target_must_be_a_student (students.tests_data_erase.CallerMatrixTests.test_the_target_must_be_a_student) ... Free trial plan not found: no trial activated for user d7866a6a-eec4-4154-84c5-ddf9b442c94e.
+Cannot activate automatic trial for user d7866a6a-eec4-4154-84c5-ddf9b442c94e (validation): ValueError
+Free trial plan not found: no trial activated for user 854e5303-a415-454c-afa9-51d728838410.
+Cannot activate automatic trial for user 854e5303-a415-454c-afa9-51d728838410 (validation): ValueError
+ok
+test_a_student_outside_the_teachers_courses_is_not_found (students.tests_data_erase.CourseErasureTests.test_a_student_outside_the_teachers_courses_is_not_found) ... Free trial plan not found: no trial activated for user f64aedea-8e5b-4696-8889-d8ac9febbc1d.
+Cannot activate automatic trial for user f64aedea-8e5b-4696-8889-d8ac9febbc1d (validation): ValueError
+Free trial plan not found: no trial activated for user 5f3b2a4d-3a12-4165-b656-6771c90ae9d0.
+Cannot activate automatic trial for user 5f3b2a4d-3a12-4165-b656-6771c90ae9d0 (validation): ValueError
+ok
+test_one_event_with_scope_courses (students.tests_data_erase.CourseErasureTests.test_one_event_with_scope_courses) ... Free trial plan not found: no trial activated for user ee59c874-6ad7-4a43-a65f-881c946d81b1.
+Cannot activate automatic trial for user ee59c874-6ad7-4a43-a65f-881c946d81b1 (validation): ValueError
+Free trial plan not found: no trial activated for user 9c5083a7-9c58-4cfd-8c6c-54023c66c53f.
+Cannot activate automatic trial for user 9c5083a7-9c58-4cfd-8c6c-54023c66c53f (validation): ValueError
+ok
+test_only_the_teachers_courses_rows_go (students.tests_data_erase.CourseErasureTests.test_only_the_teachers_courses_rows_go) ... Free trial plan not found: no trial activated for user 4e7ca796-c033-4fe0-897f-e91c2823d932.
+Cannot activate automatic trial for user 4e7ca796-c033-4fe0-897f-e91c2823d932 (validation): ValueError
+Free trial plan not found: no trial activated for user dcead2d8-1349-4436-8684-b81aa391b71f.
+Cannot activate automatic trial for user dcead2d8-1349-4436-8684-b81aa391b71f (validation): ValueError
+ok
+test_the_account_and_everything_else_stays (students.tests_data_erase.CourseErasureTests.test_the_account_and_everything_else_stays) ... Free trial plan not found: no trial activated for user 93c6fcd1-c010-4824-874f-e7d6d67295cd.
+Cannot activate automatic trial for user 93c6fcd1-c010-4824-874f-e7d6d67295cd (validation): ValueError
+Free trial plan not found: no trial activated for user 2ee2062b-b8ac-4000-924e-1e6898c0497f.
+Cannot activate automatic trial for user 2ee2062b-b8ac-4000-924e-1e6898c0497f (validation): ValueError
+ok
+test_the_grade_in_the_other_course_is_unchanged (students.tests_data_erase.CourseErasureTests.test_the_grade_in_the_other_course_is_unchanged) ... Free trial plan not found: no trial activated for user 4ba1c126-389c-46ae-b02b-51e5b6fafe33.
+Cannot activate automatic trial for user 4ba1c126-389c-46ae-b02b-51e5b6fafe33 (validation): ValueError
+Free trial plan not found: no trial activated for user 478c5079-fc38-40fb-9d62-578f07ac97ae.
+Cannot activate automatic trial for user 478c5079-fc38-40fb-9d62-578f07ac97ae (validation): ValueError
+ok
+test_the_risk_alert_is_left_alone (students.tests_data_erase.CourseErasureTests.test_the_risk_alert_is_left_alone) ... Free trial plan not found: no trial activated for user 2919c65f-00a9-4bd1-9cf1-c6dd393551ef.
+Cannot activate automatic trial for user 2919c65f-00a9-4bd1-9cf1-c6dd393551ef (validation): ValueError
+Free trial plan not found: no trial activated for user 2d5aaad2-509e-48e9-b5f4-3877f4b0818a.
+Cannot activate automatic trial for user 2d5aaad2-509e-48e9-b5f4-3877f4b0818a (validation): ValueError
+ok
+test_off_by_default_nothing_is_erased (students.tests_data_erase.FlagAndCatalogueTests.test_off_by_default_nothing_is_erased) ... Free trial plan not found: no trial activated for user 2e5a150c-cae8-462a-8967-c92eb3ea863f.
+Cannot activate automatic trial for user 2e5a150c-cae8-462a-8967-c92eb3ea863f (validation): ValueError
+Free trial plan not found: no trial activated for user 6a8b7dfd-8fbe-4322-bbfd-24c1773c8a04.
+Cannot activate automatic trial for user 6a8b7dfd-8fbe-4322-bbfd-24c1773c8a04 (validation): ValueError
+ok
+test_the_erase_action_and_its_metadata (students.tests_data_erase.FlagAndCatalogueTests.test_the_erase_action_and_its_metadata) ... Free trial plan not found: no trial activated for user 51d92b91-500a-4e0b-8711-6ad52b5b17b7.
+Cannot activate automatic trial for user 51d92b91-500a-4e0b-8711-6ad52b5b17b7 (validation): ValueError
+Free trial plan not found: no trial activated for user 0f2dcdc4-f7fc-4bab-9ee5-e8d98e3c1a2b.
+Cannot activate automatic trial for user 0f2dcdc4-f7fc-4bab-9ee5-e8d98e3c1a2b (validation): ValueError
+ok
+test_the_new_wording_is_pending (students.tests_data_erase.FlagAndCatalogueTests.test_the_new_wording_is_pending) ... Free trial plan not found: no trial activated for user 8897e816-7b53-489b-9e3a-c2e4d3ed5ae8.
+Cannot activate automatic trial for user 8897e816-7b53-489b-9e3a-c2e4d3ed5ae8 (validation): ValueError
+Free trial plan not found: no trial activated for user f4306909-dc35-4b36-90c0-e7765703e495.
+Cannot activate automatic trial for user f4306909-dc35-4b36-90c0-e7765703e495 (validation): ValueError
+ok
+test_the_route_is_concealed (students.tests_data_erase.FlagAndCatalogueTests.test_the_route_is_concealed) ... Free trial plan not found: no trial activated for user a4c6943f-49ea-4e41-b54e-88ccd212c32c.
+Cannot activate automatic trial for user a4c6943f-49ea-4e41-b54e-88ccd212c32c (validation): ValueError
+Free trial plan not found: no trial activated for user 11e57ef8-1c89-4470-a083-2f31d5ab4985.
+Cannot activate automatic trial for user 11e57ef8-1c89-4470-a083-2f31d5ab4985 (validation): ValueError
+ok
+test_a_failure_rolls_everything_back_and_deletes_no_image (students.tests_data_erase.FullErasureTests.test_a_failure_rolls_everything_back_and_deletes_no_image) ... Free trial plan not found: no trial activated for user 52adef2d-2ebc-4f36-b3c5-1644c3cd4316.
+Cannot activate automatic trial for user 52adef2d-2ebc-4f36-b3c5-1644c3cd4316 (validation): ValueError
+Free trial plan not found: no trial activated for user f4b2f33d-063a-43f0-85b8-0cc7bfd19a02.
+Cannot activate automatic trial for user f4b2f33d-063a-43f0-85b8-0cc7bfd19a02 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/views.py", line 523, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/views_data_erase.py", line 29, in post
+    result = data_erase.erase_student(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/data_erase.py", line 199, in erase_student
+    _delete_account(student)
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: injected
+
+
+django.request ERROR 2026-11-08 16:25:24,089 log 261445 125544032454528 [request_id=- client_request_id=-] Internal Server Error: /api/v1/students/fd7d7031-c807-4ae1-aa21-9d0da7f9f979/erase
+
+
+ok
+test_a_second_erasure_is_not_found (students.tests_data_erase.FullErasureTests.test_a_second_erasure_is_not_found) ... Free trial plan not found: no trial activated for user e4104e86-b886-4d49-ab8d-46fc5132157e.
+Cannot activate automatic trial for user e4104e86-b886-4d49-ab8d-46fc5132157e (validation): ValueError
+Free trial plan not found: no trial activated for user 1dca968d-2ebf-4c52-9c4a-a3125b91d31e.
+Cannot activate automatic trial for user 1dca968d-2ebf-4c52-9c4a-a3125b91d31e (validation): ValueError
+ok
+test_a_storage_failure_keeps_the_erasure_and_logs_error (students.tests_data_erase.FullErasureTests.test_a_storage_failure_keeps_the_erasure_and_logs_error) ... Free trial plan not found: no trial activated for user a3036060-1a7c-4a2e-a6b4-d40808628e8d.
+Cannot activate automatic trial for user a3036060-1a7c-4a2e-a6b4-d40808628e8d (validation): ValueError
+Free trial plan not found: no trial activated for user 75fbaf38-27c4-4483-a526-ad0ec376fe5f.
+Cannot activate automatic trial for user 75fbaf38-27c4-4483-a526-ad0ec376fe5f (validation): ValueError
+ok
+test_every_delete_table_loses_only_the_targets_rows (students.tests_data_erase.FullErasureTests.test_every_delete_table_loses_only_the_targets_rows) ... Free trial plan not found: no trial activated for user 891ef178-295c-4fd0-b85b-651a9154f002.
+Cannot activate automatic trial for user 891ef178-295c-4fd0-b85b-651a9154f002 (validation): ValueError
+Free trial plan not found: no trial activated for user f9d98e56-8e05-4e9d-97a8-cdbf8421b42e.
+Cannot activate automatic trial for user f9d98e56-8e05-4e9d-97a8-cdbf8421b42e (validation): ValueError
+ok
+test_kept_records_are_unchanged (students.tests_data_erase.FullErasureTests.test_kept_records_are_unchanged) ... Free trial plan not found: no trial activated for user f7a4f468-8679-449d-9eb4-04193d88799f.
+Cannot activate automatic trial for user f7a4f468-8679-449d-9eb4-04193d88799f (validation): ValueError
+Free trial plan not found: no trial activated for user df36cf0d-0067-402a-ad77-bde0d16c0132.
+Cannot activate automatic trial for user df36cf0d-0067-402a-ad77-bde0d16c0132 (validation): ValueError
+ok
+test_no_event_written_during_the_erasure_names_the_student (students.tests_data_erase.FullErasureTests.test_no_event_written_during_the_erasure_names_the_student) ... Free trial plan not found: no trial activated for user 41cfae66-a02b-49a5-9065-8059e979e818.
+Cannot activate automatic trial for user 41cfae66-a02b-49a5-9065-8059e979e818 (validation): ValueError
+Free trial plan not found: no trial activated for user be064bb9-76c0-4cfc-9407-b2e215399464.
+Cannot activate automatic trial for user be064bb9-76c0-4cfc-9407-b2e215399464 (validation): ValueError
+ok
+test_one_event_with_scope_full_naming_no_one (students.tests_data_erase.FullErasureTests.test_one_event_with_scope_full_naming_no_one) ... Free trial plan not found: no trial activated for user 00abf6d0-e360-4ace-bac3-fa4e71d37e0a.
+Cannot activate automatic trial for user 00abf6d0-e360-4ace-bac3-fa4e71d37e0a (validation): ValueError
+Free trial plan not found: no trial activated for user 65837162-e699-42c2-91d5-0ddb2cadd9bb.
+Cannot activate automatic trial for user 65837162-e699-42c2-91d5-0ddb2cadd9bb (validation): ValueError
+ok
+test_outstanding_tokens_are_deleted_not_unlinked (students.tests_data_erase.FullErasureTests.test_outstanding_tokens_are_deleted_not_unlinked) ... Free trial plan not found: no trial activated for user 43057a4a-4cc6-4a71-9f4b-bb9b48b133a8.
+Cannot activate automatic trial for user 43057a4a-4cc6-4a71-9f4b-bb9b48b133a8 (validation): ValueError
+Free trial plan not found: no trial activated for user b1581ad4-ad5a-46d0-8eab-655ab1d3eef1.
+Cannot activate automatic trial for user b1581ad4-ad5a-46d0-8eab-655ab1d3eef1 (validation): ValueError
+ok
+test_the_account_is_gone_and_the_record_is_written (students.tests_data_erase.FullErasureTests.test_the_account_is_gone_and_the_record_is_written) ... Free trial plan not found: no trial activated for user ba436ce5-6ade-4270-9c34-7c50b58c7e61.
+Cannot activate automatic trial for user ba436ce5-6ade-4270-9c34-7c50b58c7e61 (validation): ValueError
+Free trial plan not found: no trial activated for user 4e8ec0bd-a170-47d2-ad9e-3739df89871c.
+Cannot activate automatic trial for user 4e8ec0bd-a170-47d2-ad9e-3739df89871c (validation): ValueError
+ok
+test_the_empty_wallet_is_deleted (students.tests_data_erase.FullErasureTests.test_the_empty_wallet_is_deleted) ... Free trial plan not found: no trial activated for user 496409ba-5e07-421d-9243-43058c0d80fc.
+Cannot activate automatic trial for user 496409ba-5e07-421d-9243-43058c0d80fc (validation): ValueError
+Free trial plan not found: no trial activated for user b0f3d4f5-9cc2-40eb-b66b-1f40abf8294e.
+Cannot activate automatic trial for user b0f3d4f5-9cc2-40eb-b66b-1f40abf8294e (validation): ValueError
+ok
+test_the_erased_account_cannot_sign_in (students.tests_data_erase.FullErasureTests.test_the_erased_account_cannot_sign_in) ... Free trial plan not found: no trial activated for user 38fa5d4c-209b-4f44-a69f-4e4098943a60.
+Cannot activate automatic trial for user 38fa5d4c-209b-4f44-a69f-4e4098943a60 (validation): ValueError
+Free trial plan not found: no trial activated for user 84923a1d-432a-4aaf-8c86-999655c2c3e7.
+Cannot activate automatic trial for user 84923a1d-432a-4aaf-8c86-999655c2c3e7 (validation): ValueError
+ok
+test_the_image_is_deleted_after_commit (students.tests_data_erase.FullErasureTests.test_the_image_is_deleted_after_commit) ... Free trial plan not found: no trial activated for user 1be375e8-10f7-4a69-9e9f-0f8505753aaa.
+Cannot activate automatic trial for user 1be375e8-10f7-4a69-9e9f-0f8505753aaa (validation): ValueError
+Free trial plan not found: no trial activated for user c2ef2505-0015-49ba-a0ad-36ec74d69714.
+Cannot activate automatic trial for user c2ef2505-0015-49ba-a0ad-36ec74d69714 (validation): ValueError
+ok
+test_whitelist_and_waitlist_go_by_email_ignoring_case (students.tests_data_erase.FullErasureTests.test_whitelist_and_waitlist_go_by_email_ignoring_case) ... Free trial plan not found: no trial activated for user 87561a4b-b00a-4d93-bae4-6e6539d7c759.
+Cannot activate automatic trial for user 87561a4b-b00a-4d93-bae4-6e6539d7c759 (validation): ValueError
+Free trial plan not found: no trial activated for user f29ecfa3-cea6-4c24-9851-8d31e229d0b7.
+Cannot activate automatic trial for user f29ecfa3-cea6-4c24-9851-8d31e229d0b7 (validation): ValueError
+ok
+test_a_batch_upload_session_refuses (students.tests_data_erase.RefusalTests.test_a_batch_upload_session_refuses) ... Free trial plan not found: no trial activated for user a582aa86-4c31-4e42-bc27-d1f3b7e8bdcc.
+Cannot activate automatic trial for user a582aa86-4c31-4e42-bc27-d1f3b7e8bdcc (validation): ValueError
+Free trial plan not found: no trial activated for user ffd3e6c0-bda4-4821-bfa6-6cd9b0bcbf04.
+Cannot activate automatic trial for user ffd3e6c0-bda4-4821-bfa6-6cd9b0bcbf04 (validation): ValueError
+API request failed with STUDENT_ERASE_NOT_ONLY_A_STUDENT: PENDING OWNER APPROVAL (not only a student).
+ok
+test_a_billing_transaction_refuses (students.tests_data_erase.RefusalTests.test_a_billing_transaction_refuses) ... Free trial plan not found: no trial activated for user 6db31fa2-9842-4bb9-856d-2afbe9a6111e.
+Cannot activate automatic trial for user 6db31fa2-9842-4bb9-856d-2afbe9a6111e (validation): ValueError
+Free trial plan not found: no trial activated for user b144d171-40af-4505-9e93-35a6b7620853.
+Cannot activate automatic trial for user b144d171-40af-4505-9e93-35a6b7620853 (validation): ValueError
+API request failed with STUDENT_ERASE_BILLING_RECORDS: PENDING OWNER APPROVAL (billing records).
+ok
+test_a_dispute_deficit_refuses (students.tests_data_erase.RefusalTests.test_a_dispute_deficit_refuses) ... Free trial plan not found: no trial activated for user 7d0ab7ea-7d13-40a9-aece-87ba39db0156.
+Cannot activate automatic trial for user 7d0ab7ea-7d13-40a9-aece-87ba39db0156 (validation): ValueError
+Free trial plan not found: no trial activated for user dbb74c7c-245b-43c2-b424-712e7e4d1da2.
+Cannot activate automatic trial for user dbb74c7c-245b-43c2-b424-712e7e4d1da2 (validation): ValueError
+API request failed with STUDENT_ERASE_WALLET_NOT_EMPTY: PENDING OWNER APPROVAL (wallet).
+ok
+test_a_payment_dispute_refuses (students.tests_data_erase.RefusalTests.test_a_payment_dispute_refuses) ... Free trial plan not found: no trial activated for user 94958147-9fd6-4353-a4a5-a8034b21850f.
+Cannot activate automatic trial for user 94958147-9fd6-4353-a4a5-a8034b21850f (validation): ValueError
+Free trial plan not found: no trial activated for user fef24492-e670-435d-a9ae-ac752e76fe5d.
+Cannot activate automatic trial for user fef24492-e670-435d-a9ae-ac752e76fe5d (validation): ValueError
+API request failed with STUDENT_ERASE_BILLING_RECORDS: PENDING OWNER APPROVAL (billing records).
+ok
+test_a_refund_deficit_refuses (students.tests_data_erase.RefusalTests.test_a_refund_deficit_refuses) ... Free trial plan not found: no trial activated for user de2a6d8b-b15b-4b79-ada3-d1a12de1c206.
+Cannot activate automatic trial for user de2a6d8b-b15b-4b79-ada3-d1a12de1c206 (validation): ValueError
+Free trial plan not found: no trial activated for user 01d5a8b3-f561-4324-af16-1bec1f0ef152.
+Cannot activate automatic trial for user 01d5a8b3-f561-4324-af16-1bec1f0ef152 (validation): ValueError
+API request failed with STUDENT_ERASE_WALLET_NOT_EMPTY: PENDING OWNER APPROVAL (wallet).
+ok
+test_a_wallet_with_credit_history_refuses (students.tests_data_erase.RefusalTests.test_a_wallet_with_credit_history_refuses) ... Free trial plan not found: no trial activated for user 2f317b42-0c9c-4d76-b38b-d2450e761185.
+Cannot activate automatic trial for user 2f317b42-0c9c-4d76-b38b-d2450e761185 (validation): ValueError
+Free trial plan not found: no trial activated for user da4f1fc3-39d2-4af0-b5ff-f924b7686687.
+Cannot activate automatic trial for user da4f1fc3-39d2-4af0-b5ff-f924b7686687 (validation): ValueError
+API request failed with STUDENT_ERASE_WALLET_NOT_EMPTY: PENDING OWNER APPROVAL (wallet).
+ok
+test_django_admin_history_refuses (students.tests_data_erase.RefusalTests.test_django_admin_history_refuses) ... Free trial plan not found: no trial activated for user f47c4cb5-a2fa-4dbd-bbfd-6c020c8760d9.
+Cannot activate automatic trial for user f47c4cb5-a2fa-4dbd-bbfd-6c020c8760d9 (validation): ValueError
+Free trial plan not found: no trial activated for user ce79c890-5f89-4b83-b4cb-2577b23c0045.
+Cannot activate automatic trial for user ce79c890-5f89-4b83-b4cb-2577b23c0045 (validation): ValueError
+API request failed with STUDENT_ERASE_NOT_ONLY_A_STUDENT: PENDING OWNER APPROVAL (not only a student).
+ok
+test_having_made_a_tag_refuses (students.tests_data_erase.RefusalTests.test_having_made_a_tag_refuses) ... Free trial plan not found: no trial activated for user 6bb7ed88-72f4-4c75-b2ab-9e997855468e.
+Cannot activate automatic trial for user 6bb7ed88-72f4-4c75-b2ab-9e997855468e (validation): ValueError
+Free trial plan not found: no trial activated for user e6c25cb6-df96-4e88-85c5-670c25d58086.
+Cannot activate automatic trial for user e6c25cb6-df96-4e88-85c5-670c25d58086 (validation): ValueError
+API request failed with STUDENT_ERASE_NOT_ONLY_A_STUDENT: PENDING OWNER APPROVAL (not only a student).
+ok
+test_owning_a_course_refuses (students.tests_data_erase.RefusalTests.test_owning_a_course_refuses) ... Free trial plan not found: no trial activated for user 5b3a3a14-1b47-48cd-85ba-df7c44bab87d.
+Cannot activate automatic trial for user 5b3a3a14-1b47-48cd-85ba-df7c44bab87d (validation): ValueError
+Free trial plan not found: no trial activated for user 84ecb8b8-4709-47ed-84c2-f627f29ac90f.
+Cannot activate automatic trial for user 84ecb8b8-4709-47ed-84c2-f627f29ac90f (validation): ValueError
+API request failed with STUDENT_ERASE_NOT_ONLY_A_STUDENT: PENDING OWNER APPROVAL (not only a student).
+ok
+test_owning_a_tag_refuses (students.tests_data_erase.RefusalTests.test_owning_a_tag_refuses) ... Free trial plan not found: no trial activated for user c057e56b-3d15-4351-92ba-b8ac74aa1101.
+Cannot activate automatic trial for user c057e56b-3d15-4351-92ba-b8ac74aa1101 (validation): ValueError
+Free trial plan not found: no trial activated for user f0274e29-5b44-4e89-8aab-7b72fe9b6eb5.
+Cannot activate automatic trial for user f0274e29-5b44-4e89-8aab-7b72fe9b6eb5 (validation): ValueError
+API request failed with STUDENT_ERASE_NOT_ONLY_A_STUDENT: PENDING OWNER APPROVAL (not only a student).
+ok
+test_performed_by_alone_refuses (students.tests_data_erase.RefusalTests.test_performed_by_alone_refuses) ... Free trial plan not found: no trial activated for user ee3fa89d-8930-4470-b979-0015ef6ad4fa.
+Cannot activate automatic trial for user ee3fa89d-8930-4470-b979-0015ef6ad4fa (validation): ValueError
+Free trial plan not found: no trial activated for user ebcbf209-ba70-4ac6-bd02-ede48c97b298.
+Cannot activate automatic trial for user ebcbf209-ba70-4ac6-bd02-ede48c97b298 (validation): ValueError
+API request failed with STUDENT_ERASE_BILLING_RECORDS: PENDING OWNER APPROVAL (billing records).
+ok
+test_the_check_covers_every_not_a_student_entry (students.tests_data_erase.RefusalTests.test_the_check_covers_every_not_a_student_entry) ... Free trial plan not found: no trial activated for user f2604b47-e77d-462d-a8d6-34679d191a87.
+Cannot activate automatic trial for user f2604b47-e77d-462d-a8d6-34679d191a87 (validation): ValueError
+Free trial plan not found: no trial activated for user 04c1091d-6f93-4379-8784-4b85142c933b.
+Cannot activate automatic trial for user 04c1091d-6f93-4379-8784-4b85142c933b (validation): ValueError
+ok
+test_wallet_credits_refuse (students.tests_data_erase.RefusalTests.test_wallet_credits_refuse) ... Free trial plan not found: no trial activated for user 0439cc09-10d3-4f76-8b86-7ea57cebc920.
+Cannot activate automatic trial for user 0439cc09-10d3-4f76-8b86-7ea57cebc920 (validation): ValueError
+Free trial plan not found: no trial activated for user 5123874d-39ed-4de4-9f62-52f758ddf71d.
+Cannot activate automatic trial for user 5123874d-39ed-4de4-9f62-52f758ddf71d (validation): ValueError
+API request failed with STUDENT_ERASE_WALLET_NOT_EMPTY: PENDING OWNER APPROVAL (wallet).
+ok
+test_one_event_per_export_naming_no_one (students.tests_data_export.AuditTests.test_one_event_per_export_naming_no_one) ... Free trial plan not found: no trial activated for user cdcf1d7d-8cf0-43b7-beec-d8ca07ae1a85.
+Cannot activate automatic trial for user cdcf1d7d-8cf0-43b7-beec-d8ca07ae1a85 (validation): ValueError
+Free trial plan not found: no trial activated for user e9021657-5738-46e6-8c30-40d6e8b7d188.
+Cannot activate automatic trial for user e9021657-5738-46e6-8c30-40d6e8b7d188 (validation): ValueError
+ok
+test_the_scope_key_passes_the_allow_list (students.tests_data_export.AuditTests.test_the_scope_key_passes_the_allow_list) ... Free trial plan not found: no trial activated for user 95db10f1-4fac-43da-83c4-d43cc9b1ca4a.
+Cannot activate automatic trial for user 95db10f1-4fac-43da-83c4-d43cc9b1ca4a (validation): ValueError
+Free trial plan not found: no trial activated for user d2c11b00-a6c2-44dc-a27b-302283ab1350.
+Cannot activate automatic trial for user d2c11b00-a6c2-44dc-a27b-302283ab1350 (validation): ValueError
+ok
+test_a_bad_token_gets_the_unknown_url_answer (students.tests_data_export.CallerMatrixTests.test_a_bad_token_gets_the_unknown_url_answer) ... Free trial plan not found: no trial activated for user c2d4ff6c-cbc2-4118-9dcd-ced33de0262b.
+Cannot activate automatic trial for user c2d4ff6c-cbc2-4118-9dcd-ced33de0262b (validation): ValueError
+Free trial plan not found: no trial activated for user 8e51d989-a379-4902-bccc-0e8b1bc8025a.
+Cannot activate automatic trial for user 8e51d989-a379-4902-bccc-0e8b1bc8025a (validation): ValueError
+ok
+test_a_refusal_writes_no_event (students.tests_data_export.CallerMatrixTests.test_a_refusal_writes_no_event) ... Free trial plan not found: no trial activated for user b0a3d643-7e41-4c77-8f4e-2a8254bfa93f.
+Cannot activate automatic trial for user b0a3d643-7e41-4c77-8f4e-2a8254bfa93f (validation): ValueError
+Free trial plan not found: no trial activated for user 8efbe7a0-6ef2-4202-a221-b9ac9890c9a2.
+Cannot activate automatic trial for user 8efbe7a0-6ef2-4202-a221-b9ac9890c9a2 (validation): ValueError
+ok
+test_a_school_admin_may_export_a_student_of_their_school (students.tests_data_export.CallerMatrixTests.test_a_school_admin_may_export_a_student_of_their_school) ... Free trial plan not found: no trial activated for user 3dd53c14-138a-4dc5-bf17-066a4983bea1.
+Cannot activate automatic trial for user 3dd53c14-138a-4dc5-bf17-066a4983bea1 (validation): ValueError
+Free trial plan not found: no trial activated for user f44ded2a-1d94-40f8-8700-246be7ffe8f5.
+Cannot activate automatic trial for user f44ded2a-1d94-40f8-8700-246be7ffe8f5 (validation): ValueError
+ok
+test_a_school_admin_of_another_school_is_refused (students.tests_data_export.CallerMatrixTests.test_a_school_admin_of_another_school_is_refused) ... Free trial plan not found: no trial activated for user 9e2b8afc-9b97-42ca-bfc5-872d4c52f6a8.
+Cannot activate automatic trial for user 9e2b8afc-9b97-42ca-bfc5-872d4c52f6a8 (validation): ValueError
+Free trial plan not found: no trial activated for user caf05282-0a4c-4d27-bd50-835a76e5c22a.
+Cannot activate automatic trial for user caf05282-0a4c-4d27-bd50-835a76e5c22a (validation): ValueError
+ok
+test_a_school_admin_with_no_school_is_refused (students.tests_data_export.CallerMatrixTests.test_a_school_admin_with_no_school_is_refused) ... Free trial plan not found: no trial activated for user f41b68b5-75c9-4473-a138-26b33c257a43.
+Cannot activate automatic trial for user f41b68b5-75c9-4473-a138-26b33c257a43 (validation): ValueError
+Free trial plan not found: no trial activated for user a67ddeb9-7219-4533-9db2-0a11fd661d4b.
+Cannot activate automatic trial for user a67ddeb9-7219-4533-9db2-0a11fd661d4b (validation): ValueError
+ok
+test_a_school_admins_export_is_complete (students.tests_data_export.CallerMatrixTests.test_a_school_admins_export_is_complete) ... Free trial plan not found: no trial activated for user 922afed7-d728-4b69-b9fd-4a2237595678.
+Cannot activate automatic trial for user 922afed7-d728-4b69-b9fd-4a2237595678 (validation): ValueError
+Free trial plan not found: no trial activated for user 08e2d8aa-6f15-4273-a456-1f220c2f768c.
+Cannot activate automatic trial for user 08e2d8aa-6f15-4273-a456-1f220c2f768c (validation): ValueError
+ok
+test_a_student_with_no_school_is_refused_to_a_school_admin (students.tests_data_export.CallerMatrixTests.test_a_student_with_no_school_is_refused_to_a_school_admin) ... Free trial plan not found: no trial activated for user f44fcc28-6afe-4961-89a9-5da0a6341b8a.
+Cannot activate automatic trial for user f44fcc28-6afe-4961-89a9-5da0a6341b8a (validation): ValueError
+Free trial plan not found: no trial activated for user 02ea4114-00ef-48c9-beeb-680dddfb4f17.
+Cannot activate automatic trial for user 02ea4114-00ef-48c9-beeb-680dddfb4f17 (validation): ValueError
+ok
+test_a_super_admin_may_export_any_student (students.tests_data_export.CallerMatrixTests.test_a_super_admin_may_export_any_student) ... Free trial plan not found: no trial activated for user 6fa88981-60b1-47bf-b2c7-839f6664ab51.
+Cannot activate automatic trial for user 6fa88981-60b1-47bf-b2c7-839f6664ab51 (validation): ValueError
+Free trial plan not found: no trial activated for user 771b5cb3-fa2a-4fa9-b3f1-e4b16acafdb9.
+Cannot activate automatic trial for user 771b5cb3-fa2a-4fa9-b3f1-e4b16acafdb9 (validation): ValueError
+ok
+test_an_account_that_is_not_a_real_super_admin_is_refused (students.tests_data_export.CallerMatrixTests.test_an_account_that_is_not_a_real_super_admin_is_refused) ... Free trial plan not found: no trial activated for user 12fe19e5-0824-4e99-84f0-5a3668d852e7.
+Cannot activate automatic trial for user 12fe19e5-0824-4e99-84f0-5a3668d852e7 (validation): ValueError
+Free trial plan not found: no trial activated for user 134bc6ac-58bf-4330-9cf8-b36cba1442dc.
+Cannot activate automatic trial for user 134bc6ac-58bf-4330-9cf8-b36cba1442dc (validation): ValueError
+Free trial plan not found: no trial activated for user 2de6bfda-35b9-4d68-bd2f-2e114462fb3a.
+Cannot activate automatic trial for user 2de6bfda-35b9-4d68-bd2f-2e114462fb3a (validation): ValueError
+ok
+test_anonymous_gets_the_unknown_url_answer (students.tests_data_export.CallerMatrixTests.test_anonymous_gets_the_unknown_url_answer) ... Free trial plan not found: no trial activated for user 9a7fd99e-bb05-49f8-b62f-848d968f931c.
+Cannot activate automatic trial for user 9a7fd99e-bb05-49f8-b62f-848d968f931c (validation): ValueError
+Free trial plan not found: no trial activated for user c9e49022-d6d2-45ab-b073-3bf7c9a7bf16.
+Cannot activate automatic trial for user c9e49022-d6d2-45ab-b073-3bf7c9a7bf16 (validation): ValueError
+ok
+test_another_student_is_refused (students.tests_data_export.CallerMatrixTests.test_another_student_is_refused) ... Free trial plan not found: no trial activated for user b6108245-e294-4814-bdd5-206790d5ee42.
+Cannot activate automatic trial for user b6108245-e294-4814-bdd5-206790d5ee42 (validation): ValueError
+Free trial plan not found: no trial activated for user dcd7cb21-fec4-45b6-9c6b-8fe96e103971.
+Cannot activate automatic trial for user dcd7cb21-fec4-45b6-9c6b-8fe96e103971 (validation): ValueError
+ok
+test_head_is_refused_and_writes_no_event (students.tests_data_export.CallerMatrixTests.test_head_is_refused_and_writes_no_event) ... Free trial plan not found: no trial activated for user e5dc5e09-968e-4bac-8930-0c6544d38f54.
+Cannot activate automatic trial for user e5dc5e09-968e-4bac-8930-0c6544d38f54 (validation): ValueError
+Free trial plan not found: no trial activated for user 7993f4f9-dcd3-48c0-95d6-063e6e75ffac.
+Cannot activate automatic trial for user 7993f4f9-dcd3-48c0-95d6-063e6e75ffac (validation): ValueError
+API request refused: MethodNotAllowed (405)
+ok
+test_teacher_export_is_on (students.tests_data_export.CallerMatrixTests.test_teacher_export_is_on) ... Free trial plan not found: no trial activated for user 8761b397-88e4-4577-8489-ab3725505b51.
+Cannot activate automatic trial for user 8761b397-88e4-4577-8489-ab3725505b51 (validation): ValueError
+Free trial plan not found: no trial activated for user 9b3b22e3-6f38-424e-9bad-050c0ebc802b.
+Cannot activate automatic trial for user 9b3b22e3-6f38-424e-9bad-050c0ebc802b (validation): ValueError
+ok
+test_the_one_switch_turns_teachers_off (students.tests_data_export.CallerMatrixTests.test_the_one_switch_turns_teachers_off) ... Free trial plan not found: no trial activated for user 4e4b3dbd-b482-4316-b25d-cfffbbfa1cff.
+Cannot activate automatic trial for user 4e4b3dbd-b482-4316-b25d-cfffbbfa1cff (validation): ValueError
+Free trial plan not found: no trial activated for user f10814c5-0eca-4ab4-869a-52928d561d98.
+Cannot activate automatic trial for user f10814c5-0eca-4ab4-869a-52928d561d98 (validation): ValueError
+ok
+test_the_student_may_not_export_themselves (students.tests_data_export.CallerMatrixTests.test_the_student_may_not_export_themselves) ... Free trial plan not found: no trial activated for user ccd742e6-9aa9-4817-b170-3d7f72b35e2c.
+Cannot activate automatic trial for user ccd742e6-9aa9-4817-b170-3d7f72b35e2c (validation): ValueError
+Free trial plan not found: no trial activated for user 786bef75-23f9-41ee-b139-69d8d8b77080.
+Cannot activate automatic trial for user 786bef75-23f9-41ee-b139-69d8d8b77080 (validation): ValueError
+ok
+test_the_target_must_be_a_student (students.tests_data_export.CallerMatrixTests.test_the_target_must_be_a_student) ... Free trial plan not found: no trial activated for user 45b4008c-0b92-4889-8595-240cdf908d64.
+Cannot activate automatic trial for user 45b4008c-0b92-4889-8595-240cdf908d64 (validation): ValueError
+Free trial plan not found: no trial activated for user 44ad877d-77f7-4a41-99c7-5830588791d7.
+Cannot activate automatic trial for user 44ad877d-77f7-4a41-99c7-5830588791d7 (validation): ValueError
+ok
+test_a_grade_not_yet_released_is_not_in_the_export (students.tests_data_export.ExportContentTests.test_a_grade_not_yet_released_is_not_in_the_export) ... Free trial plan not found: no trial activated for user 8e8410b0-5d51-4a59-ba20-0cdb9bcb4fd2.
+Cannot activate automatic trial for user 8e8410b0-5d51-4a59-ba20-0cdb9bcb4fd2 (validation): ValueError
+Free trial plan not found: no trial activated for user d9c3ad72-d4aa-41ad-a814-5c71523487fb.
+Cannot activate automatic trial for user d9c3ad72-d4aa-41ad-a814-5c71523487fb (validation): ValueError
+ok
+test_a_released_grade_is_in_the_export (students.tests_data_export.ExportContentTests.test_a_released_grade_is_in_the_export) ... Free trial plan not found: no trial activated for user 47421fdf-7d5a-4f92-a543-70fdae8175e1.
+Cannot activate automatic trial for user 47421fdf-7d5a-4f92-a543-70fdae8175e1 (validation): ValueError
+Free trial plan not found: no trial activated for user 82198d93-91d7-487b-98f0-914c88134394.
+Cannot activate automatic trial for user 82198d93-91d7-487b-98f0-914c88134394 (validation): ValueError
+ok
+test_an_unreadable_image_is_listed_as_missing (students.tests_data_export.ExportContentTests.test_an_unreadable_image_is_listed_as_missing) ... Free trial plan not found: no trial activated for user 5c784622-1699-4011-9ca4-f7712883f341.
+Cannot activate automatic trial for user 5c784622-1699-4011-9ca4-f7712883f341 (validation): ValueError
+Free trial plan not found: no trial activated for user c2602977-9c4a-451b-a691-7d3d58ce653a.
+Cannot activate automatic trial for user c2602977-9c4a-451b-a691-7d3d58ce653a (validation): ValueError
+ok
+test_chat_messages_are_nested_under_their_session (students.tests_data_export.ExportContentTests.test_chat_messages_are_nested_under_their_session) ... Free trial plan not found: no trial activated for user daa898ec-65fa-40b2-bb48-dfde58dbaeda.
+Cannot activate automatic trial for user daa898ec-65fa-40b2-bb48-dfde58dbaeda (validation): ValueError
+Free trial plan not found: no trial activated for user 88e71011-4fe6-4ea5-8bd3-b6887daf3eda.
+Cannot activate automatic trial for user 88e71011-4fe6-4ea5-8bd3-b6887daf3eda (validation): ValueError
+ok
+test_every_exported_table_has_its_file_even_when_empty (students.tests_data_export.ExportContentTests.test_every_exported_table_has_its_file_even_when_empty) ... Free trial plan not found: no trial activated for user 1f19cab1-1fb7-4fbc-aef3-19174b98f07a.
+Cannot activate automatic trial for user 1f19cab1-1fb7-4fbc-aef3-19174b98f07a (validation): ValueError
+Free trial plan not found: no trial activated for user 64f09353-f71e-45f8-9e73-49d756ca4fbd.
+Cannot activate automatic trial for user 64f09353-f71e-45f8-9e73-49d756ca4fbd (validation): ValueError
+ok
+test_every_file_is_json_except_the_image (students.tests_data_export.ExportContentTests.test_every_file_is_json_except_the_image) ... Free trial plan not found: no trial activated for user db82676a-6490-4f9e-abe8-2a907c844de7.
+Cannot activate automatic trial for user db82676a-6490-4f9e-abe8-2a907c844de7 (validation): ValueError
+Free trial plan not found: no trial activated for user a4c44da5-eaeb-4843-a051-ceb35d89e53f.
+Cannot activate automatic trial for user a4c44da5-eaeb-4843-a051-ceb35d89e53f (validation): ValueError
+ok
+test_no_sign_in_or_security_value_is_in_the_zip (students.tests_data_export.ExportContentTests.test_no_sign_in_or_security_value_is_in_the_zip) ... Free trial plan not found: no trial activated for user df51d871-5964-481f-a200-ba16371c1428.
+Cannot activate automatic trial for user df51d871-5964-481f-a200-ba16371c1428 (validation): ValueError
+Free trial plan not found: no trial activated for user 45f9116b-a249-4a89-b712-22088c3bbff0.
+Cannot activate automatic trial for user 45f9116b-a249-4a89-b712-22088c3bbff0 (validation): ValueError
+ok
+test_only_the_students_own_rows (students.tests_data_export.ExportContentTests.test_only_the_students_own_rows) ... Free trial plan not found: no trial activated for user 3331520a-c056-4563-89c9-d93e889063a0.
+Cannot activate automatic trial for user 3331520a-c056-4563-89c9-d93e889063a0 (validation): ValueError
+Free trial plan not found: no trial activated for user 2f38372b-123d-4ad4-80cb-d244cb28a42a.
+Cannot activate automatic trial for user 2f38372b-123d-4ad4-80cb-d244cb28a42a (validation): ValueError
+ok
+test_the_final_grade_counts_released_work_only (students.tests_data_export.ExportContentTests.test_the_final_grade_counts_released_work_only) ... Free trial plan not found: no trial activated for user 469a7f27-d7d1-4461-96e6-9fa1dbdc0a0e.
+Cannot activate automatic trial for user 469a7f27-d7d1-4461-96e6-9fa1dbdc0a0e (validation): ValueError
+Free trial plan not found: no trial activated for user 1c99b59c-f0f4-4799-8bbd-332c07040c78.
+Cannot activate automatic trial for user 1c99b59c-f0f4-4799-8bbd-332c07040c78 (validation): ValueError
+ok
+test_the_profile_holds_the_listed_fields_only (students.tests_data_export.ExportContentTests.test_the_profile_holds_the_listed_fields_only) ... Free trial plan not found: no trial activated for user d058ec58-40db-4e13-add9-308461d04843.
+Cannot activate automatic trial for user d058ec58-40db-4e13-add9-308461d04843 (validation): ValueError
+Free trial plan not found: no trial activated for user 7e7193d3-0450-4a47-890e-057c6bfad94f.
+Cannot activate automatic trial for user 7e7193d3-0450-4a47-890e-057c6bfad94f (validation): ValueError
+ok
+test_the_profile_image_is_the_stored_bytes (students.tests_data_export.ExportContentTests.test_the_profile_image_is_the_stored_bytes) ... Free trial plan not found: no trial activated for user da08eb71-51d2-4126-a15f-dfd86affab2b.
+Cannot activate automatic trial for user da08eb71-51d2-4126-a15f-dfd86affab2b (validation): ValueError
+Free trial plan not found: no trial activated for user 3b2e2899-ff30-4757-acb5-bfbed9e03d67.
+Cannot activate automatic trial for user 3b2e2899-ff30-4757-acb5-bfbed9e03d67 (validation): ValueError
+ok
+test_every_field_is_decided_exactly_once (students.tests_data_export.FieldListGuardTests.test_every_field_is_decided_exactly_once) ... ok
+test_every_left_out_field_says_why (students.tests_data_export.FieldListGuardTests.test_every_left_out_field_says_why) ... ok
+test_names_are_pending_placeholders (students.tests_data_export.FieldListGuardTests.test_names_are_pending_placeholders) ... ok
+test_no_field_list_for_a_table_that_is_not_exported (students.tests_data_export.FieldListGuardTests.test_no_field_list_for_a_table_that_is_not_exported) ... ok
+test_no_secret_field_is_exported (students.tests_data_export.FieldListGuardTests.test_no_secret_field_is_exported) ... ok
+test_the_q1_q2_declarations (students.tests_data_export.FieldListGuardTests.test_the_q1_q2_declarations) ... ok
+test_off_by_default_everyone_gets_the_unknown_url_answer (students.tests_data_export.FlagTests.test_off_by_default_everyone_gets_the_unknown_url_answer) ... Free trial plan not found: no trial activated for user ce987fa8-c0c0-4e0e-96c5-054b2dc1164c.
+Cannot activate automatic trial for user ce987fa8-c0c0-4e0e-96c5-054b2dc1164c (validation): ValueError
+Free trial plan not found: no trial activated for user 9ff8d987-c155-426b-a332-e92ac35e34f1.
+Cannot activate automatic trial for user 9ff8d987-c155-426b-a332-e92ac35e34f1 (validation): ValueError
+ok
+test_the_route_is_read_only (students.tests_data_export.FlagTests.test_the_route_is_read_only) ... Free trial plan not found: no trial activated for user 9383d673-4866-47ba-8885-d30304f76a40.
+Cannot activate automatic trial for user 9383d673-4866-47ba-8885-d30304f76a40 (validation): ValueError
+Free trial plan not found: no trial activated for user 69eed58d-b277-4b65-94fa-0cff46d24e23.
+Cannot activate automatic trial for user 69eed58d-b277-4b65-94fa-0cff46d24e23 (validation): ValueError
+ok
+test_the_setting_defaults_to_off (students.tests_data_export.FlagTests.test_the_setting_defaults_to_off) ... Free trial plan not found: no trial activated for user acde2882-5823-46ec-8b7a-b98e417f4894.
+Cannot activate automatic trial for user acde2882-5823-46ec-8b7a-b98e417f4894 (validation): ValueError
+Free trial plan not found: no trial activated for user b40c7d29-cbf1-4e36-9b14-6002cb523658.
+Cannot activate automatic trial for user b40c7d29-cbf1-4e36-9b14-6002cb523658 (validation): ValueError
+ok
+test_a_student_outside_the_teachers_courses_is_refused (students.tests_data_export.TeacherTests.test_a_student_outside_the_teachers_courses_is_refused) ... Free trial plan not found: no trial activated for user d9f55502-bace-4b4c-9f63-3290a88cc537.
+Cannot activate automatic trial for user d9f55502-bace-4b4c-9f63-3290a88cc537 (validation): ValueError
+Free trial plan not found: no trial activated for user 8974e3ec-ae04-4a14-95ae-b17401c54a00.
+Cannot activate automatic trial for user 8974e3ec-ae04-4a14-95ae-b17401c54a00 (validation): ValueError
+ok
+test_a_teacher_gets_no_data_outside_courses (students.tests_data_export.TeacherTests.test_a_teacher_gets_no_data_outside_courses) ... Free trial plan not found: no trial activated for user 18c04ddc-41db-4dec-b935-23382f485025.
+Cannot activate automatic trial for user 18c04ddc-41db-4dec-b935-23382f485025 (validation): ValueError
+Free trial plan not found: no trial activated for user a222710a-57a3-4e54-b434-cdc9b7520bd5.
+Cannot activate automatic trial for user a222710a-57a3-4e54-b434-cdc9b7520bd5 (validation): ValueError
+ok
+test_a_teacher_gets_their_own_courses_only (students.tests_data_export.TeacherTests.test_a_teacher_gets_their_own_courses_only) ... Free trial plan not found: no trial activated for user 82ac33a4-a203-4e8e-87a8-7548c03be0f5.
+Cannot activate automatic trial for user 82ac33a4-a203-4e8e-87a8-7548c03be0f5 (validation): ValueError
+Free trial plan not found: no trial activated for user 6b333ffc-043b-41bf-9281-0a6cef408fcd.
+Cannot activate automatic trial for user 6b333ffc-043b-41bf-9281-0a6cef408fcd (validation): ValueError
+ok
+test_a_teacher_of_another_course_in_the_same_school_is_a_stranger (students.tests_data_export.TeacherTests.test_a_teacher_of_another_course_in_the_same_school_is_a_stranger) ... Free trial plan not found: no trial activated for user c7154ea1-c36c-40f7-99fb-a07f364e1d7f.
+Cannot activate automatic trial for user c7154ea1-c36c-40f7-99fb-a07f364e1d7f (validation): ValueError
+Free trial plan not found: no trial activated for user 250cead3-229c-43b2-8fdb-2c4546d3c1b5.
+Cannot activate automatic trial for user 250cead3-229c-43b2-8fdb-2c4546d3c1b5 (validation): ValueError
+Free trial plan not found: no trial activated for user 19069e59-28e7-4d1c-9737-ce8356cbf1de.
+Cannot activate automatic trial for user 19069e59-28e7-4d1c-9737-ce8356cbf1de (validation): ValueError
+Free trial plan not found: no trial activated for user f5f13ef6-8b0e-4d8c-b934-9270eb284929.
+Cannot activate automatic trial for user f5f13ef6-8b0e-4d8c-b934-9270eb284929 (validation): ValueError
+ok
+test_a_teachers_export_says_its_scope (students.tests_data_export.TeacherTests.test_a_teachers_export_says_its_scope) ... Free trial plan not found: no trial activated for user 9979c9e6-de4f-4c40-8f6d-a20ba104dbe9.
+Cannot activate automatic trial for user 9979c9e6-de4f-4c40-8f6d-a20ba104dbe9 (validation): ValueError
+Free trial plan not found: no trial activated for user b6701f33-8034-44c4-a964-dc9a51e506a3.
+Cannot activate automatic trial for user b6701f33-8034-44c4-a964-dc9a51e506a3 (validation): ValueError
+ok
+test_the_other_courses_teacher_sees_only_that_course (students.tests_data_export.TeacherTests.test_the_other_courses_teacher_sees_only_that_course) ... Free trial plan not found: no trial activated for user 250bdeea-f822-4a00-8dfa-1a377b3fbe52.
+Cannot activate automatic trial for user 250bdeea-f822-4a00-8dfa-1a377b3fbe52 (validation): ValueError
+Free trial plan not found: no trial activated for user 8efa96d6-4405-4338-861b-ddd415fcc649.
+Cannot activate automatic trial for user 8efa96d6-4405-4338-861b-ddd415fcc649 (validation): ValueError
+ok
+test_a_crashed_door_records_one_server_error (audit.tests_route_coverage.AnonymousDoorRefusalUnitTests.test_a_crashed_door_records_one_server_error)
+SM ruling on v2's N1: a crash must not leave zero trace. ... audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action)
+ok
+test_a_crashed_read_records_nothing (audit.tests_route_coverage.AnonymousDoorRefusalUnitTests.test_a_crashed_read_records_nothing) ... ok
+test_a_refused_door_request_records_one_invalid_request (audit.tests_route_coverage.AnonymousDoorRefusalUnitTests.test_a_refused_door_request_records_one_invalid_request) ... audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action)
+ok
+test_a_route_that_is_not_a_door_records_nothing (audit.tests_route_coverage.AnonymousDoorRefusalUnitTests.test_a_route_that_is_not_a_door_records_nothing) ... ok
+test_a_signed_in_requester_is_left_to_the_generic_event (audit.tests_route_coverage.AnonymousDoorRefusalUnitTests.test_a_signed_in_requester_is_left_to_the_generic_event) ... Free trial plan not found: no trial activated for user a8908f40-8d2d-48b9-b16a-4a9fccefbba2.
+Cannot activate automatic trial for user a8908f40-8d2d-48b9-b16a-4a9fccefbba2 (validation): ValueError
+ok
+test_a_throttled_request_records_nothing (audit.tests_route_coverage.AnonymousDoorRefusalUnitTests.test_a_throttled_request_records_nothing)
+The throttle refused it before the view ran; recording it would let ... ok
+test_an_excluded_route_that_crashes_records_nothing (audit.tests_route_coverage.AnonymousDoorRefusalUnitTests.test_an_excluded_route_that_crashes_records_nothing) ... ok
+test_any_crashed_anonymous_write_records_one_server_error (audit.tests_route_coverage.AnonymousDoorRefusalUnitTests.test_any_crashed_anonymous_write_records_one_server_error) ... ok
+test_a_crashed_registration_records_one_server_error (audit.tests_route_coverage.CrashedDoorTests.test_a_crashed_registration_records_one_server_error) ... API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/views.py", line 523, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/users/views.py", line 1915, in register
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: boom
+audit event metadata dropped: action=ACCOUNT_REGISTER keys=method (not allowed for this action), route (not allowed for this action)
+
+
+django.request ERROR 2026-11-08 16:25:44,561 log 261445 125544032454528 [request_id=- client_request_id=-] Internal Server Error: /api/v1/auth/register
+
+
+ok
+test_an_admin_write_leaves_one_event_naming_the_superadmin (audit.tests_route_coverage.DjangoAdminTests.test_an_admin_write_leaves_one_event_naming_the_superadmin) ... Free trial plan not found: no trial activated for user 62d00fdd-eaee-43a8-93d8-99e24693991f.
+Cannot activate automatic trial for user 62d00fdd-eaee-43a8-93d8-99e24693991f (validation): ValueError
+ok
+test_every_code_s2_emits_is_in_the_catalogue (audit.tests_route_coverage.ReasonCodeCatalogueTests.test_every_code_s2_emits_is_in_the_catalogue) ... ok
+test_every_anonymous_door_records_a_refused_request (audit.tests_route_coverage.RouteCoverageTests.test_every_anonymous_door_records_a_refused_request)
+An empty body is refused before the door's own event; the ... API request refused: ParseError (400)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=ACCOUNT_REGISTER keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ParseError (400)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+ok
+test_every_anonymous_write_route_is_a_door_or_excluded (audit.tests_route_coverage.RouteCoverageTests.test_every_anonymous_write_route_is_a_door_or_excluded)
+Fired anonymously: anything not refused with 401/403 (or sent to ... API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: ParseError (400)
+API request refused: NotAuthenticated (401)
+API request refused: ParseError (400)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=ACCOUNT_REGISTER keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: NotAuthenticated (401)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ParseError (400)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+Stripe webhook: signature verification failed.
+Stripe thin webhook: signature verification failed.
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: NotAuthenticated (401)
+API request refused: ValidationError (400)
+audit event metadata dropped: action=AUTH_LOGIN keys=method (not allowed for this action), route (not allowed for this action)
+API request refused: ValidationError (400)
+ok
+test_every_exclusion_says_why (audit.tests_route_coverage.RouteCoverageTests.test_every_exclusion_says_why) ... ok
+test_every_registry_entry_names_a_real_route (audit.tests_route_coverage.RouteCoverageTests.test_every_registry_entry_names_a_real_route) ... ok
+test_every_write_route_leaves_one_event_naming_the_superadmin (audit.tests_route_coverage.RouteCoverageTests.test_every_write_route_leaves_one_event_naming_the_superadmin) ... Free trial plan not found: no trial activated for user 5c41a51c-aa64-482f-8b17-72415a8b466b.
+Cannot activate automatic trial for user 5c41a51c-aa64-482f-8b17-72415a8b466b (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: MethodNotAllowed (405)
+API request refused: MethodNotAllowed (405)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: MethodNotAllowed (405)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: MethodNotAllowed (405)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: ParseError (400)
+API request refused: NotFound (404)
+API request refused: Http404 (404)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: ParseError (400)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: ParseError (400)
+API request refused: PermissionDenied (403)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: MethodNotAllowed (405)
+API request refused: MethodNotAllowed (405)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: ValidationError (400)
+
+
+django.request ERROR 2026-11-08 16:25:46,261 log 261445 125544032454528 [request_id=239e7af2-1a57-469f-81fe-8c8ad533faf1 client_request_id=-] Internal Server Error: /api/v1/qa/console/subscriber
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/billing/qa_console.py", line 132, in _wrapped
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/views/decorators/http.py", line 64, in inner
+    return func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/billing/qa_console.py", line 467, in qa_console_new_subscriber
+    plan = _monthly_plan()
+           ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/billing/qa_console.py", line 208, in _monthly_plan
+    return require_plan(tier=PlanTier.STANDARD, interval=BillingInterval.MONTHLY)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/billing/stripe_live_qa.py", line 366, in require_plan
+    raise LiveQAConfigurationError(
+billing.stripe_live_qa.LiveQAConfigurationError: No active INDIVIDUAL STANDARD/MONTHLY plan with a stripe_price_id exists. The live-QA suite needs real plans wired to real Stripe test prices — seed them before running.
+API request refused: ValidationError (400)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+ok
+test_every_write_route_outside_the_admin_is_named (audit.tests_route_coverage.RouteCoverageTests.test_every_write_route_outside_the_admin_is_named)
+v2's G1: an unnamed write route would be outside every check. ... ok
+test_there_are_write_routes_to_guard (audit.tests_route_coverage.RouteCoverageTests.test_there_are_write_routes_to_guard) ... ok
+test_a_malformed_registration_is_one_invalid_request_failure (audit.tests_route_coverage.SelfRegistrationTests.test_a_malformed_registration_is_one_invalid_request_failure) ... API request refused: ValidationError (400)
+audit event metadata dropped: action=ACCOUNT_REGISTER keys=method (not allowed for this action), route (not allowed for this action)
+ok
+test_a_new_account_is_recorded_with_the_account_as_target (audit.tests_route_coverage.SelfRegistrationTests.test_a_new_account_is_recorded_with_the_account_as_target) ... Free trial plan not found: no trial activated for user 71b0cd8c-d450-409c-b91d-2130a97ad81f.
+Cannot activate automatic trial for user 71b0cd8c-d450-409c-b91d-2130a97ad81f (validation): ValueError
+ok
+test_a_named_one_is_in_the_guard (audit.tests_route_coverage.UnnamedRouteGuardTests.test_a_named_one_is_in_the_guard) ... ok
+test_an_unnamed_write_route_is_caught (audit.tests_route_coverage.UnnamedRouteGuardTests.test_an_unnamed_write_route_is_caught) ... ok
+test_a_students_own_work_is_exported_then_deleted (students.tests_student_data_map.OwnerRulingsTests.test_a_students_own_work_is_exported_then_deleted) ... ok
+test_credit_records_are_kept (students.tests_student_data_map.OwnerRulingsTests.test_credit_records_are_kept) ... ok
+test_kept_records_are_never_part_of_a_course_scoped_erasure (students.tests_student_data_map.OwnerRulingsTests.test_kept_records_are_never_part_of_a_course_scoped_erasure) ... ok
+test_sign_in_data_is_deleted_and_never_exported (students.tests_student_data_map.OwnerRulingsTests.test_sign_in_data_is_deleted_and_never_exported) ... ok
+test_the_activity_log_is_kept (students.tests_student_data_map.OwnerRulingsTests.test_the_activity_log_is_kept) ... ok
+test_a_course_scoped_table_can_be_scoped_by_course (students.tests_student_data_map.StepOneBRulingsTests.test_a_course_scoped_table_can_be_scoped_by_course) ... ok
+test_an_email_matched_entry_is_an_email_column (students.tests_student_data_map.StepOneBRulingsTests.test_an_email_matched_entry_is_an_email_column) ... ok
+test_any_name_ending_in_by_id_is_a_user_id_column (students.tests_student_data_map.StepOneBRulingsTests.test_any_name_ending_in_by_id_is_a_user_id_column) ... ok
+test_chat_sessions_go_with_a_teachers_erasure (students.tests_student_data_map.StepOneBRulingsTests.test_chat_sessions_go_with_a_teachers_erasure) ... ok
+test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) ... ok
+test_own_row_entries_are_on_the_user_model (students.tests_student_data_map.StepOneBRulingsTests.test_own_row_entries_are_on_the_user_model) ... ok
+test_processing_records_go_with_a_teachers_erasure (students.tests_student_data_map.StepOneBRulingsTests.test_processing_records_go_with_a_teachers_erasure) ... ok
+test_risk_alerts_go_only_with_a_full_erasure (students.tests_student_data_map.StepOneBRulingsTests.test_risk_alerts_go_only_with_a_full_erasure) ... ok
+test_tag_columns_are_not_a_student (students.tests_student_data_map.StepOneBRulingsTests.test_tag_columns_are_not_a_student) ... ok
+test_the_guard_sees_a_bare_created_by_id (students.tests_student_data_map.StepOneBRulingsTests.test_the_guard_sees_a_bare_created_by_id) ... ok
+test_the_profile_image_is_exported_then_deleted (students.tests_student_data_map.StepOneBRulingsTests.test_the_profile_image_is_exported_then_deleted) ... ok
+test_whitelist_and_waitlist_rows_go_by_email (students.tests_student_data_map.StepOneBRulingsTests.test_whitelist_and_waitlist_rows_go_by_email) ... ok
+test_every_bare_user_id_column_is_in_the_map (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_bare_user_id_column_is_in_the_map) ... ok
+test_every_entry_has_a_known_role_and_a_reason (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_entry_has_a_known_role_and_a_reason) ... ok
+test_every_relation_to_a_user_is_in_the_map (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_relation_to_a_user_is_in_the_map) ... ok
+test_the_map_names_only_columns_that_exist (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_the_map_names_only_columns_that_exist) ... ok
+test_no_allowed_key_names_a_person_or_their_work (audit.tests_metadata.AllowListTest.test_no_allowed_key_names_a_person_or_their_work) ... ok
+test_the_allow_list_is_not_empty_and_holds_only_lowercase_snake_case (audit.tests_metadata.AllowListTest.test_the_allow_list_is_not_empty_and_holds_only_lowercase_snake_case) ... ok
+test_a_key_that_fails_the_generic_rules_is_dropped_before_the_per_action_check (audit.tests_metadata.PerActionAllowListTest.test_a_key_that_fails_the_generic_rules_is_dropped_before_the_per_action_check)
+A malformed value never gets a free pass just because its key is on ... ok
+test_a_key_valid_for_this_action_passes_through (audit.tests_metadata.PerActionAllowListTest.test_a_key_valid_for_this_action_passes_through) ... ok
+test_a_key_valid_globally_but_not_for_this_action_is_dropped (audit.tests_metadata.PerActionAllowListTest.test_a_key_valid_globally_but_not_for_this_action_is_dropped)
+`credits` is a real, PII-safe key (CREDIT_TRANSACTION carries it) - ... ok
+test_an_action_with_no_call_site_yet_accepts_no_metadata (audit.tests_metadata.PerActionAllowListTest.test_an_action_with_no_call_site_yet_accepts_no_metadata) ... ok
+test_every_action_has_an_entry (audit.tests_metadata.PerActionAllowListTest.test_every_action_has_an_entry)
+No action silently falls through to an unbounded default - an ... ok
+test_every_per_action_key_is_also_in_the_shared_pool (audit.tests_metadata.PerActionAllowListTest.test_every_per_action_key_is_also_in_the_shared_pool)
+The per-action list can only narrow ALLOWED_KEYS, never widen it - ... ok
+test_metadata_allowlist_for_an_unmapped_action_is_empty (audit.tests_metadata.PerActionAllowListTest.test_metadata_allowlist_for_an_unmapped_action_is_empty) ... ok
+test_none_and_empty_mean_no_metadata_and_no_problem (audit.tests_metadata.PerActionAllowListTest.test_none_and_empty_mean_no_metadata_and_no_problem) ... ok
+test_a_key_that_looks_like_personal_data_is_dropped_before_it_is_reported (audit.tests_metadata.SanitiseTest.test_a_key_that_looks_like_personal_data_is_dropped_before_it_is_reported)
+A careless call site can pass a name as the KEY. It is never echoed ... ok
+test_a_list_holding_an_object_is_dropped (audit.tests_metadata.SanitiseTest.test_a_list_holding_an_object_is_dropped) ... ok
+test_a_list_item_over_its_limit_is_dropped (audit.tests_metadata.SanitiseTest.test_a_list_item_over_its_limit_is_dropped) ... ok
+test_a_list_of_scalars_up_to_the_limit_is_kept (audit.tests_metadata.SanitiseTest.test_a_list_of_scalars_up_to_the_limit_is_kept) ... ok
+test_a_longer_list_is_dropped (audit.tests_metadata.SanitiseTest.test_a_longer_list_is_dropped) ... ok
+test_a_nested_object_is_dropped (audit.tests_metadata.SanitiseTest.test_a_nested_object_is_dropped) ... ok
+test_a_non_string_key_is_dropped (audit.tests_metadata.SanitiseTest.test_a_non_string_key_is_dropped) ... ok
+test_a_string_over_the_limit_is_dropped_so_answer_text_cannot_ride_along (audit.tests_metadata.SanitiseTest.test_a_string_over_the_limit_is_dropped_so_answer_text_cannot_ride_along) ... ok
+test_a_string_with_a_nul_byte_is_dropped (audit.tests_metadata.SanitiseTest.test_a_string_with_a_nul_byte_is_dropped) ... ok
+test_a_value_shaped_like_an_email_address_is_dropped_wherever_it_hides (audit.tests_metadata.SanitiseTest.test_a_value_shaped_like_an_email_address_is_dropped_wherever_it_hides) ... ok
+test_a_value_that_is_not_an_object_is_dropped_whole (audit.tests_metadata.SanitiseTest.test_a_value_that_is_not_an_object_is_dropped_whole) ... ok
+test_allowed_scalars_pass_through_unchanged (audit.tests_metadata.SanitiseTest.test_allowed_scalars_pass_through_unchanged) ... ok
+test_an_unknown_key_is_dropped_and_named_in_the_problems (audit.tests_metadata.SanitiseTest.test_an_unknown_key_is_dropped_and_named_in_the_problems) ... ok
+test_more_than_the_maximum_number_of_keys_is_dropped (audit.tests_metadata.SanitiseTest.test_more_than_the_maximum_number_of_keys_is_dropped) ... ok
+test_non_finite_numbers_are_dropped (audit.tests_metadata.SanitiseTest.test_non_finite_numbers_are_dropped) ... ok
+test_none_and_empty_mean_no_metadata_and_no_problem (audit.tests_metadata.SanitiseTest.test_none_and_empty_mean_no_metadata_and_no_problem) ... ok
+test_the_input_is_never_modified (audit.tests_metadata.SanitiseTest.test_the_input_is_never_modified) ... ok
+test_the_serialised_size_is_bounded (audit.tests_metadata.SanitiseTest.test_the_serialised_size_is_bounded) ... ok
+test_a_verb_is_stable_meaning_its_value_is_its_name (audit.tests_enums.ActionVocabularyTest.test_a_verb_is_stable_meaning_its_value_is_its_name) ... ok
+test_every_action_the_requirement_lists_has_a_verb (audit.tests_enums.ActionVocabularyTest.test_every_action_the_requirement_lists_has_a_verb) ... ok
+test_the_actions_kept_three_years_are_exactly_the_documented_ones (audit.tests_enums.ActionVocabularyTest.test_the_actions_kept_three_years_are_exactly_the_documented_ones)
+Grading, roster changes, submissions and (Epic A S4, D6) grade ... ok
+test_the_emailed_row_clash_remediation (AutoGrader.tests_reason_codes.ApprovedAlternativesTests.test_the_emailed_row_clash_remediation) ... ok
+test_the_nothing_finished_mid_batch_message (AutoGrader.tests_reason_codes.ApprovedAlternativesTests.test_the_nothing_finished_mid_batch_message) ... ok
+test_every_code_is_user_facing_or_audit_only_and_not_both (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_every_code_is_user_facing_or_audit_only_and_not_both) ... ok
+test_every_reason_code_the_code_emits_is_in_the_catalogue (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_every_reason_code_the_code_emits_is_in_the_catalogue) ... ok
+test_every_spec_is_consistent (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_every_spec_is_consistent) ... ok
+test_every_value_is_upper_snake_and_stable (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_every_value_is_upper_snake_and_stable) ... ok
+test_only_the_two_old_refusals_keep_a_lowercase_code (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_only_the_two_old_refusals_keep_a_lowercase_code)
+F8: kept for one release beside reason_code. ... ok
+test_the_scan_finds_the_codes_it_is_meant_to (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_the_scan_finds_the_codes_it_is_meant_to)
+Guard on the guard: one example per pattern the scan covers. ... ok
+test_the_ten_fr_a_06_codes_are_present_and_user_facing (AutoGrader.tests_reason_codes.CatalogueCompletenessTests.test_the_ten_fr_a_06_codes_are_present_and_user_facing) ... ok
+test_an_entry_keeps_the_routes_keys_and_adds_the_coded_ones (AutoGrader.tests_reason_codes.CodedEntryTests.test_an_entry_keeps_the_routes_keys_and_adds_the_coded_ones) ... ok
+test_a_plain_serializer_error_is_not_mistaken_for_an_envelope (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_a_plain_serializer_error_is_not_mistaken_for_an_envelope)
+A field named like an envelope key (`params`) still shows its ... ok
+test_a_view_that_catches_and_answers_itself_gets_the_same_envelope (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_a_view_that_catches_and_answers_itself_gets_the_same_envelope) ... ok
+test_every_user_facing_code_answers_its_own_envelope (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_every_user_facing_code_answers_its_own_envelope) ... API request failed with MISSING_STUDENT_NAME: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with STUDENT_NOT_ON_ROSTER: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_UNREADABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TYPE_UNSUPPORTED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TOO_LARGE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with SUBMISSION_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with DUPLICATE_SUBMISSION: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+
+
+django.request ERROR 2026-11-08 16:25:49,623 log 261445 125544032454528 [request_id=- client_request_id=-] Service Unavailable: /coded/PROVIDER_FAILURE
+
+
+API request failed with INSUFFICIENT_CREDITS_MID_BATCH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with INSUFFICIENT_CREDITS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with AI_FEATURE_NOT_AVAILABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with OVERAGE_CAP_EXCEEDED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RATE_LIMITED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with NOT_RETRYABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RESET_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with VERIFY_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ACCOUNT_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with INVALID_CREDENTIALS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with REGISTRATION_PAUSED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_NOT_A_PDF: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_NO_INPUT: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with NOTHING_TO_GRADE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_FILE_UNREADABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_TOO_MANY_ROWS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_INVALID: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_ALREADY_ENROLLED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_CLASH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_STAFF_EMAIL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_OTHER_SCHOOL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_MISMATCH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_ACCOUNT_DISABLED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_EMAIL_INVALID: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_DUPLICATE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_LIST_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with LICENCE_INACTIVE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with LICENCE_SEATS_EXCEEDED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_EMAIL_NOT_BUSINESS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_EMAIL_OTHER_ROLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_CANNOT_JOIN_YET: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_IN_OTHER_SCHOOL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_ALREADY_ON_LICENCE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_NOT_ON_LICENCE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_ADD_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_REMOVE_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with SUBMISSION_NOT_GRADED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TAG_NAME_TAKEN: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TAG_CHANGED_SINCE_CHECK: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TAG_NAME_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TAG_NAME_TOO_LONG: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TOO_MANY_TAGS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with STUDENT_ERASE_NOT_ONLY_A_STUDENT: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with STUDENT_ERASE_WALLET_NOT_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with STUDENT_ERASE_BILLING_RECORDS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+ok
+test_qa_err_03_no_exception_text_reaches_any_body (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_qa_err_03_no_exception_text_reaches_any_body) ... API request failed with MISSING_STUDENT_NAME: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with STUDENT_NOT_ON_ROSTER: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_UNREADABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TYPE_UNSUPPORTED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_TOO_LARGE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with SUBMISSION_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with DUPLICATE_SUBMISSION: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+
+
+django.request ERROR 2026-11-08 16:25:49,676 log 261445 125544032454528 [request_id=- client_request_id=-] Service Unavailable: /coded/PROVIDER_FAILURE
+
+
+API request failed with INSUFFICIENT_CREDITS_MID_BATCH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with INSUFFICIENT_CREDITS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with AI_FEATURE_NOT_AVAILABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with OVERAGE_CAP_EXCEEDED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RATE_LIMITED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with NOT_RETRYABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with RESET_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with VERIFY_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ACCOUNT_LOCKED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with INVALID_CREDENTIALS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with REGISTRATION_PAUSED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with FILE_NOT_A_PDF: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_NO_INPUT: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with NOTHING_TO_GRADE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_FILE_UNREADABLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROSTER_TOO_MANY_ROWS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_INVALID: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_ALREADY_ENROLLED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_CLASH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_STAFF_EMAIL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_OTHER_SCHOOL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_NAME_MISMATCH: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_ACCOUNT_DISABLED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_EMAIL_INVALID: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_DUPLICATE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with ROW_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_LIST_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with LICENCE_INACTIVE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with LICENCE_SEATS_EXCEEDED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_EMAIL_NOT_BUSINESS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_EMAIL_OTHER_ROLE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_CANNOT_JOIN_YET: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_IN_OTHER_SCHOOL: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_ALREADY_ON_LICENCE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_NOT_ON_LICENCE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_ADD_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TEACHER_REMOVE_FAILED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with SUBMISSION_NOT_GRADED: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TAG_NAME_TAKEN: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TAG_CHANGED_SINCE_CHECK: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TAG_NAME_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TAG_NAME_TOO_LONG: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with TOO_MANY_TAGS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with STUDENT_ERASE_NOT_ONLY_A_STUDENT: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with STUDENT_ERASE_WALLET_NOT_EMPTY: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request failed with STUDENT_ERASE_BILLING_RECORDS: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: EmptyWalletError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: AIFeatureNotAvailableError: AI grading isn't included in your plan.
+ok
+test_qa_err_04_an_inbound_request_id_is_never_the_reference (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_qa_err_04_an_inbound_request_id_is_never_the_reference)
+X-5 wins over the first QA-ERR-04 reading (SM ruling): echoing a ... API request failed with PROVIDER_FAILURE: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+
+
+django.request ERROR 2026-11-08 16:25:49,718 log 261445 125544032454528 [request_id=- client_request_id=-] Service Unavailable: /coded-client-id
+
+
+ok
+test_qa_err_04_reference_is_the_request_id (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_qa_err_04_reference_is_the_request_id) ... API request failed with RUBRIC_MISSING: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+ok
+test_the_old_refusals_keep_their_message_and_legacy_code (AutoGrader.tests_reason_codes.CodedEnvelopeThroughTheAPITests.test_the_old_refusals_keep_their_message_and_legacy_code) ... API request refused: InsufficientCreditsError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: EmptyWalletError: SENTINEL-4f1c balance=12.5 at /srv/app/secret.py
+API request refused: AIFeatureNotAvailableError: AI grading isn't included in your plan.
+ok
+test_a_missing_param_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_missing_param_is_refused) ... ok
+test_a_non_scalar_param_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_non_scalar_param_is_refused) ... ok
+test_a_param_outside_the_spec_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_param_outside_the_spec_is_refused) ... ok
+test_a_subclass_fixes_its_code (AutoGrader.tests_reason_codes.CodedErrorTests.test_a_subclass_fixes_its_code) ... ok
+test_an_audit_only_code_has_no_error_body (AutoGrader.tests_reason_codes.CodedErrorTests.test_an_audit_only_code_has_no_error_body) ... ok
+test_defaults_fill_a_param_the_raiser_left_out (AutoGrader.tests_reason_codes.CodedErrorTests.test_defaults_fill_a_param_the_raiser_left_out) ... ok
+test_detail_stays_out_of_the_message (AutoGrader.tests_reason_codes.CodedErrorTests.test_detail_stays_out_of_the_message) ... ok
+test_display_for_no_placeholder_is_refused (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_for_no_placeholder_is_refused) ... ok
+test_display_may_stand_in_for_an_unknown_param (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_may_stand_in_for_an_unknown_param) ... ok
+test_display_shapes_the_message_but_never_the_params (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_shapes_the_message_but_never_the_params) ... ok
+test_display_values_must_be_text (AutoGrader.tests_reason_codes.CodedErrorTests.test_display_values_must_be_text) ... ok
+test_only_user_and_validation_classes_are_user_facing (AutoGrader.tests_reason_codes.CodedErrorTests.test_only_user_and_validation_classes_are_user_facing) ... ok
+test_refusal_response_still_answers_refusals_only (AutoGrader.tests_reason_codes.CodedErrorTests.test_refusal_response_still_answers_refusals_only) ... ok
+test_the_message_is_rendered_from_the_spec (AutoGrader.tests_reason_codes.CodedErrorTests.test_the_message_is_rendered_from_the_spec) ... ok
+test_the_message_layer_shows_the_message_and_never_the_detail (AutoGrader.tests_reason_codes.CodedErrorTests.test_the_message_layer_shows_the_message_and_never_the_detail)
+The path background-task item text and _failure_response's ... ok
+test_a_variant_survives_being_rebuilt_from_its_args (AutoGrader.tests_reason_codes.MessageVariantTests.test_a_variant_survives_being_rebuilt_from_its_args) ... ok
+test_an_unapproved_variant_is_refused (AutoGrader.tests_reason_codes.MessageVariantTests.test_an_unapproved_variant_is_refused) ... ok
+test_the_variant_renders_its_own_template (AutoGrader.tests_reason_codes.MessageVariantTests.test_the_variant_renders_its_own_template) ... ok
+test_a_row_code_always_carries_its_row (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_a_row_code_always_carries_its_row) ... ok
+test_every_approved_code_is_user_facing_with_its_approved_text (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_every_approved_code_is_user_facing_with_its_approved_text) ... ok
+test_no_code_says_a_teacher_has_a_subscription (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_no_code_says_a_teacher_has_a_subscription)
+The retired TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION must not come back ... ok
+test_no_neutral_code_names_a_role_or_a_school (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_no_neutral_code_names_a_role_or_a_school) ... ok
+test_the_cannot_join_yet_entry_is_h85s_sentence_and_nothing_more (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_the_cannot_join_yet_entry_is_h85s_sentence_and_nothing_more)
+H-85 on Epic A: the entry says what beta's refusal says, takes no ... ok
+test_the_seat_message_reads_as_both_approved_forms (AutoGrader.tests_reason_codes.QaCatalogueAdditionsTests.test_the_seat_message_reads_as_both_approved_forms) ... ok
+test_a_chosen_remediation_survives_being_rebuilt_from_its_args (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_a_chosen_remediation_survives_being_rebuilt_from_its_args)
+Celery's json backend rebuilds an error as cls(*args). ... ok
+test_an_approved_alternative_is_carried_to_the_body (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_an_approved_alternative_is_carried_to_the_body) ... ok
+test_an_unapproved_remediation_is_refused (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_an_unapproved_remediation_is_refused) ... ok
+test_nothing_to_do_is_null (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_nothing_to_do_is_null) ... ok
+test_the_default_is_the_specs (AutoGrader.tests_reason_codes.RemediationChoiceTests.test_the_default_is_the_specs) ... ok
+test_a_coded_body_flattens_to_its_display_sentence_alone (AutoGrader.tests_reason_codes.RendererMessageTests.test_a_coded_body_flattens_to_its_display_sentence_alone) ... ok
+test_a_balance_reason_gets_the_credits_refusal (AutoGrader.tests_reason_codes.RequireAiAccessTests.test_a_balance_reason_gets_the_credits_refusal) ... AI access denied for user ANON (feature=None): No credits remaining. Please purchase more credits to continue using AI features.
+AI access denied for user ANON (feature=None): Out of trial credits. Please subscribe to continue using AI features.
+ok
+test_a_refused_request_gets_the_plan_refusal_without_the_reason (AutoGrader.tests_reason_codes.RequireAiAccessTests.test_a_refused_request_gets_the_plan_refusal_without_the_reason) ... AI access denied for user ANON (feature=None): User not authenticated
+ok
+test_a_raiser_that_names_the_variant_still_wins (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_a_raiser_that_names_the_variant_still_wins) ... ok
+test_args_keep_the_4_tuple (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_args_keep_the_4_tuple)
+The spec-chosen variant does not ride in args. ... ok
+test_boundary_one_finished_is_the_default (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_boundary_one_finished_is_the_default) ... ok
+test_every_spec_with_variant_from_params_survives_pickle (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_every_spec_with_variant_from_params_survives_pickle)
+A CodedError whose spec has variant_from_params must be picklable, ... ok
+test_the_spec_picks_none_finished_from_completed (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_the_spec_picks_none_finished_from_completed) ... ok
+test_with_items_finished_the_spec_picks_the_default (AutoGrader.tests_reason_codes.SpecChosenVariantMidBatchTests.test_with_items_finished_the_spec_picks_the_default) ... ok
+test_a_raiser_that_names_the_variant_still_wins (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_a_raiser_that_names_the_variant_still_wins) ... ok
+test_both_params_reach_the_body_whichever_sentence_shows (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_both_params_reach_the_body_whichever_sentence_shows) ... ok
+test_control_the_overage_cap_spec_is_untouched (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_control_the_overage_cap_spec_is_untouched)
+OVERAGE_CAP_EXCEEDED's variant_from_params (H-268) is unchanged. ... ok
+test_the_spec_chose_it_so_the_args_keep_their_shape (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_the_spec_chose_it_so_the_args_keep_their_shape)
+A spec-chosen variant is re-derived from the same params, so it ... ok
+test_with_blocks_left_the_sentence_names_what_is_left (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_with_blocks_left_the_sentence_names_what_is_left) ... ok
+test_with_none_left_the_sentence_sends_them_to_the_next_cycle (AutoGrader.tests_reason_codes.SpecChosenVariantTests.test_with_none_left_the_sentence_sends_them_to_the_next_cycle) ... ok
+test_an_insert_that_omits_the_column_succeeds_with_the_default (AutoGrader.tests_migration_rollback_defaults.OldCodeInsertTests.test_an_insert_that_omits_the_column_succeeds_with_the_default) ... Free trial plan not found: no trial activated for user 67582436-0bbb-48d2-8861-7ed31e948a06.
+Cannot activate automatic trial for user 67582436-0bbb-48d2-8861-7ed31e948a06 (validation): ValueError
+Free trial plan not found: no trial activated for user c9596878-3604-4391-8609-cadaf75f475b.
+Cannot activate automatic trial for user c9596878-3604-4391-8609-cadaf75f475b (validation): ValueError
+Free trial plan not found: no trial activated for user 3f073173-42bc-4f62-b244-db48cba0382d.
+Cannot activate automatic trial for user 3f073173-42bc-4f62-b244-db48cba0382d (validation): ValueError
+Free trial plan not found: no trial activated for user b273a65b-9cc3-4549-a7e4-114bb5ffff40.
+Cannot activate automatic trial for user b273a65b-9cc3-4549-a7e4-114bb5ffff40 (validation): ValueError
+ok
+test_a_nullability_preserving_alter_on_the_real_graph_is_skipped (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_a_nullability_preserving_alter_on_the_real_graph_is_skipped)
+The eight AlterFields since production that change choices, ... ok
+test_every_not_null_field_added_since_production_has_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_every_not_null_field_added_since_production_has_a_db_default) ... ok
+test_rule_b_fires_only_when_an_alter_makes_a_column_not_null (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_fires_only_when_an_alter_makes_a_column_not_null)
+Rule (b) on a synthetic migration: nullable to NOT NULL without a ... ok
+test_rule_b_reads_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_rule_b_reads_the_state_before_each_migration)
+The production wiring (the Verification Engineer's H6 on ... ok
+test_the_guard_flags_a_not_null_field_without_a_db_default (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_flags_a_not_null_field_without_a_db_default)
+Rule (a) on the real graph with a synthetic final state: drop ... ok
+test_the_guard_sees_the_nine_rollback_columns (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_sees_the_nine_rollback_columns)
+Guard on the guard: the fields H-56 found are rule (a) ... ok
+test_the_guard_uses_the_state_before_each_migration (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_guard_uses_the_state_before_each_migration)
+fields_a_rollback_would_break wires rule (b) to state_before, not to ... ok
+test_the_production_heads_exist (AutoGrader.tests_migration_rollback_defaults.RollbackDefaultsGuardTests.test_the_production_heads_exist) ... ok
+test_an_assignment_with_a_real_timestamp_keys_on_it (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_assignment_with_a_real_timestamp_keys_on_it) ... ok
+test_an_unsaved_assignment_gets_the_never_matching_pdf_key (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_an_unsaved_assignment_gets_the_never_matching_pdf_key) ... ok
+test_only_assignment_updated_at_has_a_db_default_without_a_default (AutoGrader.tests_migration_rollback_defaults.UnsavedInstanceTests.test_only_assignment_updated_at_has_a_db_default_without_a_default) ... ok
+
+----------------------------------------------------------------------
+Ran 234 tests in 33.682s
+
+OK
+Preserving test database for alias 'default' ('test_student_data_erase_export')...
+Found 234 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, tags, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.

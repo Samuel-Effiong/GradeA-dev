@@ -1503,6 +1503,10 @@ EXPOSE_CLIENT_DIAGNOSTICS = env.bool("EXPOSE_CLIENT_DIAGNOSTICS", default=False)
 # `tags` field. The backfill command does not depend on it.
 TAGS_ENABLED = env.bool("TAGS_ENABLED", default=False)
 
+# NFR-CMP-04: a student's data export (and, later, erasure). Off by default:
+# the routes then answer exactly as an unknown URL does.
+STUDENT_DATA_TOOLS_ENABLED = env.bool("STUDENT_DATA_TOOLS_ENABLED", default=False)
+
 MAILERLITE_API_KEY = env.str("MAILERLITE_API_KEY", default="")
 MAILERLITE_GROUP_ID_TEACHER = env.str("MAILERLITE_GROUP_ID_TEACHER", default="")
 MAILERLITE_GROUP_ID_STUDENT = env.str("MAILERLITE_GROUP_ID_STUDENT", default="")

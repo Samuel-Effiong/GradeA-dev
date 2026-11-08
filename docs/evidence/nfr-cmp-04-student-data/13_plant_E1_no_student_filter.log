@@ -1,0 +1,272 @@
+Using existing test database for alias 'default' ('test_student_data_erase_export')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_one_event_per_export_naming_no_one (students.tests_data_export.AuditTests.test_one_event_per_export_naming_no_one) ... Free trial plan not found: no trial activated for user 5a62d873-bb97-43e2-9687-161882a777e6.
+Cannot activate automatic trial for user 5a62d873-bb97-43e2-9687-161882a777e6 (validation): ValueError
+Free trial plan not found: no trial activated for user 9e2cdd72-9bed-4e28-87f3-7b576630d650.
+Cannot activate automatic trial for user 9e2cdd72-9bed-4e28-87f3-7b576630d650 (validation): ValueError
+ok
+test_the_scope_key_passes_the_allow_list (students.tests_data_export.AuditTests.test_the_scope_key_passes_the_allow_list) ... Free trial plan not found: no trial activated for user c65fc04f-ab2a-44a6-8c45-1495600056cc.
+Cannot activate automatic trial for user c65fc04f-ab2a-44a6-8c45-1495600056cc (validation): ValueError
+Free trial plan not found: no trial activated for user c9537cce-738b-4cc5-ac19-dc8784a90fea.
+Cannot activate automatic trial for user c9537cce-738b-4cc5-ac19-dc8784a90fea (validation): ValueError
+ok
+test_a_refusal_writes_no_event (students.tests_data_export.CallerMatrixTests.test_a_refusal_writes_no_event) ... Free trial plan not found: no trial activated for user c5c29da3-0499-4504-bca0-e10ccefcdd0e.
+Cannot activate automatic trial for user c5c29da3-0499-4504-bca0-e10ccefcdd0e (validation): ValueError
+Free trial plan not found: no trial activated for user debd5d5c-c118-4511-a6ad-1c46ad9bce91.
+Cannot activate automatic trial for user debd5d5c-c118-4511-a6ad-1c46ad9bce91 (validation): ValueError
+ok
+test_a_school_admin_may_export_a_student_of_their_school (students.tests_data_export.CallerMatrixTests.test_a_school_admin_may_export_a_student_of_their_school) ... Free trial plan not found: no trial activated for user 5bc7d96c-e6f3-40f0-8473-959f976b9ead.
+Cannot activate automatic trial for user 5bc7d96c-e6f3-40f0-8473-959f976b9ead (validation): ValueError
+Free trial plan not found: no trial activated for user 765a7776-e8e2-4f26-979a-30ec6bcdfb49.
+Cannot activate automatic trial for user 765a7776-e8e2-4f26-979a-30ec6bcdfb49 (validation): ValueError
+ok
+test_a_school_admin_of_another_school_is_refused (students.tests_data_export.CallerMatrixTests.test_a_school_admin_of_another_school_is_refused) ... Free trial plan not found: no trial activated for user 05510c94-339a-470c-ba6f-f98a83958dca.
+Cannot activate automatic trial for user 05510c94-339a-470c-ba6f-f98a83958dca (validation): ValueError
+Free trial plan not found: no trial activated for user f7da57b2-535e-4f71-a69f-7ff482335466.
+Cannot activate automatic trial for user f7da57b2-535e-4f71-a69f-7ff482335466 (validation): ValueError
+ok
+test_a_school_admin_with_no_school_is_refused (students.tests_data_export.CallerMatrixTests.test_a_school_admin_with_no_school_is_refused) ... Free trial plan not found: no trial activated for user 6e3d82a3-1883-4368-99fd-350fd158a47b.
+Cannot activate automatic trial for user 6e3d82a3-1883-4368-99fd-350fd158a47b (validation): ValueError
+Free trial plan not found: no trial activated for user ce2466be-5177-41e3-a9d7-5c8e3ef57586.
+Cannot activate automatic trial for user ce2466be-5177-41e3-a9d7-5c8e3ef57586 (validation): ValueError
+ok
+test_a_school_admins_export_is_complete (students.tests_data_export.CallerMatrixTests.test_a_school_admins_export_is_complete) ... Free trial plan not found: no trial activated for user 4cb39d6b-1c9b-47e4-8cdc-5d5e150b2e85.
+Cannot activate automatic trial for user 4cb39d6b-1c9b-47e4-8cdc-5d5e150b2e85 (validation): ValueError
+Free trial plan not found: no trial activated for user dc142f53-e3ac-45d0-a91e-13be622b3aa9.
+Cannot activate automatic trial for user dc142f53-e3ac-45d0-a91e-13be622b3aa9 (validation): ValueError
+ok
+test_a_student_with_no_school_is_refused_to_a_school_admin (students.tests_data_export.CallerMatrixTests.test_a_student_with_no_school_is_refused_to_a_school_admin) ... Free trial plan not found: no trial activated for user 6a28973f-07d6-415f-98b8-831ca56fd825.
+Cannot activate automatic trial for user 6a28973f-07d6-415f-98b8-831ca56fd825 (validation): ValueError
+Free trial plan not found: no trial activated for user 7dbf4c73-e373-44b6-b2c2-003c425355f1.
+Cannot activate automatic trial for user 7dbf4c73-e373-44b6-b2c2-003c425355f1 (validation): ValueError
+ok
+test_a_super_admin_may_export_any_student (students.tests_data_export.CallerMatrixTests.test_a_super_admin_may_export_any_student) ... Free trial plan not found: no trial activated for user 391e8121-50fd-4f2c-98a4-dda24eb96618.
+Cannot activate automatic trial for user 391e8121-50fd-4f2c-98a4-dda24eb96618 (validation): ValueError
+Free trial plan not found: no trial activated for user 74c02366-57bb-4c36-aef2-2d2684f8e336.
+Cannot activate automatic trial for user 74c02366-57bb-4c36-aef2-2d2684f8e336 (validation): ValueError
+ok
+test_an_account_that_is_not_a_real_super_admin_is_refused (students.tests_data_export.CallerMatrixTests.test_an_account_that_is_not_a_real_super_admin_is_refused) ... Free trial plan not found: no trial activated for user 8bd99777-7c06-4e73-91e0-c46fc2634349.
+Cannot activate automatic trial for user 8bd99777-7c06-4e73-91e0-c46fc2634349 (validation): ValueError
+Free trial plan not found: no trial activated for user 71be2942-e793-4ea9-b5f0-e21d1d8cd74e.
+Cannot activate automatic trial for user 71be2942-e793-4ea9-b5f0-e21d1d8cd74e (validation): ValueError
+Free trial plan not found: no trial activated for user 45831d0a-90ba-4b47-b877-21c410717881.
+Cannot activate automatic trial for user 45831d0a-90ba-4b47-b877-21c410717881 (validation): ValueError
+ok
+test_anonymous_is_refused_with_401 (students.tests_data_export.CallerMatrixTests.test_anonymous_is_refused_with_401) ... Free trial plan not found: no trial activated for user 1f7e380d-447c-460e-a049-afeff536ed1b.
+Cannot activate automatic trial for user 1f7e380d-447c-460e-a049-afeff536ed1b (validation): ValueError
+Free trial plan not found: no trial activated for user da45351d-5fe5-4413-862e-6f60a46c0b29.
+Cannot activate automatic trial for user da45351d-5fe5-4413-862e-6f60a46c0b29 (validation): ValueError
+API request refused: NotAuthenticated (401)
+ok
+test_another_student_is_refused (students.tests_data_export.CallerMatrixTests.test_another_student_is_refused) ... Free trial plan not found: no trial activated for user e652ebec-f67e-4063-adb3-d3e2dc8700f2.
+Cannot activate automatic trial for user e652ebec-f67e-4063-adb3-d3e2dc8700f2 (validation): ValueError
+Free trial plan not found: no trial activated for user c3c9ad89-49ec-49b9-b77f-1e3842f4459d.
+Cannot activate automatic trial for user c3c9ad89-49ec-49b9-b77f-1e3842f4459d (validation): ValueError
+ok
+test_teacher_export_is_on (students.tests_data_export.CallerMatrixTests.test_teacher_export_is_on) ... Free trial plan not found: no trial activated for user 086ebc20-1b1c-4dac-a876-66eb4e63afb8.
+Cannot activate automatic trial for user 086ebc20-1b1c-4dac-a876-66eb4e63afb8 (validation): ValueError
+Free trial plan not found: no trial activated for user 55bbd3e1-7d8d-4326-a20e-2fc5d2803a5a.
+Cannot activate automatic trial for user 55bbd3e1-7d8d-4326-a20e-2fc5d2803a5a (validation): ValueError
+ok
+test_the_one_switch_turns_teachers_off (students.tests_data_export.CallerMatrixTests.test_the_one_switch_turns_teachers_off) ... Free trial plan not found: no trial activated for user f0200167-2663-4e0c-9af5-1e9e4eacd504.
+Cannot activate automatic trial for user f0200167-2663-4e0c-9af5-1e9e4eacd504 (validation): ValueError
+Free trial plan not found: no trial activated for user 3d176291-8f8b-4777-874f-7694bde37f0b.
+Cannot activate automatic trial for user 3d176291-8f8b-4777-874f-7694bde37f0b (validation): ValueError
+ok
+test_the_student_may_not_export_themselves (students.tests_data_export.CallerMatrixTests.test_the_student_may_not_export_themselves) ... Free trial plan not found: no trial activated for user 6eaa9c77-dd13-4d88-86f7-41b1eb91e5bb.
+Cannot activate automatic trial for user 6eaa9c77-dd13-4d88-86f7-41b1eb91e5bb (validation): ValueError
+Free trial plan not found: no trial activated for user 3f5216c7-f14d-49b1-97fd-f042e8b60951.
+Cannot activate automatic trial for user 3f5216c7-f14d-49b1-97fd-f042e8b60951 (validation): ValueError
+ok
+test_the_target_must_be_a_student (students.tests_data_export.CallerMatrixTests.test_the_target_must_be_a_student) ... Free trial plan not found: no trial activated for user e7fa8387-bd70-4f67-95d9-988fdd0fb38e.
+Cannot activate automatic trial for user e7fa8387-bd70-4f67-95d9-988fdd0fb38e (validation): ValueError
+Free trial plan not found: no trial activated for user c89aa237-0a92-4c54-b389-a8b08c2ea1b8.
+Cannot activate automatic trial for user c89aa237-0a92-4c54-b389-a8b08c2ea1b8 (validation): ValueError
+ok
+test_a_grade_not_yet_released_is_not_in_the_export (students.tests_data_export.ExportContentTests.test_a_grade_not_yet_released_is_not_in_the_export) ... Free trial plan not found: no trial activated for user 5377183f-16d6-4abb-b597-2ad05f1bd95e.
+Cannot activate automatic trial for user 5377183f-16d6-4abb-b597-2ad05f1bd95e (validation): ValueError
+Free trial plan not found: no trial activated for user da64728e-1276-4b17-968b-1df935489bad.
+Cannot activate automatic trial for user da64728e-1276-4b17-968b-1df935489bad (validation): ValueError
+ok
+test_a_released_grade_is_in_the_export (students.tests_data_export.ExportContentTests.test_a_released_grade_is_in_the_export) ... Free trial plan not found: no trial activated for user 115b75e4-4fce-48b6-aa08-b4ee3a911ffa.
+Cannot activate automatic trial for user 115b75e4-4fce-48b6-aa08-b4ee3a911ffa (validation): ValueError
+Free trial plan not found: no trial activated for user 1b8b12a3-52f5-4836-a927-5f09387a2004.
+Cannot activate automatic trial for user 1b8b12a3-52f5-4836-a927-5f09387a2004 (validation): ValueError
+ok
+test_an_unreadable_image_is_listed_as_missing (students.tests_data_export.ExportContentTests.test_an_unreadable_image_is_listed_as_missing) ... Free trial plan not found: no trial activated for user dabc4196-10e8-438d-b1bb-6c0410200511.
+Cannot activate automatic trial for user dabc4196-10e8-438d-b1bb-6c0410200511 (validation): ValueError
+Free trial plan not found: no trial activated for user 7d57f9c1-e71d-48a2-a1f2-5449470ef3ee.
+Cannot activate automatic trial for user 7d57f9c1-e71d-48a2-a1f2-5449470ef3ee (validation): ValueError
+ok
+test_chat_messages_are_nested_under_their_session (students.tests_data_export.ExportContentTests.test_chat_messages_are_nested_under_their_session) ... Free trial plan not found: no trial activated for user 2977e696-74f2-4fac-8012-2d50a347e90b.
+Cannot activate automatic trial for user 2977e696-74f2-4fac-8012-2d50a347e90b (validation): ValueError
+Free trial plan not found: no trial activated for user e79dad4e-4980-4cb5-bb8e-4a0fe31c68b2.
+Cannot activate automatic trial for user e79dad4e-4980-4cb5-bb8e-4a0fe31c68b2 (validation): ValueError
+ok
+test_every_exported_table_has_its_file_even_when_empty (students.tests_data_export.ExportContentTests.test_every_exported_table_has_its_file_even_when_empty) ... Free trial plan not found: no trial activated for user d2e99cb8-0627-4f63-850b-b99df2ad1aac.
+Cannot activate automatic trial for user d2e99cb8-0627-4f63-850b-b99df2ad1aac (validation): ValueError
+Free trial plan not found: no trial activated for user d7fa96c9-89cf-4bcf-bb77-2241d231d2c4.
+Cannot activate automatic trial for user d7fa96c9-89cf-4bcf-bb77-2241d231d2c4 (validation): ValueError
+ok
+test_every_file_is_json_except_the_image (students.tests_data_export.ExportContentTests.test_every_file_is_json_except_the_image) ... Free trial plan not found: no trial activated for user d33df790-a838-4d67-ac5b-27d6664520fd.
+Cannot activate automatic trial for user d33df790-a838-4d67-ac5b-27d6664520fd (validation): ValueError
+Free trial plan not found: no trial activated for user 41e04703-8512-4622-a0dc-7f5ac88881f9.
+Cannot activate automatic trial for user 41e04703-8512-4622-a0dc-7f5ac88881f9 (validation): ValueError
+ok
+test_no_sign_in_or_security_value_is_in_the_zip (students.tests_data_export.ExportContentTests.test_no_sign_in_or_security_value_is_in_the_zip) ... Free trial plan not found: no trial activated for user 9c58a289-a408-426f-b2b7-b249530d210b.
+Cannot activate automatic trial for user 9c58a289-a408-426f-b2b7-b249530d210b (validation): ValueError
+Free trial plan not found: no trial activated for user e797c5a1-d632-483b-a0a0-28791f85af3c.
+Cannot activate automatic trial for user e797c5a1-d632-483b-a0a0-28791f85af3c (validation): ValueError
+ok
+test_only_the_students_own_rows (students.tests_data_export.ExportContentTests.test_only_the_students_own_rows) ... Free trial plan not found: no trial activated for user 02b718ec-8ce2-47cf-a164-413e6b941256.
+Cannot activate automatic trial for user 02b718ec-8ce2-47cf-a164-413e6b941256 (validation): ValueError
+Free trial plan not found: no trial activated for user b37f506c-ae6e-4d19-948a-8f386997d321.
+Cannot activate automatic trial for user b37f506c-ae6e-4d19-948a-8f386997d321 (validation): ValueError
+
+  test_only_the_students_own_rows (students.tests_data_export.ExportContentTests.test_only_the_students_own_rows) (value='OTHER-STUDENT-ANSWER-must-not-leave') ... FAIL
+  test_only_the_students_own_rows (students.tests_data_export.ExportContentTests.test_only_the_students_own_rows) (value='2eb39ee9-f2cf-4a15-937a-3bc10e1cf14a') ... FAIL
+test_only_the_students_own_rows (students.tests_data_export.ExportContentTests.test_only_the_students_own_rows) ... FAIL
+test_the_final_grade_counts_released_work_only (students.tests_data_export.ExportContentTests.test_the_final_grade_counts_released_work_only) ... Free trial plan not found: no trial activated for user 9c9068be-46d8-44b3-afd5-3ecc64f10008.
+Cannot activate automatic trial for user 9c9068be-46d8-44b3-afd5-3ecc64f10008 (validation): ValueError
+Free trial plan not found: no trial activated for user 3127820e-a18e-4958-8ba6-f79d97ed35f3.
+Cannot activate automatic trial for user 3127820e-a18e-4958-8ba6-f79d97ed35f3 (validation): ValueError
+ok
+test_the_profile_holds_the_listed_fields_only (students.tests_data_export.ExportContentTests.test_the_profile_holds_the_listed_fields_only) ... Free trial plan not found: no trial activated for user 44847bd1-8081-423d-8e00-f9a392a63c63.
+Cannot activate automatic trial for user 44847bd1-8081-423d-8e00-f9a392a63c63 (validation): ValueError
+Free trial plan not found: no trial activated for user 2b6bc502-b63d-4a35-9f40-34daf3c167fe.
+Cannot activate automatic trial for user 2b6bc502-b63d-4a35-9f40-34daf3c167fe (validation): ValueError
+ok
+test_the_profile_image_is_the_stored_bytes (students.tests_data_export.ExportContentTests.test_the_profile_image_is_the_stored_bytes) ... Free trial plan not found: no trial activated for user 34f292a9-ab71-4334-b80c-d7010a834eb5.
+Cannot activate automatic trial for user 34f292a9-ab71-4334-b80c-d7010a834eb5 (validation): ValueError
+Free trial plan not found: no trial activated for user 0e37e6b4-034a-4deb-afdc-21efa7421565.
+Cannot activate automatic trial for user 0e37e6b4-034a-4deb-afdc-21efa7421565 (validation): ValueError
+ok
+test_every_field_is_decided_exactly_once (students.tests_data_export.FieldListGuardTests.test_every_field_is_decided_exactly_once) ... ok
+test_every_left_out_field_says_why (students.tests_data_export.FieldListGuardTests.test_every_left_out_field_says_why) ... ok
+test_names_are_pending_placeholders (students.tests_data_export.FieldListGuardTests.test_names_are_pending_placeholders) ... ok
+test_no_field_list_for_a_table_that_is_not_exported (students.tests_data_export.FieldListGuardTests.test_no_field_list_for_a_table_that_is_not_exported) ... ok
+test_no_secret_field_is_exported (students.tests_data_export.FieldListGuardTests.test_no_secret_field_is_exported) ... ok
+test_the_q1_q2_declarations (students.tests_data_export.FieldListGuardTests.test_the_q1_q2_declarations) ... ok
+test_off_by_default_everyone_gets_the_unknown_url_answer (students.tests_data_export.FlagTests.test_off_by_default_everyone_gets_the_unknown_url_answer) ... Free trial plan not found: no trial activated for user fdfe3c60-5032-4ef4-b7c8-8b67f817875b.
+Cannot activate automatic trial for user fdfe3c60-5032-4ef4-b7c8-8b67f817875b (validation): ValueError
+Free trial plan not found: no trial activated for user 5a78156e-1608-4879-9b23-d21fa913172f.
+Cannot activate automatic trial for user 5a78156e-1608-4879-9b23-d21fa913172f (validation): ValueError
+ok
+test_the_route_is_read_only (students.tests_data_export.FlagTests.test_the_route_is_read_only) ... Free trial plan not found: no trial activated for user cb9ea2ed-eb2d-4a6d-bd35-8de457115f26.
+Cannot activate automatic trial for user cb9ea2ed-eb2d-4a6d-bd35-8de457115f26 (validation): ValueError
+Free trial plan not found: no trial activated for user 810645ae-e7f6-40fe-bf0b-c543bdacef7e.
+Cannot activate automatic trial for user 810645ae-e7f6-40fe-bf0b-c543bdacef7e (validation): ValueError
+ok
+test_the_setting_defaults_to_off (students.tests_data_export.FlagTests.test_the_setting_defaults_to_off) ... Free trial plan not found: no trial activated for user b10268fb-aab1-4288-9765-41d9df40ee2c.
+Cannot activate automatic trial for user b10268fb-aab1-4288-9765-41d9df40ee2c (validation): ValueError
+Free trial plan not found: no trial activated for user fad36705-aa7e-4a2a-97d7-0a7b6ec06efd.
+Cannot activate automatic trial for user fad36705-aa7e-4a2a-97d7-0a7b6ec06efd (validation): ValueError
+ok
+test_a_student_outside_the_teachers_courses_is_refused (students.tests_data_export.TeacherTests.test_a_student_outside_the_teachers_courses_is_refused) ... Free trial plan not found: no trial activated for user 9800a13e-aa25-45ff-90aa-88e286e42d2a.
+Cannot activate automatic trial for user 9800a13e-aa25-45ff-90aa-88e286e42d2a (validation): ValueError
+Free trial plan not found: no trial activated for user 42fd0c0b-c00b-4722-af9e-f942e5c96c96.
+Cannot activate automatic trial for user 42fd0c0b-c00b-4722-af9e-f942e5c96c96 (validation): ValueError
+ok
+test_a_teacher_gets_no_data_outside_courses (students.tests_data_export.TeacherTests.test_a_teacher_gets_no_data_outside_courses) ... Free trial plan not found: no trial activated for user ecba24bf-7b28-4a96-a245-7776c9dc0198.
+Cannot activate automatic trial for user ecba24bf-7b28-4a96-a245-7776c9dc0198 (validation): ValueError
+Free trial plan not found: no trial activated for user 40e1f26a-14bf-4c67-969e-e7fff2c9195b.
+Cannot activate automatic trial for user 40e1f26a-14bf-4c67-969e-e7fff2c9195b (validation): ValueError
+ok
+test_a_teacher_gets_their_own_courses_only (students.tests_data_export.TeacherTests.test_a_teacher_gets_their_own_courses_only) ... Free trial plan not found: no trial activated for user 8b7c7e47-9bc4-4f8c-89d2-9c022d33e22e.
+Cannot activate automatic trial for user 8b7c7e47-9bc4-4f8c-89d2-9c022d33e22e (validation): ValueError
+Free trial plan not found: no trial activated for user 5e90d8ce-be6b-441e-a2a5-011502058a6f.
+Cannot activate automatic trial for user 5e90d8ce-be6b-441e-a2a5-011502058a6f (validation): ValueError
+FAIL
+test_a_teacher_of_another_course_in_the_same_school_is_a_stranger (students.tests_data_export.TeacherTests.test_a_teacher_of_another_course_in_the_same_school_is_a_stranger) ... Free trial plan not found: no trial activated for user 3da2a8a5-977a-4798-9994-bfed0733a9c2.
+Cannot activate automatic trial for user 3da2a8a5-977a-4798-9994-bfed0733a9c2 (validation): ValueError
+Free trial plan not found: no trial activated for user 6218e3a7-e862-4b7b-ad62-ff76f74d7d3f.
+Cannot activate automatic trial for user 6218e3a7-e862-4b7b-ad62-ff76f74d7d3f (validation): ValueError
+Free trial plan not found: no trial activated for user e7bc2b02-a2f9-4949-b5c3-697f458b584e.
+Cannot activate automatic trial for user e7bc2b02-a2f9-4949-b5c3-697f458b584e (validation): ValueError
+Free trial plan not found: no trial activated for user 5b7dd9c5-94a9-48cd-a21a-323f21f48ad3.
+Cannot activate automatic trial for user 5b7dd9c5-94a9-48cd-a21a-323f21f48ad3 (validation): ValueError
+ok
+test_a_teachers_export_says_its_scope (students.tests_data_export.TeacherTests.test_a_teachers_export_says_its_scope) ... Free trial plan not found: no trial activated for user ee3b8d26-dd8f-4328-a1eb-4ea28ca5122a.
+Cannot activate automatic trial for user ee3b8d26-dd8f-4328-a1eb-4ea28ca5122a (validation): ValueError
+Free trial plan not found: no trial activated for user eafd896d-9cc0-4db5-8050-fd559633ef8e.
+Cannot activate automatic trial for user eafd896d-9cc0-4db5-8050-fd559633ef8e (validation): ValueError
+ok
+test_the_other_courses_teacher_sees_only_that_course (students.tests_data_export.TeacherTests.test_the_other_courses_teacher_sees_only_that_course) ... Free trial plan not found: no trial activated for user 57e47760-33f2-4e05-a28f-03824cd2f3d1.
+Cannot activate automatic trial for user 57e47760-33f2-4e05-a28f-03824cd2f3d1 (validation): ValueError
+Free trial plan not found: no trial activated for user c6b72fef-b6ec-4af8-9a03-237d37d0668c.
+Cannot activate automatic trial for user c6b72fef-b6ec-4af8-9a03-237d37d0668c (validation): ValueError
+ok
+test_a_students_own_work_is_exported_then_deleted (students.tests_student_data_map.OwnerRulingsTests.test_a_students_own_work_is_exported_then_deleted) ... ok
+test_credit_records_are_kept (students.tests_student_data_map.OwnerRulingsTests.test_credit_records_are_kept) ... ok
+test_kept_records_are_never_part_of_a_course_scoped_erasure (students.tests_student_data_map.OwnerRulingsTests.test_kept_records_are_never_part_of_a_course_scoped_erasure) ... ok
+test_sign_in_data_is_deleted_and_never_exported (students.tests_student_data_map.OwnerRulingsTests.test_sign_in_data_is_deleted_and_never_exported) ... ok
+test_the_activity_log_is_kept (students.tests_student_data_map.OwnerRulingsTests.test_the_activity_log_is_kept) ... ok
+test_a_course_scoped_table_can_be_scoped_by_course (students.tests_student_data_map.StepOneBRulingsTests.test_a_course_scoped_table_can_be_scoped_by_course) ... ok
+test_an_email_matched_entry_is_an_email_column (students.tests_student_data_map.StepOneBRulingsTests.test_an_email_matched_entry_is_an_email_column) ... ok
+test_any_name_ending_in_by_id_is_a_user_id_column (students.tests_student_data_map.StepOneBRulingsTests.test_any_name_ending_in_by_id_is_a_user_id_column) ... ok
+test_chat_sessions_go_with_a_teachers_erasure (students.tests_student_data_map.StepOneBRulingsTests.test_chat_sessions_go_with_a_teachers_erasure) ... ok
+test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) ... ok
+test_own_row_entries_are_on_the_user_model (students.tests_student_data_map.StepOneBRulingsTests.test_own_row_entries_are_on_the_user_model) ... ok
+test_risk_alerts_go_only_with_a_full_erasure (students.tests_student_data_map.StepOneBRulingsTests.test_risk_alerts_go_only_with_a_full_erasure) ... ok
+test_tag_columns_are_not_a_student (students.tests_student_data_map.StepOneBRulingsTests.test_tag_columns_are_not_a_student) ... ok
+test_the_guard_sees_a_bare_created_by_id (students.tests_student_data_map.StepOneBRulingsTests.test_the_guard_sees_a_bare_created_by_id) ... ok
+test_the_profile_image_is_exported_then_deleted (students.tests_student_data_map.StepOneBRulingsTests.test_the_profile_image_is_exported_then_deleted) ... ok
+test_whitelist_and_waitlist_rows_go_by_email (students.tests_student_data_map.StepOneBRulingsTests.test_whitelist_and_waitlist_rows_go_by_email) ... ok
+test_every_bare_user_id_column_is_in_the_map (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_bare_user_id_column_is_in_the_map) ... ok
+test_every_entry_has_a_known_role_and_a_reason (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_entry_has_a_known_role_and_a_reason) ... ok
+test_every_relation_to_a_user_is_in_the_map (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_relation_to_a_user_is_in_the_map) ... ok
+test_the_map_names_only_columns_that_exist (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_the_map_names_only_columns_that_exist) ... ok
+
+======================================================================
+FAIL: test_only_the_students_own_rows (students.tests_data_export.ExportContentTests.test_only_the_students_own_rows) (value='OTHER-STUDENT-ANSWER-must-not-leave')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_data_export.py", line 377, in test_only_the_students_own_rows
+    self.assertNotIn(value.encode(), blob)
+AssertionError: b'OTHER-STUDENT-ANSWER-must-not-leave' unexpectedly found in b'{\n  "PENDING-counts": {\n    "PENDING-table-01.json": 2,\n    "PENDING-table-02.json": 4,\n    "PENDING-table-03.json": 1,\n    "PENDING-table-04.json": 1,\n    "PENDING-table-05.json": 2,\n    "PENDING-table-06.json": 1,\n    "PENDING-table-07.json": 1\n  },\n  "PENDING-generated-at": "2026-11-08T15:51:04.529Z",\n  "PENDING-missing": [],\n  "PENDING-scope": "all"\n}\x89PNG\r\n\x1a\nplanted-image-bytes{\n  "bio": "Likes cells",\n  "date_joined": "2026-11-08T15:51:04.215Z",\n  "email": "c1-student-350@c1.test",\n  "email_verified_at": null,\n  "first_name": "Sade",\n  "id": "7c98bf6d-aab7-4b6e-9450-dc8f7828370c",\n  "is_active": true,\n  "last_login": null,\n  "last_name": "Okon350",\n  "middle_name": "",\n  "profile_image": "profile_pics/7c98bf6d-aab7-4b6e-9450-dc8f7828370c/c1-student-350_2026-11-08_.png",\n  "profile_image_url": null,\n  "registration_method": "EMAIL",\n  "school": "0717cc5e-60d2-42a9-8482-2c54b6318752",\n  "user_type": "STUDENT"\n}PENDING OWNER APPROVAL\n[\n  {\n    "course": "1a46e700-76dc-473d-be3b-bef717c9687f",\n    "created_at": "2026-11-08T15:51:04.352Z",\n    "enrollment_status": "ENROLLED",\n    "final_grade": "80.00",\n    "id": "620f0d85-d072-40a7-9f8d-3eedfc8d74d9",\n    "withdrawal_date": null\n  },\n  {\n    "course": "163e234f-d555-46fb-beca-92800c201d32",\n    "created_at": "2026-11-08T15:51:04.431Z",\n    "enrollment_status": "ENROLLED",\n    "final_grade": null,\n    "id": "9cc98941-19bd-4bc9-b5a2-b3281b4c6282",\n    "withdrawal_date": null\n  }\n][\n  {\n    "answers": {\n      "1": "Mitochondria"\n    },\n    "assignment": "be5bd266-bad3-47c7-9f80-a3fcb8414c34",\n    "feedback": {\n      "overall_performance_analysis": {\n        "summary": "Good work"\n      }\n    },\n    "formatted_grade": null,\n    "graded_at": "2026-11-08T15:51:04.435Z",\n    "id": "f6490697-06e9-4548-a6c8-7e7a6533ff41",\n    "is_published": true,\n    "max_points": 10,\n    "raw_input": null,\n    "regraded_at": null,\n    "score": "8.00",\n    "score_percentage": "80.00",\n    "submission_date": "2026-11-08T15:51:04.436Z",\n    "was_regraded": false\n  },\n  {\n    "answers": {\n      "1": "Alleles"\n    },\n    "assignment": "c2c2f27e-d764-49da-8781-a07943447e3e",\n    "feedback": null,\n    "formatted_grade": null,\n    "graded_at": null,\n    "id": "6555a804-e903-44bc-8c77-b77ba9bd4305",\n    "is_published": false,\n    "max_points": 10,\n    "raw_input": null,\n    "regraded_at": null,\n    "score": null,\n    "score_percentage": null,\n    "submission_date": "2026-11-08T15:51:04.451Z",\n    "was_regraded": null\n  },\n  {\n    "answers": {\n      "1": "Newton"\n    },\n    "assignment": "ce7cea90-dd9c-4094-b023-d6a46d17a2cb",\n    "feedback": null,\n    "formatted_grade": null,\n    "graded_at": null,\n    "id": "23b971b7-ad13-40c0-a3f7-a4cbc491f5ec",\n    "is_published": false,\n    "max_points": 10,\n    "raw_input": null,\n    "regraded_at": null,\n    "score": null,\n    "score_percentage": null,\n    "submission_date": "2026-11-08T15:51:04.466Z",\n    "was_regraded": null\n  },\n  {\n    "answers": {\n      "1": "OTHER-STUDENT-ANSWER-must-not-leave"\n    },\n    "assignment": "be5bd266-bad3-47c7-9f80-a3fcb8414c34",\n    "feedback": null,\n    "formatted_grade": null,\n    "graded_at": null,\n    "id": "2eb39ee9-f2cf-4a15-937a-3bc10e1cf14a",\n    "is_published": false,\n    "max_points": 10,\n    "raw_input": null,\n    "regraded_at": null,\n    "score": null,\n    "score_percentage": null,\n    "submission_date": "2026-11-08T15:51:04.475Z",\n    "was_regraded": null\n  }\n][\n  {\n    "average_score": null,\n    "is_at_risk": true,\n    "last_alerted_at": null,\n    "last_checked_at": "2026-11-08T15:51:04.492Z"\n  }\n][\n  {\n    "assignment": "be5bd266-bad3-47c7-9f80-a3fcb8414c34",\n    "created_at": "2026-11-08T15:51:04.494Z",\n    "file_name": "cells.pdf",\n    "finished_at": null,\n    "id": "c86b48cb-fcc2-42ed-94a2-98ec7bca1d86",\n    "reason_code": "",\n    "status": "PENDING",\n    "submission": "f6490697-06e9-4548-a6c8-7e7a6533ff41",\n    "task_type": ""\n  }\n][\n  {\n    "PENDING-messages": [\n      {\n        "content": "Hi A",\n        "role": "user",\n        "timestamp": "2026-11-08T15:51:04.485Z"\n      }\n    ],\n    "assistant_type": null,\n    "course": "1a46e700-76dc-473d-be3b-bef717c9687f",\n    "created_at": "2026-11-08T15:51:04.484Z",\n    "id": "d87f7bc3-6990-4ad1-8a7a-56e792a50525",\n    "updated_at": "2026-11-08T15:51:04.484Z"\n  },\n  {\n    "PENDING-messages": [\n      {\n        "content": "Hi B",\n        "role": "user",\n        "timestamp": "2026-11-08T15:51:04.487Z"\n      }\n    ],\n    "assistant_type": null,\n    "course": "163e234f-d555-46fb-beca-92800c201d32",\n    "created_at": "2026-11-08T15:51:04.486Z",\n    "id": "3f6de8fb-48c0-45d0-8416-e6948ca1349c",\n    "updated_at": "2026-11-08T15:51:04.486Z"\n  }\n][\n  {\n    "timestamp": "2026-11-08T15:51:04.490Z"\n  }\n][\n  {\n    "notify_assignment_due_reminder": false,\n    "notify_assignment_edited": false,\n    "notify_at_risk_student_alerts": false,\n    "notify_grading_complete": false,\n    "notify_new_assignment_posted": false,\n    "notify_student_submission": false,\n    "notify_teacher_activity_alerts": false,\n    "notify_weekly_summary": false,\n    "theme": "dark"\n  }\n]'
+
+======================================================================
+FAIL: test_only_the_students_own_rows (students.tests_data_export.ExportContentTests.test_only_the_students_own_rows) (value='2eb39ee9-f2cf-4a15-937a-3bc10e1cf14a')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_data_export.py", line 377, in test_only_the_students_own_rows
+    self.assertNotIn(value.encode(), blob)
+AssertionError: b'2eb39ee9-f2cf-4a15-937a-3bc10e1cf14a' unexpectedly found in b'{\n  "PENDING-counts": {\n    "PENDING-table-01.json": 2,\n    "PENDING-table-02.json": 4,\n    "PENDING-table-03.json": 1,\n    "PENDING-table-04.json": 1,\n    "PENDING-table-05.json": 2,\n    "PENDING-table-06.json": 1,\n    "PENDING-table-07.json": 1\n  },\n  "PENDING-generated-at": "2026-11-08T15:51:04.529Z",\n  "PENDING-missing": [],\n  "PENDING-scope": "all"\n}\x89PNG\r\n\x1a\nplanted-image-bytes{\n  "bio": "Likes cells",\n  "date_joined": "2026-11-08T15:51:04.215Z",\n  "email": "c1-student-350@c1.test",\n  "email_verified_at": null,\n  "first_name": "Sade",\n  "id": "7c98bf6d-aab7-4b6e-9450-dc8f7828370c",\n  "is_active": true,\n  "last_login": null,\n  "last_name": "Okon350",\n  "middle_name": "",\n  "profile_image": "profile_pics/7c98bf6d-aab7-4b6e-9450-dc8f7828370c/c1-student-350_2026-11-08_.png",\n  "profile_image_url": null,\n  "registration_method": "EMAIL",\n  "school": "0717cc5e-60d2-42a9-8482-2c54b6318752",\n  "user_type": "STUDENT"\n}PENDING OWNER APPROVAL\n[\n  {\n    "course": "1a46e700-76dc-473d-be3b-bef717c9687f",\n    "created_at": "2026-11-08T15:51:04.352Z",\n    "enrollment_status": "ENROLLED",\n    "final_grade": "80.00",\n    "id": "620f0d85-d072-40a7-9f8d-3eedfc8d74d9",\n    "withdrawal_date": null\n  },\n  {\n    "course": "163e234f-d555-46fb-beca-92800c201d32",\n    "created_at": "2026-11-08T15:51:04.431Z",\n    "enrollment_status": "ENROLLED",\n    "final_grade": null,\n    "id": "9cc98941-19bd-4bc9-b5a2-b3281b4c6282",\n    "withdrawal_date": null\n  }\n][\n  {\n    "answers": {\n      "1": "Mitochondria"\n    },\n    "assignment": "be5bd266-bad3-47c7-9f80-a3fcb8414c34",\n    "feedback": {\n      "overall_performance_analysis": {\n        "summary": "Good work"\n      }\n    },\n    "formatted_grade": null,\n    "graded_at": "2026-11-08T15:51:04.435Z",\n    "id": "f6490697-06e9-4548-a6c8-7e7a6533ff41",\n    "is_published": true,\n    "max_points": 10,\n    "raw_input": null,\n    "regraded_at": null,\n    "score": "8.00",\n    "score_percentage": "80.00",\n    "submission_date": "2026-11-08T15:51:04.436Z",\n    "was_regraded": false\n  },\n  {\n    "answers": {\n      "1": "Alleles"\n    },\n    "assignment": "c2c2f27e-d764-49da-8781-a07943447e3e",\n    "feedback": null,\n    "formatted_grade": null,\n    "graded_at": null,\n    "id": "6555a804-e903-44bc-8c77-b77ba9bd4305",\n    "is_published": false,\n    "max_points": 10,\n    "raw_input": null,\n    "regraded_at": null,\n    "score": null,\n    "score_percentage": null,\n    "submission_date": "2026-11-08T15:51:04.451Z",\n    "was_regraded": null\n  },\n  {\n    "answers": {\n      "1": "Newton"\n    },\n    "assignment": "ce7cea90-dd9c-4094-b023-d6a46d17a2cb",\n    "feedback": null,\n    "formatted_grade": null,\n    "graded_at": null,\n    "id": "23b971b7-ad13-40c0-a3f7-a4cbc491f5ec",\n    "is_published": false,\n    "max_points": 10,\n    "raw_input": null,\n    "regraded_at": null,\n    "score": null,\n    "score_percentage": null,\n    "submission_date": "2026-11-08T15:51:04.466Z",\n    "was_regraded": null\n  },\n  {\n    "answers": {\n      "1": "OTHER-STUDENT-ANSWER-must-not-leave"\n    },\n    "assignment": "be5bd266-bad3-47c7-9f80-a3fcb8414c34",\n    "feedback": null,\n    "formatted_grade": null,\n    "graded_at": null,\n    "id": "2eb39ee9-f2cf-4a15-937a-3bc10e1cf14a",\n    "is_published": false,\n    "max_points": 10,\n    "raw_input": null,\n    "regraded_at": null,\n    "score": null,\n    "score_percentage": null,\n    "submission_date": "2026-11-08T15:51:04.475Z",\n    "was_regraded": null\n  }\n][\n  {\n    "average_score": null,\n    "is_at_risk": true,\n    "last_alerted_at": null,\n    "last_checked_at": "2026-11-08T15:51:04.492Z"\n  }\n][\n  {\n    "assignment": "be5bd266-bad3-47c7-9f80-a3fcb8414c34",\n    "created_at": "2026-11-08T15:51:04.494Z",\n    "file_name": "cells.pdf",\n    "finished_at": null,\n    "id": "c86b48cb-fcc2-42ed-94a2-98ec7bca1d86",\n    "reason_code": "",\n    "status": "PENDING",\n    "submission": "f6490697-06e9-4548-a6c8-7e7a6533ff41",\n    "task_type": ""\n  }\n][\n  {\n    "PENDING-messages": [\n      {\n        "content": "Hi A",\n        "role": "user",\n        "timestamp": "2026-11-08T15:51:04.485Z"\n      }\n    ],\n    "assistant_type": null,\n    "course": "1a46e700-76dc-473d-be3b-bef717c9687f",\n    "created_at": "2026-11-08T15:51:04.484Z",\n    "id": "d87f7bc3-6990-4ad1-8a7a-56e792a50525",\n    "updated_at": "2026-11-08T15:51:04.484Z"\n  },\n  {\n    "PENDING-messages": [\n      {\n        "content": "Hi B",\n        "role": "user",\n        "timestamp": "2026-11-08T15:51:04.487Z"\n      }\n    ],\n    "assistant_type": null,\n    "course": "163e234f-d555-46fb-beca-92800c201d32",\n    "created_at": "2026-11-08T15:51:04.486Z",\n    "id": "3f6de8fb-48c0-45d0-8416-e6948ca1349c",\n    "updated_at": "2026-11-08T15:51:04.486Z"\n  }\n][\n  {\n    "timestamp": "2026-11-08T15:51:04.490Z"\n  }\n][\n  {\n    "notify_assignment_due_reminder": false,\n    "notify_assignment_edited": false,\n    "notify_at_risk_student_alerts": false,\n    "notify_grading_complete": false,\n    "notify_new_assignment_posted": false,\n    "notify_student_submission": false,\n    "notify_teacher_activity_alerts": false,\n    "notify_weekly_summary": false,\n    "theme": "dark"\n  }\n]'
+
+======================================================================
+FAIL: test_only_the_students_own_rows (students.tests_data_export.ExportContentTests.test_only_the_students_own_rows)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_data_export.py", line 378, in test_only_the_students_own_rows
+    self.assertEqual(
+AssertionError: Items in the first set but not the second:
+'2eb39ee9-f2cf-4a15-937a-3bc10e1cf14a'
+
+======================================================================
+FAIL: test_a_teacher_gets_their_own_courses_only (students.tests_data_export.TeacherTests.test_a_teacher_gets_their_own_courses_only)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_data_export.py", line 507, in test_a_teacher_gets_their_own_courses_only
+    self.assertEqual(subs, {str(self.w.published.pk), str(self.w.unpublished.pk)})
+AssertionError: Items in the first set but not the second:
+'2a584a3d-d5a7-413c-b41f-30311ebf6748'
+
+----------------------------------------------------------------------
+Ran 62 tests in 13.544s
+
+FAILED (failures=4)
+Preserving test database for alias 'default' ('test_student_data_erase_export')...
+Found 62 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, tags, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.

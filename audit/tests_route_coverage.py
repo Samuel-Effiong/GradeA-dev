@@ -76,6 +76,9 @@ CONCEALED_ROUTES = frozenset(
         "tag-list",
         "tag-detail",
         "assignment-tags",
+        # NFR-CMP-04: while STUDENT_DATA_TOOLS_ENABLED is off (the default)
+        # the erasure route answers everyone as an unknown URL does.
+        "student-data-erase",
     }
 )
 
