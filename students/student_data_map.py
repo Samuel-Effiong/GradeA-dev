@@ -130,6 +130,8 @@ STUDENT_DATA_MAP = {
     ("audit.AuditEvent", "target_id"): _keep("Activity log: what it was done to"),
     ("billing.CreditLedger", "user_id"): _keep("Credit records (7 years)"),
     ("billing.CreditUsageLog", "user_id"): _keep("Credit usage records (7 years)"),
+    # Epic B1a, SM R2 (2026-11-08): a credit-hold job is a credit record.
+    ("billing.AIJob", "requested_by"): _keep("Credit hold records (SET_NULL)"),
     ("ai_processor.AICallRecord", "billed_user_id"): _keep(
         "AI call cost records, tied to credit records"
     ),

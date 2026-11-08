@@ -266,6 +266,12 @@ EXPORT_OMITTED = {
         "cancel_requested_at": _PROCESSING,
         "started_at": _PROCESSING,
         "updated_at": _PROCESSING,
+        # Epic B1a, SM R3 (2026-11-08): credit-hold bookkeeping.
+        "job": _PROCESSING,
+        "hold_state": _PROCESSING,
+        "hold_credits": _PROCESSING,
+        "hold_drawn": _PROCESSING,
+        "released_credits": _PROCESSING,
     },
     "ai_processor.ChatSession": {"user": "the student themselves"},
     "ai_processor.ChatMessage": {
