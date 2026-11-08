@@ -2771,3 +2771,28 @@ Totals: B1 6 (2 FAIL, 4 ERROR), B2 26 (23 FAIL, 3 ERROR), B3 12 (11 FAIL, 1 ERRO
 - §21j's billing-only "Ran 3110 (skipped=6)" was a different label set (`billing audit` + the rollback test + G-1/static). This run replaces it as the flag-off near.
 
 **Result (run at 6e8e8ccc2, flag unset, free -m available 5399 MB before the run): Ran 7309 tests in 633.721s, OK (skipped=30), rc 0.** It matches the prediction exactly: the count, the skips, and no FAIL or ERROR lines. The log is `step21/step21r_near_flagoff_6e8e8ccc2.log.gz`, and the raw copy is in `GAP-a0-runs/epic-b1a/step21r_near_flagoff.log`.
+
+### 21s. Step 9 summary (2026-11-08, at f0fc5241b)
+
+Every result below was declared in NOTES before its run. Where a declaration was short, it says "prediction incomplete" and the result was not amended.
+
+| Part | Result | Where |
+|---|---|---|
+| Gate tests R-4a/R-4b/U-2/T-1 | added in cfd598b68; run 1 recorded | §21b, §21g |
+| Mutant battery (19.5 mutants plus TP-1) | 21/21 killed; M-B27's fragment did not appear, ruled "killed by its named test; prediction incomplete"; M-B31s's parser printed 0 claim-first rounds, and the log shows 1/10 | §21j, 2cab98728 |
+| The hold targeted set | Ran 141 OK (Ran 150 OK with finding A's file) | §21j, §21o |
+| Gate 6 latency, added p95 | m1 16.153 ms, m2 58.677 ms, m3 32.593 ms: all FAIL against the 5 ms budget, as recorded. The owner set the budget to 40 ms at p95, judged on m3, so it **PASSES**; the threshold changed in b4c1bb4a8 (m2's test keeps 5) | §21g, §21i, §21k, §21l |
+| Flag-on exploratory run | 37 failures + 9 errors of 6866, classified: 1 hold-path defect (A) and 45 tests that assume the flag is off | §21m |
+| Finding A (H-298: deleting a teacher with AI history while holds are on) | fixed: 0079 SET_NULL with a guarded reverse (cb08f4848); the pre_delete receiver and the wallet-less guards (a965a5491); the schema pin updated (54af787c1). Red 9 errors, then green Ran 9 OK; PD-1 and PD-2 killed; the 0079 round trip on a scratch DB matched | §21n–§21p |
+| Declared flag-on gate | Ran 6875, failures=37, errors=8, skipped=28: the 45 exactly, by name; accepted by the SM | §21q, b1b2913ab |
+| Staging merge | 79a8fcd48 merged as 77ebb6937, with no conflicts | §21r |
+| Flag-off near after the merge | Ran 7309 OK (skipped=30), as declared | §21r, f0fc5241b |
+
+**Left for B1b (the flag-on-day list, §21m addendum):** B1 (6), B2 (26), B3 (12), B4 (1). The flag stays off until those 45 tests are brought to the flag-on behavior.
+
+**Not mine, and recorded here only so it is not lost:** the SM handles the `AIJob.requested_by` data map at the NFR-CMP-04 merge.
+
+**State:**
+- `billing/holds.py` sha256 is `2761591e25131e412b950cbb749459535abf8229b6fb36a0b6568c73e263dca8`.
+- Nothing is pushed; the SM pushes.
+- Stash cfd89cc2 is untouched.
