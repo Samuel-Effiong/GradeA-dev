@@ -1367,3 +1367,64 @@ the wallet and billing refusals read billing tables.
   `billing` has no skip conditions (searched; C1's near run 34 shows no
   billing skips either).
 - The log goes to `GAP-a0-runs/nfr-cmp-04/38_near_run.log`.
+
+Run 38 result (`GAP-a0-runs/nfr-cmp-04/38_near_run.log`): Ran 5116, OK
+(skipped=7), in 631 s. The skips are the same 7 opt-in ones: AUDIT_BENCH
+×2, CI_REQUIRE_NETWORK ×3, CI_REQUIRE_REDIS ×1, RUN_REAL_AI ×1. **As
+predicted.**
+
+### Summary (step 4)
+
+**What NFR-CMP-04 adds**, all behind `STUDENT_DATA_TOOLS_ENABLED`
+(default False: every route then gives the unknown-URL bytes):
+- **The map:** `students/student_data_map.py` gives every column that can
+  point at a user a role: DELETE (export yes or no), KEEP_RECORD,
+  NOT_A_STUDENT or FINANCIAL_ACCOUNT. It matches by user, by email or on
+  the user's own row. The guard fails on any new user link, including a
+  bare `*_by_id` column.
+- **The export:** `GET students/<id>/data-export` returns a JSON zip.
+  - Who may call: a super admin (all), a school admin (their school's
+    students, in full) or a teacher (the courses they own).
+  - Every field of every exported model is decided (exported, conditional
+    or left out).
+  - An unreleased grade is absent in every form (H-130 parity), and so are
+    the AI drafts and the AI summary.
+  - Security data is never exported.
+  - It writes one `DATA_EXPORT` event.
+- **The erasure:** `POST students/<id>/erase`.
+  - **A full erasure** (a super admin, or a school admin of the student's
+    school) first refuses staff data, a wallet that is not empty (credits,
+    a deficit or any history) and billing records (R2). Then it deletes
+    every DELETE entry for that student only, writes the erased-student
+    record (kept 7 years) and deletes the account. The image goes from
+    storage on commit.
+  - **A course erasure** (a teacher) removes the student from that
+    teacher's courses only.
+  - KEEP_RECORD rows are never touched. It writes one `STUDENT_DATA_ERASE`
+    event, with ids only.
+- **Migration:** `students/0037_erasedstudentrecord`, additive (the safety
+  check: "additive only").
+
+**The evidence:**
+- **Plants:** 16 of 16 killed (the table above).
+- **Predictions that missed, recorded and never amended:**
+  - red 05: incomplete;
+  - green 09: wrong (one real bug, `is_real_super_admin` not called);
+  - plant E3: incomplete;
+  - gate 20: wrong (three source-scanning guards; G4, a C1 defect on
+    staging, fixed by the rename);
+  - greens 23–26: wrong (my test fixtures and snapshot).
+- **Gates and the near run:** gate 21 (2578), gate 37 (2696) and near
+  run 38 (5116). All OK, each with the same 7 opt-in skips, and each as
+  predicted.
+
+**What stays open before a push:**
+- **The owner's approval of the 25 wording items**, sent to the SM and
+  waiting on the owner. On approval, the placeholders are swapped, then
+  `EXPORT_NAMES_APPROVED = True`, then a re-run with a prediction. One
+  approval needs one more code change: `profile_image` keeps the stored
+  file's extension.
+- **R9:** a purge of erased-student records older than 7 years must exist
+  before the first record turns 7 (the SM files it).
+- **F4:** uploaded files join the map when B1b stores them.
+- The SM pushes after the final review. I don't push.
