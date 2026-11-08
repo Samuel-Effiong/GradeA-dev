@@ -315,3 +315,13 @@ Prediction for run 07 (plant: remove the `_by_id` branch from
 
 The completeness tests still pass, because the map already names the
 column. The file is restored from a saved copy, and its sha256 is checked.
+
+Run 07 result (`07_plant_no_by_id.log`): Ran 20, FAILED (failures=4): the
+3 positive names and the `created_by_id` test. **Killed, as predicted.** The
+file was restored from a saved copy, and its sha256 matched.
+
+Step 1b is done. Open for later steps:
+- R2 and R5 are with the owner.
+- The R7 test that a different email is untouched, and the R8 tests (a
+  storage failure keeps the erasure and is logged at ERROR) are in step 3.
+- R9: the purge follow-up.
