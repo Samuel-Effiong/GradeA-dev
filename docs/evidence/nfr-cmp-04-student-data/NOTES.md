@@ -803,3 +803,17 @@ predicted.**
 (44 + 20 + 22 + 28 + 3), OK.
 
 Run 19 result (`19_green_head_anonymous.log`): Ran 117, OK. **As predicted.**
+
+**Prediction for run 20 (the step 2 gate, under
+`flock ~/.machine-fullsuite.lock`): `students users audit`.**
+- **Count:** Ran 2445, from `DiscoverRunner.build_suite`'s
+  `countTestCases()`, nothing run. OK.
+- **Skips:** only opt-in or environment ones, counted after the run, not
+  predicted. These are:
+  - `users/tests_activity_middleware_load.py` (load tests, Redis);
+  - `users/tests_google_auth.py` (network);
+  - `students/tests_async_edit_path.py`'s `skipUnless` class;
+  - the audit benchmarks (`AUDIT_BENCH`);
+  - `audit/tests_metadata.py:151`, a conditional guard.
+- No migration was added, so `AutoGrader.tests_migration_rollback_defaults`
+  isn't needed (makemigrations --check: no changes).
