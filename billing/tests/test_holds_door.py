@@ -263,8 +263,10 @@ class LateDoorNoticeTests(APITestCase):
         self.assertEqual(kwargs["recipient_list"], [teacher.email])
         self.assertIn("paper-7.png", kwargs["message"])
 
-    def test_the_texts_are_one_pending_constant_and_both_switches_are_off(self):
+    def test_the_texts_are_one_pending_constant_the_email_switch_is_off_and_the_student_notice_is_on(
+        self,
+    ):
         texts = holds().LATE_DOOR_EMAIL_TEXTS
         self.assertEqual(set(texts), {"subject", "individual", "license"})
         self.assertIs(holds().LATE_DOOR_EMAIL_APPROVED, False)
-        self.assertIs(holds().LATE_DOOR_STUDENT_NOTICE_APPROVED, False)
+        self.assertIs(holds().LATE_DOOR_STUDENT_NOTICE_APPROVED, True)

@@ -1053,9 +1053,9 @@ LATE_DOOR_EMAIL_TEXTS = {
     ),
 }
 LATE_DOOR_EMAIL_APPROVED = False
-#: The student side reuses STUDENT_UPLOAD_NOT_PROCESSED; off until the owner
-#: answers whether a student is told (SM 2026-11-06).
-LATE_DOOR_STUDENT_NOTICE_APPROVED = False
+#: The student side reuses STUDENT_UPLOAD_NOT_PROCESSED unchanged. On: the
+#: owner ruled the student is told (relayed by the SM 2026-11-08).
+LATE_DOOR_STUDENT_NOTICE_APPROVED = True
 
 
 def notify_late_door_refusal(row, job):
