@@ -1828,3 +1828,16 @@ Red attempt 3 (f17c40b1) **matched** addendum 4: Ran 191, FAILED (errors=16). DR
    - The handler therefore checks the session's `currency`. If it is not `"usd"`, there is no refund task, no Stripe call and no guessed symbol, and an ERROR `MANUAL RECONCILIATION` is logged.
    - DR-17: a session with `currency="eur"` and the switch on gives no enqueue, no Refund.list or Refund.create, and the ERROR line.
 4. The new file is now **20 tests**. Green expects all 20 to pass.
+
+### 18 green attempts 1 and 2 (code uncommitted, tests 78d9309a): recorded as they stand
+
+- **Green attempt 1:** Ran 193, FAILED (failures=2). Log: step18/step18_green_WIP.log.
+  - **DR-3 caught a real code bug:** the `history_suffix_card` and `history_suffix_offline` placeholders began with a space, so they did not start `PENDING OWNER TEXT`. Fixed in the code: the values start PENDING, and the callers add the leading space. SM accepted.
+- **Green attempt 2:** Ran 193, FAILED (failures=1). Log: step18/step18_green_WIP2.log.
+  - **DR-9a, a fixture defect in the test:** `Retry not raised`. The test called the task without fulfilling first, so the intent had no PaymentIntent and the code correctly returned at its no-PaymentIntent guard.
+  - Fix, SM approved: `self.fulfill_off()` as DR-9a's first line, the same setup as DR-9b, plus the SM's added assertion that Refund.create was called exactly once before the Retry, so the retry can only come from the Stripe call.
+- **Design points settled while coding (SM accepted):**
+  - The cap's paid amount is the purchase BillingTransaction's `amount_cents` (the session's amount_total), falling back to the intent's `amount_cents`.
+  - The automatic path needs the switch on, skipped teachers, a PaymentIntent and currency usd. Otherwise the handler keeps today's texts, logs ERROR `MANUAL RECONCILIATION`, and enqueues nothing.
+  - The task and the admin email are enqueued in one on_commit.
+  - The offline share is capped at `amount_confirmed_cents`.

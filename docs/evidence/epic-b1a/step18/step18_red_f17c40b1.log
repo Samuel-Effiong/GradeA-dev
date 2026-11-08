@@ -1,0 +1,892 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user e3d459b9-8e8d-4ea4-8679-5295a2232723.
+Cannot activate automatic trial for user e3d459b9-8e8d-4ea4-8679-5295a2232723 (validation): ValueError
+Free trial plan not found: no trial activated for user 41e942f4-6642-4f8a-9e8b-f256dded79bc.
+Cannot activate automatic trial for user 41e942f4-6642-4f8a-9e8b-f256dded79bc (validation): ValueError
+Free trial plan not found: no trial activated for user d0a27994-edf4-4660-92a8-1cf4a4005051.
+Cannot activate automatic trial for user d0a27994-edf4-4660-92a8-1cf4a4005051 (validation): ValueError
+EFree trial plan not found: no trial activated for user 85a31ccf-cc14-4fa6-8f2b-09b52e1a8e92.
+Cannot activate automatic trial for user 85a31ccf-cc14-4fa6-8f2b-09b52e1a8e92 (validation): ValueError
+Free trial plan not found: no trial activated for user ed00423c-8c05-4b22-b409-8c0c0fceb1bb.
+Cannot activate automatic trial for user ed00423c-8c05-4b22-b409-8c0c0fceb1bb (validation): ValueError
+Free trial plan not found: no trial activated for user 25312741-87bc-466a-ba52-0c77f7912943.
+Cannot activate automatic trial for user 25312741-87bc-466a-ba52-0c77f7912943 (validation): ValueError
+EFree trial plan not found: no trial activated for user e1c45cd1-77f7-40c6-82dc-fcf1c0a9f7e4.
+Cannot activate automatic trial for user e1c45cd1-77f7-40c6-82dc-fcf1c0a9f7e4 (validation): ValueError
+Free trial plan not found: no trial activated for user 7c2cfc9a-5359-4e43-892b-04b9cdd30ffd.
+Cannot activate automatic trial for user 7c2cfc9a-5359-4e43-892b-04b9cdd30ffd (validation): ValueError
+Free trial plan not found: no trial activated for user 995efb17-ee73-4e87-bc41-fe2341825bef.
+Cannot activate automatic trial for user 995efb17-ee73-4e87-bc41-fe2341825bef (validation): ValueError
+EFree trial plan not found: no trial activated for user 44ba22ad-895a-4cf7-ad05-63bcef630cb1.
+Cannot activate automatic trial for user 44ba22ad-895a-4cf7-ad05-63bcef630cb1 (validation): ValueError
+Free trial plan not found: no trial activated for user 7b623109-70f1-4e19-9b8a-d4dc4f61d072.
+Cannot activate automatic trial for user 7b623109-70f1-4e19-9b8a-d4dc4f61d072 (validation): ValueError
+Free trial plan not found: no trial activated for user 39e2d64b-da3c-4282-ae3d-aced963756e8.
+Cannot activate automatic trial for user 39e2d64b-da3c-4282-ae3d-aced963756e8 (validation): ValueError
+EFree trial plan not found: no trial activated for user e0cb501e-1eca-4ed5-a68a-bc18da93c8ce.
+Cannot activate automatic trial for user e0cb501e-1eca-4ed5-a68a-bc18da93c8ce (validation): ValueError
+Free trial plan not found: no trial activated for user 961c9fae-2432-4808-b5df-f91b4bfd3b90.
+Cannot activate automatic trial for user 961c9fae-2432-4808-b5df-f91b4bfd3b90 (validation): ValueError
+Free trial plan not found: no trial activated for user 76da03ef-02ea-4869-b4a3-8940afabe4f0.
+Cannot activate automatic trial for user 76da03ef-02ea-4869-b4a3-8940afabe4f0 (validation): ValueError
+EFree trial plan not found: no trial activated for user 03e69221-e816-4f39-9dca-8c4372427663.
+Cannot activate automatic trial for user 03e69221-e816-4f39-9dca-8c4372427663 (validation): ValueError
+Free trial plan not found: no trial activated for user 942e2c66-18ed-4e43-99b9-dd8555307434.
+Cannot activate automatic trial for user 942e2c66-18ed-4e43-99b9-dd8555307434 (validation): ValueError
+Free trial plan not found: no trial activated for user 91e6d05b-a779-4cc7-9d0e-65618eef8eab.
+Cannot activate automatic trial for user 91e6d05b-a779-4cc7-9d0e-65618eef8eab (validation): ValueError
+EFree trial plan not found: no trial activated for user cbfd7c9a-a5ca-4349-8c47-53e276e5ee7a.
+Cannot activate automatic trial for user cbfd7c9a-a5ca-4349-8c47-53e276e5ee7a (validation): ValueError
+Free trial plan not found: no trial activated for user 09a52289-5420-46a5-973e-bfa74d027165.
+Cannot activate automatic trial for user 09a52289-5420-46a5-973e-bfa74d027165 (validation): ValueError
+Free trial plan not found: no trial activated for user 0d7b6e4d-557d-4a1a-aa7c-7b27f3affbb8.
+Cannot activate automatic trial for user 0d7b6e4d-557d-4a1a-aa7c-7b27f3affbb8 (validation): ValueError
+EFree trial plan not found: no trial activated for user ae47e46b-9fd6-45b4-bd61-c75d4c00605a.
+Cannot activate automatic trial for user ae47e46b-9fd6-45b4-bd61-c75d4c00605a (validation): ValueError
+Free trial plan not found: no trial activated for user 2c6ecf2a-64e5-4e2d-9c0a-d10ffc824a6c.
+Cannot activate automatic trial for user 2c6ecf2a-64e5-4e2d-9c0a-d10ffc824a6c (validation): ValueError
+Free trial plan not found: no trial activated for user 7c17a65b-7a22-44ef-aaa8-2f0079bf01a9.
+Cannot activate automatic trial for user 7c17a65b-7a22-44ef-aaa8-2f0079bf01a9 (validation): ValueError
+EFree trial plan not found: no trial activated for user 6688ed0b-1e66-49e5-895f-9408ad4b9dad.
+Cannot activate automatic trial for user 6688ed0b-1e66-49e5-895f-9408ad4b9dad (validation): ValueError
+Free trial plan not found: no trial activated for user 4d15185e-16f2-4f76-b588-141fba44269a.
+Cannot activate automatic trial for user 4d15185e-16f2-4f76-b588-141fba44269a (validation): ValueError
+Free trial plan not found: no trial activated for user d906f133-176a-4eab-925f-a9550f2e7c95.
+Cannot activate automatic trial for user d906f133-176a-4eab-925f-a9550f2e7c95 (validation): ValueError
+EFree trial plan not found: no trial activated for user b98121b8-bc53-476e-bbfe-5e4a6f5c61be.
+Cannot activate automatic trial for user b98121b8-bc53-476e-bbfe-5e4a6f5c61be (validation): ValueError
+Free trial plan not found: no trial activated for user 110365f8-d6b0-4c28-8213-3358130978d6.
+Cannot activate automatic trial for user 110365f8-d6b0-4c28-8213-3358130978d6 (validation): ValueError
+Free trial plan not found: no trial activated for user 2f5f6470-e2ef-4bf6-a0d8-49281b23bf8c.
+Cannot activate automatic trial for user 2f5f6470-e2ef-4bf6-a0d8-49281b23bf8c (validation): ValueError
+EFree trial plan not found: no trial activated for user 8d0a0fdb-a656-4f1c-b1d8-c6848e0e57cd.
+Cannot activate automatic trial for user 8d0a0fdb-a656-4f1c-b1d8-c6848e0e57cd (validation): ValueError
+Free trial plan not found: no trial activated for user 60a6b395-75f2-4945-afb6-66cf9f4dead0.
+Cannot activate automatic trial for user 60a6b395-75f2-4945-afb6-66cf9f4dead0 (validation): ValueError
+Free trial plan not found: no trial activated for user e5e9d1b3-74c0-4325-95a4-ee8617922c15.
+Cannot activate automatic trial for user e5e9d1b3-74c0-4325-95a4-ee8617922c15 (validation): ValueError
+EFree trial plan not found: no trial activated for user 78f0b385-0aca-4909-bb8a-1f25afd29f73.
+Cannot activate automatic trial for user 78f0b385-0aca-4909-bb8a-1f25afd29f73 (validation): ValueError
+Free trial plan not found: no trial activated for user 76456115-663a-441c-b975-6cfe3113c6b0.
+Cannot activate automatic trial for user 76456115-663a-441c-b975-6cfe3113c6b0 (validation): ValueError
+Free trial plan not found: no trial activated for user b423282c-f042-470f-8fd7-3b636701c12d.
+Cannot activate automatic trial for user b423282c-f042-470f-8fd7-3b636701c12d (validation): ValueError
+Overage purchase intent fd820526-fafa-4254-9395-b9131d12e408 (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 48d03135-1929-4969-b87a-217ffe2441c4.
+EFree trial plan not found: no trial activated for user 0bfd7b99-a0ca-46b3-a8b9-150d0dfeb63e.
+Cannot activate automatic trial for user 0bfd7b99-a0ca-46b3-a8b9-150d0dfeb63e (validation): ValueError
+Free trial plan not found: no trial activated for user 7a17d9b9-f271-42b9-ab76-7f9e94d5e936.
+Cannot activate automatic trial for user 7a17d9b9-f271-42b9-ab76-7f9e94d5e936 (validation): ValueError
+Free trial plan not found: no trial activated for user f80fd92c-ee55-4d0c-ab2e-ff6e4582bc51.
+Cannot activate automatic trial for user f80fd92c-ee55-4d0c-ab2e-ff6e4582bc51 (validation): ValueError
+EFree trial plan not found: no trial activated for user 37320f73-0c5d-438d-9d78-2298eae05f2d.
+Cannot activate automatic trial for user 37320f73-0c5d-438d-9d78-2298eae05f2d (validation): ValueError
+Free trial plan not found: no trial activated for user b0c7cb15-2497-4d0c-a769-f265d583a167.
+Cannot activate automatic trial for user b0c7cb15-2497-4d0c-a769-f265d583a167 (validation): ValueError
+Free trial plan not found: no trial activated for user 377a430d-c321-43ce-8480-d6552cd16ea9.
+Cannot activate automatic trial for user 377a430d-c321-43ce-8480-d6552cd16ea9 (validation): ValueError
+EFree trial plan not found: no trial activated for user d0f002e4-8327-4ee0-a20e-98711a3cc0d4.
+Cannot activate automatic trial for user d0f002e4-8327-4ee0-a20e-98711a3cc0d4 (validation): ValueError
+Free trial plan not found: no trial activated for user 31d960fc-eca4-4e9e-8cd2-46c4f7bd4f63.
+Cannot activate automatic trial for user 31d960fc-eca4-4e9e-8cd2-46c4f7bd4f63 (validation): ValueError
+Free trial plan not found: no trial activated for user b2271055-006a-40fd-8751-51efc3600842.
+Cannot activate automatic trial for user b2271055-006a-40fd-8751-51efc3600842 (validation): ValueError
+Offline overage request 8172dd84-e928-4af1-b034-e59a6afc7662 PARTIALLY fulfilled on approval: 2/3 teachers granted, 1 skipped (no longer active). License 91cd628e-a648-4ef8-bf84-48e34ab3aaea.
+.Free trial plan not found: no trial activated for user 2e0ad22c-ae40-438c-88be-0620a6affa65.
+Cannot activate automatic trial for user 2e0ad22c-ae40-438c-88be-0620a6affa65 (validation): ValueError
+Free trial plan not found: no trial activated for user 437cd6a4-6ced-4b6b-8bef-df447189e09c.
+Cannot activate automatic trial for user 437cd6a4-6ced-4b6b-8bef-df447189e09c (validation): ValueError
+Free trial plan not found: no trial activated for user 9ffe4bf0-b7c8-4f80-b3ee-051b39ba54c1.
+Cannot activate automatic trial for user 9ffe4bf0-b7c8-4f80-b3ee-051b39ba54c1 (validation): ValueError
+Overage purchase intent 64504bc9-3d4f-476c-b2a4-b5bae7ed7855 (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License db3408b1-b069-444a-be7a-3c0c81e7d693.
+.EFree trial plan not found: no trial activated for user e98ee963-d227-4ae4-845c-4645deeab278.
+Cannot activate automatic trial for user e98ee963-d227-4ae4-845c-4645deeab278 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request refused: PermissionDenied (403)
+.Free trial plan not found: no trial activated for user 45c4f35a-397e-4cff-b903-9b8ee7038516.
+Cannot activate automatic trial for user 45c4f35a-397e-4cff-b903-9b8ee7038516 (validation): ValueError
+API request refused: PermissionDenied (403)
+.Free trial plan not found: no trial activated for user d6de3cc2-fa7d-4083-90a0-17fc1ea489d1.
+Cannot activate automatic trial for user d6de3cc2-fa7d-4083-90a0-17fc1ea489d1 (validation): ValueError
+API request refused: PermissionDenied (403)
+.Free trial plan not found: no trial activated for user fe2c14ba-b540-4e72-8022-d744b9bad721.
+Cannot activate automatic trial for user fe2c14ba-b540-4e72-8022-d744b9bad721 (validation): ValueError
+.Free trial plan not found: no trial activated for user 80652d74-cf45-43f6-97c8-ffff4b34b854.
+Cannot activate automatic trial for user 80652d74-cf45-43f6-97c8-ffff4b34b854 (validation): ValueError
+.Free trial plan not found: no trial activated for user f098ccf1-daae-42a8-8706-88d29a9332e5.
+Cannot activate automatic trial for user f098ccf1-daae-42a8-8706-88d29a9332e5 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0b643517-cb5a-44e3-b058-f7c889169df1.
+Cannot activate automatic trial for user 0b643517-cb5a-44e3-b058-f7c889169df1 (validation): ValueError
+.Free trial plan not found: no trial activated for user c5e2a06d-9225-40fe-a9e9-6da9c0b87908.
+Cannot activate automatic trial for user c5e2a06d-9225-40fe-a9e9-6da9c0b87908 (validation): ValueError
+BillingTransactionService.record called with no stripe_invoice_id, stripe_payment_intent_id, or license_billing_record (type=LICENSE_OVERAGE_PURCHASE) — creating an un-deduplicated row.
+.Free trial plan not found: no trial activated for user 6b33e7d2-8c19-4374-8db7-e6e8ea3be1d7.
+Cannot activate automatic trial for user 6b33e7d2-8c19-4374-8db7-e6e8ea3be1d7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5171b553-0432-4d02-b09d-cdcd870e3dc0.
+Cannot activate automatic trial for user 5171b553-0432-4d02-b09d-cdcd870e3dc0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1d782ac6-6d89-4750-a421-df76ca27bd74.
+Cannot activate automatic trial for user 1d782ac6-6d89-4750-a421-df76ca27bd74 (validation): ValueError
+.Free trial plan not found: no trial activated for user f28e0885-05cd-4395-aa18-65e69d7706b8.
+Cannot activate automatic trial for user f28e0885-05cd-4395-aa18-65e69d7706b8 (validation): ValueError
+.Free trial plan not found: no trial activated for user b1890086-35d6-49dc-94a7-b3f104a026b3.
+Cannot activate automatic trial for user b1890086-35d6-49dc-94a7-b3f104a026b3 (validation): ValueError
+.Free trial plan not found: no trial activated for user dfee6803-f13d-4e9b-ab60-3131cacb5e94.
+Cannot activate automatic trial for user dfee6803-f13d-4e9b-ab60-3131cacb5e94 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 97a501a2-5070-4d4c-8796-9190a07236ea.
+Cannot activate automatic trial for user 97a501a2-5070-4d4c-8796-9190a07236ea (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user cb96b32f-2a06-477a-a342-164929c66464.
+Cannot activate automatic trial for user cb96b32f-2a06-477a-a342-164929c66464 (validation): ValueError
+Refund of payment pi_ref_1 carries retain_credits: 1000 cents returned and 500 credit(s) deliberately LEFT with the customer.
+.Free trial plan not found: no trial activated for user a6bd187b-5533-442c-b7ef-87fbdb6a5cb6.
+Cannot activate automatic trial for user a6bd187b-5533-442c-b7ef-87fbdb6a5cb6 (validation): ValueError
+Refund of payment pi_ref_1 carries retain_credits: 1000 cents returned and 500 credit(s) deliberately LEFT with the customer.
+.Free trial plan not found: no trial activated for user 3a790dda-68ef-4305-a399-facca0b175ef.
+Cannot activate automatic trial for user 3a790dda-68ef-4305-a399-facca0b175ef (validation): ValueError
+Refund of payment pi_ref_1 carries retain_credits: 1000 cents returned and 500 credit(s) deliberately LEFT with the customer.
+.Free trial plan not found: no trial activated for user f396c23d-b5ac-4fb0-97a0-362ab745eee1.
+Cannot activate automatic trial for user f396c23d-b5ac-4fb0-97a0-362ab745eee1 (validation): ValueError
+Refund of payment pi_ref_1 carries retain_credits: 1000 cents returned and 500 credit(s) deliberately LEFT with the customer.
+.Free trial plan not found: no trial activated for user 9a319c08-cd44-4221-aa50-0890be619234.
+Cannot activate automatic trial for user 9a319c08-cd44-4221-aa50-0890be619234 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 79245097-ee35-4155-8ce5-5866ea085b8a.
+Cannot activate automatic trial for user 79245097-ee35-4155-8ce5-5866ea085b8a (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 98d945fe-c539-4c14-9b2c-09b02ce8fa9e.
+Cannot activate automatic trial for user 98d945fe-c539-4c14-9b2c-09b02ce8fa9e (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 9530fe83-9484-40a0-81ef-bc02c8fca068.
+Cannot activate automatic trial for user 9530fe83-9484-40a0-81ef-bc02c8fca068 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 93537c3d-64b3-4b27-ac53-d63acae91943.
+Cannot activate automatic trial for user 93537c3d-64b3-4b27-ac53-d63acae91943 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user c2c6978c-fa43-42a6-87d6-38823f8a5382.
+Cannot activate automatic trial for user c2c6978c-fa43-42a6-87d6-38823f8a5382 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user f6068144-7db0-4d06-842e-7bd2115178ec.
+Cannot activate automatic trial for user f6068144-7db0-4d06-842e-7bd2115178ec (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 9b48a1f2-289a-4d37-8668-835030566137.
+Cannot activate automatic trial for user 9b48a1f2-289a-4d37-8668-835030566137 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user b4455d98-890e-400a-83cf-c23958b811d9.
+Cannot activate automatic trial for user b4455d98-890e-400a-83cf-c23958b811d9 (validation): ValueError
+Refund of payment pi_ref_1 (500/1000 cents): reclaimed 250 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user cf7f8e79-2442-4f76-9105-3de93b7b0fcc.
+Cannot activate automatic trial for user cf7f8e79-2442-4f76-9105-3de93b7b0fcc (validation): ValueError
+Refund of payment pi_ref_1: 250 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet cfed880a-c3ad-4e1d-9b9a-f3d0683eb3ba until settled.
+Refund of payment pi_ref_1 (500/1000 cents): reclaimed 0 credit(s), 250 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 09c5a0e0-641a-4e44-a0bd-058c216ddb91.
+Cannot activate automatic trial for user 09c5a0e0-641a-4e44-a0bd-058c216ddb91 (validation): ValueError
+Refund of payment pi_ref_1 (500/1000 cents): reclaimed 250 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user b1431f18-9a41-46db-a45b-874b08f9746f.
+Cannot activate automatic trial for user b1431f18-9a41-46db-a45b-874b08f9746f (validation): ValueError
+Refund of payment pi_ref_1 (333/1000 cents): reclaimed 166 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 38d89a92-6f68-4ba4-8143-16a76db46263.
+Cannot activate automatic trial for user 38d89a92-6f68-4ba4-8143-16a76db46263 (validation): ValueError
+Refund of payment pi_ref_1 (500/1000 cents): reclaimed 250 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 7114fea1-af05-499b-8290-dbada3d9d037.
+Cannot activate automatic trial for user 7114fea1-af05-499b-8290-dbada3d9d037 (validation): ValueError
+Refund of payment pi_ref_1: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet c19ad395-ac15-48d3-a653-65b3fc5ee8d7 until settled.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 0 credit(s), 500 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 6bbb8953-b65b-47f0-b903-2b47d1fee90a.
+Cannot activate automatic trial for user 6bbb8953-b65b-47f0-b903-2b47d1fee90a (validation): ValueError
+Refund of payment pi_ref_1: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet 2d625198-c67f-4f9f-a962-bb2b39da2c95 until settled.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 0 credit(s), 500 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user b4c43341-736e-4b82-846f-0a9d10a50357.
+Cannot activate automatic trial for user b4c43341-736e-4b82-846f-0a9d10a50357 (validation): ValueError
+Refund of payment pi_ref_1: 300 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet bf485872-9045-4622-b894-a2b094f19df0 until settled.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 200 credit(s), 300 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user eebe7f9f-fe2a-4466-839e-61ec6347dde2.
+Cannot activate automatic trial for user eebe7f9f-fe2a-4466-839e-61ec6347dde2 (validation): ValueError
+Refund of payment pi_ref_1: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet 34f63b21-5933-4ac4-a4ea-2f5627be063f until settled.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 0 credit(s), 500 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 4fbae441-260e-43b2-82b4-14d1aadb21bc.
+Cannot activate automatic trial for user 4fbae441-260e-43b2-82b4-14d1aadb21bc (validation): ValueError
+Refund of payment pi_ref_1: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet b64770fb-a81d-4459-9862-8f53dbec43e5 until settled.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 0 credit(s), 500 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user e94edad4-dbac-45d9-ba35-af5511793bd5.
+Cannot activate automatic trial for user e94edad4-dbac-45d9-ba35-af5511793bd5 (validation): ValueError
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 500, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user 2c02b5ff-ae6a-4282-96df-a9b7cd31e957.
+Cannot activate automatic trial for user 2c02b5ff-ae6a-4282-96df-a9b7cd31e957 (validation): ValueError
+Refund of payment pi_both (500/1000 cents): reclaimed 250 credit(s), 0 could not be reclaimed and are now a debt.
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 250, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user 612b7c98-c4d5-435b-911e-b872488761b7.
+Cannot activate automatic trial for user 612b7c98-c4d5-435b-911e-b872488761b7 (validation): ValueError
+Refund of payment pi_both (500/1000 cents): reclaimed 250 credit(s), 0 could not be reclaimed and are now a debt.
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 250, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user 0575e105-943d-4b6b-ac9e-228a1b9b49b0.
+Cannot activate automatic trial for user 0575e105-943d-4b6b-ac9e-228a1b9b49b0 (validation): ValueError
+Refund of payment pi_both: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet ee75ff98-37a6-464a-80f1-61796a45e946 until settled.
+Refund of payment pi_both (1000/1000 cents): reclaimed 0 credit(s), 500 could not be reclaimed and are now a debt.
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 0, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user 885e4433-72f3-4d1d-8391-26b037cea6af.
+Cannot activate automatic trial for user 885e4433-72f3-4d1d-8391-26b037cea6af (validation): ValueError
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 500, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user b49f0644-d21d-4d05-acc3-ee64cbc6cac5.
+Cannot activate automatic trial for user b49f0644-d21d-4d05-acc3-ee64cbc6cac5 (validation): ValueError
+Refund of payment pi_both (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 0, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user 9c63eaff-11f2-4910-bc27-c3467c6992e8.
+Cannot activate automatic trial for user 9c63eaff-11f2-4910-bc27-c3467c6992e8 (validation): ValueError
+Refund of payment pi_both: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet 5b086d11-dd70-4136-b15c-1c3296d0609a until settled.
+Refund of payment pi_both (1000/1000 cents): reclaimed 0 credit(s), 500 could not be reclaimed and are now a debt.
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 0, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user 53e4fc7c-e1b1-4dc3-976d-b7b39f5aa4ac.
+Cannot activate automatic trial for user 53e4fc7c-e1b1-4dc3-976d-b7b39f5aa4ac (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 56101361-e205-461b-9ec7-575f52e5c1d3.
+Cannot activate automatic trial for user 56101361-e205-461b-9ec7-575f52e5c1d3 (validation): ValueError
+Refund of payment pi_ref_1: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet aa165186-8f63-4eab-8c11-ad84fd6cebf6 until settled.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 0 credit(s), 500 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user fcf4ab90-8262-4ef0-8ea7-81e3a6bf4251.
+Cannot activate automatic trial for user fcf4ab90-8262-4ef0-8ea7-81e3a6bf4251 (validation): ValueError
+Refund of payment pi_ref_1 (500/1000 cents): reclaimed 250 credit(s), 0 could not be reclaimed and are now a debt.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 250 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 5c5e5e9d-5acc-401a-8f25-a558bb28b82c.
+Cannot activate automatic trial for user 5c5e5e9d-5acc-401a-8f25-a558bb28b82c (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user fb3038a2-4449-495e-b2a1-4db55814d31e.
+Cannot activate automatic trial for user fb3038a2-4449-495e-b2a1-4db55814d31e (validation): ValueError
+Refund of payment pi_ref_1 (10000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 27264b83-a37e-4d59-b9ae-a56eb19e8bd9.
+Cannot activate automatic trial for user 27264b83-a37e-4d59-b9ae-a56eb19e8bd9 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 4313ec0d-c70c-4cf5-b6a5-b11b22b03da7.
+Cannot activate automatic trial for user 4313ec0d-c70c-4cf5-b6a5-b11b22b03da7 (validation): ValueError
+Refund of payment pi_ref_1 (200/1000 cents): reclaimed 100 credit(s), 0 could not be reclaimed and are now a debt.
+Refund of payment pi_ref_1 (400/1000 cents): reclaimed 100 credit(s), 0 could not be reclaimed and are now a debt.
+Refund of payment pi_ref_1 (600/1000 cents): reclaimed 100 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 1d567658-43b9-47fb-8eee-322d9c8e26e3.
+Cannot activate automatic trial for user 1d567658-43b9-47fb-8eee-322d9c8e26e3 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 71c9f1f0-1eb8-41c6-9175-ed1efc897b96.
+Cannot activate automatic trial for user 71c9f1f0-1eb8-41c6-9175-ed1efc897b96 (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 6268ec6f-ae3e-40cf-b6ea-b99cef8b9cea.
+Cannot activate automatic trial for user 6268ec6f-ae3e-40cf-b6ea-b99cef8b9cea (validation): ValueError
+Free trial plan not found: no trial activated for user 90e65686-6b86-44a8-bdfa-fb2528d79e41.
+Cannot activate automatic trial for user 90e65686-6b86-44a8-bdfa-fb2528d79e41 (validation): ValueError
+Refund of payment pi_mine (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user ae936226-040a-4970-923d-bae81770af51.
+Cannot activate automatic trial for user ae936226-040a-4970-923d-bae81770af51 (validation): ValueError
+Free trial plan not found: no trial activated for user 8726fb49-970d-43bd-ba34-ec13832550ed.
+Cannot activate automatic trial for user 8726fb49-970d-43bd-ba34-ec13832550ed (validation): ValueError
+.Free trial plan not found: no trial activated for user a8e03168-4726-44af-87c2-5333df157d6e.
+Cannot activate automatic trial for user a8e03168-4726-44af-87c2-5333df157d6e (validation): ValueError
+Free trial plan not found: no trial activated for user 8440c61e-d2ca-45b5-affa-4e4732fcd3ee.
+Cannot activate automatic trial for user 8440c61e-d2ca-45b5-affa-4e4732fcd3ee (validation): ValueError
+Refund of payment pi_first (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 7289bcdd-1cae-4ec1-b6ea-b0bb30a887e9.
+Cannot activate automatic trial for user 7289bcdd-1cae-4ec1-b6ea-b0bb30a887e9 (validation): ValueError
+Free trial plan not found: no trial activated for user 393d339b-c2a0-4b72-a54d-6b4b161c679a.
+Cannot activate automatic trial for user 393d339b-c2a0-4b72-a54d-6b4b161c679a (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=None) has no matching BillingTransaction — creating a standalone record for manual review.
+.Free trial plan not found: no trial activated for user 9e804a62-9902-4130-b6de-7a636f165c8f.
+Cannot activate automatic trial for user 9e804a62-9902-4130-b6de-7a636f165c8f (validation): ValueError
+.Free trial plan not found: no trial activated for user 28641c22-cbc6-4b75-8221-e3fcf49d0e1b.
+Cannot activate automatic trial for user 28641c22-cbc6-4b75-8221-e3fcf49d0e1b (validation): ValueError
+.Free trial plan not found: no trial activated for user 5ef9f276-9706-41c8-a545-36c016c25a3d.
+Cannot activate automatic trial for user 5ef9f276-9706-41c8-a545-36c016c25a3d (validation): ValueError
+.Free trial plan not found: no trial activated for user 8408536c-7d84-41ae-8045-63fb3e3fbcca.
+Cannot activate automatic trial for user 8408536c-7d84-41ae-8045-63fb3e3fbcca (validation): ValueError
+.Free trial plan not found: no trial activated for user 3f636910-6962-4949-a96f-95b4d787d42d.
+Cannot activate automatic trial for user 3f636910-6962-4949-a96f-95b4d787d42d (validation): ValueError
+.Free trial plan not found: no trial activated for user d3c08800-8d17-4403-a418-afbbf84f5200.
+Cannot activate automatic trial for user d3c08800-8d17-4403-a418-afbbf84f5200 (validation): ValueError
+Free trial plan not found: no trial activated for user 6ecf809b-467a-4d30-b6bd-13b61a457a41.
+Cannot activate automatic trial for user 6ecf809b-467a-4d30-b6bd-13b61a457a41 (validation): ValueError
+Free trial plan not found: no trial activated for user 968510cd-297f-40ec-b102-535bbc958b80.
+Cannot activate automatic trial for user 968510cd-297f-40ec-b102-535bbc958b80 (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_school) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_school: 250 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet d088bc90-1941-40a1-bf30-f01eac0e230a until settled.
+Refund of payment pi_school (1000/2000 cents): reclaimed 250 credit(s), 250 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 1f7f14b8-77c5-43a8-9b03-5f612aaf8376.
+Cannot activate automatic trial for user 1f7f14b8-77c5-43a8-9b03-5f612aaf8376 (validation): ValueError
+Free trial plan not found: no trial activated for user 85ba5c7f-f099-4768-91bd-e597bfcb9f47.
+Cannot activate automatic trial for user 85ba5c7f-f099-4768-91bd-e597bfcb9f47 (validation): ValueError
+Free trial plan not found: no trial activated for user 15e3be13-e462-4cf1-a737-a65f8c5ff82b.
+Cannot activate automatic trial for user 15e3be13-e462-4cf1-a737-a65f8c5ff82b (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_school) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_school (1000/2000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 9ba4cbd1-580c-4f6c-b0d3-366704146972.
+Cannot activate automatic trial for user 9ba4cbd1-580c-4f6c-b0d3-366704146972 (validation): ValueError
+Free trial plan not found: no trial activated for user a9925684-e48c-431e-883c-3eede4625f47.
+Cannot activate automatic trial for user a9925684-e48c-431e-883c-3eede4625f47 (validation): ValueError
+Free trial plan not found: no trial activated for user 27979e82-eeed-4d4a-9256-041b137e4158.
+Cannot activate automatic trial for user 27979e82-eeed-4d4a-9256-041b137e4158 (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_school) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_school (2000/2000 cents): reclaimed 1000 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user a39a5070-d3cb-401b-90d6-32fa28f1ced4.
+Cannot activate automatic trial for user a39a5070-d3cb-401b-90d6-32fa28f1ced4 (validation): ValueError
+Free trial plan not found: no trial activated for user 0c6c468e-ac8d-4b8b-838d-f229c2800100.
+Cannot activate automatic trial for user 0c6c468e-ac8d-4b8b-838d-f229c2800100 (validation): ValueError
+Free trial plan not found: no trial activated for user f109adc2-133e-43a4-b3d4-d3b5ca7fa491.
+Cannot activate automatic trial for user f109adc2-133e-43a4-b3d4-d3b5ca7fa491 (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_school) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_school (2000/2000 cents): reclaimed 1000 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 018e220b-d4e6-4cbf-8572-ffa2dafe5c89.
+Cannot activate automatic trial for user 018e220b-d4e6-4cbf-8572-ffa2dafe5c89 (validation): ValueError
+Free trial plan not found: no trial activated for user b0b2a26d-0897-4a5d-8193-1b58019bf334.
+Cannot activate automatic trial for user b0b2a26d-0897-4a5d-8193-1b58019bf334 (validation): ValueError
+Free trial plan not found: no trial activated for user d3febbbf-41d4-4f73-8d8d-10097e3738d6.
+Cannot activate automatic trial for user d3febbbf-41d4-4f73-8d8d-10097e3738d6 (validation): ValueError
+DISPUTE WITH NO MATCHING PAYMENT: dp_1 (1000 usd) has no local BillingTransaction for payment_intent='pi_school_cb' charge='ch_dispute'. The money has already left the Stripe balance. This needs manual reconciliation.
+Dispute dp_1: 500 credit(s) bought by payment pi_school_cb had already been spent from wallet 436d693c-a01b-4b4e-91f7-dceeaa21dc47. Recorded as a deficit; consumption is now BLOCKED until settled.
+Dispute dp_1: 500 credit(s) bought by payment pi_school_cb had already been spent from wallet c38066b7-c97c-49a8-a181-d40bf4f6a116. Recorded as a deficit; consumption is now BLOCKED until settled.
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 0, unreclaimable deficit: 1000.
+.Free trial plan not found: no trial activated for user 4c4baa53-6458-4481-ae66-3e67019c58b4.
+Cannot activate automatic trial for user 4c4baa53-6458-4481-ae66-3e67019c58b4 (validation): ValueError
+Free trial plan not found: no trial activated for user bb9a2378-f042-476b-b2e9-feeb0a60fd51.
+Cannot activate automatic trial for user bb9a2378-f042-476b-b2e9-feeb0a60fd51 (validation): ValueError
+Free trial plan not found: no trial activated for user caba13fd-ee7c-461f-9378-4da59991c79d.
+Cannot activate automatic trial for user caba13fd-ee7c-461f-9378-4da59991c79d (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_uneven) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_uneven (1000/3000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 12f51e62-3efa-4387-a488-067823e01638.
+Cannot activate automatic trial for user 12f51e62-3efa-4387-a488-067823e01638 (validation): ValueError
+Free trial plan not found: no trial activated for user c4fbd84d-dcce-47aa-ae4d-00f986bf4201.
+Cannot activate automatic trial for user c4fbd84d-dcce-47aa-ae4d-00f986bf4201 (validation): ValueError
+Free trial plan not found: no trial activated for user 272dfafe-b441-4b3d-983b-e57da91efaa6.
+Cannot activate automatic trial for user 272dfafe-b441-4b3d-983b-e57da91efaa6 (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_uneven) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_uneven (1000/3000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 00226eaf-e55c-455f-9b7f-f0c8dc732feb.
+Cannot activate automatic trial for user 00226eaf-e55c-455f-9b7f-f0c8dc732feb (validation): ValueError
+Free trial plan not found: no trial activated for user d4f55dcc-90fe-4b8e-bb71-f8d6803fbfe0.
+Cannot activate automatic trial for user d4f55dcc-90fe-4b8e-bb71-f8d6803fbfe0 (validation): ValueError
+Free trial plan not found: no trial activated for user dd5b873e-6a8a-4620-a55b-c2a3b30568ba.
+Cannot activate automatic trial for user dd5b873e-6a8a-4620-a55b-c2a3b30568ba (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_school) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_school: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet d7cbf406-b91e-48ce-b128-bc9efa04f5f1 until settled.
+Refund of payment pi_school (2000/2000 cents): reclaimed 500 credit(s), 500 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user feee2ca6-469e-4b93-b8d6-3be90ed2b244.
+Cannot activate automatic trial for user feee2ca6-469e-4b93-b8d6-3be90ed2b244 (validation): ValueError
+Free trial plan not found: no trial activated for user ad9be5da-ea7b-47dc-a19c-409b75d005dd.
+Cannot activate automatic trial for user ad9be5da-ea7b-47dc-a19c-409b75d005dd (validation): ValueError
+Free trial plan not found: no trial activated for user 49be62ac-5376-4c9f-998c-f3f54fbca5d4.
+Cannot activate automatic trial for user 49be62ac-5376-4c9f-998c-f3f54fbca5d4 (validation): ValueError
+charge.refunded for charge ch_ref_1 (invoice=None, payment_intent=pi_school) has no matching BillingTransaction — creating a standalone record for manual review.
+Refund of payment pi_school: 500 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet 9cc09c13-f61f-462d-b365-742433dfa60b until settled.
+Refund of payment pi_school (2000/2000 cents): reclaimed 500 credit(s), 500 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 9068ae7b-2714-45b7-8557-88af97ef2479.
+Cannot activate automatic trial for user 9068ae7b-2714-45b7-8557-88af97ef2479 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6f90073e-e2b4-4b77-ac4e-4fda8603e1ef.
+Cannot activate automatic trial for user 6f90073e-e2b4-4b77-ac4e-4fda8603e1ef (validation): ValueError
+.Free trial plan not found: no trial activated for user 96089062-b43e-45b3-abdc-478854ad340a.
+Cannot activate automatic trial for user 96089062-b43e-45b3-abdc-478854ad340a (validation): ValueError
+.Free trial plan not found: no trial activated for user f570e6e0-77b4-4f23-a862-f0eba71239f1.
+Cannot activate automatic trial for user f570e6e0-77b4-4f23-a862-f0eba71239f1 (validation): ValueError
+.Free trial plan not found: no trial activated for user e782a9b3-67ca-44d1-96f9-9e21c35620bc.
+Cannot activate automatic trial for user e782a9b3-67ca-44d1-96f9-9e21c35620bc (validation): ValueError
+.Free trial plan not found: no trial activated for user c4d0e455-a439-4c99-bad3-57c0c8a6798d.
+Cannot activate automatic trial for user c4d0e455-a439-4c99-bad3-57c0c8a6798d (validation): ValueError
+.Free trial plan not found: no trial activated for user 5f0b199b-4d08-429e-8f02-5814761b1d08.
+Cannot activate automatic trial for user 5f0b199b-4d08-429e-8f02-5814761b1d08 (validation): ValueError
+.Free trial plan not found: no trial activated for user 74fbc348-8204-4612-8583-350ef7385706.
+Cannot activate automatic trial for user 74fbc348-8204-4612-8583-350ef7385706 (validation): ValueError
+.Free trial plan not found: no trial activated for user 633be8ad-3e19-48c8-aa4e-a2d495c8970b.
+Cannot activate automatic trial for user 633be8ad-3e19-48c8-aa4e-a2d495c8970b (validation): ValueError
+.Free trial plan not found: no trial activated for user 4eba277b-a3a3-4a56-939f-803203220235.
+Cannot activate automatic trial for user 4eba277b-a3a3-4a56-939f-803203220235 (validation): ValueError
+.Free trial plan not found: no trial activated for user 98c30b11-a69c-4f0a-84a0-5d0995fb724b.
+Cannot activate automatic trial for user 98c30b11-a69c-4f0a-84a0-5d0995fb724b (validation): ValueError
+.Free trial plan not found: no trial activated for user 9864e556-1e98-4e91-98c0-2952b9435587.
+Cannot activate automatic trial for user 9864e556-1e98-4e91-98c0-2952b9435587 (validation): ValueError
+.charge.refunded for charge ch_orphan3 (invoice=None, payment_intent=None) has no matching BillingTransaction — creating a standalone record for manual review.
+.charge.refunded for charge ch_orphan (invoice=in_never_seen, payment_intent=None) has no matching BillingTransaction — creating a standalone record for manual review.
+.charge.refunded for charge ch_orphan2 (invoice=None, payment_intent=None) has no matching BillingTransaction — creating a standalone record for manual review.
+...
+
+django.request ERROR 2026-11-08 14:45:11,539 log 123401 124084372993920 [request_id=46baa727-8b88-404e-8609-c4fe2937e332 client_request_id=-] Internal Server Error: /admin/login/
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 172, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 116, in render
+    url = self.url(context)
+          ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 113, in url
+    return self.handle_simple(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 129, in handle_simple
+    return staticfiles_storage.url(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 204, in url
+    return self._url(self.stored_name, name, force)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 183, in _url
+    hashed_name = hashed_name_func(*args)
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 518, in stored_name
+    raise ValueError(
+ValueError: Missing staticfiles manifest entry for 'admin/css/base.css'
+.EFree trial plan not found: no trial activated for user 515c0edb-5b17-43d0-b208-9d0341ff63d5.
+Cannot activate automatic trial for user 515c0edb-5b17-43d0-b208-9d0341ff63d5 (validation): ValueError
+Offline overage request 6dc715fd-1d9f-4bce-93c1-fcae08939bd9 auto-rejected on approval attempt: license d80c8d58-df73-435a-b641-f1ab07a99018 is no longer active.
+.Free trial plan not found: no trial activated for user cf132ff4-010c-41ca-b2fd-8e718e279df5.
+Cannot activate automatic trial for user cf132ff4-010c-41ca-b2fd-8e718e279df5 (validation): ValueError
+.Free trial plan not found: no trial activated for user 29bdb965-2ca5-49d8-a85a-3f0e6a2e8892.
+Cannot activate automatic trial for user 29bdb965-2ca5-49d8-a85a-3f0e6a2e8892 (validation): ValueError
+Offline overage request 96e7e531-d824-42c7-83a2-74e74d89fd4a approved but EVERY allocated teacher was no longer active — 0/1 granted. Needs manual follow-up. License 322e6453-f7cd-47e4-909a-acdbaa92cd83.
+.Free trial plan not found: no trial activated for user 5b6ed554-8d4f-43dc-b391-85e62ed7b04f.
+Cannot activate automatic trial for user 5b6ed554-8d4f-43dc-b391-85e62ed7b04f (validation): ValueError
+.Free trial plan not found: no trial activated for user 0ed0fbdb-4efe-4dfe-a678-5e6d3498c12c.
+Cannot activate automatic trial for user 0ed0fbdb-4efe-4dfe-a678-5e6d3498c12c (validation): ValueError
+.Free trial plan not found: no trial activated for user 93219d49-c83e-4170-a03f-f2f02c92cf90.
+Cannot activate automatic trial for user 93219d49-c83e-4170-a03f-f2f02c92cf90 (validation): ValueError
+.Free trial plan not found: no trial activated for user 50c4f272-e68c-4b28-bf30-52a98448f56c.
+Cannot activate automatic trial for user 50c4f272-e68c-4b28-bf30-52a98448f56c (validation): ValueError
+.Free trial plan not found: no trial activated for user 0c87e9cd-ed9f-4f86-804f-ba950ae15028.
+Cannot activate automatic trial for user 0c87e9cd-ed9f-4f86-804f-ba950ae15028 (validation): ValueError
+.Free trial plan not found: no trial activated for user 441874f0-cb04-46d2-b6fe-817a36943e5a.
+Cannot activate automatic trial for user 441874f0-cb04-46d2-b6fe-817a36943e5a (validation): ValueError
+.Free trial plan not found: no trial activated for user ffb646b4-377b-4c30-bfae-6773f009d4b9.
+Cannot activate automatic trial for user ffb646b4-377b-4c30-bfae-6773f009d4b9 (validation): ValueError
+.Free trial plan not found: no trial activated for user b324547a-c309-46c0-a61c-9d98a2a23542.
+Cannot activate automatic trial for user b324547a-c309-46c0-a61c-9d98a2a23542 (validation): ValueError
+.Free trial plan not found: no trial activated for user d6757ef9-17ac-463f-9e7d-02891dd68808.
+Cannot activate automatic trial for user d6757ef9-17ac-463f-9e7d-02891dd68808 (validation): ValueError
+.Free trial plan not found: no trial activated for user 66d18379-da86-4f9c-9bd7-5624fdb5458f.
+Cannot activate automatic trial for user 66d18379-da86-4f9c-9bd7-5624fdb5458f (validation): ValueError
+.Free trial plan not found: no trial activated for user 58090d9e-643c-4b4b-a081-59f982355ee1.
+Cannot activate automatic trial for user 58090d9e-643c-4b4b-a081-59f982355ee1 (validation): ValueError
+Refund of payment pi_race (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+CHARGEBACK LOST: dispute dp_3. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 0, unreclaimable deficit: 0.
+CHARGEBACK LOST: dispute dp_1. Total loss 2500 usd (amount 1000 + fee 1500). Credits reversed: 0, unreclaimable deficit: 0.
+.Free trial plan not found: no trial activated for user 7eeabdc6-5fc3-4711-83b8-46961756cf60.
+Cannot activate automatic trial for user 7eeabdc6-5fc3-4711-83b8-46961756cf60 (validation): ValueError
+Refund of payment pi_ref_1: 300 credit(s) had already been spent and cannot be reclaimed. Recorded as a debt and consumption is now BLOCKED for wallet fc367fd8-1071-4cb5-9b84-8db51b6eebc5 until settled.
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 200 credit(s), 300 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 6e138149-40b3-4755-bcf0-746b99cff7cb.
+Cannot activate automatic trial for user 6e138149-40b3-4755-bcf0-746b99cff7cb (validation): ValueError
+Refund of payment pi_ref_1 (1000/1000 cents): reclaimed 500 credit(s), 0 could not be reclaimed and are now a debt.
+.Free trial plan not found: no trial activated for user 77a5fa0c-d224-42b9-a7fc-0aa1ab877ed8.
+Cannot activate automatic trial for user 77a5fa0c-d224-42b9-a7fc-0aa1ab877ed8 (validation): ValueError
+Free trial plan not found: no trial activated for user dec6452a-bbe6-4816-b230-aafea74f178c.
+Cannot activate automatic trial for user dec6452a-bbe6-4816-b230-aafea74f178c (validation): ValueError
+Free trial plan not found: no trial activated for user 0fe74e29-f523-482e-8d7c-2eb5f44b55ef.
+Cannot activate automatic trial for user 0fe74e29-f523-482e-8d7c-2eb5f44b55ef (validation): ValueError
+Free trial plan not found: no trial activated for user 65b2746b-a6d8-421b-94e0-31361c32b698.
+Cannot activate automatic trial for user 65b2746b-a6d8-421b-94e0-31361c32b698 (validation): ValueError
+............
+
+ai_processor.call_record WARNING 2026-11-08 14:45:18,045 call_record 123401 124084372993920 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 14:45:18,045 call_record 123401 124084372993920 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 14:45:18,046 call_record 123401 124084372993920 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 14:45:18,046 call_record 123401 124084372993920 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-08 14:45:18,047 call_record 123401 124084372993920 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+........................................................
+======================================================================
+ERROR: test_dr10_no_payment_intent_is_reported_not_refunded (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr10_no_payment_intent_is_reported_not_refunded)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 417, in test_dr10_no_payment_intent_is_reported_not_refunded
+    with switch_on(), patch(CREATE) as create, patch(LIST) as listing, patch(
+         ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 80, in switch_on
+    return patch.object(drs(), "DEPARTED_SHARE_REFUND_APPROVED", True)
+                        ^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr11_the_admin_is_emailed_the_pending_card_text (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr11_the_admin_is_emailed_the_pending_card_text)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 426, in test_dr11_the_admin_is_emailed_the_pending_card_text
+    texts = drs().DEPARTED_SHARE_REFUND_TEXTS
+            ^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr12_the_purchase_note_and_history_suffix_are_pending (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr12_the_purchase_note_and_history_suffix_are_pending)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 442, in test_dr12_the_purchase_note_and_history_suffix_are_pending
+    with switch_on(), patch(CREATE), patch(LIST, return_value=refund_list()), patch(
+         ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 80, in switch_on
+    return patch.object(drs(), "DEPARTED_SHARE_REFUND_APPROVED", True)
+                        ^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr4_a_departure_refunds_exactly_that_share_once (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr4_a_departure_refunds_exactly_that_share_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 238, in test_dr4_a_departure_refunds_exactly_that_share_once
+    with switch_on(), patch(CREATE) as create, patch(
+         ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 80, in switch_on
+    return patch.object(drs(), "DEPARTED_SHARE_REFUND_APPROVED", True)
+                        ^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr5_a_rolled_back_webhook_refunds_nothing (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr5_a_rolled_back_webhook_refunds_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 276, in test_dr5_a_rolled_back_webhook_refunds_nothing
+    with switch_on(), patch(CREATE) as create, patch(
+         ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 80, in switch_on
+    return patch.object(drs(), "DEPARTED_SHARE_REFUND_APPROVED", True)
+                        ^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr5_the_refund_runs_only_after_commit (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr5_the_refund_runs_only_after_commit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 265, in test_dr5_the_refund_runs_only_after_commit
+    with switch_on(), patch(CREATE) as create, patch(
+         ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 80, in switch_on
+    return patch.object(drs(), "DEPARTED_SHARE_REFUND_APPROVED", True)
+                        ^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr6_the_refund_coming_back_leaves_every_granted_credit (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr6_the_refund_coming_back_leaves_every_granted_credit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 292, in test_dr6_the_refund_coming_back_leaves_every_granted_credit
+    with switch_on(), patch(CREATE) as create, patch(
+         ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 80, in switch_on
+    return patch.object(drs(), "DEPARTED_SHARE_REFUND_APPROVED", True)
+                        ^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr7_nothing_left_to_refund_is_reported_not_refunded (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr7_nothing_left_to_refund_is_reported_not_refunded)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 355, in test_dr7_nothing_left_to_refund_is_reported_not_refunded
+    with switch_on(), patch(CREATE) as create, patch(
+         ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 80, in switch_on
+    return patch.object(drs(), "DEPARTED_SHARE_REFUND_APPROVED", True)
+                        ^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr7_the_refund_is_capped_at_what_is_still_refundable (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr7_the_refund_is_capped_at_what_is_still_refundable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 341, in test_dr7_the_refund_is_capped_at_what_is_still_refundable
+    with switch_on(), patch(CREATE) as create, patch(
+         ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 80, in switch_on
+    return patch.object(drs(), "DEPARTED_SHARE_REFUND_APPROVED", True)
+                        ^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr8_a_rerun_never_refunds_twice (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr8_a_rerun_never_refunds_twice)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 363, in test_dr8_a_rerun_never_refunds_twice
+    with switch_on(), patch(CREATE) as create, patch(
+         ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 80, in switch_on
+    return patch.object(drs(), "DEPARTED_SHARE_REFUND_APPROVED", True)
+                        ^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr9_a_connection_error_is_retried (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr9_a_connection_error_is_retried)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 375, in test_dr9_a_connection_error_is_retried
+    with switch_on(), patch(
+         ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 80, in switch_on
+    return patch.object(drs(), "DEPARTED_SHARE_REFUND_APPROVED", True)
+                        ^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr9_a_refused_refund_is_reported_and_grants_stay (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr9_a_refused_refund_is_reported_and_grants_stay)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 391, in test_dr9_a_refused_refund_is_reported_and_grants_stay
+    with switch_on(), patch(
+         ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 80, in switch_on
+    return patch.object(drs(), "DEPARTED_SHARE_REFUND_APPROVED", True)
+                        ^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr14_no_skipped_teacher_means_no_refund (billing.tests.test_departed_teacher_refund.NoDepartureTests.test_dr14_no_skipped_teacher_means_no_refund)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 465, in test_dr14_no_skipped_teacher_means_no_refund
+    with switch_on(), patch(CREATE) as create, patch(LIST) as listing, patch(
+         ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 80, in switch_on
+    return patch.object(drs(), "DEPARTED_SHARE_REFUND_APPROVED", True)
+                        ^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr13_switch_on_records_the_share_owed_and_tells_the_admin (billing.tests.test_departed_teacher_refund.OfflinePathTests.test_dr13_switch_on_records_the_share_owed_and_tells_the_admin)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 532, in test_dr13_switch_on_records_the_share_owed_and_tells_the_admin
+    drs()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr3_the_switch_is_off_and_every_text_is_pending (billing.tests.test_departed_teacher_refund.SwitchTests.test_dr3_the_switch_is_off_and_every_text_is_pending)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 228, in test_dr3_the_switch_is_off_and_every_text_is_pending
+    self.assertIs(drs().DEPARTED_SHARE_REFUND_APPROVED, False)
+                  ^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 70, in drs
+    return importlib.import_module("billing.departed_share_refund")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.departed_share_refund'
+
+======================================================================
+ERROR: test_dr15_0078_is_choices_only_and_reverses_cleanly (billing.tests.test_departed_teacher_refund.ChoicesMigrationTests.test_dr15_0078_is_choices_only_and_reverses_cleanly)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1a/billing/tests/test_departed_teacher_refund.py", line 581, in test_dr15_0078_is_choices_only_and_reverses_cleanly
+    executor.loader.get_migration(*target[0])
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/migrations/loader.py", line 143, in get_migration
+    return self.graph.nodes[app_label, name_prefix]
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: ('billing', '0078_alter_licensebillingrecord_record_type')
+
+----------------------------------------------------------------------
+Ran 191 tests in 25.963s
+
+FAILED (errors=16)
+Destroying test database for alias 'default'...
+Found 191 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -374,13 +374,15 @@ class CardRefundTests(CardPathBase):
 
         from billing.imports import stripe
 
+        self.fulfill_off()
         with switch_on(), patch(
             CREATE, side_effect=stripe.error.APIConnectionError("down")
-        ), patch(LIST, return_value=refund_list()), patch.object(
+        ) as create, patch(LIST, return_value=refund_list()), patch.object(
             task(), "retry", side_effect=Retry()
         ) as retry:
             with self.assertRaises(Retry):
                 task().run(str(self.intent.id), PRICE)
+        create.assert_called_once()
         retry.assert_called_once()
         self.assertLessEqual(task().max_retries, 5)
 
