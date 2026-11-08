@@ -2634,3 +2634,19 @@ Django's Collector picks what it deletes or sets NULL before it sends `pre_delet
 - It pins the old 03a rule that §21n replaces. The rest of the 83 pass, including `tests_migration_rollback_defaults` and `tests_call_record` flag off.
 - **Not edited:** changing a pre-existing test is the SM's ruling.
 - **Not yet run, held with this STOP:** the migrate forward/back/forward on the worktree DB.
+
+### 21o addendum. SM rulings on the §21o checkpoint (2026-11-08)
+
+**SM rulings:**
+- **(b)'s text is accepted** (`CreditHoldReturnedError`), and so is the no-extra-query deviation.
+- **The STOP is recorded as "prediction incomplete"**: the §21n review missed that `test_holds_schema` pins the 03a rule. It is not a code defect.
+- **The edit is approved:** one assertion, in its own commit.
+
+**The grep for any other pin of the `AIJob.wallet` rule in the tests** (`PROTECT`, `ProtectedError`, `rules["wallet"]`, `ai_jobs`):
+- `billing/tests/test_holds_schema.py:122`: the one pin. Edited to `models.SET_NULL` with a comment citing §21n (commit below).
+- `billing/tests/test_h28_licence_stripe_mutation_intent.py:19, :182`: a `ProtectedError` expectation about deleting a **licence** with Stripe mutation intents. Not AIJob, not this rule.
+- `billing/tests/test_holds_wallet_deletion.py:4`: this fix's own docstring.
+- `students/tests_missing_answer_review.py:4` and `billing/tests/test_dispute_lifecycle.py:395`: the word "PROTECTED" in prose.
+- **No other pin, so no STOP.**
+
+**Re-run prediction** (the same 3 labels, flag off, after the edit): **Ran 83, OK.**
