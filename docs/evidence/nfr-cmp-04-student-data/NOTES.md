@@ -1053,3 +1053,20 @@ audit source-scanning guard, per the SM's process note.
   CI_REQUIRE_NETWORK ×3, CI_REQUIRE_REDIS ×1, RUN_REAL_AI ×1.
 - makemigrations --check: no changes.
 - The log goes to `~/Documents/Projects/GAP-a0-runs/nfr-cmp-04/21_gate_step2.log`.
+
+Run 21 result (`GAP-a0-runs/nfr-cmp-04/21_gate_step2.log`): Ran 2578, OK
+(skipped=7), with the same 7 opt-in skips. **As predicted.** Step 2 is
+done.
+
+## Step 3: SM rulings on E-Q1–E-Q3 (2026-11-08); the red is a GO after gate 21
+
+- **E-Q1:** a new `AuditAction.STUDENT_DATA_ERASE`, one action for both
+  scopes. Its label is PENDING, on the owner's wording list. Metadata:
+  `scope` ("full" or "courses") and `item_count`. No names or emails.
+- **E-Q2:** BackgroundProcessingTask is course-scoped through its
+  assignment. This changes the map: `course_scoped=True`, and
+  `COURSE_PATH` gets `assignment__course_id`. The export follows: a
+  teacher's export now includes those processing rows for their courses.
+  **This is a declaration change, pinned by a map test.**
+- **E-Q3:** after a course erasure, the risk alert is left alone, with no
+  recompute (R3). Pinned by a test.
