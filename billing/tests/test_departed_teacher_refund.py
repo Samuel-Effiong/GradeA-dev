@@ -61,6 +61,8 @@ KEYS = {
     "offline_record_notes",
 }
 LABEL = "PENDING OWNER TEXT: offline overage refund due"
+#: The literal, not the formatter: a broken formatter must not pass.
+SHARE_SHOWN = "$2.99"
 # Named, not attribute access: neither exists before the change.
 TASK_NAME = "refund_departed_teacher_share"
 REFUND_DUE = "OFFLINE_OVERAGE_REFUND_DUE"
@@ -436,7 +438,7 @@ class CardRefundTests(CardPathBase):
         self.assertEqual(len(mine), 1)
         self.assertEqual(mine[0]["subject"], texts["email_subject"])
         self.assertTrue(mine[0]["message"].startswith("PENDING OWNER TEXT"))
-        self.assertIn(str(PRICE), mine[0]["message"].replace(",", ""))
+        self.assertIn(SHARE_SHOWN, mine[0]["message"])
 
     def test_dr12_the_purchase_note_and_history_suffix_are_pending(self):
         with switch_on(), patch(CREATE), patch(LIST, return_value=refund_list()), patch(
@@ -452,6 +454,25 @@ class CardRefundTests(CardPathBase):
         txn = BillingTransaction.objects.get(stripe_payment_intent_id=PI)
         self.assertIn("PENDING OWNER TEXT", txn.description)
         self.assertNotIn("needs review", txn.description)
+        self.assertIn(SHARE_SHOWN, self.intent.failure_reason or "")
+
+    def test_dr17_a_non_usd_payment_is_reported_not_refunded(self):
+        self.session["currency"] = "eur"
+        with switch_on(), patch(CREATE) as create, patch(LIST) as listing, patch(
+            SEND
+        ), self.assertLogs("billing", logging.ERROR) as logs:
+            delay, _ = self.fulfill()
+        delay.assert_not_called()
+        create.assert_not_called()
+        listing.assert_not_called()
+        self.assertTrue(any("MANUAL RECONCILIATION" in line for line in logs.output))
+
+
+class AmountFormatTests(TestCase):
+    def test_dr16_amounts_show_as_dollars(self):
+        self.assertEqual(drs().format_amount(299), "$2.99")
+        self.assertEqual(drs().format_amount(0), "$0.00")
+        self.assertEqual(drs().format_amount(123456), "$1,234.56")
 
 
 class NoDepartureTests(CardPathBase):
@@ -537,14 +558,14 @@ class OfflinePathTests(TestCase, SchoolFixture):
         record = self.refund_due().get()
         self.assertIsNone(record.amount_paid_cents)
         self.assertTrue(record.notes.startswith("PENDING OWNER TEXT"))
-        self.assertIn(str(PRICE), record.notes.replace(",", ""))
+        self.assertIn(SHARE_SHOWN, record.notes)
         self.assertIn("PENDING OWNER TEXT", self.offline_txn().description)
         self.assertNotIn("needs review", self.offline_txn().description)
         mail = self.approval_email(send)
         self.assertEqual(mail["subject"], APPROVAL_SUBJECT)
         html = mail["html_message"]
         self.assertIn("PENDING OWNER TEXT", html)
-        self.assertIn(str(PRICE), html.replace(",", "").replace(".", ""))
+        self.assertIn(SHARE_SHOWN, html)
         self.assertNotIn(TODAY_NOT_CREDITED, html)
         self.assertIn(str(self.c.id), html)
         create.assert_not_called()

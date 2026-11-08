@@ -1817,3 +1817,14 @@ Ran 191, FAILED (failures=1, errors=16).
    - No second email.
    - The record assertions stay: `amount_paid_cents is None`, the notes contain the amount. So do the PENDING offline history suffix and "no Stripe call".
 5. **Red attempt 3**, against this addendum on the code as it stands: DR-1 and DR-2 PASS; DR-3..DR-15 16 ERROR; everything else passes. If it does not match: STOP.
+
+### 18 addendum 5, declared before green (SM approved 2026-11-08): how amounts are shown, and currency
+
+Red attempt 3 (f17c40b1) **matched** addendum 4: Ran 191, FAILED (errors=16). DR-1 and DR-2 passed. Of the 16 errors, 15 were ModuleNotFoundError and 1 (DR-15) a KeyError for 0078. The staticfiles noise appeared once. Log: step18/step18_red_f17c40b1.log.
+
+1. **Amounts.** `{amount}` is money in the owner draft. `departed_share_refund.format_amount(cents)` returns `f"${cents / 100:,.2f}"`. DR-11 (card email body), DR-12 (`purchase_note`) and DR-13 (approval email html and record notes) assert the **literal** `"$2.99"`, not the helper, because a check against the helper would be circular.
+2. **DR-16 (new):** `format_amount` maps 299 → `"$2.99"`, 0 → `"$0.00"` and 123456 → `"$1,234.56"`.
+3. **Currency, DR-17 (new).** The license overage checkout charges `plan.stripe_overage_price_id` (license_service.py:~3331). Its currency is whatever that Stripe Price carries, so a non-usd purchase cannot be ruled out in code.
+   - The handler therefore checks the session's `currency`. If it is not `"usd"`, there is no refund task, no Stripe call and no guessed symbol, and an ERROR `MANUAL RECONCILIATION` is logged.
+   - DR-17: a session with `currency="eur"` and the switch on gives no enqueue, no Refund.list or Refund.create, and the ERROR line.
+4. The new file is now **20 tests**. Green expects all 20 to pass.
