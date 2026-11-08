@@ -1871,3 +1871,66 @@ Every plant was restored OK. G-1, static and the rollback-defaults module stayed
 No plant survived.
 
 **Next (SM, 2026-11-08):** the approved-texts sub-step, with its own expectations, then the near run.
+
+## 19. 3b approved texts and the switch on. Expectations committed before any run (2026-11-08)
+
+**Ruling:** the owner approved the departed-share wording verbatim on 2026-11-08 (team/approved_wording_departed_share_2026-11-08.md, main checkout). SM order: finish 3b with placeholders (done, c89e8c93), then this sub-step, the same pattern as the student notice (§17).
+
+**SM rulings on two gaps in the approved file (2026-11-08):**
+- **G-1 (b).** The file has no text for `offline_record_notes`. The key becomes `"{amount}"`, a bare value such as "$2.99" and no prose, so it is not new wording. The approved label "Overage Refund Owed (Offline)" says what the amount is.
+- **G-2 (a).** W-6's `**Not credited** — ` is the file's markdown for today's `<strong>Not credited</strong> — `.
+  - The key holds the approved sentence **without** that heading.
+  - The template keeps `<strong>Not credited</strong> — ` shared by both branches. The `{% if not_credited_text %}` moves after it.
+  - Switch off, today's sentence and HTML stay byte for byte.
+
+### 19a. The change
+
+**`billing/departed_share_refund.py`:** `DEPARTED_SHARE_REFUND_APPROVED = True`, and `DEPARTED_SHARE_REFUND_TEXTS` holds exactly these values. The PENDING comment becomes "approved by the owner 2026-11-08".
+
+| Key | Value (verbatim) |
+|---|---|
+| purchase_note | `Paid for {blocks} block(s). {n} teacher(s) had left before the purchase went through, so they weren't given credits: {skipped}. Their share, {amount}, is being refunded automatically to the card used.` |
+| history_suffix_card | `({n} teacher(s) had left; their share is being refunded)` (the caller adds the leading space, as now) |
+| history_suffix_offline | `({n} teacher(s) had left; their share is owed back)` (likewise) |
+| email_subject | `Part of your credit purchase is being refunded` |
+| email_body_card | `{n} teacher(s) in your credit purchase had left your school before it went through, so they weren't given credits. The other teachers received theirs. We're refunding {amount} for the credits that weren't given to the card you paid with.` |
+| offline_record_notes | `{amount}` |
+| approval_email_not_credited | `these teachers had left your school before the purchase went through, so they weren't given credits. Our team will refund {amount} to you directly.` |
+
+The approved file's W-2 values begin with a space (" (…)"). The key holds them without it, and the caller's `" " +` supplies it, so the rendered suffix is the approved text character for character. DR-12 and DR-13 check the rendered suffix.
+
+**Other changes:**
+- `billing/models.py`: the W-4 label `_("Overage Refund Owed (Offline)")`. Migration 0078 is regenerated (still choices-only, same name), and `makemigrations --check` must be clean.
+- Template: `<p><strong>Not credited</strong> — {% if not_credited_text %}{{ not_credited_text }}{% else %}these teachers are no longer active under the license and were skipped. Contact support if this needs manual follow-up.{% endif %}</p>`. With the switch off this renders the same bytes as today.
+
+### 19b. Test changes (new file only, `billing/tests/test_departed_teacher_refund.py`)
+
+- **DR-1, DR-2:** each runs inside `patch.object(drs, "DEPARTED_SHARE_REFUND_APPROVED", False)`. They remain the switch-off controls; their assertions are unchanged.
+- **DR-3:** renamed `test_dr3_the_switch_is_on_and_every_text_is_the_approved_wording`. It asserts `DEPARTED_SHARE_REFUND_APPROVED is True`, `DEPARTED_SHARE_REFUND_TEXTS == APPROVED` (the 7 values above, written out in the test), and the choice label `"Overage Refund Owed (Offline)"`.
+- **DR-11:** the subject equals the approved subject. The message equals `email_body_card` formatted with n=1 and amount="$2.99": "1 teacher(s) in your credit purchase … We're refunding $2.99 for the credits …".
+- **DR-12:** `failure_reason` equals the approved purchase_note formatted (blocks=3, n=1, skipped=the skipped list, amount="$2.99"); it contains "$2.99" and not "Needs manual review". The transaction description ends with `" (1 teacher(s) had left; their share is being refunded)"`.
+- **DR-13:**
+  - The record's `notes == "$2.99"` and `amount_paid_cents is None`.
+  - The offline description ends with `" (1 teacher(s) had left; their share is owed back)"`.
+  - The approval email html contains `<strong>Not credited</strong> — these teachers had left your school before the purchase went through, so they weren&#x27;t given credits. Our team will refund $2.99 to you directly.` Django autoescapes the apostrophe, so the test compares against `django.utils.html.escape` of the approved sentence.
+  - It does not contain "Contact support if this needs manual follow-up.". C's row is still listed, and there is one email.
+- The other tests (DR-4..DR-10, DR-14..DR-17) are unchanged. Their `switch_on()` patch is now redundant and harmless.
+- **No pre-existing test outside this file is edited.** `test_license_overage_offline.test_approve_partial_fulfillment_when_teacher_removed` approves with a skipped teacher. With the switch on it also writes a refund-due record and the new texts. It asserts status, counts and buckets only, so it should still pass.
+
+### 19c. Runs (targeted set as in §18)
+
+1. **Break run:** the 3b test file as committed at c89e8c93 (the old DR-1/2/3/11/12/13) against the new code (switch on, approved texts). Expected `FAILED (failures=6)`:
+   - DR-1, at `failure_reason.endswith(TODAY_REVIEW)`;
+   - DR-2, at `assertFalse(self.refund_due().exists())`;
+   - DR-3, `True is not False`;
+   - DR-11, `message.startswith("PENDING OWNER TEXT")`;
+   - DR-12, `failure_reason.startswith("PENDING OWNER TEXT")`;
+   - DR-13, `notes.startswith("PENDING OWNER TEXT")`.
+   - Everything else passes.
+2. **Green:** the new code and the new tests: Ran 193, OK. `makemigrations --check` is clean.
+3. **Plant AP-1:** `DEPARTED_SHARE_REFUND_APPROVED = True` back to `False`, restored by sha256. Expected `FAILED (failures=1)`, DR-3 only (`False is not True`).
+   - Every other switch-dependent test sets the switch itself: DR-1 and DR-2 patch it off, and DR-4..DR-14 and DR-17 patch it on. So none of them notices the module default.
+   - This plant proves that DR-3 pins the shipped default.
+4. **Near run:** under `flock ~/.machine-fullsuite.lock` with h284_deps_env, `--parallel 4`: `billing audit` + `AutoGrader.tests_migration_rollback_defaults` + G-1/static. Expected OK; the count is recorded at the run.
+
+Any mismatch is a STOP, reported to the SM.
