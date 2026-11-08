@@ -2281,3 +2281,49 @@ The method follows plan §9 item 13:
 **The billing near-run count is updated because of these two files.** Both are opt-in and skip without the environment variable. The billing near is therefore expected at **Ran 3109 = 3102 + 4 gate + 3 opt-in, OK (skipped=5)**. This replaces §21e/§21f's 3107/skipped=3, declared here before the run.
 
 **Order (SM):** (c), then (b), then the mutant battery, the targeted set, the flag-on exploratory run (checkpoint), and the flag-off near. The step 9 summary and any "B1a done" claim are held until the owner decides.
+
+### 21i. Results: the Gate 6 profile (c) and measurement 2 (b) (2026-11-08, at 055748bd)
+
+**(c) Profile.** Ran 1, OK, as declared (`step21_gate6_profile_055748bd.log`). The load average at the start was 2.83/4.18/4.97. 200 calls per mode after a 20-call warm-up; the times are means per call.
+
+| Mode | Transaction (first statement) | Queries | Wall ms | Statement shape with the most time (ms/call) |
+|---|---|---|---|---|
+| **On** | tx1, reserve (`begin_single_call`: wallet SELECT … FOR UPDATE) | 5.0 | 6.032 | wallet `reserved_credits` UPDATE (0.606) |
+| On | tx2, settle (`finish_single_call`: settle + `consume_credits` + `finish_job`, one atomic) | 34.0 | 39.678 | wallet SELECT, the lock (2.605) |
+| On | tx3, the AICallRecord INSERT | 1.0 | 1.069 | the same (0.434) |
+| On | outside any transaction | 7.0 | 4.372 | — |
+| **Off** | tx1, consume (`consume_credits` path) | 19.0 | 25.957 | BetaProfile SELECT (1.681) |
+| Off | tx2, the AICallRecord INSERT | 1.0 | 1.027 | the same (0.416) |
+| Off | outside any transaction | 5.0 | 3.701 | — |
+
+| Per call | On | Off | Added |
+|---|---|---|---|
+| Transactions | 3 | 2 | +1 (the reserve) |
+| Queries | 47 | 25 | **+22** |
+| Wall ms | 58.514 | 36.578 | **+21.9** |
+| SQL ms (statement time) | 23.489 | 16.526 | **+7.0** |
+| Non-SQL ms | 35.025 | 20.052 | **+15.0** |
+
+**What the profile shows:**
+- **About a third of the added time is SQL statement time (~7 ms), spread over ~22 extra queries** at roughly 0.3 ms each. No single query dominates: the largest is the wallet lock read, at 2.6 ms per call.
+- **About two thirds (~15 ms) is outside the statements:**
+  - Python and ORM work for those queries;
+  - the audit emits (`CREDIT_HOLD_RESERVED` / `SETTLED`, each in its own nested `atomic()`);
+  - the SAVEPOINT/RELEASE round trips. These are not counted in "SQL ms" by this recorder; that is a limitation of the method, noted here.
+- **The settle transaction alone adds 15 queries and ~13.7 ms** over the flag-off consume transaction (34 vs 19 queries, 39.7 vs 26.0 ms). The reserve transaction adds ~6.0 ms.
+
+**(b) Gate 6 measurement 2: FAIL, as declared** (`FAILED (failures=1)` at the threshold assert; `step21_gate6_m2_055748bd.log`). It is recorded beside measurement 1 and does not replace it.
+- **Setup:** 2000 calls per mode, interleaved in blocks of 100. The load average was 2.77/3.99/4.85 at the start and 2.80/4.24/4.80 at the end.
+
+  | | p50 | p95 |
+  |---|---|---|
+  | Flag off | 69.285 ms | 106.923 ms |
+  | Flag on | 110.913 ms | 165.599 ms |
+  | **Added** | **41.628 ms** | **58.677 ms**, against ≤ 5 ms: **FAIL** |
+  | Reserve | 15.561 ms | 23.389 ms |
+  | Settle | 56.501 ms | 83.888 ms |
+
+- **An observation, not a re-measurement and not an amendment:** both modes ran far slower than in measurement 1 (flag off p50 69.3 vs 41.3 ms), and the added cost grew too.
+  - A likely cause is the method itself: 4,040 calls inside one `TestCase` transaction. The wallet row is updated several times per flag-on call and the bucket rows on every call, and none of their dead row versions can be pruned until the transaction ends, so every read walks a growing version chain. The flag-on path touches the wallet row more, so it degrades faster.
+  - This is unverified. It would explain why a longer run inside one transaction measures worse, not better. That is the SM's to weigh: a run outside a single transaction (`TransactionTestCase`) would be a further measurement, and needs a ruling.
+- **Both measurements FAIL** the plan's 5 ms. The decision goes to the owner (SM): the wallet-counter fallback for SINGLE_CALL, or a changed budget.

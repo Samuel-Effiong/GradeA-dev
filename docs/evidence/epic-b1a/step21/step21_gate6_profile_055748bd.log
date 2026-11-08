@@ -1,0 +1,43 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 9b93ad03-3e2e-40e7-9326-ec8f0e066a28.
+Cannot activate automatic trial for user 9b93ad03-3e2e-40e7-9326-ec8f0e066a28 (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 1 test in 21.198s
+
+OK
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+PROFILE flag_on calls=200
+  tx1 n=200 queries_mean=5.0 wall_ms_mean=6.032 top_ms_mean=0.606
+      first: SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwalle
+      top:   UPDATE "billing_creditwallet" SET "reserved_credits" = ("billing_creditwallet"."reserved_credits" + %s) WHERE ("billing_creditwallet"."id" =
+  tx2 n=200 queries_mean=34.0 wall_ms_mean=39.678 top_ms_mean=2.605
+      first: SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwalle
+      top:   SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwalle
+  tx3 n=200 queries_mean=1.0 wall_ms_mean=1.069 top_ms_mean=0.434
+      first: INSERT INTO "ai_processor_aicallrecord" ("id", "created_at", "task_id", "task_type", "feature", "kind", "outcome", "error_class", "model_ask
+      top:   INSERT INTO "ai_processor_aicallrecord" ("id", "created_at", "task_id", "task_type", "feature", "kind", "outcome", "error_class", "model_ask
+  transactions_per_call_mean=3.0 queries_outside_tx_mean=7.0 outside_tx_ms_mean=4.372
+  call_wall_ms_mean=58.514 sql_ms_mean=23.489 non_sql_ms_mean=35.025
+
+PROFILE flag_off calls=200
+  tx1 n=200 queries_mean=19.0 wall_ms_mean=25.957 top_ms_mean=1.681
+      first: SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwalle
+      top:   SELECT "billing_betaprofile"."id", "billing_betaprofile"."user_id", "billing_betaprofile"."joined_beta_at", "billing_betaprofile"."first_ai_
+  tx2 n=200 queries_mean=1.0 wall_ms_mean=1.027 top_ms_mean=0.416
+      first: INSERT INTO "ai_processor_aicallrecord" ("id", "created_at", "task_id", "task_type", "feature", "kind", "outcome", "error_class", "model_ask
+      top:   INSERT INTO "ai_processor_aicallrecord" ("id", "created_at", "task_id", "task_type", "feature", "kind", "outcome", "error_class", "model_ask
+  transactions_per_call_mean=2.0 queries_outside_tx_mean=5.0 outside_tx_ms_mean=3.701
+  call_wall_ms_mean=36.578 sql_ms_mean=16.526 non_sql_ms_mean=20.052
