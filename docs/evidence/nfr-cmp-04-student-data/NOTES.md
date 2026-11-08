@@ -707,3 +707,35 @@ gate.
 **Prediction for run 12 (the same 5 modules):** Ran 115, OK.
 
 Run 12 result (`12_green_after_typing.log`): Ran 115, OK. **As predicted.**
+
+### Plants (predictions, before any plant runs)
+
+Each plant is run on `students.tests_data_export` and
+`students.tests_student_data_map` (62 tests), one plant per run. The file
+is restored from a saved copy, and its sha256 is checked. A prediction
+names the tests that must fail (as FAIL or ERROR). "Only" means no other
+test fails.
+- **13, E1:** the student filter is dropped on the StudentSubmission
+  export (every submission is exported). **Killed** by
+  `test_only_the_students_own_rows` and
+  `test_a_teacher_gets_their_own_courses_only`, and only those.
+- **14, E2:** `authtoken.Token` is set to `export=True` in the map.
+  **Killed** by:
+  - `test_sign_in_data_is_deleted_and_never_exported` (the map pin);
+  - `test_every_field_is_decided_exactly_once`, on the subtest
+    `authtoken.Token`, which has no field list;
+  - every test that builds a full export: the build looks up a name for
+    Token that doesn't exist, so the request answers 500.
+  - Not killed: the teacher tests, because Token isn't course-scoped.
+- **15, E3:** `_school_admin`'s school check is dropped. **Killed** by
+  `test_a_school_admin_of_another_school_is_refused`,
+  `test_a_school_admin_with_no_school_is_refused` and
+  `test_a_student_with_no_school_is_refused_to_a_school_admin`, and only
+  those.
+- **16, E4:** `users.UserActivity` is skipped when the zip is built.
+  **Killed** by `test_every_exported_table_has_its_file_even_when_empty`
+  and `test_only_the_students_own_rows`, and only those.
+- **17, E5:** the teacher's course filter is dropped in `_rows` (a
+  teacher gets every course of the course-scoped tables). **Killed** by
+  `test_a_teacher_gets_their_own_courses_only` and
+  `test_the_other_courses_teacher_sees_only_that_course`, and only those.
