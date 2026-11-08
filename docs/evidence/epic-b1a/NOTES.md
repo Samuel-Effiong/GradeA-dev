@@ -1772,3 +1772,12 @@ Red is otherwise as declared: DR-1 and DR-2 PASS, DR-3..DR-15 ERROR (13), every 
 ### 18 addendum 3, amended before any run: test-level counts
 
 DR-5 (after-commit; a rolled-back webhook), DR-7 (the cap; nothing left to refund) and DR-9 (a connection error retried; a refused refund reported) are each two tests. So the new file has **18 tests**. The red declaration "DR-3..DR-15 ERROR (13)" counted IDs. At test level, red is **DR-1 and DR-2 PASS, 16 ERROR** (ModuleNotFoundError or AttributeError for the missing module or task, and DR-15 a missing 0078). Nothing else changes.
+
+### 18 red attempt 1: fixture STOP (not a valid red; recorded, not amended away)
+
+On 035d0ffb: Ran 191, FAILED (errors=18). All 18 new tests errored in setUp, so this attempt says nothing about the code.
+- Cause: in `make_school()`, `add_teacher_to_license` for the 2nd and 3rd teacher raised `ValueError: No seats remaining to add a new teacher.` (license_service.py:~1747). The fixture's LicenseSubscription did not set `max_seats`.
+- The expected errors that did surface were ModuleNotFoundError `billing.departed_share_refund` and KeyError for 0078.
+- Every other test in the set passed.
+- Log: step18/step18_red_035d0ffb.log.
+- SM approved the fix on 2026-11-08, following the dd7687f4f precedent: `max_seats=3` in `make_school()` only, committed separately, with no change to the expectations. Red is re-run against the declaration as it stands: DR-1 and DR-2 PASS, 16 ERROR. If that run does not match exactly, STOP again.
