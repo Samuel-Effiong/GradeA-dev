@@ -2942,3 +2942,12 @@ It runs at the commit that adds this section, with no `BILLING_HOLDS_ENABLED` in
 **Skips:** 26 decorated plus the 4 at run time, as in §21r.
 
 **Prediction: Ran 7425, OK (skipped=30).** Any failure, or a different count or skip number, is a STOP.
+
+**Result (run at 38a25edab, flag unset, under `flock`, with 16085 MB available): Found 7425, Ran 7425 in 380.071s, FAILED (failures=1, skipped=30).** Log: `step21/step21w_near_flagoff_38a25edab.log.gz`.
+- **STOP, prediction incomplete.** The count and the skips matched. The one failure was not predicted: `ai_processor.tests_call_record_static.NothingReadsOrExposesTheTable.test_no_other_code_names_the_model`, with `AssertionError: Lists differ: ['students/student_data_map.py'] != []`.
+- **Where it comes from: staging, not B1a.**
+  - This guard allows the string `AICallRecord` outside tests and migrations only in `ai_processor/models.py` and `ai_processor/call_record.py`.
+  - staging e813dc61c's `students/student_data_map.py` already names `("ai_processor.AICallRecord", "billed_user_id")` (line 133 on staging), and the guard there is the same, last changed in ed6d6a021. So staging fails this test on its own.
+  - B1a's diff of the map, against the merge's second parent, only adds the AIJob entry; the AICallRecord line appears in it as unchanged context.
+  - §21r's near passed because the map arrived only with this merge. §21u did not predict it either.
+- **Not edited:** both files are pre-existing, and the guard and the map belong to other lanes. The fix is the SM's ruling.
