@@ -1,0 +1,314 @@
+Using existing test database for alias 'default' ('test_student_data_erase_export')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_a_bad_token_is_not_found (students.tests_data_erase.CallerMatrixTests.test_a_bad_token_is_not_found) ... Free trial plan not found: no trial activated for user 133220d5-c01c-4604-bc2a-21c175d8baf8.
+Cannot activate automatic trial for user 133220d5-c01c-4604-bc2a-21c175d8baf8 (validation): ValueError
+Free trial plan not found: no trial activated for user ba028f2e-c274-47ee-a471-b6dc9bab6d98.
+Cannot activate automatic trial for user ba028f2e-c274-47ee-a471-b6dc9bab6d98 (validation): ValueError
+ok
+test_a_school_admin_of_the_school_erases_in_full (students.tests_data_erase.CallerMatrixTests.test_a_school_admin_of_the_school_erases_in_full) ... Free trial plan not found: no trial activated for user cf389156-5747-4e3c-aa94-58349df6c6f0.
+Cannot activate automatic trial for user cf389156-5747-4e3c-aa94-58349df6c6f0 (validation): ValueError
+Free trial plan not found: no trial activated for user 8d3d4e6f-def0-4515-8f8e-ca86566e6159.
+Cannot activate automatic trial for user 8d3d4e6f-def0-4515-8f8e-ca86566e6159 (validation): ValueError
+ok
+test_a_student_with_no_school_is_for_a_super_admin_only (students.tests_data_erase.CallerMatrixTests.test_a_student_with_no_school_is_for_a_super_admin_only) ... Free trial plan not found: no trial activated for user 72771d05-6880-4468-8eab-56571ca0b31a.
+Cannot activate automatic trial for user 72771d05-6880-4468-8eab-56571ca0b31a (validation): ValueError
+Free trial plan not found: no trial activated for user f16b337f-8ab7-4949-a85d-a4537c35f7cf.
+Cannot activate automatic trial for user f16b337f-8ab7-4949-a85d-a4537c35f7cf (validation): ValueError
+ok
+test_an_unknown_id_is_not_found (students.tests_data_erase.CallerMatrixTests.test_an_unknown_id_is_not_found) ... Free trial plan not found: no trial activated for user a4f306dd-496d-4fd0-ba78-65b1a620841c.
+Cannot activate automatic trial for user a4f306dd-496d-4fd0-ba78-65b1a620841c (validation): ValueError
+Free trial plan not found: no trial activated for user 3fdb36ef-f400-4e7b-9b32-fdb5ac554498.
+Cannot activate automatic trial for user 3fdb36ef-f400-4e7b-9b32-fdb5ac554498 (validation): ValueError
+ok
+test_get_and_head_are_refused_and_erase_nothing (students.tests_data_erase.CallerMatrixTests.test_get_and_head_are_refused_and_erase_nothing) ... Free trial plan not found: no trial activated for user eb280678-f4d0-4461-93ba-4c99bb526eee.
+Cannot activate automatic trial for user eb280678-f4d0-4461-93ba-4c99bb526eee (validation): ValueError
+Free trial plan not found: no trial activated for user 023a4d2a-fd0f-4c89-9b52-2f350518f7f7.
+Cannot activate automatic trial for user 023a4d2a-fd0f-4c89-9b52-2f350518f7f7 (validation): ValueError
+API request refused: MethodNotAllowed (405)
+API request refused: MethodNotAllowed (405)
+ok
+test_refused_callers_change_nothing (students.tests_data_erase.CallerMatrixTests.test_refused_callers_change_nothing) ... Free trial plan not found: no trial activated for user bc0ccef7-9033-42cf-abed-77984cac0f2a.
+Cannot activate automatic trial for user bc0ccef7-9033-42cf-abed-77984cac0f2a (validation): ValueError
+Free trial plan not found: no trial activated for user 85c1421e-1fdb-46ae-8d26-bce385e383ad.
+Cannot activate automatic trial for user 85c1421e-1fdb-46ae-8d26-bce385e383ad (validation): ValueError
+Free trial plan not found: no trial activated for user e6fbb428-9b57-4641-bf94-f9671b3a3869.
+Cannot activate automatic trial for user e6fbb428-9b57-4641-bf94-f9671b3a3869 (validation): ValueError
+Free trial plan not found: no trial activated for user 241b3ad1-2bcc-43e1-ae40-9dbdfe4643aa.
+Cannot activate automatic trial for user 241b3ad1-2bcc-43e1-ae40-9dbdfe4643aa (validation): ValueError
+ok
+test_the_target_must_be_a_student (students.tests_data_erase.CallerMatrixTests.test_the_target_must_be_a_student) ... Free trial plan not found: no trial activated for user 79e732bf-e2ee-4ecb-b9cb-5f3b26b6ebb6.
+Cannot activate automatic trial for user 79e732bf-e2ee-4ecb-b9cb-5f3b26b6ebb6 (validation): ValueError
+Free trial plan not found: no trial activated for user 4a7488bc-8272-4f67-8b2a-5bfd01daed61.
+Cannot activate automatic trial for user 4a7488bc-8272-4f67-8b2a-5bfd01daed61 (validation): ValueError
+ok
+test_a_student_outside_the_teachers_courses_is_not_found (students.tests_data_erase.CourseErasureTests.test_a_student_outside_the_teachers_courses_is_not_found) ... Free trial plan not found: no trial activated for user ac2bfa79-ced4-40fa-a091-712d0d38d5bb.
+Cannot activate automatic trial for user ac2bfa79-ced4-40fa-a091-712d0d38d5bb (validation): ValueError
+Free trial plan not found: no trial activated for user 33184eb8-3644-400f-b67c-f3373e2626fd.
+Cannot activate automatic trial for user 33184eb8-3644-400f-b67c-f3373e2626fd (validation): ValueError
+ok
+test_one_event_with_scope_courses (students.tests_data_erase.CourseErasureTests.test_one_event_with_scope_courses) ... Free trial plan not found: no trial activated for user 95e2f40e-4c92-4a8c-8825-2ed485a94c49.
+Cannot activate automatic trial for user 95e2f40e-4c92-4a8c-8825-2ed485a94c49 (validation): ValueError
+Free trial plan not found: no trial activated for user ebc6781e-35e1-4c50-8908-38a6792839eb.
+Cannot activate automatic trial for user ebc6781e-35e1-4c50-8908-38a6792839eb (validation): ValueError
+ok
+test_only_the_teachers_courses_rows_go (students.tests_data_erase.CourseErasureTests.test_only_the_teachers_courses_rows_go) ... Free trial plan not found: no trial activated for user b4e1d866-564e-4e4a-aba6-0a4dc5727901.
+Cannot activate automatic trial for user b4e1d866-564e-4e4a-aba6-0a4dc5727901 (validation): ValueError
+Free trial plan not found: no trial activated for user d5694c67-3a29-49c4-9ea0-d7a07b2bdd89.
+Cannot activate automatic trial for user d5694c67-3a29-49c4-9ea0-d7a07b2bdd89 (validation): ValueError
+ok
+test_the_account_and_everything_else_stays (students.tests_data_erase.CourseErasureTests.test_the_account_and_everything_else_stays) ... Free trial plan not found: no trial activated for user 53e03095-189a-4e96-b3bb-d535591e031f.
+Cannot activate automatic trial for user 53e03095-189a-4e96-b3bb-d535591e031f (validation): ValueError
+Free trial plan not found: no trial activated for user 8611fba9-b2bf-4fb8-a501-d8da9b71bdbd.
+Cannot activate automatic trial for user 8611fba9-b2bf-4fb8-a501-d8da9b71bdbd (validation): ValueError
+ok
+test_the_grade_in_the_other_course_is_unchanged (students.tests_data_erase.CourseErasureTests.test_the_grade_in_the_other_course_is_unchanged) ... Free trial plan not found: no trial activated for user bfa0a304-474e-4c25-91e2-eb59fe81b454.
+Cannot activate automatic trial for user bfa0a304-474e-4c25-91e2-eb59fe81b454 (validation): ValueError
+Free trial plan not found: no trial activated for user e64f864a-3b5f-47f3-aacb-a0223f3a7c62.
+Cannot activate automatic trial for user e64f864a-3b5f-47f3-aacb-a0223f3a7c62 (validation): ValueError
+ok
+test_the_risk_alert_is_left_alone (students.tests_data_erase.CourseErasureTests.test_the_risk_alert_is_left_alone) ... Free trial plan not found: no trial activated for user e08997f4-8b87-4659-a505-ef6543ce3b2f.
+Cannot activate automatic trial for user e08997f4-8b87-4659-a505-ef6543ce3b2f (validation): ValueError
+Free trial plan not found: no trial activated for user 68455b16-a5bd-4691-ad87-16c726538334.
+Cannot activate automatic trial for user 68455b16-a5bd-4691-ad87-16c726538334 (validation): ValueError
+ok
+test_off_by_default_nothing_is_erased (students.tests_data_erase.FlagAndCatalogueTests.test_off_by_default_nothing_is_erased) ... Free trial plan not found: no trial activated for user c35d0974-4152-444d-8592-171f631d225f.
+Cannot activate automatic trial for user c35d0974-4152-444d-8592-171f631d225f (validation): ValueError
+Free trial plan not found: no trial activated for user c496cc15-034f-43f3-a838-73977a0b4708.
+Cannot activate automatic trial for user c496cc15-034f-43f3-a838-73977a0b4708 (validation): ValueError
+ok
+test_the_erase_action_and_its_metadata (students.tests_data_erase.FlagAndCatalogueTests.test_the_erase_action_and_its_metadata) ... Free trial plan not found: no trial activated for user 841703be-4e89-4ccf-b29d-3277c97610f8.
+Cannot activate automatic trial for user 841703be-4e89-4ccf-b29d-3277c97610f8 (validation): ValueError
+Free trial plan not found: no trial activated for user 1dc8a318-9b2c-4e1e-8738-c8df614801aa.
+Cannot activate automatic trial for user 1dc8a318-9b2c-4e1e-8738-c8df614801aa (validation): ValueError
+ok
+test_the_new_wording_is_pending (students.tests_data_erase.FlagAndCatalogueTests.test_the_new_wording_is_pending) ... Free trial plan not found: no trial activated for user 20611b64-2efc-479b-9819-2d53e0082ca8.
+Cannot activate automatic trial for user 20611b64-2efc-479b-9819-2d53e0082ca8 (validation): ValueError
+Free trial plan not found: no trial activated for user 9ec1fdcc-012f-469d-bf1a-beb7fe7d2838.
+Cannot activate automatic trial for user 9ec1fdcc-012f-469d-bf1a-beb7fe7d2838 (validation): ValueError
+ok
+test_the_route_is_concealed (students.tests_data_erase.FlagAndCatalogueTests.test_the_route_is_concealed) ... Free trial plan not found: no trial activated for user 7992f019-4072-4d12-b5cf-5ecbfffb7366.
+Cannot activate automatic trial for user 7992f019-4072-4d12-b5cf-5ecbfffb7366 (validation): ValueError
+Free trial plan not found: no trial activated for user 054ed251-def1-4e00-9a8a-bfe15bdeeae4.
+Cannot activate automatic trial for user 054ed251-def1-4e00-9a8a-bfe15bdeeae4 (validation): ValueError
+ok
+test_a_failure_rolls_everything_back_and_deletes_no_image (students.tests_data_erase.FullErasureTests.test_a_failure_rolls_everything_back_and_deletes_no_image) ... Free trial plan not found: no trial activated for user 7f9edcd7-2dba-4009-895b-8191a4a9c6da.
+Cannot activate automatic trial for user 7f9edcd7-2dba-4009-895b-8191a4a9c6da (validation): ValueError
+Free trial plan not found: no trial activated for user 97882797-e111-4e22-8217-ceb622529801.
+Cannot activate automatic trial for user 97882797-e111-4e22-8217-ceb622529801 (validation): ValueError
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/views.py", line 523, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/views_data_erase.py", line 29, in post
+    result = data_erase.erase_student(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/data_erase.py", line 199, in erase_student
+    _delete_account(student)
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: injected
+
+
+django.request ERROR 2026-11-08 16:31:04,702 log 270025 133539990255488 [request_id=- client_request_id=-] Internal Server Error: /api/v1/students/9f0cc010-ec15-49ac-8059-67db3a94d19b/erase
+
+
+ok
+test_a_second_erasure_is_not_found (students.tests_data_erase.FullErasureTests.test_a_second_erasure_is_not_found) ... Free trial plan not found: no trial activated for user 7457773a-aaef-456a-90ba-b5bf931a6c97.
+Cannot activate automatic trial for user 7457773a-aaef-456a-90ba-b5bf931a6c97 (validation): ValueError
+Free trial plan not found: no trial activated for user 421d5f9d-adaf-40b4-aa0e-eefa8bd6a8ca.
+Cannot activate automatic trial for user 421d5f9d-adaf-40b4-aa0e-eefa8bd6a8ca (validation): ValueError
+ok
+test_a_storage_failure_keeps_the_erasure_and_logs_error (students.tests_data_erase.FullErasureTests.test_a_storage_failure_keeps_the_erasure_and_logs_error) ... Free trial plan not found: no trial activated for user d783c870-34cf-4c4e-8f7e-9027127abaf3.
+Cannot activate automatic trial for user d783c870-34cf-4c4e-8f7e-9027127abaf3 (validation): ValueError
+Free trial plan not found: no trial activated for user ee521a76-233d-423f-860f-7e715d9aaec5.
+Cannot activate automatic trial for user ee521a76-233d-423f-860f-7e715d9aaec5 (validation): ValueError
+ok
+test_every_delete_table_loses_only_the_targets_rows (students.tests_data_erase.FullErasureTests.test_every_delete_table_loses_only_the_targets_rows) ... Free trial plan not found: no trial activated for user ca61cabc-034d-4da3-b632-da3123cd5425.
+Cannot activate automatic trial for user ca61cabc-034d-4da3-b632-da3123cd5425 (validation): ValueError
+Free trial plan not found: no trial activated for user 3739c297-3c3f-4163-8514-9fd706e7478b.
+Cannot activate automatic trial for user 3739c297-3c3f-4163-8514-9fd706e7478b (validation): ValueError
+ok
+test_kept_records_are_unchanged (students.tests_data_erase.FullErasureTests.test_kept_records_are_unchanged) ... Free trial plan not found: no trial activated for user c6d3cc38-a347-4ce4-84c7-b38c810c0a92.
+Cannot activate automatic trial for user c6d3cc38-a347-4ce4-84c7-b38c810c0a92 (validation): ValueError
+Free trial plan not found: no trial activated for user af6bff24-bae0-4518-a4b3-5fc1970ad4ae.
+Cannot activate automatic trial for user af6bff24-bae0-4518-a4b3-5fc1970ad4ae (validation): ValueError
+ok
+test_no_event_written_during_the_erasure_names_the_student (students.tests_data_erase.FullErasureTests.test_no_event_written_during_the_erasure_names_the_student) ... Free trial plan not found: no trial activated for user 7f583ed7-e786-4bef-8261-eb08801b2bf7.
+Cannot activate automatic trial for user 7f583ed7-e786-4bef-8261-eb08801b2bf7 (validation): ValueError
+Free trial plan not found: no trial activated for user 75e7294c-7f17-47a9-bda9-69d1395c5f24.
+Cannot activate automatic trial for user 75e7294c-7f17-47a9-bda9-69d1395c5f24 (validation): ValueError
+ok
+test_one_event_with_scope_full_naming_no_one (students.tests_data_erase.FullErasureTests.test_one_event_with_scope_full_naming_no_one) ... Free trial plan not found: no trial activated for user fd4ca19e-ce2a-4bb2-9206-5bf122b882d7.
+Cannot activate automatic trial for user fd4ca19e-ce2a-4bb2-9206-5bf122b882d7 (validation): ValueError
+Free trial plan not found: no trial activated for user b26d028c-6a59-4c91-aa49-6a2809d083c7.
+Cannot activate automatic trial for user b26d028c-6a59-4c91-aa49-6a2809d083c7 (validation): ValueError
+ok
+test_outstanding_tokens_are_deleted_not_unlinked (students.tests_data_erase.FullErasureTests.test_outstanding_tokens_are_deleted_not_unlinked) ... Free trial plan not found: no trial activated for user 90cce069-ce4b-4d0c-a1d4-2e964be22808.
+Cannot activate automatic trial for user 90cce069-ce4b-4d0c-a1d4-2e964be22808 (validation): ValueError
+Free trial plan not found: no trial activated for user bacc390e-6eb6-4c7a-982c-a76e8cf2fb5d.
+Cannot activate automatic trial for user bacc390e-6eb6-4c7a-982c-a76e8cf2fb5d (validation): ValueError
+ok
+test_the_account_is_gone_and_the_record_is_written (students.tests_data_erase.FullErasureTests.test_the_account_is_gone_and_the_record_is_written) ... Free trial plan not found: no trial activated for user 0c0c4c8f-6a12-45e9-b9b8-8b62966e5c01.
+Cannot activate automatic trial for user 0c0c4c8f-6a12-45e9-b9b8-8b62966e5c01 (validation): ValueError
+Free trial plan not found: no trial activated for user fef3d49c-af69-4abe-9c48-11d3a6591565.
+Cannot activate automatic trial for user fef3d49c-af69-4abe-9c48-11d3a6591565 (validation): ValueError
+ERROR
+test_the_empty_wallet_is_deleted (students.tests_data_erase.FullErasureTests.test_the_empty_wallet_is_deleted) ... Free trial plan not found: no trial activated for user 644286ec-d598-4fef-a941-2a8294add17a.
+Cannot activate automatic trial for user 644286ec-d598-4fef-a941-2a8294add17a (validation): ValueError
+Free trial plan not found: no trial activated for user f1322f95-8751-4b72-a05e-f0d58536f1e1.
+Cannot activate automatic trial for user f1322f95-8751-4b72-a05e-f0d58536f1e1 (validation): ValueError
+ok
+test_the_erased_account_cannot_sign_in (students.tests_data_erase.FullErasureTests.test_the_erased_account_cannot_sign_in) ... Free trial plan not found: no trial activated for user 808bf477-245a-4daf-9b21-047bc4cc30de.
+Cannot activate automatic trial for user 808bf477-245a-4daf-9b21-047bc4cc30de (validation): ValueError
+Free trial plan not found: no trial activated for user c67b39fc-6286-4e62-bee5-9b3d2920c875.
+Cannot activate automatic trial for user c67b39fc-6286-4e62-bee5-9b3d2920c875 (validation): ValueError
+ok
+test_the_image_is_deleted_after_commit (students.tests_data_erase.FullErasureTests.test_the_image_is_deleted_after_commit) ... Free trial plan not found: no trial activated for user 365da220-4145-4dc0-a28d-b6c8a972e849.
+Cannot activate automatic trial for user 365da220-4145-4dc0-a28d-b6c8a972e849 (validation): ValueError
+Free trial plan not found: no trial activated for user 9b82b0d6-d794-4fa5-ba83-98591f88ac3f.
+Cannot activate automatic trial for user 9b82b0d6-d794-4fa5-ba83-98591f88ac3f (validation): ValueError
+ok
+test_whitelist_and_waitlist_go_by_email_ignoring_case (students.tests_data_erase.FullErasureTests.test_whitelist_and_waitlist_go_by_email_ignoring_case) ... Free trial plan not found: no trial activated for user 19ccfeb8-f108-4d28-b351-b863bf6dee23.
+Cannot activate automatic trial for user 19ccfeb8-f108-4d28-b351-b863bf6dee23 (validation): ValueError
+Free trial plan not found: no trial activated for user 679917c6-4012-4219-82dd-2d1e7c9b8e34.
+Cannot activate automatic trial for user 679917c6-4012-4219-82dd-2d1e7c9b8e34 (validation): ValueError
+ok
+test_a_batch_upload_session_refuses (students.tests_data_erase.RefusalTests.test_a_batch_upload_session_refuses) ... Free trial plan not found: no trial activated for user 82a76e30-4f92-4bdf-b4f1-0ebf22e5639b.
+Cannot activate automatic trial for user 82a76e30-4f92-4bdf-b4f1-0ebf22e5639b (validation): ValueError
+Free trial plan not found: no trial activated for user 4f950034-9bc5-48b1-81d9-3c6080a57f54.
+Cannot activate automatic trial for user 4f950034-9bc5-48b1-81d9-3c6080a57f54 (validation): ValueError
+API request failed with STUDENT_ERASE_NOT_ONLY_A_STUDENT: PENDING OWNER APPROVAL (not only a student).
+ok
+test_a_billing_transaction_refuses (students.tests_data_erase.RefusalTests.test_a_billing_transaction_refuses) ... Free trial plan not found: no trial activated for user c5c5302b-a73d-41f5-bea3-1bdf29b0cf13.
+Cannot activate automatic trial for user c5c5302b-a73d-41f5-bea3-1bdf29b0cf13 (validation): ValueError
+Free trial plan not found: no trial activated for user a277a884-85d8-4c9a-85fd-7db9ae12a356.
+Cannot activate automatic trial for user a277a884-85d8-4c9a-85fd-7db9ae12a356 (validation): ValueError
+API request failed with STUDENT_ERASE_BILLING_RECORDS: PENDING OWNER APPROVAL (billing records).
+ok
+test_a_dispute_deficit_refuses (students.tests_data_erase.RefusalTests.test_a_dispute_deficit_refuses) ... Free trial plan not found: no trial activated for user 34d1738c-f954-41bc-b955-11d3a7d2d1f4.
+Cannot activate automatic trial for user 34d1738c-f954-41bc-b955-11d3a7d2d1f4 (validation): ValueError
+Free trial plan not found: no trial activated for user 6fef21ff-4564-4bb8-9e28-03f3b98650ca.
+Cannot activate automatic trial for user 6fef21ff-4564-4bb8-9e28-03f3b98650ca (validation): ValueError
+API request failed with STUDENT_ERASE_WALLET_NOT_EMPTY: PENDING OWNER APPROVAL (wallet).
+ok
+test_a_payment_dispute_refuses (students.tests_data_erase.RefusalTests.test_a_payment_dispute_refuses) ... Free trial plan not found: no trial activated for user 106cc6ee-c9a5-4fec-83f4-83eca6c72b83.
+Cannot activate automatic trial for user 106cc6ee-c9a5-4fec-83f4-83eca6c72b83 (validation): ValueError
+Free trial plan not found: no trial activated for user 8e2edcc5-ab7f-4cfe-a847-e21f42610e6a.
+Cannot activate automatic trial for user 8e2edcc5-ab7f-4cfe-a847-e21f42610e6a (validation): ValueError
+API request failed with STUDENT_ERASE_BILLING_RECORDS: PENDING OWNER APPROVAL (billing records).
+ok
+test_a_refund_deficit_refuses (students.tests_data_erase.RefusalTests.test_a_refund_deficit_refuses) ... Free trial plan not found: no trial activated for user 4c320161-db3c-4f43-9480-d30930a8621d.
+Cannot activate automatic trial for user 4c320161-db3c-4f43-9480-d30930a8621d (validation): ValueError
+Free trial plan not found: no trial activated for user 27bba205-bb08-4207-a628-1bc512242c1e.
+Cannot activate automatic trial for user 27bba205-bb08-4207-a628-1bc512242c1e (validation): ValueError
+API request failed with STUDENT_ERASE_WALLET_NOT_EMPTY: PENDING OWNER APPROVAL (wallet).
+ok
+test_a_wallet_with_credit_history_refuses (students.tests_data_erase.RefusalTests.test_a_wallet_with_credit_history_refuses) ... Free trial plan not found: no trial activated for user f2d98e9f-a3ad-42e0-9496-5465fefc7e93.
+Cannot activate automatic trial for user f2d98e9f-a3ad-42e0-9496-5465fefc7e93 (validation): ValueError
+Free trial plan not found: no trial activated for user 16bbd76d-d8bb-4025-b184-c7f4f9e38c00.
+Cannot activate automatic trial for user 16bbd76d-d8bb-4025-b184-c7f4f9e38c00 (validation): ValueError
+API request failed with STUDENT_ERASE_WALLET_NOT_EMPTY: PENDING OWNER APPROVAL (wallet).
+ok
+test_django_admin_history_refuses (students.tests_data_erase.RefusalTests.test_django_admin_history_refuses) ... Free trial plan not found: no trial activated for user c49c60a2-3cb3-4bad-9f30-274b6efbcb26.
+Cannot activate automatic trial for user c49c60a2-3cb3-4bad-9f30-274b6efbcb26 (validation): ValueError
+Free trial plan not found: no trial activated for user c99c220a-0b1c-47c2-b673-a7ff57b086bf.
+Cannot activate automatic trial for user c99c220a-0b1c-47c2-b673-a7ff57b086bf (validation): ValueError
+API request failed with STUDENT_ERASE_NOT_ONLY_A_STUDENT: PENDING OWNER APPROVAL (not only a student).
+ok
+test_having_made_a_tag_refuses (students.tests_data_erase.RefusalTests.test_having_made_a_tag_refuses) ... Free trial plan not found: no trial activated for user 487e0593-74f3-4d47-be3c-6314a98ccecf.
+Cannot activate automatic trial for user 487e0593-74f3-4d47-be3c-6314a98ccecf (validation): ValueError
+Free trial plan not found: no trial activated for user 3b8f2367-7f54-4f3f-ad7b-826c40c59259.
+Cannot activate automatic trial for user 3b8f2367-7f54-4f3f-ad7b-826c40c59259 (validation): ValueError
+API request failed with STUDENT_ERASE_NOT_ONLY_A_STUDENT: PENDING OWNER APPROVAL (not only a student).
+ok
+test_owning_a_course_refuses (students.tests_data_erase.RefusalTests.test_owning_a_course_refuses) ... Free trial plan not found: no trial activated for user 228c6557-8fbc-41c6-9d66-57baccb125ea.
+Cannot activate automatic trial for user 228c6557-8fbc-41c6-9d66-57baccb125ea (validation): ValueError
+Free trial plan not found: no trial activated for user b430ab45-2f1f-4b90-9ea4-9479865f5b75.
+Cannot activate automatic trial for user b430ab45-2f1f-4b90-9ea4-9479865f5b75 (validation): ValueError
+API request failed with STUDENT_ERASE_NOT_ONLY_A_STUDENT: PENDING OWNER APPROVAL (not only a student).
+ok
+test_owning_a_tag_refuses (students.tests_data_erase.RefusalTests.test_owning_a_tag_refuses) ... Free trial plan not found: no trial activated for user 23272bf3-0dcc-4ca8-a0d1-d5ae6e87c68f.
+Cannot activate automatic trial for user 23272bf3-0dcc-4ca8-a0d1-d5ae6e87c68f (validation): ValueError
+Free trial plan not found: no trial activated for user 787b4fed-e92e-4c42-8097-dd9cb05d1ccd.
+Cannot activate automatic trial for user 787b4fed-e92e-4c42-8097-dd9cb05d1ccd (validation): ValueError
+API request failed with STUDENT_ERASE_NOT_ONLY_A_STUDENT: PENDING OWNER APPROVAL (not only a student).
+ok
+test_performed_by_alone_refuses (students.tests_data_erase.RefusalTests.test_performed_by_alone_refuses) ... Free trial plan not found: no trial activated for user a1cfc25f-8fb3-460b-84f8-2d2c90a75a34.
+Cannot activate automatic trial for user a1cfc25f-8fb3-460b-84f8-2d2c90a75a34 (validation): ValueError
+Free trial plan not found: no trial activated for user 64c7bd30-83a4-4cb9-80b9-8f56876cd6dc.
+Cannot activate automatic trial for user 64c7bd30-83a4-4cb9-80b9-8f56876cd6dc (validation): ValueError
+API request failed with STUDENT_ERASE_BILLING_RECORDS: PENDING OWNER APPROVAL (billing records).
+ok
+test_the_check_covers_every_not_a_student_entry (students.tests_data_erase.RefusalTests.test_the_check_covers_every_not_a_student_entry) ... Free trial plan not found: no trial activated for user ea987317-700e-4462-9be6-fd6178ac159d.
+Cannot activate automatic trial for user ea987317-700e-4462-9be6-fd6178ac159d (validation): ValueError
+Free trial plan not found: no trial activated for user acd01857-761b-451b-a7e8-542b09ec0b6c.
+Cannot activate automatic trial for user acd01857-761b-451b-a7e8-542b09ec0b6c (validation): ValueError
+ok
+test_wallet_credits_refuse (students.tests_data_erase.RefusalTests.test_wallet_credits_refuse) ... Free trial plan not found: no trial activated for user d09e3b23-3ce7-4661-8c8d-304a275aecfc.
+Cannot activate automatic trial for user d09e3b23-3ce7-4661-8c8d-304a275aecfc (validation): ValueError
+Free trial plan not found: no trial activated for user 205eb58a-4b18-43ab-ab6c-3859a85b710d.
+Cannot activate automatic trial for user 205eb58a-4b18-43ab-ab6c-3859a85b710d (validation): ValueError
+API request failed with STUDENT_ERASE_WALLET_NOT_EMPTY: PENDING OWNER APPROVAL (wallet).
+ok
+test_a_students_own_work_is_exported_then_deleted (students.tests_student_data_map.OwnerRulingsTests.test_a_students_own_work_is_exported_then_deleted) ... ok
+test_credit_records_are_kept (students.tests_student_data_map.OwnerRulingsTests.test_credit_records_are_kept) ... ok
+test_kept_records_are_never_part_of_a_course_scoped_erasure (students.tests_student_data_map.OwnerRulingsTests.test_kept_records_are_never_part_of_a_course_scoped_erasure) ... ok
+test_sign_in_data_is_deleted_and_never_exported (students.tests_student_data_map.OwnerRulingsTests.test_sign_in_data_is_deleted_and_never_exported) ... ok
+test_the_activity_log_is_kept (students.tests_student_data_map.OwnerRulingsTests.test_the_activity_log_is_kept) ... ok
+test_a_course_scoped_table_can_be_scoped_by_course (students.tests_student_data_map.StepOneBRulingsTests.test_a_course_scoped_table_can_be_scoped_by_course) ... ok
+test_an_email_matched_entry_is_an_email_column (students.tests_student_data_map.StepOneBRulingsTests.test_an_email_matched_entry_is_an_email_column) ... ok
+test_any_name_ending_in_by_id_is_a_user_id_column (students.tests_student_data_map.StepOneBRulingsTests.test_any_name_ending_in_by_id_is_a_user_id_column) ... ok
+test_chat_sessions_go_with_a_teachers_erasure (students.tests_student_data_map.StepOneBRulingsTests.test_chat_sessions_go_with_a_teachers_erasure) ... ok
+test_every_other_entry_matches_by_user (students.tests_student_data_map.StepOneBRulingsTests.test_every_other_entry_matches_by_user) ... ok
+test_own_row_entries_are_on_the_user_model (students.tests_student_data_map.StepOneBRulingsTests.test_own_row_entries_are_on_the_user_model) ... ok
+test_processing_records_go_with_a_teachers_erasure (students.tests_student_data_map.StepOneBRulingsTests.test_processing_records_go_with_a_teachers_erasure) ... ok
+test_risk_alerts_go_only_with_a_full_erasure (students.tests_student_data_map.StepOneBRulingsTests.test_risk_alerts_go_only_with_a_full_erasure) ... ok
+test_tag_columns_are_not_a_student (students.tests_student_data_map.StepOneBRulingsTests.test_tag_columns_are_not_a_student) ... ok
+test_the_guard_sees_a_bare_created_by_id (students.tests_student_data_map.StepOneBRulingsTests.test_the_guard_sees_a_bare_created_by_id) ... ok
+test_the_profile_image_is_exported_then_deleted (students.tests_student_data_map.StepOneBRulingsTests.test_the_profile_image_is_exported_then_deleted) ... ok
+test_whitelist_and_waitlist_rows_go_by_email (students.tests_student_data_map.StepOneBRulingsTests.test_whitelist_and_waitlist_rows_go_by_email) ... ok
+test_every_bare_user_id_column_is_in_the_map (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_bare_user_id_column_is_in_the_map) ... ok
+test_every_entry_has_a_known_role_and_a_reason (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_entry_has_a_known_role_and_a_reason) ... ok
+test_every_relation_to_a_user_is_in_the_map (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_every_relation_to_a_user_is_in_the_map) ... ok
+test_the_map_names_only_columns_that_exist (students.tests_student_data_map.StudentDataMapIsCompleteTests.test_the_map_names_only_columns_that_exist) ... ok
+
+======================================================================
+ERROR: test_the_account_is_gone_and_the_record_is_written (students.tests_data_erase.FullErasureTests.test_the_account_is_gone_and_the_record_is_written)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/students/tests_data_erase.py", line 337, in test_the_account_is_gone_and_the_record_is_written
+    record = apps.get_model("students.ErasedStudentRecord").objects.get(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 635, in get
+    raise self.model.DoesNotExist(
+students.models.ErasedStudentRecord.DoesNotExist: ErasedStudentRecord matching query does not exist.
+
+----------------------------------------------------------------------
+Ran 64 tests in 20.905s
+
+FAILED (errors=1)
+Preserving test database for alias 'default' ('test_student_data_erase_export')...
+Found 64 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, tags, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.

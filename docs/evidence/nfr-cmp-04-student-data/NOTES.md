@@ -1274,3 +1274,21 @@ and its sha256 checked. "Only" means no other test fails.
   `test_every_delete_table_loses_only_the_targets_rows` on the subtest
   `users.BetaWhitelist` (the fixture stores the target's whitelist email
   in upper case).
+
+### Erasure plant results (each restored from a saved copy, sha256 matched)
+
+| Run | Plant | Result | Verdict |
+|---|---|---|---|
+| 29 | X1: one student filter dropped (RevokedSession) | killed, 1 failure: the only-the-target test, on the subtest RevokedSession | **as predicted** |
+| 30 | X2: course scope dropped | killed: 1 failure (the teacher's courses only) and 1 error (the other course's grade, DoesNotExist) | **as predicted** |
+| 31 | X3: NOT_A_STUDENT check skipped | killed, 5 failures: the five real-row refusals | **as predicted** |
+| 32 | X4: wallet check skipped | killed, 4 failures: the four wallet tests. The history test failed and did not error (the hedge didn't happen). | **as predicted** |
+| 33 | X5: R2 billing check skipped | killed, 3 failures: the three R2 tests | **as predicted** |
+| 34 | X6: record not written | killed, 1 error: the record test | **as predicted** |
+| 35 | X7: iexact changed to exact | killed, 2 failures: the R7 test, and the only-the-target test on BetaWhitelist | **as predicted** |
+
+7 of 7 killed, all as predicted.
+
+**Still to run:** the step 3 gate, under the lock. It covers students,
+users, audit, tags and AutoGrader's reason codes and migration rollback,
+for the new migration. Its prediction is written first, on the SM's go.
