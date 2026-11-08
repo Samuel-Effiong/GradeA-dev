@@ -1499,7 +1499,7 @@ Restored from a saved copy, sha256 matched. Plants are now 17 of 17
 killed.
 
 Open before the push:
-- the owner's wording approval (25 items). When it arrives: swap the
+- DONE (runs 42-44): the owner's wording approval (25 items). When it arrives: swap the
   placeholders, set `EXPORT_NAMES_APPROVED = True`, then a final near run
   of the same 7 labels, with its prediction first. The SM pushes.
 
@@ -1619,3 +1619,8 @@ Counted from the code with `DiscoverRunner.build_suite(...).countTestCases()`:
 Predicted: **Ran 5118, OK (skipped=7)**. The log goes to
 `~/Documents/Projects/GAP-a0-runs/nfr-cmp-04/44_near_final.log`, because
 it is too large for the repo hook.
+
+Near run 44 result (`GAP-a0-runs/nfr-cmp-04/44_near_final.log`): Ran
+5118, OK (skipped=7), in 655 s. **As predicted.**
+
+The branch is ready for the SM to push. No push from Lane 2.
