@@ -307,3 +307,11 @@ was wrong. (Its own sum is also off: 38 + 5 + TokenProxy = 44.) I copied
   names 3, R3 1, R4 1, course-scoped 1).
 - The run 06 line "50 entries" is wrong: the map now holds **48**
   (43 + 5).
+
+Prediction for run 07 (plant: remove the `_by_id` branch from
+`USER_ID_COLUMN`): **killed**. Ran 20, FAILED (failures=4), and no errors:
+- `test_the_guard_sees_a_bare_created_by_id`: 1;
+- `test_any_name_ending_in_by_id_...`: 3, the positive names.
+
+The completeness tests still pass, because the map already names the
+column. The file is restored from a saved copy, and its sha256 is checked.
