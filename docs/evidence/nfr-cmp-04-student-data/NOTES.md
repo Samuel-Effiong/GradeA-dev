@@ -1128,3 +1128,12 @@ exists. **E-Q2:** BackgroundProcessingTask becomes `course_scoped=True`.
 - 1 failure: the route-registry test, on the subtest
   `route='student-data-erase'`.
 - Ran 44 (21 + 22 + 1), FAILED (failures=2, errors=1).
+
+Run 22 result (`22_red_erase.log`): Ran 44, FAILED (failures=2, errors=1):
+- the error: `ModuleNotFoundError: students.data_erase`;
+- the failures: the registry test on `student-data-erase`, and the E-Q2
+  map pin.
+
+**As predicted.** `students/tests_data_erase.py` holds 43 tests (full 13,
+refusals 13, course 6, matrix 7, flag and catalogue 4), not run yet
+because of the import error.
