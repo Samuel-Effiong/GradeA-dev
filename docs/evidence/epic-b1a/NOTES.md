@@ -2382,3 +2382,26 @@ The method follows plan §9 item 13:
 **R-4a's over-reserve is declared for PG 16 too** (rowcount 1, reserved 70, remaining 40). A different outcome there is "prediction incomplete" and a STOP. The `RUN_LOAD_TESTS` Gate 6 files (latency, profile, m2, m3) skip in CI.
 
 **The billing near count, updated for the m3 file** (one more opt-in skip; SM accepted): **Ran 3110 = 3109 + 1, OK (skipped=6).** This replaces §21h's 3109/skipped=5.
+
+### 21k. Results: Gate 6 measurement 3 (2026-11-08, at 2cab9872)
+
+**FAIL, as declared** (`FAILED (failures=1)` at the threshold assert: 32.593 not ≤ 5.0; `step21/step21_gate6_m3_2cab9872.log`). Matched. It is recorded beside measurements 1 and 2 and does not replace either.
+- **Setup:** `TransactionTestCase`, 2000 calls per mode, interleaved in blocks of 100. Ran 1 test in 185.8 s. The load average was 3.56/4.00/3.97 at the start and 3.04/3.62/3.83 at the end.
+
+  | | p50 | p95 |
+  |---|---|---|
+  | Flag off | 32.945 ms | 44.078 ms |
+  | Flag on | 55.658 ms | 76.670 ms |
+  | **Added** | **22.713 ms** | **32.593 ms**, against ≤ 5 ms: **FAIL** |
+  | Reserve | 9.511 ms | 13.480 ms |
+  | Settle | 29.577 ms | 41.662 ms |
+
+- **The second prediction matched too:** both modes ran faster than in measurement 2 (flag off p50 32.9 vs 69.3 ms; flag on p50 55.7 vs 110.9 ms).
+
+| Gate 6 measurement | Method | Added p50 | Added p95 | Result |
+|---|---|---|---|---|
+| 1 (§21g) | `TestCase`, 500 calls per mode, off then on | 18.8 ms | 16.2 ms | FAIL |
+| 2 (§21i) | `TestCase`, 2000 calls per mode, interleaved | 41.6 ms | 58.7 ms | FAIL |
+| 3 (here) | `TransactionTestCase`, 2000 calls per mode, interleaved | 22.7 ms | 32.6 ms | FAIL |
+
+- **All three measurements FAIL** the plan's 5 ms. Committing each call removed measurement 2's slowdown in both modes, but the added cost is still above 20 ms at p50. This is consistent with the profile's +22 queries per call. The decision stays with the owner (SM): the wallet-counter fallback for SINGLE_CALL, or a changed budget.
