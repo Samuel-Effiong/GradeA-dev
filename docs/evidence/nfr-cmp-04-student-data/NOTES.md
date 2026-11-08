@@ -794,3 +794,12 @@ in the exact bytes.
 
 Log numbers: 18 red, 19 green, 20 the gate. The fixes get no plant of
 their own; the SM's list didn't ask for one.
+
+Run 18 result (`18_red_head_anonymous.log`): Ran 44, FAILED (failures=3):
+HEAD 200 != 405, anonymous 401 != 404, bad token 401 != 404. **As
+predicted.**
+
+**Prediction for run 19 (green):** the 5 step 2 modules, Ran 117
+(44 + 20 + 22 + 28 + 3), OK.
+
+Run 19 result (`19_green_head_anonymous.log`): Ran 117, OK. **As predicted.**

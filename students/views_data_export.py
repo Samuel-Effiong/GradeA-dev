@@ -11,6 +11,7 @@ exists.
 from django.conf import settings
 from django.http import HttpResponse
 from django.utils.http import content_disposition_header
+from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
@@ -22,12 +23,23 @@ from users.models import CustomUser, UserTypes
 
 class StudentDataExportView(APIView):
     permission_classes = (IsAuthenticated,)
-    http_method_names = ["get", "head", "options"]
+    # Not "head": Django serves HEAD through get(), which would build the
+    # zip and record an export nobody downloaded (SM review).
+    http_method_names = ["get", "options"]
 
     def dispatch(self, request, *args, **kwargs):
         if not getattr(settings, "STUDENT_DATA_TOOLS_ENABLED", False):
             return json_404(request)
         return super().dispatch(request, *args, **kwargs)
+
+    def handle_exception(self, exc):
+        # An anonymous caller (or a bad or expired token) gets the
+        # unknown-URL answer too, not 401: a 401 would say the route exists.
+        # Authentication runs inside DRF's initial(), after dispatch() starts,
+        # so this is the first place the caller is known (SM review).
+        if isinstance(exc, (NotAuthenticated, AuthenticationFailed)):
+            return json_404(self.request)
+        return super().handle_exception(exc)
 
     def get(self, request, pk):
         student = CustomUser.objects.filter(pk=pk, user_type=UserTypes.STUDENT).first()
