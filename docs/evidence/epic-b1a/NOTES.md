@@ -2905,3 +2905,40 @@ Anything else is a STOP. No map entry or field decision is made until the SM rul
 - `check_migration_safety.py --base HEAD~1` on the 0080 commit: "additive only".
 - `makemigrations --check`: no changes.
 - A forward migrate on the scratch DB, ending with `billing.0080` applied. A round trip is not run, by analogy with R1; the reverse guard is covered by r4a and r4b.
+
+**R2 and R3 results:**
+- **Red** (at 04ce5a806): Ran 6, FAILED (failures=1, errors=5). r1 and r2 raised `AIJob.DoesNotExist`, r3 `KeyError: ('billing.AIJob', 'requested_by')`, r4a and r4b `ModuleNotFoundError: ... 0080_aijob_requested_by_set_null`, and the schema pin failed with `<function CASCADE …> != <function SET_NULL …>`. **Matched** (`step21/step21v_red_04ce5a806.log`).
+- **The fix:**
+  - 17fa0fd0c: the model field and billing 0080. `check_migration_safety.py --base HEAD~1`: "OK billing/migrations/0080_aijob_requested_by_set_null.py: additive only", rc 0. `makemigrations --check`: no changes.
+  - 1817d08f9: the map entry, and R3's five export omits.
+- **Green** (the code of 1817d08f9): Found 148, Ran 148, OK. **Matched** (`step21/step21v_green.log`).
+- **Plant PR-1** (CASCADE in the model; restored to sha256 `77c606870b1d95364d78b35a5785e846a27d942d3e7e4b8d5214b32a95e4be82`): Ran 28, FAILED (failures=1, errors=2). Killed by r1 with `AIJob matching query does not exist`; the collateral was r2 and the schema pin, and nothing else. **Matched** (`step21/step21v_plant_PR1.log`).
+- **Forward migrate on the scratch DB:** rc 0. `billing.0080_aijob_requested_by_set_null... OK` and `students.0040_merge... OK`; `migrate --check` rc 0; the DB was dropped. **Matched** (`step21/step21v_migrate_forward_0080.log`).
+- **`SettlementRecord.item_id`:** after r1's erasure, it names a processing row that no longer exists. Per the SM, this is accepted as a credit record, like AICallRecord, and gets no map entry, because it is not a user column.
+
+### 21v-3. FB-1, a flag-on blocker (SM R4). Added to the §21m flag-on-day list as MUST-FIX
+
+**FB-1 (MUST-FIX before `BILLING_HOLDS_ENABLED` is turned on anywhere):**
+- **The problem:** deleting a `BackgroundProcessingTask` row while it is HELD leaves its `hold_credits` in `wallet.reserved_credits` forever.
+  - It can be deleted by a student's full erasure, a teacher's course erasure, or any other BPT delete or cascade.
+  - Nothing returns those credits when the item is inside an UPLOAD job that already has a SettlementRecord. `sweep_stale_holds` walks BPT rows, and its job-level branch skips any job that has a SettlementRecord. The job also never finishes.
+  - Found by reading the code; not run.
+  - Holds are off, and no AIJob is written, so production cannot reach it today.
+- **The proposed fix**, for the B1b plan and not built here:
+  - A `pre_delete` receiver on `BackgroundProcessingTask`, connected in `ready()` like §21n's. For a row with `hold_state=HELD` and a job, it returns that item's hold the way `fail_item` does: wallet locked first, the item set to RETURNED, `released_credits` counted, and a CREDIT_HOLD_RELEASED audit row. It then finishes the job when no HELD item is left.
+  - Tests:
+    - each delete road under `TransactionTestCase`: the instance delete, the QuerySet delete, both erasure scopes, and an assignment cascade;
+    - a plant that removes the receiver.
+  - A cost to weigh: the receiver turns off fast delete for BPT, so a bulk delete or cascade loads the rows.
+
+### 21w. The flag-off near run after R1–R3: declared before it runs
+
+It runs at the commit that adds this section, with no `BILLING_HOLDS_ENABLED` in the environment, under `flock`, `--parallel 4`.
+
+**Labels:** the §21r labels plus `students.tests_data_erase students.tests_data_export students.tests_student_data_map`. These three are inside `students`, and the runner drops the duplicates.
+
+**Counted with `DiscoverRunner.build_suite`:** billing 2610 (+5, r1–r4b), ai_processor 1474, assignments 822, students 1064, users 982, audit 454, the rollback test 12, static files 7. **Total 7425**, the same with the three named again.
+
+**Skips:** 26 decorated plus the 4 at run time, as in §21r.
+
+**Prediction: Ran 7425, OK (skipped=30).** Any failure, or a different count or skip number, is a STOP.
