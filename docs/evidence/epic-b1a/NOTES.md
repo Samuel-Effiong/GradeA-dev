@@ -2510,3 +2510,39 @@ The method follows plan §9 item 13:
 - **Red:** D-1, D-2 and D-3 ERROR with ProtectedError. D-4 and D-5 are red as well, because there is no receiver and no 0079 (exact counts are declared at the red commit).
 - **The plant, declared with its kill before the fix:** **PD-1** removes the receiver's call to `finish_job`. Kill: D-3 fails with the fragment `'CANCELLED' != ` (the job is left open).
 - `tests_call_record`'s deletion test then passes flag on, and stays passing flag off.
+
+### 21n addendum. SM approval with conditions C1 and C2, and one finding before the red commit (2026-11-08)
+
+**The SM approved §21n (f09c4ee77):** SET_NULL, open holds released first, no new text, on conditions C1 and C2.
+
+**C1. Rows written inside `pre_delete`.**
+
+Django's Collector picks what it deletes or sets NULL before it sends `pre_delete`, so a row the receiver creates that points at the wallet or a bucket would fail at COMMIT. What `finish_job` (holds.py:372) writes, traced through `lock_wallet_first`, `_move_wallet`, `_left` and `_audit` → `audit.emitter.emit`:
+
+| Write | Table | FK to the wallet or a bucket |
+|---|---|---|
+| `SELECT … FOR UPDATE`, then UPDATE `reserved_credits` | `CreditWallet` (the row being deleted) | the row itself: an update before its own delete, nothing new |
+| UPDATE `status`, `released_credits`, ×2 | `AIJob` (existing rows, already collected: CASCADE via `requested_by`, or SET_NULL via `wallet`) | `wallet` → SET_NULL (0079); nothing new |
+| UPDATE `released_credits`, `hold_state` | `BackgroundProcessingTask` (existing rows) | none (`job` → SET_NULL) |
+| **INSERT** (`CREDIT_HOLD_RELEASED`, in emit's own nested `atomic()`) | `AuditEvent` | **none**: `actor_id`, `target_id` and `school_id` are plain UUID columns with no FK (audit/models.py:36–45) |
+
+- **No row is created with an FK to the wallet, a bucket, or the user.** `finish_job` writes no CreditLedger, CreditUsageLog or CreditBucket row; the only insert is the FK-free AuditEvent. So there is **no C1 STOP**.
+- **D-1 to D-4 run as `TransactionTestCase`**, so the delete really commits and a deferred FK violation would surface. D-5 is also in that file; it calls the guard function and needs no commit.
+- **The H-299 trap.** H-299's fix (in-scope events are stored) is on staging, not on this branch.
+  - User and wallet deletion is not a zero-credit operation, and `finish_job` calls no `assert_not_zero_credit`.
+  - Even so, emit swallows its own failures (FR-A-11), so D-3 asserts after the commit that exactly one `CREDIT_HOLD_RELEASED` AuditEvent exists with `target_id = job.pk` and `reason_label = "cancelled"`.
+
+**C2. QuerySet deletion and registration.**
+- D-1 and D-3 each delete one teacher with `teacher.delete()` and one with `CustomUser.objects.filter(pk=…).delete()`.
+- The receiver is connected in `BillingConfig.ready()` with `pre_delete.connect(…, sender=CreditWallet, dispatch_uid=…)`, not at import time.
+
+**A finding: §21n's own STOP condition (point 3) is met before any code.**
+- `settle` (269), `fail_item` (347), `finish_job` (379), `ensure_call_fits` (227) and `_sweep_item` (511) all call `lock_wallet_first(job.wallet)` before their conditional UPDATE.
+- On a job the receiver cancelled whose wallet is then NULL (a job billed to the wallet but requested by someone else, such as a student's upload), each would raise `AttributeError: 'NoneType' object has no attribute 'pk'`. They would not move nothing.
+- The successor paths (`_open_successor_job`, 436–459) read `old_job.wallet` too.
+- So **D-4, as declared, needs a new branch.** Per §21n point 3, this goes to the SM before the red commit.
+- **The proposal (no new text):**
+  - In `settle`, `fail_item`, `finish_job` and `_sweep_item`: when `job.wallet_id is None`, return their existing "not open / nothing moved" result before locking. That is None, or 0 for `finish_job`'s return; the exact values are fixed in the test.
+  - A NULL-wallet job is terminal by construction (the receiver cancels it first), so this is the same answer the conditional UPDATE would give.
+  - In `ensure_call_fits`, and for a late door or retry on a NULL-wallet job: raise the existing refusal (`InsufficientCreditsError` with the existing `REFUSAL_MESSAGE`, "Refill your wallet to continue"). That stops the provider call, using an existing sentence.
+  - D-4 then asserts each of these.
