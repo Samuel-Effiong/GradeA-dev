@@ -1743,3 +1743,28 @@ Any mismatch is a STOP, reported to the SM.
 - Guard 2 and the cap still run in the task, against Stripe's current state, so a replay with the same arguments is still a no-op.
 
 DR-4 also asserts the task was enqueued with `(str(intent.id), 299)`. No other expectation changes.
+
+### 18 addendum 2, amended before any run (SM 2026-11-08)
+
+1. **R-Q1: no.** `amount_paid_cents` goes out through the API (billing/serializers.py:2348 onward) and reads as money the school paid. On an `OFFLINE_OVERAGE_REFUND_DUE` record it stays **null**. The owed amount goes into `notes`, from `TEXTS["offline_record_notes"].format(amount=…)`.
+   - DR-13 now asserts `amount_paid_cents is None` and that the notes contain the formatted amount.
+2. **The text keys follow the owner draft** (team/draft_wording_departed_share_2026-11-08.md, awaiting approval). There are 7, all PENDING:
+   - `purchase_note` (W-1), formatted with `{blocks}`, `{n}`, `{skipped}` and `{amount}`;
+   - `history_suffix_card` and `history_suffix_offline` (W-2), formatted with `{n}`; the offline one replaces the suffix at license_service.py:~3633, switch on only;
+   - `email_subject`, `email_body_card` and `email_body_offline` (W-3), the bodies formatted with `{n}` and `{amount}`;
+   - `offline_record_notes` (W-4 notes), formatted with `{amount}`.
+   - Each value is a placeholder starting `PENDING OWNER TEXT` that carries the draft's format fields, so formatting is exercised. The W-4 label stays the placeholder choice label.
+   - **DR-3:** exactly these 7 keys; every value starts `PENDING OWNER TEXT`; the label is the placeholder.
+   - **DR-11:** the card email uses `email_subject` and `email_body_card`.
+   - **DR-12:** `purchase_note` and `history_suffix_card`.
+   - **DR-13 (offline, switch on)**, in addition:
+     - exactly one `send_email_task.delay` to the license admin, with `email_subject` and the formatted `email_body_offline`, in the approval's on_commit;
+     - the offline BillingTransaction suffix is the formatted `history_suffix_offline`;
+     - `amount_paid_cents is None`, and the notes contain `299` formatted as the amount.
+   - **DR-2 (switch off, offline)** also asserts that no email is sent and that today's ` (1 skipped, needs review)` suffix stays.
+   - How `{amount}` is shown is the placeholder's business for now; the tests check only that the formatted value contains the amount figure.
+3. **The rollback test.** `AutoGrader.tests_migration_rollback_defaults` joins the targeted set and the near run.
+   - 0078 is a choices-only `AlterField`, which the guard skips by its stated scope, so no edit to that module is expected.
+   - DR-15 stays.
+
+Red is otherwise as declared: DR-1 and DR-2 PASS, DR-3..DR-15 ERROR (13), every other test passes, with `tests_migration_rollback_defaults` passing on red too. The targeted-set count is recorded at the run.
