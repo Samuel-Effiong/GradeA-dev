@@ -2838,3 +2838,13 @@ The SM pushed `task/epic-b1a` at 5899077ee and opened draft PR #123 for one CI r
 Anything else is a STOP. No map entry or field decision is made until the SM rules on the roles.
 
 **The near run's count after the merge:** the §21r labels now count 7420; `students` is 1064, up from 953 by these 111. The skips are still 26 decorated plus 4 at run time.
+
+**Result (run at dc07c13d8, flag unset, under `flock`, with 4675 MB available):** no test ran; rc 1. Log: `step21/step21u_guards_dc07c13d8.log`.
+- The runner found 111 tests, as counted.
+- It then stopped with `CommandError: Conflicting migrations detected; multiple leaf nodes in the migration graph: (0037_erasedstudentrecord, 0039_backgroundprocessingtask_job_index in students).`
+- **STOP, prediction incomplete.** I did not run `makemigrations --check` after this merge, as I did for §21r, so the second leaf was not seen.
+- Both branches add a students migration after `0036_studentsubmission_pending_result`:
+  - staging adds `0037_erasedstudentrecord`;
+  - B1a adds `0037_backgroundprocessingtask_credit_hold`, then `0038_validate_backgroundprocessingtask_job_fk`, then `0039_backgroundprocessingtask_job_index` (`atomic = False`, the concurrent index).
+- **Nothing is fixed.** The choice of fix goes to the SM.
+- A `test_epic_b1a` database was left behind by the failed start. It has 0 connections. I could not drop it ("must be owner"), so it is left for the next run's `--noinput` to recreate.
