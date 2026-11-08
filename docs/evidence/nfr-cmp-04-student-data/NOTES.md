@@ -468,3 +468,85 @@ audit's route coverage and enums, users) as 15.
 Wording added to the list (all PENDING): every file and folder name in the
 zip, the download's file name, the README, the manifest's keys, the JSON
 keys (field names) and the `STUDENT_DATA_EXPORT` label.
+
+### SM rulings on Q1–Q4 (2026-11-08) and the changed declaration
+
+- **Q1, leave out until published** (the SM changed my proposal; the owner
+  is told this is the default and can reverse it). The SM named score and
+  feedback, for H-130's reason: a student must not learn that a grade
+  exists before the teacher releases it. Applying that rule faithfully
+  needs every field the student's own views hide before release. Score and
+  feedback alone would let the grade through elsewhere in the zip. The
+  student's views were read for this: `StudentSubmissionListSerializer`
+  (students/serializers.py), `max_points_shown` (H-133),
+  `answer_document_for_student` (students/services.py) and
+  `released_course_grade` (classrooms/grade_service.py).
+  - **StudentSubmission: present only when `is_published` is True; absent
+    (`null`) before.** These are score, score_percentage, feedback,
+    formatted_grade, graded_at, was_regraded and regraded_at.
+    - Feedback goes through `student_safe_feedback`, formatted_grade
+      through `student_safe_formatted_grade`, the student's own whitelist.
+      So even published feedback carries no `second_opinion` and no
+      teacher-only section.
+  - **max_points:** before release it is the assignment's total; after
+    release it is the row's own value (`max_points_shown`'s rule, H-133).
+  - **raw_input:** `answer_document_for_student`, the ungraded rebuild
+    before release and the stored document after.
+  - **Now left out entirely:** ai_score, ai_feedback and ai_graded_at.
+    These are the AI's draft grade before the teacher's review, which the
+    student never sees, published or not. **This changes the design**
+    (they were in the exported list).
+  - **StudentCourse.final_grade:** the student-visible figure
+    (`released_course_grade`), not the stored one, which counts unreleased
+    work.
+  - **StudentCourse.ai_summary and ai_summary_generated_at: left out,
+    pending Q5.** This is the AI summary a teacher asks for. It is
+    generated from the student's work, possibly including unreleased
+    grades, and the student never sees it. Leaving it out is the
+    conservative default, by the same reasoning as Q1. **This changes the
+    design.**
+  - **StudentRiskAlertState** is unchanged: its average and flag count
+    published work only (dashboard/services.py).
+  - **Tests:** an unpublished submission's 7 fields are null; its
+    max_points is the assignment's total; its raw_input is the ungraded
+    document, with no score in it. The zip bytes contain neither the stored
+    score nor the feedback text. A published submission has them all, in
+    their student-safe form. The final grade counts released work only.
+- **Q2, YES:** the review flags are left out.
+- **Q3, YES:** if the image can't be read, the export still runs, an
+  ERROR is logged, and the manifest lists the file as missing. The
+  manifest key is PENDING. Tested.
+- **Q4, YES, in full.** The student's own school answers the student's
+  data request, and every row in the export is the student's own data,
+  including rows from courses at other schools. A school admin's export is
+  therefore complete, not limited to that school's courses.
+- **The one-route layout is approved**, with its own `STUDENT_DATA_EXPORT`
+  event and the label PENDING.
+- **Added to the matrix:** an account that is not `is_real_super_admin`
+  is refused. That covers an account of type SUPER_ADMIN without
+  `is_superuser`, and one with `is_superuser` but another type. A super
+  admin acting as someone else, if the app has that, is refused too.
+
+**Q5, for the SM:** should `ai_summary` be left out (the default above)
+or exported?
+
+Revised field table rows (they replace the earlier rows):
+
+| Model | Exported | Conditional | Left out |
+|---|---|---|---|
+| StudentSubmission | id, assignment, submission_date, answers, raw_input (student form), max_points (H-133 form), is_published | score, score_percentage, feedback (student-safe), formatted_grade (student-safe), graded_at, was_regraded, regraded_at: null until published | student; ai_score, ai_feedback, ai_graded_at (the AI's draft); the grading-run internals as before; the review flags (Q2); pending_result, pending_graded_at |
+| StudentCourse | id, course, created_at, enrollment_status, withdrawal_date, final_grade (released only) | — | student; auto_added; ai_summary, ai_summary_generated_at (Q5) |
+
+The guard now counts three lists: exported, conditional and left out.
+Together they must cover every field, with no overlap.
+
+**Run 08 (red) prediction:** `students.tests_data_export` cannot import
+`students.data_export` (the module isn't built yet), so the run ends in 1
+import error. The route, flag and enum tests elsewhere fail on their own
+assertions:
+- `audit.tests_enums`: STUDENT_DATA_EXPORT is missing;
+- `audit.tests_route_coverage`: no change yet, because the route doesn't
+  exist.
+
+The exact counts are written down after the test file is written, before
+the run.
