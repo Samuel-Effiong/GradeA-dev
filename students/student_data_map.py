@@ -89,8 +89,10 @@ STUDENT_DATA_MAP = {
     ("dashboard.StudentRiskAlertState", "student"): _own(
         "The at-risk flags teachers see"
     ),
+    # SM E-Q2: through its assignment, a teacher's erasure removes it.
     ("students.BackgroundProcessingTask", "requested_by"): _own(
-        "Processing records for files the student uploaded (file names only)"
+        "Processing records for files the student uploaded (file names only)",
+        course_scoped=True,
     ),
     # SM R4: a chat belongs to a course, so a teacher's erasure removes it.
     ("ai_processor.ChatSession", "user"): _own(
@@ -134,6 +136,10 @@ STUDENT_DATA_MAP = {
     ("billing.BillingTransaction", "user"): _keep("Billing records (SET_NULL)"),
     ("billing.BillingTransaction", "performed_by"): _keep("Billing records (SET_NULL)"),
     ("billing.PaymentDispute", "user"): _keep("Payment disputes (SET_NULL)"),
+    # The erased-student record itself: kept 7 years (NFR-CMP-04 step 3).
+    ("students.ErasedStudentRecord", "original_user_id"): _keep(
+        "Who an erased student was (7 years)"
+    ),
     # The student's wallet: deleted only when empty.
     ("billing.CreditWallet", "user"): Entry(
         Role.FINANCIAL_ACCOUNT, "Credit wallet: erasure refuses if it holds credits"
@@ -165,6 +171,9 @@ STUDENT_DATA_MAP = {
         "Teacher inactivity alert"
     ),
     ("students.BatchUploadSession", "teacher"): _staff("Teacher batch upload"),
+    ("students.ErasedStudentRecord", "erased_by_id"): _staff(
+        "The admin or teacher who erased a student"
+    ),
     # SM R1: tags are teacher-only (Epic C1).
     ("tags.Tag", "teacher"): _staff("Tag owner"),
     ("tags.Tag", "created_by_id"): _staff(

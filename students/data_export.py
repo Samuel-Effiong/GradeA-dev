@@ -265,6 +265,7 @@ COURSE_PATH = {
     "classrooms.StudentCourse": "course_id",
     "students.StudentSubmission": "assignment__course_id",
     "ai_processor.ChatSession": "course_id",
+    "students.BackgroundProcessingTask": "assignment__course_id",  # E-Q2
 }
 
 #: Rows in a fixed order: time first, then id.

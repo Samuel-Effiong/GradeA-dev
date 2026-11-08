@@ -22,13 +22,13 @@ import importlib
 from datetime import timedelta
 from decimal import Decimal
 from unittest import mock
+from uuid import uuid4
 
 from django.apps import apps
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.core.files.storage import InMemoryStorage
-from django.forms.models import model_to_dict
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
@@ -111,11 +111,31 @@ def delete_rows(user):
     }
 
 
-def every_mapped_table_count():
-    return {
-        label: apps.get_model(label).objects.count()
-        for label in sorted({label for label, _ in STUDENT_DATA_MAP})
-    }
+def students_rows(*users):
+    """What an erasure may touch, for these students: their rows in every
+    DELETE and FINANCIAL_ACCOUNT entry, their accounts, and the
+    erased-student records. (Not global table counts: a refused request
+    still writes the house's own audit event and the caller's activity.)"""
+    rows: dict = {}
+    for user in users:
+        for key, entry in STUDENT_DATA_MAP.items():
+            # The activity middleware adds a row for whoever makes a request,
+            # the student included; a refused request can't avoid that.
+            # (Its deletion is checked by the full-erasure test.)
+            if key == ("users.UserActivity", "user"):
+                continue
+            if entry.role in (Role.DELETE, Role.FINANCIAL_ACCOUNT):
+                rows[(user.pk, key)] = _rows_by_owner(key[0], key[1], entry, user)
+        rows[(user.pk, "account")] = (
+            get_user_model().objects.filter(pk=user.pk).exists()
+        )
+    rows["records"] = apps.get_model("students.ErasedStudentRecord").objects.count()
+    return rows
+
+
+def _row(obj):
+    """Every column of a row (Django's model_to_dict leaves out the id)."""
+    return {f.attname: getattr(obj, f.attname) for f in obj._meta.concrete_fields}
 
 
 class _EraseWorld(World):
@@ -170,15 +190,15 @@ class _EraseWorld(World):
             student=user, school=school, is_at_risk=True
         )
         Token.objects.create(user=user)
-        PasswordResetOTP.objects.create(user=user, code="111111")
-        PasswordChangeOTP.objects.create(user=user, code="222222")
+        PasswordResetOTP.objects.create(user=user, code=f"{self.uid():06d}")
+        PasswordChangeOTP.objects.create(user=user, code=f"{self.uid():06d}")
         UserGoogleCredentials.objects.create(
             user=user, access_token="a", token_expiry=now
         )
         OutstandingToken.objects.create(
             user=user, jti=f"jti-{user.pk}", token="t", expires_at=now
         )
-        RevokedSession.objects.create(user=user)
+        RevokedSession.objects.create(user=user, sid=uuid4())
         BetaWhitelist.objects.create(email=user.email.upper())  # R7: any case
         Waitlist.objects.create(email=user.email)
         return user
@@ -235,19 +255,12 @@ def kept_rows(target):
     """Every KEEP_RECORD row naming `target`, every column."""
     return {
         "audit": sorted(
-            (model_to_dict(e) for e in AuditEvent.objects.filter(actor_id=target.pk)),
+            (_row(e) for e in AuditEvent.objects.filter(actor_id=target.pk)),
             key=lambda d: str(d["id"]),
         ),
-        "ledger": [
-            model_to_dict(r) for r in CreditLedger.objects.filter(user_id=target.pk)
-        ],
-        "usage": [
-            model_to_dict(r) for r in CreditUsageLog.objects.filter(user_id=target.pk)
-        ],
-        "ai": [
-            model_to_dict(r)
-            for r in AICallRecord.objects.filter(billed_user_id=target.pk)
-        ],
+        "ledger": [_row(r) for r in CreditLedger.objects.filter(user_id=target.pk)],
+        "usage": [_row(r) for r in CreditUsageLog.objects.filter(user_id=target.pk)],
+        "ai": [_row(r) for r in AICallRecord.objects.filter(billed_user_id=target.pk)],
     }
 
 
@@ -272,15 +285,18 @@ class _EraseCase(TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.content, unknown_url_bytes())
 
+    def snapshot(self):
+        return students_rows(self.w.target, self.w.classmate)
+
     def assertNothingChanged(self, before):
-        self.assertEqual(every_mapped_table_count(), before)
+        self.assertEqual(self.snapshot(), before)
         self.assertTrue(get_user_model().objects.filter(pk=self.w.target.pk).exists())
         self.assertFalse(
             AuditEvent.objects.filter(action=data_erase.ERASE_AUDIT_ACTION).exists()
         )
 
     def assertRefused(self, code):
-        before = every_mapped_table_count()
+        before = self.snapshot()
         response = self.erase(self.w.superadmin)
         self.assertEqual(response.status_code, 409, response.content[:400])
         self.assertEqual(response.json()["error"]["field_errors"]["reason_code"], code)
@@ -377,7 +393,7 @@ class FullErasureTests(_EraseCase):
         self.erase(self.w.superadmin)
         names = (target.email, target.first_name, target.last_name)
         for event in AuditEvent.objects.filter(occurred_at__gte=start):
-            text = str(model_to_dict(event))
+            text = str(_row(event))
             for value in names:
                 with self.subTest(action=event.action, value=value):
                     self.assertNotIn(value, text)
@@ -408,7 +424,7 @@ class FullErasureTests(_EraseCase):
         self.assertFalse(get_user_model().objects.filter(pk=self.w.target.pk).exists())
 
     def test_a_failure_rolls_everything_back_and_deletes_no_image(self):
-        before = every_mapped_table_count()
+        before = self.snapshot()
         records = apps.get_model("students.ErasedStudentRecord").objects.count()
         with mock.patch.object(
             data_erase, "_delete_account", side_effect=RuntimeError("injected")
@@ -581,10 +597,10 @@ class CourseErasureTests(_EraseCase):
         )
 
     def test_the_risk_alert_is_left_alone(self):  # E-Q3
-        before = model_to_dict(StudentRiskAlertState.objects.get(student=self.w.target))
+        before = _row(StudentRiskAlertState.objects.get(student=self.w.target))
         self.erase(self.w.teacher)
         self.assertEqual(
-            model_to_dict(StudentRiskAlertState.objects.get(student=self.w.target)),
+            _row(StudentRiskAlertState.objects.get(student=self.w.target)),
             before,
         )
 
@@ -635,7 +651,7 @@ class CallerMatrixTests(_EraseCase):
             None,
         ):
             with self.subTest(caller=getattr(caller, "email", "anonymous")):
-                before = every_mapped_table_count()
+                before = self.snapshot()
                 self.assertNotFound(self.erase(caller))
                 self.assertNothingChanged(before)
 
@@ -660,7 +676,7 @@ class CallerMatrixTests(_EraseCase):
     def test_get_and_head_are_refused_and_erase_nothing(self):
         for method in ("get", "head"):
             with self.subTest(method=method):
-                before = every_mapped_table_count()
+                before = self.snapshot()
                 response = self.erase(self.w.superadmin, method=method)
                 self.assertEqual(response.status_code, 405)
                 self.assertNothingChanged(before)
@@ -669,7 +685,7 @@ class CallerMatrixTests(_EraseCase):
 class FlagAndCatalogueTests(_EraseCase):
     @flag_off
     def test_off_by_default_nothing_is_erased(self):
-        before = every_mapped_table_count()
+        before = self.snapshot()
         for caller in (None, self.w.superadmin, self.w.school_admin):
             with self.subTest(caller=getattr(caller, "email", "anonymous")):
                 self.assertNotFound(self.erase(caller))

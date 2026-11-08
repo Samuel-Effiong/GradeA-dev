@@ -345,6 +345,8 @@ METADATA_ALLOWLIST = {
         }
         | _FAILED_AUTH_SUMMARY_KEYS
     ),
+    # NFR-CMP-04: a student's data erased (students/data_erase.py).
+    AuditAction.STUDENT_DATA_ERASE: frozenset({"scope", "item_count"}),
     # NFR-CMP-04: a student's data export (students/data_export.py).
     AuditAction.DATA_EXPORT: frozenset(
         {"file_count", "file_size_bytes", "item_count", "scope"}

@@ -1137,3 +1137,106 @@ Run 22 result (`22_red_erase.log`): Ran 44, FAILED (failures=2, errors=1):
 **As predicted.** `students/tests_data_erase.py` holds 43 tests (full 13,
 refusals 13, course 6, matrix 7, flag and catalogue 4), not run yet
 because of the import error.
+
+Code for step 3:
+- `students/data_erase.py`: `ERASE_CALLERS`, `NOT_A_STUDENT_CHECKS` and
+  `erase_student`.
+- `students/views_data_erase.py`, with `StudentDataToolsView` now shared
+  with the export: the dark dispatch and the anonymous `handle_exception`
+  moved into it, unchanged.
+- The model `ErasedStudentRecord` and migration
+  `students/0037_erasedstudentrecord` (additive: one new table, a unique
+  field).
+- The map:
+  - BackgroundProcessingTask is course-scoped (E-Q2);
+  - the record's `original_user_id` is KEEP_RECORD;
+  - its `erased_by_id` is NOT_A_STUDENT.
+- The export's `COURSE_PATH` gains BackgroundProcessingTask.
+- `AuditAction.STUDENT_DATA_ERASE` (label PENDING), with its allow-list
+  `{scope, item_count}`.
+- The three codes, with PENDING messages and labels.
+- The route `students/<uuid:pk>/erase`.
+- makemigrations --check: no changes. The audit enum's choices aren't in
+  any migration, as with TAG_*.
+
+**Prediction for run 23 (green):** these modules, Ran 234, OK (counted from
+`build_suite`):
+
+| Module | Tests |
+|---|---|
+| `students.tests_data_erase` | 43 |
+| `students.tests_data_export` | 44 |
+| `students.tests_student_data_map` | 21 |
+| `audit.tests_route_coverage` | 22 |
+| `audit.tests_metadata` | 28 |
+| `audit.tests_enums` | 3 |
+| `AutoGrader.tests_reason_codes` | 61 |
+| `AutoGrader.tests_migration_rollback_defaults` | 12 |
+
+Run 23 result (`23_green_erase.log`): Ran 234, **FAILED (errors=43). The
+prediction (OK) was wrong**, and it is left as written. Every one of the
+43 erase tests errors in `setUp`, for one cause: **my fixture**.
+`RevokedSession.sid` is its primary key, a UUID with no default, and the
+fixture didn't set it (`IntegrityError: null value in column "sid"`). The
+other 191 tests pass. The fixture now sets `sid=uuid4()`. No code
+changes.
+
+**Prediction for run 24 (the same modules):** Ran 234, OK.
+
+Run 24 result (`24_green_erase.log`): Ran 234, **FAILED (errors=43). The
+prediction (OK) was wrong.** It is again my fixture, in `setUp`: the two
+students share one OTP code, and `PasswordResetOTP.code` is unique. Each
+OTP now gets its own code. I reviewed the rest of the fixture for unique
+columns: Token key, `jti`, BetaWhitelist and Waitlist email, and the
+one-to-one tables all differ per student.
+
+**Prediction for run 25 (the same modules):** Ran 234, OK.
+
+Run 25 result (`25_green_erase.log`): Ran 234, **FAILED (failures=21,
+errors=1). The prediction (OK) was wrong.** The fixture builds now, so
+this is the first run where the erasure code is exercised. Every failure
+is a mistake in my tests, not in the code:
+- **19 failures** (every refusal, the refused-caller subtests, and the
+  rollback test): `assertNothingChanged` compared **global** row counts of
+  every mapped table. A refused POST, and the injected 500, still write the
+  house's own audit event for the request: `audit.AuditEvent` was 1 more
+  each time, and the erasure event was correctly absent.
+- **The GET subtest:** the authenticated GET wrote the **caller's own**
+  `UserActivity` row (the activity middleware).
+- Neither of these is the erasure touching data. The snapshot is now
+  per-student: the target's and the classmate's rows in every DELETE and
+  FINANCIAL_ACCOUNT entry, both accounts, and the count of erased-student
+  records. "No erasure event" is still asserted separately.
+- **1 error:** `test_kept_records_are_unchanged`, `KeyError: 'id'`.
+  `model_to_dict` leaves out non-editable fields, including the id. Kept
+  rows (and the event and risk-alert comparisons) now compare every
+  concrete column.
+
+**Prediction for run 26 (the same modules):** Ran 234, OK.
+
+Run 26 result (`26_green_erase.log`): Ran 234, **FAILED (failures=2). The
+prediction (OK) was wrong.** Both failures are subtests of
+`test_refused_callers_change_nothing`: the caller was the target or the
+classmate, and the activity middleware added **their own**
+`UserActivity` row for the refused request (657 became {657, 661}). This
+is a mistake in my test again, not the code. The snapshot now leaves out
+`UserActivity`; its deletion is still checked by
+`test_every_delete_table_loses_only_the_targets_rows`.
+
+**Prediction for run 27 (the same modules):** Ran 234, OK.
+
+Run 27 result (`27_green_erase.log`): Ran 234, OK. **As predicted.**
+
+Four greens in a row failed (23–26), each for a mistake in my test,
+never in the erasure code. The lesson, carried into the plants: after a
+fixture change, check the fixture against unique and not-null columns and
+against the house's per-request writes (audit events, activity) before
+predicting OK.
+
+After lint (pre-commit refused the commit): mypy wants
+`students_rows`' dict annotated (`rows: dict = {}`), and isort reordered
+imports. Neither changes behavior.
+
+**Prediction for run 28 (the same modules):** Ran 234, OK.
+
+Run 28 result (`28_green_after_lint.log`): Ran 234, OK. **As predicted.**

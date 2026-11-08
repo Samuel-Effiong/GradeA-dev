@@ -21,11 +21,11 @@ from students import data_export
 from users.models import CustomUser, UserTypes
 
 
-class StudentDataExportView(APIView):
+class StudentDataToolsView(APIView):
+    """Dark until STUDENT_DATA_TOOLS_ENABLED; an anonymous caller or a bad
+    token gets the unknown-URL answer too (NFR-CMP-04, export and erase)."""
+
     permission_classes = (IsAuthenticated,)
-    # Not "head": Django serves HEAD through get(), which would build the
-    # zip and record an export nobody downloaded (SM review).
-    http_method_names = ["get", "options"]
 
     def dispatch(self, request, *args, **kwargs):
         if not getattr(settings, "STUDENT_DATA_TOOLS_ENABLED", False):
@@ -40,6 +40,12 @@ class StudentDataExportView(APIView):
         if isinstance(exc, (NotAuthenticated, AuthenticationFailed)):
             return json_404(self.request)
         return super().handle_exception(exc)
+
+
+class StudentDataExportView(StudentDataToolsView):
+    # Not "head": Django serves HEAD through get(), which would build the
+    # zip and record an export nobody downloaded (SM review).
+    http_method_names = ["get", "options"]
 
     def get(self, request, pk):
         student = CustomUser.objects.filter(pk=pk, user_type=UserTypes.STUDENT).first()
