@@ -640,26 +640,28 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "",
         retryable=False,
     ),
-    # NFR-CMP-04 erasure refusals. The texts are PENDING OWNER APPROVAL
-    # (placeholders, on the owner's single wording list).
+    # NFR-CMP-04 erasure refusals (owner-approved wording, 2026-11-08).
+    # Remediation stays empty.
     ReasonCode.STUDENT_ERASE_NOT_ONLY_A_STUDENT: ReasonSpec(
         ErrorClass.VALIDATION,
         status.HTTP_409_CONFLICT,
-        "PENDING OWNER APPROVAL (not only a student).",
+        "We can't erase this account because it is also used as a teacher or"
+        " administrator account.",
         "",
         retryable=False,
     ),
     ReasonCode.STUDENT_ERASE_WALLET_NOT_EMPTY: ReasonSpec(
         ErrorClass.VALIDATION,
         status.HTTP_409_CONFLICT,
-        "PENDING OWNER APPROVAL (wallet).",
+        "We can't erase this account because its credit wallet has credits or a"
+        " credit history.",
         "",
         retryable=False,
     ),
     ReasonCode.STUDENT_ERASE_BILLING_RECORDS: ReasonSpec(
         ErrorClass.VALIDATION,
         status.HTTP_409_CONFLICT,
-        "PENDING OWNER APPROVAL (billing records).",
+        "We can't erase this account because it has billing records.",
         "",
         retryable=False,
     ),

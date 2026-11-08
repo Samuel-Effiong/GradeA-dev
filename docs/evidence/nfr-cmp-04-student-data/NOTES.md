@@ -1595,3 +1595,16 @@ errors=3). **As predicted.**
   - UnicodeDecodeError on "PENDING-profile-image";
   - KeyError 'profile-picture.png';
   - KeyError 'profile-picture'.
+
+Run 43 result (`43_green_approved_wording.log`): Ran 90, OK. **As
+predicted.**
+
+Before the run, a script compared the code with the approved file
+(the code block in B, the table rows in A and D, and E). The result:
+- the README matches byte for byte;
+- 17 of 17 names match, and `EXPORT_NAMES_APPROVED` is True;
+- 3 of 3 messages and labels match, with remediation "";
+- the STUDENT_DATA_ERASE label matches.
+
+No "PENDING OWNER" or "PENDING-" text is left in non-test code under
+students, audit or AutoGrader.

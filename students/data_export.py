@@ -20,13 +20,16 @@ A grade the teacher has not released is not in the export in any form
 are empty here, and what is shown goes through the student's own
 whitelists. Sign-in and security data is never exported.
 
-Every name in the zip is a placeholder until the owner approves the
-wording (`EXPORT_NAMES_APPROVED`).
+Every name in the zip, and the README, is the owner's approved wording
+(2026-11-08, team/approved_wording_student_data_2026-11-08.md). The profile
+picture keeps its stored file's extension (`_picture_name`).
 """
 
 import io
 import json
 import logging
+import os
+import re
 import zipfile
 from dataclasses import dataclass
 from functools import partial
@@ -57,29 +60,48 @@ TEACHER_EXPORT_ALLOWED = True
 #: The audit event for an export (SM: reuse the existing action).
 EXPORT_AUDIT_ACTION = AuditAction.DATA_EXPORT
 
-#: PENDING OWNER APPROVAL (SM 2026-11-08). Every name a person sees in the
-#: zip: files, nested keys and the manifest's keys. Placeholders only.
-EXPORT_NAMES_APPROVED = False
+#: Owner-approved (2026-11-08). Every name a person sees in the zip: files,
+#: nested keys and the manifest's keys. "profile_image" is the base name;
+#: the stored file's extension is added (`_picture_name`).
+EXPORT_NAMES_APPROVED = True
 EXPORT_NAMES = {
-    "download": "PENDING-download.zip",
-    "readme": "PENDING-readme.txt",
-    "manifest": "PENDING-manifest.json",
-    "profile": "PENDING-profile.json",
-    "profile_image": "PENDING-profile-image",
-    "classrooms.StudentCourse": "PENDING-table-01.json",
-    "students.StudentSubmission": "PENDING-table-02.json",
-    "dashboard.StudentRiskAlertState": "PENDING-table-03.json",
-    "students.BackgroundProcessingTask": "PENDING-table-04.json",
-    "ai_processor.ChatSession": "PENDING-table-05.json",
-    "users.UserActivity": "PENDING-table-06.json",
-    "users.Settings": "PENDING-table-07.json",
-    "messages": "PENDING-messages",
-    "manifest_counts": "PENDING-counts",
-    "manifest_scope": "PENDING-scope",
-    "manifest_generated_at": "PENDING-generated-at",
-    "manifest_missing": "PENDING-missing",
+    "download": "student-data.zip",
+    "readme": "README.txt",
+    "manifest": "manifest.json",
+    "profile": "profile.json",
+    "profile_image": "profile-picture",
+    "classrooms.StudentCourse": "enrollments.json",
+    "students.StudentSubmission": "submissions.json",
+    "dashboard.StudentRiskAlertState": "at-risk-status.json",
+    "students.BackgroundProcessingTask": "file-uploads.json",
+    "ai_processor.ChatSession": "assistant-chats.json",
+    "users.UserActivity": "activity.json",
+    "users.Settings": "settings.json",
+    "messages": "messages",
+    "manifest_counts": "record_counts",
+    "manifest_scope": "scope",
+    "manifest_generated_at": "created_at",
+    "manifest_missing": "missing_files",
 }
-README_TEXT = "PENDING OWNER APPROVAL\n"
+README_TEXT = (
+    "This download holds the data we keep about one student, as of the time"
+    " in manifest.json.\n"
+    "Each .json file lists one kind of record: enrollments, submissions,"
+    " at-risk status, file uploads, assistant chats, activity and settings."
+    " profile.json holds the student's account details, and profile-picture"
+    " is their profile picture, if they set one.\n"
+    "If a teacher made this download, it covers only that teacher's"
+    " courses.\n"
+    "A grade appears only after the teacher has released it.\n"
+    "Sign-in and security details are never included.\n"
+    "If a file is listed under missing_files in manifest.json, it couldn't be"
+    " read when this download was made. Try again later.\n"
+)
+
+#: A real extension: a dot, then 1-10 letters or digits. The stored name is
+#: "<email name>_<date>_<ext>", so with no extension a dot in the email name
+#: would otherwise pass for one.
+_EXTENSION = re.compile(r"\.[A-Za-z0-9]{1,10}")
 
 _GRADING_RUN = "how grading ran (internal)"
 _PROCESSING = "internal processing"
@@ -404,6 +426,15 @@ def _profile(student, scope):
     return row
 
 
+def _picture_name(student):
+    """The profile picture's name in the zip: the approved base name plus
+    the stored file's extension, when it has a real one."""
+    _, extension = os.path.splitext(os.path.basename(student.profile_image.name))
+    if not _EXTENSION.fullmatch(extension):
+        extension = ""
+    return EXPORT_NAMES["profile_image"] + extension
+
+
 def _image(student):
     """The stored profile image's bytes, or None when it can't be read (Q3:
     the export goes on; the failure is logged and listed as missing)."""
@@ -435,9 +466,9 @@ def build_export(student, scope):
     if scope.course_ids is None and student.profile_image:
         content = _image(student)
         if content is None:
-            missing.append(EXPORT_NAMES["profile_image"])
+            missing.append(_picture_name(student))
         else:
-            files[EXPORT_NAMES["profile_image"]] = content
+            files[_picture_name(student)] = content
     files[EXPORT_NAMES["readme"]] = README_TEXT.encode()
     manifest = {
         EXPORT_NAMES["manifest_counts"]: counts,

@@ -81,8 +81,8 @@ class AuditAction(models.TextChoices):
     ADMIN_ACTION = "ADMIN_ACTION", "Admin action"
     DATA_EXPORT = "DATA_EXPORT", "Data export"
     # NFR-CMP-04: a student's data erased, in full or from a teacher's
-    # courses (metadata.scope). The label is PENDING OWNER APPROVAL.
-    STUDENT_DATA_ERASE = "STUDENT_DATA_ERASE", "PENDING OWNER APPROVAL (erase)"
+    # courses (metadata.scope). Owner-approved label (2026-11-08).
+    STUDENT_DATA_ERASE = "STUDENT_DATA_ERASE", "Student data erased"
     PERMISSION_CHANGE = "PERMISSION_CHANGE", "Permission changed"
     # Epic A completion S1: the generic event for a state-changing request
     # that recorded no named event. `metadata.route` says which route.
@@ -262,18 +262,18 @@ class ReasonCode(models.TextChoices):
     # Epic C1 tags (plan 11 D6; owner-approved wording in reason_codes.py).
     TAG_NAME_TAKEN = "TAG_NAME_TAKEN", "Tag name taken"
     TAG_CHANGED_SINCE_CHECK = "TAG_CHANGED_SINCE_CHECK", "Tag changed since check"
-    # NFR-CMP-04 erasure refusals: labels PENDING OWNER APPROVAL.
+    # NFR-CMP-04 erasure refusals (owner-approved labels, 2026-11-08).
     STUDENT_ERASE_NOT_ONLY_A_STUDENT = (
         "STUDENT_ERASE_NOT_ONLY_A_STUDENT",
-        "PENDING OWNER APPROVAL (not only a student)",
+        "Erase refused: not only a student",
     )
     STUDENT_ERASE_WALLET_NOT_EMPTY = (
         "STUDENT_ERASE_WALLET_NOT_EMPTY",
-        "PENDING OWNER APPROVAL (wallet)",
+        "Erase refused: credit wallet",
     )
     STUDENT_ERASE_BILLING_RECORDS = (
         "STUDENT_ERASE_BILLING_RECORDS",
-        "PENDING OWNER APPROVAL (billing records)",
+        "Erase refused: billing records",
     )
     TAG_NAME_MISSING = "TAG_NAME_MISSING", "Tag name missing"
     TAG_NAME_TOO_LONG = "TAG_NAME_TOO_LONG", "Tag name too long"
