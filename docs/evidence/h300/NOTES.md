@@ -255,3 +255,15 @@ Plant results (each restored, sha256 MATCHED 24e6932dfdf62331):
 - Q1 (`10_plant_q1.log`): Ran 29, FAILED (failures=1), a1, no MANUAL RECONCILIATION line in the logs. Killed, **as predicted**.
 - Q2 (`11_plant_q2.log`): Ran 29, OK. Survives by design, **as predicted**.
 - Q3 (`12_plant_q3.log`): Ran 29, FAILED (failures=1), a3 `'FAILED' != StripeEventStatus.SUCCEEDED`. Killed, **as predicted**.
+
+## Staging near (declared before the runs)
+
+- Near 13, `billing`, --parallel 2: count from build_suite **2619**; 4
+  decorator skips (the opt-in Gate 6 measurements: test_holds_gate6_latency,
+  _m2, _m3, _profile); no runtime skips. Predicted: **Ran 2619, OK
+  (skipped=4)**. Log `13_near_billing.log`.
+- Near 14, the 66-label standing guard list, SERIAL: count **1146**; 1
+  skip (ssrf peer introspection, CI_REQUIRE_NETWORK). Predicted: **Ran
+  1146, OK (skipped=1)**. Log `14_guard_sweep.log`.
+
+Any failure is a STOP.
