@@ -1445,3 +1445,9 @@ The full list after P1 and P5:
 - So my "+2" was wrong. The lazy user load removed at §3.2a line 31 is removed by **P2**'s `select_related("user")` alone: PP2, which drops P2, gives `39 != 37` (job.wallet plus user). It does not depend on P3.
 - The plant is killed by its named test, the count pin, so **the trim itself is not in doubt**. The mismatch is in my declared fragment.
 - **Not run yet, pending the SM's ruling:** the battery, PFB-1…9b, the timing, measurement 4, and E1–E3.
+
+**The SM's ruling on the PP3 STOP (2026-11-09):** PP3 is **killed by its named test; prediction incomplete (fragment 38, not 39)**.
+- The diagnosis stands: the lazy user load is removed by **P2 alone**, cross-checked by PP2's +2 (39).
+- The declaration is not amended.
+- The P1 precondition (F1–F10, the SINGLE_CALL no-task-rows argument, and the NOT_SETTLED roads keeping `finish_job`) is accepted, and so is the inventory amendment.
+- Continue with the declared rest: the battery, PFB-1…9b, the timing, measurement 4, and E1–E3.
