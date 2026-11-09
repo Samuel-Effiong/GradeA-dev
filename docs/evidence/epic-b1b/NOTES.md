@@ -422,3 +422,14 @@ This step had three test-only bugs: a NOT NULL fixture field, a fixture status t
   - `no_job`: fast delete is now off for the model, so the collector loads the 1,000 rows and sends 1,000 signals. Each signal returns before any query (`job_id` is None). That means a few more queries than 15, and more time than 0.02 s.
   - `one_job`: about 8 queries per row (the job, the wallet lock, the job lock, the row lock, the update, the "rows left" check and, on rows near the end, the settlement check). So several thousand queries, and probably seconds rather than milliseconds.
 - If it is too slow, 08b §5.1's fallback (filter to HELD rows first in the erasure and cascade paths) **needs an SM ruling**. I don't apply it here.
+
+**AFTER result (at 894d4ea3e, under `flock`, 8334 MB available): Ran 1, OK, as predicted.** Log: `step1/step1_timing_AFTER_894d4ea3.log`.
+
+| Shape | Seconds (3 runs) | Median | Queries | BEFORE median |
+|---|---|---|---|---|
+| `no_job` | 0.0429, 0.0535, 0.0482 | **0.048 s** | 25, 25, 25 | 0.020 s, 15 queries |
+| `one_job` (900 RETURNED, 100 HELD) | 8.68, 8.86, 9.34 | **8.86 s** | 8925, *0, 0* | 0.018 s, 15 queries |
+
+- **The one-job query counts are unreliable after run 1.** Django keeps `connection.queries_log` as a `deque(maxlen=9000)` (`django/db/backends/base/base.py`), and `CaptureQueriesContext` takes a slice of it by index. Once the deque is full the slice comes back empty, so runs 2 and 3 read 0. Run 1's 8,925 is near the cap, so it's a lower bound: about 9 queries per row.
+- **The cost:** an assignment cascade of 1,000 rows in a flag-on job goes from 0.02 s to about 9 s. All of that runs inside the delete's transaction, with the teacher's wallet row locked from the first HELD row onward. Rows from the flag-off era (no job) cost little: 0.048 s.
+- **Sent to the SM before the near run** (08b §5.1: "Fallback if it is too slow … needs an SM ruling"), because any change here changes the code the near run tests.
