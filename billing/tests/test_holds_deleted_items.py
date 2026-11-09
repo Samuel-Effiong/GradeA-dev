@@ -155,8 +155,9 @@ class DeleteRoadTests(DeletedItemsBase):
 
     def test_t1_instance_delete(self):
         job, start, doomed, _ = self.open_job_with_two_held("t1")
+        doomed_pk = doomed.pk  # Model.delete() sets the instance's pk to None
         doomed.delete()
-        self.assert_road(job, start, doomed.pk)
+        self.assert_road(job, start, doomed_pk)
 
     def test_t2_queryset_delete(self):
         job, start, doomed, _ = self.open_job_with_two_held("t2")
@@ -310,12 +311,13 @@ class TwoReceiversTests(DeletedItemsBase):
         item = self.held_item(job)
         holds().finish_job(job, AIJobStatus.CANCELLED)
         self.assertEqual(self.reserved(), start)
+        item_pk = item.pk  # Model.delete() sets the instance's pk to None
         item.delete()
         self.assertEqual(self.reserved(), start)
         self.assert_books_agree()
         self.assertEqual(fresh(job).status, AIJobStatus.CANCELLED)
         self.assertEqual(deleted_items(job), (HELD, 0, HELD))
-        self.assert_returned_once(job, item.pk)
+        self.assert_returned_once(job, item_pk)
 
     def test_t11_row_delete_first_then_the_wallet_receiver(self):
         self.classroom("t11")
@@ -323,6 +325,7 @@ class TwoReceiversTests(DeletedItemsBase):
         start = self.reserved()
         doomed = self.held_item(job)
         self.held_item(job)
+        doomed_pk = doomed.pk  # Model.delete() sets the instance's pk to None
         doomed.delete()
         holds().finish_job(job, AIJobStatus.CANCELLED)
         self.assertEqual(self.reserved(), start)
@@ -333,7 +336,7 @@ class TwoReceiversTests(DeletedItemsBase):
         item_rows = [
             row
             for row in released_rows(job)
-            if row.metadata.get("item_id") == str(doomed.pk)
+            if row.metadata.get("item_id") == str(doomed_pk)
         ]
         self.assertEqual([row.metadata["credits"] for row in item_rows], [HELD])
 

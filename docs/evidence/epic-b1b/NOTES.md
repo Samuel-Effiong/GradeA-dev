@@ -312,6 +312,8 @@ While writing the receiver, I read the code under the tests' assumptions and fou
 
 **Green prediction:** `billing.tests.test_holds_deleted_items`, `Ran 16`, OK. Any other result is a STOP.
 
+**Label (SM, 2026-11-09): prediction wrong: test bug (pk read after instance.delete()).**
+
 **Green result (at 4edc94ca2, under `flock`, 8279 MB available): Ran 16, FAILED (failures=2). STOP, the prediction was wrong.** Log: `step1/step1_green_4edc94ca.log`.
 - **T-1:** `AssertionError: '<the row id>' != 'None'` on the release row's `item_id`.
 - **T-11:** `Lists differ: [] != [300]`.
@@ -321,3 +323,46 @@ While writing the receiver, I read the code under the tests' assumptions and fou
   - **T-10 has the same bug but passes by coincidence:** `released_credits_for(job, None)` counts the job-level row from `finish_job`.
   - Roads that don't call `delete()` on that instance (QuerySet, erasure, cascades, a teacher's deletion) keep the pk, and they passed.
 - **Proposed fix (for the SM's ruling):** T-1, T-10 and T-11 save the row's pk before the delete and use it after. Nothing else changes. Then green run 2, declared `Ran 16`, OK.
+- **SM ruling (2026-11-09):** the pk-before-delete fix is approved. T-1, T-10 and T-11 now save the pk before `delete()` (applied; nothing else changed). The SM adds plant PFB-4 and asks for one more read of all 16 tests (§1.10).
+
+### §1.10 A read of all 16 tests for the same family of mistakes (SM condition 3)
+
+**(a) A field read from a deleted instance.** I looked at every `.delete()` in the file and every later use of the instance it was called on:
+- `instance.delete()` and a later read: **T-1, T-10 and T-11**, now fixed.
+- `instance.delete()` with no later read of that instance: T-7 (`doomed`), T-8b (`item`), T-9 (`settled`) and T-13 (`doomed`).
+- The delete is of *another* object, and the test's own instance isn't the one the collector nulls:
+  - T-2, T-8 and T-14: QuerySet deletes;
+  - T-3 and T-4: the erasure's QuerySet deletes;
+  - T-5 (`assignment.delete()`; `assignment.pk` isn't read afterwards), T-6 (`batch.delete()`, the same) and T-12 (`teacher.delete()`; `self.teacher.pk` isn't read afterwards).
+- **Found: none beyond the three fixed.**
+
+**(b) A count that includes job-level rows.** `released_credits_for(job, pk)` adds the rows naming the item **and every row with no `item_id`** (`finish_job`'s). It is used by `assert_returned_once` in T-5, T-10 and T-12.
+- **T-5 (assignment cascade):** the receiver returns the held row's hold on an item-named row. `finish_job` then returns 0 and writes no row, whichever row the collector visits first.
+  - **Found: a gap.** If the receiver wrote its row with no `item_id` (PFB-4), T-5 would still pass.
+  - **Proposal:** T-5 asserts that exactly one release row exists, that it names the held row, and that it carries 300.
+- **T-10 (the wallet receiver first):** here the receiver correctly returns **nothing**. `finish_job(CANCELLED)` has already returned the hold on its job-level row, so the single release row is job-level by design.
+  - **Found: T-10 cannot kill PFB-4 by construction.** In T-10's scenario the receiver writes no release row at all, so a receiver that would write it without `item_id` behaves the same.
+  - **Proposal:** T-10 asserts what it should prove: exactly one release row, job-level (no `item_id`), with 300, and **zero rows naming the deleted item**. That kills a different plant: a receiver that returns the hold again, which is the double-return T-10 exists to catch.
+  - The SM's condition says T-10 must kill PFB-4 or it's a STOP. That is a ruling question, sent to the SM before any run.
+- **T-12 (a teacher deleted end to end):** which receiver runs first depends on the collector's order. The test's point is "returned exactly once, in total", so a sum over all release rows is the right assertion.
+  - **Proposal:** T-12 asserts that exactly one release row exists and that it carries 300. That pins "once" without depending on the order. Under PFB-4 it may survive if the task row's receiver runs first; that is expected and declared.
+- **T-1…T-4 (`assert_road`) and T-11:** these already filter on the item's id exactly. T-9 asserts zero rows. **Found: no further problems.**
+
+**(c) A fixture status that differs from what the real road leaves.**
+- The real statuses are:
+  - door job: RESERVED (`billing/holds.py:1059`);
+  - retry or late-door successor: RESERVED (`:494`);
+  - SINGLE_ITEM opened by a unit: RUNNING (`:814`);
+  - SINGLE_CALL: RUNNING (`:936`).
+- The fixture's `job()` gives RESERVED to every UPLOAD job (matches the door) and to T-8b's SINGLE_ITEM job (matches a retry successor, not a unit-opened job). T-8b's assertion holds for either, because `finish_job` moves any open status.
+- **Found:** T-12 builds its UPLOAD job with `make_job` (ESTIMATED), where a real door job is RESERVED. The outcome is the same (any open status → not open). **Proposal:** T-12 passes `status=RESERVED`, to match the road.
+- The fixture's settled rows keep the default task status, where a real settled row is SUCCESS. The receiver only reads that status for rows with no `hold_state`, and a settled row is RETURNED, so the outcome is the same. **Found: no change needed**, but noted.
+
+### §1.11 Lesson for B1b-2 and later (SM, 2026-11-09)
+
+This step had three test-only bugs: a NOT NULL fixture field, a fixture status that differed from the road, and a pk read after `instance.delete()`. Each was caught before it could hide a code fault, and each is recorded as it happened. **The pattern:** a new test's fixture or assertion assumed something about Django or the model without reading the code. Before declaring any red run from B1b-2 on, I read each new test against:
+1. every NOT NULL field of each model it creates;
+2. the status and fields the real road leaves on each row it builds;
+3. every value read after a `delete()`;
+4. every audit or row count, for whether it includes rows that the code under test didn't write;
+5. for each plant, whether each test meant to kill it can see the plant at all in its scenario.
