@@ -267,3 +267,9 @@ Plant results (each restored, sha256 MATCHED 24e6932dfdf62331):
   1146, OK (skipped=1)**. Log `14_guard_sweep.log`.
 
 Any failure is a STOP.
+
+Near results (under flock):
+- Near 13 (`13_near_billing.log.gz`, --parallel 2, 273 s): **Ran 2619, OK (skipped=4)**. **As predicted.**
+- Near 14 (`14_guard_sweep.log.gz`, serial, 186 s): **Ran 1146, OK (skipped=1)**. **As predicted.**
+
+Ready for the SM to push to staging. No push from Lane 2.
