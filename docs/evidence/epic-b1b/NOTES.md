@@ -1297,3 +1297,70 @@ The counts are from `build_suite`.
 | P1 | settle doesn't set SETTLED (the close dropped) | the existing single-call tests (`test_holds_single_call`: SETTLED, `released_credits`) plus the pin | — |
 | P3 | consume skips `is_consumption_blocked` when given the locked wallet | the dispute-block tests run through settle with the flag on (a new test: a blocked wallet is refused at settle) | consume's default road is unchanged: the flag-off listing diff |
 | D1 | (a) the memo survives a savepoint rollback (the token check removed); (b) the C4 memo keyed per transaction, not per origin | **A new cascade count pin:** 50 rows (45 RETURNED, 5 HELD), with the exact count asserted. (a) is killed by a new test that deletes inside a savepoint that rolls back, deletes again, and asserts the wallet lock statement appears again; (b) by a new test with two deletes of one job's rows in one transaction, where the second must still finish the job. T-1…T-20, PFB-1…9b and the timing re-run | the receivers run whatever the flag says; the flag-off near |
+
+### §3.3 The SM's rulings on the survey (2026-11-09), and the P1 precondition (written before any edit)
+
+**The rulings:**
+- **(a) P2, P3, P4 and P5 are APPROVED as written. P1 is APPROVED on a condition:** before it is edited, list every effect `finish_job` has besides the status write, and show that each one is a no-op, or is reproduced, for SINGLE_CALL after settle. If any effect would be lost, STOP. Settle becomes a status writer and joins the §1.21(a) inventory.
+- **(b) D0:** 3.35 s per 1,000 task rows is the floor for this design. **D1 is NOT approved:** it leans on Django's private `run_on_commit` for a correctness property, the gain is an estimate on a rare action, and 2 s was the SM's own target. D1 is recorded as a later option, the checklist line stays at "about 3.3 s per 1,000 task rows", and the SM tells the owner.
+- **(c)** The three candidates I didn't propose stay out.
+- **Per the owner's Q7:** the 20 ms per-call target is reported, not a STOP; **40 ms p95 is the pass mark.**
+- **The build:**
+  - the §3.2d plants and pins for P1–P5 (the exact count pin, the lock-order pin, P1 "close dropped", P3 "blocked check skipped"), with the D1 items dropped;
+  - then the flag-off checks (S1 listing identical, the B1a hold set and mutant battery, T-1…T-20 and PFB-1…9b, the timing);
+  - then the flag-on run, the flag-off near and the 66 guards serially;
+  - then the checkpoint.
+
+**D1, recorded as a later option:** the per-transaction memo of §3.2c (about 2,640 queries, about 1.9 s per 1,000 rows, estimated). It is not built. It would need a correctness signal that is not a private Django attribute.
+
+#### §3.3a P1: every effect of `finish_job` (`billing/holds.py:399–435` at 52b089d2a), checked for a SINGLE_CALL job right after `settle`
+
+`finish_single_call` (`:940–955`) calls `settle(job, …)` and then `finish_job(job, SETTLED)`. Both run inside `_SingleCallHold.finish`'s one `transaction.atomic()` (`:996`). Each effect of `finish_job`, in order:
+
+| # | Effect | For SINGLE_CALL after settle |
+|---|---|---|
+| F1 | `ValueError` unless the status is terminal | **n/a:** SETTLED is terminal |
+| F2 | `_lock_wallet_of(job)`; None (a deleted wallet) → return None, nothing written | **reproduced:** settle takes the same lock first (`:292`) and returns `NOT_SETTLED` on None, before any write. Settle's lock is held to the end of the same transaction, so `finish_job`'s lock is a re-lock of a row already held |
+| F3 | conditional status UPDATE `filter(pk, status__in=OPEN_STATUSES).update(status=SETTLED)`; if 0 rows, return None and write nothing more | **reproduced:** settle's `_lock_rows` (`:295`) reads the job row FOR UPDATE, so its `status` is current and can't change while held. P1 writes `status=SETTLED` in settle's job-counter UPDATE **only if that status is in `OPEN_STATUSES`**: the same condition, evaluated under the same locks. A job that is no longer open (for example CANCELLED by the wallet's deletion, §21n) keeps its status, as today |
+| F4 | the job row re-read FOR UPDATE (`:414`) | **a no-op:** settle already holds that row lock |
+| F5 | `items = BackgroundProcessingTask…filter(job=job_row)`; if any exist, each HELD item returns its own remainder | **a no-op: a SINGLE_CALL job never has task rows.** Every site that attaches a job to a task row: `:818–820` (a unit's **SINGLE_ITEM** root job), `:1070` (`hold_door_item`, the **UPLOAD** door job). Grep of the non-test code for `update(job=`, `job=root.job` and `.objects.create(` with `job=` on `BackgroundProcessingTask`: nothing else. `begin_single_call` (`:923–937`) creates the SINGLE_CALL job and hands it only to `_SingleCallHold`, which never attaches it. So the EXISTS is always false and the per-item loop never runs |
+| F6 | else `returned = max(_left(job_row, None), 0)`, then `_move_wallet(-returned)` and `released_credits += returned` | **a no-op: `returned` is always 0 after settle.** Settle sets `left₀ = max(L, 0)`, where `L = reserved − hold_drawn − released`; `drawn = min(left₀, chargeable)`; `leftover = left₀ − drawn`; then `hold_drawn += drawn` and `released += leftover`. So afterwards `L' = L − left₀`, which is 0 if L ≥ 0 and L if L < 0. Either way `max(L', 0) = 0`. `_move_wallet(0)` writes nothing (`if delta:`, `:149`), and `released += 0` changes no value |
+| F7 | an audit `CREDIT_HOLD_RELEASED` only if `returned > 0` | **a no-op:** `returned` is 0 (F6), so no audit row is written today either |
+| F8 | the return value (`returned`, or None) | **a no-op:** `finish_single_call` ignores it (`:954`) |
+| F9 | signals, `on_commit` hooks, cache bumps, metrics | **none:** `finish_job` writes only through `QuerySet.update()`, which sends no model signals. There is no receiver for AIJob in the non-test code (grep: no `sender=AIJob`), and `finish_job` registers no `on_commit` and calls no metric or cache code |
+| F10 | its own `transaction.atomic()` (a savepoint inside the outer atomic) | **a no-op:** the status write now sits in settle's savepoint, inside the same outer atomic. It commits, or rolls back, with the charge, as today |
+
+**No effect is lost, so P1 proceeds.** Settle's own audit row (`CREDIT_HOLD_SETTLED`) carries `job_type`, the ids and the amounts, never the status (`_audit`, `:85–98`), so it is unchanged.
+
+**What changes for P1:**
+- `settle` gets a keyword `close_status=None`. Only `finish_single_call` passes `AIJobStatus.SETTLED`.
+- With it, and with `job_row.status in OPEN_STATUSES`, the existing job-counter UPDATE also sets `status=close_status`.
+- `finish_single_call` no longer calls `finish_job`.
+- The failure roads (`abandon_single_call`, refusals) are unchanged.
+
+#### §3.3b The §1.21(a) status-write inventory, amended
+
+There is a new writer: **`settle` (the job-counter UPDATE, with `close_status=SETTLED`)**. It moves **open→terminal only, conditional** on the job row's status (read FOR UPDATE by `_lock_rows`) being in `OPEN_STATUSES`, **under the wallet lock and then the job-row lock** (wallet first). It is reached only from `finish_single_call`, for SINGLE_CALL jobs.
+
+The full list after P1 and P5:
+- `finish_job`;
+- `settle` with `close_status`;
+- `_reserve_locked` with `status=RUNNING` (P5: a new job made in the same function, ESTIMATED→RUNNING, now under the wallet lock);
+- the successor writes (:494, :496, on new jobs);
+- `Unit.before_call` (:814, a new job);
+- `begin_single_call` on the estimate-0 road (a new job);
+- `open_door_job` (:1059, a new job);
+- `create_job`.
+
+**The B1b-6 grep obligation** now names `settle(close_status=…)` and `_reserve_locked(status=…)`. B1b-6 re-runs the §1.21(a) grep and records this list, plus its own QUEUED→RUNNING writer.
+
+#### §3.3c The pins, and the red, declared (before any product edit)
+
+**The new file `billing/tests/test_holds_b1b3_pins.py`** (flag on, `TestCase`, 3 tests):
+- **`test_one_billed_single_call_makes_exactly_the_pinned_number_of_queries`:** one `call_ai` after 3 warm-up calls, counted with `execute_wrapper`, real queries only (SAVEPOINT/RELEASE excluded), asserted **== 37**. That is 47 (§3.2a) − 10 (P1 5, P2 2, P3 1, P4 1, P5 1).
+- **`test_after_the_provider_call_the_wallet_is_locked_before_any_billing_write`:** a marker is recorded when the provider answers. After it, a `SELECT … "billing_creditwallet" … FOR UPDATE` must come before the first INSERT/UPDATE/DELETE on a `billing_*` table.
+- **`test_a_wallet_blocked_during_the_call_is_refused_at_settle`:** the provider fake sets `is_consumption_blocked=True` on the wallet. The call must raise `InsufficientCreditsError`, with no new usage row, `reserved_credits == 0`, and the job FAILED. This pins that the block is still read under settle's lock once P3 hands the locked wallet to consume.
+
+**The red** (today's code, `billing/holds.py` unchanged; `billing.tests.test_holds_b1b3_pins`; under `flock`):
+- **Prediction: `Ran 3`, `FAILED (failures=1)`.** The count test fails with `47 != 37`. The lock-order test and the blocked test **pass** (they describe today's behavior, and must keep passing after the trim).
+- Any other result is a STOP.
