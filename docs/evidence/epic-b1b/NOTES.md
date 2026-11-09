@@ -1606,3 +1606,23 @@ Logs are in `step3/`, with the suffix `_0539ccbb`. E1 and E2 are gzipped. The re
 - **`estimates.py` returning a queryset** (the aggregates-only pin); **the endpoint writing a job** (the no-write pin).
 - **Drift thresholds** (85% overall, 80% per cell with n ≥ 30) off by one; **the drift task without `@single_instance`**; **the email sent while `DRIFT_EMAIL_APPROVED` is False.**
 - **`billing_settings --set` without its audit row;** **`--set` accepting an out-of-bounds value.**
+
+### §4.4 The SM's rulings on the survey (2026-11-09)
+
+**Q1–Q7 are accepted as recommended, with these conditions:**
+- **Q1:** a test shows that a refunded or failed call, and a non-SUCCESS task row, are left out of the paper cost.
+- **Q2:** the source label says which fallback was used.
+- **Q3:** a test asserts the cold start is read-only: no `AICallRecord`, no hold, no audit row, and the provider mock is not called.
+- **Q4:** the drift email is built behind `DRIFT_EMAIL_APPROVED = False`. The draft text goes to the SM in a separate message, for the owner, and is not used before the owner approves it. Plant: the email is sent while not approved.
+- **Q6:** one shared check. Another teacher's assignment is refused exactly as grade-all refuses it (the same status code), and the route-coverage guard is updated.
+- **Q7:** runs only under `RUN_LOAD_TESTS`. A STOP only if a sequential scan remains after the indexes.
+- **The index-count test:** an edited pre-existing test, with a break run. It must be shown failing on the new indexes before it is edited. The migration uses `AddIndexConcurrently` with `atomic = False`. **`AutoGrader.tests_migration_rollback_defaults` joins every near run.**
+- **Q8:** merge staging now, before the red (the standing ruling; the SM corrected the "at landing" note). **From now on the guard list is 67 labels.**
+
+### §4.5 The staging merge (before the red)
+- **`--keepdb` clones:** none to drop. My B1b runs never used `--keepdb`; each test DB is created and destroyed per run. No `test_AutoGrader_N` database exists.
+- **The merge:** `origin/staging` 80839ac76 into task/epic-b1b, merge commit **bf05ce685**, with no conflicts. It brings 26 files, +753 lines: the live-server backlog fix (50183be49) and its evidence. Six test files gain a backlog line, including `students/tests_async_edit_path.py`, which B1b-2 edited (the merge was clean).
+- **The guard list:** `guards67.txt` is `guards66.txt` plus `AutoGrader.tests_live_server_backlog_guard`, with no duplicates.
+  - **67 guards: 1148 tests (1 decorated skip)**: 1146 + 2.
+- **Counts by `build_suite` at bf05ce685:** E1 (§21m labels + 67 guards) **7414**; E2 (apps, with `AutoGrader.tests_migration_rollback_defaults` already in it) **6350**.
+- `makemigrations --check`: **No changes detected.**
