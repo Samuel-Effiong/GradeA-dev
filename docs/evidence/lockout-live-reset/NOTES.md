@@ -284,3 +284,71 @@ Counts from build_suite: guard 2; users + students 1935; sweep 49.
 **Standing guard list: `AutoGrader.tests_live_server_backlog_guard` becomes label 67** (SM ruling). It is on beta only until beta is merged into staging, where guards66.txt gains it.
 
 Ready for the SM. The SM asks the owner for the beta go. No push from Lane 2.
+
+## Beta → staging merge (2026-11-09)
+
+The SM pushed beta as a fast-forward: origin/beta = 50183be49 (was e4a893197). Branch `task/staging-merge-lockout` was made off origin/staging bc7dd7a89 and `git merge --no-ff origin/beta` produced merge **b9c594bff** with no conflicts: 23 files, +672, all test, testing-helper or evidence files. Staging has the same four LiveServerTestCase classes as beta (grep), so the helper covers them all.
+
+### Declared before running (counts from build_suite().countTestCases())
+
+- **S1 near apps**: `users students`, --parallel 2. 2048 tests. Predict **Ran 2048, OK (skipped=5)**: the same 5 as N1 (2 opt-in real-AI/Redis plus 3 CI_REQUIRE_NETWORK opt-ins).
+- **S2 guard sweep**, serial: all 66 labels of guards66.txt (task/epic-b1b) exist on staging. The 12 inside users/students are covered by S1, so the sweep runs the other 54 plus label 67 `AutoGrader.tests_live_server_backlog_guard`, 55 labels. 873 tests. Predict **Ran 873, OK (skipped=1)** (ssrf, CI_REQUIRE_NETWORK).
+- No plant: a merge with no conflicts and no staging-side edits to the merged files.
+
+S2 labels:
+
+    AutoGrader.tests_credscan
+    AutoGrader.tests_h271_static_files
+    AutoGrader.tests_network_guard
+    AutoGrader.tests_student_classmates_guard
+    AutoGrader.tests_student_feedback_guard
+    AutoGrader.tests_submission_audience_guard
+    ai_processor.tests_call_record_static
+    ai_processor.tests_h2_grading_benchmark_guard
+    ai_processor.tests_ssrf_guard
+    audit.tests_history_guard
+    audit.tests_route_coverage
+    audit.tests_h273_query_filters
+    billing.tests.test_license_admin_user_guard
+    billing.tests.test_qa_console_guardrail
+    billing.tests.test_qa_time_travel_guardrail
+    billing.tests.test_renewal_guards
+    classrooms.tests_e1_grade_guard
+    AutoGrader.tests_cache_invalidation_coverage
+    AutoGrader.tests_codederror_serialization
+    AutoGrader.tests_management_commands_are_commands
+    AutoGrader.tests_no_pii_in_logs
+    AutoGrader.tests_no_playwright_at_import
+    AutoGrader.tests_no_wildcard_invalidation
+    AutoGrader.tests_reason_codes
+    AutoGrader.tests_redis_test_isolation
+    ai_processor.tests_grading_run_pipeline
+    ai_processor.tests_h205_image_fallback
+    ai_processor.tests_metering_chokepoint
+    ai_processor.tests_provider_block
+    ai_processor.tests_reading_config
+    assignments.tests_schema_extension
+    billing.tests.test_wallet_save_guard
+    billing.tests.test_zero_credit_registry
+    classrooms.tests_course_roster_scope_sweep
+    classrooms.tests_teacher_access_sweep
+    AutoGrader.tests_h246_sentry_environment
+    AutoGrader.tests_log_scrubbing
+    AutoGrader.tests_sentry_scrubbing
+    AutoGrader.tests_sentry_sends_no_variables
+    AutoGrader.tests_h285_djoser_removed
+    AutoGrader.tests_pip_audit_gate
+    ai_processor.tests_h262_prod_image_dev_tools
+    ai_processor.tests_ai_call_trace
+    ai_processor.tests_grading_cache_key_v2
+    ai_processor.tests_grading_config
+    ai_processor.tests_grading_run_checker
+    assignments.tests_task_results_carry_no_text
+    billing.tests.test_allocation_anchor
+    billing.tests.test_h28_stripe_budget
+    billing.tests.test_holds_entry
+    billing.tests.test_holds_single_call
+    billing.tests.test_logs_carry_no_email
+    billing.tests.test_live_qa_clock
+    billing.tests.test_price_drift_reconciliation
+    AutoGrader.tests_live_server_backlog_guard
