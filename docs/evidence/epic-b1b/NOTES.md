@@ -967,3 +967,12 @@ The failing assertion of each test is quoted from the log above. A test's **flag
 - **R1, flag on: `Ran 18`, OK.**
 - **R2, flag unset: `Ran 18`, OK.**
 - Any other result is a STOP.
+
+**File 1 results (at 4b547a9e6, under `flock`):** R1 (flag on) `Ran 18`, OK. R2 (flag unset) `Ran 18`, OK. As declared. Logs: `step2/b2f1_*_4b547a9e.log`.
+
+**File 2, `students.tests_h223_batch_runs_what_fits` (12 tests by `build_suite`):**
+- **Wrapped (4 methods of the `TheBatchRunsWhatFits` mixin = the 8 listed tests):** t1, t2, t3 and t5, on both `TheAnswerBatchRunsWhatFits` and `TheAssignmentUploadRunsWhatFits`.
+  - The wrap goes inside each test's own `with self.estimates(...)`, around `self.post(n)`.
+- **Not touched:** t4 and t6 (the whole-batch refusals) and the `Base`, `AnswerBatch` and `AssignmentBatch` helpers.
+- No assertion changed.
+- **The runs:** R1, flag on: **`Ran 12`, OK**. R2, flag unset: **`Ran 12`, OK**. Any other result is a STOP.

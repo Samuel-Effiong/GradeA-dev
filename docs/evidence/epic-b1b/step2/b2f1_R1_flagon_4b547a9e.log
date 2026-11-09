@@ -1,0 +1,80 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 0a1a9b99-099b-4635-8451-36c963553b78.
+Cannot activate automatic trial for user 0a1a9b99-099b-4635-8451-36c963553b78 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user 61ee6416-aa5c-4e8f-b5bf-67f6c44d5eb0.
+Cannot activate automatic trial for user 61ee6416-aa5c-4e8f-b5bf-67f6c44d5eb0 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~20806 credits, 5000 left in the batch
+.Free trial plan not found: no trial activated for user e8586b5e-a754-4b54-b5be-e38350b39ad8.
+Cannot activate automatic trial for user e8586b5e-a754-4b54-b5be-e38350b39ad8 (validation): ValueError
+Upload door could not estimate a.png: FileUnreadableError
+.Free trial plan not found: no trial activated for user fd4f0d82-9958-4a2b-b159-020bba3d5723.
+Cannot activate automatic trial for user fd4f0d82-9958-4a2b-b159-020bba3d5723 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9da4e28b-8186-4f19-87d7-0260184f330c.
+Cannot activate automatic trial for user 9da4e28b-8186-4f19-87d7-0260184f330c (validation): ValueError
+.Free trial plan not found: no trial activated for user 50525f01-5644-4709-a536-fbf38f01f4f0.
+Cannot activate automatic trial for user 50525f01-5644-4709-a536-fbf38f01f4f0 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~20806 credits, balance 5000
+.Free trial plan not found: no trial activated for user 65765514-3b9f-4ce9-b1b2-f620e635c2de.
+Cannot activate automatic trial for user 65765514-3b9f-4ce9-b1b2-f620e635c2de (validation): ValueError
+Free trial plan not found: no trial activated for user bff9da7f-eac6-452b-820d-3845bca8b270.
+Cannot activate automatic trial for user bff9da7f-eac6-452b-820d-3845bca8b270 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~1000000000 credits, balance 100000
+.Free trial plan not found: no trial activated for user 6b9de067-7c8f-4ad1-ac3b-1ecda38ed0eb.
+Cannot activate automatic trial for user 6b9de067-7c8f-4ad1-ac3b-1ecda38ed0eb (validation): ValueError
+Free trial plan not found: no trial activated for user 3eb17bb6-5293-4e37-8065-efb0886eb67b.
+Cannot activate automatic trial for user 3eb17bb6-5293-4e37-8065-efb0886eb67b (validation): ValueError
+Free trial plan not found: no trial activated for user 9fc8f498-3912-492a-bab9-f1284503c288.
+Cannot activate automatic trial for user 9fc8f498-3912-492a-bab9-f1284503c288 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~20806 credits, balance 20805
+.Free trial plan not found: no trial activated for user d3a2272f-99e8-4673-bc49-341e7e07de7e.
+Cannot activate automatic trial for user d3a2272f-99e8-4673-bc49-341e7e07de7e (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~20806 credits, balance 5000
+.Free trial plan not found: no trial activated for user 98f9ecc9-eaa7-4045-9beb-ab513a6f3b96.
+Cannot activate automatic trial for user 98f9ecc9-eaa7-4045-9beb-ab513a6f3b96 (validation): ValueError
+.Free trial plan not found: no trial activated for user e036afda-1257-41fb-b389-94f297d16102.
+Cannot activate automatic trial for user e036afda-1257-41fb-b389-94f297d16102 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~20806 credits, 5000 left in the batch
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~20806 credits, 5000 left in the batch
+.Free trial plan not found: no trial activated for user b2848675-dca6-4c4c-b574-771f0a5a3f58.
+Cannot activate automatic trial for user b2848675-dca6-4c4c-b574-771f0a5a3f58 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~20766 credits, balance 5000
+.Free trial plan not found: no trial activated for user a64057f3-7593-4da3-8116-0835ad398174.
+Cannot activate automatic trial for user a64057f3-7593-4da3-8116-0835ad398174 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7d0bec3a-8bf2-42bf-9f5f-882548007d4f.
+Cannot activate automatic trial for user 7d0bec3a-8bf2-42bf-9f5f-882548007d4f (validation): ValueError
+..Free trial plan not found: no trial activated for user e4bd670f-3254-43e5-b595-789bbb1bccc1.
+Cannot activate automatic trial for user e4bd670f-3254-43e5-b595-789bbb1bccc1 (validation): ValueError
+Background task 03520e1b-8b6f-41fe-984d-09cf58abc8cf refused: InsufficientCreditsError: Task requires ~25000 credits, but you only have 5000 credits. Please refill your wallet to continue
+
+
+students.task_tracking WARNING 2026-11-09 12:39:31,016 refusals 860204 136194106931072 [request_id=- client_request_id=-] Background task 03520e1b-8b6f-41fe-984d-09cf58abc8cf refused: StudentUploadNotProcessedError: Your answers were not submitted. Your teacher's account can't process uploads right now. Please keep your file and try again later, or let your teacher know.
+
+
+.Free trial plan not found: no trial activated for user 3dc87a12-786c-406c-a29a-52f49160549e.
+Cannot activate automatic trial for user 3dc87a12-786c-406c-a29a-52f49160549e (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-09 12:39:31,170 refusals 860204 136194106931072 [request_id=- client_request_id=-] Background task 93358ca8-64e0-431f-929f-3eb966d4ab63 refused: InsufficientCreditsError: Task requires ~25000 credits, but you only have 5000 credits. Please refill your wallet to continue
+
+
+.Free trial plan not found: no trial activated for user f227235a-33e0-413b-b6f6-7cf80312475e.
+Cannot activate automatic trial for user f227235a-33e0-413b-b6f6-7cf80312475e (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 18 tests in 3.591s
+
+OK
+Destroying test database for alias 'default'...
+Found 18 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

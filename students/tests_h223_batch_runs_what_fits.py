@@ -200,7 +200,9 @@ class TheBatchRunsWhatFits(_Shared):
 
     def test_t1_a_dear_file_in_the_middle_is_parked_and_the_others_run(self):
         with self.estimates(FITS, DEAR, FITS) as estimate:
-            response = self.post(3)
+            # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.post(3)
 
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED, response.data)
         self.assertEqual(estimate.call_count, 3)
@@ -218,7 +220,9 @@ class TheBatchRunsWhatFits(_Shared):
     def test_t2_the_balance_runs_down_as_files_are_queued(self):
         # Each file fits alone (30,000 <= 50,000); together they do not.
         with self.estimates(HALF, HALF):
-            response = self.post(2)
+            # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.post(2)
 
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED, response.data)
         self.assertEqual(self.queued, ["s0.png"])
@@ -228,7 +232,9 @@ class TheBatchRunsWhatFits(_Shared):
 
     def test_t3_a_cheap_file_after_a_dear_one_still_runs(self):
         with self.estimates(DEAR, FITS):
-            response = self.post(2)
+            # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.post(2)
 
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED, response.data)
         self.assertEqual(self.queued, ["s1.png"])
@@ -245,7 +251,9 @@ class TheBatchRunsWhatFits(_Shared):
 
     def test_t5_the_door_does_not_stamp_the_session(self):
         with self.estimates(FITS, DEAR):
-            response = self.post(2)
+            # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.post(2)
 
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED, response.data)
         session = BatchUploadSession.objects.get()
