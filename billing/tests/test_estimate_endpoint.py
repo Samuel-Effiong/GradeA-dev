@@ -13,6 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from audit.enums import AuditAction
 from audit.models import AuditEvent
 from billing.models import AIJob, CreditWallet
 from billing.testing.holds import ai_ready_teacher
@@ -129,6 +130,7 @@ class EstimateEndpointTests(TestCase):
         response = self.post(
             {"assignment_id": str(self.assignment.pk), "submission_ids": "all_ungraded"}
         )
+        self.assertNotEqual(response.status_code, 402, "refused like grade-all")
         self.assertEqual(response.status_code, 200, response.content)
         self.assertEqual(response.json()["spendable"], 0)
         self.assertEqual(response.json()["verdict"], "INSUFFICIENT")
@@ -192,6 +194,8 @@ class EstimateEndpointTests(TestCase):
             {"assignment_id": str(self.assignment.pk), "submission_ids": "all_ungraded"}
         )
         new = AuditEvent.objects.exclude(pk__in=before)
-        self.assertEqual(
-            list(new.values_list("metadata__route", flat=True)), ["billing-estimate"]
-        )
+        self.assertEqual(new.count(), 1)
+        row = new.get()
+        self.assertEqual(row.metadata.get("route"), "billing-estimate")
+        self.assertEqual(row.action, AuditAction.STATE_CHANGE)
+        self.assertEqual(row.actor_id, self.teacher.pk)

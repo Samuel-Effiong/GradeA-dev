@@ -1,5 +1,8 @@
 """B1b-4 (NOTES §4, 08b §1.3 item 5): `billing_settings`, the operator's way
 to read and change the BillingSettings row (it stays out of Django admin).
+Every refusal is matched by its own message (SM standing rule 2026-11-09):
+Django's "Unknown command" is a CommandError too, so a bare
+assertRaises(CommandError) passes with no command at all.
 Each change is one STATE_CHANGE audit row naming the super admin given by
 --by, with the field, old and new value."""
 
@@ -70,7 +73,7 @@ class BillingSettingsCommandTests(TestCase):
         self.assertEqual(BillingSettings.load().unstarted_backstop_hours, 40)
 
     def test_set_needs_by(self):
-        with self.assertRaises(CommandError):
+        with self.assertRaisesMessage(CommandError, "--by is required with --set"):
             run("--set", "cold_start_cost_factor=2.4")
         self.assertEqual(BillingSettings.load().cold_start_cost_factor, 3.0)
 
@@ -82,14 +85,16 @@ class BillingSettingsCommandTests(TestCase):
             is_active=True,
         )
         for by in (teacher.email, "nobody@example.com"):
-            with self.subTest(by=by), self.assertRaises(CommandError):
+            with self.subTest(by=by), self.assertRaisesMessage(
+                CommandError, "--by must name an active super admin"
+            ):
                 run("--set", "cold_start_cost_factor=2.4", "--by", by)
         self.assertEqual(BillingSettings.load().cold_start_cost_factor, 3.0)
 
     def test_an_unknown_field_is_refused(self):
-        with self.assertRaises(CommandError):
+        with self.assertRaisesMessage(CommandError, "unknown setting: pk"):
             run("--set", "pk=7", "--by", self.admin.email)
-        with self.assertRaises(CommandError):
+        with self.assertRaisesMessage(CommandError, "unknown setting: nonsense"):
             run("--set", "nonsense=1", "--by", self.admin.email)
 
     def test_out_of_bounds_and_wrong_type_values_are_refused(self):
@@ -104,7 +109,10 @@ class BillingSettingsCommandTests(TestCase):
             "unstarted_backstop_hours=1.5",
             "hold_sweep_margin_minutes=-5",
         ):
-            with self.subTest(value=value), self.assertRaises(CommandError):
+            name, _, raw = value.partition("=")
+            with self.subTest(value=value), self.assertRaisesMessage(
+                CommandError, f"invalid value for {name}: {raw}"
+            ):
                 run("--set", value, "--by", self.admin.email)
         row = BillingSettings.load()
         self.assertEqual(
@@ -120,7 +128,9 @@ class BillingSettingsCommandTests(TestCase):
         )
 
     def test_a_refused_set_changes_nothing_even_after_a_good_one(self):
-        with self.assertRaises(CommandError):
+        with self.assertRaisesMessage(
+            CommandError, "invalid value for unstarted_backstop_hours: -1"
+        ):
             run(
                 "--set",
                 "cold_start_cost_factor=2.4",

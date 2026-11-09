@@ -287,6 +287,14 @@ class TierTests(TestCase):
         self.assertEqual(estimates.shape_of(pictured), ("1-5", True))
         self.assertEqual(estimates.shape_of(self.assignment), ("1-5", False))
 
+    def test_a_question_image_makes_the_assignment_a_picture_shape(self):
+        pictured = make_assignment(self.teacher, "Pictured 2", questions=7, images=1)
+        self.assertEqual(estimates.shape_of(pictured), ("6-10", True))
+
+    def test_no_question_image_makes_the_assignment_a_text_shape(self):
+        plain = make_assignment(self.teacher, "Plain 2", questions=7, images=0)
+        self.assertEqual(estimates.shape_of(plain), ("6-10", False))
+
     def test_the_question_buckets(self):
         for questions, bucket in (
             (0, "1-5"),

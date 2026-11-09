@@ -204,6 +204,31 @@ class DriftTaskTests(TestCase):
         send.assert_called_once()
         self.assertIn(self.admin.email, str(send.call_args))
 
+    def test_the_email_is_approved_text_17_verbatim(self):
+        result = report(
+            0.5,
+            [cell(0.75, 40, size_band="2-9"), cell(0.95, 40, size_band="30+")],
+        )
+        result["suggested_factor"] = 2.4
+        with patch.object(estimates, "DRIFT_EMAIL_APPROVED", True):
+            send, _ = self.run_task(result)
+        kwargs = send.call_args.kwargs
+        self.assertEqual(kwargs["subject"], "Credit estimates need a look")
+        self.assertEqual(
+            kwargs["message"],
+            "This month's check of credit estimates found that fewer batches "
+            "than expected stayed within the high estimate.\n\n"
+            "Overall: 50% of 100 batches stayed within the high estimate. "
+            "The target is at least 85%.\n\n"
+            "Groups below 80% (only groups with at least 30 batches are "
+            "checked):\n"
+            "1-5 questions, without images, batches of 2 to 9: 75% of 40 "
+            "batches\n\n"
+            "Suggested cold-start factor: 2.4 (now 3.0).\n\n"
+            "Nothing has been changed. Estimates only change when someone "
+            "changes the factor.",
+        )
+
     def test_the_task_runs_one_at_a_time(self):
         self.assertIsNotNone(declared_lock(check_credit_estimate_drift))
 

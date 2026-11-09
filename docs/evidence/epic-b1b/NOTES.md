@@ -1734,3 +1734,36 @@ Collateral is recorded as observed and is not a mismatch. A survivor, or a kill 
   - `"unknown setting: <name>"`;
   - `"invalid value for <name>: <value>"`.
 - Then the red is re-run, **expecting `FAILED (errors=21)`**: those five then ERROR on `Unknown command`, because `assertRaisesMessage` re-raises a `CommandError` whose message doesn't match. Precisely, assertRaisesMessage *fails* on a non-matching message, so each of those five shows as **FAIL**. Re-declared exactly: **`FAILED (failures=5, errors=16)`**.
+
+### §4.7 The SM's rulings on the red STOP and D-a…D-g (2026-11-09), and the owner's text #17
+
+- **The red STOP is recorded as "prediction wrong: 5 vacuous passes (Django's Unknown command is a CommandError)".** §4.6 is not amended. The fix is approved: `assertRaisesMessage` with the 4 refusal texts, which are operator command output, not app wording.
+- **Standing rule from now on:** a test that expects an exception also matches its message, or a type narrow enough, that a missing command or import can't satisfy it.
+- **Text #17, approved by the owner:** "yes for the email drift wording", recorded in `team/approved_wording_b1b_2026-11-09.md` (sha256 100ef881…2367535 at reading).
+  - It is used verbatim. `DRIFT_EMAIL_APPROVED` ships **False** in B1b-4 and becomes True at B1b-8 with the other constants.
+  - The "email sent while not approved" plant (PE-20) stays.
+  - **New pin:** `test_the_email_is_approved_text_17_verbatim` renders text #17 with the flag patched True and compares it exactly. Paragraphs are joined with a blank line; `{coverage}` is a whole percent; `{questions}` is the bucket (`1-5`); `{size_band}` is `1` / `2 to 9` / `10 to 29` / `30 or more`.
+- **D-a accepted:** a question_image gives has_images True and none gives False. Two named tests added: `test_a_question_image_makes_the_assignment_a_picture_shape` and `test_no_question_image_makes_the_assignment_a_text_shape`.
+- **D-b accepted:** the zero-balance test also asserts the status is not 402.
+- **D-c accepted:** the endpoint test asserts exactly 1 new audit row: the middleware's `STATE_CHANGE`, route `billing-estimate`, with the teacher as actor.
+- **D-d accepted:** `write_routes()` goes up by exactly 1 at green.
+- **D-e accepted:** "Billing settings" (the existing `verbose_name`). So 3 break runs: BR-1, BR-2 and BR-3.
+- **D-g accepted:** the all-papers tier's time is reported in Gate 6, not a STOP.
+
+**D-f, for the owner's switch-on checklist: the rough tier's prompt gap, and how the factor absorbs it.**
+- **Where the gap comes from.** The real grading prompt is built inside `_grade_student_submission_impl` (`ai_processor/services.py`, around `:4890–4925`). The rough tier (tier 4, no usable history) can't build it without running grading.
+  - So it estimates a smaller prompt with the same `estimate_messages_cost`: `GRADING_ASSIGNMENT_PROMPT`, plus the assignment's questions, plus one representative submission's answers, text only. It leaves out the assignment-context and custom-instruction blocks, the deterministic-grading context, and the question images.
+  - So the raw rough figure is **lower** than the real call's estimate for the same paper.
+- **How the factor absorbs it.** `cold_start_cost_factor` is the number the rough figure is multiplied by. Before launch it is measured by `backtest_credit_estimates --cold-start` as actual credits ÷ the **real call's own recorded estimate** (`AICallRecord.estimate`, written at the gate from the real prompt).
+  - That measured ratio covers the provider's actual-versus-estimate gap only, **not** the prompt gap above. So a factor set from it alone **under-estimates** rough papers by the prompt gap.
+  - **For the checklist:** before switch-on, either (a) set the factor from the backtest's rough replay, which compares actual cost with the rough tier's own figure, or (b) accept that tier-4 estimates read low. They are labeled "rough" and p90 is × 1.5.
+  - I will make `--cold-start` also report the rough-replay ratio, actual ÷ the rough tier's own figure, so (a) is one command. The checklist then cites that number, not only the call-estimate ratio.
+  - **This corrects my D-f message,** which said the factor absorbs the gap "by definition". It does so only if it is measured against the rough tier's own figure, which is what this adds.
+
+**R′, the red re-declared (tests at the commit after this one; no product code), flag unset, under `flock`:**
+- New tests by `def test_`: band 34, endpoint 10, backtest 21, settings 8, Gate 6 1, so **74**.
+- **Expected: `Ran 21`, `FAILED (failures=5, errors=16)`:**
+  - 3 module import errors (`ModuleNotFoundError: No module named 'billing.estimates'`);
+  - 10 endpoint `NoReverseMatch` setUp errors;
+  - 3 settings errors (`Unknown command: 'billing_settings'`);
+  - 5 settings failures. `assertRaisesMessage` sees `Unknown command: 'billing_settings'`, which is not the expected text, so each fails with `"--by is required with --set" not found in "Unknown command: 'billing_settings'"` and the like.

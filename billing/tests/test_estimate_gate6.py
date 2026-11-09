@@ -126,8 +126,11 @@ class EstimateGate6(TestCase):
     def time_tiers(self):
         assignment = self.assignments[7]
         teacher = assignment.course.teacher
-        timings = {"assignment": [], "teacher": []}
+        timings = {"assignment": [], "teacher": [], "all_papers": []}
         for _ in range(RUNS):
+            started = time.perf_counter()
+            estimates.paper_costs()
+            timings["all_papers"].append(time.perf_counter() - started)
             started = time.perf_counter()
             estimates.paper_costs(assignment_id=assignment.pk)
             timings["assignment"].append(time.perf_counter() - started)
@@ -163,13 +166,14 @@ class EstimateGate6(TestCase):
             cursor.execute("ANALYZE ai_processor_aicallrecord")
         without_indexes = self.time_tiers()
         plans_without = self.plans()
-        for tier in ("assignment", "teacher"):
+        for tier in ("assignment", "teacher", "all_papers"):
             print(
                 f"GATE6_EST tier={tier} rows={ROWS} runs={RUNS} "
                 f"with_p50_ms={with_indexes[tier][0]} with_p95_ms={with_indexes[tier][1]} "
                 f"without_p50_ms={without_indexes[tier][0]} "
                 f"without_p95_ms={without_indexes[tier][1]}"
             )
+        for tier in ("assignment", "teacher"):
             print(f"GATE6_EST_PLAN_WITH tier={tier}\n{plans_with[tier]}")
             print(f"GATE6_EST_PLAN_WITHOUT tier={tier}\n{plans_without[tier]}")
         for tier, plan in plans_with.items():
