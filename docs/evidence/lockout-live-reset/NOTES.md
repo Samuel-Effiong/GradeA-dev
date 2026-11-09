@@ -355,9 +355,13 @@ S2 labels:
 
 ### Results (under flock)
 
-- **S1 near apps** (`12_staging_near_apps.log.gz`): **no result; the run aborted**. **Prediction wrong.** The cause is the harness, not the code. `--keepdb` reused the parallel clone DBs test_lockout_live_reset_1..4, which still had beta's schema; the log reads "Using existing clone". Django migrates the main test DB under --keepdb but never rebuilds an existing clone, and staging has 15 migration files beta lacks. The result was 490 × `column billing_creditwallet.reserved_credits does not exist`, then a MaybeEncodingError (an unpicklable MagicMock in a failure result) that killed the runner.
+- **S1 near apps** (`12_staging_near_apps_aborted.log.gz`): **no result; the run aborted**. **Prediction wrong.** The cause is the harness, not the code. `--keepdb` reused the parallel clone DBs test_lockout_live_reset_1..4, which still had beta's schema; the log reads "Using existing clone". Django migrates the main test DB under --keepdb but never rebuilds an existing clone, and staging has 15 migration files beta lacks. The result was 490 × `column billing_creditwallet.reserved_credits does not exist`, then a MaybeEncodingError (an unpicklable MagicMock in a failure result) that killed the runner.
 - **S2 guard sweep** (`13_staging_guard_sweep.log.gz`, serial, 142 s): **Ran 873, OK (skipped=1)**. **As predicted.** It ran serially on the main test DB, which --keepdb did migrate.
 
 ### S1b, declared before rerunning
 
 The four stale clones were dropped (0 connections; own test DBs). The run is the same as S1: `users students`, --parallel 2, with Django recloning from the migrated main DB. Predict **Ran 2048, OK (skipped=5)**.
+
+- **S1b near apps** (`12b_staging_near_apps.log.gz`, --parallel 2, 126 s): **Ran 2048, OK (skipped=5)**. **As predicted.** (Django prints "Using existing clone" under --keepdb even when it has just created the clone; all four had been dropped.)
+
+**Merge b9c594bff is ready for the SM's staging push.** Label 67 `AutoGrader.tests_live_server_backlog_guard` now exists on staging as well as beta. No push from Lane 2.
