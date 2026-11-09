@@ -601,3 +601,16 @@ Any failure, or a different count or skip number, is a STOP.
 - **T-20 fails on its last assertion:** `'RESERVED' != AIJobStatus.FAILED`. The job is left open with zero rows.
 - Every other assertion in T-20 passes, and T-1…T-18 pass.
 - Any other result is a STOP.
+
+**Result (at e1d18dd52, under `flock`, 9010 MB available): Ran 20, OK. STOP, the prediction was wrong** (declared: FAILED, failures=1, T-20). Log: `step1/step1_cascade_char_e1d18dd5.log`.
+- **Diagnosis:** a one-off traced run of T-20 alone (a print at the receiver's entry, since removed; `billing/holds.py` was restored with `git checkout`, sha256 c2e49f1b…92b0af, clean).
+  - The collector visited the **pending row first** (`hold_state None`) and the **HELD row last**. Its C4 check then saw the pending sibling as "to run" and left the job open.
+  - **That run FAILED as predicted:** `AssertionError: 'RESERVED' != AIJobStatus.FAILED`.
+  - In the full-file run the collector visited the rows in the other order. The pending row came last, excluded itself, found the HELD sibling already RETURNED, and finished the job.
+  - **So the outcome depends on the visit order.** The rows carry random UUIDs, and the cascade's collect query has no ordering that fixes which comes last.
+- **The SM's finding is confirmed** for any job whose cascade includes a never-held unfinished row: the job is left open with zero rows unless that row happens to be visited last. With two or more such rows it is always left open, because the last one visited still sees the other.
+- T-19 (HELD plus RETURNED) passes in either order, as read.
+- **Proposed next steps (for the SM's ruling):**
+  1. T-20 gets a **second pending row**, so it fails whatever the order on today's code.
+  2. **The SM's preferred fix:** C4 moves to a `post_delete` receiver, after the batch delete and in the same transaction. There it takes the wallet lock, reads the job status fresh, checks for rows left (accurate now) and finishes the job. `pre_delete` keeps only the hold return and the `deleted_items_*` carry.
+  3. PFB-9 (the `post_delete` check skipped), killed by T-20 (and T-5, T-6, T-7, T-8, T-8b, T-19), plus PFB-1…8 re-run, the timing and the near runs, each declared first.
