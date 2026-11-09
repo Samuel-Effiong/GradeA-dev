@@ -155,7 +155,7 @@ All non-test `metered_unit(` uses: `ai_processor/services.py:4637`, `students/se
 
 ---
 
-- **Large flag-on deletes hold the wallet lock for about 5 s per 1,000 task rows** (B1b-1 §1.17: an assignment cascade of 1,000 rows in one open job takes a median of 5.23 s inside the delete's transaction, with the teacher's wallet locked). Read this before switch-on, and before any admin bulk delete with the flag on.
+- **Large flag-on deletes hold the wallet lock for about 3.3 s per 1,000 task rows** (B1b-1 §1.23, after C4 moved to `post_delete`; it was 5.23 s at §1.17: an assignment cascade of 1,000 rows in one open job takes a median of 3.35 s inside the delete's transaction, with the teacher's wallet locked). Read this before switch-on, and before any admin bulk delete with the flag on.
 
 ---
 
@@ -694,3 +694,42 @@ PFB-9b is the plant that pins the order-dependence. It differs from PFB-9 becaus
 - `one_job` should drop from about 5,727 queries. Each RETURNED row goes from 5 queries (wallet lock, fresh read, UPDATE, job read, EXISTS) to 4 (three in `pre_delete`, one status read in `post_delete`). The C4 work runs once.
 - **My estimate:** about 4,600 queries and about 4.2 s. That is still above the 2 s line, so the B1b-3 speed item and the switch-on checklist line stand, with the number updated.
 - Nothing is asserted about the time.
+
+### §1.23 Results for the `post_delete` fix (at 8f00a1447)
+
+**Green run 4 (under `flock`, 7304 MB available): `Ran 20`, OK, as declared.** Log: `step1/step1_green4_8f00a144.log`.
+
+**Plants:** each was applied by `scratchpad/plant3.py` and restored with `git checkout`. After every restore, `sha256sum -c` matched: `billing/holds.py` 5bf58994…2b6062 and `billing/apps.py` 02caeabd…c2cd47f. Logs: `step1/step1_plant4_PFB-*.log`.
+
+| Plant | Result | Not passing | Against the declaration |
+|---|---|---|---|
+| PFB-1 | FAILED (failures=17) | T-1…T-6, T-7, T-8b, T-9…T-14, T-17, T-19, T-20 | killed. Every declared kill failed. T-7, T-8b and T-12 failed (allowed); T-8 passed (allowed); T-15 and T-18 survived (declared) |
+| PFB-2 | FAILED (failures=7) | T-5, T-6, T-7, T-8, T-8b, T-19, T-20 | killed, exactly as declared |
+| PFB-3 | FAILED (failures=14) | T-1…T-7, T-11…T-14, T-17, T-19, T-20 | killed. Every declared kill failed; T-7, T-11 and T-12 are allowed |
+| PFB-4 | FAILED (failures=2, errors=4) | T-1…T-4 (ERROR, `KeyError: 'item_id'`), T-5, T-11 | killed, as at §1.17. T-10, T-12, T-19 and T-20 passed (declared) |
+| PFB-6 | FAILED (failures=1, errors=3) | T-9 (FAIL `120 != 300`), T-5, T-10, T-19 (ERROR, `creditwallet_reserved_credits_nonneg`) | killed. T-10 and T-19 are allowed |
+| PFB-7 | FAILED (failures=4) | T-5, T-9, T-10, T-19 | killed, exactly as declared |
+| PFB-8 | FAILED (failures=1) | T-17 | killed, exactly as declared |
+| **PFB-9** | FAILED (failures=7) | T-5, T-6, T-7, T-8, T-8b, T-19, T-20 | killed, exactly as declared |
+| **PFB-9b** | FAILED (failures=1) | **T-20** | killed, exactly as declared: C4 in `pre_delete` is caught by T-20 alone |
+
+**Timing (under `flock`, `RUN_LOAD_TESTS=1`, 7572 MB available): `Ran 1`, OK.** Log: `step1/step1_timing_AFTER3_8f00a144.log`.
+
+| Shape | Seconds (3 runs) | Median | Queries (counted) |
+|---|---|---|---|
+| `no_job` | 0.0446, 0.0423, 0.0443 | **0.044 s** | 23, 23, 23 |
+| `one_job` | 3.30, 3.35, 3.43 | **3.35 s** | 4735, 4735, 4735 |
+
+- The estimate was about 4,600 queries and 4.2 s. The count is within 3% of that, and the time is lower.
+- Against §1.17 (5.23 s, about 5,727 queries), that is 992 fewer queries, about one per RETURNED row (900), and about 1.9 s faster.
+- The count is now the same in every run (4,735 ×3, where §1.17 varied). C4 runs once, in the first `post_delete`, instead of in every `pre_delete` while the job is open.
+- **Still above the SM's 2 s line.** The B1b-3 speed item stands, and the switch-on checklist line now reads "about 3.3 s per 1,000".
+
+### §1.24 The B1b-1 near run, again (declared before it runs; at the commit that carries this section)
+
+The counts are from `DiscoverRunner.build_suite().countTestCases()` (§1.21 (c)). Neither of them changes at 8f00a1447: the test file still has 20 tests.
+
+- **Apps:** `billing students classrooms assignments users AutoGrader.tests_migration_rollback_defaults`, `--parallel 4`, with `BILLING_HOLDS_ENABLED` unset. **Prediction: `Ran 6337`, `OK (skipped=23)`.** That is 19 decorated skips plus the 4 runtime skips, as at §1.18.
+- **The 66 standing guards, serially:** **Prediction: `Ran 1146`, `OK (skipped=1)`.**
+- Both run under `flock`. Any other result is a STOP.
+- `makemigrations --check` is run first. Prediction: `No changes detected`.

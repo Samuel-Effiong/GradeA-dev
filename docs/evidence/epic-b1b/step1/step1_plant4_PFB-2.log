@@ -1,0 +1,117 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user dec7a142-23a7-48fb-8bd4-fe4b64a660f0.
+Cannot activate automatic trial for user dec7a142-23a7-48fb-8bd4-fe4b64a660f0 (validation): ValueError
+FFree trial plan not found: no trial activated for user b3d79078-e63b-4bf4-a8e1-6a21af92ee78.
+Cannot activate automatic trial for user b3d79078-e63b-4bf4-a8e1-6a21af92ee78 (validation): ValueError
+FFree trial plan not found: no trial activated for user a1e89e62-04c8-49f1-ae1b-67daf2c52324.
+Cannot activate automatic trial for user a1e89e62-04c8-49f1-ae1b-67daf2c52324 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3e214e31-eed6-4ea2-87da-16a4a47892d9.
+Cannot activate automatic trial for user 3e214e31-eed6-4ea2-87da-16a4a47892d9 (validation): ValueError
+.Free trial plan not found: no trial activated for user fa307dd7-0799-4d35-b099-55bf281a12ab.
+Cannot activate automatic trial for user fa307dd7-0799-4d35-b099-55bf281a12ab (validation): ValueError
+.Free trial plan not found: no trial activated for user 43468f5a-810f-4877-addc-63a7c9698b4d.
+Cannot activate automatic trial for user 43468f5a-810f-4877-addc-63a7c9698b4d (validation): ValueError
+.Free trial plan not found: no trial activated for user a5e7aed1-66ab-4674-8d10-512b547fd7eb.
+Cannot activate automatic trial for user a5e7aed1-66ab-4674-8d10-512b547fd7eb (validation): ValueError
+FFree trial plan not found: no trial activated for user dbd14a1e-73ea-4281-9591-a133428c3014.
+Cannot activate automatic trial for user dbd14a1e-73ea-4281-9591-a133428c3014 (validation): ValueError
+FFree trial plan not found: no trial activated for user 0c5dab34-4750-431d-8971-908d33ae352a.
+Cannot activate automatic trial for user 0c5dab34-4750-431d-8971-908d33ae352a (validation): ValueError
+.Free trial plan not found: no trial activated for user 1a73209c-d81b-42ca-8c2c-13ed6df6b6cd.
+Cannot activate automatic trial for user 1a73209c-d81b-42ca-8c2c-13ed6df6b6cd (validation): ValueError
+.Free trial plan not found: no trial activated for user de209b6a-5060-4076-9f22-f63b799ee682.
+Cannot activate automatic trial for user de209b6a-5060-4076-9f22-f63b799ee682 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4cadd738-96b4-4c83-aa73-8a2e3b91ec97.
+Cannot activate automatic trial for user 4cadd738-96b4-4c83-aa73-8a2e3b91ec97 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5923324d-a95b-4bd8-9aac-26698b3598ff.
+Cannot activate automatic trial for user 5923324d-a95b-4bd8-9aac-26698b3598ff (validation): ValueError
+.Free trial plan not found: no trial activated for user 4e715769-4d2f-4290-9155-728411958024.
+Cannot activate automatic trial for user 4e715769-4d2f-4290-9155-728411958024 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3177251d-3d0b-4ee7-ba8d-1dd37f96a5a8.
+Cannot activate automatic trial for user 3177251d-3d0b-4ee7-ba8d-1dd37f96a5a8 (validation): ValueError
+FFree trial plan not found: no trial activated for user fe184ca9-d975-4a95-906a-129671cf26c2.
+Cannot activate automatic trial for user fe184ca9-d975-4a95-906a-129671cf26c2 (validation): ValueError
+FFree trial plan not found: no trial activated for user 022bc77c-7fd2-46f5-8d66-cc56bdbce45d.
+Cannot activate automatic trial for user 022bc77c-7fd2-46f5-8d66-cc56bdbce45d (validation): ValueError
+FFree trial plan not found: no trial activated for user e453a685-32f7-40f4-b64c-14d387a246b2.
+Cannot activate automatic trial for user e453a685-32f7-40f4-b64c-14d387a246b2 (validation): ValueError
+.Free trial plan not found: no trial activated for user a7346269-4e77-46df-997d-31145249dc82.
+Cannot activate automatic trial for user a7346269-4e77-46df-997d-31145249dc82 (validation): ValueError
+.Free trial plan not found: no trial activated for user 74281cb2-195f-41a7-a9e0-11ad594ec8b2.
+Cannot activate automatic trial for user 74281cb2-195f-41a7-a9e0-11ad594ec8b2 (validation): ValueError
+.
+======================================================================
+FAIL: test_t19_an_assignment_cascade_with_a_held_and_a_returned_row (billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t19_an_assignment_cascade_with_a_held_and_a_returned_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 476, in test_t19_an_assignment_cascade_with_a_held_and_a_returned_row
+    self.assertEqual(fresh(job).status, AIJobStatus.FAILED)
+AssertionError: 'RESERVED' != AIJobStatus.FAILED
+
+======================================================================
+FAIL: test_t20_an_assignment_cascade_with_a_never_held_pending_row (billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t20_an_assignment_cascade_with_a_never_held_pending_row)
+A row with a job but no hold that has not run (B1b-6's queued
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 497, in test_t20_an_assignment_cascade_with_a_never_held_pending_row
+    self.assertEqual(fresh(job).status, AIJobStatus.FAILED)
+AssertionError: 'RESERVED' != AIJobStatus.FAILED
+
+======================================================================
+FAIL: test_t5_assignment_cascade (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade)
+Every row of the job goes: the job finishes SETTLED (C4), because
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 208, in test_t5_assignment_cascade
+    self.assertEqual(fresh(job).status, AIJobStatus.SETTLED)
+AssertionError: 'RESERVED' != AIJobStatus.SETTLED
+
+======================================================================
+FAIL: test_t6_batch_session_cascade (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t6_batch_session_cascade)
+Every row of the job goes and none settled: FAILED (C4).
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 236, in test_t6_batch_session_cascade
+    self.assertEqual(row.status, AIJobStatus.FAILED)
+AssertionError: 'RESERVED' != AIJobStatus.FAILED
+
+======================================================================
+FAIL: test_t7_upload_with_a_settled_sibling_ends_settled (billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t7_upload_with_a_settled_sibling_ends_settled)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 255, in test_t7_upload_with_a_settled_sibling_ends_settled
+    self.assertEqual(fresh(job).status, AIJobStatus.SETTLED)
+AssertionError: 'RESERVED' != AIJobStatus.SETTLED
+
+======================================================================
+FAIL: test_t8_upload_with_every_row_deleted_and_none_settled_ends_failed (billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t8_upload_with_every_row_deleted_and_none_settled_ends_failed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 266, in test_t8_upload_with_every_row_deleted_and_none_settled_ends_failed
+    self.assertEqual(fresh(job).status, AIJobStatus.FAILED)
+AssertionError: 'RESERVED' != AIJobStatus.FAILED
+
+======================================================================
+FAIL: test_t8b_single_item_deleted_while_held_ends_failed (billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t8b_single_item_deleted_while_held_ends_failed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 277, in test_t8b_single_item_deleted_while_held_ends_failed
+    self.assertEqual(row.status, AIJobStatus.FAILED)
+AssertionError: 'RESERVED' != AIJobStatus.FAILED
+
+----------------------------------------------------------------------
+Ran 20 tests in 5.564s
+
+FAILED (failures=7)
+Destroying test database for alias 'default'...
+Found 20 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
