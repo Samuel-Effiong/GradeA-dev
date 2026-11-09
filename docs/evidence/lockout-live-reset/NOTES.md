@@ -271,3 +271,16 @@ Counts from build_suite: guard 2; users + students 1935; sweep 49.
     billing.tests.test_live_qa_clock
     billing.tests.test_price_drift_reconciliation
     AutoGrader.tests_live_server_backlog_guard
+
+### Results (under flock)
+
+- **R1 red** (`06_red.log.gz`): **Ran 2, FAILED (failures=1)**. test_every_live_server_class_holds_its_burst named all four classes as "listen backlog 10 < required 128"; the scan test passed. **As predicted.**
+- **G1 green** (`07_green.log.gz`): **Ran 72, OK (skipped=2)** (real-AI opt-in, CI_REQUIRE_REDIS). **As predicted.**
+- **PL1** (`08_plant_pl1.log.gz`): **Ran 2, FAILED (failures=1)**, 1 element: `users.tests_login_lockout.LoginLockoutLiveServerTests: listen backlog 10 < required 128`. Killed, **as predicted**. Restored, sha256 MATCHED 2ee9f106b7c22e2c.
+- **PL2** (`09_plant_pl2.log.gz`): **Ran 2, FAILED (failures=1)**, 4 elements, all four classes. Killed, **as predicted**. Restored, sha256 MATCHED 1341a2eb045afb7e.
+- **N1 near** (`10_near_apps.log.gz`, --parallel 2, 124 s): **Ran 1935, OK (skipped=5)**. **Prediction incomplete**: I declared 2 skips. The other 3 are opt-in live-network tests (2 "live Google contract tests are opt-in", 1 "Live network check is opt-in"), all CI_REQUIRE_NETWORK. No failures.
+- **N2 guard sweep** (`11_guard_sweep.log.gz`, serial, 101 s): **Ran 830, OK (skipped=1)** (ssrf, CI_REQUIRE_NETWORK). **As predicted.**
+
+**Standing guard list: `AutoGrader.tests_live_server_backlog_guard` becomes label 67** (SM ruling). It is on beta only until beta is merged into staging, where guards66.txt gains it.
+
+Ready for the SM. The SM asks the owner for the beta go. No push from Lane 2.
