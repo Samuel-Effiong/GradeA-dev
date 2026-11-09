@@ -1,0 +1,302 @@
+Using existing test database for alias 'default' ('test_student_data_erase_export')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_h300_b2_switch_on_replay_does_not_grant_twice (billing.tests.test_h300_refund_hook.RoadBSwitchOnReplay.test_h300_b2_switch_on_replay_does_not_grant_twice) ... Free trial plan not found: no trial activated for user cff82271-13db-46a9-9641-da29955a80d5.
+Cannot activate automatic trial for user cff82271-13db-46a9-9641-da29955a80d5 (validation): ValueError
+Free trial plan not found: no trial activated for user 9b197761-a294-4424-80e0-7292f408d85c.
+Cannot activate automatic trial for user 9b197761-a294-4424-80e0-7292f408d85c (validation): ValueError
+Free trial plan not found: no trial activated for user 95482fa3-5d9a-478d-8cf0-6025ab1efb33.
+Cannot activate automatic trial for user 95482fa3-5d9a-478d-8cf0-6025ab1efb33 (validation): ValueError
+Overage purchase intent 7bddf266-8ee5-4b81-ba16-a32bf26cba02 (session cs_h300_hook) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 572df7a1-5eac-4e01-9602-b205c45ec0e2.
+Refunded 299 cents of PaymentIntent pi_dr: the share of teacher(s) who left before overage intent 7bddf266-8ee5-4b81-ba16-a32bf26cba02 was fulfilled.
+Stripe event evt_h300_hook was manually replayed via replay_stripe_events by an operator.
+ok
+test_h300_b3_switch_on_replay_does_not_refund_twice (billing.tests.test_h300_refund_hook.RoadBSwitchOnReplay.test_h300_b3_switch_on_replay_does_not_refund_twice) ... Free trial plan not found: no trial activated for user eb88fe28-6fa8-4d9f-9698-a7b9002d4a0d.
+Cannot activate automatic trial for user eb88fe28-6fa8-4d9f-9698-a7b9002d4a0d (validation): ValueError
+Free trial plan not found: no trial activated for user 1715817d-0a85-4155-9382-6063ddc75db0.
+Cannot activate automatic trial for user 1715817d-0a85-4155-9382-6063ddc75db0 (validation): ValueError
+Free trial plan not found: no trial activated for user 5854114a-875a-42b4-9eb5-03ecb6a835b4.
+Cannot activate automatic trial for user 5854114a-875a-42b4-9eb5-03ecb6a835b4 (validation): ValueError
+Overage purchase intent c741f594-ff0e-476e-84fe-bff4a6e427c0 (session cs_h300_hook) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License b3ebeb3d-90da-462b-9d8c-99801623262f.
+Refunded 299 cents of PaymentIntent pi_dr: the share of teacher(s) who left before overage intent c741f594-ff0e-476e-84fe-bff4a6e427c0 was fulfilled.
+Stripe event evt_h300_hook was manually replayed via replay_stripe_events by an operator.
+ok
+test_h300_b1_a_skipped_teacher_purchase_is_not_granted_again (billing.tests.test_h300_reprocess.ReplayDoesNotFulfillTwiceTests.test_h300_b1_a_skipped_teacher_purchase_is_not_granted_again) ... Free trial plan not found: no trial activated for user 2e279569-c7ae-4d56-ab81-e0d9cc43bca5.
+Cannot activate automatic trial for user 2e279569-c7ae-4d56-ab81-e0d9cc43bca5 (validation): ValueError
+Free trial plan not found: no trial activated for user 1687d5bb-fe19-4451-b519-af37527b891f.
+Cannot activate automatic trial for user 1687d5bb-fe19-4451-b519-af37527b891f (validation): ValueError
+Free trial plan not found: no trial activated for user 0c560a86-4687-470d-9127-11564937834b.
+Cannot activate automatic trial for user 0c560a86-4687-470d-9127-11564937834b (validation): ValueError
+Overage purchase intent 38604f2c-562d-4ca8-8d6d-a1029c35fb2c (session cs_h300) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 0d0d7007-f419-4626-9066-8a76660a5609.
+Stripe event evt_h300 was manually replayed via replay_stripe_events by an operator.
+ok
+test_h300_b4_control_a_full_purchase_is_not_granted_again (billing.tests.test_h300_reprocess.ReplayDoesNotFulfillTwiceTests.test_h300_b4_control_a_full_purchase_is_not_granted_again) ... Free trial plan not found: no trial activated for user d59d105f-7a7f-44e2-b6d5-e4238cf5088a.
+Cannot activate automatic trial for user d59d105f-7a7f-44e2-b6d5-e4238cf5088a (validation): ValueError
+Free trial plan not found: no trial activated for user fa817c43-572f-44dd-b369-d65af129e3e2.
+Cannot activate automatic trial for user fa817c43-572f-44dd-b369-d65af129e3e2 (validation): ValueError
+Free trial plan not found: no trial activated for user c493a2bf-67d9-4925-8547-07aaa07149e3.
+Cannot activate automatic trial for user c493a2bf-67d9-4925-8547-07aaa07149e3 (validation): ValueError
+Stripe event evt_h300 was manually replayed via replay_stripe_events by an operator.
+ok
+test_h300_c1_an_inactive_license_purchase_is_not_recorded_again (billing.tests.test_h300_reprocess.ReplayDoesNotFulfillTwiceTests.test_h300_c1_an_inactive_license_purchase_is_not_recorded_again) ... Free trial plan not found: no trial activated for user 36fc60d5-5b49-4327-80de-a5b408450191.
+Cannot activate automatic trial for user 36fc60d5-5b49-4327-80de-a5b408450191 (validation): ValueError
+Free trial plan not found: no trial activated for user 54d5e7b5-38f6-4ae6-b836-9850d3f4bc84.
+Cannot activate automatic trial for user 54d5e7b5-38f6-4ae6-b836-9850d3f4bc84 (validation): ValueError
+Free trial plan not found: no trial activated for user 5361812e-216d-4e37-a137-dc17bf42f8b2.
+Cannot activate automatic trial for user 5361812e-216d-4e37-a137-dc17bf42f8b2 (validation): ValueError
+Overage purchase intent b210e910-0f69-44c7-a65a-1bd16f6e6779 paid (session cs_h300) but license 18be1c95-3010-4a3f-9b10-41f4008b971d is no longer active — credits NOT granted. Needs manual refund via the Stripe dashboard.
+Overage purchase intent b210e910-0f69-44c7-a65a-1bd16f6e6779 paid (session cs_h300) but license 18be1c95-3010-4a3f-9b10-41f4008b971d is no longer active — credits NOT granted. Needs manual refund via the Stripe dashboard.
+Stripe event evt_h300 was manually replayed via replay_stripe_events by an operator.
+ok
+test_h300_d1_a_ledger_row_for_the_intent_alone_stops_a_rerun (billing.tests.test_h300_reprocess.ReplayDoesNotFulfillTwiceTests.test_h300_d1_a_ledger_row_for_the_intent_alone_stops_a_rerun) ... Free trial plan not found: no trial activated for user b5f4aa3b-cfbf-4e88-9c28-f8220497f868.
+Cannot activate automatic trial for user b5f4aa3b-cfbf-4e88-9c28-f8220497f868 (validation): ValueError
+Free trial plan not found: no trial activated for user db37da6a-179c-46dd-b6ec-142927236c07.
+Cannot activate automatic trial for user db37da6a-179c-46dd-b6ec-142927236c07 (validation): ValueError
+Free trial plan not found: no trial activated for user 5c31f1b7-2fbd-4957-88ea-ffe743b8308a.
+Cannot activate automatic trial for user 5c31f1b7-2fbd-4957-88ea-ffe743b8308a (validation): ValueError
+Overage purchase intent f5fc4314-ebb6-4a96-8926-67e08e5872ec (session cs_h300) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 92c2f6bc-a7ef-4df8-8927-91a6ee69618d.
+Stripe event evt_h300 was manually replayed via replay_stripe_events by an operator.
+ok
+test_dr16_amounts_show_as_dollars (billing.tests.test_departed_teacher_refund.AmountFormatTests.test_dr16_amounts_show_as_dollars) ... ok
+test_dr10_no_payment_intent_is_reported_not_refunded (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr10_no_payment_intent_is_reported_not_refunded) ... Free trial plan not found: no trial activated for user eec90f4c-5cd9-41fa-83ed-72138ea22817.
+Cannot activate automatic trial for user eec90f4c-5cd9-41fa-83ed-72138ea22817 (validation): ValueError
+Free trial plan not found: no trial activated for user 3f14da2c-71c2-4c1a-ab83-60fae865c464.
+Cannot activate automatic trial for user 3f14da2c-71c2-4c1a-ab83-60fae865c464 (validation): ValueError
+Free trial plan not found: no trial activated for user 52bf1f69-2a89-4643-88d4-1709c28a7320.
+Cannot activate automatic trial for user 52bf1f69-2a89-4643-88d4-1709c28a7320 (validation): ValueError
+ok
+test_dr11_the_admin_is_emailed_the_approved_card_text (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr11_the_admin_is_emailed_the_approved_card_text) ... Free trial plan not found: no trial activated for user ddbfbaab-00f4-4588-8597-c784b079870e.
+Cannot activate automatic trial for user ddbfbaab-00f4-4588-8597-c784b079870e (validation): ValueError
+Free trial plan not found: no trial activated for user fd6907d0-6b4e-4d39-961a-d3c41a55470e.
+Cannot activate automatic trial for user fd6907d0-6b4e-4d39-961a-d3c41a55470e (validation): ValueError
+Free trial plan not found: no trial activated for user 45ee8974-1c8a-4a87-ae51-d207b22e4266.
+Cannot activate automatic trial for user 45ee8974-1c8a-4a87-ae51-d207b22e4266 (validation): ValueError
+Overage purchase intent 64870060-b4b7-4f5e-a556-eaba6dcf9177 (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License be25754d-6e1e-4ba8-9555-29756a89c5d0.
+Refunded 299 cents of PaymentIntent pi_dr: the share of teacher(s) who left before overage intent 64870060-b4b7-4f5e-a556-eaba6dcf9177 was fulfilled.
+ok
+test_dr12_the_purchase_note_and_history_suffix_are_approved (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr12_the_purchase_note_and_history_suffix_are_approved) ... Free trial plan not found: no trial activated for user 7fc7a791-83c5-4bfa-a3a3-ad93bd4f8294.
+Cannot activate automatic trial for user 7fc7a791-83c5-4bfa-a3a3-ad93bd4f8294 (validation): ValueError
+Free trial plan not found: no trial activated for user 2869b182-2283-4337-a7e4-4d17d0d673db.
+Cannot activate automatic trial for user 2869b182-2283-4337-a7e4-4d17d0d673db (validation): ValueError
+Free trial plan not found: no trial activated for user 3580d03e-e4ba-4e4e-8b1c-a2a883596cee.
+Cannot activate automatic trial for user 3580d03e-e4ba-4e4e-8b1c-a2a883596cee (validation): ValueError
+Overage purchase intent 3c4ed14a-10cb-4472-b079-874721337e1d (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 1ced4eef-139e-43ce-a4b7-bd5bf5a6ef64.
+Refunded 299 cents of PaymentIntent pi_dr: the share of teacher(s) who left before overage intent 3c4ed14a-10cb-4472-b079-874721337e1d was fulfilled.
+ok
+test_dr17_a_non_usd_payment_is_reported_not_refunded (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr17_a_non_usd_payment_is_reported_not_refunded) ... Free trial plan not found: no trial activated for user 1ecbec02-0ec1-4c36-aa7a-158cf3343294.
+Cannot activate automatic trial for user 1ecbec02-0ec1-4c36-aa7a-158cf3343294 (validation): ValueError
+Free trial plan not found: no trial activated for user f08f89e2-d3dc-4324-9173-39ed38bd29d6.
+Cannot activate automatic trial for user f08f89e2-d3dc-4324-9173-39ed38bd29d6 (validation): ValueError
+Free trial plan not found: no trial activated for user ca243b12-9f3d-452f-a9d5-718920fa16cc.
+Cannot activate automatic trial for user ca243b12-9f3d-452f-a9d5-718920fa16cc (validation): ValueError
+ok
+test_dr4_a_departure_refunds_exactly_that_share_once (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr4_a_departure_refunds_exactly_that_share_once) ... Free trial plan not found: no trial activated for user 31ba39ad-a023-4dad-a16c-736b90e1f67c.
+Cannot activate automatic trial for user 31ba39ad-a023-4dad-a16c-736b90e1f67c (validation): ValueError
+Free trial plan not found: no trial activated for user 8ce2160c-1df0-487b-8ab2-4cf46641b80a.
+Cannot activate automatic trial for user 8ce2160c-1df0-487b-8ab2-4cf46641b80a (validation): ValueError
+Free trial plan not found: no trial activated for user b4c05274-5f3e-4afe-a449-3c1775c7d3e5.
+Cannot activate automatic trial for user b4c05274-5f3e-4afe-a449-3c1775c7d3e5 (validation): ValueError
+Overage purchase intent 633c1ff7-437e-4f84-adbd-ae7c06033d1f (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License cf3cd51b-6062-43e5-9619-26f3d07f90a0.
+Refunded 299 cents of PaymentIntent pi_dr: the share of teacher(s) who left before overage intent 633c1ff7-437e-4f84-adbd-ae7c06033d1f was fulfilled.
+ok
+test_dr5_a_rolled_back_webhook_refunds_nothing (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr5_a_rolled_back_webhook_refunds_nothing) ... Free trial plan not found: no trial activated for user 384de355-02b8-45e2-870a-06d4a10e36c2.
+Cannot activate automatic trial for user 384de355-02b8-45e2-870a-06d4a10e36c2 (validation): ValueError
+Free trial plan not found: no trial activated for user 65d1f106-8501-4419-a71e-ad896cf9a99f.
+Cannot activate automatic trial for user 65d1f106-8501-4419-a71e-ad896cf9a99f (validation): ValueError
+Free trial plan not found: no trial activated for user cfcac007-43e0-4a1a-900f-5bb1f1aa386c.
+Cannot activate automatic trial for user cfcac007-43e0-4a1a-900f-5bb1f1aa386c (validation): ValueError
+Overage purchase intent 2c4887d2-9a2e-4562-9806-a182eb7bc5d8 (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 23898810-769b-44c0-8bfb-6617e2b66d44.
+ok
+test_dr5_the_refund_runs_only_after_commit (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr5_the_refund_runs_only_after_commit) ... Free trial plan not found: no trial activated for user 5ae91137-36a1-46da-86d6-613b63b5b8a2.
+Cannot activate automatic trial for user 5ae91137-36a1-46da-86d6-613b63b5b8a2 (validation): ValueError
+Free trial plan not found: no trial activated for user 5e6fb0d7-f269-4c89-9483-524b5e982375.
+Cannot activate automatic trial for user 5e6fb0d7-f269-4c89-9483-524b5e982375 (validation): ValueError
+Free trial plan not found: no trial activated for user 4d60da6e-43da-46c6-b10f-629c5583307a.
+Cannot activate automatic trial for user 4d60da6e-43da-46c6-b10f-629c5583307a (validation): ValueError
+Overage purchase intent cf02aa50-5fb2-4f3f-8b5f-a0f6eb78a47b (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License a6ed0f16-cb93-434c-8c3c-d72e19baa2bb.
+ok
+test_dr6_the_refund_coming_back_leaves_every_granted_credit (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr6_the_refund_coming_back_leaves_every_granted_credit) ... Free trial plan not found: no trial activated for user 63dca883-6904-48b5-aa90-ad0505d0c72a.
+Cannot activate automatic trial for user 63dca883-6904-48b5-aa90-ad0505d0c72a (validation): ValueError
+Free trial plan not found: no trial activated for user b27ee500-34ed-4685-a903-3154c46aa8f9.
+Cannot activate automatic trial for user b27ee500-34ed-4685-a903-3154c46aa8f9 (validation): ValueError
+Free trial plan not found: no trial activated for user 6375e9c3-a89f-4291-9c36-e44bdf489652.
+Cannot activate automatic trial for user 6375e9c3-a89f-4291-9c36-e44bdf489652 (validation): ValueError
+Overage purchase intent a59d41bc-c18b-4c21-925a-700ec890f8a3 (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License d6361370-2574-41d5-80d2-10a01bdb0461.
+Refunded 299 cents of PaymentIntent pi_dr: the share of teacher(s) who left before overage intent a59d41bc-c18b-4c21-925a-700ec890f8a3 was fulfilled.
+Refund of payment pi_dr carries retain_credits: 299 cents returned and 10000 credit(s) deliberately LEFT with the customer.
+ok
+test_dr7_nothing_left_to_refund_is_reported_not_refunded (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr7_nothing_left_to_refund_is_reported_not_refunded) ... Free trial plan not found: no trial activated for user e08ef5f7-dc18-4d83-9692-d31da20fd74a.
+Cannot activate automatic trial for user e08ef5f7-dc18-4d83-9692-d31da20fd74a (validation): ValueError
+Free trial plan not found: no trial activated for user d80a6bfd-213c-4271-95a8-c1800fb759d9.
+Cannot activate automatic trial for user d80a6bfd-213c-4271-95a8-c1800fb759d9 (validation): ValueError
+Free trial plan not found: no trial activated for user 86eea31e-fca1-4922-9a66-cc7ec90af14b.
+Cannot activate automatic trial for user 86eea31e-fca1-4922-9a66-cc7ec90af14b (validation): ValueError
+ok
+test_dr7_the_refund_is_capped_at_what_is_still_refundable (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr7_the_refund_is_capped_at_what_is_still_refundable) ... Free trial plan not found: no trial activated for user efe8666c-048f-4597-9f94-a4dd9e4cb126.
+Cannot activate automatic trial for user efe8666c-048f-4597-9f94-a4dd9e4cb126 (validation): ValueError
+Free trial plan not found: no trial activated for user 4528b466-fadc-4178-bf70-97f3a0bb3786.
+Cannot activate automatic trial for user 4528b466-fadc-4178-bf70-97f3a0bb3786 (validation): ValueError
+Free trial plan not found: no trial activated for user e1813d08-c5e7-4456-a30e-47bb06f38458.
+Cannot activate automatic trial for user e1813d08-c5e7-4456-a30e-47bb06f38458 (validation): ValueError
+Overage purchase intent e8452f60-d953-4355-a7fc-6b5fd23b3b1b (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 1f0206fa-2139-49a5-b53f-7456a886d82d.
+Refunded 197 cents of PaymentIntent pi_dr: the share of teacher(s) who left before overage intent e8452f60-d953-4355-a7fc-6b5fd23b3b1b was fulfilled.
+ok
+test_dr8_a_rerun_never_refunds_twice (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr8_a_rerun_never_refunds_twice) ... Free trial plan not found: no trial activated for user 26db95fd-15c3-42b2-b69a-2399213c42b2.
+Cannot activate automatic trial for user 26db95fd-15c3-42b2-b69a-2399213c42b2 (validation): ValueError
+Free trial plan not found: no trial activated for user 814e1593-adc8-4d7d-b211-bc539e897436.
+Cannot activate automatic trial for user 814e1593-adc8-4d7d-b211-bc539e897436 (validation): ValueError
+Free trial plan not found: no trial activated for user a44ae651-9b22-43c9-b7d8-14f789dec1ec.
+Cannot activate automatic trial for user a44ae651-9b22-43c9-b7d8-14f789dec1ec (validation): ValueError
+MANUAL RECONCILIATION NEEDED: overage intent 63118ed6-4e75-472a-8cba-f77b0bd0e92e owes a departed teacher's share of 299 cents but has no PaymentIntent to refund.
+Overage purchase intent 63118ed6-4e75-472a-8cba-f77b0bd0e92e (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License e8d42f56-8c0f-4523-885d-5537e0e5b30a.
+ok
+test_dr9_a_connection_error_is_retried (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr9_a_connection_error_is_retried) ... Free trial plan not found: no trial activated for user f7cccfb5-434d-4ffc-a20f-d8afd93b2e3e.
+Cannot activate automatic trial for user f7cccfb5-434d-4ffc-a20f-d8afd93b2e3e (validation): ValueError
+Free trial plan not found: no trial activated for user 49d3ebb0-d3e8-48a4-94b2-a8150756d578.
+Cannot activate automatic trial for user 49d3ebb0-d3e8-48a4-94b2-a8150756d578 (validation): ValueError
+Free trial plan not found: no trial activated for user 6da3d1e8-f33c-4c67-9701-a25a25c0cd95.
+Cannot activate automatic trial for user 6da3d1e8-f33c-4c67-9701-a25a25c0cd95 (validation): ValueError
+Overage purchase intent d1aa206a-6520-4f79-8284-8f97f07269cb (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License af630be2-dc3c-4e0a-9cab-3bb6332ebc79.
+ok
+test_dr9_a_refused_refund_is_reported_and_grants_stay (billing.tests.test_departed_teacher_refund.CardRefundTests.test_dr9_a_refused_refund_is_reported_and_grants_stay) ... Free trial plan not found: no trial activated for user 440f8fed-6b8f-43f6-8d5e-5c767ff9eadd.
+Cannot activate automatic trial for user 440f8fed-6b8f-43f6-8d5e-5c767ff9eadd (validation): ValueError
+Free trial plan not found: no trial activated for user 0ca25646-9878-4d13-9356-2e4411d2c89c.
+Cannot activate automatic trial for user 0ca25646-9878-4d13-9356-2e4411d2c89c (validation): ValueError
+Free trial plan not found: no trial activated for user d219b21e-8c7f-4eec-836e-6209374bf636.
+Cannot activate automatic trial for user d219b21e-8c7f-4eec-836e-6209374bf636 (validation): ValueError
+Overage purchase intent 61f6a7df-9f22-4687-a694-cee4bf426c65 (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 2591b41f-c5b6-409b-98e2-f2e37bb3e59a.
+ok
+test_dr14_no_skipped_teacher_means_no_refund (billing.tests.test_departed_teacher_refund.NoDepartureTests.test_dr14_no_skipped_teacher_means_no_refund) ... Free trial plan not found: no trial activated for user 3a68a622-4a58-467e-bd8a-59057c20a734.
+Cannot activate automatic trial for user 3a68a622-4a58-467e-bd8a-59057c20a734 (validation): ValueError
+Free trial plan not found: no trial activated for user 12582b3b-315e-415c-a614-e99e774f722b.
+Cannot activate automatic trial for user 12582b3b-315e-415c-a614-e99e774f722b (validation): ValueError
+Free trial plan not found: no trial activated for user f69c0a04-ab9c-4443-b8aa-15c659511a0e.
+Cannot activate automatic trial for user f69c0a04-ab9c-4443-b8aa-15c659511a0e (validation): ValueError
+ok
+test_dr13_switch_on_records_the_share_owed_and_tells_the_admin (billing.tests.test_departed_teacher_refund.OfflinePathTests.test_dr13_switch_on_records_the_share_owed_and_tells_the_admin) ... Free trial plan not found: no trial activated for user db9573af-6fc3-452a-a469-da309d4142a1.
+Cannot activate automatic trial for user db9573af-6fc3-452a-a469-da309d4142a1 (validation): ValueError
+Free trial plan not found: no trial activated for user 62133a2c-fc50-4c6e-8c25-a16f4b346922.
+Cannot activate automatic trial for user 62133a2c-fc50-4c6e-8c25-a16f4b346922 (validation): ValueError
+Free trial plan not found: no trial activated for user fa220821-4f82-44ac-b7a5-1e9abd5a71f4.
+Cannot activate automatic trial for user fa220821-4f82-44ac-b7a5-1e9abd5a71f4 (validation): ValueError
+Offline overage request 8bf71307-4b6e-4060-9898-edf35f9505b0 PARTIALLY fulfilled on approval: 2/3 teachers granted, 1 skipped (no longer active). License 3c8d6a41-14b9-4530-9795-bafe1bbb2d9a.
+ok
+test_dr2_switch_off_keeps_todays_offline_behavior (billing.tests.test_departed_teacher_refund.OfflinePathTests.test_dr2_switch_off_keeps_todays_offline_behavior) ... Free trial plan not found: no trial activated for user 203bfdc3-c853-429b-8f8e-0a8bddcf2892.
+Cannot activate automatic trial for user 203bfdc3-c853-429b-8f8e-0a8bddcf2892 (validation): ValueError
+Free trial plan not found: no trial activated for user d882c9b3-72d3-43c1-9238-275352813bf6.
+Cannot activate automatic trial for user d882c9b3-72d3-43c1-9238-275352813bf6 (validation): ValueError
+Free trial plan not found: no trial activated for user 4703173e-d8ed-4638-bd68-c22a922ace7e.
+Cannot activate automatic trial for user 4703173e-d8ed-4638-bd68-c22a922ace7e (validation): ValueError
+Offline overage request 4c3a73a3-b195-455d-af68-e0503fb08989 PARTIALLY fulfilled on approval: 2/3 teachers granted, 1 skipped (no longer active). License c0c997dd-ca88-4ec3-b27b-888b5bc3bb8c.
+ok
+test_dr1_switch_off_keeps_todays_card_behavior_and_texts (billing.tests.test_departed_teacher_refund.SwitchOffTests.test_dr1_switch_off_keeps_todays_card_behavior_and_texts) ... Free trial plan not found: no trial activated for user 8955cc22-dde2-4c51-a9db-bb90739ef9c8.
+Cannot activate automatic trial for user 8955cc22-dde2-4c51-a9db-bb90739ef9c8 (validation): ValueError
+Free trial plan not found: no trial activated for user 8b8bbede-99ee-4b9f-9e97-2a40b0c2600d.
+Cannot activate automatic trial for user 8b8bbede-99ee-4b9f-9e97-2a40b0c2600d (validation): ValueError
+Free trial plan not found: no trial activated for user e97415d8-e6ab-4266-84b0-efa573209583.
+Cannot activate automatic trial for user e97415d8-e6ab-4266-84b0-efa573209583 (validation): ValueError
+Overage purchase intent f5cf6413-53ff-412b-9e11-36df96bdd787 (session cs_dr) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License ccfbf388-b025-45af-a9e3-f2a0b64d5782.
+ok
+test_dr3_the_switch_is_on_and_every_text_is_the_approved_wording (billing.tests.test_departed_teacher_refund.SwitchTests.test_dr3_the_switch_is_on_and_every_text_is_the_approved_wording) ... ok
+test_h300_a1_broker_down_for_the_refund_leaves_the_event_succeeded (billing.tests.test_h300_refund_hook.RoadAHookFailureAfterCommit.test_h300_a1_broker_down_for_the_refund_leaves_the_event_succeeded) ... Free trial plan not found: no trial activated for user 4716c757-3bf2-418e-8b3d-8b60fcbbbfff.
+Cannot activate automatic trial for user 4716c757-3bf2-418e-8b3d-8b60fcbbbfff (validation): ValueError
+Free trial plan not found: no trial activated for user af073ea1-bbaf-4928-9078-91b25522dffa.
+Cannot activate automatic trial for user af073ea1-bbaf-4928-9078-91b25522dffa (validation): ValueError
+Free trial plan not found: no trial activated for user 9ddebb3b-72f7-489c-9ad6-bd7a1a743189.
+Cannot activate automatic trial for user 9ddebb3b-72f7-489c-9ad6-bd7a1a743189 (validation): ValueError
+
+
+django.db.backends.base ERROR 2026-11-09 09:02:47,900 base 633035 139714107656064 [request_id=- client_request_id=-] Error calling StripeWebhookHandler._refund_departed_share_on_commit.<locals>._after_commit in on_commit() during transaction (broker down).
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/base/base.py", line 760, in run_and_clear_commit_hooks
+    func()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/billing/stripe_service.py", line 3653, in _after_commit
+    if refund_departed_teacher_share.delay(intent_id, share) is None:  # PLANT Q1
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+kombu.exceptions.OperationalError: broker down
+FAIL
+test_h300_a2_broker_down_for_the_email_still_queues_the_refund (billing.tests.test_h300_refund_hook.RoadAHookFailureAfterCommit.test_h300_a2_broker_down_for_the_email_still_queues_the_refund) ... Free trial plan not found: no trial activated for user 4cae8e78-bd46-42a3-995a-be7d97adc3cc.
+Cannot activate automatic trial for user 4cae8e78-bd46-42a3-995a-be7d97adc3cc (validation): ValueError
+Free trial plan not found: no trial activated for user 40249677-3743-40b1-be33-3d908487967c.
+Cannot activate automatic trial for user 40249677-3743-40b1-be33-3d908487967c (validation): ValueError
+Free trial plan not found: no trial activated for user 223b3091-1085-4597-b829-dd07a7538ef0.
+Cannot activate automatic trial for user 223b3091-1085-4597-b829-dd07a7538ef0 (validation): ValueError
+Overage purchase intent c5946610-0006-4eaf-9381-d263c32d9a71 (session cs_h300_hook) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 96ee9bab-41bf-4ef5-8c36-ee2fac70b3fc.
+Could not dispatch task AutoGrader.tasks.send_email_task - broker unavailable (error=OperationalError)
+ok
+test_h300_a3_any_other_queueing_error_is_contained_too (billing.tests.test_h300_refund_hook.RoadAHookFailureAfterCommit.test_h300_a3_any_other_queueing_error_is_contained_too) ... Free trial plan not found: no trial activated for user 2bb28ae4-6350-4c92-95c2-59a52c8ac2f3.
+Cannot activate automatic trial for user 2bb28ae4-6350-4c92-95c2-59a52c8ac2f3 (validation): ValueError
+Free trial plan not found: no trial activated for user 89cdc717-459b-4efd-afff-8efd9d4fffb4.
+Cannot activate automatic trial for user 89cdc717-459b-4efd-afff-8efd9d4fffb4 (validation): ValueError
+Free trial plan not found: no trial activated for user dc1cedd6-629a-4615-870c-2d810889d9e6.
+Cannot activate automatic trial for user dc1cedd6-629a-4615-870c-2d810889d9e6 (validation): ValueError
+Overage purchase intent 28e94446-08cf-4cc2-9dd1-ff057976d9d6 (session cs_h300_hook) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 5ce05fdb-82e7-4e9d-b5fe-d011c95d53a8.
+
+
+django.db.backends.base ERROR 2026-11-09 09:02:50,222 base 633035 139714107656064 [request_id=- client_request_id=-] Error calling StripeWebhookHandler._refund_departed_share_on_commit.<locals>._after_commit in on_commit() during transaction (not a broker error).
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/base/base.py", line 760, in run_and_clear_commit_hooks
+    func()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/billing/stripe_service.py", line 3653, in _after_commit
+    if refund_departed_teacher_share.delay(intent_id, share) is None:  # PLANT Q1
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: not a broker error
+ok
+test_dr15_0078_is_choices_only_and_reverses_cleanly (billing.tests.test_departed_teacher_refund.ChoicesMigrationTests.test_dr15_0078_is_choices_only_and_reverses_cleanly) ... ok
+
+======================================================================
+FAIL: test_h300_a1_broker_down_for_the_refund_leaves_the_event_succeeded (billing.tests.test_h300_refund_hook.RoadAHookFailureAfterCommit.test_h300_a1_broker_down_for_the_refund_leaves_the_event_succeeded)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export/billing/tests/test_h300_refund_hook.py", line 127, in test_h300_a1_broker_down_for_the_refund_leaves_the_event_succeeded
+    self.assertTrue(
+AssertionError: False is not true : ['ERROR:billing.stripe_service:Overage purchase intent 7f6b7f11-ad1d-4570-b5b2-04e0812e5608 (session cs_h300_hook) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 9aa1720a-991d-423d-ae51-cb4073cc8b42.']
+
+----------------------------------------------------------------------
+Ran 29 tests in 17.424s
+
+FAILED (failures=1)
+Preserving test database for alias 'default' ('test_student_data_erase_export')...
+Found 29 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, tags, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+  REPLAYED evt_h300_hook (checkout.session.completed, attempts=1, first seen 2026-11-09 09:02)
+Replay complete: 1 succeeded, 0 failed again.
+  REPLAYED evt_h300_hook (checkout.session.completed, attempts=1, first seen 2026-11-09 09:02)
+Replay complete: 1 succeeded, 0 failed again.
+  REPLAYED evt_h300 (checkout.session.completed, attempts=1, first seen 2026-11-09 09:02)
+Replay complete: 1 succeeded, 0 failed again.
+  REPLAYED evt_h300 (checkout.session.completed, attempts=1, first seen 2026-11-09 09:02)
+Replay complete: 1 succeeded, 0 failed again.
+  REPLAYED evt_h300 (checkout.session.completed, attempts=1, first seen 2026-11-09 09:02)
+Replay complete: 1 succeeded, 0 failed again.
+  REPLAYED evt_h300 (checkout.session.completed, attempts=1, first seen 2026-11-09 09:02)
+Replay complete: 1 succeeded, 0 failed again.

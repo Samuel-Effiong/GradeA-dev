@@ -3393,6 +3393,23 @@ class StripeWebhookHandler:
             )
             return
 
+        # H-300: COMPLETED alone is not enough. A purchase where a teacher
+        # left is saved FAILED with its grants made, and a replay of a FAILED
+        # event (replay_stripe_events, a redelivery) would grant the others
+        # again. completed_at is written only with the grants; the ledger
+        # rows are the grants themselves.
+        if (
+            intent.completed_at is not None
+            or StripeWebhookHandler._license_overage_already_granted(intent)
+        ):
+            logger.info(
+                "Overage purchase intent %s already fulfilled — skipping "
+                "duplicate fulfillment (session %s).",
+                intent.id,
+                session.get("id"),
+            )
+            return
+
         payment_status = session.get("payment_status")
         if payment_status != "paid":
             # Delayed/async payment methods (bank debits, etc.) aren't
@@ -3613,9 +3630,17 @@ class StripeWebhookHandler:
     @staticmethod
     def _refund_departed_share_on_commit(intent, license_sub, skipped_count, share):
         """After commit: refund the skipped share, and tell the admin.
-        Nothing reaches Stripe inside the webhook's transaction."""
+        Nothing reaches Stripe inside the webhook's transaction.
+
+        H-300 road A: the purchase has committed by the time this runs, so a
+        failure here must not reach the handler, or the event is marked
+        FAILED with the grants made. Like the receipt hook
+        (billing/receipts.py): robust=True, and both tasks queued through
+        safe_delay; a refund that could not be queued is reported for
+        manual reconciliation (the refund task is safe to queue by hand)."""
         from django.conf import settings
 
+        from AutoGrader.dispatch import safe_delay
         from AutoGrader.tasks import send_email_task
 
         from .tasks import refund_departed_teacher_share
@@ -3625,9 +3650,16 @@ class StripeWebhookHandler:
         recipient = admin.email if admin else None
 
         def _after_commit():
-            refund_departed_teacher_share.delay(intent_id, share)
+            if safe_delay(refund_departed_teacher_share, intent_id, share) is None:
+                departed_share_refund._manual(
+                    "the departed-teacher share refund for overage intent %s "
+                    "(%s cents) could not be queued: broker unavailable.",
+                    intent_id,
+                    share,
+                )
             if recipient:
-                send_email_task.delay(
+                safe_delay(
+                    send_email_task,
                     subject=departed_share_refund.text("email_subject"),
                     message=departed_share_refund.text(
                         "email_body_card",
@@ -3638,7 +3670,7 @@ class StripeWebhookHandler:
                     recipient_list=[recipient],
                 )
 
-        transaction.on_commit(_after_commit)
+        transaction.on_commit(_after_commit, robust=True)
 
     @staticmethod
     def _handle_individual_upgrade_checkout_completed(session, metadata):
@@ -4755,6 +4787,21 @@ class StripeWebhookHandler:
     # ------------------------------------------------------------------
     # payment_intent.succeeded (overage block fallback for 3DS / requires_action)
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _license_overage_already_granted(intent) -> bool:
+        """H-300: has this school overage purchase already granted anything?
+
+        Every grant writes a CreditLedger row whose metadata carries the
+        intent's id (`_handle_license_overage_checkout_completed`'s
+        metadata_fn). Scoped to the wallets of the intent's teachers, as
+        `_overage_already_granted` is to its wallet: the unscoped JSON
+        lookup is a sequential scan of CreditLedger.
+        """
+        return CreditLedger.objects.filter(
+            bucket__wallet__user_id__in=list(intent.allocations.keys()),
+            metadata__intent_id=str(intent.id),
+        ).exists()
 
     @staticmethod
     def _overage_already_granted(payment_intent_id, wallet) -> bool:
