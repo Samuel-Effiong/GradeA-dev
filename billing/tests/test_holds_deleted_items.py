@@ -91,7 +91,13 @@ class DeletedItemsBase(TransactionTestCase):
         return student, submission
 
     def job(self, job_type="UPLOAD", total_items=3):
-        return make_job(self.wallet, job_type, total_items=total_items)
+        # RESERVED, as open_door_job leaves a real door job (holds.py:1058).
+        return make_job(
+            self.wallet,
+            job_type,
+            total_items=total_items,
+            status=AIJobStatus.RESERVED,
+        )
 
     def held_item(self, job, **over):
         item = make_item(job, assignment=self.assignment, **over)
@@ -322,7 +328,14 @@ class TwoReceiversTests(DeletedItemsBase):
         self.assertEqual(self.reserved(), start)
         self.assert_books_agree()
         self.assertEqual(fresh(job).status, AIJobStatus.CANCELLED)
-        self.assertEqual(released_credits_for(job, doomed.pk), HELD)
+        # The receiver's row names the item; finish_job's row is job-level
+        # (no item_id) and returns the kept row's hold.
+        item_rows = [
+            row
+            for row in released_rows(job)
+            if row.metadata.get("item_id") == str(doomed.pk)
+        ]
+        self.assertEqual([row.metadata["credits"] for row in item_rows], [HELD])
 
     def test_t12_a_teacher_deletion_with_a_held_row_of_their_own(self):
         """End to end: the row goes through requested_by CASCADE, the wallet

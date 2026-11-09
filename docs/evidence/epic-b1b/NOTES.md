@@ -280,3 +280,24 @@ Each is planted on the green fix, run against the new file, and restored. The sh
 **Result (at fbc63bbec, under `flock`, 9100 MB available): Ran 16, FAILED (failures=13, errors=3), as declared.** Log: `step1/step1_red2_fbc63bbe.log`.
 - Only T-3 and T-4 changed from run 1. Both now fail on `600 != 300 : reserved`, like T-1.
 - Every other test has the same outcome and message as in run 1.
+
+### §1.8 Two test corrections found by reading, before any green run (declared; red run 3 proves the red outcomes don't change)
+
+While writing the receiver, I read the code under the tests' assumptions and found two assertions that a correct fix would still fail. They are bugs in the new tests, found before the fix exists:
+1. **The fixture job's status.**
+   - `make_job` leaves a job `ESTIMATED` (the model default, `billing/models.py:1796`), and `reserve` doesn't move it.
+   - T-1…T-4 (through `assert_road`) and T-9 assert `RESERVED`. A real door job is set to `RESERVED` by `open_door_job` (`billing/holds.py:1058`).
+   - **Correction:** the fixture's `job()` passes `status=RESERVED`, as a door job has. T-12 builds its own job and is unchanged.
+2. **T-11's audit count.**
+   - `released_credits_for` also adds rows with no `item_id`. In T-11, `finish_job(CANCELLED)` writes a job-level row (300, the kept row's hold), so a correct fix would read 600.
+   - **Correction:** T-11 asserts that exactly one release row names the deleted row, with 300 credits.
+
+**Red run 3, declared before it runs (code under test unchanged at 4dfa4478b plus these test edits):**
+- `Ran 16`, `FAILED (failures=13, errors=3)`.
+- The same tests fail or error with the same messages as run 2, with one exception: T-10, T-12 and T-15 now get past `AttributeError` (the 0081 columns exist) and fail instead.
+  - T-10: `(0, 0, 0) != (300, 0, 300)` on `deleted_items`.
+  - T-12: the same.
+  - T-15: the −1 `IntegrityError`s are raised by the NOT VALID check from 0081 on new writes, so **T-15 passes**.
+- **So the corrected prediction is `Ran 16`, `FAILED (failures=15)`, with T-15 OK.**
+  - The 15 failures are T-1…T-14: T-1…T-8b, T-11, T-13 and T-14 on `reserved`; T-9 on `item_sum`; T-10 and T-12 on `deleted_items`.
+  - Any other result is a STOP.
