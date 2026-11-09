@@ -102,3 +102,80 @@ students.tests_post_grading_submission_lock 29.
   5 runs. Predicted: **Backlog10 errors with ConnectionResetError at
   readinto in at least 4 of 5 runs; Backlog64 passes 5 of 5**. Log
   `04_forced.log`.
+- **05** overflow without any stall (declared after 01 showed one request
+  burst taking 3.6-7.9 s with the fast hasher, a sign of SYN retransmits):
+  Unstalled10 and Unstalled64 (same module, stall 0), each alone, 5 runs
+  each, `nstat` TcpExtListenOverflows delta per run. That counter is
+  machine-wide, so other sessions add noise; run under flock. Predicted:
+  **Unstalled10 overflows above 0 in every run, and its test takes 1 s or
+  more; Unstalled64 overflows 0 and its test takes under 1 s; all 10 runs
+  OK**. Log `05_unstalled.log`.
+
+## Results (under flock; logs gzipped)
+
+| Run | What | Predicted | Result | Verdict |
+|---|---|---|---|---|
+| 01 | class alone, plain, 20 runs | 20/20 OK | **20/20 OK**, 0 resets (test 3.6-7.9 s) | As predicted |
+| 02 | class alone, coverage, 10 runs | 10/10 OK | **10/10 OK**, 0 resets | As predicted |
+| 03 | 4 live-server modules (70), coverage --parallel 4, 5 runs | 5/5 OK | **5/5 Ran 70 OK (skipped=2)**, 0 resets | As predicted |
+| 03b | as 03 + 8 CPU hogs, 5 runs | at least 1 of 5 with a reset | **5/5 Ran 70 OK (skipped=2)**, 0 resets | **Prediction wrong**: 8 cores plus 8 hogs did not stall the accept loop long enough |
+| 04 | forced 8 s accept stall, real test body | Backlog10 errors in at least 4 of 5; Backlog64 5/5 OK | **Backlog10 ERROR ConnectionResetError in 2/5** (runs 1, 2), same frame as CI; **Backlog64 5/5 OK** | **Prediction wrong** for Backlog10's rate (2 of 5, not at least 4); Backlog64 as predicted |
+| 05 | no stall, nstat ListenOverflows | Unstalled10 > 0 every run and at least 1 s; Unstalled64 0 and under 1 s | **both 5/5 OK, ListenOverflows +0 for all 10, both about 2.7 s** | **Prediction wrong**: the real burst does not overflow without a stall here; 01's 3.6-7.9 s was DB work, not SYN retransmits |
+
+Natural reproduction: **0 resets in 45 natural runs** (01, 02, 03, 03b). Forced:
+**2 of 5** with Django's backlog, **0 of 5** with 64, using the same test body
+and assertions. Together with the probe (resets at stalls of 6 s or more with backlog 10, never with
+64, `app_saw` equal to the number of successes), this pins the CI signature to listen-queue
+overflow during an accept-loop stall of roughly 5 s or more.
+
+## Cause (step 3)
+
+The test harness's server, not the lockout, caused this. Django's live server listens with a
+backlog of 10 (`basehttp.py:71`), and the test sends 30 connections at once. When the
+server thread's accept loop stalls for several seconds, the kernel overflows the queue
+(SYN cookies, ACKs dropped). When the loop resumes, it RSTs the dropped connections, which surface as
+`ConnectionResetError` in `recv` while reading the status line. That is the CI frame.
+
+The CI runner can stall that long: the 2026-09-17 incident (fba129402) had this same
+server not answer for 15 s on a 4-vCPU runner under coverage. On 2026-11-08 the runner was 4 vCPU,
+`coverage run --parallel 4`, a 9483-test suite, with postgres on the same VM. I could not
+reproduce a natural stall on this 8-core box, which matches CI's "local re-run OK".
+
+Ruled out: DB connection limit (no "too many clients"; a DB error is a 500, not a reset),
+unread body on close (Django drains it), keep-alive (urllib sends `Connection: close`;
+one request per connection), teardown order (the error is mid-burst, inside `_post`).
+
+Production is not affected: gunicorn (Dockerfile:93, no `--backlog`) listens with
+gunicorn's default 2048.
+
+## Is a reset a lockout bypass?
+
+No. A reset connection was never accepted, so the request never reached Django: in every probe
+trial the app saw exactly the answered requests. Nothing was counted, nothing was checked,
+and no token was issued. The test's own assertions (all answered requests 401, account locked,
+failures between MAX and WORKERS, correct password then refused) stay true for the requests that ran.
+Even so, retry-on-reset is **not** proposed: it would also hide a real server crash.
+
+## Proposed fix (step 4; not applied)
+
+Test-only. Give the live server a listen backlog that holds the whole burst:
+
+- In users/tests_login_lockout.py: a `LiveServerThread` subclass whose `server_class` is
+  `ThreadedWSGIServer` with `request_queue_size` large enough for every in-flight
+  connection (proposal: 128; anything at or above WORKERS + 1 holds this test). Set it as
+  `server_thread_class` on `LoginLockoutLiveServerTests`. `WORKERS = 30`, every assertion,
+  the fast hasher and the 120 s hang detector stay as they are. The test still sends 30
+  concurrent real-HTTP wrong passwords, and must still see the lockout hold.
+- Red first, deterministic: a guard test asserting the class's live server listens with a
+  backlog of at least WORKERS. Today it is 10 < 30, so it fails on every run. The forced-stall test cannot be the red: it fails
+  only 2 of 5. Proposed as a kept regression test with the stall shortened to keep it
+  cheap, green 5/5 with the fix. SM to rule whether it earns its runtime (about 10 s).
+- Plant: revert `server_thread_class` and declare the kill by the guard test.
+- Scope question for the SM: the same latent flaw is in
+  `users.tests_activity_middleware_load` (WORKERS = 40) and
+  `students.tests_async_edit_path.UpdateAsyncConcurrencyLiveHTTPTest` (WORKERS = 12),
+  both above 10. Option (a) fix only the lockout class (the one that failed). Option (b) a shared
+  helper (e.g. `AutoGrader/test_live_server.py`) used by all three, plus one
+  guard that scans every LiveServerTestCase for a backlog of at least WORKERS. I recommend (b).
+- Near: users + students + the 66-label guard list, serial. Beta first (owner go), then
+  merge beta into staging (standing rule).
