@@ -1174,3 +1174,25 @@ The counts are from `build_suite`.
 - **Recorded, with nothing changed:**
   - the 16 texts owner-approved (to be switched on in B1b-8);
   - the scratchpad loss at the restart (no evidence lost; `guards66.txt` is now committed).
+
+---
+
+## §3 B1b-3: the speed work (08b §5.3, §5.4, and the §1.23 delete item). SM GO 2026-11-09, after B1b-2 was ACCEPTED at bcbc95003
+
+**The SM's rules:**
+- **Survey first,** and checkpoint before any change. The survey covers:
+  1. **the per-call cost:** re-measure today's added queries and time with holds on, against 08b (+22 queries, about 33 ms p95; target about +10 and about 20 ms; 40 ms stays the pass mark). Count the queries with `execute_wrapper`, list each by purpose, and propose which to remove or merge, saying why each is safe under the wallet-first lock order;
+  2. **the delete cascade** (3.35 s per 1,000 rows): break the 4,735 queries down by purpose and propose a shape, with the expected numbers. The target is ≤ 2 s if that's possible without new risk; otherwise state the floor and why;
+  3. **for each proposed change:** its plant, the test that pins its query count, and the flag-off check.
+- **Staging:** `origin/staging` is bc7dd7a89 (fetched), already in the branch, so nothing was merged.
+
+### §3.1 The survey runs (declared before they run; at the commit that carries this section)
+
+- **S1, the query listing:** `docs/evidence/epic-b1b/step3/b1b3_survey.py`, a new survey module **outside every app**, so no near run collects it and no count changes. It runs with `PYTHONPATH=docs/evidence/epic-b1b/step3 manage.py test b1b3_survey`, in the test DB, under `flock`. It lists:
+  - `PerCallQueries`: every statement of **one** billed single call (provider stubbed at 150 tokens, after 3 warm-up calls), flag off and then flag on, in order, with its shape and the innermost repo function that issued it;
+  - `CascadeQueries`: the §1.23 `one_job` cascade (1,000 rows: 900 RETURNED, 100 HELD), every statement grouped by (function, shape).
+  - **Prediction: `Ran 2`, OK.** I expect about **47 flag-on and 25 flag-off** queries per call (B1a §21h, inside a `TestCase`, so with savepoints) and **4,735** cascade queries (§1.23). These are recorded, not asserted; a different number is a finding, not a STOP.
+- **S2, the B1a profile, unchanged:** `RUN_LOAD_TESTS=1 manage.py test billing.tests.test_holds_gate6_profile`. **Prediction: `Ran 1`, OK.** Its per-transaction table is recorded beside §21i.
+- **S3, Gate 6 measurement 3, unchanged** (`TransactionTestCase`, 2000 calls per mode, interleaved): `RUN_LOAD_TESTS=1 manage.py test billing.tests.test_holds_gate6_m3`.
+  - **Prediction: `Ran 1`, OK.** Its assertion is now added p95 ≤ 40 ms (§21l), and I expect about 33 ms, as at §21k.
+  - The numbers are recorded beside measurements 1–3 as **"measurement 3, re-run at B1b-3 start"**, never replacing them.
