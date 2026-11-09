@@ -200,3 +200,59 @@ All non-test `metered_unit(` uses: `ai_processor/services.py:4637`, `students/se
   `RUN_LOAD_TESTS=1 flock ~/.machine-fullsuite.lock python manage.py test billing.tests.test_holds_fb1_cascade_timing --noinput`
 - **Prediction:** `Ran 1`, OK.
 - **Expected numbers:** both shapes take the same path today (fast delete, a handful of queries, no per-row signal), so both are expected to be low tens of milliseconds and fewer than 20 queries. The exact numbers are recorded, not predicted.
+
+**Result (run at cdeeb695f, under `flock`, 8198 MB available): Ran 1, OK, as predicted.** Log: `step1/step1_timing_BEFORE_cdeeb695.log`.
+
+| Shape | Seconds (3 runs) | Median | Queries per run |
+|---|---|---|---|
+| `no_job` | 0.0254, 0.0203, 0.0188 | **0.0203 s** | 15, 15, 15 |
+| `one_job` | 0.0206, 0.0183, 0.0170 | **0.0183 s** | 15, 15, 15 |
+
+Fast delete is in effect today: 15 queries for 1,000 rows, whatever their holds.
+
+### §1.3 A correction to the B1b-0 survey (§0.1)
+
+- **`AIJob.estimate_p50` and `estimate_p90` already exist.** They were added in B1a's 0074 (`billing/models.py:1838–1839`) and are pinned by `billing/tests/test_holds_schema.py:90–91`.
+- 08b §1.1 ("No p50/p90 columns") and §1.3 item 3 are wrong. My §0.1 row for the `AIJob` columns said "same" without checking that claim.
+- **Effect on B1b-4:** only `estimate_source` is new. That leaves one additive column, not three. Reported to the SM.
+
+### §1.4 The tests (written first; declared before the red run)
+
+**File:** `billing/tests/test_holds_deleted_items.py`. `TransactionTestCase`, with the flag on except in T-13. 16 tests.
+
+| # | Test | What it pins |
+|---|---|---|
+| T-1 | instance delete | the row was HELD in an UPLOAD job with a HELD sibling. The wallet is back to the start plus the sibling; `check_invariants` is `[]`; the job stays RESERVED; `failed_items` 1; `deleted_items_*` = (300, 0, 300); one `CREDIT_HOLD_RELEASED` with `reason_label` "failed", the row's id and 300 |
+| T-2 | QuerySet delete | the same |
+| T-3 | full erasure (`erase_student`, "full") | the same. The job spans two students' submissions, so this is the subset case |
+| T-4 | course-scoped erasure | the same |
+| T-5 | assignment cascade | every row goes (one settled, one HELD): the wallet is back to the start, the books agree, the job is SETTLED, and the deleted held row's hold is returned once |
+| T-6 | batch-session cascade | every row goes, none settled: the job is FAILED, `failed_items` 2 |
+| T-7 | C4: UPLOAD with a settled sibling | the job ends SETTLED |
+| T-8 | C4: UPLOAD, every row deleted, none settled | the job ends FAILED |
+| T-8b | C4: SINGLE_ITEM deleted while held | the job ends FAILED, `failed_items` 1 |
+| T-9 | the pre-existing false alarm | a SETTLED row is deleted from a job with a HELD row left: nothing is returned and no release row is written; the books agree; `deleted_items_*` = (300, 120, 180) |
+| T-10 | C3: the wallet receiver first | `finish_job(CANCELLED)`, then the row delete: nothing more moves, and the hold is returned once |
+| T-11 | C3: the row delete first | then `finish_job(CANCELLED)`: the deleted row's hold is returned once and the wallet is back to the start |
+| T-12 | a teacher deleted end to end | their own HELD row in a job a student requested: the job survives with no wallet and is not open, `deleted_items_*` are counted, and the hold is returned once |
+| T-13 | the flag off | a row held while the flag was on is still returned when it is deleted with the flag off |
+| T-14 | the mid-run characterization | a unit whose row is deleted inside it: its exit raises `BackgroundProcessingTask.DoesNotExist` (`settle` → `_lock_rows`). The hold is returned and no `SettlementRecord` is written. Pinned as found |
+| T-15 | the schema | the three columns default to 0, and each refuses −1 (`IntegrityError`) |
+
+**Red prediction (at the commit that adds this section, today's code): `Ran 16`, `FAILED (failures=13, errors=3)`.**
+- **Errors (3):** T-10, T-12 and T-15. They reach `deleted_items_*`, which doesn't exist yet (`AttributeError`). T-10 and T-12 pass their earlier assertions today, because the wallet receiver returns the hold.
+- **Failures (13):** the rest.
+  - T-1…T-8b, T-11, T-13 and T-14 fail on the reserved-credits assertion: the hold leaks.
+  - T-9 fails on `check_invariants`, which reports `item_sum`.
+- Any other split is a STOP.
+- **Command:** `flock ~/.machine-fullsuite.lock python manage.py test billing.tests.test_holds_deleted_items --noinput`.
+
+### §1.5 The plants (kills declared before the fix)
+
+Each is planted on the green fix, run against the new file, and restored. The sha256 of `billing/holds.py`, and of `billing/apps.py` for PFB-1, is checked after each restore.
+
+| Plant | The change | Kill: the tests that must fail, and a fragment |
+|---|---|---|
+| **PFB-1** | the receiver is not connected (`billing/apps.py`: the `pre_delete.connect` for `BackgroundProcessingTask` removed) | T-1…T-11, T-13 and T-14 fail with `reserved`. T-12 and T-15 are not required to fail: the wallet receiver covers T-12's hold, and T-15 is schema only |
+| **PFB-2** | the receiver never calls `finish_job` (step iii removed) | T-5 (`'RESERVED' != 'SETTLED'`), T-6, T-7, T-8 and T-8b (`!= 'FAILED'`) |
+| **PFB-3** | the receiver skips the `deleted_items_*` update (step ii removed) | T-1…T-4 and T-9 fail with `item_sum job=` |
