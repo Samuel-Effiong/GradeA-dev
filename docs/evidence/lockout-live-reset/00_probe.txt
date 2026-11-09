@@ -1,0 +1,16 @@
+stall=0.0s backlog= 10: {'ok': 30} max_wait=1.0s err_at=[]
+stall=0.0s backlog= 10: {'ok': 30} max_wait=1.0s err_at=[]
+stall=0.0s backlog= 10: {'ok': 30} max_wait=1.0s err_at=[]
+stall=6.0s backlog= 10: {'ok': 28, 'ConnectionResetError@readinto': 2} max_wait=7.4s err_at=[7.4, 7.4]
+stall=6.0s backlog= 10: {'ok': 26, 'ConnectionResetError@readinto': 4} max_wait=7.4s err_at=[7.4, 7.4, 7.4, 7.4]
+stall=10.0s backlog= 10: {'ok': 27, 'ConnectionResetError@readinto': 3} max_wait=11.4s err_at=[11.4, 11.4, 11.4]
+stall=10.0s backlog= 10: {'ok': 30} max_wait=11.2s err_at=[]
+stall=20.0s backlog= 10: {'ok': 26, 'ConnectionResetError@readinto': 4} max_wait=35.9s err_at=[35.9, 35.9, 35.9, 35.9]
+stall=10.0s backlog= 64: {'ok': 30} max_wait=10.0s err_at=[]
+stall=20.0s backlog= 64: {'ok': 30} max_wait=20.0s err_at=[]
+stall=8.0s backlog= 10: {'ok': 24, 'ConnectionResetError@readinto': 6} max_wait=11.4s err_at=[11.4, 11.4, 11.4, 11.4, 11.4, 11.4] app_saw=24
+  TcpOutRsts=22  TcpExtSyncookiesSent=8  TcpExtListenOverflows=146  TcpExtListenDrops=146  TcpExtTCPReqQFullDoCookies=8  TcpExtTCPReqQFullDrop=0
+stall=8.0s backlog= 10: {'ok': 28, 'ConnectionResetError@readinto': 2} max_wait=11.5s err_at=[11.4, 11.5] app_saw=28
+  TcpOutRsts=3  TcpExtSyncookiesSent=7  TcpExtListenOverflows=146  TcpExtListenDrops=146  TcpExtTCPReqQFullDoCookies=7  TcpExtTCPReqQFullDrop=0
+stall=8.0s backlog= 64: {'ok': 30} max_wait=8.0s err_at=[] app_saw=30
+  TcpOutRsts=2  TcpExtSyncookiesSent=0  TcpExtListenOverflows=0  TcpExtListenDrops=0  TcpExtTCPReqQFullDoCookies=0  TcpExtTCPReqQFullDrop=0

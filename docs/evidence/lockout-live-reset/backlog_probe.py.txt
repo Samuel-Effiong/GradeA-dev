@@ -1,0 +1,48 @@
+"""Standalone: Django ThreadedWSGIServer, accept loop stalled S s, 30 concurrent urllib POSTs."""
+import sys, threading, time, json, urllib.request, collections
+from concurrent.futures import ThreadPoolExecutor
+from django.core.servers.basehttp import ThreadedWSGIServer, WSGIRequestHandler
+
+SEEN=[0]
+def app(environ, start):
+    SEEN[0]+=1
+    environ["wsgi.input"].read(int(environ.get("CONTENT_LENGTH") or 0))
+    start("401 Unauthorized", [("Content-Type", "application/json"), ("Content-Length", "2")])
+    return [b"{}"]
+
+class Quiet(WSGIRequestHandler):
+    def log_message(self, *a): pass
+
+def trial(stall, qsize, n=30):
+    cls = type("S", (ThreadedWSGIServer,), {"request_queue_size": qsize})
+    srv = cls(("127.0.0.1", 0), Quiet, allow_reuse_address=False)
+    srv.set_app(app)
+    gate = time.monotonic() + stall
+    orig = srv.get_request
+    def get_request():
+        d = gate - time.monotonic()
+        if d > 0: time.sleep(d)
+        return orig()
+    srv.get_request = get_request
+    t = threading.Thread(target=srv.serve_forever, daemon=True); t.start()
+    url = f"http://127.0.0.1:{srv.server_port}/login/"
+    def post(_):
+        t0 = time.monotonic()
+        req = urllib.request.Request(url, data=json.dumps({"p": "x"}).encode(), headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r: return ("ok", r.status, time.monotonic()-t0)
+        except urllib.error.HTTPError as e: e.read(); return ("ok", e.code, time.monotonic()-t0)
+        except Exception as e:
+            import traceback; fr=traceback.extract_tb(e.__traceback__)[-1]
+            return (f"{type(e).__name__}@{fr.name}", None, time.monotonic()-t0)
+    with ThreadPoolExecutor(n) as p: res = list(p.map(post, range(n)))
+    srv.shutdown(); srv.server_close()
+    seen=SEEN[0]; SEEN[0]=0
+    c = collections.Counter(r[0] for r in res)
+    errs = sorted(round(r[2],1) for r in res if r[0] != "ok")
+    print(f"stall={stall:>3}s backlog={qsize:>3}: {dict(c)} max_wait={max(r[2] for r in res):.1f}s err_at={errs[:6]} app_saw={seen}", flush=True)
+
+if __name__ == "__main__":
+    import django; from django.conf import settings; settings.configure(); django.setup()
+    for spec in sys.argv[1:]:
+        s, q = spec.split(":"); trial(float(s), int(q))
