@@ -1,0 +1,326 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user ea07eb4b-5728-465d-8874-2226f2983ad8.
+Cannot activate automatic trial for user ea07eb4b-5728-465d-8874-2226f2983ad8 (validation): ValueError
+.Free trial plan not found: no trial activated for user 80336599-4a73-4662-a283-7b524889f721.
+Cannot activate automatic trial for user 80336599-4a73-4662-a283-7b524889f721 (validation): ValueError
+.Free trial plan not found: no trial activated for user aeeab1c9-8a9a-4432-9520-7a63efe5eddb.
+Cannot activate automatic trial for user aeeab1c9-8a9a-4432-9520-7a63efe5eddb (validation): ValueError
+.Free trial plan not found: no trial activated for user e4c60477-c067-475b-9b77-7015fe1052eb.
+Cannot activate automatic trial for user e4c60477-c067-475b-9b77-7015fe1052eb (validation): ValueError
+.Free trial plan not found: no trial activated for user 301d8de5-6fea-4308-a66e-e03834a6e277.
+Cannot activate automatic trial for user 301d8de5-6fea-4308-a66e-e03834a6e277 (validation): ValueError
+.Free trial plan not found: no trial activated for user f5787b0b-2423-481d-8c84-0193c29c3a15.
+Cannot activate automatic trial for user f5787b0b-2423-481d-8c84-0193c29c3a15 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4c155c37-1489-4bda-9c1d-02eb59c211d8.
+Cannot activate automatic trial for user 4c155c37-1489-4bda-9c1d-02eb59c211d8 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8454adb8-aabf-44df-a2e7-8028a22c4145.
+Cannot activate automatic trial for user 8454adb8-aabf-44df-a2e7-8028a22c4145 (validation): ValueError
+.Free trial plan not found: no trial activated for user ae227000-9146-445a-9423-bb7a2bb6751b.
+Cannot activate automatic trial for user ae227000-9146-445a-9423-bb7a2bb6751b (validation): ValueError
+.Free trial plan not found: no trial activated for user 746af03e-385f-4f74-9e92-407f96e3730e.
+Cannot activate automatic trial for user 746af03e-385f-4f74-9e92-407f96e3730e (validation): ValueError
+.Free trial plan not found: no trial activated for user f95748e1-63dd-41c8-b49b-01373a88d412.
+Cannot activate automatic trial for user f95748e1-63dd-41c8-b49b-01373a88d412 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4666f87f-51c1-4706-8fac-0613356058a3.
+Cannot activate automatic trial for user 4666f87f-51c1-4706-8fac-0613356058a3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3a00ec6d-e919-4fe4-83d3-5b6c11da60b4.
+Cannot activate automatic trial for user 3a00ec6d-e919-4fe4-83d3-5b6c11da60b4 (validation): ValueError
+.Free trial plan not found: no trial activated for user 60987c6b-dabb-447a-a83a-000c1de99101.
+Cannot activate automatic trial for user 60987c6b-dabb-447a-a83a-000c1de99101 (validation): ValueError
+.Free trial plan not found: no trial activated for user 57fb5c8e-1c58-4b4d-96d4-541063247dee.
+Cannot activate automatic trial for user 57fb5c8e-1c58-4b4d-96d4-541063247dee (validation): ValueError
+FFree trial plan not found: no trial activated for user 0269d0a8-72d7-4065-9f0f-971f0ca5d2d3.
+Cannot activate automatic trial for user 0269d0a8-72d7-4065-9f0f-971f0ca5d2d3 (validation): ValueError
+.Free trial plan not found: no trial activated for user d7ba1e10-4075-4bfd-b0a5-c06846dd1c70.
+Cannot activate automatic trial for user d7ba1e10-4075-4bfd-b0a5-c06846dd1c70 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1b5a8f8b-3cef-4c21-ae57-b73bed6e487b.
+Cannot activate automatic trial for user 1b5a8f8b-3cef-4c21-ae57-b73bed6e487b (validation): ValueError
+.Free trial plan not found: no trial activated for user 8854a0a8-8eba-44ab-9568-f9ff30a1caab.
+Cannot activate automatic trial for user 8854a0a8-8eba-44ab-9568-f9ff30a1caab (validation): ValueError
+.Free trial plan not found: no trial activated for user cd160bea-3632-44a0-8222-da384300113d.
+Cannot activate automatic trial for user cd160bea-3632-44a0-8222-da384300113d (validation): ValueError
+.Free trial plan not found: no trial activated for user 25d069c0-4dbb-4b1c-ab52-b9e49ca4b1dd.
+Cannot activate automatic trial for user 25d069c0-4dbb-4b1c-ab52-b9e49ca4b1dd (validation): ValueError
+.Free trial plan not found: no trial activated for user d81079aa-5f45-4338-9221-d923b79a012c.
+Cannot activate automatic trial for user d81079aa-5f45-4338-9221-d923b79a012c (validation): ValueError
+.Free trial plan not found: no trial activated for user 83a440f5-8659-44c8-8ab3-574a09ba59f6.
+Cannot activate automatic trial for user 83a440f5-8659-44c8-8ab3-574a09ba59f6 (validation): ValueError
+.Free trial plan not found: no trial activated for user 230c5ec8-6c77-494d-b16e-49e784c3832f.
+Cannot activate automatic trial for user 230c5ec8-6c77-494d-b16e-49e784c3832f (validation): ValueError
+FFree trial plan not found: no trial activated for user 9bfa0c09-ab9b-46b2-b4dd-12b7e3191242.
+Cannot activate automatic trial for user 9bfa0c09-ab9b-46b2-b4dd-12b7e3191242 (validation): ValueError
+.Free trial plan not found: no trial activated for user f4479c13-00a4-4acd-a088-d4ade7459dc7.
+Cannot activate automatic trial for user f4479c13-00a4-4acd-a088-d4ade7459dc7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 95a836b5-9365-46ca-82c6-e18fe395df01.
+Cannot activate automatic trial for user 95a836b5-9365-46ca-82c6-e18fe395df01 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0921eab7-4d63-4429-88bd-baa0ae59ed05.
+Cannot activate automatic trial for user 0921eab7-4d63-4429-88bd-baa0ae59ed05 (validation): ValueError
+.Free trial plan not found: no trial activated for user 90518f0a-388b-41f0-aabb-d254c888ac3b.
+Cannot activate automatic trial for user 90518f0a-388b-41f0-aabb-d254c888ac3b (validation): ValueError
+.Free trial plan not found: no trial activated for user cadef4a6-6d6b-46f2-83b3-b0f183a22628.
+Cannot activate automatic trial for user cadef4a6-6d6b-46f2-83b3-b0f183a22628 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4d0cda1e-ada5-49c5-89f9-522d04336f19.
+Cannot activate automatic trial for user 4d0cda1e-ada5-49c5-89f9-522d04336f19 (validation): ValueError
+.Free trial plan not found: no trial activated for user b3ec6b49-c6d0-4506-8444-970f946b7bfb.
+Cannot activate automatic trial for user b3ec6b49-c6d0-4506-8444-970f946b7bfb (validation): ValueError
+.Free trial plan not found: no trial activated for user b3e18112-7c63-4c3f-b78d-50f556fedefd.
+Cannot activate automatic trial for user b3e18112-7c63-4c3f-b78d-50f556fedefd (validation): ValueError
+.Free trial plan not found: no trial activated for user 9cebf0ce-e2cc-4d29-b7a5-c9efc86793a0.
+Cannot activate automatic trial for user 9cebf0ce-e2cc-4d29-b7a5-c9efc86793a0 (validation): ValueError
+.Free trial plan not found: no trial activated for user bcd4ecb0-0078-4e84-ac20-081d32596368.
+Cannot activate automatic trial for user bcd4ecb0-0078-4e84-ac20-081d32596368 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2e75e988-7631-459d-b5f0-e0e92dadef59.
+Cannot activate automatic trial for user 2e75e988-7631-459d-b5f0-e0e92dadef59 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3ad702f6-5eb4-4af6-a536-551a758da0b8.
+Cannot activate automatic trial for user 3ad702f6-5eb4-4af6-a536-551a758da0b8 (validation): ValueError
+.Free trial plan not found: no trial activated for user dca3891f-6916-4daa-a604-b867323bc782.
+Cannot activate automatic trial for user dca3891f-6916-4daa-a604-b867323bc782 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1c9d96a1-e96f-4564-a069-8c9f5a0733e8.
+Cannot activate automatic trial for user 1c9d96a1-e96f-4564-a069-8c9f5a0733e8 (validation): ValueError
+.Free trial plan not found: no trial activated for user de483394-4bca-4986-9199-d462d6de2033.
+Cannot activate automatic trial for user de483394-4bca-4986-9199-d462d6de2033 (validation): ValueError
+.Free trial plan not found: no trial activated for user bfcc8b94-7c10-4516-8a72-a2132caf34dd.
+Cannot activate automatic trial for user bfcc8b94-7c10-4516-8a72-a2132caf34dd (validation): ValueError
+Credit hold invariant: hold_drift wallet=cd04fce7-53d2-4d43-9d85-458a3e3db269 reserved=31 expected=30
+.Free trial plan not found: no trial activated for user 30a3479c-59c5-406d-96e4-05f64e7d418d.
+Cannot activate automatic trial for user 30a3479c-59c5-406d-96e4-05f64e7d418d (validation): ValueError
+.Free trial plan not found: no trial activated for user 21b7d9fa-57fb-4b1e-98a3-2ac4bd78922a.
+Cannot activate automatic trial for user 21b7d9fa-57fb-4b1e-98a3-2ac4bd78922a (validation): ValueError
+.Free trial plan not found: no trial activated for user b6d5b886-48e7-4cef-9ebe-b566f66ef7dd.
+Cannot activate automatic trial for user b6d5b886-48e7-4cef-9ebe-b566f66ef7dd (validation): ValueError
+.Free trial plan not found: no trial activated for user 88774832-443d-49cf-bab4-94139178c18e.
+Cannot activate automatic trial for user 88774832-443d-49cf-bab4-94139178c18e (validation): ValueError
+.Free trial plan not found: no trial activated for user f85f89ad-85ef-4438-903f-765d28ea6335.
+Cannot activate automatic trial for user f85f89ad-85ef-4438-903f-765d28ea6335 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4c2fbff7-cf70-4dc2-9771-fdb67d5c32fa.
+Cannot activate automatic trial for user 4c2fbff7-cf70-4dc2-9771-fdb67d5c32fa (validation): ValueError
+.Free trial plan not found: no trial activated for user ca6416e4-d39e-4bc9-9d05-3298a1ca1e43.
+Cannot activate automatic trial for user ca6416e4-d39e-4bc9-9d05-3298a1ca1e43 (validation): ValueError
+.Free trial plan not found: no trial activated for user 782c8cdf-9bd5-4bf5-99a2-893caf4b5bbb.
+Cannot activate automatic trial for user 782c8cdf-9bd5-4bf5-99a2-893caf4b5bbb (validation): ValueError
+.Free trial plan not found: no trial activated for user 702885f5-79b2-4c51-8f14-78aa62f23c4f.
+Cannot activate automatic trial for user 702885f5-79b2-4c51-8f14-78aa62f23c4f (validation): ValueError
+.Free trial plan not found: no trial activated for user e8817090-6427-44d5-8912-956f13205bc8.
+Cannot activate automatic trial for user e8817090-6427-44d5-8912-956f13205bc8 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+.Free trial plan not found: no trial activated for user fcd89f20-6780-42b6-9bec-6e6e41c0e693.
+Cannot activate automatic trial for user fcd89f20-6780-42b6-9bec-6e6e41c0e693 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=CREDIT_RESERVE request_id=None
+.Free trial plan not found: no trial activated for user dff9f28c-d19a-481d-80b8-8d51629b54a7.
+Cannot activate automatic trial for user dff9f28c-d19a-481d-80b8-8d51629b54a7 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=CREDIT_RESERVE request_id=None
+.Free trial plan not found: no trial activated for user 45cca475-d3d1-4d7a-993c-c94162d28710.
+Cannot activate automatic trial for user 45cca475-d3d1-4d7a-993c-c94162d28710 (validation): ValueError
+.Free trial plan not found: no trial activated for user fea0f01f-455a-41cc-ac1a-e285bf82cbd5.
+Cannot activate automatic trial for user fea0f01f-455a-41cc-ac1a-e285bf82cbd5 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2b86fba1-acd8-4c90-be0e-7f861d0866cc.
+Cannot activate automatic trial for user 2b86fba1-acd8-4c90-be0e-7f861d0866cc (validation): ValueError
+.Free trial plan not found: no trial activated for user c9690ea2-6c77-45f8-b741-8db7a5b03e10.
+Cannot activate automatic trial for user c9690ea2-6c77-45f8-b741-8db7a5b03e10 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6b23e837-4cfa-45c0-b934-f9fc4693718b.
+Cannot activate automatic trial for user 6b23e837-4cfa-45c0-b934-f9fc4693718b (validation): ValueError
+.Free trial plan not found: no trial activated for user 5e2f5280-7e57-4975-acf8-0b319e43cc53.
+Cannot activate automatic trial for user 5e2f5280-7e57-4975-acf8-0b319e43cc53 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6ae38267-9631-4e37-b386-cc981c024e1c.
+Cannot activate automatic trial for user 6ae38267-9631-4e37-b386-cc981c024e1c (validation): ValueError
+.Free trial plan not found: no trial activated for user c1d11678-b4d7-4e71-b759-792699d5b6ff.
+Cannot activate automatic trial for user c1d11678-b4d7-4e71-b759-792699d5b6ff (validation): ValueError
+.Free trial plan not found: no trial activated for user 88d4ad46-25cf-412a-80ee-e58bae0c575c.
+Cannot activate automatic trial for user 88d4ad46-25cf-412a-80ee-e58bae0c575c (validation): ValueError
+.Free trial plan not found: no trial activated for user 6e0404c8-cc27-4246-a05b-8aab63bf9032.
+Cannot activate automatic trial for user 6e0404c8-cc27-4246-a05b-8aab63bf9032 (validation): ValueError
+.Free trial plan not found: no trial activated for user 957f74a0-8376-4c01-a107-b7f19b18b751.
+Cannot activate automatic trial for user 957f74a0-8376-4c01-a107-b7f19b18b751 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1cb553da-0b17-4374-9101-1c9af9b2634f.
+Cannot activate automatic trial for user 1cb553da-0b17-4374-9101-1c9af9b2634f (validation): ValueError
+.Free trial plan not found: no trial activated for user 3029d5a2-410d-4d7c-b1f9-b46f46c73f14.
+Cannot activate automatic trial for user 3029d5a2-410d-4d7c-b1f9-b46f46c73f14 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3d46804f-8286-4022-bede-adf111268493.
+Cannot activate automatic trial for user 3d46804f-8286-4022-bede-adf111268493 (validation): ValueError
+....Free trial plan not found: no trial activated for user 53c8fd59-e1ef-4207-9209-d5e0656d56fa.
+Cannot activate automatic trial for user 53c8fd59-e1ef-4207-9209-d5e0656d56fa (validation): ValueError
+.Free trial plan not found: no trial activated for user 3b1b3423-e406-4ce4-80ec-dbdc749a18f3.
+Cannot activate automatic trial for user 3b1b3423-e406-4ce4-80ec-dbdc749a18f3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 20fb6149-7469-41a0-ba50-1b031028048f.
+Cannot activate automatic trial for user 20fb6149-7469-41a0-ba50-1b031028048f (validation): ValueError
+.Free trial plan not found: no trial activated for user 799c173a-7613-4531-945d-b2544afa285a.
+Cannot activate automatic trial for user 799c173a-7613-4531-945d-b2544afa285a (validation): ValueError
+..Free trial plan not found: no trial activated for user be5675fb-03b9-4251-8dd5-30234eb6052e.
+Cannot activate automatic trial for user be5675fb-03b9-4251-8dd5-30234eb6052e (validation): ValueError
+..
+
+django.request ERROR 2026-11-09 14:38:29,404 log 165577 127854509541248 [request_id=5199a354-833c-4281-a8a1-532a27e894fa client_request_id=-] Internal Server Error: /admin/login/
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 172, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 116, in render
+    url = self.url(context)
+          ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 113, in url
+    return self.handle_simple(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 129, in handle_simple
+    return staticfiles_storage.url(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 204, in url
+    return self._url(self.stored_name, name, force)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 183, in _url
+    hashed_name = hashed_name_func(*args)
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 518, in stored_name
+    raise ValueError(
+ValueError: Missing staticfiles manifest entry for 'admin/css/base.css'
+.Free trial plan not found: no trial activated for user 16aeaab4-4151-4737-8f9f-7ea17dcf95cc.
+Cannot activate automatic trial for user 16aeaab4-4151-4737-8f9f-7ea17dcf95cc (validation): ValueError
+.Free trial plan not found: no trial activated for user dea9da57-b205-40a0-8fbd-1b584bef75eb.
+Cannot activate automatic trial for user dea9da57-b205-40a0-8fbd-1b584bef75eb (validation): ValueError
+.Free trial plan not found: no trial activated for user 439294ea-39a7-401c-83ab-6258c3b54ef2.
+Cannot activate automatic trial for user 439294ea-39a7-401c-83ab-6258c3b54ef2 (validation): ValueError
+.Free trial plan not found: no trial activated for user 747878cd-98c4-4f5b-badb-18db17ee1027.
+Cannot activate automatic trial for user 747878cd-98c4-4f5b-badb-18db17ee1027 (validation): ValueError
+.Free trial plan not found: no trial activated for user cb632336-dc48-4d74-9b93-233ad8ec325a.
+Cannot activate automatic trial for user cb632336-dc48-4d74-9b93-233ad8ec325a (validation): ValueError
+.Free trial plan not found: no trial activated for user dd10517b-30cf-4bff-8977-76233805657e.
+Cannot activate automatic trial for user dd10517b-30cf-4bff-8977-76233805657e (validation): ValueError
+.Free trial plan not found: no trial activated for user 78d50000-bb91-4ad3-b95e-75e58860133e.
+Cannot activate automatic trial for user 78d50000-bb91-4ad3-b95e-75e58860133e (validation): ValueError
+.
+
+ai_processor.call_record WARNING 2026-11-09 14:38:33,723 call_record 165577 127854509541248 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-09 14:38:33,724 call_record 165577 127854509541248 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-09 14:38:33,724 call_record 165577 127854509541248 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-09 14:38:33,725 call_record 165577 127854509541248 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-09 14:38:33,725 call_record 165577 127854509541248 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+........................................................
+======================================================================
+FAIL: test_settle_draws_only_the_items_own_hold (billing.tests.test_holds.SettleAndFailTests.test_settle_draws_only_the_items_own_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds.py", line 104, in test_settle_draws_only_the_items_own_hold
+    self.assertEqual((outcome.chargeable, outcome.unbilled), (50, 20))
+AssertionError: Tuples differ: (70, 0) != (50, 20)
+
+First differing element 0:
+70
+50
+
+- (70, 0)
+?  ^
+
++ (50, 20)
+?  ^   +
+
+
+======================================================================
+FAIL: test_an_overrun_never_takes_another_jobs_hold (billing.tests.test_holds_overrun.OverrunTests.test_an_overrun_never_takes_another_jobs_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_overrun.py", line 71, in test_an_overrun_never_takes_another_jobs_hold
+    self.assertEqual((outcome.chargeable, outcome.unbilled), (100, 100))
+AssertionError: Tuples differ: (200, 0) != (100, 100)
+
+First differing element 0:
+200
+100
+
+- (200, 0)
+?  ^
+
++ (100, 100)
+?  ^    ++
+
+
+----------------------------------------------------------------------
+Ran 141 tests in 18.533s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...
+Found 141 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

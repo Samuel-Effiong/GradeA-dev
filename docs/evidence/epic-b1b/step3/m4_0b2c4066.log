@@ -1,0 +1,23 @@
+10210 MB avail
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 9ff90e7b-56c9-4968-9316-4c6d3aaac7af.
+Cannot activate automatic trial for user 9ff90e7b-56c9-4968-9316-4c6d3aaac7af (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 1 test in 118.050s
+
+OK
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+GATE6_M3 calls_per_mode=2000 block=100 load_start=5.58/4.75/4.21 load_end=3.19/4.12/4.04 off_p50_ms=21.658 off_p95_ms=33.489 on_p50_ms=31.804 on_p95_ms=52.665 added_p50_ms=10.147 added_p95_ms=19.176 reserve_p50_ms=5.826 reserve_p95_ms=9.629 settle_p50_ms=15.230 settle_p95_ms=25.928

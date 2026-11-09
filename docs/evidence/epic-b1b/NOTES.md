@@ -1451,3 +1451,66 @@ The full list after P1 and P5:
 - The declaration is not amended.
 - The P1 precondition (F1–F10, the SINGLE_CALL no-task-rows argument, and the NOT_SETTLED roads keeping `finish_job`) is accepted, and so is the inventory amendment.
 - Continue with the declared rest: the battery, PFB-1…9b, the timing, measurement 4, and E1–E3.
+
+### §3.5 Results of the declared rest (at 0b2c40668, under `flock`)
+
+Logs are in `step3/`, with the suffix `_0b2c4066`. E1 and E2 are gzipped.
+
+**4. The battery: all 21 killed by their §21c named test, with their §21c fragment.** Each was restored by sha256 and matched after every plant. Collateral is recorded as observed and is listed in full in `battery_summary_0b2c4066.jsonl`.
+
+| Plant | Result | Named kill test | Fragment | Collateral |
+|---|---|---|---|---|
+| M-B1 | FAILED (failures=8, errors=3) | `test_concurrent_reserves_grant_exactly_what_fits` | `32 != 7` | 10 |
+| M-B2 | FAILED (failures=1) | `test_r4b_the_production_reserve_is_refused_after_the_consume` | `True is not false` | 0 |
+| M-B3 | FAILED (failures=2) | `test_an_overrun_never_takes_another_jobs_hold` | `(200, 0) != (100, 100)` | 1 |
+| M-B6 | FAILED (failures=14) | `test_a_redelivered_settlement_settles_once` | `True is not false` | 13 |
+| M-B7 | FAILED (failures=7) | `test_finish_job_releases_the_remainder_exactly_once` | `0 is not None` | 6 |
+| M-B11 | FAILED (failures=8, errors=1) | `test_an_unstarted_item_keeps_its_hold_however_old` | `1 != 0` | 8 |
+| M-B13 | FAILED (failures=1) | `test_reserve_is_refused_inside_a_zero_credit_scope` | `ZeroCreditViolation not raised` | 0 |
+| M-B14 | FAILED (failures=2, errors=1) | `test_beyond_hold_and_free_balance_the_excess_is_absorbed` | `InsufficientCreditsError` | 2 |
+| M-B15 | FAILED (errors=13) | `test_two_calls_in_a_unit_settle_once` | `creditwallet_reserved_credits_nonneg` | 12 |
+| M-B16 | FAILED (failures=2, errors=2) | `test_a_call_the_unit_cannot_hold_is_refused_before_the_provider` | `InsufficientCreditsError not raised` | 3 |
+| M-B18 | FAILED (failures=2, errors=2) | `test_a_call_the_unit_cannot_hold_is_refused_before_the_provider` | `InsufficientCreditsError not raised` | 3 |
+| M-B21 | FAILED (failures=3) | `test_u2_two_units_on_one_free_balance_one_is_refused` | `0 != 1` | 2 |
+| M-B22 | FAILED (failures=7) | `test_a_started_item_past_the_window_is_failed_counted_and_released` | `'PENDING' != 'FAILURE'` | 6 |
+| M-B23 | FAILED (failures=9) | `test_a_single_paper_settles_on_its_task_row_not_its_job` | `Tuples differ` | 8 |
+| M-B25 | FAILED (failures=7) | `test_a_started_item_past_the_window_is_failed_counted_and_released` | `0 != 80` | 6 |
+| M-B26 | FAILED (failures=12) | `test_an_unstarted_item_keeps_its_hold_however_old` | `1 != 0` | 11 |
+| M-B27 | FAILED (failures=1) | `test_er3_a_late_grading_message_exits_before_any_call` | `Expected '_AIProcessor__ai_model' to not have been called` | 0 |
+| M-B28 | FAILED (failures=8) | `test_settle_charges_from_the_hold_and_returns_the_leftover` | `(60, 60, 0) != (60, 60, 40)` | 7 |
+| M-B30 | FAILED (failures=4) | `test_a_call_the_unit_cannot_hold_is_refused_before_the_provider` | `InsufficientCreditsError not raised` | 3 |
+| M-B31s | FAILED (failures=1) | `test_a_start_claim_and_the_sweep_have_exactly_one_winner` | `True == True` | 0 |
+| TP-1 | FAILED (failures=1) | `test_t1_a_provider_timeout_charges_nothing_and_the_next_item_runs_on_its_hold` | `0 != 20003` | 0 |
+
+**5. PFB-1…9b: the same kill sets as §1.23, all nine.** PFB-1 17 (T-1…T-14 less T-8, plus T-17, T-19, T-20); PFB-2 and PFB-9 T-5, T-6, T-7, T-8, T-8b, T-19, T-20; PFB-3 14; PFB-4 T-1…T-4 ERROR, T-5, T-11; PFB-6 T-9 FAIL, T-5, T-10, T-19 ERROR; PFB-7 T-5, T-9, T-10, T-19; PFB-8 T-17; PFB-9b T-20.
+
+**6. The cascade timing: `Ran 1`, OK.** `one_job`: **4,734 queries ×3, as expected.** Times were 4.06, 3.25 and 4.39 s, a **median of 4.06 s**, against about 3.3 s recorded. The query count is the same as at the start, so I read this as machine load: measurement 4 ran next and started at load 5.58. The median is recorded as it came out. The time was a record, not a pass mark (D0), but it is above the checklist's "about 3.3 s", so the SM is told. `no_job`: 23 queries, 0.050 s.
+
+**7. Gate 6 measurement 4: `Ran 1`, OK** (load 5.58/4.75/4.21 at the start, 3.19/4.12/4.04 at the end).
+
+| | p50 | p95 |
+|---|---|---|
+| Flag off | 21.658 ms | 33.489 ms |
+| Flag on | 31.804 ms | 52.665 ms |
+| **Added** | **10.147 ms** | **19.176 ms** (B1b-3 start 14.5 / 22.6; §21k 22.7 / 32.6) |
+| Reserve | 5.826 ms | 9.629 ms |
+| Settle | 15.230 ms | 25.928 ms |
+
+- **Added p95 is 19.2 ms: under the 40 ms pass mark and under the 20 ms target.**
+
+**8. E1, flag on: `Ran 7412`, FAILED (failures=1, skipped=31).** The count is as declared. **The result is a STOP.**
+**9. E2, the flag-off near: `Ran 6350`, `OK (skipped=23)`**, as declared.
+**10. E3, the 66 guards, serially: `Ran 1146`, FAILED (failures=1, skipped=1).** The count is as declared. **The result is a STOP.**
+- `makemigrations --check`: No changes, as declared.
+
+**The STOP (E1 and E3, the same one test):** `audit.tests_history_guard.BulkWritesKeepHistoryTests.test_no_unlisted_bulk_write_of_a_tracked_field`.
+- The failure message: `['billing/holds.py:230 in _reserve_locked(): fields not statically known', 'billing/holds.py:362 in settle(): fields not statically known'] != []`.
+- **Cause:** the guard's AST scan flags any `.update(**…)`, because it can't know the fields. P5's `**({"status": status} if … else {})` and P1's `**close` are exactly that.
+- **No history is lost.** `status` is not in `tracked_field_names()` (checked: `'status' in tracked_field_names()` is False), and AIJob is not in `audit.history.REGISTRY`. Only the scanner's static view broke.
+- **Why my declaration missed it:** the green set (164) did not include the guard, and I didn't think about the guard's ban on `**`. The 66 guards caught it, which is their purpose.
+- **Proposed fix (not applied; it needs the SM's ruling):** make the keyword static, with no allow-list entry:
+  - `_reserve_locked`: `status=status if status is not None else F("status")`.
+  - `settle`: `status=close_status if (close_status is not None and job_row.status in OPEN_STATUSES) else F("status")`.
+  - The UPDATE is still one statement, so the query count stays 37 and the pins stand. `F("status")` writes the same value back, so terminal still never reverts.
+  - The guard keeps watching both functions. Allow-listing them instead would hide any later tracked write in `settle` or `_reserve_locked`.
+  - **Declared re-runs after the fix:** the guard test plus the 164 green; PP1b and PP5 again (their kills must stay as at §3.4); E1 `Ran 7412` OK (skipped=31); E3 `Ran 1146` OK (skipped=1); S1′ flag-on count 37. E2 was OK and flag-off is untouched, but I would re-run it too for a clean checkpoint head (`Ran 6350` OK, skipped=23).

@@ -1,0 +1,1047 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user a1255427-1d8d-4b62-beca-92f510a31d29.
+Cannot activate automatic trial for user a1255427-1d8d-4b62-beca-92f510a31d29 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4102ec28-a110-4766-8c4c-9502ced47c35.
+Cannot activate automatic trial for user 4102ec28-a110-4766-8c4c-9502ced47c35 (validation): ValueError
+EFree trial plan not found: no trial activated for user 8f6c1e3f-c289-4f21-a834-c94be190f480.
+Cannot activate automatic trial for user 8f6c1e3f-c289-4f21-a834-c94be190f480 (validation): ValueError
+.Free trial plan not found: no trial activated for user a8179321-ca95-4bd3-9c28-d3163ee3a0f0.
+Cannot activate automatic trial for user a8179321-ca95-4bd3-9c28-d3163ee3a0f0 (validation): ValueError
+.Free trial plan not found: no trial activated for user eddcfa27-02c7-4ad9-90d6-e809deb07a7d.
+Cannot activate automatic trial for user eddcfa27-02c7-4ad9-90d6-e809deb07a7d (validation): ValueError
+.Free trial plan not found: no trial activated for user de0c6f78-c125-42b9-8268-407a88ce6bfb.
+Cannot activate automatic trial for user de0c6f78-c125-42b9-8268-407a88ce6bfb (validation): ValueError
+.Free trial plan not found: no trial activated for user 2432cb44-c4f2-4d89-beab-26624ab43813.
+Cannot activate automatic trial for user 2432cb44-c4f2-4d89-beab-26624ab43813 (validation): ValueError
+.Free trial plan not found: no trial activated for user 00da5496-90cd-49b1-8b97-51b109127497.
+Cannot activate automatic trial for user 00da5496-90cd-49b1-8b97-51b109127497 (validation): ValueError
+.Free trial plan not found: no trial activated for user a38cbc8a-c9ab-4fac-9174-abcd5af2ae97.
+Cannot activate automatic trial for user a38cbc8a-c9ab-4fac-9174-abcd5af2ae97 (validation): ValueError
+.Free trial plan not found: no trial activated for user 97ab50d8-6bac-42a8-acc5-22ac99e3b75a.
+Cannot activate automatic trial for user 97ab50d8-6bac-42a8-acc5-22ac99e3b75a (validation): ValueError
+.Free trial plan not found: no trial activated for user a1fe846e-ae0a-449d-9ff7-96d0f30c90ac.
+Cannot activate automatic trial for user a1fe846e-ae0a-449d-9ff7-96d0f30c90ac (validation): ValueError
+.Free trial plan not found: no trial activated for user f347c618-85c3-4bd1-b646-6298977199ad.
+Cannot activate automatic trial for user f347c618-85c3-4bd1-b646-6298977199ad (validation): ValueError
+.Free trial plan not found: no trial activated for user f5a21738-e831-48aa-afba-a0a24df6ea18.
+Cannot activate automatic trial for user f5a21738-e831-48aa-afba-a0a24df6ea18 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0b968c0f-2328-4c4b-85c6-1c36635f2aac.
+Cannot activate automatic trial for user 0b968c0f-2328-4c4b-85c6-1c36635f2aac (validation): ValueError
+.Free trial plan not found: no trial activated for user 1122f5d9-c94a-40c6-bfdc-f830cc165a4a.
+Cannot activate automatic trial for user 1122f5d9-c94a-40c6-bfdc-f830cc165a4a (validation): ValueError
+.Free trial plan not found: no trial activated for user 851566b8-ec3c-4535-b554-77e6cc5d7eec.
+Cannot activate automatic trial for user 851566b8-ec3c-4535-b554-77e6cc5d7eec (validation): ValueError
+.Free trial plan not found: no trial activated for user 28f67c65-9962-4202-82e6-ccb3bd2d04c9.
+Cannot activate automatic trial for user 28f67c65-9962-4202-82e6-ccb3bd2d04c9 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4461b838-078b-48de-a101-698129fd1547.
+Cannot activate automatic trial for user 4461b838-078b-48de-a101-698129fd1547 (validation): ValueError
+.Free trial plan not found: no trial activated for user e82b95c8-dc9d-4ad3-abb3-c838f6206b75.
+Cannot activate automatic trial for user e82b95c8-dc9d-4ad3-abb3-c838f6206b75 (validation): ValueError
+.Free trial plan not found: no trial activated for user 93052729-eebb-493b-a22a-005f6a39b06a.
+Cannot activate automatic trial for user 93052729-eebb-493b-a22a-005f6a39b06a (validation): ValueError
+.Free trial plan not found: no trial activated for user fcecf6a9-cd65-4023-8bf6-16fccbd51d52.
+Cannot activate automatic trial for user fcecf6a9-cd65-4023-8bf6-16fccbd51d52 (validation): ValueError
+.Free trial plan not found: no trial activated for user a64f63a1-71c9-47a1-845d-8f3af151fa69.
+Cannot activate automatic trial for user a64f63a1-71c9-47a1-845d-8f3af151fa69 (validation): ValueError
+.Free trial plan not found: no trial activated for user ffa39b97-c2db-4021-85d8-e8d78540e1ef.
+Cannot activate automatic trial for user ffa39b97-c2db-4021-85d8-e8d78540e1ef (validation): ValueError
+.Free trial plan not found: no trial activated for user d3bbbb25-3342-45d9-994e-da0ee23fee20.
+Cannot activate automatic trial for user d3bbbb25-3342-45d9-994e-da0ee23fee20 (validation): ValueError
+.Free trial plan not found: no trial activated for user e38646cf-0d0c-4759-980b-c51a47b41bd9.
+Cannot activate automatic trial for user e38646cf-0d0c-4759-980b-c51a47b41bd9 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8e6be341-a8a5-436f-b9cb-febca8774306.
+Cannot activate automatic trial for user 8e6be341-a8a5-436f-b9cb-febca8774306 (validation): ValueError
+.Free trial plan not found: no trial activated for user 91f2fa29-192f-4d2e-9fa7-b046fce55e90.
+Cannot activate automatic trial for user 91f2fa29-192f-4d2e-9fa7-b046fce55e90 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5cc8a962-f0e9-4f44-b38e-5c8fa22ae246.
+Cannot activate automatic trial for user 5cc8a962-f0e9-4f44-b38e-5c8fa22ae246 (validation): ValueError
+.Free trial plan not found: no trial activated for user a4b00269-5f4b-48a5-b250-e64a80fdc783.
+Cannot activate automatic trial for user a4b00269-5f4b-48a5-b250-e64a80fdc783 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3babd5a0-a3d5-4d52-86f7-b1650869c5fe.
+Cannot activate automatic trial for user 3babd5a0-a3d5-4d52-86f7-b1650869c5fe (validation): ValueError
+.Free trial plan not found: no trial activated for user 14765a61-1350-4131-a3ce-74387e8a3631.
+Cannot activate automatic trial for user 14765a61-1350-4131-a3ce-74387e8a3631 (validation): ValueError
+.Free trial plan not found: no trial activated for user d63ee08e-4403-41e4-9528-431a6503b81d.
+Cannot activate automatic trial for user d63ee08e-4403-41e4-9528-431a6503b81d (validation): ValueError
+.Free trial plan not found: no trial activated for user 63079963-48ab-46bf-89f7-22bf42e041d3.
+Cannot activate automatic trial for user 63079963-48ab-46bf-89f7-22bf42e041d3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9383fa71-ef3e-456c-ab06-15f3e1388acd.
+Cannot activate automatic trial for user 9383fa71-ef3e-456c-ab06-15f3e1388acd (validation): ValueError
+.Free trial plan not found: no trial activated for user b216ea75-d3ed-451b-8dc8-cf9f34202141.
+Cannot activate automatic trial for user b216ea75-d3ed-451b-8dc8-cf9f34202141 (validation): ValueError
+.Free trial plan not found: no trial activated for user f4b1d64c-02a0-4dfb-8b6c-df440ca0d2a7.
+Cannot activate automatic trial for user f4b1d64c-02a0-4dfb-8b6c-df440ca0d2a7 (validation): ValueError
+.Free trial plan not found: no trial activated for user f7d73eb9-c391-4165-98c5-0e7609ce8577.
+Cannot activate automatic trial for user f7d73eb9-c391-4165-98c5-0e7609ce8577 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8514d352-ca7a-4035-a58d-853c9235e5bd.
+Cannot activate automatic trial for user 8514d352-ca7a-4035-a58d-853c9235e5bd (validation): ValueError
+.Free trial plan not found: no trial activated for user 9a43a7e3-0ff2-4af1-8b20-91a5effc608e.
+Cannot activate automatic trial for user 9a43a7e3-0ff2-4af1-8b20-91a5effc608e (validation): ValueError
+.Free trial plan not found: no trial activated for user 67df0bd8-3a12-4f8a-a372-32a74e0ee466.
+Cannot activate automatic trial for user 67df0bd8-3a12-4f8a-a372-32a74e0ee466 (validation): ValueError
+.Free trial plan not found: no trial activated for user c5fdacc3-c0b2-4970-a2ce-3315af47e76e.
+Cannot activate automatic trial for user c5fdacc3-c0b2-4970-a2ce-3315af47e76e (validation): ValueError
+Credit hold invariant: hold_drift wallet=68390393-cc10-49b4-854f-085b8a4d9315 reserved=31 expected=30
+.Free trial plan not found: no trial activated for user cfd7bec5-04a8-40d3-b25a-c5daba2f99e4.
+Cannot activate automatic trial for user cfd7bec5-04a8-40d3-b25a-c5daba2f99e4 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6d02297d-7016-40f6-9a1e-1af5f8abb393.
+Cannot activate automatic trial for user 6d02297d-7016-40f6-9a1e-1af5f8abb393 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0ba016a7-bf15-4b4e-99c5-72a56893a722.
+Cannot activate automatic trial for user 0ba016a7-bf15-4b4e-99c5-72a56893a722 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5914d587-ae75-4662-aaab-76ec4f34c4bc.
+Cannot activate automatic trial for user 5914d587-ae75-4662-aaab-76ec4f34c4bc (validation): ValueError
+EFree trial plan not found: no trial activated for user d503556e-4780-4a94-a5c0-0241f1b99270.
+Cannot activate automatic trial for user d503556e-4780-4a94-a5c0-0241f1b99270 (validation): ValueError
+EFree trial plan not found: no trial activated for user cba62a0f-2653-4109-b68a-77f972715d35.
+Cannot activate automatic trial for user cba62a0f-2653-4109-b68a-77f972715d35 (validation): ValueError
+EFree trial plan not found: no trial activated for user a9357d2f-77d1-4733-8d58-92727e036aa1.
+Cannot activate automatic trial for user a9357d2f-77d1-4733-8d58-92727e036aa1 (validation): ValueError
+EFree trial plan not found: no trial activated for user 9bc5bcf8-6bec-49a7-bed5-60d5cee21ced.
+Cannot activate automatic trial for user 9bc5bcf8-6bec-49a7-bed5-60d5cee21ced (validation): ValueError
+EFree trial plan not found: no trial activated for user 65fb99a9-6478-4778-be36-c0ba0f4edeb1.
+Cannot activate automatic trial for user 65fb99a9-6478-4778-be36-c0ba0f4edeb1 (validation): ValueError
+EFree trial plan not found: no trial activated for user 3f189db2-4c61-4303-9d26-cde57dea0e8c.
+Cannot activate automatic trial for user 3f189db2-4c61-4303-9d26-cde57dea0e8c (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=WALLET_CONSUME request_id=None
+.Free trial plan not found: no trial activated for user 23f6a8ec-db30-4e75-af9f-b167294fb5ee.
+Cannot activate automatic trial for user 23f6a8ec-db30-4e75-af9f-b167294fb5ee (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=CREDIT_RESERVE request_id=None
+.Free trial plan not found: no trial activated for user e61b7f78-35c1-4341-88ab-92adb4dba798.
+Cannot activate automatic trial for user e61b7f78-35c1-4341-88ab-92adb4dba798 (validation): ValueError
+Zero-credit violation: operation=_selftest attempted=CREDIT_RESERVE request_id=None
+.Free trial plan not found: no trial activated for user 19cd3294-8fcf-4719-a0f0-4061d318d07c.
+Cannot activate automatic trial for user 19cd3294-8fcf-4719-a0f0-4061d318d07c (validation): ValueError
+.Free trial plan not found: no trial activated for user b5b08179-96cf-4726-9192-35a0956aa21c.
+Cannot activate automatic trial for user b5b08179-96cf-4726-9192-35a0956aa21c (validation): ValueError
+.Free trial plan not found: no trial activated for user 45bad112-1f4e-4e5c-bf33-59e065c89281.
+Cannot activate automatic trial for user 45bad112-1f4e-4e5c-bf33-59e065c89281 (validation): ValueError
+EFree trial plan not found: no trial activated for user a29e734f-58d2-4499-9e44-91f8d8046d68.
+Cannot activate automatic trial for user a29e734f-58d2-4499-9e44-91f8d8046d68 (validation): ValueError
+EFree trial plan not found: no trial activated for user 755ccc70-17eb-4ca6-8536-7f89c696b32e.
+Cannot activate automatic trial for user 755ccc70-17eb-4ca6-8536-7f89c696b32e (validation): ValueError
+.Free trial plan not found: no trial activated for user b8f6442e-378b-4220-9ddc-580f0cf9f3d1.
+Cannot activate automatic trial for user b8f6442e-378b-4220-9ddc-580f0cf9f3d1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 79e59a87-55eb-44d6-8a1f-9f531c994e3d.
+Cannot activate automatic trial for user 79e59a87-55eb-44d6-8a1f-9f531c994e3d (validation): ValueError
+EFree trial plan not found: no trial activated for user b630c5f8-206e-43ae-acb7-9845cb0cfddb.
+Cannot activate automatic trial for user b630c5f8-206e-43ae-acb7-9845cb0cfddb (validation): ValueError
+.Free trial plan not found: no trial activated for user 05d50e9b-9d9d-44dc-9d19-43de7022a818.
+Cannot activate automatic trial for user 05d50e9b-9d9d-44dc-9d19-43de7022a818 (validation): ValueError
+.Free trial plan not found: no trial activated for user cf4aeebe-8b2c-4492-b1cc-b0b93cdf3ed7.
+Cannot activate automatic trial for user cf4aeebe-8b2c-4492-b1cc-b0b93cdf3ed7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 248bc768-39c0-4a6c-a92e-4dea68086a06.
+Cannot activate automatic trial for user 248bc768-39c0-4a6c-a92e-4dea68086a06 (validation): ValueError
+.Free trial plan not found: no trial activated for user f876019e-a105-4ffe-b858-0375aa3d87d0.
+Cannot activate automatic trial for user f876019e-a105-4ffe-b858-0375aa3d87d0 (validation): ValueError
+EFree trial plan not found: no trial activated for user e849e5d6-aae5-4d24-8961-a249e5ae0e50.
+Cannot activate automatic trial for user e849e5d6-aae5-4d24-8961-a249e5ae0e50 (validation): ValueError
+EFree trial plan not found: no trial activated for user 9a0fe0b5-1c7d-4e8a-90d7-fa8606838616.
+Cannot activate automatic trial for user 9a0fe0b5-1c7d-4e8a-90d7-fa8606838616 (validation): ValueError
+....Free trial plan not found: no trial activated for user d12c15c8-1ccf-47dc-89bc-e679fe56d491.
+Cannot activate automatic trial for user d12c15c8-1ccf-47dc-89bc-e679fe56d491 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8e7d227a-cb8e-4676-b3cd-6e0b5968a328.
+Cannot activate automatic trial for user 8e7d227a-cb8e-4676-b3cd-6e0b5968a328 (validation): ValueError
+.Free trial plan not found: no trial activated for user e7dbe71a-c52f-4c1a-9caa-5af8389c64e7.
+Cannot activate automatic trial for user e7dbe71a-c52f-4c1a-9caa-5af8389c64e7 (validation): ValueError
+.Free trial plan not found: no trial activated for user c8aa963b-db16-4f97-ae33-b98c8925f640.
+Cannot activate automatic trial for user c8aa963b-db16-4f97-ae33-b98c8925f640 (validation): ValueError
+E.Free trial plan not found: no trial activated for user fb8b18a9-352f-4ef4-b809-cd3746e2fc19.
+Cannot activate automatic trial for user fb8b18a9-352f-4ef4-b809-cd3746e2fc19 (validation): ValueError
+..
+
+django.request ERROR 2026-11-09 14:41:39,691 log 168342 130623083566976 [request_id=fae42a07-8435-40d8-b236-df3da06c9f3f client_request_id=-] Internal Server Error: /admin/login/
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 172, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 114, in instrumented_test_render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 1018, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/template/base.py", line 979, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 116, in render
+    url = self.url(context)
+          ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 113, in url
+    return self.handle_simple(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/templatetags/static.py", line 129, in handle_simple
+    return staticfiles_storage.url(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 204, in url
+    return self._url(self.stored_name, name, force)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 183, in _url
+    hashed_name = hashed_name_func(*args)
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/contrib/staticfiles/storage.py", line 518, in stored_name
+    raise ValueError(
+ValueError: Missing staticfiles manifest entry for 'admin/css/base.css'
+.Free trial plan not found: no trial activated for user a7e39f70-3efb-4be7-8005-832536ea3695.
+Cannot activate automatic trial for user a7e39f70-3efb-4be7-8005-832536ea3695 (validation): ValueError
+.Free trial plan not found: no trial activated for user 21a08032-b843-4a6b-a745-0dabe0132c0c.
+Cannot activate automatic trial for user 21a08032-b843-4a6b-a745-0dabe0132c0c (validation): ValueError
+.Free trial plan not found: no trial activated for user 3a8693b8-78e7-4f00-acc1-17184e282a65.
+Cannot activate automatic trial for user 3a8693b8-78e7-4f00-acc1-17184e282a65 (validation): ValueError
+.Free trial plan not found: no trial activated for user c3cfe32a-3a11-4e14-b76e-72ab77e705a2.
+Cannot activate automatic trial for user c3cfe32a-3a11-4e14-b76e-72ab77e705a2 (validation): ValueError
+.Free trial plan not found: no trial activated for user a24f90fa-6589-4f4b-85c0-2ea10cc277ba.
+Cannot activate automatic trial for user a24f90fa-6589-4f4b-85c0-2ea10cc277ba (validation): ValueError
+.Free trial plan not found: no trial activated for user 8a167ad2-ed37-40bf-9326-dcb1da13e213.
+Cannot activate automatic trial for user 8a167ad2-ed37-40bf-9326-dcb1da13e213 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1278baa4-d42d-4253-abbc-27c9ac12a7a6.
+Cannot activate automatic trial for user 1278baa4-d42d-4253-abbc-27c9ac12a7a6 (validation): ValueError
+.
+
+ai_processor.call_record WARNING 2026-11-09 14:41:43,897 call_record 168342 130623083566976 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-09 14:41:43,898 call_record 168342 130623083566976 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-09 14:41:43,898 call_record 168342 130623083566976 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-09 14:41:43,898 call_record 168342 130623083566976 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+
+
+ai_processor.call_record WARNING 2026-11-09 14:41:43,899 call_record 168342 130623083566976 [request_id=- client_request_id=-] ai_call_record_failed call=none error_class=DatabaseOperationForbidden
+
+
+........................................................
+======================================================================
+ERROR: test_invariants_hold_across_reserve_settle_fail_and_finish (billing.tests.test_holds.InvariantTests.test_invariants_hold_across_reserve_settle_fail_and_finish)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (ecbaca50-0148-46ff-bf1a-08766f05587e, 0, 2026-11-09 14:41:32.557391+00, 2026-11-09 14:41:32.557399+00, 4102ec28-a110-4766-8c4c-9502ced47c35, null, 0, f, 0, null, null, -15).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds.py", line 249, in test_invariants_hold_across_reserve_settle_fail_and_finish
+    holds().finish_job(single, "SETTLED")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 456, in finish_job
+    _move_wallet(locked.pk, -returned)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 150, in _move_wallet
+    CreditWallet.objects.filter(pk=wallet_pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1263, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (ecbaca50-0148-46ff-bf1a-08766f05587e, 0, 2026-11-09 14:41:32.557391+00, 2026-11-09 14:41:32.557399+00, 4102ec28-a110-4766-8c4c-9502ced47c35, null, 0, f, 0, null, null, -15).
+
+
+======================================================================
+ERROR: test_a_call_the_unit_cannot_hold_is_refused_before_the_provider (billing.tests.test_holds_unit.UnitTests.test_a_call_the_unit_cannot_hold_is_refused_before_the_provider)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 928, in metered_unit
+    yield unit
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_unit.py", line 82, in test_a_call_the_unit_cannot_hold_is_refused_before_the_provider
+    call_ai(teacher)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 143, in call_ai
+    return ai_processor.execute_graded_task(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/call_record.py", line 363, in wrapper
+    result = function(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 5667, in execute_graded_task
+    hold = credit_holds.hold_for_call(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 1062, in hold_for_call
+    unit.before_call(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 854, in before_call
+    ensure_call_fits(root.job, estimate, item=root.item, tally=self.open_tally())
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 271, in ensure_call_fits
+    raise _refusal(locked)
+billing.errors.InsufficientCreditsError: Refill your wallet to continue
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (1adb76f3-bb36-4ee9-8cac-f494562fbb02, 0, 2026-11-09 14:41:34.212417+00, 2026-11-09 14:41:34.212431+00, 5914d587-ae75-4662-aaab-76ec4f34c4bc, null, 0, f, 0, null, null, -20003).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_unit.py", line 80, in test_a_call_the_unit_cannot_hold_is_refused_before_the_provider
+    with holds().metered_unit(reason="test"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 932, in metered_unit
+    unit.fail_root()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 897, in fail_root
+    finish_job(self.job, AIJobStatus.FAILED)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 456, in finish_job
+    _move_wallet(locked.pk, -returned)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 150, in _move_wallet
+    CreditWallet.objects.filter(pk=wallet_pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1263, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (1adb76f3-bb36-4ee9-8cac-f494562fbb02, 0, 2026-11-09 14:41:34.212417+00, 2026-11-09 14:41:34.212431+00, 5914d587-ae75-4662-aaab-76ec4f34c4bc, null, 0, f, 0, null, null, -20003).
+
+
+======================================================================
+ERROR: test_a_failed_inner_unit_is_not_charged_when_the_outer_goes_on (billing.tests.test_holds_unit.UnitTests.test_a_failed_inner_unit_is_not_charged_when_the_outer_goes_on)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (455faa38-b39c-40fd-a3eb-e50e0b9baaa0, 0, 2026-11-09 14:41:34.30269+00, 2026-11-09 14:41:34.302704+00, d503556e-4780-4a94-a5c0-0241f1b99270, null, 0, f, 0, null, null, -20003).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_unit.py", line 102, in test_a_failed_inner_unit_is_not_charged_when_the_outer_goes_on
+    with holds().metered_unit(reason="outer"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 943, in metered_unit
+    unit.settle_root()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 883, in settle_root
+    finish_job(self.job, AIJobStatus.SETTLED)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 456, in finish_job
+    _move_wallet(locked.pk, -returned)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 150, in _move_wallet
+    CreditWallet.objects.filter(pk=wallet_pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1263, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (455faa38-b39c-40fd-a3eb-e50e0b9baaa0, 0, 2026-11-09 14:41:34.30269+00, 2026-11-09 14:41:34.302704+00, d503556e-4780-4a94-a5c0-0241f1b99270, null, 0, f, 0, null, null, -20003).
+
+
+======================================================================
+ERROR: test_a_unit_that_raises_charges_nothing_and_returns_its_hold (billing.tests.test_holds_unit.UnitTests.test_a_unit_that_raises_charges_nothing_and_returns_its_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 928, in metered_unit
+    yield unit
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_unit.py", line 62, in test_a_unit_that_raises_charges_nothing_and_returns_its_hold
+    raise ValueError("pipeline failed")
+ValueError: pipeline failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (e4721efd-2948-41d4-bf9e-07fbc952d7c5, 0, 2026-11-09 14:41:34.407048+00, 2026-11-09 14:41:34.407057+00, cba62a0f-2653-4109-b68a-77f972715d35, null, 0, f, 0, null, null, -20003).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_unit.py", line 60, in test_a_unit_that_raises_charges_nothing_and_returns_its_hold
+    with holds().metered_unit(reason="test"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 932, in metered_unit
+    unit.fail_root()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 897, in fail_root
+    finish_job(self.job, AIJobStatus.FAILED)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 456, in finish_job
+    _move_wallet(locked.pk, -returned)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 150, in _move_wallet
+    CreditWallet.objects.filter(pk=wallet_pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1263, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (e4721efd-2948-41d4-bf9e-07fbc952d7c5, 0, 2026-11-09 14:41:34.407048+00, 2026-11-09 14:41:34.407057+00, cba62a0f-2653-4109-b68a-77f972715d35, null, 0, f, 0, null, null, -20003).
+
+
+======================================================================
+ERROR: test_an_inner_unit_passes_its_tally_to_the_outer_on_success (billing.tests.test_holds_unit.UnitTests.test_an_inner_unit_passes_its_tally_to_the_outer_on_success)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (f7839dc2-fd4e-43ec-a736-263074097a10, 0, 2026-11-09 14:41:34.470259+00, 2026-11-09 14:41:34.470274+00, a9357d2f-77d1-4733-8d58-92727e036aa1, null, 0, f, 0, null, null, -19803).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_unit.py", line 91, in test_an_inner_unit_passes_its_tally_to_the_outer_on_success
+    with holds().metered_unit(reason="outer"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 943, in metered_unit
+    unit.settle_root()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 883, in settle_root
+    finish_job(self.job, AIJobStatus.SETTLED)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 456, in finish_job
+    _move_wallet(locked.pk, -returned)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 150, in _move_wallet
+    CreditWallet.objects.filter(pk=wallet_pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1263, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (f7839dc2-fd4e-43ec-a736-263074097a10, 0, 2026-11-09 14:41:34.470259+00, 2026-11-09 14:41:34.470274+00, a9357d2f-77d1-4733-8d58-92727e036aa1, null, 0, f, 0, null, null, -19803).
+
+
+======================================================================
+ERROR: test_n1_a_dropped_nested_call_carries_the_root_id_and_adds_no_credits (billing.tests.test_holds_unit.UnitTests.test_n1_a_dropped_nested_call_carries_the_root_id_and_adds_no_credits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (124c8aec-e521-403e-8937-c3e44f88c562, 0, 2026-11-09 14:41:34.55584+00, 2026-11-09 14:41:34.555849+00, 9bc5bcf8-6bec-49a7-bed5-60d5cee21ced, null, 0, f, 0, null, null, -20003).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_unit.py", line 121, in test_n1_a_dropped_nested_call_carries_the_root_id_and_adds_no_credits
+    with holds().metered_unit(reason="outer"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 943, in metered_unit
+    unit.settle_root()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 883, in settle_root
+    finish_job(self.job, AIJobStatus.SETTLED)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 456, in finish_job
+    _move_wallet(locked.pk, -returned)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 150, in _move_wallet
+    CreditWallet.objects.filter(pk=wallet_pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1263, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (124c8aec-e521-403e-8937-c3e44f88c562, 0, 2026-11-09 14:41:34.55584+00, 2026-11-09 14:41:34.555849+00, 9bc5bcf8-6bec-49a7-bed5-60d5cee21ced, null, 0, f, 0, null, null, -20003).
+
+
+======================================================================
+ERROR: test_two_calls_in_a_unit_settle_once (billing.tests.test_holds_unit.UnitTests.test_two_calls_in_a_unit_settle_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (15e1ed2b-be5c-4290-bab1-3cd6a4d9c8c0, 0, 2026-11-09 14:41:34.626928+00, 2026-11-09 14:41:34.626938+00, 65fb99a9-6478-4778-be36-c0ba0f4edeb1, null, 0, f, 0, null, null, -19753).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_unit.py", line 39, in test_two_calls_in_a_unit_settle_once
+    with holds().metered_unit(reason="test"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 943, in metered_unit
+    unit.settle_root()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 883, in settle_root
+    finish_job(self.job, AIJobStatus.SETTLED)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 456, in finish_job
+    _move_wallet(locked.pk, -returned)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 150, in _move_wallet
+    CreditWallet.objects.filter(pk=wallet_pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1263, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (15e1ed2b-be5c-4290-bab1-3cd6a4d9c8c0, 0, 2026-11-09 14:41:34.626928+00, 2026-11-09 14:41:34.626938+00, 65fb99a9-6478-4778-be36-c0ba0f4edeb1, null, 0, f, 0, null, null, -19753).
+
+
+======================================================================
+ERROR: test_e4_a_sync_upload_settles_once_on_its_own_job (billing.tests.test_holds_entry.EntryPointTests.test_e4_a_sync_upload_settles_once_on_its_own_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (fbd888ea-36fa-4a5e-8d26-b19594c48546, 0, 2026-11-09 14:41:34.967932+00, 2026-11-09 14:41:34.967939+00, 45bad112-1f4e-4e5c-bf33-59e065c89281, null, 0, f, 0, null, null, -19753).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_entry.py", line 288, in test_e4_a_sync_upload_settles_once_on_its_own_job
+    upload_answers_engine(assignment, [{"type": "text"}], student)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/services.py", line 1539, in upload_answers_engine
+    with metered_unit(
+         ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 943, in metered_unit
+    unit.settle_root()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 883, in settle_root
+    finish_job(self.job, AIJobStatus.SETTLED)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 456, in finish_job
+    _move_wallet(locked.pk, -returned)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 150, in _move_wallet
+    CreditWallet.objects.filter(pk=wallet_pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1263, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (fbd888ea-36fa-4a5e-8d26-b19594c48546, 0, 2026-11-09 14:41:34.967932+00, 2026-11-09 14:41:34.967939+00, 45bad112-1f4e-4e5c-bf33-59e065c89281, null, 0, f, 0, null, null, -19753).
+
+
+======================================================================
+ERROR: test_e5_a_sync_edit_settles_once_on_its_own_job (billing.tests.test_holds_entry.EntryPointTests.test_e5_a_sync_edit_settles_once_on_its_own_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (aaef5896-900c-4724-8a70-22e3dba4e123, 0, 2026-11-09 14:41:35.066915+00, 2026-11-09 14:41:35.066923+00, a29e734f-58d2-4499-9e44-91f8d8046d68, null, 0, f, 0, null, null, -19753).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_entry.py", line 301, in test_e5_a_sync_edit_settles_once_on_its_own_job
+    update_submission_from_raw_text(student, submission, "Question 1: a")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/services.py", line 1884, in update_submission_from_raw_text
+    with metered_unit(
+         ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 943, in metered_unit
+    unit.settle_root()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 883, in settle_root
+    finish_job(self.job, AIJobStatus.SETTLED)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 456, in finish_job
+    _move_wallet(locked.pk, -returned)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 150, in _move_wallet
+    CreditWallet.objects.filter(pk=wallet_pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1263, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (aaef5896-900c-4724-8a70-22e3dba4e123, 0, 2026-11-09 14:41:35.066915+00, 2026-11-09 14:41:35.066923+00, a29e734f-58d2-4499-9e44-91f8d8046d68, null, 0, f, 0, null, null, -19753).
+
+
+======================================================================
+ERROR: test_e8_a_failed_assignment_upload_charges_nothing (billing.tests.test_holds_entry.EntryPointTests.test_e8_a_failed_assignment_upload_charges_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 928, in metered_unit
+    yield unit
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 154, in upload_assignment_file
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'course': [ErrorDetail(string='This field is required.', code='required')], 'questions': [ErrorDetail(string='This field is required.', code='required')]}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (cd85d046-ceda-43df-8e88-61a05fd2128c, 0, 2026-11-09 14:41:35.378224+00, 2026-11-09 14:41:35.378232+00, 79e59a87-55eb-44d6-8a1f-9f531c994e3d, null, 0, f, 0, null, null, -20253).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_entry.py", line 348, in test_e8_a_failed_assignment_upload_charges_nothing
+    upload_assignment_file(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 132, in upload_assignment_file
+    with metered_unit(
+         ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 932, in metered_unit
+    unit.fail_root()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 897, in fail_root
+    finish_job(self.job, AIJobStatus.FAILED)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 456, in finish_job
+    _move_wallet(locked.pk, -returned)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 150, in _move_wallet
+    CreditWallet.objects.filter(pk=wallet_pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1263, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (cd85d046-ceda-43df-8e88-61a05fd2128c, 0, 2026-11-09 14:41:35.378224+00, 2026-11-09 14:41:35.378232+00, 79e59a87-55eb-44d6-8a1f-9f531c994e3d, null, 0, f, 0, null, null, -20253).
+
+
+======================================================================
+ERROR: test_er5_a_retried_row_runs_under_a_new_single_item_job (billing.tests.test_holds_entry.EntryRuleTests.test_er5_a_retried_row_runs_under_a_new_single_item_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (c5d25a1c-239e-41d4-a6e8-2fc2e45596c7, 0, 2026-11-09 14:41:35.666623+00, 2026-11-09 14:41:35.666631+00, f876019e-a105-4ffe-b858-0375aa3d87d0, null, 0, f, 0, null, null, -19903).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_entry.py", line 197, in test_er5_a_retried_row_runs_under_a_new_single_item_job
+    self.run_unit(fresh(row), calls=1)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_entry.py", line 128, in run_unit
+    with holds().metered_unit(processing_task_id=row.id, reason="t"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 943, in metered_unit
+    unit.settle_root()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 883, in settle_root
+    finish_job(self.job, AIJobStatus.SETTLED)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 456, in finish_job
+    _move_wallet(locked.pk, -returned)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 150, in _move_wallet
+    CreditWallet.objects.filter(pk=wallet_pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1263, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (c5d25a1c-239e-41d4-a6e8-2fc2e45596c7, 0, 2026-11-09 14:41:35.666623+00, 2026-11-09 14:41:35.666631+00, f876019e-a105-4ffe-b858-0375aa3d87d0, null, 0, f, 0, null, null, -19903).
+
+
+======================================================================
+ERROR: test_er6_a_late_door_row_runs_under_a_new_upload_job (billing.tests.test_holds_entry.EntryRuleTests.test_er6_a_late_door_row_runs_under_a_new_upload_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (f4a94d8b-8c26-49ba-b1ed-541ba332c0bd, 0, 2026-11-09 14:41:35.725319+00, 2026-11-09 14:41:35.725326+00, e849e5d6-aae5-4d24-8961-a249e5ae0e50, null, 0, f, 0, null, null, -19903).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_entry.py", line 216, in test_er6_a_late_door_row_runs_under_a_new_upload_job
+    self.run_unit(fresh(row), calls=1)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_entry.py", line 128, in run_unit
+    with holds().metered_unit(processing_task_id=row.id, reason="t"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 943, in metered_unit
+    unit.settle_root()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 883, in settle_root
+    finish_job(self.job, AIJobStatus.SETTLED)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 456, in finish_job
+    _move_wallet(locked.pk, -returned)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 150, in _move_wallet
+    CreditWallet.objects.filter(pk=wallet_pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1263, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (f4a94d8b-8c26-49ba-b1ed-541ba332c0bd, 0, 2026-11-09 14:41:35.725319+00, 2026-11-09 14:41:35.725326+00, e849e5d6-aae5-4d24-8961-a249e5ae0e50, null, 0, f, 0, null, null, -19903).
+
+
+======================================================================
+ERROR: test_a_provider_failure_charges_nothing_and_returns_the_hold (billing.tests.test_holds_single_call.FlagOnSingleCallTests.test_a_provider_failure_charges_nothing_and_returns_the_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 5673, in execute_graded_task
+    response = self.__ai_model(
+               ^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: down
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (25cf6891-a0c4-4e13-aae4-e4ec49ac39f7, 0, 2026-11-09 14:41:36.08107+00, 2026-11-09 14:41:36.081077+00, c8aa963b-db16-4f97-ae33-b98c8925f640, null, 0, f, 0, null, null, -20003).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_single_call.py", line 75, in test_a_provider_failure_charges_nothing_and_returns_the_hold
+    call_ai(teacher)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 143, in call_ai
+    return ai_processor.execute_graded_task(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/call_record.py", line 363, in wrapper
+    result = function(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 5687, in execute_graded_task
+    credit_holds.abandon_call(hold)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 1076, in abandon_call
+    hold.abandon()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 1051, in abandon
+    abandon_single_call(self.job)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 996, in abandon_single_call
+    finish_job(job, AIJobStatus.FAILED)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 456, in finish_job
+    _move_wallet(locked.pk, -returned)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py", line 150, in _move_wallet
+    CreditWallet.objects.filter(pk=wallet_pk).update(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1263, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_creditwallet" violates check constraint "creditwallet_reserved_credits_nonneg"
+DETAIL:  Failing row contains (25cf6891-a0c4-4e13-aae4-e4ec49ac39f7, 0, 2026-11-09 14:41:36.08107+00, 2026-11-09 14:41:36.081077+00, c8aa963b-db16-4f97-ae33-b98c8925f640, null, 0, f, 0, null, null, -20003).
+
+
+----------------------------------------------------------------------
+Ran 141 tests in 18.076s
+
+FAILED (errors=13)
+Destroying test database for alias 'default'...
+Found 141 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

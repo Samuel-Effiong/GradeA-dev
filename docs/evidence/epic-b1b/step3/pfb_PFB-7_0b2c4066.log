@@ -1,0 +1,128 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user b1bce620-417f-4cc7-9ae3-ff5f7aa4d554.
+Cannot activate automatic trial for user b1bce620-417f-4cc7-9ae3-ff5f7aa4d554 (validation): ValueError
+FFree trial plan not found: no trial activated for user 6172ca03-e193-45bc-84ae-81689b57863d.
+Cannot activate automatic trial for user 6172ca03-e193-45bc-84ae-81689b57863d (validation): ValueError
+.Free trial plan not found: no trial activated for user 32a9d4eb-f1bb-497a-8a29-de5c27e85548.
+Cannot activate automatic trial for user 32a9d4eb-f1bb-497a-8a29-de5c27e85548 (validation): ValueError
+.Free trial plan not found: no trial activated for user d54648a8-0a48-4d59-8bed-59182d6e38de.
+Cannot activate automatic trial for user d54648a8-0a48-4d59-8bed-59182d6e38de (validation): ValueError
+.Free trial plan not found: no trial activated for user 259db7e2-2861-4d2d-98ad-f9c8521f3f1a.
+Cannot activate automatic trial for user 259db7e2-2861-4d2d-98ad-f9c8521f3f1a (validation): ValueError
+.Free trial plan not found: no trial activated for user 75c46bee-bc42-4d17-ba66-3aa41c8b5817.
+Cannot activate automatic trial for user 75c46bee-bc42-4d17-ba66-3aa41c8b5817 (validation): ValueError
+.Free trial plan not found: no trial activated for user a623d152-d9eb-4f62-a385-472a2241bb70.
+Cannot activate automatic trial for user a623d152-d9eb-4f62-a385-472a2241bb70 (validation): ValueError
+FFree trial plan not found: no trial activated for user 7d4f8cf1-7f16-4470-9c9d-b207ee7a36b0.
+Cannot activate automatic trial for user 7d4f8cf1-7f16-4470-9c9d-b207ee7a36b0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0207bb29-e62f-4a0c-8045-b66cc459f96f.
+Cannot activate automatic trial for user 0207bb29-e62f-4a0c-8045-b66cc459f96f (validation): ValueError
+.Free trial plan not found: no trial activated for user 5747cf15-ccac-40c0-842f-e141e4450d76.
+Cannot activate automatic trial for user 5747cf15-ccac-40c0-842f-e141e4450d76 (validation): ValueError
+.Free trial plan not found: no trial activated for user 33081229-1769-4a13-b251-4c50f62ba456.
+Cannot activate automatic trial for user 33081229-1769-4a13-b251-4c50f62ba456 (validation): ValueError
+.Free trial plan not found: no trial activated for user ea481ed2-ff6e-4971-98b8-3df324350ddd.
+Cannot activate automatic trial for user ea481ed2-ff6e-4971-98b8-3df324350ddd (validation): ValueError
+FFree trial plan not found: no trial activated for user b4e1db2c-ef16-4542-b276-704ca7744403.
+Cannot activate automatic trial for user b4e1db2c-ef16-4542-b276-704ca7744403 (validation): ValueError
+.Free trial plan not found: no trial activated for user 61d9dcac-b2cd-430f-bb0b-3e4a005c40a4.
+Cannot activate automatic trial for user 61d9dcac-b2cd-430f-bb0b-3e4a005c40a4 (validation): ValueError
+.Free trial plan not found: no trial activated for user 020af5dc-1a3c-4b4a-af7c-313c048f3a4a.
+Cannot activate automatic trial for user 020af5dc-1a3c-4b4a-af7c-313c048f3a4a (validation): ValueError
+.Free trial plan not found: no trial activated for user 9eb5ac2a-3895-4f57-9460-188b0b9fc336.
+Cannot activate automatic trial for user 9eb5ac2a-3895-4f57-9460-188b0b9fc336 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2b4b21b0-0852-4834-ab43-4922d40c258b.
+Cannot activate automatic trial for user 2b4b21b0-0852-4834-ab43-4922d40c258b (validation): ValueError
+.Free trial plan not found: no trial activated for user b55bd4ff-37b4-4d88-99d2-72c774dcd9cf.
+Cannot activate automatic trial for user b55bd4ff-37b4-4d88-99d2-72c774dcd9cf (validation): ValueError
+FFree trial plan not found: no trial activated for user 3057d180-3c12-4288-9f25-a7699acb5597.
+Cannot activate automatic trial for user 3057d180-3c12-4288-9f25-a7699acb5597 (validation): ValueError
+.Free trial plan not found: no trial activated for user cab581d1-f2b9-40f2-b1bc-6b8de4acaef8.
+Cannot activate automatic trial for user cab581d1-f2b9-40f2-b1bc-6b8de4acaef8 (validation): ValueError
+.
+======================================================================
+FAIL: test_t19_an_assignment_cascade_with_a_held_and_a_returned_row (billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t19_an_assignment_cascade_with_a_held_and_a_returned_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 477, in test_t19_an_assignment_cascade_with_a_held_and_a_returned_row
+    self.assertEqual(deleted_items(job), (2 * HELD, 0, 2 * HELD))
+AssertionError: Tuples differ: (300, 0, 300) != (600, 0, 600)
+
+First differing element 0:
+300
+600
+
+- (300, 0, 300)
+?  ^       ^
+
++ (600, 0, 600)
+?  ^       ^
+
+
+======================================================================
+FAIL: test_t5_assignment_cascade (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade)
+Every row of the job goes: the job finishes SETTLED (C4), because
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 209, in test_t5_assignment_cascade
+    self.assertEqual(deleted_items(job), (2 * HELD, ACTUAL, (HELD - ACTUAL) + HELD))
+AssertionError: Tuples differ: (300, 0, 300) != (600, 120, 480)
+
+First differing element 0:
+300
+600
+
+- (300, 0, 300)
++ (600, 120, 480)
+
+======================================================================
+FAIL: test_t9_a_settled_row_deleted_from_a_job_with_rows_left (billing.tests.test_holds_deleted_items.PreExistingFalseAlarmTests.test_t9_a_settled_row_deleted_from_a_job_with_rows_left)
+Before B1b this reported item_sum with the flag on, without any
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 293, in test_t9_a_settled_row_deleted_from_a_job_with_rows_left
+    self.assert_books_agree()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 120, in assert_books_agree
+    self.assertEqual(holds().check_invariants(self.wallet), [])
+AssertionError: Lists differ: ['item_sum job=85094bbb-b94f-4365-9353-102dad80536c'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'item_sum job=85094bbb-b94f-4365-9353-102dad80536c'
+
+- ['item_sum job=85094bbb-b94f-4365-9353-102dad80536c']
++ []
+
+======================================================================
+FAIL: test_t10_wallet_receiver_first_then_the_row_delete (billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t10_wallet_receiver_first_then_the_row_delete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 315, in test_t10_wallet_receiver_first_then_the_row_delete
+    self.assertEqual(deleted_items(job), (HELD, 0, HELD))
+AssertionError: Tuples differ: (0, 0, 0) != (300, 0, 300)
+
+First differing element 0:
+0
+300
+
+- (0, 0, 0)
++ (300, 0, 300)
+?  ++      ++
+
+
+----------------------------------------------------------------------
+Ran 20 tests in 4.627s
+
+FAILED (failures=4)
+Destroying test database for alias 'default'...
+Found 20 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
