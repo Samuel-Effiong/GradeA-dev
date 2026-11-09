@@ -579,3 +579,25 @@ Any failure, or a different count or skip number, is a STOP.
      - add a double-return plant for the C3 rule (§1.12).
   3. **B1b-4:** only `estimate_source` is a new column (§1.3).
 - **Test-writing lessons** are in §1.11, to apply from B1b-2 on.
+
+### §1.20 SM review of d81556a56: "C4 may never fire in a cascade". Characterize first (declared)
+
+**The SM's finding:** `Collector.delete` sends `pre_delete` for every instance before it deletes any row. So the last row's siblings are still in the table, and `_job_has_rows_to_run` keeps the job open.
+
+**My reading before the run:**
+- `_job_has_rows_to_run` doesn't ask whether siblings *exist*. It asks whether a sibling is **HELD**, or has **no hold and is unfinished**.
+- In a cascade, each HELD sibling's own `pre_delete` has already set it RETURNED (`hold_state` is updated before the delete). Its fresh state then reads RETURNED when a later sibling checks.
+- So for HELD and RETURNED rows, C4 fires on whichever row the collector visits last. That is why T-5 (settled plus HELD) and T-6 (two HELD) passed as cascades.
+- **But the finding holds for one kind of row:** a row with a job, **no hold, and not finished**. Its `pre_delete` doesn't change it, so it still counts as "to run" when the last sibling checks, and the job is left open with zero rows.
+  - Today such a row exists only for a moment: the unit attaches the job (`billing/holds.py:818`) and then reserves (`ensure_call_fits`); the door attaches (`:1070`), holds, and detaches on refusal (`:1073`).
+  - **From B1b-6 on, queued unheld papers make it common.**
+
+**Tests (new, 20 in all):**
+- **T-19 (the SM's characterization):** an assignment cascade of one open job with a HELD row and a RETURNED row (`fail_item`, no settlement). It asserts that no rows are left, the wallet is back to the start, the books agree, the job is FAILED, and `deleted_items_*` = (600, 0, 600).
+- **T-20 (the case the reading predicts):** an assignment cascade of one open job with a HELD row and a never-held pending row. It asserts the same, plus `deleted_items_*` = (300, 0, 300) and the job FAILED.
+
+**Prediction (today's code, d81556a56 plus these tests): `Ran 20`, `FAILED (failures=1)`.**
+- T-19 passes.
+- **T-20 fails on its last assertion:** `'RESERVED' != AIJobStatus.FAILED`. The job is left open with zero rows.
+- Every other assertion in T-20 passes, and T-1…T-18 pass.
+- Any other result is a STOP.

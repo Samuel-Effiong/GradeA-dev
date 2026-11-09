@@ -456,3 +456,39 @@ class OwnTransactionTests(DeletedItemsBase):
         self.assertEqual(self.reserved(), start + 2 * HELD)
         self.assertEqual(fresh(doomed).hold_state, HoldState.HELD)
         self.assertEqual(deleted_items(job), (0, 0, 0))
+
+
+class CascadeTerminalTests(DeletedItemsBase):
+    """SM review of d81556a56: a cascade sends every pre_delete before any
+    row is deleted, so the last row's siblings are still in the table."""
+
+    def test_t19_an_assignment_cascade_with_a_held_and_a_returned_row(self):
+        self.classroom("t19")
+        job = self.job(total_items=2)
+        start = self.reserved()
+        self.held_item(job)
+        returned = self.held_item(job)
+        holds().fail_item(job, item=returned)
+        self.assignment.delete()
+        self.assertFalse(BackgroundProcessingTask.objects.filter(job=job).exists())
+        self.assertEqual(self.reserved(), start, "reserved: back to the start")
+        self.assert_books_agree()
+        self.assertEqual(fresh(job).status, AIJobStatus.FAILED)
+        self.assertEqual(deleted_items(job), (2 * HELD, 0, 2 * HELD))
+
+    def test_t20_an_assignment_cascade_with_a_never_held_pending_row(self):
+        """A row with a job but no hold that has not run (B1b-6's queued
+        papers; today only a moment between attach and hold) is still in
+        the table when the last pre_delete runs."""
+        self.classroom("t20")
+        job = self.job(total_items=2)
+        start = self.reserved()
+        self.held_item(job)
+        pending = make_item(job, assignment=self.assignment)
+        self.assertIsNone(fresh(pending).hold_state)
+        self.assignment.delete()
+        self.assertFalse(BackgroundProcessingTask.objects.filter(job=job).exists())
+        self.assertEqual(self.reserved(), start, "reserved: back to the start")
+        self.assert_books_agree()
+        self.assertEqual(deleted_items(job), (HELD, 0, HELD))
+        self.assertEqual(fresh(job).status, AIJobStatus.FAILED)
