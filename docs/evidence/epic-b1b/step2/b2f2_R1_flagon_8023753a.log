@@ -1,0 +1,98 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 30f7aa52-c904-4456-9ffb-0aa9a083c09e.
+Cannot activate automatic trial for user 30f7aa52-c904-4456-9ffb-0aa9a083c09e (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-09 12:41:41,485 refusals 861809 124294067292032 [request_id=3d541250-e552-4d78-848e-03324ed55486 client_request_id=-] Background task 08abc97b-ccdd-4e2d-9fcc-dd5d89c6dbad refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user cdfb1daa-2500-4394-92c7-498ce2fc36a4.
+Cannot activate automatic trial for user cdfb1daa-2500-4394-92c7-498ce2fc36a4 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~30000 credits, 20000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-09 12:41:41,649 refusals 861809 124294067292032 [request_id=d443844d-5c40-4217-8fb2-60d12e4eda92 client_request_id=-] Background task 176cc6ab-1d47-4ea1-a8db-6396bf01d6d0 refused: InsufficientCreditsError: Upload needs ~30000 credits, 20000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user e0366b6c-fead-4b22-9dfc-01564c0226ba.
+Cannot activate automatic trial for user e0366b6c-fead-4b22-9dfc-01564c0226ba (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 50000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-09 12:41:41,786 refusals 861809 124294067292032 [request_id=62c0b06c-16ec-4720-bd44-2eb8e6754db6 client_request_id=-] Background task b33a2971-e7a2-4ef8-b395-ae38f076beab refused: InsufficientCreditsError: Upload needs ~60000 credits, 50000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user 17e36a9e-4d78-4fc0-a381-3431804bee53.
+Cannot activate automatic trial for user 17e36a9e-4d78-4fc0-a381-3431804bee53 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 50000 left in the batch
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 50000 left in the batch
+.Free trial plan not found: no trial activated for user d47ca11e-12f5-463a-84ed-c316dcd2332e.
+Cannot activate automatic trial for user d47ca11e-12f5-463a-84ed-c316dcd2332e (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-09 12:41:42,024 refusals 861809 124294067292032 [request_id=2909f130-b7b8-4a0e-9356-6232f5595104 client_request_id=-] Background task 634b7d96-21b4-433b-9119-6f92f771bbf1 refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user f9348188-3111-47c8-ad70-2a87c2755505.
+Cannot activate automatic trial for user f9348188-3111-47c8-ad70-2a87c2755505 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 50000 left in the batch
+.Free trial plan not found: no trial activated for user 3a6cc6cb-d731-4486-9ac4-330317ede1d4.
+Cannot activate automatic trial for user 3a6cc6cb-d731-4486-9ac4-330317ede1d4 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-09 12:41:42,277 refusals 861809 124294067292032 [request_id=4c8477d7-8d44-4c47-b85c-0b887f83f1e8 client_request_id=-] Background task 3504f878-bcf6-4f27-a35d-eb6eac86a462 refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user 08f73d2a-9aca-42d9-b31c-50ed0554a39e.
+Cannot activate automatic trial for user 08f73d2a-9aca-42d9-b31c-50ed0554a39e (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~30000 credits, 20000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-09 12:41:42,436 refusals 861809 124294067292032 [request_id=bb5b9960-056a-40fa-847e-34b31015ec25 client_request_id=-] Background task 50098d05-006c-42a9-8c18-1c90170b3458 refused: InsufficientCreditsError: Upload needs ~30000 credits, 20000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user 37fce082-edcb-44cd-9827-c8ee62d584e8.
+Cannot activate automatic trial for user 37fce082-edcb-44cd-9827-c8ee62d584e8 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 50000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-09 12:41:42,555 refusals 861809 124294067292032 [request_id=45e9a797-284b-430c-83ec-e2246565d9ff client_request_id=-] Background task d9a8ebbf-ebe9-4e11-b3f5-036c43da5e94 refused: InsufficientCreditsError: Upload needs ~60000 credits, 50000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user 1035675d-7733-40de-a398-d42f3fccf795.
+Cannot activate automatic trial for user 1035675d-7733-40de-a398-d42f3fccf795 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 50000 left in the batch
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 50000 left in the batch
+.Free trial plan not found: no trial activated for user 12eb076b-987d-45fa-ba93-17762b1c9db6.
+Cannot activate automatic trial for user 12eb076b-987d-45fa-ba93-17762b1c9db6 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-09 12:41:42,772 refusals 861809 124294067292032 [request_id=03bed563-20fe-468f-8b1f-ee11294ab3ef client_request_id=-] Background task ecbeccc8-f7c2-4e81-96c3-106b1a183b7d refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+.Free trial plan not found: no trial activated for user 2aa04518-09dd-4fa7-b3f7-ea2bff5c1c20.
+Cannot activate automatic trial for user 2aa04518-09dd-4fa7-b3f7-ea2bff5c1c20 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 50000 left in the batch
+.
+----------------------------------------------------------------------
+Ran 12 tests in 1.704s
+
+OK
+Destroying test database for alias 'default'...
+Found 12 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

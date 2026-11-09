@@ -55,9 +55,11 @@ def png_bytes():
     return buffer.getvalue()
 
 
-def run_inline(task_callable, processing_task, *args, **kwargs):
+def run_inline(task_callable, processing_task, *args, _celery_task_id=None, **kwargs):
+    # Like launch_processing_task (students/task_tracking.py:85): a flag-on
+    # door's pre-assigned id is the task's id, never a task kwarg (B1b-2).
     kwargs["processing_task_id"] = str(processing_task.id)
-    celery_id = str(uuid.uuid4())
+    celery_id = _celery_task_id or str(uuid.uuid4())
     task_tracking.attach_celery_task(processing_task.id, celery_id)
     task_callable.apply(args=args, kwargs=kwargs, task_id=celery_id)
     return SimpleNamespace(id=celery_id)
@@ -432,14 +434,16 @@ class AnUploadBatchThatRunsOutOfCredits(MidBatchFixture, TestCase):
             "students.services.ai_processor.extract_answer_with_retry",
             side_effect=extract,
         ):
-            response = self.api.post(
-                reverse(
-                    "student-submission-batch-upload",
-                    kwargs={"assignment_id": str(self.assignment.id)},
-                ),
-                {"answers": files},
-                format="multipart",
-            )
+            # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.api.post(
+                    reverse(
+                        "student-submission-batch-upload",
+                        kwargs={"assignment_id": str(self.assignment.id)},
+                    ),
+                    {"answers": files},
+                    format="multipart",
+                )
 
         self.assertEqual(response.status_code, 202, response.content[:400])
         # p3 never reached the extraction: short-circuited, uncharged.

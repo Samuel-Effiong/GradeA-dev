@@ -976,3 +976,57 @@ The failing assertion of each test is quoted from the log above. A test's **flag
 - **Not touched:** t4 and t6 (the whole-batch refusals) and the `Base`, `AnswerBatch` and `AssignmentBatch` helpers.
 - No assertion changed.
 - **The runs:** R1, flag on: **`Ran 12`, OK**. R2, flag unset: **`Ran 12`, OK**. Any other result is a STOP.
+
+**File 2 results (at the file-2 commit, under `flock`):** R1 (flag on) `Ran 12`, OK. R2 (flag unset) `Ran 12`, OK. As declared. Logs: `step2/b2f2_*.log`.
+
+### §2.8 B2 files 3–7, a fixture finding, and the B2 plant (declared before any run)
+
+**The finding: the test fakes of `launch_processing_task` don't take `_celery_task_id`.**
+- With the flag on, the door's send is `partial(launch, task, row, *args, _celery_task_id=<id>, **kwargs)` (`assignments/upload_door.py:196–203`).
+- The real `launch_processing_task(task_callable, processing_task, *args, _celery_task_id=None, **kwargs)` (`students/task_tracking.py:85–117`) takes that id out and gives it to `apply_async(task_id=…)`. It never goes into the task's kwargs.
+- Two fakes named `run_inline` (`students/tests_batch_item_results.py`, `students/tests_credits_mid_batch.py`) accept `**kwargs` and pass them into `task_callable.apply(kwargs=…)`. So once a wrap runs the callbacks with the flag on, the real task would get an unexpected `_celery_task_id` keyword.
+- **The fix, a fake made faithful to the real signature:** both take `_celery_task_id=None`, and use it as the Celery id when given (`celery_id = _celery_task_id or str(uuid.uuid4())`).
+  - With the flag off the id is never passed, so the fake behaves exactly as before.
+  - With the flag on, the new branch is reached only when `on_commit` callbacks run, which happens only inside a wrap.
+  - No assertion changed. The two `record` fakes (`tests_batch_item_results`, `assignments.tests_h274_empty_upload_doors`) already ignore extra kwargs and are unchanged.
+- **This is a helper change, so SM (a) applies:** every off-list test that uses these fakes is declared below, and every file is run both ways. A flip is a STOP.
+
+**The wraps (13 tests):**
+- **File 3, `students.tests_h274_empty_student_answer_doors` (4 tests, all 4 listed):** the wrap sits **in the file's own helpers**, `TheAsyncStudentUploadKeepsS6.upload` and `AnEmptyFileInABatchFailsAsItsItem.run_batch` (inside `self.extraction`).
+  - The only callers are the 4 listed tests (grep: neither helper is used outside its class, and nothing subclasses either class).
+  - The wrap can't sit at the test in `run_batch`'s case, because the assertions are inside the helper.
+- **File 4, `students.tests_batch_item_results` (11 tests: 6 listed + 5 off-list).** The wraps are at the test:
+  - `TheSessionResultsShape` ×3. In `test_an_overwrite_is_lifted_into_the_item_result`, each of its two uploads gets its own wrap, so the first upload's launch runs before the second, as two committed requests do.
+  - `ATooLargeFileFailsAsItsItem` ×2.
+  - `ThirtyFilesTwelveFailures` ×1.
+  - Plus the `run_inline` fix.
+  - **Off-list (5), touched only by the fake:** `EveryListIsInUploadOrder.test_items_finishing_out_of_order_are_listed_by_item_index`; `TheItemModel.test_a_failure_stores_its_reason_code`; `TheItemModel.test_an_item_records_its_position_and_the_requests_trace`; `TheLegacyGradingPathsAreTracked.test_a_scheduled_batch_creates_tracked_items`; `TheLegacyGradingPathsAreTracked.test_auto_grade_creates_tracked_items`.
+- **File 5, `assignments.tests_h274_empty_upload_doors` (7 tests: 1 listed + 6 off-list).** The wrap is at the test: `TheAsyncTeacherUploadIsNeverHalfQueued.test_one_empty_file_fails_as_its_item_and_the_rest_are_queued`.
+  - **Off-list (6), none touched by any change; the file imports `BatchFixture`:** `TheAsyncTeacherUploadIsNeverHalfQueued.test_an_all_empty_request_answers_like_an_all_too_large_one`; `TheEmptyCheckIsTheCallersChoice` ×3 (`test_a_caller_may_leave_the_empty_check_to_its_own_rules`, `test_by_default_a_zero_byte_file_is_file_empty`, `test_the_byte_cap_still_applies_when_empty_is_allowed`); `TheSyncTeacherUploadFailsAnEmptyFileAsItsOwnEntry` ×2 (`test_an_all_empty_request_answers_like_an_all_too_large_one`, `test_one_empty_file_fails_only_itself`).
+- **File 6, `students.tests_credits_mid_batch` (8: 1 listed + 7 off-list), plus `students.tests_s7d_mid_batch_wording` (2 off-list, which imports `GradingBatchFixture`).** The wrap is at the test: `AnUploadBatchThatRunsOutOfCredits.test_the_rest_stops_uncharged_and_resumes_by_re_upload`, around the batch-upload post. The later retry post is not a door launch. Plus the `run_inline` fix.
+  - **Off-list (9), touched only by the fake** (the `students.item_retry` patches at `:238` and `:314`):
+    - `AGradingBatchThatRunsOutOfCredits` ×3: `test_a_first_item_refused_before_anything_ran_is_the_plain_refusal`, `test_resume_after_a_top_up_completes_the_rest_and_leaves_the_done_alone`, `test_the_rest_of_the_batch_stops_uncharged_with_its_own_code`;
+    - `AnyRetryInAStoppedBatchResumesIt` ×4: `test_a_losing_claim_leaves_the_mark`, `test_a_provider_failure_retried_after_a_top_up_is_graded`, `test_a_real_shortfall_after_the_clear_re_marks_and_charges_nothing`, `test_retry_failed_with_a_lower_index_provider_failure_first_grades_them_all`;
+    - `MidBatchWordingTests` ×2: `test_nothing_finished_reads_before_any`, `test_once_one_finished_it_reads_after_n_of_m`.
+- **File 7, `billing.tests.test_h38_part2_removed_teacher_routes` (64: 1 listed + 63 off-list, none touched).** The wrap is at the test: `ActiveTeacherCourseGuardRouteTests.test_batch_upload_answers_succeeds_for_active_teacher`, inside its launch patch.
+- **The before-state, against which flips are judged:**
+  - With the flag on, every off-list test above passed in the survey run (§2.2: only the 45 failed).
+  - With the flag off, every one passed in the B1b-1 near run (§1.24: apps OK).
+
+**The runs** (each file both ways, under `flock`; counts by `build_suite`). **Prediction: all OK both ways.**
+
+| Run | Labels | Tests |
+|---|---|---|
+| F3 | `students.tests_h274_empty_student_answer_doors` | 4 |
+| F4 | `students.tests_batch_item_results` | 11 |
+| F5 | `assignments.tests_h274_empty_upload_doors` | 7 |
+| F6 | `students.tests_credits_mid_batch students.tests_s7d_mid_batch_wording` | 10 |
+| F7 | `billing.tests.test_h38_part2_removed_teacher_routes` | 64 |
+
+Any failure is a STOP: a listed test still red with the flag on, or any off-list flip.
+
+**The B2 plant, PB2-1** (after F3–F7; `scratchpad/plant_b2.py`; restored with `git checkout` and checked with `sha256sum -c` on `assignments/upload_door.py`):
+- **The change:** with the flag on, `launch_at_door` returns the pre-assigned id **before** registering any `on_commit` send.
+- **The run:** all seven B2 files (F1's labels without c2, plus F2–F7: **17 + 12 + 4 + 11 + 7 + 10 + 64 = 125** tests, counted together by `build_suite` before the run), **flag on**.
+- **Prediction:** **the 25 wrapped tests all fail** (FAIL or ERROR, "never launched": the launch is called 0 times, the queued list is `[]`, the task stays PENDING, or the counts are 0). The off-list tests and the Q2-pinned test are allowed either way.
+- If a wrapped test passes, that is a STOP: its wrap would not be what runs its launch.

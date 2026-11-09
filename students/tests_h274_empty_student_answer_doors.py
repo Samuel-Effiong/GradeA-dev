@@ -24,14 +24,17 @@ class TheAsyncStudentUploadKeepsS6(BatchFixture, TestCase):
         self.api.force_authenticate(user=self.students[0])
 
     def upload(self, uploaded):
-        return self.api.post(
-            reverse(
-                "student-submission-upload-async",
-                kwargs={"assignment_id": str(self.assignment.id)},
-            ),
-            {"answer": uploaded},
-            format="multipart",
-        )
+        # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
+        # Only this class's two tests (both on the list) call this helper.
+        with self.captureOnCommitCallbacks(execute=True):
+            return self.api.post(
+                reverse(
+                    "student-submission-upload-async",
+                    kwargs={"assignment_id": str(self.assignment.id)},
+                ),
+                {"answer": uploaded},
+                format="multipart",
+            )
 
     def assertTaskFailedWith(self, response, code):
         self.assertEqual(response.status_code, 200, response.content[:400])
@@ -61,7 +64,10 @@ class AnEmptyFileInABatchFailsAsItsItem(BatchFixture, TestCase):
             SimpleUploadedFile("c.png", png_bytes(), content_type="image/png"),
         ]
         with self.extraction(["Pupil00 Enrolled", "Pupil01 Enrolled"]):
-            response = self.batch_upload(files)
+            # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production
+            # does. Only this class's two tests (both listed) call run_batch.
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.batch_upload(files)
 
         self.assertEqual(response.status_code, 202, response.content[:400])
         tasks = response.json()["data"]["tasks"]
