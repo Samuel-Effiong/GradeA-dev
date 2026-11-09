@@ -276,3 +276,7 @@ Each is planted on the green fix, run against the new file, and restored. The sh
   - Errors: T-10, T-12 and T-15 (`AttributeError`).
   - Failures: the other 13. T-3 and T-4 now reach the erasure and fail on `reserved` (`600 != 300`), like T-1.
 - **A STOP if** any test other than T-3 and T-4 changes outcome from run 1, or the split differs.
+
+**Result (at fbc63bbec, under `flock`, 9100 MB available): Ran 16, FAILED (failures=13, errors=3), as declared.** Log: `step1/step1_red2_fbc63bbe.log`.
+- Only T-3 and T-4 changed from run 1. Both now fail on `600 != 300 : reserved`, like T-1.
+- Every other test has the same outcome and message as in run 1.

@@ -1849,6 +1849,11 @@ class AIJob(models.Model):
     unbilled_credits = models.IntegerField(default=0, db_default=0)
     overrun_charged = models.IntegerField(default=0, db_default=0)
     held_per_item = models.IntegerField(default=0, db_default=0)
+    # B1b FB-1 (NOTES §1.1): what deleted task rows held, drew and released,
+    # so the per-job item_sum check reads live rows + these.
+    deleted_items_held = models.IntegerField(default=0, db_default=0)
+    deleted_items_drawn = models.IntegerField(default=0, db_default=0)
+    deleted_items_released = models.IntegerField(default=0, db_default=0)
 
     # --- Items ---
     total_items = models.IntegerField(default=0, db_default=0)
@@ -1897,6 +1902,13 @@ class AIJob(models.Model):
                     + models.F("failed_items")
                 ),
                 name="aijob_items_within_total",
+            ),
+            # billing 0081 (NOT VALID) and 0082 (VALIDATE), the house way.
+            models.CheckConstraint(
+                condition=models.Q(deleted_items_held__gte=0)
+                & models.Q(deleted_items_drawn__gte=0)
+                & models.Q(deleted_items_released__gte=0),
+                name="aijob_deleted_items_nonneg",
             ),
         ]
 
