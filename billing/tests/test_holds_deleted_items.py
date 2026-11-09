@@ -45,11 +45,11 @@ def released_rows(job):
     return AuditEvent.objects.filter(action="CREDIT_HOLD_RELEASED", target_id=job.pk)
 
 
-def released_credits_for(job, item_pk):
-    return sum(
-        row.metadata.get("credits", 0)
+def release_rows_summary(job):
+    """Every release row of `job` as (item_id or None, credits)."""
+    return sorted(
+        (row.metadata.get("item_id"), row.metadata["credits"])
         for row in released_rows(job)
-        if row.metadata.get("item_id") in (None, str(item_pk))
     )
 
 
@@ -116,13 +116,6 @@ class DeletedItemsBase(TransactionTestCase):
 
     def assert_books_agree(self):
         self.assertEqual(holds().check_invariants(self.wallet), [])
-
-    def assert_returned_once(self, job, item_pk):
-        self.assertEqual(
-            released_credits_for(job, item_pk),
-            HELD,
-            "the deleted row's hold is returned exactly once",
-        )
 
 
 class DeleteRoadTests(DeletedItemsBase):
@@ -212,7 +205,8 @@ class DeleteRoadTests(DeletedItemsBase):
         self.assert_books_agree()
         self.assertEqual(fresh(job).status, AIJobStatus.SETTLED)
         self.assertEqual(deleted_items(job), (2 * HELD, ACTUAL, (HELD - ACTUAL) + HELD))
-        self.assert_returned_once(job, doomed.pk)
+        # Exactly one release row, and it names the held row (SM, §1.10).
+        self.assertEqual(release_rows_summary(job), [(str(doomed.pk), HELD)])
 
     def test_t6_batch_session_cascade(self):
         """Every row of the job goes and none settled: FAILED (C4)."""
@@ -317,7 +311,10 @@ class TwoReceiversTests(DeletedItemsBase):
         self.assert_books_agree()
         self.assertEqual(fresh(job).status, AIJobStatus.CANCELLED)
         self.assertEqual(deleted_items(job), (HELD, 0, HELD))
-        self.assert_returned_once(job, item_pk)
+        # finish_job's job-level row is the only return; nothing names the
+        # item, so the receiver returned nothing again (C3; SM, §1.10).
+        self.assertEqual(release_rows_summary(job), [(None, HELD)])
+        self.assertNotIn(str(item_pk), [item for item, _ in release_rows_summary(job)])
 
     def test_t11_row_delete_first_then_the_wallet_receiver(self):
         self.classroom("t11")
@@ -346,7 +343,13 @@ class TwoReceiversTests(DeletedItemsBase):
         wallet, its hold returned once and the row's numbers kept."""
         self.classroom("t12")
         student = make_student("t12")
-        job = make_job(self.wallet, "UPLOAD", requested_by=student, total_items=1)
+        job = make_job(
+            self.wallet,
+            "UPLOAD",
+            requested_by=student,
+            total_items=1,
+            status=AIJobStatus.RESERVED,  # as open_door_job leaves it
+        )
         item = self.held_item(job, requested_by=self.teacher)
         self.teacher.delete()
         self.assertFalse(BackgroundProcessingTask.objects.filter(pk=item.pk).exists())
@@ -354,7 +357,9 @@ class TwoReceiversTests(DeletedItemsBase):
         self.assertIsNone(row.wallet_id)
         self.assertNotIn(row.status, holds().OPEN_STATUSES)
         self.assertEqual(deleted_items(job), (HELD, 0, HELD))
-        self.assert_returned_once(job, item.pk)
+        # Once in total, whichever receiver the collector runs first.
+        rows = release_rows_summary(job)
+        self.assertEqual([credits for _, credits in rows], [HELD])
 
 
 class FlagOffTests(DeletedItemsBase):

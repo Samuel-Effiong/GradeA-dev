@@ -366,3 +366,38 @@ This step had three test-only bugs: a NOT NULL fixture field, a fixture status t
 3. every value read after a `delete()`;
 4. every audit or row count, for whether it includes rows that the code under test didn't write;
 5. for each plant, whether each test meant to kill it can see the plant at all in its scenario.
+
+### §1.12 SM rulings on §1.10, and the declarations (committed before any run)
+
+**The SM's condition (2) is corrected (SM, 2026-11-09).**
+- The condition was that T-10 must kill PFB-4. It can't, by construction: in T-10, `finish_job(CANCELLED)` returns the hold first, so the receiver correctly returns 0 and writes no release row, and a receiver that would write it without `item_id` behaves the same.
+- I first proposed a PFB-5 (the hold state read from the instance) for T-10, then withdrew it before any run, for two reasons:
+  - the instance Django passes to `pre_delete` is the test's own object, whose `hold_state` is stale `None`;
+  - after `finish_job`, the row's left amount is 0, so nothing can return twice in T-10's scenario.
+- **The SM dropped PFB-5.**
+
+**Test edits (approved), all in the new file:**
+- **T-5:** exactly one release row, naming the held row, with 300.
+- **T-10:** exactly one release row, job-level (no `item_id`), with 300, and no row naming the item.
+- **T-12:** the job is built `RESERVED` (as `open_door_job` leaves it), and there is exactly one release row, with 300.
+- The now-unused helpers `released_credits_for` and `assert_returned_once` are removed.
+- Settled fixture rows keep the default task status (no change, SM).
+
+**Which test guards C3's "never returned twice":**
+- **T-12** asserts exactly one release row across both receivers on a real teacher deletion. T-11 (the row delete, then `finish_job`) also asserts exactly one row naming the item, and that the wallet is back to the start.
+- **No plant proves that either test fails when a second return happens on a HELD row.**
+  - With the code as written, both receivers re-read the locked row, and `_left` is 0 once a hold has been returned. So there is no realistic one-line plant that makes a second return happen; it would need a contrived change.
+  - **An open gap, recorded for B1b-6.** The SM said not to build a contrived plant now. When B1b-6 adds the last-item helper, which is a second writer of the same rows, it adds a double-return plant there.
+
+**Declarations:**
+- **Green run 2:** `billing.tests.test_holds_deleted_items`, `Ran 16`, OK.
+- **Plants:** each runs the same file. Each is planted on the green fix, then restored, and the sha256 of every touched file is checked against the commit.
+
+| Plant | Change | Declared kills (must FAIL) | Declared survivors |
+|---|---|---|---|
+| PFB-1 | `billing/apps.py`: the `BackgroundProcessingTask` `pre_delete.connect` removed | T-1…T-11, T-13, T-14 (on `reserved`, `deleted_items` or `item_sum`) | T-12 (the wallet receiver returns the hold; its `deleted_items` assertion then fails, so T-12 may also fail, declared as allowed), T-15 |
+| PFB-2 | the receiver's `finish_job` call removed | T-5, T-6, T-7, T-8, T-8b (status `!= 'SETTLED'`/`'FAILED'`) | the rest |
+| PFB-3 | the receiver's `deleted_items_*` update removed (the `failed_items` and `released_credits` updates are kept) | T-1…T-4 and T-9 (`item_sum job=`), T-5, T-6 and T-10 (`deleted_items`), T-12 | the rest are allowed either way |
+| PFB-4 | the receiver's release row written with `item=None` | T-1…T-4 (`item_id`), T-5, T-11 | T-10 (by construction), T-12 (order-dependent, accepted) |
+
+- **Pass rule:** every declared kill fails. A declared kill that survives is a STOP. Other tests may fail only where the table says "allowed".
