@@ -1,0 +1,54 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user eccfaf1a-fc89-4048-885a-05a6a315547b.
+Cannot activate automatic trial for user eccfaf1a-fc89-4048-885a-05a6a315547b (validation): ValueError
+.Free trial plan not found: no trial activated for user fc8492bf-c288-41c0-9792-cbab48db6217.
+Cannot activate automatic trial for user fc8492bf-c288-41c0-9792-cbab48db6217 (validation): ValueError
+.Free trial plan not found: no trial activated for user ab8f68b6-42bb-4c42-aafc-247f12781e74.
+Cannot activate automatic trial for user ab8f68b6-42bb-4c42-aafc-247f12781e74 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6cae9670-f633-4fee-bfdf-efdc9cff8c0e.
+Cannot activate automatic trial for user 6cae9670-f633-4fee-bfdf-efdc9cff8c0e (validation): ValueError
+.Free trial plan not found: no trial activated for user cbafab10-e2dd-451e-a479-3b166f6e6f06.
+Cannot activate automatic trial for user cbafab10-e2dd-451e-a479-3b166f6e6f06 (validation): ValueError
+.Free trial plan not found: no trial activated for user a4917069-e9e7-4a74-bafd-572817fbe6bf.
+Cannot activate automatic trial for user a4917069-e9e7-4a74-bafd-572817fbe6bf (validation): ValueError
+.Free trial plan not found: no trial activated for user 8e550839-d963-4bba-9a46-e0a064049c85.
+Cannot activate automatic trial for user 8e550839-d963-4bba-9a46-e0a064049c85 (validation): ValueError
+.Free trial plan not found: no trial activated for user 94262ae7-a1bf-4fd0-98bf-1d05ddf45271.
+Cannot activate automatic trial for user 94262ae7-a1bf-4fd0-98bf-1d05ddf45271 (validation): ValueError
+.Free trial plan not found: no trial activated for user 81536d31-1a50-4684-8bc9-b627178467fd.
+Cannot activate automatic trial for user 81536d31-1a50-4684-8bc9-b627178467fd (validation): ValueError
+.Free trial plan not found: no trial activated for user 15bd43fc-d7d7-4acd-b102-f2ceb44fdde9.
+Cannot activate automatic trial for user 15bd43fc-d7d7-4acd-b102-f2ceb44fdde9 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8cbc8a40-a3b3-43c1-8211-8e9b22646fe6.
+Cannot activate automatic trial for user 8cbc8a40-a3b3-43c1-8211-8e9b22646fe6 (validation): ValueError
+.Free trial plan not found: no trial activated for user 08bfa954-d85d-4e2b-92b7-4d6ce106f728.
+Cannot activate automatic trial for user 08bfa954-d85d-4e2b-92b7-4d6ce106f728 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7f67744b-6663-473d-9535-e6e245dc91d7.
+Cannot activate automatic trial for user 7f67744b-6663-473d-9535-e6e245dc91d7 (validation): ValueError
+.Free trial plan not found: no trial activated for user e9aec51d-e945-4b92-a937-30b748e4640a.
+Cannot activate automatic trial for user e9aec51d-e945-4b92-a937-30b748e4640a (validation): ValueError
+.Free trial plan not found: no trial activated for user 9b2dd4f5-e9e6-4bc2-a52e-f138b144c2f9.
+Cannot activate automatic trial for user 9b2dd4f5-e9e6-4bc2-a52e-f138b144c2f9 (validation): ValueError
+.Free trial plan not found: no trial activated for user c4ecb6c8-4558-4baa-bb92-87c342fabb9f.
+Cannot activate automatic trial for user c4ecb6c8-4558-4baa-bb92-87c342fabb9f (validation): ValueError
+.Free trial plan not found: no trial activated for user 9c53dc00-1f16-4a0f-9218-32149daf330d.
+Cannot activate automatic trial for user 9c53dc00-1f16-4a0f-9218-32149daf330d (validation): ValueError
+.Free trial plan not found: no trial activated for user c6872f20-07f0-4e99-9b7e-8fdf2507adce.
+Cannot activate automatic trial for user c6872f20-07f0-4e99-9b7e-8fdf2507adce (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 18 tests in 5.316s
+
+OK
+Destroying test database for alias 'default'...
+Found 18 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

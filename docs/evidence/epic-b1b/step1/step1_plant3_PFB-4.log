@@ -1,0 +1,129 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 89294e84-c85b-4786-bdc5-f3d6c858d1d3.
+Cannot activate automatic trial for user 89294e84-c85b-4786-bdc5-f3d6c858d1d3 (validation): ValueError
+EFree trial plan not found: no trial activated for user 3dc92101-10a1-4305-85ea-565c1a891192.
+Cannot activate automatic trial for user 3dc92101-10a1-4305-85ea-565c1a891192 (validation): ValueError
+EFree trial plan not found: no trial activated for user 620fe921-38cb-4aa3-908b-d471836c40dc.
+Cannot activate automatic trial for user 620fe921-38cb-4aa3-908b-d471836c40dc (validation): ValueError
+EFree trial plan not found: no trial activated for user e8205b8f-1b4f-41be-a7bd-8fc3682be58b.
+Cannot activate automatic trial for user e8205b8f-1b4f-41be-a7bd-8fc3682be58b (validation): ValueError
+EFree trial plan not found: no trial activated for user 367a9a6c-e1d0-4fc4-bbd4-d6ee862f33db.
+Cannot activate automatic trial for user 367a9a6c-e1d0-4fc4-bbd4-d6ee862f33db (validation): ValueError
+FFree trial plan not found: no trial activated for user 4342dc2e-dac4-4c49-9292-8442aad018ba.
+Cannot activate automatic trial for user 4342dc2e-dac4-4c49-9292-8442aad018ba (validation): ValueError
+.Free trial plan not found: no trial activated for user 5a9ff411-b991-4744-87a8-600923cf9ca1.
+Cannot activate automatic trial for user 5a9ff411-b991-4744-87a8-600923cf9ca1 (validation): ValueError
+.Free trial plan not found: no trial activated for user e8ef65c8-e94a-43ab-a0a5-9f5eb35a6ff2.
+Cannot activate automatic trial for user e8ef65c8-e94a-43ab-a0a5-9f5eb35a6ff2 (validation): ValueError
+.Free trial plan not found: no trial activated for user c910961d-0b43-4d62-9cab-8d5764e61a43.
+Cannot activate automatic trial for user c910961d-0b43-4d62-9cab-8d5764e61a43 (validation): ValueError
+.Free trial plan not found: no trial activated for user 757a610d-4662-4e4d-afab-5b5d87843a80.
+Cannot activate automatic trial for user 757a610d-4662-4e4d-afab-5b5d87843a80 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1ed7d63f-7bba-4e9a-806e-ade847d5e6eb.
+Cannot activate automatic trial for user 1ed7d63f-7bba-4e9a-806e-ade847d5e6eb (validation): ValueError
+.Free trial plan not found: no trial activated for user 87e9e6ce-213a-4513-af25-d254d43ecf7e.
+Cannot activate automatic trial for user 87e9e6ce-213a-4513-af25-d254d43ecf7e (validation): ValueError
+.Free trial plan not found: no trial activated for user 4fe7fa27-4e85-4088-98f3-2376d26d2f33.
+Cannot activate automatic trial for user 4fe7fa27-4e85-4088-98f3-2376d26d2f33 (validation): ValueError
+.Free trial plan not found: no trial activated for user 549a1551-3982-4590-9266-7a5e2560a456.
+Cannot activate automatic trial for user 549a1551-3982-4590-9266-7a5e2560a456 (validation): ValueError
+.Free trial plan not found: no trial activated for user a52c65bb-7734-418f-9804-85e6b33ab830.
+Cannot activate automatic trial for user a52c65bb-7734-418f-9804-85e6b33ab830 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5f0e2647-b403-43e6-a93e-55f3ccc6dd09.
+Cannot activate automatic trial for user 5f0e2647-b403-43e6-a93e-55f3ccc6dd09 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9f2d42fd-5b07-4d69-88e6-552d9550bc0b.
+Cannot activate automatic trial for user 9f2d42fd-5b07-4d69-88e6-552d9550bc0b (validation): ValueError
+FFree trial plan not found: no trial activated for user a947ef8a-7e50-467a-b22b-a1b918f9a44e.
+Cannot activate automatic trial for user a947ef8a-7e50-467a-b22b-a1b918f9a44e (validation): ValueError
+.
+======================================================================
+ERROR: test_t1_instance_delete (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t1_instance_delete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 155, in test_t1_instance_delete
+    self.assert_road(job, start, doomed_pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 148, in assert_road
+    self.assertEqual(rows[0].metadata["item_id"], str(doomed_pk))
+                     ~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'item_id'
+
+======================================================================
+ERROR: test_t2_queryset_delete (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t2_queryset_delete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 160, in test_t2_queryset_delete
+    self.assert_road(job, start, doomed.pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 148, in assert_road
+    self.assertEqual(rows[0].metadata["item_id"], str(doomed_pk))
+                     ~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'item_id'
+
+======================================================================
+ERROR: test_t3_full_erasure (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t3_full_erasure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 178, in test_t3_full_erasure
+    self.assert_road(job, start, doomed.pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 148, in assert_road
+    self.assertEqual(rows[0].metadata["item_id"], str(doomed_pk))
+                     ~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'item_id'
+
+======================================================================
+ERROR: test_t4_course_scoped_erasure (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t4_course_scoped_erasure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 190, in test_t4_course_scoped_erasure
+    self.assert_road(job, start, doomed.pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 148, in assert_road
+    self.assertEqual(rows[0].metadata["item_id"], str(doomed_pk))
+                     ~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'item_id'
+
+======================================================================
+FAIL: test_t5_assignment_cascade (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade)
+Every row of the job goes: the job finishes SETTLED (C4), because
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 211, in test_t5_assignment_cascade
+    self.assertEqual(release_rows_summary(job), [(str(doomed.pk), HELD)])
+AssertionError: Lists differ: [(None, 300)] != [('9b1672b4-b957-495b-a4aa-9c206b7feea4', 300)]
+
+First differing element 0:
+(None, 300)
+('9b1672b4-b957-495b-a4aa-9c206b7feea4', 300)
+
+- [(None, 300)]
++ [('9b1672b4-b957-495b-a4aa-9c206b7feea4', 300)]
+
+======================================================================
+FAIL: test_t11_row_delete_first_then_the_wallet_receiver (billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t11_row_delete_first_then_the_wallet_receiver)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 340, in test_t11_row_delete_first_then_the_wallet_receiver
+    self.assertEqual([row.metadata["credits"] for row in item_rows], [HELD])
+AssertionError: Lists differ: [] != [300]
+
+Second list contains 1 additional elements.
+First extra element 0:
+300
+
+- []
++ [300]
+
+----------------------------------------------------------------------
+Ran 18 tests in 5.475s
+
+FAILED (failures=2, errors=4)
+Destroying test database for alias 'default'...
+Found 18 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -155,6 +155,10 @@ All non-test `metered_unit(` uses: `ai_processor/services.py:4637`, `students/se
 
 ---
 
+- **Large flag-on deletes hold the wallet lock for about 5 s per 1,000 task rows** (B1b-1 §1.17: an assignment cascade of 1,000 rows in one open job takes a median of 5.23 s inside the delete's transaction, with the teacher's wallet locked). Read this before switch-on, and before any admin bulk delete with the flag on.
+
+---
+
 ## §1. B1b-1: FB-1 (08b §5.1), the hold leaked when a HELD item is deleted
 
 ### §1.1 The design, as ruled by the SM (2026-11-09)
@@ -499,3 +503,33 @@ This step had three test-only bugs: a NOT NULL fixture field, a fixture status t
 **The timing:** the same file. The query count now uses `connection.execute_wrapper`. Prediction: `Ran 1`, OK.
 - **Rule (SM):** if the one-job median is ≤ 2 s for 1,000 rows, this step is done.
 - Above 2 s, (c) is not built now. Instead it becomes a B1b-3 speed item and a switch-on checklist line: "large flag-on deletes hold the wallet lock for N s".
+
+### §1.17 Results for (b')
+
+**Green run 3 (at b9e2d4169, under `flock`, 8022 MB available): Ran 18, OK, as declared.** Log: `step1/step1_green3_b9e2d416.log`.
+
+**Plants (at b9e2d4169):** each was applied by `scratchpad/plant2.py` and restored with `git checkout`. After every restore, `sha256sum -c` matched: `billing/holds.py` c2e49f1b…92b0af, `billing/apps.py` 3e3ff104…19273. Logs: `step1/step1_plant3_PFB-*.log`.
+
+| Plant | Result | Not passing | Against the declaration |
+|---|---|---|---|
+| PFB-1 | FAILED (failures=16) | T-1…T-14, T-17 | killed. T-12 failed (allowed); T-15 and T-18 survived (declared) |
+| PFB-2 | FAILED (failures=5) | T-5, T-6, T-7, T-8, T-8b | killed, exactly as declared |
+| PFB-3 | FAILED (failures=12) | T-1…T-7, T-11…T-14, T-17 | killed. Every declared kill failed; T-7, T-11 and T-12 are allowed |
+| PFB-4 | FAILED (failures=2, errors=4) | T-1…T-4 (ERROR, `KeyError: 'item_id'`), T-5, T-11 | killed. T-10 and T-12 survived (declared) |
+| PFB-6 | FAILED (failures=1, errors=2) | T-9 (FAIL), T-5 (ERROR), T-10 (ERROR) | killed. The errors are the reserved ≥ 0 check (allowed); T-10 is allowed |
+| PFB-7 | FAILED (failures=3) | T-5, T-9, T-10 | killed, exactly as declared |
+| PFB-8 | FAILED (failures=1) | T-17 | killed, exactly as declared |
+
+**Timing (at b9e2d4169, `execute_wrapper` count, 8401 MB available): Ran 1, OK.** Log: `step1/step1_timing_AFTER2_b9e2d416.log`.
+
+| Shape | Seconds (3 runs) | Median | Queries (counted) |
+|---|---|---|---|
+| `no_job` | 0.0439, 0.0435, 0.0415 | **0.044 s** | 23, 23, 23 |
+| `one_job` | 5.36, 5.09, 5.23 | **5.23 s** | 5727, 5719, 5733 |
+
+- Before FB-1: 0.018 s and 15 queries. The first receiver: 8.86 s and about 9 queries per row.
+- **Above the SM's 2 s line.** Per the ruling, (c) is not built now.
+- **Why 5.7 queries per row and not 3:** the job stays open until its last HELD row goes. So every RETURNED row also runs C4's checks (the job read and the "rows left" EXISTS): wallet lock, fresh read, UPDATE, job read, EXISTS, which is 5 queries. The 100 HELD rows take about 10 each.
+- **Recorded as:**
+  1. **A B1b-3 speed item:** cut the per-row cost of large deletes. Candidates: (c)'s bulk detach pre-pass, or running C4 once per job at the end of the cascade instead of once per row.
+  2. **The switch-on checklist line** added at the top of this file.
