@@ -1,0 +1,124 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+...Free trial plan not found: no trial activated for user 70857832-1866-4425-b6e7-c48dbde944d0.
+Cannot activate automatic trial for user 70857832-1866-4425-b6e7-c48dbde944d0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6c8c13d8-a604-430b-885b-a1ed58a99686.
+Cannot activate automatic trial for user 6c8c13d8-a604-430b-885b-a1ed58a99686 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 5000 left in the batch
+.Free trial plan not found: no trial activated for user 8102937e-3868-403b-a93a-1acd249e6c83.
+Cannot activate automatic trial for user 8102937e-3868-403b-a93a-1acd249e6c83 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 5000 left in the batch
+.Free trial plan not found: no trial activated for user fd645468-4d5d-4f5d-9a11-054b1d2b60e1.
+Cannot activate automatic trial for user fd645468-4d5d-4f5d-9a11-054b1d2b60e1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 72f76723-8b33-495f-ae18-1f8b58c4f5d8.
+Cannot activate automatic trial for user 72f76723-8b33-495f-ae18-1f8b58c4f5d8 (validation): ValueError
+.Free trial plan not found: no trial activated for user 32ff159d-2508-4a88-b5f3-a38698a6abb1.
+Cannot activate automatic trial for user 32ff159d-2508-4a88-b5f3-a38698a6abb1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 76e81fd1-61c9-412f-9dc6-8bf66d919adb.
+Cannot activate automatic trial for user 76e81fd1-61c9-412f-9dc6-8bf66d919adb (validation): ValueError
+..Free trial plan not found: no trial activated for user 7f7b54e8-2942-48fc-88e2-ee0536a781a4.
+Cannot activate automatic trial for user 7f7b54e8-2942-48fc-88e2-ee0536a781a4 (validation): ValueError
+.Free trial plan not found: no trial activated for user 35281d12-4dff-4932-a2df-9d1a131da426.
+Cannot activate automatic trial for user 35281d12-4dff-4932-a2df-9d1a131da426 (validation): ValueError
+.Free trial plan not found: no trial activated for user b26aea03-2e4e-4961-9c43-f63cb0e78315.
+Cannot activate automatic trial for user b26aea03-2e4e-4961-9c43-f63cb0e78315 (validation): ValueError
+.Free trial plan not found: no trial activated for user 18a99032-8bd9-4361-aaf8-144831b99aa0.
+Cannot activate automatic trial for user 18a99032-8bd9-4361-aaf8-144831b99aa0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 85136071-bed4-4b26-bce7-56e5dee3bc21.
+Cannot activate automatic trial for user 85136071-bed4-4b26-bce7-56e5dee3bc21 (validation): ValueError
+.Free trial plan not found: no trial activated for user 85b8255c-789a-48d1-bd1a-320de0967e1a.
+Cannot activate automatic trial for user 85b8255c-789a-48d1-bd1a-320de0967e1a (validation): ValueError
+AI access denied for user 85b8255c-789a-48d1-bd1a-320de0967e1a (feature=None): No credits remaining. Please purchase more credits to continue using AI features.
+.Free trial plan not found: no trial activated for user 68c97908-2a61-49ca-981d-47b6a56ccbf9.
+Cannot activate automatic trial for user 68c97908-2a61-49ca-981d-47b6a56ccbf9 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6aadf999-4143-42f7-9f00-c74d82e68db0.
+Cannot activate automatic trial for user 6aadf999-4143-42f7-9f00-c74d82e68db0 (validation): ValueError
+.Free trial plan not found: no trial activated for user ee8d4981-4fdc-4c54-83c1-05866fe4fb40.
+Cannot activate automatic trial for user ee8d4981-4fdc-4c54-83c1-05866fe4fb40 (validation): ValueError
+.Free trial plan not found: no trial activated for user 824da32f-15f0-4551-b10a-42548e98b7c1.
+Cannot activate automatic trial for user 824da32f-15f0-4551-b10a-42548e98b7c1 (validation): ValueError
+...Free trial plan not found: no trial activated for user 4c47e4b2-ed8c-4fc9-8eeb-09c378abea9b.
+Cannot activate automatic trial for user 4c47e4b2-ed8c-4fc9-8eeb-09c378abea9b (validation): ValueError
+Background task 3c403255-68a4-4fc5-960d-1c92c788c081 refused: InsufficientCreditsError: Task requires ~25000 credits, but you only have 5000 credits. Please refill your wallet to continue
+
+
+students.task_tracking WARNING 2026-11-09 12:36:12,562 refusals 858170 127185327384448 [request_id=- client_request_id=-] Background task 3c403255-68a4-4fc5-960d-1c92c788c081 refused: StudentUploadNotProcessedError: Your answers were not submitted. Your teacher's account can't process uploads right now. Please keep your file and try again later, or let your teacher know.
+
+
+.Free trial plan not found: no trial activated for user f03ab8fe-af7f-4f58-b7f3-84c96d3a5e0f.
+Cannot activate automatic trial for user f03ab8fe-af7f-4f58-b7f3-84c96d3a5e0f (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-09 12:36:12,607 refusals 858170 127185327384448 [request_id=- client_request_id=-] Background task 3c427045-cbee-480d-9c6c-fd587e9e0491 refused: InsufficientCreditsError: Task requires ~25000 credits, but you only have 5000 credits. Please refill your wallet to continue
+
+
+.Free trial plan not found: no trial activated for user d16e322b-8a6c-46f9-a1ab-2749d8d3d18f.
+Cannot activate automatic trial for user d16e322b-8a6c-46f9-a1ab-2749d8d3d18f (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-09 12:36:12,681 refusals 858170 127185327384448 [request_id=- client_request_id=-] Background task d2f1f88c-3818-443f-bcbf-cd908f7343ce refused: InsufficientCreditsError: Task requires ~25000 credits, but you only have 5000 credits. Please refill your wallet to continue
+
+
+.Free trial plan not found: no trial activated for user 370796fa-77e7-47d2-b9a4-37f0a26b625a.
+Cannot activate automatic trial for user 370796fa-77e7-47d2-b9a4-37f0a26b625a (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-09 12:36:12,720 refusals 858170 127185327384448 [request_id=- client_request_id=-] Background task 5448780e-15d3-4521-8752-566b6913afe0 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 3 items. The finished items are saved.
+
+
+.Free trial plan not found: no trial activated for user 51a7c631-dabf-430c-ae17-c62402f60224.
+Cannot activate automatic trial for user 51a7c631-dabf-430c-ae17-c62402f60224 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request refused: EmptyWalletError: Credit wallet is empty
+.Free trial plan not found: no trial activated for user 28aa2c06-9235-4c9c-9159-42b61eb3af25.
+Cannot activate automatic trial for user 28aa2c06-9235-4c9c-9159-42b61eb3af25 (validation): ValueError
+API request refused: EmptyWalletError: Credit wallet is empty
+.Free trial plan not found: no trial activated for user 6dcf827c-c805-40d3-9d39-dd9d783338e6.
+Cannot activate automatic trial for user 6dcf827c-c805-40d3-9d39-dd9d783338e6 (validation): ValueError
+API request refused: EmptyWalletError: Credit wallet is empty
+.Free trial plan not found: no trial activated for user ed7e0d8c-12f6-4ba2-967b-397153937d71.
+Cannot activate automatic trial for user ed7e0d8c-12f6-4ba2-967b-397153937d71 (validation): ValueError
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22169 credits, but you only have 1000 credits. Please refill your wallet to continue
+.Free trial plan not found: no trial activated for user a33f536a-fa3d-4d63-87ac-dfff5ce0df42.
+Cannot activate automatic trial for user a33f536a-fa3d-4d63-87ac-dfff5ce0df42 (validation): ValueError
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22169 credits, but you only have 1000 credits. Please refill your wallet to continue
+.Free trial plan not found: no trial activated for user f3824a55-c927-4293-a6b3-2aa7cd84a2dc.
+Cannot activate automatic trial for user f3824a55-c927-4293-a6b3-2aa7cd84a2dc (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~60000 credits, balance 5000
+.Free trial plan not found: no trial activated for user a8ef92b7-2863-4dfd-b28b-40ca475d26d5.
+Cannot activate automatic trial for user a8ef92b7-2863-4dfd-b28b-40ca475d26d5 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 5000 left in the batch
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 5000 left in the batch
+.Free trial plan not found: no trial activated for user 61401d98-5cc9-46b3-bd93-4c43d888f739.
+Cannot activate automatic trial for user 61401d98-5cc9-46b3-bd93-4c43d888f739 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 5000 left in the batch
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 5000 left in the batch
+.Free trial plan not found: no trial activated for user 2dc43582-d83c-4a78-adc8-78b375c7f6c0.
+Cannot activate automatic trial for user 2dc43582-d83c-4a78-adc8-78b375c7f6c0 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~60000 credits, balance 5000
+.Free trial plan not found: no trial activated for user a5717678-9653-484e-8c86-64c5ba2afcd3.
+Cannot activate automatic trial for user a5717678-9653-484e-8c86-64c5ba2afcd3 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~60000 credits, balance 5000
+..Free trial plan not found: no trial activated for user 42ed8d0d-6945-4d12-a10a-c2a11dd2eb0e.
+Cannot activate automatic trial for user 42ed8d0d-6945-4d12-a10a-c2a11dd2eb0e (validation): ValueError
+...Free trial plan not found: no trial activated for user 3ec1f04a-4b62-4f27-9f7a-d2da1cc4c22f.
+Cannot activate automatic trial for user 3ec1f04a-4b62-4f27-9f7a-d2da1cc4c22f (validation): ValueError
+.Free trial plan not found: no trial activated for user 6f1ee8df-cc28-40fb-9e9d-0d1c58a31188.
+Cannot activate automatic trial for user 6f1ee8df-cc28-40fb-9e9d-0d1c58a31188 (validation): ValueError
+...
+----------------------------------------------------------------------
+Ran 45 tests in 3.925s
+
+OK
+Destroying test database for alias 'default'...
+Found 45 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

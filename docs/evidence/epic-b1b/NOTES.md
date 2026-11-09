@@ -936,3 +936,34 @@ The failing assertion of each test is quoted from the log above. A test's **flag
 - **R1, flag on: `Ran 45`, OK.**
 - **R2, flag unset: `Ran 45`, OK.**
 - Any other result is a STOP.
+
+**B4 results (at a00c4e86f, under `flock`):** all as declared. Logs: `step2/b4_*_a00c4e86.log`.
+- R1 (flag on): `Ran 45`, OK.
+- R2 (flag unset): `Ran 45`, OK.
+- PB4-1: `FAILED (failures=1)`, the twin, with `AssertionError: reached the provider`.
+- PB4-2: `FAILED (failures=1)`, the twin, with `AssertionError: False is not True`.
+- Both were restored; `sha256sum -c` matched `billing/holds.py`.
+
+### §2.7 B2: how the wraps are placed, and the first file
+
+**Every wrap is at the test, not in a shared helper.** `with self.captureOnCommitCallbacks(execute=True):` goes around the request inside each listed test, and the helpers are left unchanged. So **no off-list test is touched** (SM (a)), and none can go from red to green or from green to red. Each file's diff will show only listed tests changing.
+
+**The B2 plant (one run over all the B2 files, after the last file):**
+- **PB2-1:** with the flag on, `launch_at_door` registers no `on_commit` send. It still pre-assigns and writes the id, but the message never goes.
+- The wrapped tests must fail on "never launched" with the flag on, which proves each wrap is what runs the launch. That is declared with the last file.
+
+**File 1, `students.tests_upload_credit_door` (17 tests by `build_suite`):**
+- **Wrapped (4):**
+  - `StudentUploadDoorTest.test_a_file_the_door_cannot_read_is_left_to_the_task`;
+  - `StudentUploadDoorTest.test_a_teacher_without_a_wallet_is_left_to_the_permission` (inside its permission patch);
+  - `TeacherBatchDoorTest.test_a_funded_teacher_is_queued_as_before`;
+  - `AssignmentUploadDoorTest.test_a_funded_teacher_is_queued_as_before`.
+- **Pinned flag-off, unchanged (1, Q2):** `StudentUploadDoorTest.test_a_wallet_above_the_estimate_is_queued_as_before`.
+  - Its comment cites `billing.tests.test_holds_door_commit.DoorLaunchOnCommitTests.test_c2_the_response_task_id_is_the_preassigned_id_on_the_row`.
+  - **Same route, confirmed:** c2's `student_upload` (`test_holds_door_commit.py:38–43`) posts to `reverse("student-submission-upload-async", kwargs={"assignment_id": …})`. That is the same URL name as this test's `_upload` (`tests_upload_credit_door.py:167`). Both patch the same launch, `students.views.launch_processing_task` (`STUDENT_LAUNCH`, `:28`).
+- No assertion changed.
+
+**The runs** (`students.tests_upload_credit_door` plus c2 by full id: **18** tests; under `flock`):
+- **R1, flag on: `Ran 18`, OK.**
+- **R2, flag unset: `Ran 18`, OK.**
+- Any other result is a STOP.
