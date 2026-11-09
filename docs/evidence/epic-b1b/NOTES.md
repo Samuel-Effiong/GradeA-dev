@@ -900,3 +900,39 @@ The failing assertion of each test is quoted from the log above. A test's **flag
   - Everything else passes, because the pins hold whatever the default is.
   - The file is restored with `git checkout` and `sha256sum -c`.
 - Any other result is a STOP.
+
+**B1 results (at edfb9b8f5, under `flock`):** all as declared. Logs: `step2/b1_*_edfb9b8f.log`.
+- R1 (flag on): `Ran 26`, OK.
+- R2 (flag unset): `Ran 26`, OK.
+- PB1-1 (`default=True` in settings): `Ran 26`, `FAILED (failures=1)`. The failure is `test_holds_flag_defaults_off`, with `AssertionError: 'True' != 'False'`.
+  - Restored with `git checkout`; `sha256sum -c` matched `AutoGrader/settings.py` and both test files.
+
+### §2.6 B4: the edits and the declarations (committed before any run)
+
+**The edits (`billing/tests_h281_individual_credit_wording.py`):**
+- **The pin:** `TheRaiseSitesTagTheRefusal.test_r8_execute_graded_task_nothing_left_individual` gets `@override_settings(BILLING_HOLDS_ENABLED=False)`, with the body unchanged. A comment names its flag-on twin.
+- **The twin (new):** `TheHoldRefusalIsTaggedToo.test_r8_flag_on_hold_for_call_refuses_individual`, in a class pinned `BILLING_HOLDS_ENABLED=True`.
+  - The setup:
+    - an individual teacher (`individual_teacher()`: a real wallet with no credits and no license);
+    - `can_user_access_ai` patched True (as R8 does);
+    - `estimate_messages_cost` patched to **1,000** (above 0);
+    - the provider patched to raise `AssertionError("reached the provider")`.
+  - Nothing is patched on the wallet.
+  - It asserts:
+    - `InsufficientCreditsError` with `.individual is True`;
+    - the SINGLE_CALL job is FAILED;
+    - `reserved_credits == 0`;
+    - no `CreditUsageLog` row for the wallet.
+- **The file goes from 44 to 45 tests** (`build_suite`).
+
+**Plants** (`scratchpad/plant_b12.py`, each restored with `git checkout` and checked with `sha256sum -c` against this commit's `billing/holds.py`). Each runs on this file with the flag **unset**, so only the twin (pinned on) reaches the hold path.
+
+| Plant | The change | Prediction |
+|---|---|---|
+| PB4-1 (SM) | `hold_for_call` returns None for an individual teacher | `FAILED (failures=1)`: the twin, with `AssertionError: reached the provider` |
+| PB4-2 (mine) | `_refusal` tags `individual=False` | `FAILED (failures=1)`: the twin, with `False is not True` |
+
+**The runs** (`billing.tests_h281_individual_credit_wording`, 45 tests, under `flock`):
+- **R1, flag on: `Ran 45`, OK.**
+- **R2, flag unset: `Ran 45`, OK.**
+- Any other result is a STOP.
