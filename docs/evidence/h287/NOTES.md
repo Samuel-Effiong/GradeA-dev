@@ -82,3 +82,22 @@ N2 labels:
     billing.tests.test_live_qa_clock
     billing.tests.test_price_drift_reconciliation
     AutoGrader.tests_live_server_backlog_guard
+
+## Results
+
+- **D1 diff** (`diff_classrooms.diff.gz`; gzipped so the trailing-whitespace hook cannot alter the blank context line): 5 added lines, all `#` comments, at the top of 0017. 0 removed lines. Below them the file body is identical to beta's. **As predicted.**
+- **D2 sqlmigrate**: before and after sha256 are both `bb86247881c3a13606b6e770eda79b7fb1bf4de69ea03248c3ffa213894a0e26`, and cmp says BYTE-IDENTICAL (`sqlmigrate_0017_before.sql`, `sqlmigrate_0017_after.sql`). **As predicted.**
+- **D3 makemigrations --check --dry-run**: "No changes detected", exit 0, both before and after. **As predicted.**
+- **D4 safety check** (`safety_before.txt`, `safety_after.txt`): before, exit 1 with one FAIL (0017) and 15 OK. After, exit 0 with `ACK  classrooms/migrations/0017_session_is_active.py: non-additive, marked as a reviewed expand-contract step` and 0 FAIL. The only line that differs is 0017's. **As predicted.**
+- Change commit: ac0f2b3d29461868aef6edda1f15d47327902ead (1 file, +5).
+- **N1 near apps** (`01_near_apps.log.gz`, --parallel 2, 125 s): **Ran 1703, OK (skipped=4)**. **Prediction wrong**: I declared 3. My unverified suspicion is users/tests_google_auth.py:1098 ("CI_REQUIRE_NETWORK not set"), which I left out of the count. It is checked by N1v below.
+- **N2 guard sweep** (`02_guard_sweep.log.gz`, serial, 125 s): **Ran 1023, OK (skipped=1)**. **As predicted.**
+
+### N1v, declared before running
+
+`users.tests_google_auth users.tests_activity_middleware_load` at -v 2, serial. Predict 4 skips, all in these two modules: 2 "live Google contract tests are opt-in", 1 "CI_REQUIRE_NETWORK not set", 1 "CI_REQUIRE_REDIS not set". 57 tests (build_suite).
+
+- **N1v** (`03_skip_check.log.gz`, -v 2): **Ran 57, OK (skipped=4)**, with exactly the 4 declared skips. **As predicted.** This explains N1's 4th skip: `users.tests_google_auth.LiveContractSkipGuardTests.test_network_is_required_when_ci_says_so` ("CI_REQUIRE_NETWORK not set"). The N1 record above stays as written.
+- **T trailers:** checked and reported to the SM.
+
+Ready for the SM's push to beta. After that comes the beta→staging merge. No push from Lane 2.
