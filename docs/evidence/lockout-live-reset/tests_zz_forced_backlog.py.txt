@@ -1,0 +1,61 @@
+"""SCRATCH, NOT FOR COMMIT (copied to docs/evidence/lockout-live-reset/ as .txt).
+
+Forces the interleaving behind the PR #123 ConnectionResetError: the live
+server's accept loop stalls for STALL seconds while the real test's 30
+concurrent logins connect. Same test body, same assertions; only the live
+server's accept timing and listen backlog differ between the two classes.
+"""
+
+import time
+
+from django.core.servers.basehttp import ThreadedWSGIServer
+from django.test.testcases import LiveServerThread
+
+from users.tests_login_lockout import LoginLockoutLiveServerTests
+
+STALL = 8.0
+
+
+def stalled_thread(backlog, stall=STALL):
+    server_cls = type(
+        "StalledServer", (ThreadedWSGIServer,), {"request_queue_size": backlog}
+    )
+
+    class StalledThread(LiveServerThread):
+        server_class = server_cls
+
+        def _create_server(self, connections_override=None):
+            srv = super()._create_server(connections_override)
+            orig = srv.get_request
+            state = {"first": True}
+
+            def get_request():
+                # Stall once, before the first accept, while the burst connects.
+                if state["first"]:
+                    state["first"] = False
+                    time.sleep(stall)
+                return orig()
+
+            srv.get_request = get_request
+            return srv
+
+    return StalledThread
+
+
+class ForcedStallBacklog10(LoginLockoutLiveServerTests):
+    server_thread_class = stalled_thread(10)
+
+
+class ForcedStallBacklog64(LoginLockoutLiveServerTests):
+    server_thread_class = stalled_thread(64)
+
+
+class Unstalled10(LoginLockoutLiveServerTests):
+    server_thread_class = stalled_thread(10, 0)
+
+
+class Unstalled64(LoginLockoutLiveServerTests):
+    server_thread_class = stalled_thread(64, 0)
+
+
+del LoginLockoutLiveServerTests  # do not run the original twice

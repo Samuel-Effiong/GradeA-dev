@@ -1,0 +1,82 @@
+test	Check for missing migrations	2026-11-08T17:32:03.5739186Z No changes detected
+test	Run tests	﻿2026-11-08T17:32:04.0656586Z ##[group]Run coverage run manage.py test --noinput --parallel 4
+test	Run tests	2026-11-08T17:32:04.0657072Z [36;1mcoverage run manage.py test --noinput --parallel 4[0m
+test	Run tests	2026-11-08T17:32:04.0679784Z shell: /usr/bin/bash -e {0}
+test	Run tests	2026-11-08T17:32:04.0680046Z env:
+...
+test	Run tests	2026-11-08T17:52:52.3692437Z
+test	Run tests	2026-11-08T17:52:52.3743250Z C1_RACE delete_attach {'delete_won': 79, 'attach_won': 21}
+test	Run tests	2026-11-08T17:52:52.3782629Z
+test	Run tests	2026-11-08T17:52:52.3842950Z H5_MEASURE writes=9 wall_s=0.278 save_p50_ms=11.45 save_p95_ms=14.63 save_total_ms=98.6 load1=9.44
+test	Run tests	2026-11-08T17:52:52.3882171Z
+test	Run tests	2026-11-08T17:52:52.3922532Z H5_MEASURE save_queries=3
+test	Run tests	2026-11-08T17:52:52.3963278Z H5_MEASURE    UPDATE "classrooms_studentcourse" SET "final_grade" = %s WHERE "classrooms_studentcourse"."id" = %s
+test	Run tests	2026-11-08T17:52:52.4022724Z H5_MEASURE    SELECT "classrooms_course"."id", "classrooms_course"."name", "classrooms_course"."teacher_id", "classrooms_cou
+test	Run tests	2026-11-08T17:52:52.4062555Z H5_MEASURE    SELECT "users_customuser"."password", "users_customuser"."last_login", "users_customuser"."is_superuser", "use
+test	Run tests	2026-11-08T17:52:52.9125384Z ....
+test	Run tests	2026-11-08T17:52:52.9154467Z ======================================================================
+test	Run tests	2026-11-08T17:52:52.9155409Z ERROR: test_concurrent_brute_force_against_live_http_server_is_held (users.tests_login_lockout.LoginLockoutLiveServerTests.test_concurrent_brute_force_against_live_http_server_is_held)
+test	Run tests	2026-11-08T17:52:52.9155988Z ----------------------------------------------------------------------
+test	Run tests	2026-11-08T17:52:52.9156340Z Traceback (most recent call last):
+test	Run tests	2026-11-08T17:52:52.9156885Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/unittest/case.py", line 58, in testPartExecutor
+test	Run tests	2026-11-08T17:52:52.9157246Z     yield
+test	Run tests	2026-11-08T17:52:52.9157604Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/unittest/case.py", line 634, in run
+test	Run tests	2026-11-08T17:52:52.9158148Z     self._callTestMethod(testMethod)
+test	Run tests	2026-11-08T17:52:52.9158305Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9158726Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/unittest/case.py", line 589, in _callTestMethod
+test	Run tests	2026-11-08T17:52:52.9159083Z     if method() is not None:
+test	Run tests	2026-11-08T17:52:52.9159360Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9159919Z   File "/home/runner/work/Grade-Automator-Plus/Grade-Automator-Plus/users/tests_login_lockout.py", line 519, in test_concurrent_brute_force_against_live_http_server_is_held
+test	Run tests	2026-11-08T17:52:52.9160445Z     results = [f.result() for f in as_completed(futures)]
+test	Run tests	2026-11-08T17:52:52.9160807Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9161354Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/concurrent/futures/_base.py", line 449, in result
+test	Run tests	2026-11-08T17:52:52.9161716Z     return self.__get_result()
+test	Run tests	2026-11-08T17:52:52.9162555Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9163018Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+test	Run tests	2026-11-08T17:52:52.9163400Z     raise self._exception
+test	Run tests	2026-11-08T17:52:52.9163656Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9164040Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/concurrent/futures/thread.py", line 59, in run
+test	Run tests	2026-11-08T17:52:52.9164424Z     result = self.fn(*self.args, **self.kwargs)
+test	Run tests	2026-11-08T17:52:52.9164716Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9165126Z   File "/home/runner/work/Grade-Automator-Plus/Grade-Automator-Plus/users/tests_login_lockout.py", line 490, in _post
+test	Run tests	2026-11-08T17:52:52.9165512Z     with urllib.request.urlopen(
+test	Run tests	2026-11-08T17:52:52.9165789Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9166188Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/urllib/request.py", line 215, in urlopen
+test	Run tests	2026-11-08T17:52:52.9166549Z     return opener.open(url, data, timeout)
+test	Run tests	2026-11-08T17:52:52.9166836Z       ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9167281Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/urllib/request.py", line 515, in open
+test	Run tests	2026-11-08T17:52:52.9167624Z     response = self._open(req, data)
+test	Run tests	2026-11-08T17:52:52.9167901Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9168267Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/urllib/request.py", line 532, in _open
+test	Run tests	2026-11-08T17:52:52.9168794Z     result = self._call_chain(self.handle_open, protocol, protocol +
+test	Run tests	2026-11-08T17:52:52.9169101Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9169480Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/urllib/request.py", line 492, in _call_chain
+test	Run tests	2026-11-08T17:52:52.9169822Z     result = func(*args)
+test	Run tests	2026-11-08T17:52:52.9170080Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9170461Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/urllib/request.py", line 1386, in http_open
+test	Run tests	2026-11-08T17:52:52.9170857Z     return self.do_open(http.client.HTTPConnection, req)
+test	Run tests	2026-11-08T17:52:52.9171158Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9171528Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/urllib/request.py", line 1361, in do_open
+test	Run tests	2026-11-08T17:52:52.9171865Z     r = h.getresponse()
+test	Run tests	2026-11-08T17:52:52.9177441Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9178722Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/http/client.py", line 1478, in getresponse
+test	Run tests	2026-11-08T17:52:52.9179198Z     response.begin()
+test	Run tests	2026-11-08T17:52:52.9182574Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/http/client.py", line 343, in begin
+test	Run tests	2026-11-08T17:52:52.9183107Z     version, status, reason = self._read_status()
+test	Run tests	2026-11-08T17:52:52.9183451Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9183928Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/http/client.py", line 304, in _read_status
+test	Run tests	2026-11-08T17:52:52.9184500Z     line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+test	Run tests	2026-11-08T17:52:52.9184863Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9185305Z   File "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/socket.py", line 720, in readinto
+test	Run tests	2026-11-08T17:52:52.9186046Z     return self._sock.recv_into(b)
+test	Run tests	2026-11-08T17:52:52.9186347Z     ^^^^^^^^^^^^^^^^^
+test	Run tests	2026-11-08T17:52:52.9186681Z ConnectionResetError: [Errno 104] Connection reset by peer
+test	Run tests	2026-11-08T17:52:52.9186988Z
+test	Run tests	2026-11-08T17:52:52.9187203Z ----------------------------------------------------------------------
+test	Run tests	2026-11-08T17:52:52.9187595Z Ran 9483 tests in 1223.980s
+test	Run tests	2026-11-08T17:52:52.9187806Z
+test	Run tests	2026-11-08T17:52:52.9187974Z FAILED (errors=1, skipped=81)
+test	Run tests	2026-11-08T17:52:52.9188306Z Destroying test database for alias 'default'...
+test	Run tests	2026-11-08T17:53:00.7583389Z Destroying test database for alias 'default'...
+test	Run tests	2026-11-08T17:53:01.1888624Z Destroying test database for alias 'default'...
+test	Run tests	2026-11-08T17:53:01.6982189Z Destroying test database for alias 'default'...

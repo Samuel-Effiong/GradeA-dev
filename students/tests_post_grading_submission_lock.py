@@ -48,6 +48,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from assignments.models import Assignment, AssignmentStatus
 from assignments.tasks import upload_answers_engine_async
+from AutoGrader.testing.live_server import BurstLiveServerThread
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from students.exceptions import SubmissionAlreadyGradedError, SubmissionBeingGradedError
@@ -919,6 +920,7 @@ class PostGradingLockLiveHTTPTest(LiveServerTestCase):
     isolated test database allows."""
 
     WORKERS = 12
+    server_thread_class = BurstLiveServerThread
 
     def setUp(self):
         self.teacher, self.student, self.course, self.assignment = _classroom("live")

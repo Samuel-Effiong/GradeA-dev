@@ -42,6 +42,7 @@ from django.test import (
 from django.urls import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from AutoGrader.testing.live_server import BurstLiveServerThread
 from users.middleware import ONLINE_SET_KEY, UserActivityMiddleware, heartbeat_key_for
 from users.models import Settings, UserActivity, UserTypes
 
@@ -223,6 +224,7 @@ class HeartbeatThrottleLiveServerTests(LiveServerTestCase):
     """
 
     WORKERS = 30
+    server_thread_class = BurstLiveServerThread
 
     def setUp(self):
         if not REDIS_OK:
