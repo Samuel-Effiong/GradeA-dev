@@ -152,6 +152,7 @@ All non-test `metered_unit(` uses: `ai_processor/services.py:4637`, `students/se
   - It uses the SDK directly, with `type="private"`, and never `use_filename`.
   - It never returns a URL to any caller outside the module. `private_download_url` is used only inside it, server-side.
   - It must pass `AutoGrader.tests_network_guard`, `ai_processor.tests_ssrf_guard` and `AutoGrader.tests_credscan`. In tests it uses the fake only.
+- **Cloudinary headroom: answered** (owner, via the SM grade-automator-plus-08, 2026-11-09). The account has **over 50 GB free**, which covers the delete-on-success estimate (§2.9).
 
 ---
 
@@ -1149,3 +1150,27 @@ The counts are from `build_suite`.
   - **Prediction: `Ran 6347`, `OK (skipped=23)`:** 19 decorated + 4 runtime, as at §1.24.
 - **E3, the 66 guards, serially, flag unset:** **`Ran 1146`, `OK (skipped=1)`.**
 - Any other result is a STOP.
+
+**Results (at 049193eba, under `flock`):** all as declared.
+- **E1, the flag-on run (9109 MB available, `--parallel 4`): `Ran 7409 tests in 424.913s`, `OK (skipped=31)`, rc 0.** Log: `step2/E1_flagon_049193eb.log.gz`. **The flag-on-day list is cleared:** 0 failures and 0 errors, where §21q had 45. That includes the 13 twins and all 66 guards.
+- **E2, the flag-off near run, apps (8253 MB available, `--parallel 4`): `Ran 6347 tests in 460.754s`, `OK (skipped=23)`, rc 0.** Log: `step2/E2_near_apps_049193eb.log.gz`.
+- **E3, the 66 guards, serially (9725 MB available): `Ran 1146 tests in 145.661s`, `OK (skipped=1)`, rc 0.** Log: `step2/E3_guards_049193eb.log.gz`.
+- `makemigrations --check --dry-run`: `No changes detected`. B1b-2 adds no migration.
+- **The switch-on checklist:** the Cloudinary headroom item is answered (over 50 GB free, owner via the SM).
+
+### §2.12 B1b-2 summary (for the checkpoint)
+
+- **All 45 tests on the flag-on-day list now have a flag-on and a flag-off meaning,** with no assertion loosened:
+  - **B1 (6):** 5 pinned flag-off; `test_holds_flag_defaults_off` rewritten to read the shipped default in a subprocess (Q1). The flag-on half of the reverse guard already existed (`:266`). PB1-1 was killed.
+  - **B2 (26):** 25 `captureOnCommitCallbacks` wraps with the assertions unchanged, and 1 pin (Q2, citing c2 on the same route).
+    - The `run_inline` fakes now take `_celery_task_id` like the real launch, accepted by the SM.
+    - All 22 off-list fixture users were run both ways, with no flips.
+    - PB2-1 killed exactly the 25.
+  - **B3 (12):** 12 pins plus 12 twins through real billed calls, with the shared `assert_hold_ledger` (which also checks that a hold was taken at all).
+    - PB3-1 and PB3-2 were killed by T6, T7, T9 and T10; PB3-3 by all but T6. Every twin kills at least one plant.
+  - **B4 (1):** 1 pin plus 1 twin through `hold_for_call`; PB4-1 and PB4-2 were killed.
+- **The 08b §5.2 evidence:** flag-on `Ran 7409 OK`; flag-off near `Ran 6347 OK` plus the guards `Ran 1146 OK`.
+- **The survey correction to 08b:** the planned "add one flag-on 0074 reverse test" already existed.
+- **Recorded, with nothing changed:**
+  - the 16 texts owner-approved (to be switched on in B1b-8);
+  - the scratchpad loss at the restart (no evidence lost; `guards66.txt` is now committed).
