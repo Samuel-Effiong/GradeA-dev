@@ -228,7 +228,7 @@ def _reserve_locked(locked_wallet, amount, job, item, status=None):
     if not granted:
         return False
     AIJob.objects.filter(pk=job.pk).update(
-        **({"status": status} if status is not None else {}),
+        status=status if status is not None else F("status"),
         reserved_credits=F("reserved_credits") + amount,
         # A timestamp only, never a fencing token (review r1 M2).
         reservation_claimed_at=timezone.now(),
@@ -355,12 +355,12 @@ def settle(
 
         _move_wallet(locked.pk, -(drawn + leftover))
         close = (
-            {"status": close_status}
+            close_status
             if close_status is not None and job_row.status in OPEN_STATUSES
-            else {}
+            else F("status")
         )
         AIJob.objects.filter(pk=job_row.pk).update(
-            **close,
+            status=close,
             consumed_credits=F("consumed_credits") + chargeable,
             hold_drawn=F("hold_drawn") + drawn,
             released_credits=F("released_credits") + leftover,
