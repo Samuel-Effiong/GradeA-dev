@@ -171,3 +171,45 @@ Near results (under flock):
 - Near 07 (`07_guard_sweep.log.gz`, serial, 113 s): **Ran 928, OK (skipped=1)**. **As predicted.**
 
 Ready for the SM to push to beta. No push from Lane 2.
+
+# Part 2: staging (SM go 2026-11-09)
+
+Branch task/h300-staging off origin/staging 4aff59a43. `git merge --no-ff
+origin/beta` (e4a893197, Part 1 as pushed): no conflicts, merge
+687d6a70c84b65386068545790876012e29dfba0. The merged handler holds both the
+beta guard and B1a's departed-share refund. `makemigrations --check
+--dry-run`: No changes detected.
+
+## Road A (staging only, B1a code)
+
+`_refund_departed_share_on_commit` registers `transaction.on_commit` without
+robust=True and calls `refund_departed_teacher_share.delay` and
+`send_email_task.delay` directly. If either raises after commit, the
+handler raises, and `_run_handler_inline` marks the event FAILED with the
+grants made. The fix (declared): register with `robust=True` and queue
+both through `AutoGrader.dispatch.safe_delay`, as the receipt hook does; a
+refund that could not be queued (safe_delay returns None) is logged with
+the module's existing "MANUAL RECONCILIATION NEEDED" helper. Log lines only;
+no user-facing text.
+
+New tests, billing/tests/test_h300_refund_hook.py (from the survey's a1,
+b2, b3; rewritten to assert what the fixed hook does):
+
+- a1 (real commits): the refund's `.delay` raises OperationalError → the
+  event is SUCCEEDED, a and b hold 5000 each, c 0, `.delay` called once, no
+  Refund.create, and a MANUAL RECONCILIATION line naming the intent.
+- a2 (real commits): the email's `.delay` raises OperationalError → the
+  event is SUCCEEDED and the refund was still queued once.
+- a3 (real commits): the refund's `.delay` raises RuntimeError (not a
+  broker error; safe_delay lets it through) → robust=True contains it: the
+  event is SUCCEEDED, the grants are made once.
+- b2, b3 (road B, switch on): a replay grants once and refunds once. They
+  already hold through the merged beta guard (regression on staging).
+
+Red 08 (declared before the run): test_h300_refund_hook (5) plus beta's
+test_h300_reprocess (4), as merged. Count from build_suite: **9**.
+Predicted: **Ran 9, FAILED (failures=3)**: a1, a2, a3, each at the first
+assertion, `'FAILED' != 'SUCCEEDED'`. b2, b3 and beta's four pass. Log
+`08_red_road_a.log`.
+
+Red 08 result (`08_red_road_a.log`): **Ran 9, FAILED (failures=3)**, a1, a2, a3, each `'FAILED' != StripeEventStatus.SUCCEEDED`; b2, b3 and beta's four pass. **As predicted.**
