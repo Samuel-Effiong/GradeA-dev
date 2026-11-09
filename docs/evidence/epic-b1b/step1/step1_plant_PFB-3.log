@@ -1,0 +1,284 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 31ced839-f557-4a9a-8ee4-e6955eb8ccf9.
+Cannot activate automatic trial for user 31ced839-f557-4a9a-8ee4-e6955eb8ccf9 (validation): ValueError
+FFree trial plan not found: no trial activated for user ca1f120c-55e2-40e7-a74c-2c18eb1df1c6.
+Cannot activate automatic trial for user ca1f120c-55e2-40e7-a74c-2c18eb1df1c6 (validation): ValueError
+FFree trial plan not found: no trial activated for user 12c24ce8-48af-4ade-abf2-6416dcf6b571.
+Cannot activate automatic trial for user 12c24ce8-48af-4ade-abf2-6416dcf6b571 (validation): ValueError
+FFree trial plan not found: no trial activated for user d976fc32-2311-4f25-b264-b0e56e72e98c.
+Cannot activate automatic trial for user d976fc32-2311-4f25-b264-b0e56e72e98c (validation): ValueError
+FFree trial plan not found: no trial activated for user 165273f6-8749-402b-b5b5-a4069cfe5a1e.
+Cannot activate automatic trial for user 165273f6-8749-402b-b5b5-a4069cfe5a1e (validation): ValueError
+FFree trial plan not found: no trial activated for user 0c91b51e-dd06-4bd2-a2c8-6b303e91bee1.
+Cannot activate automatic trial for user 0c91b51e-dd06-4bd2-a2c8-6b303e91bee1 (validation): ValueError
+FFree trial plan not found: no trial activated for user 2630b167-189e-41dd-a4e4-79c1ddd247f8.
+Cannot activate automatic trial for user 2630b167-189e-41dd-a4e4-79c1ddd247f8 (validation): ValueError
+FFree trial plan not found: no trial activated for user d3935ca5-1c69-4d90-9e54-d8bca6b5fe48.
+Cannot activate automatic trial for user d3935ca5-1c69-4d90-9e54-d8bca6b5fe48 (validation): ValueError
+FFree trial plan not found: no trial activated for user ae612dd1-3ed6-444f-b4ef-ec38bf5d9fca.
+Cannot activate automatic trial for user ae612dd1-3ed6-444f-b4ef-ec38bf5d9fca (validation): ValueError
+FFree trial plan not found: no trial activated for user 597cd6b6-4275-4716-97fb-11484f8e4aca.
+Cannot activate automatic trial for user 597cd6b6-4275-4716-97fb-11484f8e4aca (validation): ValueError
+.Free trial plan not found: no trial activated for user 67df1e2d-5fe0-40d5-83b6-61702f8d0577.
+Cannot activate automatic trial for user 67df1e2d-5fe0-40d5-83b6-61702f8d0577 (validation): ValueError
+FFree trial plan not found: no trial activated for user 66ea0435-7973-4ad5-bbc1-9e17fad31d6d.
+Cannot activate automatic trial for user 66ea0435-7973-4ad5-bbc1-9e17fad31d6d (validation): ValueError
+.Free trial plan not found: no trial activated for user 111f8c77-61a8-4bb8-a110-6e9adfc06eae.
+Cannot activate automatic trial for user 111f8c77-61a8-4bb8-a110-6e9adfc06eae (validation): ValueError
+.Free trial plan not found: no trial activated for user 542ae03e-de5c-422b-8641-5c4d493fba36.
+Cannot activate automatic trial for user 542ae03e-de5c-422b-8641-5c4d493fba36 (validation): ValueError
+FFree trial plan not found: no trial activated for user b6c49fdc-cc6a-4cf6-a125-6bd15323c312.
+Cannot activate automatic trial for user b6c49fdc-cc6a-4cf6-a125-6bd15323c312 (validation): ValueError
+FFree trial plan not found: no trial activated for user 7acf8f65-9472-4109-b5dc-46d4db35b6b5.
+Cannot activate automatic trial for user 7acf8f65-9472-4109-b5dc-46d4db35b6b5 (validation): ValueError
+F
+======================================================================
+FAIL: test_t1_instance_delete (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t1_instance_delete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 153, in test_t1_instance_delete
+    self.assert_road(job, start, doomed_pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 138, in assert_road
+    self.assert_books_agree()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 118, in assert_books_agree
+    self.assertEqual(holds().check_invariants(self.wallet), [])
+AssertionError: Lists differ: ['item_sum job=21282f06-7e19-4858-9fb4-f573864caac2'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'item_sum job=21282f06-7e19-4858-9fb4-f573864caac2'
+
+- ['item_sum job=21282f06-7e19-4858-9fb4-f573864caac2']
++ []
+
+======================================================================
+FAIL: test_t2_queryset_delete (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t2_queryset_delete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 158, in test_t2_queryset_delete
+    self.assert_road(job, start, doomed.pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 138, in assert_road
+    self.assert_books_agree()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 118, in assert_books_agree
+    self.assertEqual(holds().check_invariants(self.wallet), [])
+AssertionError: Lists differ: ['item_sum job=20d2d10a-2992-4578-97ec-7b3d1e66f108'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'item_sum job=20d2d10a-2992-4578-97ec-7b3d1e66f108'
+
+- ['item_sum job=20d2d10a-2992-4578-97ec-7b3d1e66f108']
++ []
+
+======================================================================
+FAIL: test_t3_full_erasure (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t3_full_erasure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 176, in test_t3_full_erasure
+    self.assert_road(job, start, doomed.pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 138, in assert_road
+    self.assert_books_agree()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 118, in assert_books_agree
+    self.assertEqual(holds().check_invariants(self.wallet), [])
+AssertionError: Lists differ: ['item_sum job=77441c95-6b55-48e1-ac92-ab1e930c346f'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'item_sum job=77441c95-6b55-48e1-ac92-ab1e930c346f'
+
+- ['item_sum job=77441c95-6b55-48e1-ac92-ab1e930c346f']
++ []
+
+======================================================================
+FAIL: test_t4_course_scoped_erasure (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t4_course_scoped_erasure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 188, in test_t4_course_scoped_erasure
+    self.assert_road(job, start, doomed.pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 138, in assert_road
+    self.assert_books_agree()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 118, in assert_books_agree
+    self.assertEqual(holds().check_invariants(self.wallet), [])
+AssertionError: Lists differ: ['item_sum job=1ee84413-4d71-41ac-8174-dd33ebb7298a'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'item_sum job=1ee84413-4d71-41ac-8174-dd33ebb7298a'
+
+- ['item_sum job=1ee84413-4d71-41ac-8174-dd33ebb7298a']
++ []
+
+======================================================================
+FAIL: test_t5_assignment_cascade (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade)
+Every row of the job goes: the job finishes SETTLED (C4), because
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 207, in test_t5_assignment_cascade
+    self.assertEqual(deleted_items(job), (2 * HELD, ACTUAL, (HELD - ACTUAL) + HELD))
+AssertionError: Tuples differ: (0, 0, 0) != (600, 120, 480)
+
+First differing element 0:
+0
+600
+
+- (0, 0, 0)
++ (600, 120, 480)
+?  ++   ++   ++
+
+
+======================================================================
+FAIL: test_t6_batch_session_cascade (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t6_batch_session_cascade)
+Every row of the job goes and none settled: FAILED (C4).
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 236, in test_t6_batch_session_cascade
+    self.assertEqual(deleted_items(job), (2 * HELD, 0, 2 * HELD))
+AssertionError: Tuples differ: (0, 0, 0) != (600, 0, 600)
+
+First differing element 0:
+0
+600
+
+- (0, 0, 0)
++ (600, 0, 600)
+?  ++      ++
+
+
+======================================================================
+FAIL: test_t13_a_row_held_while_the_flag_was_on_is_returned_with_it_off (billing.tests.test_holds_deleted_items.FlagOffTests.test_t13_a_row_held_while_the_flag_was_on_is_returned_with_it_off)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 375, in test_t13_a_row_held_while_the_flag_was_on_is_returned_with_it_off
+    self.assert_books_agree()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 118, in assert_books_agree
+    self.assertEqual(holds().check_invariants(self.wallet), [])
+AssertionError: Lists differ: ['item_sum job=569cdceb-a765-48bd-8e90-b5d1052c75f3'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'item_sum job=569cdceb-a765-48bd-8e90-b5d1052c75f3'
+
+- ['item_sum job=569cdceb-a765-48bd-8e90-b5d1052c75f3']
++ []
+
+======================================================================
+FAIL: test_t14_a_unit_whose_row_is_deleted_mid_run (billing.tests.test_holds_deleted_items.MidRunDeletionTests.test_t14_a_unit_whose_row_is_deleted_mid_run)
+Characterization (SM, 2026-11-09): pinned as found, not designed.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 395, in test_t14_a_unit_whose_row_is_deleted_mid_run
+    self.assert_books_agree()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 118, in assert_books_agree
+    self.assertEqual(holds().check_invariants(self.wallet), [])
+AssertionError: Lists differ: ['item_sum job=eac7a2d4-72dc-49c8-bd7f-97d3a86f4c5e'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'item_sum job=eac7a2d4-72dc-49c8-bd7f-97d3a86f4c5e'
+
+- ['item_sum job=eac7a2d4-72dc-49c8-bd7f-97d3a86f4c5e']
++ []
+
+======================================================================
+FAIL: test_t9_a_settled_row_deleted_from_a_job_with_rows_left (billing.tests.test_holds_deleted_items.PreExistingFalseAlarmTests.test_t9_a_settled_row_deleted_from_a_job_with_rows_left)
+Before B1b this reported item_sum with the flag on, without any
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 291, in test_t9_a_settled_row_deleted_from_a_job_with_rows_left
+    self.assert_books_agree()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 118, in assert_books_agree
+    self.assertEqual(holds().check_invariants(self.wallet), [])
+AssertionError: Lists differ: ['item_sum job=b53a21c0-6f77-4313-94fd-d585fa8a379f'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'item_sum job=b53a21c0-6f77-4313-94fd-d585fa8a379f'
+
+- ['item_sum job=b53a21c0-6f77-4313-94fd-d585fa8a379f']
++ []
+
+======================================================================
+FAIL: test_t7_upload_with_a_settled_sibling_ends_settled (billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t7_upload_with_a_settled_sibling_ends_settled)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 251, in test_t7_upload_with_a_settled_sibling_ends_settled
+    self.assert_books_agree()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 118, in assert_books_agree
+    self.assertEqual(holds().check_invariants(self.wallet), [])
+AssertionError: Lists differ: ['item_sum job=5dfd2859-4878-4cdd-bd54-c6da2b307ad4'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'item_sum job=5dfd2859-4878-4cdd-bd54-c6da2b307ad4'
+
+- ['item_sum job=5dfd2859-4878-4cdd-bd54-c6da2b307ad4']
++ []
+
+======================================================================
+FAIL: test_t10_wallet_receiver_first_then_the_row_delete (billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t10_wallet_receiver_first_then_the_row_delete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 313, in test_t10_wallet_receiver_first_then_the_row_delete
+    self.assertEqual(deleted_items(job), (HELD, 0, HELD))
+AssertionError: Tuples differ: (0, 0, 0) != (300, 0, 300)
+
+First differing element 0:
+0
+300
+
+- (0, 0, 0)
++ (300, 0, 300)
+?  ++      ++
+
+
+======================================================================
+FAIL: test_t11_row_delete_first_then_the_wallet_receiver (billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t11_row_delete_first_then_the_wallet_receiver)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 329, in test_t11_row_delete_first_then_the_wallet_receiver
+    self.assert_books_agree()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 118, in assert_books_agree
+    self.assertEqual(holds().check_invariants(self.wallet), [])
+AssertionError: Lists differ: ['item_sum job=a91d14e7-d420-4fd9-8760-fc41c9253da8'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'item_sum job=a91d14e7-d420-4fd9-8760-fc41c9253da8'
+
+- ['item_sum job=a91d14e7-d420-4fd9-8760-fc41c9253da8']
++ []
+
+======================================================================
+FAIL: test_t12_a_teacher_deletion_with_a_held_row_of_their_own (billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t12_a_teacher_deletion_with_a_held_row_of_their_own)
+End to end: the row goes through requested_by CASCADE, the wallet
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 359, in test_t12_a_teacher_deletion_with_a_held_row_of_their_own
+    self.assertEqual(deleted_items(job), (HELD, 0, HELD))
+AssertionError: Tuples differ: (0, 0, 0) != (300, 0, 300)
+
+First differing element 0:
+0
+300
+
+- (0, 0, 0)
++ (300, 0, 300)
+?  ++      ++
+
+
+----------------------------------------------------------------------
+Ran 16 tests in 4.624s
+
+FAILED (failures=13)
+Destroying test database for alias 'default'...
+Found 16 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

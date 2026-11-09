@@ -401,3 +401,24 @@ This step had three test-only bugs: a NOT NULL fixture field, a fixture status t
 | PFB-4 | the receiver's release row written with `item=None` | T-1…T-4 (`item_id`), T-5, T-11 | T-10 (by construction), T-12 (order-dependent, accepted) |
 
 - **Pass rule:** every declared kill fails. A declared kill that survives is a STOP. Other tests may fail only where the table says "allowed".
+
+### §1.13 Green run 2 and the plants: results
+
+**Green run 2 (at 95171398a, under `flock`, 8211 MB available): Ran 16, OK, as declared.** Log: `step1/step1_green2_95171398.log`.
+
+**Plants** (run at 95171398a). Each plant was applied by `scratchpad/plant.py` and restored with `git checkout`. After every restore, `sha256sum -c` matched the committed files: `billing/holds.py` 199403aa…a32ff and `billing/apps.py` 3e3ff104…19273. Logs: `step1/step1_plant_PFB-{1,2,3,4}.log`.
+
+| Plant | Result | Failed | Against the declaration |
+|---|---|---|---|
+| PFB-1 (not connected) | FAILED (failures=15) | T-1…T-14 | **killed.** Every declared kill failed. T-12 failed (allowed), and T-15 survived (declared). Fragments include `600 != 300 : reserved`, `300 != 0` and `item_sum job=` |
+| PFB-2 (no `finish_job`) | FAILED (failures=5) | T-5, T-6, T-7, T-8, T-8b | **killed, exactly as declared.** `'RESERVED' != AIJobStatus.SETTLED` / `FAILED` |
+| PFB-3 (no `deleted_items_*`) | FAILED (failures=13) | T-1…T-7, T-9…T-14 | **killed.** Every declared kill (T-1…T-6, T-9, T-10, T-12) failed. The rest are allowed. Fragments: `item_sum job=` and `(0, 0, 0) != (300, 0, 300)` |
+| PFB-4 (release row with no `item_id`) | FAILED (failures=2, errors=4) | T-1…T-4 (**ERROR**), T-5, T-11 (FAIL) | **killed**, and T-10 and T-12 survived as declared. **One difference in form, recorded:** T-1…T-4 ERRORED with `KeyError: 'item_id'` (`assert_road` reads `metadata["item_id"]`, and the planted row has no such key) rather than failing an assertion. They are killed on the declared fragment `item_id`. T-5: `[(None, 300)] != [('<id>', 300)]`; T-11: `[] != [300]` |
+
+### §1.14 The AFTER timing (declared before it runs)
+
+- **The same file and command as §1.2,** at the commit that adds this section.
+- **Prediction: Ran 1, OK.** The numbers are recorded, not predicted. What I expect:
+  - `no_job`: fast delete is now off for the model, so the collector loads the 1,000 rows and sends 1,000 signals. Each signal returns before any query (`job_id` is None). That means a few more queries than 15, and more time than 0.02 s.
+  - `one_job`: about 8 queries per row (the job, the wallet lock, the job lock, the row lock, the update, the "rows left" check and, on rows near the end, the settlement check). So several thousand queries, and probably seconds rather than milliseconds.
+- If it is too slow, 08b §5.1's fallback (filter to HELD rows first in the erasure and cascade paths) **needs an SM ruling**. I don't apply it here.
