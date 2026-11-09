@@ -3393,6 +3393,23 @@ class StripeWebhookHandler:
             )
             return
 
+        # H-300: COMPLETED alone is not enough. A purchase where a teacher
+        # left is saved FAILED with its grants made, and a replay of a FAILED
+        # event (replay_stripe_events, a redelivery) would grant the others
+        # again. completed_at is written only with the grants; the ledger
+        # rows are the grants themselves.
+        if (
+            intent.completed_at is not None
+            or StripeWebhookHandler._license_overage_already_granted(intent)
+        ):
+            logger.info(
+                "Overage purchase intent %s already fulfilled — skipping "
+                "duplicate fulfillment (session %s).",
+                intent.id,
+                session.get("id"),
+            )
+            return
+
         payment_status = session.get("payment_status")
         if payment_status != "paid":
             # Delayed/async payment methods (bank debits, etc.) aren't
@@ -4755,6 +4772,21 @@ class StripeWebhookHandler:
     # ------------------------------------------------------------------
     # payment_intent.succeeded (overage block fallback for 3DS / requires_action)
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _license_overage_already_granted(intent) -> bool:
+        """H-300: has this school overage purchase already granted anything?
+
+        Every grant writes a CreditLedger row whose metadata carries the
+        intent's id (`_handle_license_overage_checkout_completed`'s
+        metadata_fn). Scoped to the wallets of the intent's teachers, as
+        `_overage_already_granted` is to its wallet: the unscoped JSON
+        lookup is a sequential scan of CreditLedger.
+        """
+        return CreditLedger.objects.filter(
+            bucket__wallet__user_id__in=list(intent.allocations.keys()),
+            metadata__intent_id=str(intent.id),
+        ).exists()
 
     @staticmethod
     def _overage_already_granted(payment_intent_id, wallet) -> bool:

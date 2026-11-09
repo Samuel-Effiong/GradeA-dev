@@ -1,0 +1,66 @@
+Using existing test database for alias 'default' ('test_h300_double_grant')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_h300_b1_a_skipped_teacher_purchase_is_not_granted_again (billing.tests.test_h300_reprocess.ReplayDoesNotFulfillTwiceTests.test_h300_b1_a_skipped_teacher_purchase_is_not_granted_again) ... Free trial plan not found: no trial activated for user 1a1a8aff-8019-4c74-a39b-241871abae9c.
+Cannot activate automatic trial for user 1a1a8aff-8019-4c74-a39b-241871abae9c (validation): ValueError
+Free trial plan not found: no trial activated for user 3d18734e-8da4-49e2-9f4b-50ec1e30150e.
+Cannot activate automatic trial for user 3d18734e-8da4-49e2-9f4b-50ec1e30150e (validation): ValueError
+Free trial plan not found: no trial activated for user 03c9d51b-81fd-4c8e-a923-cad967694255.
+Cannot activate automatic trial for user 03c9d51b-81fd-4c8e-a923-cad967694255 (validation): ValueError
+Overage purchase intent 870ce18e-f61e-46bf-8d35-ab3af5b1e047 (session cs_h300) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 68870293-c8ec-43f3-835a-c4e023d582da.
+Stripe event evt_h300 was manually replayed via replay_stripe_events by an operator.
+ok
+test_h300_b4_control_a_full_purchase_is_not_granted_again (billing.tests.test_h300_reprocess.ReplayDoesNotFulfillTwiceTests.test_h300_b4_control_a_full_purchase_is_not_granted_again) ... Free trial plan not found: no trial activated for user cc54b2f1-aa27-4b72-86cd-43fa59245e55.
+Cannot activate automatic trial for user cc54b2f1-aa27-4b72-86cd-43fa59245e55 (validation): ValueError
+Free trial plan not found: no trial activated for user 5e9017c5-9cef-41d0-97f9-0b2714c31212.
+Cannot activate automatic trial for user 5e9017c5-9cef-41d0-97f9-0b2714c31212 (validation): ValueError
+Free trial plan not found: no trial activated for user f45371ae-b5ef-4f51-8d86-b39d19524d06.
+Cannot activate automatic trial for user f45371ae-b5ef-4f51-8d86-b39d19524d06 (validation): ValueError
+Stripe event evt_h300 was manually replayed via replay_stripe_events by an operator.
+ok
+test_h300_c1_an_inactive_license_purchase_is_not_recorded_again (billing.tests.test_h300_reprocess.ReplayDoesNotFulfillTwiceTests.test_h300_c1_an_inactive_license_purchase_is_not_recorded_again) ... Free trial plan not found: no trial activated for user b06f33e8-2a73-45da-930d-6bb4202a4f49.
+Cannot activate automatic trial for user b06f33e8-2a73-45da-930d-6bb4202a4f49 (validation): ValueError
+Free trial plan not found: no trial activated for user 26b236c4-0aac-4862-88d5-bbdcfc7d557f.
+Cannot activate automatic trial for user 26b236c4-0aac-4862-88d5-bbdcfc7d557f (validation): ValueError
+Free trial plan not found: no trial activated for user 1f96de3c-5074-46b2-b499-fb77499a5bfd.
+Cannot activate automatic trial for user 1f96de3c-5074-46b2-b499-fb77499a5bfd (validation): ValueError
+Overage purchase intent 073f3505-49ad-48f0-a115-b0e61199731c paid (session cs_h300) but license 8706056e-ae51-45fa-a4b1-521b5b8c7cdc is no longer active — credits NOT granted. Needs manual refund via the Stripe dashboard.
+Overage purchase intent 073f3505-49ad-48f0-a115-b0e61199731c paid (session cs_h300) but license 8706056e-ae51-45fa-a4b1-521b5b8c7cdc is no longer active — credits NOT granted. Needs manual refund via the Stripe dashboard.
+Stripe event evt_h300 was manually replayed via replay_stripe_events by an operator.
+ok
+test_h300_d1_a_ledger_row_for_the_intent_alone_stops_a_rerun (billing.tests.test_h300_reprocess.ReplayDoesNotFulfillTwiceTests.test_h300_d1_a_ledger_row_for_the_intent_alone_stops_a_rerun) ... Free trial plan not found: no trial activated for user b7c503ad-87c5-4f13-ad9b-3a1d4521610d.
+Cannot activate automatic trial for user b7c503ad-87c5-4f13-ad9b-3a1d4521610d (validation): ValueError
+Free trial plan not found: no trial activated for user 5d8c701e-dd0b-4f38-9481-b7c92ca47f9b.
+Cannot activate automatic trial for user 5d8c701e-dd0b-4f38-9481-b7c92ca47f9b (validation): ValueError
+Free trial plan not found: no trial activated for user f7425b6d-00b8-46ce-981c-0726e682a280.
+Cannot activate automatic trial for user f7425b6d-00b8-46ce-981c-0726e682a280 (validation): ValueError
+Overage purchase intent 0b0e9b9d-2591-4762-afcc-2bfcebec707c (session cs_h300) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License daf3ca3a-f8f8-449d-9c70-8b9c36444672.
+Stripe event evt_h300 was manually replayed via replay_stripe_events by an operator.
+ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.951s
+
+OK
+Preserving test database for alias 'default' ('test_h300_double_grant')...
+Found 4 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+  REPLAYED evt_h300 (checkout.session.completed, attempts=1, first seen 2026-11-09 08:49)
+Replay complete: 1 succeeded, 0 failed again.
+  REPLAYED evt_h300 (checkout.session.completed, attempts=1, first seen 2026-11-09 08:49)
+Replay complete: 1 succeeded, 0 failed again.
+  REPLAYED evt_h300 (checkout.session.completed, attempts=1, first seen 2026-11-09 08:49)
+Replay complete: 1 succeeded, 0 failed again.
+  REPLAYED evt_h300 (checkout.session.completed, attempts=1, first seen 2026-11-09 08:49)
+Replay complete: 1 succeeded, 0 failed again.
