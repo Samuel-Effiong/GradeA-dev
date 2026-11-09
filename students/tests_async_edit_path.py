@@ -42,6 +42,7 @@ from assignments.tasks import (
     extract_answer_background_task,
 )
 from AutoGrader.celery import app as celery_app
+from AutoGrader.testing.live_server import BurstLiveServerThread
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from billing.refunds import record_billing_task_id
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
@@ -463,6 +464,7 @@ class UpdateAsyncConcurrencyLiveHTTPTest(LiveServerTestCase):
     AI work happens in any request."""
 
     WORKERS = 12
+    server_thread_class = BurstLiveServerThread
 
     def setUp(self):
         (
