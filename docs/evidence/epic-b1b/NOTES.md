@@ -1626,3 +1626,91 @@ Logs are in `step3/`, with the suffix `_0539ccbb`. E1 and E2 are gzipped. The re
   - **67 guards: 1148 tests (1 decorated skip)**: 1146 + 2.
 - **Counts by `build_suite` at bf05ce685:** E1 (§21m labels + 67 guards) **7414**; E2 (apps, with `AutoGrader.tests_migration_rollback_defaults` already in it) **6350**.
 - `makemigrations --check`: **No changes detected.**
+
+### §4.6 B1b-4: the design as built, the red and the plants (declared before any product edit)
+
+**Design facts found while writing the tests** (for the SM; each is flagged in the declaration message):
+- **D-a. Q2 needs no fallback.** A grading paper's images come only from the assignment's own `question_image` fields (`AIProcessor._question_image_content_blocks`, `ai_processor/services.py:4280`). So the target's shape is read exactly from `assignment.questions`, and `shape_basis` is always `"assignment_questions"`. History papers take `has_images` from any call with `images > 0`.
+- **D-b. Q6: the estimate does not use `HasCreditBalance`.** That permission refuses an empty wallet with 402 (grade-all has it), but FR-B-04 needs a teacher at 0 to get INSUFFICIENT, not a refusal.
+  - The shared check is the access rule grade-all's queryset uses: `IsTeacher` plus `teacher_course_access_q(user, prefix="course__")` (`classrooms/models.py:252`), the same function. Another teacher's assignment gets 404 from both routes, compared in one test.
+- **D-c. Q3 and the request audit row.** The route-coverage guard requires every POST route to leave exactly one request audit event. So the endpoint leaves one: the middleware's, with route `billing-estimate`, and no other. The cold-start read-only test calls `estimates.estimate()` directly and asserts no audit row.
+- **D-d. The route-coverage guard needs no edit.** It discovers write routes itself (`write_routes()`), so `billing-estimate` is covered from the moment it exists. Shown by the `write_routes()` count going up by exactly 1, recorded at green.
+- **D-e. The activity-log label.** `audit.tests_h273_query_filters.test_every_target_type_the_code_writes_has_a_label` requires a `_TARGET_LABEL` entry for `target_type="BillingSettings"` (the `billing_settings` audit row). I propose `"Billing settings"`, the model's existing `verbose_name`, so it is not new wording. **Needs the SM's word.**
+- **D-f. The rough prompt.** Grading builds its prompt inside `_grade_student_submission_impl` and doesn't expose it. The rough tier estimates `GRADING_ASSIGNMENT_PROMPT` plus the assignment's questions plus the representative submission's answers, text only, with `estimate_messages_cost` (no image bytes).
+  - It reads less than the real prompt. The factor absorbs that by definition: `backtest_credit_estimates --cold-start` measures the factor as actual ÷ the real call's own `AICallRecord.estimate`, and in replay the rough tier uses the batch's first paper's recorded `estimate`.
+- **D-g. Gate 6 EXPLAIN checks the two queries the indexes serve** (the assignment tier and the teacher tier). The all-papers shape tier reads every row in the window by design; a sequential scan there is not an index miss.
+
+**The built pieces:**
+- `billing/estimates.py`: the only new reader of `AICallRecord`. Its public functions are `paper_costs`, `paper_costs_sql`, `band`, `estimate`, `verdict`, `advise`, `spendable_of`, `shape_of`, `question_bucket`, `size_band`, `past_batches`, `backtest`, `cold_start_ratio`, `drift_reasons`, `drift_check` and `emit_drift_metric`, plus the constants `DRIFT_EMAIL_APPROVED = False` and the draft text.
+  - Percentiles are nearest-rank; σ is the population σ; p50 and p90 are rounded up.
+- `billing.views.BillingEstimateView`, `POST billing/estimate` (name `billing-estimate`). The body is `{assignment_id, submission_ids: [uuid…] | "all_ungraded"}`, using DRF's own validation messages and no new text.
+- Migrations:
+  - `billing` 0083 `AIJob.estimate_source` (CharField 16, null);
+  - `billing` 0084 `EstimateDriftRun` (`ran_at`, `window_days`, `batches`, `coverage`, `cells` JSON, `suggested_factor`, `current_factor`, `drifted`);
+  - two `ai_processor` migrations, each `atomic = False` with `AddIndexConcurrently`: `aicall_assignment_created (assignment_id, created_at)` and `aicall_billed_user_created (billed_user_id, created_at)`.
+- `billing.tasks.check_credit_estimate_drift`: `@single_instance(max_hold=beat_locks.DAILY)`; beat entry `check-credit-estimate-drift-monthly`, `crontab(minute=0, hour=6, day_of_month=1)`.
+- `audit.metrics`: a `credit_estimate_drift` counter, through the module's existing no-op-safe emitter.
+- Commands:
+  - `backtest_credit_estimates [--days 90] [--cold-start]`, read-only;
+  - `billing_settings --show | --set field=value … --by <email>`. The `--by` user must be an active super admin. All sets are validated before any is applied, in one transaction, with one `STATE_CHANGE` row per field under `command_actor`. The factor must be finite and > 0; the integer fields use their model field's range.
+- `BillingSettings`' docstring "(one row via Django admin)" is corrected to name the command.
+
+**The new tests: 71** (by `def test_`; the counts are re-taken by `build_suite` once the modules import):
+- `billing.tests.test_estimates_band`: 32;
+- `billing.tests.test_estimate_endpoint`: 10;
+- `billing.tests.test_estimate_backtest`: 20;
+- `billing.tests.test_billing_settings_command`: 8;
+- `billing.tests.test_estimate_gate6`: 1, a decorated skip without `RUN_LOAD_TESTS`.
+- The helper module `billing/tests/testing_estimates.py` has no tests.
+
+**R, the red (tests committed, no product code), flag unset, under `flock`:**
+- The four test modules each **ERROR at import**: `ImportError: cannot import name 'estimates' from 'billing'` (band, endpoint, backtest) and `Unknown command: 'billing_settings'` per test (settings). The backtest module imports `EstimateDriftRun` and `check_credit_estimate_drift` after `estimates`, so it stops at the first.
+- The Gate 6 module also imports `estimates`, so it ERRORs at import (no skip is reached).
+- Expected: **`FAILED (errors=12)`**: 4 import errors plus 8 `billing_settings` errors. The import errors count one each. If the runner counts them otherwise, the error lines are recorded as observed, and the declared point is the fragments.
+
+**G, the green, at the product commit:**
+- **The green set:** the five new modules, `ai_processor.tests_call_record_static`, `audit.tests_route_coverage`, `audit.tests_h273_query_filters`, `audit.tests_history_guard`, `AutoGrader.tests_beat_locks`, `AutoGrader.tests_migration_rollback_defaults`, `billing.tests.test_holds_schema`, and B1a's hold set (141).
+  - **OK**, with the Ran count taken by `build_suite` and recorded before the run.
+- **Break runs** (the edited pre-existing tests, each run unedited against the product first):
+  - **BR-1** `NothingReadsOrExposesTheTable.test_no_other_code_names_the_model`: fails with `['billing/estimates.py'] != []`. Then `ALLOWED` gets that one entry.
+  - **BR-2** `TheColumns.test_the_two_indexes_and_no_more`: fails on `self.assertEqual(AICallRecord._meta.indexes, [])` with `Lists differ: [<Index: fields=['assignment_id', 'created_at'] name='aicall_assignment_created'>`. Then it is renamed `test_the_two_column_indexes_and_the_two_estimate_indexes`, pinning both named indexes by fields and name.
+  - **BR-3** `test_every_target_type_the_code_writes_has_a_label`: fails with `['BillingSettings'] != []`. Then `_TARGET_LABEL["BillingSettings"] = "Billing settings"`, subject to the SM's word on D-e.
+
+**The plants** (on the green set's five new modules; each restored by sha256; killed by the named test with the fragment):
+
+| Plant | Change | Killed by | Fragment |
+|---|---|---|---|
+| PE-1 (M-B8) | SUFFICIENT when `S >= p50` | `test_one_below_p90_is_marginal` | `'SUFFICIENT' != 'MARGINAL'` |
+| PE-2 | the teacher tier before the assignment tier | `test_ten_papers_of_this_assignment_win` | `'teacher_shape' != 'assignment'` |
+| PE-3 | the assignment tier needs 11 | `test_ten_papers_of_this_assignment_win` | `'teacher_shape' != 'assignment'` |
+| PE-3b | the assignment tier needs 9 | `test_nine_papers_of_this_assignment_fall_through_to_the_teachers_shape` | `'assignment' != 'teacher_shape'` |
+| PE-4 | the shape tiers need 29 | `test_twenty_nine_of_the_teachers_shape_fall_through_to_all_papers` | `'teacher_shape' != 'shape'` |
+| PE-5 | p90 uses `σ·n` | `test_one_hundred_papers_use_root_n_not_n` | `32800 != 21280` |
+| PE-6 | the √n formula below 10 papers | `test_below_ten_papers_p90_is_n_times_the_p90_paper` | `!= 810` |
+| PE-7 | 3b's per-question scaling dropped | `test_tier_3b_scales_any_shape_per_question` | `3000 != 750` |
+| PE-8 | rough's × 1.5 dropped | `test_the_rough_estimate_uses_the_settings_factor_and_p90_times_1_5` | `8000 != 12000` |
+| PE-9 | the factor hard-coded 3.0 | the same test | `12000 != 8000` |
+| PE-10 | `paper_costs` returns the queryset | `test_the_reads_return_plain_values_never_rows_or_querysets` | `is not an instance of <class 'list'>` |
+| PE-11 | the endpoint creates an `AIJob` | `test_it_writes_no_job_and_holds_nothing` | `!= ` (the job count, +1) |
+| PE-12 | the outcome filter dropped | `test_a_failed_call_is_left_out_of_the_paper_cost` | `[1199] != [200]` |
+| PE-13 | the refund exclusion dropped | `test_a_refunded_call_is_left_out_of_the_paper_cost` | `[700] != [200]` |
+| PE-14 | the SUCCESS filter dropped | `test_a_paper_whose_task_row_did_not_succeed_is_left_out` | `!= [100]` |
+| PE-15 | the access rule dropped (any assignment by id) | `test_another_teachers_assignment_is_refused_as_grade_all_refuses_it` | `200 != 404` |
+| PE-16 | overall drift at `<=` 0.85 | `test_eighty_five_percent_overall_is_not_drift` | `!= []` |
+| PE-17 | a cell at `<=` 0.80 | `test_a_cell_at_eighty_percent_is_not_drift` | `!= []` |
+| PE-18 | cells with 29 batches count | `test_a_cell_below_eighty_percent_with_twenty_nine_batches_is_not` | `!= []` |
+| PE-19 | the drift task without `@single_instance` | `test_the_task_runs_one_at_a_time` | `unexpectedly None` |
+| PE-20 | the email sent while not approved (gate removed) | `test_drift_sends_no_email_while_the_text_is_not_approved` | `Expected 'delay' to not have been called` |
+| PE-21 | `--set` without its audit row | `test_set_changes_one_field_and_writes_one_audit_row` | `0 != 1` |
+| PE-22 | `--set` skips validation | `test_out_of_bounds_and_wrong_type_values_are_refused` | `CommandError not raised` |
+
+Collateral is recorded as observed and is not a mismatch. A survivor, or a kill by another test or without its fragment, is a STOP.
+
+**Then:**
+- **the cold-start survey run:** `backtest_credit_estimates --cold-start` on the test DB (no production access) shows the command runs;
+- **Gate 6** (`RUN_LOAD_TESTS=1`): `Ran 1`, OK, numbers recorded;
+- **E1, flag on** (§21m labels + 67 guards): 7414 + 70 run (+1 skip) = **`Ran 7485`**, skipped = 31 + 1;
+- **E2, the flag-off near, apps** (now with `AutoGrader.tests_migration_rollback_defaults` named, as ruled): 6350 + 71 = **`Ran 6421`**, skipped = 23 + 1;
+- **E3, the 67 guards, serially: `Ran 1148`**, `OK (skipped=1)`, plus any test the edits add to a guard module (re-counted by `build_suite` before the run);
+- `makemigrations --check`: No changes.
+- Every count is re-taken by `build_suite` at the product commit and recorded before its run.
