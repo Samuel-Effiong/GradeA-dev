@@ -96,3 +96,72 @@ Plant results (each restored, sha256 MATCHED 10dc88234f35cfb8):
 - P1 (`03_plant_p1.log`): Ran 4, OK. Survives, **as predicted**: the belt alone holds.
 - P2 (`04_plant_p2.log`): Ran 4, FAILED (failures=1), d1 `(10000, 10000) != (5000, 5000)`. Killed, **as predicted**.
 - P3 (`05_plant_p3.log`): Ran 4, FAILED (failures=2), b1 `(10000, 10000, 0) != (5000, 5000, 0)` and d1. Killed, **as predicted**.
+
+## Near (declared before the runs)
+
+Billing plus the 66-label standing guard list. Seven of the 66 do not exist
+on beta (staging-only code: classrooms.tests_e1_grade_guard,
+students.tests_student_data_map, ai_processor.tests_metering_chokepoint,
+billing.tests.test_wallet_save_guard, test_zero_credit_registry,
+test_holds_entry, test_holds_single_call), so beta's list is the 59 that do.
+The billing guards among them run inside the `billing` label.
+
+- Near 06, `billing`, --parallel 2: count from build_suite **2378**; no
+  skips in billing. Predicted: **Ran 2378, OK**. Log `06_near_billing.log`.
+- Near 07, the 50 non-billing guards that exist on beta, SERIAL (the
+  redis-isolation fork tests run): count **928**; one decorator skip (ssrf
+  peer introspection, CI_REQUIRE_NETWORK). Predicted: **Ran 928, OK
+  (skipped=1)**. Log `07_guard_sweep.log`.
+
+    AutoGrader.tests_credscan
+    AutoGrader.tests_h271_static_files
+    AutoGrader.tests_network_guard
+    AutoGrader.tests_student_classmates_guard
+    AutoGrader.tests_student_feedback_guard
+    AutoGrader.tests_submission_audience_guard
+    ai_processor.tests_call_record_static
+    ai_processor.tests_h2_grading_benchmark_guard
+    ai_processor.tests_ssrf_guard
+    audit.tests_history_guard
+    audit.tests_route_coverage
+    audit.tests_h273_query_filters
+    students.tests_reading_label_static
+    students.tests_app_boundaries
+    students.tests_h279_regrade_pending_approval
+    users.tests_roads_that_sign_in_or_activate
+    AutoGrader.tests_cache_invalidation_coverage
+    AutoGrader.tests_codederror_serialization
+    AutoGrader.tests_management_commands_are_commands
+    AutoGrader.tests_no_pii_in_logs
+    AutoGrader.tests_no_playwright_at_import
+    AutoGrader.tests_no_wildcard_invalidation
+    AutoGrader.tests_reason_codes
+    AutoGrader.tests_redis_test_isolation
+    ai_processor.tests_grading_run_pipeline
+    ai_processor.tests_h205_image_fallback
+    ai_processor.tests_provider_block
+    ai_processor.tests_reading_config
+    assignments.tests_schema_extension
+    classrooms.tests_course_roster_scope_sweep
+    classrooms.tests_teacher_access_sweep
+    students.tests_grading_label_written
+    students.tests_identity_reason_codes
+    users.tests_h296_message_rewording
+    AutoGrader.tests_h246_sentry_environment
+    AutoGrader.tests_log_scrubbing
+    AutoGrader.tests_sentry_scrubbing
+    AutoGrader.tests_sentry_sends_no_variables
+    AutoGrader.tests_h285_djoser_removed
+    AutoGrader.tests_pip_audit_gate
+    ai_processor.tests_h262_prod_image_dev_tools
+    ai_processor.tests_ai_call_trace
+    ai_processor.tests_grading_cache_key_v2
+    ai_processor.tests_grading_config
+    ai_processor.tests_grading_run_checker
+    assignments.tests_task_results_carry_no_text
+    students.tests_answer_document_before_release
+    students.tests_grading_label_fields
+    students.tests_reading_label_columns
+    students.tests_step_label_words
+
+Any failure is a STOP.
