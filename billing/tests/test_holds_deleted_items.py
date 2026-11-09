@@ -86,7 +86,7 @@ class DeletedItemsBase(TransactionTestCase):
             enrollment_status=EnrollmentStatusType.ENROLLED,
         )
         submission = StudentSubmission.objects.create(
-            assignment=self.assignment, student=student
+            assignment=self.assignment, student=student, answers={}
         )
         return student, submission
 

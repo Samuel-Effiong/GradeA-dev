@@ -215,6 +215,7 @@ Fast delete is in effect today: 15 queries for 1,000 rows, whatever their holds.
 - **`AIJob.estimate_p50` and `estimate_p90` already exist.** They were added in B1a's 0074 (`billing/models.py:1838–1839`) and are pinned by `billing/tests/test_holds_schema.py:90–91`.
 - 08b §1.1 ("No p50/p90 columns") and §1.3 item 3 are wrong. My §0.1 row for the `AIJob` columns said "same" without checking that claim.
 - **Effect on B1b-4:** only `estimate_source` is new. That leaves one additive column, not three. Reported to the SM.
+- **SM ruling (2026-11-09): correction accepted.** 08b §1.1 and §1.3 item 3 overstated the new columns. B1b-4 needs only the one additive `estimate_source` column. 08b is not edited here; the SM fixes the owner-facing document.
 
 ### §1.4 The tests (written first; declared before the red run)
 
@@ -259,9 +260,19 @@ Each is planted on the green fix, run against the new file, and restored. The sh
 
 ### §1.6 The red run: STOP, prediction mismatch (recorded as it is)
 
+**Label (SM, 2026-11-09): prediction wrong: test-fixture bug (T-3/T-4 IntegrityError before reaching the code under test).**
+
 **Result (at a28b6a517, today's code, under `flock`, 9725 MB available): Ran 16, FAILED (failures=11, errors=5).** Predicted: failures=13, errors=3. Log: `step1/step1_red_a28b6a51.log`.
 - **13 of the 16 matched:** T-1, T-2, T-5…T-9, T-11, T-13 and T-14 failed as declared, and T-10, T-12 and T-15 errored as declared (`AttributeError: 'AIJob' object has no attribute 'deleted_items_held'`). The leak shows in every reserved assertion: T-1 and T-2 read `600 != 300`, and T-9 reports `item_sum job=…`.
 - **The mismatch: T-3 and T-4 ERRORED instead of failing.** The cause is `django.db.utils.IntegrityError: null value in column "answers" of relation "students_studentsubmission"`.
   - It comes from the test's own fixture (`enrolled_student`, test file line 88). `StudentSubmission.answers` (`students/models.py:41`) is a non-null JSONField, and the fixture creates the submission without it.
   - It is a bug in the new test, not in the code under test. Neither test reached the erasure.
 - **Proposed fix (for the SM's ruling):** the fixture passes `answers={}`, with nothing else changed. Then re-run red, declared again as `Ran 16, FAILED (failures=13, errors=3)`, recorded beside this run and not replacing it.
+
+### §1.7 Red run 2 (declared before it runs; SM ruling 2026-11-09)
+
+- **The only change:** `enrolled_student()` passes `answers={}` to `StudentSubmission.objects.create` (test file line 89). Nothing else changes.
+- **Prediction (as in §1.4): `Ran 16`, `FAILED (failures=13, errors=3)`.**
+  - Errors: T-10, T-12 and T-15 (`AttributeError`).
+  - Failures: the other 13. T-3 and T-4 now reach the erasure and fail on `reserved` (`600 != 300`), like T-1.
+- **A STOP if** any test other than T-3 and T-4 changes outcome from run 1, or the split differs.
