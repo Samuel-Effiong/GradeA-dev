@@ -1418,3 +1418,30 @@ The full list after P1 and P5:
 10. **E3, the 66 guards, serially: `Ran 1146`, `OK (skipped=1)`.**
 
 - `makemigrations --check`: **No changes** (no model field changes; only a method argument).
+
+**Results so far (at 1a258c0d8, under `flock`):**
+- **G, the green: `Ran 164`, OK**, as declared. Log: `step3/G_green_1a258c0d.log`.
+- **S1′: `Ran 2`, OK.** Log: `step3/S1b_survey_1a258c0d.log`.
+  - **The flag-off block is identical to S1's:** 35 statements, the same (function, shape) in order, compared with the line numbers stripped.
+    - The raw `diff` showed 3 lines differing only by a trailing space at the listing's 150-character cut. With trailing whitespace trimmed, it is identical.
+  - **Flag on: 37 real queries, as pinned** (57 statements with savepoints). I wrote "59 with savepoints" in the declaration. That was not a STOP condition, but it is recorded: the trim also removed 2 savepoints (`finish_job`'s and its re-read path), not 0.
+  - **The cascade: 4,734**, as expected.
+- **The P plants** (logs: `step3/PP_*_1a258c0d.log`; each restored, `sha256sum -c` matched `billing/holds.py`, `billing/models.py` and `billing/apps.py` after each):
+
+| Plant | Result | Killed by | Fragment | Against the declaration |
+|---|---|---|---|---|
+| PP1 | FAILED (failures=1) | the count pin | `39 != 37` | as declared |
+| PP1b | FAILED (failures=1) | `test_a_call_holds_settles_and_returns_the_rest` | `'RUNNING' != 'SETTLED'` | as declared |
+| PP2 | FAILED (failures=1) | the count pin | `39 != 37` | as declared |
+| **PP3** | FAILED (failures=1) | the count pin | **`38 != 37`** | **STOP: fragment mismatch** (declared `39 != 37`) |
+| PP3b | FAILED (failures=1) | `test_a_wallet_blocked_during_the_call_is_refused_at_settle` | `InsufficientCreditsError not raised` | as declared |
+| PP4 | FAILED (failures=1) | the count pin | `38 != 37` | as declared |
+| PP5 | FAILED (failures=1) | the count pin | `38 != 37` | as declared |
+| PPL | FAILED (failures=2) | the lock-order test | `False is not true : a billing write came before the wallet lock:` | as declared (the count pin `38 != 37` is collateral, as declared) |
+
+**The PP3 STOP, diagnosed from its own log (no re-run):**
+- The failing test prints its 38 queries. The only addition against the green is consume's `SELECT … "billing_creditwallet" … FOR UPDATE` (the re-lock the plant restores), log line 46.
+- There is **no** lazy `wallet.user` load. The only user query is `after_bulk_create`'s `… WHERE "users_customuser"."id" IN (%s)`, which the green has too.
+- So my "+2" was wrong. The lazy user load removed at §3.2a line 31 is removed by **P2**'s `select_related("user")` alone: PP2, which drops P2, gives `39 != 37` (job.wallet plus user). It does not depend on P3.
+- The plant is killed by its named test, the count pin, so **the trim itself is not in doubt**. The mismatch is in my declared fragment.
+- **Not run yet, pending the SM's ruling:** the battery, PFB-1…9b, the timing, measurement 4, and E1–E3.
