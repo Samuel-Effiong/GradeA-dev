@@ -1720,3 +1720,17 @@ Collateral is recorded as observed and is not a mismatch. A survivor, or a kill 
 - So the red's import fragment is **`ModuleNotFoundError: No module named 'billing.estimates'`** in those three, not `ImportError: cannot import name …`.
 - The endpoint module doesn't import `estimates`; it fails per test on `reverse("billing-estimate")`: **`NoReverseMatch`** in `setUp`, so 10 errors.
 - **R, re-declared:** **`FAILED (errors=21)`**: 3 module import errors (band, backtest, Gate 6), the endpoint's 10 `NoReverseMatch` setUp errors, and the 8 `Unknown command: 'billing_settings'` errors.
+
+**R result (at 3681914ed, under `flock`, flag unset): `Ran 21`, `FAILED (errors=16)`. STOP: declared `errors=21`.** Log: `step4/R_red_3681914e.log`.
+- As declared:
+  - 3 module import errors, each `ModuleNotFoundError: No module named 'billing.estimates'` (band, backtest, Gate 6);
+  - 10 endpoint `NoReverseMatch: Reverse for 'billing-estimate' not found`;
+  - 3 `billing_settings` tests ERROR with `Unknown command: 'billing_settings'`: `test_show_prints_every_field`, `test_set_changes_one_field_and_writes_one_audit_row`, `test_two_sets_are_two_rows`.
+- **The mismatch: the other 5 `billing_settings` tests passed with no command.** They are `test_set_needs_by`, `test_by_must_be_an_active_super_admin`, `test_an_unknown_field_is_refused`, `test_out_of_bounds_and_wrong_type_values_are_refused` and `test_a_refused_set_changes_nothing_even_after_a_good_one`.
+  - Each expects `CommandError`, and Django's `Unknown command` is a `CommandError`, so each is satisfied by the command not existing. **That is a vacuous pass, a weakness in my tests**, not only a wrong count.
+- **Proposed fix (not applied; for the SM):** each of the five asserts the command's own refusal text with `assertRaisesMessage`, so `Unknown command` no longer satisfies it. The refusal texts are operator-facing command output, not app wording:
+  - `"--by is required with --set"`;
+  - `"--by must name an active super admin"`;
+  - `"unknown setting: <name>"`;
+  - `"invalid value for <name>: <value>"`.
+- Then the red is re-run, **expecting `FAILED (errors=21)`**: those five then ERROR on `Unknown command`, because `assertRaisesMessage` re-raises a `CommandError` whose message doesn't match. Precisely, assertRaisesMessage *fails* on a non-matching message, so each of those five shows as **FAIL**. Re-declared exactly: **`FAILED (failures=5, errors=16)`**.
