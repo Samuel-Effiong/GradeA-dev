@@ -1,0 +1,58 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 3d9c4359-add8-4057-8945-b6f4df81a7ce.
+Cannot activate automatic trial for user 3d9c4359-add8-4057-8945-b6f4df81a7ce (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+Upload door could not estimate blank.pdf: PayloadEmpty
+Upload door could not estimate blank2.pdf: PayloadEmpty
+
+
+students.task_tracking ERROR 2026-11-09 13:11:46,970 task_tracking 28310 125214090168192 [request_id=175942c2-f35c-409c-abb5-c9f73203ed5c client_request_id=-] Background task 20806f74-0284-43e1-8cc7-bd9f0613d39f failed: error=PayloadEmpty frames=views.py:1157:upload_assignment_async <- uploads.py:70:validate_upload_size
+
+
+
+
+students.task_tracking ERROR 2026-11-09 13:11:46,974 task_tracking 28310 125214090168192 [request_id=175942c2-f35c-409c-abb5-c9f73203ed5c client_request_id=-] Background task 332ab76d-0c7f-41f6-8760-3f19043efded failed: error=PayloadEmpty frames=views.py:1157:upload_assignment_async <- uploads.py:70:validate_upload_size
+
+
+Upload door could not estimate big.pdf: PayloadTooLarge
+Upload door could not estimate big2.pdf: PayloadTooLarge
+
+
+students.task_tracking ERROR 2026-11-09 13:11:46,985 task_tracking 28310 125214090168192 [request_id=b425f64d-cafb-44d4-83b9-e12e35c5d71b client_request_id=-] Background task e31cf3e0-1012-4fec-a795-ae858e594033 failed: error=PayloadTooLarge frames=views.py:1157:upload_assignment_async <- uploads.py:74:validate_upload_size
+
+
+
+
+students.task_tracking ERROR 2026-11-09 13:11:46,988 task_tracking 28310 125214090168192 [request_id=b425f64d-cafb-44d4-83b9-e12e35c5d71b client_request_id=-] Background task 334cde10-c605-486e-84fe-eba4899ae13f failed: error=PayloadTooLarge frames=views.py:1157:upload_assignment_async <- uploads.py:74:validate_upload_size
+
+
+.Free trial plan not found: no trial activated for user e4668858-191b-43cf-99b8-ad6ec4360012.
+Cannot activate automatic trial for user e4668858-191b-43cf-99b8-ad6ec4360012 (validation): ValueError
+Upload door could not estimate blank.pdf: PayloadEmpty
+
+
+students.task_tracking ERROR 2026-11-09 13:11:47,157 task_tracking 28310 125214090168192 [request_id=190c4725-7f56-40ae-a8ee-6700872b89d5 client_request_id=-] Background task 3929062f-05c3-444f-a7a6-16d70fa691e5 failed: error=PayloadEmpty frames=views.py:1157:upload_assignment_async <- uploads.py:70:validate_upload_size
+
+
+....Free trial plan not found: no trial activated for user c10da2e7-70ad-43a7-acf6-c0ebd3d45a26.
+Cannot activate automatic trial for user c10da2e7-70ad-43a7-acf6-c0ebd3d45a26 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1c123b20-fbc7-44af-af61-48c5299c3763.
+Cannot activate automatic trial for user 1c123b20-fbc7-44af-af61-48c5299c3763 (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 7 tests in 0.917s
+
+OK
+Destroying test database for alias 'default'...
+Found 7 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

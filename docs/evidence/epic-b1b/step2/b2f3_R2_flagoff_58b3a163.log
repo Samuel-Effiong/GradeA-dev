@@ -1,0 +1,52 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 1b44c84c-4c52-4d1f-bfcf-1b31b77074b9.
+Cannot activate automatic trial for user 1b44c84c-4c52-4d1f-bfcf-1b31b77074b9 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+Upload door could not estimate blank.png: PayloadEmpty
+
+
+students.task_tracking ERROR 2026-11-09 13:09:50,779 task_tracking 25153 140453969315712 [request_id=dcf274fe-64a4-4d76-af60-c043255df7dd client_request_id=-] Background task 42da35e1-270e-4f87-ad3b-5ff5eb23df60 failed: error=SubmissionEmptyError frames=tasks.py:1050:upload_answers_engine_async <- services.py:598:prepare_ai_content
+
+
+.Free trial plan not found: no trial activated for user 3c1522be-5e49-4bc7-8665-2e12251f47b6.
+Cannot activate automatic trial for user 3c1522be-5e49-4bc7-8665-2e12251f47b6 (validation): ValueError
+Upload door could not estimate blank.txt: PayloadEmpty
+
+
+students.task_tracking ERROR 2026-11-09 13:09:50,938 task_tracking 25153 140453969315712 [request_id=3ee3af4d-d8b7-45f2-be8f-fddaa1dc17af client_request_id=-] Background task 2567866e-fb1d-42bf-9f32-825feb85101b failed: error=FileTypeUnsupportedError frames=tasks.py:1050:upload_answers_engine_async <- services.py:590:prepare_ai_content
+
+
+.Free trial plan not found: no trial activated for user c717faa0-a0a4-45bc-a2c7-1dbf87fd4b61.
+Cannot activate automatic trial for user c717faa0-a0a4-45bc-a2c7-1dbf87fd4b61 (validation): ValueError
+Upload door could not estimate blank.png: PayloadEmpty
+
+
+students.task_tracking ERROR 2026-11-09 13:09:51,063 task_tracking 25153 140453969315712 [request_id=9e665e1f-f19f-4329-8c9f-233bfbd1509c client_request_id=-] Background task c71a2b59-d72e-4f4a-896a-567334c6c9df failed: error=SubmissionEmptyError frames=tasks.py:1050:upload_answers_engine_async <- services.py:598:prepare_ai_content
+
+
+.Free trial plan not found: no trial activated for user 6969586d-2992-494f-95b8-2a369923d82b.
+Cannot activate automatic trial for user 6969586d-2992-494f-95b8-2a369923d82b (validation): ValueError
+Upload door could not estimate blank.txt: PayloadEmpty
+
+
+students.task_tracking ERROR 2026-11-09 13:09:51,128 task_tracking 25153 140453969315712 [request_id=63ef01dc-2659-4638-9721-098cd668aeba client_request_id=-] Background task 4a4cf8fe-320f-4f25-b595-dcbf4a23aa17 failed: error=FileTypeUnsupportedError frames=tasks.py:1050:upload_answers_engine_async <- services.py:590:prepare_ai_content
+
+
+.
+----------------------------------------------------------------------
+Ran 4 tests in 0.718s
+
+OK
+Destroying test database for alias 'default'...
+Found 4 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

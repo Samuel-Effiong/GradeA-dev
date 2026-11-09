@@ -1030,3 +1030,27 @@ Any failure is a STOP: a listed test still red with the flag on, or any off-list
 - **The run:** all seven B2 files (F1's labels without c2, plus F2–F7: **17 + 12 + 4 + 11 + 7 + 10 + 64 = 125** tests, counted together by `build_suite` before the run), **flag on**.
 - **Prediction:** **the 25 wrapped tests all fail** (FAIL or ERROR, "never launched": the launch is called 0 times, the queued list is `[]`, the task stays PENDING, or the counts are 0). The off-list tests and the Q2-pinned test are allowed either way.
 - If a wrapped test passes, that is a STOP: its wrap would not be what runs its launch.
+
+**A lost scratchpad, recorded:** between the F3–F7 commit and the runs, the session scratchpad was emptied (recreated 14:05). That lost the plant scripts, the count script and `guards66.txt`.
+- No evidence was lost: `expected45.tsv` and every log are in `step2/`.
+- **The 66-label guard list** was rebuilt from this session's own earlier output and checked before use: 66 unique labels, `build_suite` **1146** with **1** decorated skip, the same as every earlier guard run (§1.18, §1.24).
+- It is now committed at `docs/evidence/epic-b1b/guards66.txt`, so it can't be lost again.
+- The run and count scripts were rewritten with the same commands.
+
+**F3–F7 results (at 58b3a163a, under `flock`):** all as declared, all OK both ways. Logs: `step2/b2f{3..7}_*_58b3a163.log`.
+
+| Run | R1 flag on | R2 flag unset |
+|---|---|---|
+| F3 | Ran 4, OK | Ran 4, OK |
+| F4 | Ran 11, OK | Ran 11, OK |
+| F5 | Ran 7, OK | Ran 7, OK |
+| F6 | Ran 10, OK | Ran 10, OK |
+| F7 | Ran 64, OK | Ran 64, OK |
+
+- Every off-list test declared in §2.8 passed both ways, as it did before (survey flag on, near flag off). **No flips.**
+
+**PB2-1 (at 58b3a163a, flag on, the 7 files = 125 by `build_suite`): `Ran 125`, `FAILED (failures=22, errors=3)`.** Log: `step2/b2_PB2-1_58b3a163.log`.
+- The failing set, compared with `comm` against the 25 wrapped tests (the B2 rows of `expected45.tsv` minus the Q2 pin), is **exactly the 25**. No wrapped test passed, and no other test failed.
+- **Killed, as declared.** Restored with `git checkout`; `sha256sum -c` matched `assignments/upload_door.py`.
+
+**B2 is done:** 25 wraps and 1 pin (Q2), with no assertion changed and no off-list flip. The only helper change is the two `run_inline` fakes, which now take `_celery_task_id` like the real launch.

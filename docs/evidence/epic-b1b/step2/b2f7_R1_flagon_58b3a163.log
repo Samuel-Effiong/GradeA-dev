@@ -1,0 +1,285 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 57cc938b-90dc-4922-9b8c-0a97d7edf7ba.
+Cannot activate automatic trial for user 57cc938b-90dc-4922-9b8c-0a97d7edf7ba (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+Upload door could not estimate answers.pdf: FileUnreadableError
+.Free trial plan not found: no trial activated for user ef709477-e638-4815-ad44-c3d65f0804f0.
+Cannot activate automatic trial for user ef709477-e638-4815-ad44-c3d65f0804f0 (validation): ValueError
+.Free trial plan not found: no trial activated for user ba819b36-b8eb-4864-be9d-cbfa7da7b87c.
+Cannot activate automatic trial for user ba819b36-b8eb-4864-be9d-cbfa7da7b87c (validation): ValueError
+.Free trial plan not found: no trial activated for user cb0b7976-8391-4845-960b-1e85e3b56717.
+Cannot activate automatic trial for user cb0b7976-8391-4845-960b-1e85e3b56717 (validation): ValueError
+.Free trial plan not found: no trial activated for user 26830bde-51aa-46e5-ad22-8ffd586e59c7.
+Cannot activate automatic trial for user 26830bde-51aa-46e5-ad22-8ffd586e59c7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 73299003-df2e-4431-a6fb-b8c35d0bd1a9.
+Cannot activate automatic trial for user 73299003-df2e-4431-a6fb-b8c35d0bd1a9 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9237a735-8e06-4d5b-9e15-39fa66908f52.
+Cannot activate automatic trial for user 9237a735-8e06-4d5b-9e15-39fa66908f52 (validation): ValueError
+Free trial plan not found: no trial activated for user 6f7885fe-25ca-498d-a64e-f14d7141cf83.
+Cannot activate automatic trial for user 6f7885fe-25ca-498d-a64e-f14d7141cf83 (validation): ValueError
+.Free trial plan not found: no trial activated for user 603c38e2-4a7e-47a3-a837-363ea1576dc9.
+Cannot activate automatic trial for user 603c38e2-4a7e-47a3-a837-363ea1576dc9 (validation): ValueError
+Free trial plan not found: no trial activated for user 2dcc138d-cadd-4512-aaae-60243f632eb5.
+Cannot activate automatic trial for user 2dcc138d-cadd-4512-aaae-60243f632eb5 (validation): ValueError
+API request refused: ValidationError (400)
+.Free trial plan not found: no trial activated for user 3e43dd08-5441-426e-84f9-0ddaa1550459.
+Cannot activate automatic trial for user 3e43dd08-5441-426e-84f9-0ddaa1550459 (validation): ValueError
+Free trial plan not found: no trial activated for user 30ece8e6-eca9-4c9a-81ee-46f7165c017a.
+Cannot activate automatic trial for user 30ece8e6-eca9-4c9a-81ee-46f7165c017a (validation): ValueError
+.Free trial plan not found: no trial activated for user 69d04087-a130-4d8a-9b70-8b50ae0a0352.
+Cannot activate automatic trial for user 69d04087-a130-4d8a-9b70-8b50ae0a0352 (validation): ValueError
+Free trial plan not found: no trial activated for user 2f230553-5a78-44fd-bf46-263ae4c4f73f.
+Cannot activate automatic trial for user 2f230553-5a78-44fd-bf46-263ae4c4f73f (validation): ValueError
+.Free trial plan not found: no trial activated for user 46f031ec-6b90-4db7-b38e-28a57292316b.
+Cannot activate automatic trial for user 46f031ec-6b90-4db7-b38e-28a57292316b (validation): ValueError
+Free trial plan not found: no trial activated for user 3bc8a467-1f88-46ab-b2aa-f66fafecbf05.
+Cannot activate automatic trial for user 3bc8a467-1f88-46ab-b2aa-f66fafecbf05 (validation): ValueError
+.Free trial plan not found: no trial activated for user b84fd92b-ead9-4455-9f82-4ee0617d88e4.
+Cannot activate automatic trial for user b84fd92b-ead9-4455-9f82-4ee0617d88e4 (validation): ValueError
+Free trial plan not found: no trial activated for user 7da1998a-2edb-4910-8831-5d65ac1fc3c3.
+Cannot activate automatic trial for user 7da1998a-2edb-4910-8831-5d65ac1fc3c3 (validation): ValueError
+.Free trial plan not found: no trial activated for user f45d4cad-5870-44c4-b79c-2aca8ce820bc.
+Cannot activate automatic trial for user f45d4cad-5870-44c4-b79c-2aca8ce820bc (validation): ValueError
+Free trial plan not found: no trial activated for user 453bb25b-357d-41c1-994c-705d55da5d43.
+Cannot activate automatic trial for user 453bb25b-357d-41c1-994c-705d55da5d43 (validation): ValueError
+.Free trial plan not found: no trial activated for user af8f101c-21d7-4b10-beb5-ab081f4f9f0e.
+Cannot activate automatic trial for user af8f101c-21d7-4b10-beb5-ab081f4f9f0e (validation): ValueError
+Free trial plan not found: no trial activated for user 79acdda9-c5fa-4ece-af44-553ec7dbe849.
+Cannot activate automatic trial for user 79acdda9-c5fa-4ece-af44-553ec7dbe849 (validation): ValueError
+.Free trial plan not found: no trial activated for user bb7b81ea-40a0-4b64-9fbe-6dbc99358431.
+Cannot activate automatic trial for user bb7b81ea-40a0-4b64-9fbe-6dbc99358431 (validation): ValueError
+Free trial plan not found: no trial activated for user 7e20f142-33be-4077-9055-5172c0b696ae.
+Cannot activate automatic trial for user 7e20f142-33be-4077-9055-5172c0b696ae (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 617463be-a121-4839-bbda-37a22f9391ec.
+Cannot activate automatic trial for user 617463be-a121-4839-bbda-37a22f9391ec (validation): ValueError
+Free trial plan not found: no trial activated for user 6b31e42e-44d8-4f80-9069-3b418071d9d3.
+Cannot activate automatic trial for user 6b31e42e-44d8-4f80-9069-3b418071d9d3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0642f434-25cd-430c-840c-bbaf67e33ecc.
+Cannot activate automatic trial for user 0642f434-25cd-430c-840c-bbaf67e33ecc (validation): ValueError
+Free trial plan not found: no trial activated for user 149a7e0b-b40b-4dfa-954c-1e27b6f1d610.
+Cannot activate automatic trial for user 149a7e0b-b40b-4dfa-954c-1e27b6f1d610 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8ec0435f-26f0-4c03-8ae2-eb0fc6cd280a.
+Cannot activate automatic trial for user 8ec0435f-26f0-4c03-8ae2-eb0fc6cd280a (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 81011218-4fba-4c4f-afb4-a52f68611d6f.
+Cannot activate automatic trial for user 81011218-4fba-4c4f-afb4-a52f68611d6f (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user bd642cdd-9538-4317-8fbd-247c15a20203.
+Cannot activate automatic trial for user bd642cdd-9538-4317-8fbd-247c15a20203 (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user b39b8f36-288e-475c-8ba0-c1016a089194.
+Cannot activate automatic trial for user b39b8f36-288e-475c-8ba0-c1016a089194 (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 40318bf0-47e4-4f2f-adf3-cec79489a00b.
+Cannot activate automatic trial for user 40318bf0-47e4-4f2f-adf3-cec79489a00b (validation): ValueError
+.Free trial plan not found: no trial activated for user 40d6a073-67d0-422f-bb9f-57b8e9a14882.
+Cannot activate automatic trial for user 40d6a073-67d0-422f-bb9f-57b8e9a14882 (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user ccba24a1-0a6e-44df-891b-0495da75dcea.
+Cannot activate automatic trial for user ccba24a1-0a6e-44df-891b-0495da75dcea (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 3751c870-b8cc-49a6-b1d9-7748224e97c1.
+Cannot activate automatic trial for user 3751c870-b8cc-49a6-b1d9-7748224e97c1 (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 28baa70a-6597-4ac3-8bbe-17821be78b0b.
+Cannot activate automatic trial for user 28baa70a-6597-4ac3-8bbe-17821be78b0b (validation): ValueError
+API request refused: NotFound (404)
+.Free trial plan not found: no trial activated for user f5a6d80b-adcc-4b44-9842-7298f145e993.
+Cannot activate automatic trial for user f5a6d80b-adcc-4b44-9842-7298f145e993 (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 1b900b97-2cc6-4fd0-a92a-a3528b4e7b94.
+Cannot activate automatic trial for user 1b900b97-2cc6-4fd0-a92a-a3528b4e7b94 (validation): ValueError
+API request refused: ValidationError (400)
+.Free trial plan not found: no trial activated for user 51d6f7a1-ae94-425e-8d63-e5e513587cbe.
+Cannot activate automatic trial for user 51d6f7a1-ae94-425e-8d63-e5e513587cbe (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user ca5af3bf-127f-49a6-8b04-ddc60fb10ec1.
+Cannot activate automatic trial for user ca5af3bf-127f-49a6-8b04-ddc60fb10ec1 (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user ea235f01-8719-4367-af2a-531b96257db2.
+Cannot activate automatic trial for user ea235f01-8719-4367-af2a-531b96257db2 (validation): ValueError
+.Free trial plan not found: no trial activated for user e2d1dfc0-1dc8-4757-8f1d-9ca6771bda91.
+Cannot activate automatic trial for user e2d1dfc0-1dc8-4757-8f1d-9ca6771bda91 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4b58de3b-effa-466c-bd6d-d58e73b7246c.
+Cannot activate automatic trial for user 4b58de3b-effa-466c-bd6d-d58e73b7246c (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user bb3d7166-867e-49ff-8dc9-85422b134d8e.
+Cannot activate automatic trial for user bb3d7166-867e-49ff-8dc9-85422b134d8e (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user ceead27e-7078-49d8-8044-23ae92f5d4da.
+Cannot activate automatic trial for user ceead27e-7078-49d8-8044-23ae92f5d4da (validation): ValueError
+.Free trial plan not found: no trial activated for user 70f73d33-48fd-4127-9aa4-e360a0f96023.
+Cannot activate automatic trial for user 70f73d33-48fd-4127-9aa4-e360a0f96023 (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 1b52a28b-64cd-4bcd-81e0-b082d8f8ac0c.
+Cannot activate automatic trial for user 1b52a28b-64cd-4bcd-81e0-b082d8f8ac0c (validation): ValueError
+Custom AI prompt refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+.Free trial plan not found: no trial activated for user 28ef23dc-b7ee-41fd-85bc-28f4445e39bb.
+Cannot activate automatic trial for user 28ef23dc-b7ee-41fd-85bc-28f4445e39bb (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user a8ff2cfc-2d89-495e-8f86-168609ec79c7.
+Cannot activate automatic trial for user a8ff2cfc-2d89-495e-8f86-168609ec79c7 (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user a79c77e1-e41e-43d1-a5e3-a13bda9fd954.
+Cannot activate automatic trial for user a79c77e1-e41e-43d1-a5e3-a13bda9fd954 (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 6060f029-d361-4333-a0d9-137d82d3352e.
+Cannot activate automatic trial for user 6060f029-d361-4333-a0d9-137d82d3352e (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 5cade3df-cae8-41cf-80d8-59e87599175f.
+Cannot activate automatic trial for user 5cade3df-cae8-41cf-80d8-59e87599175f (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 68e4b833-14f8-407f-baf9-c272b7c7c604.
+Cannot activate automatic trial for user 68e4b833-14f8-407f-baf9-c272b7c7c604 (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 8fc28efd-28bc-492f-9701-82ea25e1eb99.
+Cannot activate automatic trial for user 8fc28efd-28bc-492f-9701-82ea25e1eb99 (validation): ValueError
+API request refused: PermissionDenied (403)
+.Free trial plan not found: no trial activated for user 31f5863b-5a51-4035-b0f8-478244bca6d1.
+Cannot activate automatic trial for user 31f5863b-5a51-4035-b0f8-478244bca6d1 (validation): ValueError
+.Free trial plan not found: no trial activated for user cd3c4a94-9208-4229-8caf-b0537724df03.
+Cannot activate automatic trial for user cd3c4a94-9208-4229-8caf-b0537724df03 (validation): ValueError
+.Free trial plan not found: no trial activated for user 07bb8f07-98a0-472a-8a46-2608a97f3a23.
+Cannot activate automatic trial for user 07bb8f07-98a0-472a-8a46-2608a97f3a23 (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+.Free trial plan not found: no trial activated for user b6a3a618-bc45-4448-b22a-142859a26965.
+Cannot activate automatic trial for user b6a3a618-bc45-4448-b22a-142859a26965 (validation): ValueError
+Free trial plan not found: no trial activated for user 097351f4-af92-4339-8ff6-d52f9f6b6fa5.
+Cannot activate automatic trial for user 097351f4-af92-4339-8ff6-d52f9f6b6fa5 (validation): ValueError
+API request refused: ValidationError (400)
+.Free trial plan not found: no trial activated for user 17b3f8b2-550c-4448-8ba0-a61ea1b89fdd.
+Cannot activate automatic trial for user 17b3f8b2-550c-4448-8ba0-a61ea1b89fdd (validation): ValueError
+Free trial plan not found: no trial activated for user 81cec5f9-a3dd-41ad-92bb-b7d729591706.
+Cannot activate automatic trial for user 81cec5f9-a3dd-41ad-92bb-b7d729591706 (validation): ValueError
+API request refused: ValidationError (400)
+.Free trial plan not found: no trial activated for user 0178ce6f-f845-4856-a435-d5c1184cba9a.
+Cannot activate automatic trial for user 0178ce6f-f845-4856-a435-d5c1184cba9a (validation): ValueError
+Free trial plan not found: no trial activated for user 98a40db3-ff2a-494e-b787-12e82c206234.
+Cannot activate automatic trial for user 98a40db3-ff2a-494e-b787-12e82c206234 (validation): ValueError
+.Free trial plan not found: no trial activated for user 18dad507-e659-45d6-beac-fe3b996ab18f.
+Cannot activate automatic trial for user 18dad507-e659-45d6-beac-fe3b996ab18f (validation): ValueError
+Free trial plan not found: no trial activated for user 256ee373-2645-4dcf-bfdd-aa0b1484d9a2.
+Cannot activate automatic trial for user 256ee373-2645-4dcf-bfdd-aa0b1484d9a2 (validation): ValueError
+.Free trial plan not found: no trial activated for user 102cd316-11aa-40f2-8f45-fa0a2c563078.
+Cannot activate automatic trial for user 102cd316-11aa-40f2-8f45-fa0a2c563078 (validation): ValueError
+Free trial plan not found: no trial activated for user 95487edd-7c57-458e-b96d-f1ac24c8b248.
+Cannot activate automatic trial for user 95487edd-7c57-458e-b96d-f1ac24c8b248 (validation): ValueError
+.Free trial plan not found: no trial activated for user 46e79b75-500f-4f07-8362-dde168f6bdc8.
+Cannot activate automatic trial for user 46e79b75-500f-4f07-8362-dde168f6bdc8 (validation): ValueError
+Free trial plan not found: no trial activated for user 42208852-2c37-44bb-a575-b6dd4446ddaa.
+Cannot activate automatic trial for user 42208852-2c37-44bb-a575-b6dd4446ddaa (validation): ValueError
+.Free trial plan not found: no trial activated for user a0a1601e-61e8-4547-b3a2-aa8cad97396a.
+Cannot activate automatic trial for user a0a1601e-61e8-4547-b3a2-aa8cad97396a (validation): ValueError
+Free trial plan not found: no trial activated for user b79b2515-a356-480e-be0e-b34d18398419.
+Cannot activate automatic trial for user b79b2515-a356-480e-be0e-b34d18398419 (validation): ValueError
+API request refused: ValidationError (400)
+.Free trial plan not found: no trial activated for user a71ec638-7561-4527-80da-1647c9ae2aed.
+Cannot activate automatic trial for user a71ec638-7561-4527-80da-1647c9ae2aed (validation): ValueError
+Free trial plan not found: no trial activated for user 49825256-64a5-469b-9f1f-a4530a7f8598.
+Cannot activate automatic trial for user 49825256-64a5-469b-9f1f-a4530a7f8598 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user e906db70-44cf-4946-86ea-b6ea37877be0.
+Cannot activate automatic trial for user e906db70-44cf-4946-86ea-b6ea37877be0 (validation): ValueError
+Free trial plan not found: no trial activated for user 76bc5806-f06b-4474-bb98-d2ca34b5d6c8.
+Cannot activate automatic trial for user 76bc5806-f06b-4474-bb98-d2ca34b5d6c8 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user d4e73379-b324-40dd-933f-0adb33a099ca.
+Cannot activate automatic trial for user d4e73379-b324-40dd-933f-0adb33a099ca (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 458897cc-c12c-47ad-acf9-099df8221da0.
+Cannot activate automatic trial for user 458897cc-c12c-47ad-acf9-099df8221da0 (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 030d04cc-1a14-4c6b-b41f-8d20a88ff964.
+Cannot activate automatic trial for user 030d04cc-1a14-4c6b-b41f-8d20a88ff964 (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user e5db7c73-6f0a-4f13-aceb-23690457db2a.
+Cannot activate automatic trial for user e5db7c73-6f0a-4f13-aceb-23690457db2a (validation): ValueError
+.Free trial plan not found: no trial activated for user 4fffabe6-7dbe-45b5-b3dc-903d7066a4b8.
+Cannot activate automatic trial for user 4fffabe6-7dbe-45b5-b3dc-903d7066a4b8 (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user a206648a-7d20-4106-8a6f-284c2ddcc3a3.
+Cannot activate automatic trial for user a206648a-7d20-4106-8a6f-284c2ddcc3a3 (validation): ValueError
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user dd934a91-4850-4edd-a5f6-d99e9512bf72.
+Cannot activate automatic trial for user dd934a91-4850-4edd-a5f6-d99e9512bf72 (validation): ValueError
+API request refused: EmptyWalletError: Credit wallet is empty
+.Free trial plan not found: no trial activated for user b146b45d-683f-4920-9f24-64d9c07767f1.
+Cannot activate automatic trial for user b146b45d-683f-4920-9f24-64d9c07767f1 (validation): ValueError
+API request refused: EmptyWalletError: Credit wallet is empty
+.
+----------------------------------------------------------------------
+Ran 64 tests in 46.562s
+
+OK
+Destroying test database for alias 'default'...
+Found 64 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+H38P2 students/views.py:158 batch-upload (positive control - active teacher) WRITE status=202 changed=True
+H38P2 assignments/views.py:1238 generate (positive control - active teacher) WRITE(paid AI) status=201 changed=True
+H38P2 assignments/views.py:782 upload (positive control - active teacher) WRITE status=201 changed=True
+H38P2 dashboard/views.py custom-ai-prompt (positive control - active teacher) READ(paid AI) status=200 changed=False
+H38P2 assignments/views.py:1461 generated-drafts save (positive control - active teacher) WRITE status=201 changed=True
+H38P2 classrooms/services/roster_import.py _import_row_without_email (active teacher, H-247) WRITE status=200 changed=False
+H38P2 assignments/views.py associate-topic WRITE status=404 changed=False
+H38P2 assignments/views.py:310 delete DELETE status=404 changed=False
+H38P2 assignments/views.py:1238 generate WRITE(paid AI) status=404 changed=False
+H38P2 assignments/views.py grade-all WRITE(paid AI) status=404 changed=False
+H38P2 assignments/views.py:310 list READ status=200 changed=False
+H38P2 assignments/views.py:310 patch WRITE status=404 changed=False
+H38P2 assignments/views.py publish-all-grades WRITE status=404 changed=False
+H38P2 assignments/views.py:310 retrieve READ status=404 changed=False
+H38P2 assignments/views.py:782 upload WRITE status=404 changed=False
+H38P2 assignments/views.py:966 upload-async WRITE status=404 changed=False
+H38P2 classrooms/views.py topics create WRITE status=400 changed=False
+H38P2 classrooms/views.py:1723 course topics WRITE status=404 changed=False
+H38P2 classrooms/views.py:2392 topic delete DELETE status=404 changed=False
+H38P2 classrooms/views.py:2392 topics list READ status=200 changed=False
+H38P2 classrooms/views.py:2041-2082 my-students READ status=200 changed=False
+H38P2 classrooms/views.py:2392 topic patch WRITE status=404 changed=False
+H38P2 classrooms/views.py:2099 student-course delete DELETE status=404 changed=False
+H38P2 classrooms/views.py:2099 student-course list READ status=200 changed=False
+H38P2 classrooms/views.py:2099 student-course patch WRITE status=404 changed=False
+H38P2 dashboard/views.py custom-ai-prompt READ(paid AI) status=403 changed=False
+H38P2 dashboard/views.py teacher assignments/{id} READ status=404 changed=False
+H38P2 dashboard/views.py teacher courses/{id} READ status=404 changed=False
+H38P2 dashboard/views.py teacher overview/{session} READ status=404 changed=False
+H38P2 dashboard/views.py teacher students/{course} READ status=404 changed=False
+H38P2 assignments/views.py:1461 generated-drafts save WRITE status=404 changed=False
+H38P2 assignments/views.py:1788 download-pdf teacher view READ status=404 changed=False
+H38P2 assignments/views.py:1788 download-pdf teacher view (object-level guard in isolation) READ status=403 changed=False
+H38P2 classrooms/services/roster_import.py _import_row_without_email WRITE status=200 changed=False
+H38P2 classrooms/services/roster_import.py _import_row_without_email WRITE status=200 changed=False
+H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/assignment-activity-over-time READ status=403 changed=False
+H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/teachers READ status=403 changed=False
+H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/students READ status=403 changed=False
+H38P2 assignments/serializers.py validate_course create WRITE status=400 changed=False
+H38P2 assignments/serializers.py validate_course create-async WRITE status=400 changed=False
+H38P2 classrooms/filters.py my-students ?enrollments__course READ status=200 changed=False
+H38P2 classrooms/views.py my-students enrollments prefetch READ status=200 changed=False
+H38P2 classrooms/filters.py my-students ?enrollments__course__session READ status=200 changed=False
+H38P2 assignments/serializers.py validate_course patch WRITE status=400 changed=False
+H38P2 users/filters.py /users/<id>?enrollments__course READ status=404 changed=False
+H38P2 users/filters.py /users/<id>?enrollments__course__session READ status=404 changed=False
+H38P2 students/views.py:158 batch-upload WRITE status=404 changed=False
+H38P2 students/views.py:358 delete DELETE status=404 changed=False
+H38P2 students/views.py grade WRITE(paid AI) status=404 changed=False
+H38P2 students/views.py:358 list READ status=200 changed=False
+H38P2 students/views.py publish WRITE status=404 changed=False
+H38P2 students/views.py:358 retrieve READ status=404 changed=False
+H38P2 students/views.py teacher_feedback READ status=402 changed=False
+H38P2 students/views.py update-grade WRITE status=402 changed=False

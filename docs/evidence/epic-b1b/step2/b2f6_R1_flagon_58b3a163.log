@@ -1,0 +1,131 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 5c3c7177-142f-4a77-a19b-515b9920ede9.
+Cannot activate automatic trial for user 5c3c7177-142f-4a77-a19b-515b9920ede9 (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-09 13:12:19,740 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task 1bb4ef50-8f0b-4912-b175-596240c56b1a refused: InsufficientCreditsError: balance 0 < estimate 900
+
+
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user e0121c2f-c4fb-46fd-a8fa-29c72b666b80.
+Cannot activate automatic trial for user e0121c2f-c4fb-46fd-a8fa-29c72b666b80 (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-09 13:12:20,331 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task 87f5356f-788e-4a60-a6d7-341ed1518158 refused: InsufficientCreditsMidBatchError: Credits ran out after 2 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-09 13:12:20,359 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task d6463b2a-91ca-4fd6-9651-8d946376abef refused: InsufficientCreditsMidBatchError: Credits ran out after 2 of 4 items. The finished items are saved.
+
+
+.Free trial plan not found: no trial activated for user b503be60-fca5-4a23-8177-92db5cd607be.
+Cannot activate automatic trial for user b503be60-fca5-4a23-8177-92db5cd607be (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-09 13:12:21,203 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task b86db9df-6d64-48df-8a68-85558ddfb4e0 refused: InsufficientCreditsMidBatchError: Credits ran out after 2 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-09 13:12:21,228 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task 3c095df5-6243-4848-a15f-00764e598d00 refused: InsufficientCreditsMidBatchError: Credits ran out after 2 of 4 items. The finished items are saved.
+
+
+.Free trial plan not found: no trial activated for user d0a276ae-f256-4133-9c23-140a10af6b92.
+Cannot activate automatic trial for user d0a276ae-f256-4133-9c23-140a10af6b92 (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-09 13:12:22,347 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task 8d8a7293-525c-46cd-b037-a17840edaf20 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 3 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-09 13:12:22,421 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task e456fb19-7d1c-43fd-af55-a92fbd14ee8a refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 3 items. The finished items are saved.
+
+
+API request failed with NOT_RETRYABLE: This upload can't be retried as it is, because its file isn't kept. Upload the file again.
+.Free trial plan not found: no trial activated for user 81cf2102-83bb-4731-a7ca-6b2de464bb22.
+Cannot activate automatic trial for user 81cf2102-83bb-4731-a7ca-6b2de464bb22 (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-09 13:12:23,018 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task f9454ae5-03be-4304-bcd0-08a73f163a56 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-09 13:12:23,068 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task ef722139-d3cc-4e2d-868b-1e6b3b9cf854 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+.Free trial plan not found: no trial activated for user aef9f62b-33c2-4bc4-90cb-4425e40d3556.
+Cannot activate automatic trial for user aef9f62b-33c2-4bc4-90cb-4425e40d3556 (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-09 13:12:23,714 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task fb26cfe2-614d-407b-a9e9-faaba6ca0706 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-09 13:12:23,796 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task 880a581b-50f7-4f48-8411-8fc589345e9f refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+.Free trial plan not found: no trial activated for user d3fb6148-424e-4470-a4c5-4da15c43d6c5.
+Cannot activate automatic trial for user d3fb6148-424e-4470-a4c5-4da15c43d6c5 (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-09 13:12:24,321 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task c06985fa-33f5-44a0-b647-9a121f59cc82 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-09 13:12:24,351 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task 73407f59-c0f4-4b97-8707-e6c35ff72053 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-09 13:12:24,440 refusals 28503 136533216135040 [request_id=633570d9-0045-4ceb-a822-da464972e638 client_request_id=-] Background task 920ebc04-65db-4cb8-b831-aa1e8ce14f46 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-09 13:12:24,514 refusals 28503 136533216135040 [request_id=633570d9-0045-4ceb-a822-da464972e638 client_request_id=-] Background task c06985fa-33f5-44a0-b647-9a121f59cc82 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-09 13:12:24,586 refusals 28503 136533216135040 [request_id=633570d9-0045-4ceb-a822-da464972e638 client_request_id=-] Background task 73407f59-c0f4-4b97-8707-e6c35ff72053 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+.Free trial plan not found: no trial activated for user 184f437b-710e-46ff-a1af-5abfbb97d39e.
+Cannot activate automatic trial for user 184f437b-710e-46ff-a1af-5abfbb97d39e (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-09 13:12:24,969 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task 8d2547a9-0bed-43c7-a2ae-c29710021cdb refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-09 13:12:24,998 refusals 28503 136533216135040 [request_id=- client_request_id=-] Background task f7847f00-a71c-4745-952b-89b35a5f670b refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+.Free trial plan not found: no trial activated for user a32a06df-9845-4272-908d-a81b02c43e72.
+Cannot activate automatic trial for user a32a06df-9845-4272-908d-a81b02c43e72 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3f25d600-737b-4ac2-8a93-a32c1dff30b7.
+Cannot activate automatic trial for user 3f25d600-737b-4ac2-8a93-a32c1dff30b7 (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 10 tests in 6.821s
+
+OK
+Destroying test database for alias 'default'...
+Found 10 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
