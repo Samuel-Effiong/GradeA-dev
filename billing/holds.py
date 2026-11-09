@@ -157,12 +157,21 @@ def _lock_wallet_of(job):
     deleted (NOTES §21n): a stale instance's wallet is gone from the
     database, a fresh one's wallet_id is NULL. Only a terminal job has no
     wallet (release_open_holds_on_delete), so None means nothing may move.
-    The lock read is the check: no query is added while the wallet exists."""
-    try:
-        if job.wallet_id is not None:
-            return lock_wallet_first(job.wallet)
-    except CreditWallet.DoesNotExist:
-        pass
+    The lock read is the check: no query is added while the wallet exists.
+
+    B1b-3 P2 (NOTES §3.3): locked by job.wallet_id, so a job whose wallet is
+    not cached costs no extra read of it, and with its user, which the
+    consume path's cache signal reads; of=("self",) locks the wallet row
+    only. The same row is locked as lock_wallet_first(job.wallet) did."""
+    if job.wallet_id is not None:
+        locked = (
+            CreditWallet.objects.select_for_update(of=("self",))
+            .select_related("user")
+            .filter(pk=job.wallet_id)
+            .first()
+        )
+        if locked is not None:
+            return locked
     logger.warning("Credit hold job %s: its wallet was deleted; nothing moved.", job.pk)
     return None
 
@@ -207,8 +216,11 @@ def create_job(
     )
 
 
-def _reserve_locked(locked_wallet, amount, job, item):
-    """The conditional UPDATE (plan §3.2 step 3); the wallet row is locked."""
+def _reserve_locked(locked_wallet, amount, job, item, status=None):
+    """The conditional UPDATE (plan §3.2 step 3); the wallet row is locked.
+
+    status (B1b-3 P5): begin_single_call's RUNNING for the new job it just
+    made, written in the same job UPDATE instead of one of its own."""
     total = locked_wallet.total_remaining_credits()
     granted = CreditWallet.objects.filter(
         pk=locked_wallet.pk, reserved_credits__lte=total - amount
@@ -216,6 +228,7 @@ def _reserve_locked(locked_wallet, amount, job, item):
     if not granted:
         return False
     AIJob.objects.filter(pk=job.pk).update(
+        **({"status": status} if status is not None else {}),
         reserved_credits=F("reserved_credits") + amount,
         # A timestamp only, never a fencing token (review r1 M2).
         reservation_claimed_at=timezone.now(),
@@ -228,7 +241,7 @@ def _reserve_locked(locked_wallet, amount, job, item):
     return True
 
 
-def reserve(wallet, amount, job, item=None):
+def reserve(wallet, amount, job, item=None, status=None):
     """Hold `amount` for `job` (and on `item`, when given). True if granted.
     One short transaction, no network I/O."""
     assert_not_zero_credit(CREDIT_RESERVE)
@@ -236,7 +249,7 @@ def reserve(wallet, amount, job, item=None):
         raise ValueError("a hold must be a positive number of credits")
     with transaction.atomic():
         locked = lock_wallet_first(wallet)
-        return _reserve_locked(locked, amount, job, item)
+        return _reserve_locked(locked, amount, job, item, status=status)
 
 
 def ensure_call_fits(job, estimate, *, item=None, tally=0):
@@ -275,6 +288,7 @@ def settle(
     course=None,
     school=None,
     record_id=None,
+    close_status=None,
 ):
     """Charge `actual` once per settlement key (plan §3.2 settle).
 
@@ -285,6 +299,11 @@ def settle(
     record_id: the usage id the run's calls already noted (NOTES §15i): the
     settlement record takes it, so the usage rows and the call rows share it
     without the call rows ever being updated.
+
+    close_status (B1b-3 P1, NOTES §3.3a): finish_single_call's SETTLED. The
+    job-counter UPDATE also closes the job, when the job row read under its
+    lock is open: finish_job's conditional status write, for a SINGLE_CALL
+    job whose remainder this settle has already returned in full.
     """
     if actual < 0:
         raise ValueError("actual cost cannot be negative")
@@ -299,23 +318,26 @@ def settle(
                 if item_row is not None
                 else (job_row.id, 0)
             )
-        try:
-            with transaction.atomic():
-                record = SettlementRecord.objects.create(
-                    job=job_row,
-                    item_id=key[0],
-                    retry_count=key[1],
-                    **({"id": record_id} if record_id else {}),
-                )
-        except IntegrityError:
-            return NOT_SETTLED
-
         # An item the sweep already returned and counted (plan R4-1).
         already_counted = (
             item_row is not None and item_row.hold_state == HoldState.RETURNED
         )
         left = max(_left(job_row, item_row), 0)
         chargeable = min(actual, left + _free(locked))
+        # B1b-3 P4: the record is written with what it charges; it is still
+        # the fence, and nothing is consumed before it exists.
+        try:
+            with transaction.atomic():
+                record = SettlementRecord.objects.create(
+                    job=job_row,
+                    item_id=key[0],
+                    retry_count=key[1],
+                    credits_charged=chargeable,
+                    **({"id": record_id} if record_id else {}),
+                )
+        except IntegrityError:
+            return NOT_SETTLED
+
         if chargeable > 0:
             locked.consume_credits(
                 chargeable,
@@ -324,15 +346,21 @@ def settle(
                 task_id=str(record.id),
                 course=course,
                 school=school,
+                _wallet_locked=True,  # B1b-3 P3: locked and read above
             )
         drawn = min(left, chargeable)
         leftover = left - drawn
         overrun_charged = chargeable - drawn
         unbilled = actual - chargeable
 
-        SettlementRecord.objects.filter(pk=record.pk).update(credits_charged=chargeable)
         _move_wallet(locked.pk, -(drawn + leftover))
+        close = (
+            {"status": close_status}
+            if close_status is not None and job_row.status in OPEN_STATUSES
+            else {}
+        )
         AIJob.objects.filter(pk=job_row.pk).update(
+            **close,
             consumed_credits=F("consumed_credits") + chargeable,
             hold_drawn=F("hold_drawn") + drawn,
             released_credits=F("released_credits") + leftover,
@@ -930,10 +958,13 @@ def begin_single_call(*, wallet, target_teacher, estimate):
         total_items=1,
         school_id=getattr(target_teacher, "school_id", None),
     )
-    if estimate > 0 and not reserve(wallet, estimate, job):
-        finish_job(job, AIJobStatus.FAILED)
-        raise _refusal(CreditWallet.objects.get(pk=wallet.pk))
-    AIJob.objects.filter(pk=job.pk).update(status=AIJobStatus.RUNNING)
+    if estimate > 0:
+        # B1b-3 P5: RUNNING is written by the reserve's own job UPDATE.
+        if not reserve(wallet, estimate, job, status=AIJobStatus.RUNNING):
+            finish_job(job, AIJobStatus.FAILED)
+            raise _refusal(CreditWallet.objects.get(pk=wallet.pk))
+    else:
+        AIJob.objects.filter(pk=job.pk).update(status=AIJobStatus.RUNNING)
     return AIJob.objects.get(pk=job.pk)
 
 
@@ -950,8 +981,12 @@ def finish_single_call(
         course=course,
         school=school,
         record_id=record_id,
+        close_status=AIJobStatus.SETTLED,
     )
-    finish_job(job, AIJobStatus.SETTLED)
+    if not outcome.settled:
+        # Not settled (a deleted wallet, a duplicate key): settle returned
+        # before its job UPDATE, so close the job as before (NOTES §3.3a).
+        finish_job(job, AIJobStatus.SETTLED)
     return str(outcome.record_id) if outcome.record_id else None
 
 

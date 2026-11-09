@@ -959,6 +959,7 @@ class CreditWallet(models.Model):
         task_id=None,
         course=None,
         school=None,
+        _wallet_locked=False,
     ):
         """
         Consumes credits from the user's wallet using a type-priority,
@@ -1003,8 +1004,15 @@ class CreditWallet(models.Model):
         # or touching any bucket.
         assert_not_zero_credit(WALLET_CONSUME)
 
-        # Lock CreditWallet row to serialize consumption requests
-        locked = CreditWallet.objects.select_for_update().get(pk=self.pk)
+        # Lock CreditWallet row to serialize consumption requests.
+        # B1b-3 P3 (NOTES §3.3): `_wallet_locked=True` only from
+        # billing.holds.settle, whose `self` was read under this transaction's
+        # own lock of this row; a second lock would be a no-op round trip.
+        locked = (
+            self
+            if _wallet_locked
+            else CreditWallet.objects.select_for_update().get(pk=self.pk)
+        )
 
         # Re-read under the lock: a dispute landing concurrently must not be
         # raced past by a consumption that read the flag a moment earlier.

@@ -1364,3 +1364,57 @@ The full list after P1 and P5:
 **The red** (today's code, `billing/holds.py` unchanged; `billing.tests.test_holds_b1b3_pins`; under `flock`):
 - **Prediction: `Ran 3`, `FAILED (failures=1)`.** The count test fails with `47 != 37`. The lock-order test and the blocked test **pass** (they describe today's behavior, and must keep passing after the trim).
 - Any other result is a STOP.
+
+**The red (at aa8ab068e, under `flock`): `Ran 3`, `FAILED (failures=1)`: `AssertionError: 47 != 37`. As declared.** The lock-order and blocked tests passed. Log: `step3/pins_red_aa8ab068.log`.
+
+### §3.4 P1–P5 built; the declarations for every run (committed before any run)
+
+**One addition to §3.3a, found while building (F3):** settle returns `NOT_SETTLED` before its job UPDATE on two roads, a deleted wallet and a duplicate settlement key. Today `finish_job(SETTLED)` still runs after either. To keep that exactly, `finish_single_call` still calls `finish_job(job, SETTLED)` **when `outcome.settled` is False**. On the settled road (every normal call) it doesn't. So no road loses an effect.
+
+**The code** (`billing/holds.py`, `billing/models.py`):
+- **P1:** `settle(..., close_status=None)`. With `close_status`, the job-counter UPDATE adds `status=close_status` when `job_row.status in OPEN_STATUSES`. `finish_single_call` passes `close_status=SETTLED` and calls `finish_job` only if not settled.
+- **P2:** `_lock_wallet_of` runs `CreditWallet.objects.select_for_update(of=("self",)).select_related("user").filter(pk=job.wallet_id).first()`. None (no `wallet_id`, or the row gone) leads to today's warning and None.
+- **P3:** `consume_credits(..., _wallet_locked=False)`. With True, `locked = self` instead of a second `select_for_update().get()`. Settle passes True on its own `locked`. `is_consumption_blocked` is still checked on `locked`. No other caller passes it.
+- **P4:** settle computes `already_counted`, `left` and `chargeable` before the SettlementRecord INSERT and writes `credits_charged=chargeable` in it. The later UPDATE is removed.
+- **P5:** `_reserve_locked(..., status=None)` and `reserve(..., status=None)`. `begin_single_call` passes `status=RUNNING` when the estimate is above 0; the estimate-0 road keeps its own UPDATE.
+
+**The run sets** (counts by `build_suite`):
+- **the green set:** B1a's hold set (the 10 §21c labels plus G-1 (`ai_processor.tests_metering_chokepoint`, `ai_processor.tests_call_record_static`) and the static pair (`students.tests_reading_label_static`, `AutoGrader.tests_h271_static_files`) = **141**, as B1a's Ran 141; `step3/holdset_labels.txt`), plus `billing.tests.test_holds_b1b3_pins` (3) and `billing.tests.test_holds_deleted_items` (20) = **164**;
+- **the plant set:** `billing.tests.test_holds_b1b3_pins` plus `billing.tests.test_holds_single_call` = **10**.
+
+**The runs, in order.** All are under `flock`, with the flag unset unless stated (the hold tests pin their own flag). Any result other than declared is a STOP.
+
+1. **G, the green:** the green set. **`Ran 164`, OK.**
+2. **S1′, the listing again** (same module, same command):
+   - **The flag-off block must be identical to S1's** (§3.2), compared statement by statement on (function name, shape), with the line numbers stripped, because the edits move lines in `holds.py`. That is the flag-off check.
+   - The flag-on block is recorded: **37 real queries** (59 statements with savepoints), shown by purpose.
+3. **The P plants** (`scratchpad/plant_b3p.py`; on the plant set, flag unset; each restored with `git checkout` and checked by sha256):
+
+| Plant | The change | Kill test (it must fail) | Fragment |
+|---|---|---|---|
+| PP1 | `finish_job` after every settle again | `test_one_billed_single_call_makes_exactly_the_pinned_number_of_queries` | `39 != 37` (`finish_job`'s lock plus its status UPDATE, which matches 0 rows) |
+| PP1b | the close dropped (`close` always `{}`) | `test_holds_single_call…test_a_call_holds_settles_and_returns_the_rest` | `'RUNNING' != 'SETTLED'` |
+| PP2 | `_lock_wallet_of` back to `lock_wallet_first(job.wallet)` | the count pin | `39 != 37` (the lazy `job.wallet` load, and the lazy `wallet.user` load in the cache signal) |
+| PP3 | settle passes `_wallet_locked=False` (consume re-locks) | the count pin | `39 != 37` (the re-lock, and that fresh instance's lazy `user` load) |
+| PP3b | the blocked check skipped when `_wallet_locked` (SM) | `test_a_wallet_blocked_during_the_call_is_refused_at_settle` | `InsufficientCreditsError not raised` |
+| PP4 | the `credits_charged` UPDATE re-added | the count pin | `38 != 37` |
+| PP5 | `begin_single_call`'s separate RUNNING UPDATE re-added | the count pin | `38 != 37` |
+| PPL | a billing write (`AIJob … update(reservation_claimed_at=F(...))`) before settle's wallet lock | `test_after_the_provider_call_the_wallet_is_locked_before_any_billing_write` | `a billing write came before the wallet lock` (the count pin fails too, with `38 != 37`, as collateral) |
+
+4. **The B1a mutant battery** (`scratchpad/plant21b.py`, rebuilt from the §21c table with the same 21 replacements, each anchor checked to match exactly once at this commit):
+   - Each runs on the 141 hold set, without `--parallel`, restored by sha256.
+   - **Each must be killed by its §21c named test, with its §21c fragment.** M-B27's fragment is B1a's ruling: `Expected '_AIProcessor__ai_model' to not have been called`.
+   - Collateral is recorded as observed and is not a mismatch (the §21c kill criterion).
+   - A survivor, or a kill without its fragment, is a STOP.
+   - M-B31s is non-deterministic, as at §21c: killed in any round where the claim commits first.
+5. **FB-1, T-1…T-20 and PFB-1…9b** (`scratchpad/plant3.py`, rebuilt from §1.22, with the same anchors, each checked once), on `billing.tests.test_holds_deleted_items`: **the same kill sets as §1.23**.
+6. **The cascade timing** (`RUN_LOAD_TESTS=1`, `test_holds_fb1_cascade_timing`): **`Ran 1`, OK.**
+   - Expected `one_job` **4,734 queries**: one fewer, because the once-only `finish_job`'s `_lock_wallet_of` drops its lazy load (P2).
+   - The time is recorded (about 3.3 s); D0 stands.
+7. **Gate 6 measurement 4** (08b §5.4: measurement 3's method, `test_holds_gate6_m3`, re-run after the trim, recorded beside 1–3 and the B1b-3-start re-run): **`Ran 1`, OK** (added p95 ≤ 40 ms).
+   - **Reported against 20 ms:** I expect it below today's 22.6 ms. That is a report, not a STOP (owner Q7).
+8. **E1, flag on** (§21m labels + 66 guards, `--parallel 4`): **`Ran 7412`, `OK (skipped=31)`.** That is 7409 + 3 pins.
+9. **E2, the flag-off near, apps** (`--parallel 4`): **`Ran 6350`, `OK (skipped=23)`.** That is 6347 + 3.
+10. **E3, the 66 guards, serially: `Ran 1146`, `OK (skipped=1)`.**
+
+- `makemigrations --check`: **No changes** (no model field changes; only a method argument).
