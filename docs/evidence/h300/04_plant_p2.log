@@ -1,0 +1,86 @@
+Using existing test database for alias 'default' ('test_h300_double_grant')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_h300_b1_a_skipped_teacher_purchase_is_not_granted_again (billing.tests.test_h300_reprocess.ReplayDoesNotFulfillTwiceTests.test_h300_b1_a_skipped_teacher_purchase_is_not_granted_again) ... Free trial plan not found: no trial activated for user 5e5aae84-ae2d-470c-b4d9-6f51781ca6a7.
+Cannot activate automatic trial for user 5e5aae84-ae2d-470c-b4d9-6f51781ca6a7 (validation): ValueError
+Free trial plan not found: no trial activated for user d9b924ec-af8e-4be7-badf-a9371e33608a.
+Cannot activate automatic trial for user d9b924ec-af8e-4be7-badf-a9371e33608a (validation): ValueError
+Free trial plan not found: no trial activated for user 824d64ca-8692-4f3c-b7f2-a7463b3e4c0b.
+Cannot activate automatic trial for user 824d64ca-8692-4f3c-b7f2-a7463b3e4c0b (validation): ValueError
+Overage purchase intent b0c62138-fd7e-4730-b4f7-861326dc8347 (session cs_h300) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 9d4cda3e-4ffe-4557-8337-ac3680b1d7d0.
+Stripe event evt_h300 was manually replayed via replay_stripe_events by an operator.
+ok
+test_h300_b4_control_a_full_purchase_is_not_granted_again (billing.tests.test_h300_reprocess.ReplayDoesNotFulfillTwiceTests.test_h300_b4_control_a_full_purchase_is_not_granted_again) ... Free trial plan not found: no trial activated for user a003caf9-98e8-4323-920b-bb39a9195f4c.
+Cannot activate automatic trial for user a003caf9-98e8-4323-920b-bb39a9195f4c (validation): ValueError
+Free trial plan not found: no trial activated for user 9bc4c1ff-aef7-4f5c-ab12-ee162d479bb4.
+Cannot activate automatic trial for user 9bc4c1ff-aef7-4f5c-ab12-ee162d479bb4 (validation): ValueError
+Free trial plan not found: no trial activated for user 0f6e59ce-4e56-4d2f-b9da-c6586f21e0a6.
+Cannot activate automatic trial for user 0f6e59ce-4e56-4d2f-b9da-c6586f21e0a6 (validation): ValueError
+Stripe event evt_h300 was manually replayed via replay_stripe_events by an operator.
+ok
+test_h300_c1_an_inactive_license_purchase_is_not_recorded_again (billing.tests.test_h300_reprocess.ReplayDoesNotFulfillTwiceTests.test_h300_c1_an_inactive_license_purchase_is_not_recorded_again) ... Free trial plan not found: no trial activated for user 1a34798a-3008-4da8-8cde-411f6f0420c3.
+Cannot activate automatic trial for user 1a34798a-3008-4da8-8cde-411f6f0420c3 (validation): ValueError
+Free trial plan not found: no trial activated for user 7e83d9aa-3120-4ef2-b564-ec50744006a9.
+Cannot activate automatic trial for user 7e83d9aa-3120-4ef2-b564-ec50744006a9 (validation): ValueError
+Free trial plan not found: no trial activated for user 2c942240-28f3-4f91-9a09-d78bb9f51c77.
+Cannot activate automatic trial for user 2c942240-28f3-4f91-9a09-d78bb9f51c77 (validation): ValueError
+Overage purchase intent 5a229b62-de5c-4db6-b501-949c405e99e2 paid (session cs_h300) but license e8ab40df-fbae-4345-868a-245bed2142ea is no longer active — credits NOT granted. Needs manual refund via the Stripe dashboard.
+Overage purchase intent 5a229b62-de5c-4db6-b501-949c405e99e2 paid (session cs_h300) but license e8ab40df-fbae-4345-868a-245bed2142ea is no longer active — credits NOT granted. Needs manual refund via the Stripe dashboard.
+Stripe event evt_h300 was manually replayed via replay_stripe_events by an operator.
+ok
+test_h300_d1_a_ledger_row_for_the_intent_alone_stops_a_rerun (billing.tests.test_h300_reprocess.ReplayDoesNotFulfillTwiceTests.test_h300_d1_a_ledger_row_for_the_intent_alone_stops_a_rerun) ... Free trial plan not found: no trial activated for user 9ecfe56a-b116-40df-9f22-ab505245eae0.
+Cannot activate automatic trial for user 9ecfe56a-b116-40df-9f22-ab505245eae0 (validation): ValueError
+Free trial plan not found: no trial activated for user b6542fac-fbcd-4240-bc5c-29af53079ed0.
+Cannot activate automatic trial for user b6542fac-fbcd-4240-bc5c-29af53079ed0 (validation): ValueError
+Free trial plan not found: no trial activated for user d81546bd-6bbd-44e3-afb3-5c73d630317b.
+Cannot activate automatic trial for user d81546bd-6bbd-44e3-afb3-5c73d630317b (validation): ValueError
+Overage purchase intent 9262dc0e-8d39-48f0-927b-e6ac3da71ad3 (session cs_h300) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 4a498e68-0973-4654-8fd0-aab6309fe675.
+Overage purchase intent 9262dc0e-8d39-48f0-927b-e6ac3da71ad3 (session cs_h300) PARTIALLY fulfilled: 2/3 teachers granted, 1 skipped (no longer active). Needs manual review. License 4a498e68-0973-4654-8fd0-aab6309fe675.
+Stripe event evt_h300 was manually replayed via replay_stripe_events by an operator.
+FAIL
+
+======================================================================
+FAIL: test_h300_d1_a_ledger_row_for_the_intent_alone_stops_a_rerun (billing.tests.test_h300_reprocess.ReplayDoesNotFulfillTwiceTests.test_h300_d1_a_ledger_row_for_the_intent_alone_stops_a_rerun)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-student-data-erase-export-h300-double-grant/billing/tests/test_h300_reprocess.py", line 202, in test_h300_d1_a_ledger_row_for_the_intent_alone_stops_a_rerun
+    self.assertEqual(
+AssertionError: Tuples differ: (10000, 10000) != (5000, 5000)
+
+First differing element 0:
+10000
+5000
+
+- (10000, 10000)
+?  ^^     ^^
+
++ (5000, 5000)
+?  ^     ^
+ : replay granted the remaining teachers a second time
+
+----------------------------------------------------------------------
+Ran 4 tests in 1.247s
+
+FAILED (failures=1)
+Preserving test database for alias 'default' ('test_h300_double_grant')...
+Found 4 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+  REPLAYED evt_h300 (checkout.session.completed, attempts=1, first seen 2026-11-09 08:49)
+Replay complete: 1 succeeded, 0 failed again.
+  REPLAYED evt_h300 (checkout.session.completed, attempts=1, first seen 2026-11-09 08:49)
+Replay complete: 1 succeeded, 0 failed again.
+  REPLAYED evt_h300 (checkout.session.completed, attempts=1, first seen 2026-11-09 08:49)
+Replay complete: 1 succeeded, 0 failed again.
+  REPLAYED evt_h300 (checkout.session.completed, attempts=1, first seen 2026-11-09 08:49)
+Replay complete: 1 succeeded, 0 failed again.
