@@ -1514,3 +1514,30 @@ Logs are in `step3/`, with the suffix `_0b2c4066`. E1 and E2 are gzipped.
   - The UPDATE is still one statement, so the query count stays 37 and the pins stand. `F("status")` writes the same value back, so terminal still never reverts.
   - The guard keeps watching both functions. Allow-listing them instead would hide any later tracked write in `settle` or `_reserve_locked`.
   - **Declared re-runs after the fix:** the guard test plus the 164 green; PP1b and PP5 again (their kills must stay as at §3.4); E1 `Ran 7412` OK (skipped=31); E3 `Ran 1146` OK (skipped=1); S1′ flag-on count 37. E2 was OK and flag-off is untouched, but I would re-run it too for a clean checkpoint head (`Ran 6350` OK, skipped=23).
+
+### §3.6 The SM's ruling on the history-guard STOP (2026-11-09), and the fix, declared before any edit
+
+**Ruling:** the guard caught it; the declaration was incomplete (the green set left out `audit.tests_history_guard`). §3.5 is not amended. **Standing from now on:** every green set that touches `billing/holds.py` includes `audit.tests_history_guard`. The proposed fix is approved, with no ALLOWED entry.
+
+**The fix (two lines' meaning, one statement each):**
+- `_reserve_locked`: `**({"status": status} if status is not None else {}),` becomes `status=status if status is not None else F("status"),`.
+- `settle`: the `close` value's **condition line is kept byte for byte** (SM condition 1). Only the two branch values change, and `**close` becomes `status=close`:
+
+| | before (at 0b2c40668 / 8f07943f3) | after |
+|---|---|---|
+| true branch | `{"status": close_status}` | `close_status` |
+| **condition** | `if close_status is not None and job_row.status in OPEN_STATUSES` | `if close_status is not None and job_row.status in OPEN_STATUSES` |
+| false branch | `else {}` | `else F("status")` |
+| use | `**close,` | `status=close,` |
+
+- The after column is checked against the committed file after the edit, and PP1b's anchor (that condition line) must still match exactly once. If they differ at all, STOP.
+
+**The re-runs, in order, all under `flock`, declared (counts by `build_suite`):**
+1. **G+, the green plus the guard** (the 164 + `audit.tests_history_guard.BulkWritesKeepHistoryTests.test_no_unlisted_bulk_write_of_a_tracked_field`): **`Ran 165`, OK.**
+2. **S1′ again:** the flag-off block identical to S1's; flag on **37 real queries**; the cascade 4,734.
+3. **PP1b and PP5** on the plant set (10), restored by sha256: PP1b killed by `test_a_call_holds_settles_and_returns_the_rest` with `'RUNNING' != 'SETTLED'`; PP5 by the count pin with `38 != 37`.
+4. **E1, flag on** (§21m labels + 66 guards, `--parallel 4`): **`Ran 7412`, `OK (skipped=31)`.**
+5. **E2, the flag-off near, apps** (`--parallel 4`): **`Ran 6350`, `OK (skipped=23)`.**
+6. **E3, the 66 guards, serially: `Ran 1146`, `OK (skipped=1)`.**
+7. `makemigrations --check`: **No changes.**
+8. **The cascade timing, quiet-machine re-run** (SM condition 4): ×3 under `flock`, started only when the 1-minute load is below 2, with the load recorded. **`Ran 1`, OK, `one_job` 4,734 queries ×3.** The time is recorded beside §3.5's, which is not amended. If the median is still ≥ 3.8 s, the checkpoint says so (not a STOP under D0).
