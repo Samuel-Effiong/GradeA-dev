@@ -733,3 +733,26 @@ The counts are from `DiscoverRunner.build_suite().countTestCases()` (§1.21 (c))
 - **The 66 standing guards, serially:** **Prediction: `Ran 1146`, `OK (skipped=1)`.**
 - Both run under `flock`. Any other result is a STOP.
 - `makemigrations --check` is run first. Prediction: `No changes detected`.
+
+**Results (at 9a6af9ad5):**
+- **`makemigrations --check --dry-run`:** `No changes detected`, as declared.
+- **Apps (7608 MB available, `--parallel 4`, flag unset): `Ran 6337 tests in 320.702s`, `OK (skipped=23)`.** As declared. Log: `step1/step1_near2_apps_9a6af9ad.log.gz`.
+- **The 66 guards (7476 MB available, serial): `Ran 1146 tests in 139.514s`, `OK (skipped=1)`, rc 0.** As declared. Log: `step1/step1_near2_guards_9a6af9ad.log.gz`.
+
+### §1.25 B1b-1 summary after the SM's review (for the checkpoint)
+
+- **The finding** ("C4 may never fire in a cascade") is confirmed. The outcome depended on the collector's visit order (§1.20). T-20 now has two never-held pending rows, so it fails on the old code whatever the order (red, §1.21).
+- **The fix:** C4 moved to a `post_delete` receiver (§1.22). `pre_delete` keeps only the hold return and the `deleted_items_*` carry. The lock order is unchanged: the wallet first.
+- **Results:**
+  - green: Ran 20 OK;
+  - plants: PFB-1…9 and PFB-9b all killed as declared, with PFB-9b (C4 in `pre_delete`) killed by T-20 alone;
+  - timing: 3.35 s and 4,735 queries per 1,000 rows (was 5.23 s);
+  - near: apps 6337 OK (skipped=23), and the 66 guards 1146 OK (skipped=1).
+- **Carried forward:**
+  - **B1b-3:** the speed item (3.35 s > 2 s); the switch-on checklist line is updated.
+  - **B1b-6:**
+    - The last-item helper runs after the rows are gone, never in `pre_delete`.
+    - Its BATCH delete test needs two or more never-held pending rows.
+    - Status writes are open→open or open→terminal only, conditional on the current status and under the wallet lock. Re-run the §1.21 (a) grep.
+    - A double-return plant.
+  - **If a CASCADE to AIJob is ever added:** add the "job deleted in the same collector run" test (§1.21 (b)).
