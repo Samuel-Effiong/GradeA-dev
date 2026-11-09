@@ -1,0 +1,210 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user bad79880-5b84-4a25-8d31-4285a93bdfc3.
+Cannot activate automatic trial for user bad79880-5b84-4a25-8d31-4285a93bdfc3 (validation): ValueError
+FFree trial plan not found: no trial activated for user 1ae9faad-cc86-45bb-a724-778c4fbe1c4d.
+Cannot activate automatic trial for user 1ae9faad-cc86-45bb-a724-778c4fbe1c4d (validation): ValueError
+FFree trial plan not found: no trial activated for user 17c2f0c8-bd98-40d6-bf5f-752f4c7630de.
+Cannot activate automatic trial for user 17c2f0c8-bd98-40d6-bf5f-752f4c7630de (validation): ValueError
+FFree trial plan not found: no trial activated for user 275c1fe9-f468-4792-8ab2-6d8b9b4a6d98.
+Cannot activate automatic trial for user 275c1fe9-f468-4792-8ab2-6d8b9b4a6d98 (validation): ValueError
+FFree trial plan not found: no trial activated for user b7602eb7-5fb9-493d-bc8b-31a454531fc5.
+Cannot activate automatic trial for user b7602eb7-5fb9-493d-bc8b-31a454531fc5 (validation): ValueError
+FFree trial plan not found: no trial activated for user 9cf08267-88f1-4df9-bb3e-b8e7f99d2b9e.
+Cannot activate automatic trial for user 9cf08267-88f1-4df9-bb3e-b8e7f99d2b9e (validation): ValueError
+FFree trial plan not found: no trial activated for user 90414fd4-f9f6-4567-bbf9-5caee5c9ce69.
+Cannot activate automatic trial for user 90414fd4-f9f6-4567-bbf9-5caee5c9ce69 (validation): ValueError
+FFree trial plan not found: no trial activated for user 50e2e9c5-3e87-4245-a808-13d91e68b751.
+Cannot activate automatic trial for user 50e2e9c5-3e87-4245-a808-13d91e68b751 (validation): ValueError
+FFree trial plan not found: no trial activated for user ebacc7c8-36cd-41c1-9476-f87c0bb64c03.
+Cannot activate automatic trial for user ebacc7c8-36cd-41c1-9476-f87c0bb64c03 (validation): ValueError
+FFree trial plan not found: no trial activated for user a4acb75e-5d6c-41bd-8ac3-5c69c4b80c2c.
+Cannot activate automatic trial for user a4acb75e-5d6c-41bd-8ac3-5c69c4b80c2c (validation): ValueError
+.Free trial plan not found: no trial activated for user 944da462-6aff-4a23-a6f0-258281876a50.
+Cannot activate automatic trial for user 944da462-6aff-4a23-a6f0-258281876a50 (validation): ValueError
+FFree trial plan not found: no trial activated for user 9c5c86c0-0ea9-4f63-a6f3-0ae838cba0be.
+Cannot activate automatic trial for user 9c5c86c0-0ea9-4f63-a6f3-0ae838cba0be (validation): ValueError
+FFree trial plan not found: no trial activated for user 40e946c4-b819-4a27-a4ec-628890c8c03b.
+Cannot activate automatic trial for user 40e946c4-b819-4a27-a4ec-628890c8c03b (validation): ValueError
+FFree trial plan not found: no trial activated for user d7d188e3-2f5a-4f9c-b08d-d74df88e2e35.
+Cannot activate automatic trial for user d7d188e3-2f5a-4f9c-b08d-d74df88e2e35 (validation): ValueError
+FFree trial plan not found: no trial activated for user 736e1d81-3793-4886-9a6e-1c9e4b509522.
+Cannot activate automatic trial for user 736e1d81-3793-4886-9a6e-1c9e4b509522 (validation): ValueError
+FFree trial plan not found: no trial activated for user 026b03d7-9371-4d6f-bbe6-4b6b246b9238.
+Cannot activate automatic trial for user 026b03d7-9371-4d6f-bbe6-4b6b246b9238 (validation): ValueError
+F
+======================================================================
+FAIL: test_t1_instance_delete (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t1_instance_delete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 159, in test_t1_instance_delete
+    self.assert_road(job, start, doomed.pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 142, in assert_road
+    self.assertEqual(
+AssertionError: 600 != 300 : reserved: only the kept row's hold is left
+
+======================================================================
+FAIL: test_t2_queryset_delete (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t2_queryset_delete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 164, in test_t2_queryset_delete
+    self.assert_road(job, start, doomed.pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 142, in assert_road
+    self.assertEqual(
+AssertionError: 600 != 300 : reserved: only the kept row's hold is left
+
+======================================================================
+FAIL: test_t3_full_erasure (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t3_full_erasure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 182, in test_t3_full_erasure
+    self.assert_road(job, start, doomed.pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 142, in assert_road
+    self.assertEqual(
+AssertionError: 600 != 300 : reserved: only the kept row's hold is left
+
+======================================================================
+FAIL: test_t4_course_scoped_erasure (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t4_course_scoped_erasure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 194, in test_t4_course_scoped_erasure
+    self.assert_road(job, start, doomed.pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 142, in assert_road
+    self.assertEqual(
+AssertionError: 600 != 300 : reserved: only the kept row's hold is left
+
+======================================================================
+FAIL: test_t5_assignment_cascade (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade)
+Every row of the job goes: the job finishes SETTLED (C4), because
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 210, in test_t5_assignment_cascade
+    self.assertEqual(self.reserved(), start, "reserved: back to the start")
+AssertionError: 300 != 0 : reserved: back to the start
+
+======================================================================
+FAIL: test_t6_batch_session_cascade (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t6_batch_session_cascade)
+Every row of the job goes and none settled: FAILED (C4).
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 236, in test_t6_batch_session_cascade
+    self.assertEqual(self.reserved(), start, "reserved: back to the start")
+AssertionError: 600 != 0 : reserved: back to the start
+
+======================================================================
+FAIL: test_t13_a_row_held_while_the_flag_was_on_is_returned_with_it_off (billing.tests.test_holds_deleted_items.FlagOffTests.test_t13_a_row_held_while_the_flag_was_on_is_returned_with_it_off)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 366, in test_t13_a_row_held_while_the_flag_was_on_is_returned_with_it_off
+    self.assertEqual(self.reserved(), start + HELD)
+AssertionError: 600 != 300
+
+======================================================================
+FAIL: test_t14_a_unit_whose_row_is_deleted_mid_run (billing.tests.test_holds_deleted_items.MidRunDeletionTests.test_t14_a_unit_whose_row_is_deleted_mid_run)
+Characterization (SM, 2026-11-09): pinned as found, not designed.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 383, in test_t14_a_unit_whose_row_is_deleted_mid_run
+    self.assertEqual(self.reserved(), start + HELD)
+AssertionError: 600 != 300
+
+======================================================================
+FAIL: test_t9_a_settled_row_deleted_from_a_job_with_rows_left (billing.tests.test_holds_deleted_items.PreExistingFalseAlarmTests.test_t9_a_settled_row_deleted_from_a_job_with_rows_left)
+Before B1b this reported item_sum with the flag on, without any
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 296, in test_t9_a_settled_row_deleted_from_a_job_with_rows_left
+    self.assert_books_agree()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 118, in assert_books_agree
+    self.assertEqual(holds().check_invariants(self.wallet), [])
+AssertionError: Lists differ: ['item_sum job=45c6f815-9f8e-4345-96d3-f3e519029805'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'item_sum job=45c6f815-9f8e-4345-96d3-f3e519029805'
+
+- ['item_sum job=45c6f815-9f8e-4345-96d3-f3e519029805']
++ []
+
+======================================================================
+FAIL: test_t7_upload_with_a_settled_sibling_ends_settled (billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t7_upload_with_a_settled_sibling_ends_settled)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 255, in test_t7_upload_with_a_settled_sibling_ends_settled
+    self.assertEqual(self.reserved(), start)
+AssertionError: 300 != 0
+
+======================================================================
+FAIL: test_t8_upload_with_every_row_deleted_and_none_settled_ends_failed (billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t8_upload_with_every_row_deleted_and_none_settled_ends_failed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 267, in test_t8_upload_with_every_row_deleted_and_none_settled_ends_failed
+    self.assertEqual(self.reserved(), start)
+AssertionError: 600 != 0
+
+======================================================================
+FAIL: test_t8b_single_item_deleted_while_held_ends_failed (billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t8b_single_item_deleted_while_held_ends_failed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 277, in test_t8b_single_item_deleted_while_held_ends_failed
+    self.assertEqual(self.reserved(), start)
+AssertionError: 300 != 0
+
+======================================================================
+FAIL: test_t10_wallet_receiver_first_then_the_row_delete (billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t10_wallet_receiver_first_then_the_row_delete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 317, in test_t10_wallet_receiver_first_then_the_row_delete
+    self.assertEqual(deleted_items(job), (HELD, 0, HELD))
+AssertionError: Tuples differ: (0, 0, 0) != (300, 0, 300)
+
+First differing element 0:
+0
+300
+
+- (0, 0, 0)
++ (300, 0, 300)
+?  ++      ++
+
+
+======================================================================
+FAIL: test_t11_row_delete_first_then_the_wallet_receiver (billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t11_row_delete_first_then_the_wallet_receiver)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 328, in test_t11_row_delete_first_then_the_wallet_receiver
+    self.assertEqual(self.reserved(), start)
+AssertionError: 300 != 0
+
+======================================================================
+FAIL: test_t12_a_teacher_deletion_with_a_held_row_of_their_own (billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t12_a_teacher_deletion_with_a_held_row_of_their_own)
+End to end: the row goes through requested_by CASCADE, the wallet
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 353, in test_t12_a_teacher_deletion_with_a_held_row_of_their_own
+    self.assertEqual(deleted_items(job), (HELD, 0, HELD))
+AssertionError: Tuples differ: (0, 0, 0) != (300, 0, 300)
+
+First differing element 0:
+0
+300
+
+- (0, 0, 0)
++ (300, 0, 300)
+?  ++      ++
+
+
+----------------------------------------------------------------------
+Ran 16 tests in 4.218s
+
+FAILED (failures=15)
+Destroying test database for alias 'default'...
+Found 16 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

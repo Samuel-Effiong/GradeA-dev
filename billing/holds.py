@@ -672,10 +672,11 @@ def check_invariants(wallet=None):
                 drawn=Sum("hold_drawn"),
                 released=Sum("released_credits"),
             )
+            # B1b FB-1: a deleted row's numbers live on in deleted_items_*.
             if (job.reserved_credits, job.hold_drawn, job.released_credits) != (
-                item_sums["held"] or 0,
-                item_sums["drawn"] or 0,
-                item_sums["released"] or 0,
+                (item_sums["held"] or 0) + job.deleted_items_held,
+                (item_sums["drawn"] or 0) + job.deleted_items_drawn,
+                (item_sums["released"] or 0) + job.deleted_items_released,
             ):
                 problems.append(f"item_sum job={job.pk}")
             negative = items.filter(
@@ -1143,3 +1144,78 @@ def release_open_holds_on_delete(sender, instance, **kwargs):
     wallet. Whatever the flag says: jobs made while it was on outlive it."""
     for job in AIJob.objects.filter(wallet=instance, status__in=OPEN_STATUSES):
         finish_job(job, AIJobStatus.CANCELLED)
+
+
+def _job_has_rows_to_run(job, excluding_pk):
+    """A live row of `job`, other than the one being deleted, that is HELD
+    or was never held and has not finished (SM ruling C4: such a job stays
+    open; B1b-6's last-item helper decides it)."""
+    others = BackgroundProcessingTask.objects.filter(job=job).exclude(pk=excluding_pk)
+    return others.filter(
+        Q(hold_state=HoldState.HELD)
+        | (Q(hold_state__isnull=True) & ~Q(status__in=FINISHED_TASK_STATUSES))
+    ).exists()
+
+
+def return_hold_on_item_delete(sender, instance, **kwargs):
+    """pre_delete on BackgroundProcessingTask (connected in BillingConfig.ready;
+    B1b FB-1, NOTES §1.1). Whatever the flag says, as release_open_holds_on_delete.
+
+    A HELD row's hold is returned the way fail_item returns it; the row's
+    numbers are added to its job's deleted_items_*, so check_invariants'
+    item_sum still adds up; and a job left with nothing to run is finished
+    (C4): SETTLED if it has a SettlementRecord, otherwise FAILED, never
+    QUEUED. B1b-6 replaces that rule with its last-item helper."""
+    if instance.job_id is None:
+        return
+    job = AIJob.objects.filter(pk=instance.job_id).first()
+    if job is None:
+        return
+    with transaction.atomic():
+        # The house lock order: the wallet first, then the job and the row;
+        # the hold state is read from the locked row, never the instance.
+        locked = _lock_wallet_of(job)
+        if locked is None:
+            return
+        job_row = AIJob.objects.select_for_update().get(pk=job.pk)
+        item_row = (
+            BackgroundProcessingTask.objects.select_for_update()
+            .filter(pk=instance.pk, job=job_row)
+            .first()
+        )
+        if item_row is None:
+            return
+        was_held = item_row.hold_state == HoldState.HELD
+        returned = max(_left(job_row, item_row), 0) if was_held else 0
+        if was_held:
+            _move_wallet(locked.pk, -returned)
+            BackgroundProcessingTask.objects.filter(pk=item_row.pk).update(
+                released_credits=F("released_credits") + returned,
+                hold_state=HoldState.RETURNED,
+            )
+        AIJob.objects.filter(pk=job_row.pk).update(
+            released_credits=F("released_credits") + returned,
+            failed_items=F("failed_items") + (1 if was_held else 0),
+            deleted_items_held=F("deleted_items_held") + item_row.hold_credits,
+            deleted_items_drawn=F("deleted_items_drawn") + item_row.hold_drawn,
+            deleted_items_released=F("deleted_items_released")
+            + item_row.released_credits
+            + returned,
+        )
+        if returned > 0:
+            # C5: the existing label; a new one would be new admin wording.
+            _audit(
+                AuditAction.CREDIT_HOLD_RELEASED,
+                job_row,
+                item=item_row,
+                credits=returned,
+                reason_label="failed",
+            )
+        if job_row.status in OPEN_STATUSES and not _job_has_rows_to_run(
+            job_row, item_row.pk
+        ):
+            has_settlement = SettlementRecord.objects.filter(job=job_row).exists()
+            finish_job(
+                job_row,
+                AIJobStatus.SETTLED if has_settlement else AIJobStatus.FAILED,
+            )

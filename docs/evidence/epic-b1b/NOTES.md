@@ -301,3 +301,13 @@ While writing the receiver, I read the code under the tests' assumptions and fou
 - **So the corrected prediction is `Ran 16`, `FAILED (failures=15)`, with T-15 OK.**
   - The 15 failures are T-1…T-14: T-1…T-8b, T-11, T-13 and T-14 on `reserved`; T-9 on `item_sum`; T-10 and T-12 on `deleted_items`.
   - Any other result is a STOP.
+
+**Red run 3 result (at 71eb3a7f0, under `flock`, 8142 MB available): Ran 16, FAILED (failures=15), with T-15 OK, as declared.** Log: `step1/step1_red3_71eb3a7f.log`. T-10 and T-12 now fail on `(0, 0, 0) != (300, 0, 300)`. Every other test fails with the same message as in run 2.
+
+### §1.9 The fix, and the green run (declared)
+
+**The fix:**
+- `billing/holds.py`: `return_hold_on_item_delete` and `_job_has_rows_to_run`, as designed in §1.1. `check_invariants`' `item_sum` now compares the job's totals with live Σ + `deleted_items_*`.
+- `billing/apps.py`: the receiver is connected in `ready()`, with `dispatch_uid="billing.holds.return_hold_on_item_delete"`.
+
+**Green prediction:** `billing.tests.test_holds_deleted_items`, `Ran 16`, OK. Any other result is a STOP.
