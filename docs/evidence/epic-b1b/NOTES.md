@@ -256,3 +256,12 @@ Each is planted on the green fix, run against the new file, and restored. The sh
 | **PFB-1** | the receiver is not connected (`billing/apps.py`: the `pre_delete.connect` for `BackgroundProcessingTask` removed) | T-1…T-11, T-13 and T-14 fail with `reserved`. T-12 and T-15 are not required to fail: the wallet receiver covers T-12's hold, and T-15 is schema only |
 | **PFB-2** | the receiver never calls `finish_job` (step iii removed) | T-5 (`'RESERVED' != 'SETTLED'`), T-6, T-7, T-8 and T-8b (`!= 'FAILED'`) |
 | **PFB-3** | the receiver skips the `deleted_items_*` update (step ii removed) | T-1…T-4 and T-9 fail with `item_sum job=` |
+
+### §1.6 The red run: STOP, prediction mismatch (recorded as it is)
+
+**Result (at a28b6a517, today's code, under `flock`, 9725 MB available): Ran 16, FAILED (failures=11, errors=5).** Predicted: failures=13, errors=3. Log: `step1/step1_red_a28b6a51.log`.
+- **13 of the 16 matched:** T-1, T-2, T-5…T-9, T-11, T-13 and T-14 failed as declared, and T-10, T-12 and T-15 errored as declared (`AttributeError: 'AIJob' object has no attribute 'deleted_items_held'`). The leak shows in every reserved assertion: T-1 and T-2 read `600 != 300`, and T-9 reports `item_sum job=…`.
+- **The mismatch: T-3 and T-4 ERRORED instead of failing.** The cause is `django.db.utils.IntegrityError: null value in column "answers" of relation "students_studentsubmission"`.
+  - It comes from the test's own fixture (`enrolled_student`, test file line 88). `StudentSubmission.answers` (`students/models.py:41`) is a non-null JSONField, and the fixture creates the submission without it.
+  - It is a bug in the new test, not in the code under test. Neither test reached the erasure.
+- **Proposed fix (for the SM's ruling):** the fixture passes `answers={}`, with nothing else changed. Then re-run red, declared again as `Ran 16, FAILED (failures=13, errors=3)`, recorded beside this run and not replacing it.
