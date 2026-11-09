@@ -213,3 +213,45 @@ assertion, `'FAILED' != 'SUCCEEDED'`. b2, b3 and beta's four pass. Log
 `08_red_road_a.log`.
 
 Red 08 result (`08_red_road_a.log`): **Ran 9, FAILED (failures=3)**, a1, a2, a3, each `'FAILED' != StripeEventStatus.SUCCEEDED`; b2, b3 and beta's four pass. **As predicted.**
+
+## Road A fix
+
+`_refund_departed_share_on_commit`: `transaction.on_commit(_after_commit,
+robust=True)`; both tasks through `safe_delay`; when the refund cannot be
+queued (safe_delay returns None), `departed_share_refund._manual(...)` logs
+"MANUAL RECONCILIATION NEEDED: ..." with the intent id and the cents owed.
+
+Green 09 (declared before the run): test_h300_refund_hook (5),
+test_h300_reprocess (4), and test_departed_teacher_refund (20; its tests
+patch the refund task's `.delay`, which safe_delay still calls). Count from
+build_suite: **29**. Predicted: **Ran 29, OK**. Log `09_green_road_a.log`.
+
+Plants (one per run, declared before each; labels: green 09's 29; file
+restored from a saved copy, sha256 checked):
+
+- Q1, the refund back to a plain `.delay` (robust and the email's
+  safe_delay stay): predicted **Ran 29, FAILED (failures=1)**: a1, no
+  "MANUAL RECONCILIATION" line (robust=True swallows the OperationalError,
+  so the event is SUCCEEDED, but nobody is told the refund was not
+  queued). Killed by a1. Log `10_plant_q1.log`.
+- Q2, the email back to a plain `.delay` (robust stays): predicted
+  **Ran 29, OK, SURVIVES by design**: robust=True contains the email's
+  error after the refund has been queued, so a2 still sees SUCCEEDED and
+  one refund. safe_delay on the email is defence in depth, not separately
+  observable. Log `11_plant_q2.log`.
+- Q3, robust=True removed (both safe_delays stay): predicted **Ran 29,
+  FAILED (failures=1)**: a3 `'FAILED' != StripeEventStatus.SUCCEEDED` (the
+  RuntimeError is not a broker error, so it reaches the handler). Killed by
+  a3. Log `12_plant_q3.log`.
+
+Green 09 result (`09_green_road_a.log`): Ran 29, OK. **As predicted.**
+
+Plant runner note: the first attempt at Q1-Q3 stopped in the runner script
+itself (a SyntaxError in its plant table, a quoting slip); no plant was
+applied, no test ran, and `billing/stripe_service.py` was untouched. The
+runner was fixed and the three plants ran as declared.
+
+Plant results (each restored, sha256 MATCHED 24e6932dfdf62331):
+- Q1 (`10_plant_q1.log`): Ran 29, FAILED (failures=1), a1, no MANUAL RECONCILIATION line in the logs. Killed, **as predicted**.
+- Q2 (`11_plant_q2.log`): Ran 29, OK. Survives by design, **as predicted**.
+- Q3 (`12_plant_q3.log`): Ran 29, FAILED (failures=1), a3 `'FAILED' != StripeEventStatus.SUCCEEDED`. Killed, **as predicted**.
