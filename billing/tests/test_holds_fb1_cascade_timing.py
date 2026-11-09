@@ -23,7 +23,6 @@ import uuid
 
 from django.db import connection
 from django.test import TransactionTestCase, override_settings
-from django.test.utils import CaptureQueriesContext
 
 from assignments.models import Assignment, AssignmentStatus
 from billing.models import AIJob, AIJobType, CreditWallet, HoldState
@@ -90,11 +89,19 @@ class FB1CascadeTimingTests(TransactionTestCase):
         seconds, queries = [], []
         for run in range(RUNS):
             assignment = self.build(f"{shape}.{run}", with_job=with_job)
-            with CaptureQueriesContext(connection) as captured:
+            # A counter, not queries_log: that is a deque(maxlen=9000), so
+            # past 9,000 queries its slices read 0 (NOTES §1.14).
+            counted = [0]
+
+            def count(execute, sql, params, many, context, counted=counted):
+                counted[0] += 1
+                return execute(sql, params, many, context)
+
+            with connection.execute_wrapper(count):
                 start = time.perf_counter()
                 assignment.delete()
                 seconds.append(time.perf_counter() - start)
-            queries.append(len(captured.captured_queries))
+            queries.append(counted[0])
             self.assertFalse(
                 BackgroundProcessingTask.objects.filter(
                     assignment_id=assignment.pk

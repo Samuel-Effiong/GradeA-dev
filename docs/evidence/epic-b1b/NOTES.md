@@ -433,3 +433,69 @@ This step had three test-only bugs: a NOT NULL fixture field, a fixture status t
 - **The one-job query counts are unreliable after run 1.** Django keeps `connection.queries_log` as a `deque(maxlen=9000)` (`django/db/backends/base/base.py`), and `CaptureQueriesContext` takes a slice of it by index. Once the deque is full the slice comes back empty, so runs 2 and 3 read 0. Run 1's 8,925 is near the cap, so it's a lower bound: about 9 queries per row.
 - **The cost:** an assignment cascade of 1,000 rows in a flag-on job goes from 0.02 s to about 9 s. All of that runs inside the delete's transaction, with the teacher's wallet row locked from the first HELD row onward. Rows from the flag-off era (no job) cost little: 0.048 s.
 - **Sent to the SM before the near run** (08b §5.1: "Fallback if it is too slow … needs an SM ruling"), because any change here changes the code the near run tests.
+
+### §1.15 The cost ruling: option (b'), a cheaper receiver that keeps the lock order (SM, 2026-11-09)
+
+**The ruling path:**
+- The SM chose option (b), a cheap path for RETURNED rows, on condition that it keep the lock order: the wallet first, never an `AIJob` UPDATE before the wallet lock, because the reverse order risks a deadlock against `settle` and `finish_job`.
+- Option (d) was rejected.
+- Before building (b), I found that its premise was wrong, and the SM approved the safer variant (b').
+
+**The correction (SM): "RETURNED is terminal, so trusting the instance is safe" is false.**
+- A row can go from RETURNED back to HELD:
+  - `_sweep_item` returns a STARTED row whose run may still be going (`billing/holds.py:556–557`);
+  - that run's next provider call goes through `ensure_call_fits` (`:242`) and then `_reserve_locked(…, item_row)` (`:225`), which sets `hold_state=HELD` with `hold_credits += shortfall`.
+- So an instance the collector loaded as RETURNED may be HELD when the receiver runs. Trusting it would skip the return, which is the FB-1 leak. T-17 pins this case.
+
+**The lock-order argument (why a plain fresh read is enough once the wallet is locked):**
+- **Every writer of a task row's hold columns holds that job's wallet lock**, taken first through `_lock_wallet_of`:
+  - `_reserve_locked` `:225` (its callers `reserve` and `ensure_call_fits` lock first);
+  - `settle` `:347`;
+  - `fail_item` `:386`;
+  - `finish_job` `:423`;
+  - the sweep `:557`;
+  - the receiver itself.
+
+  Those are every `hold_state` write outside tests and migrations, by grep. `students/task_tracking.py:127` only filters on it.
+- **Every write of an `AIJob.status` (SM condition 1)**, by grep of `create`, `update`, `save` and `bulk_update` on `AIJob` outside tests:
+  - `finish_job` `:408` (the conditional UPDATE to a terminal status): **under `_lock_wallet_of` (`:405`)**.
+  - `create_job` `:196` (ESTIMATED), `_open_successor_job` `:494`/`:496`, `Unit.before_call` `:814` (RUNNING), `begin_single_call` `:936` and `open_door_job` `:1059`: these are **not under the wallet lock**, but each sets the status of a **brand-new job before any task row points at it**.
+    - Successors leave the task row on its old job (`:469`, "the old job and the task row are untouched").
+    - `before_call` writes RUNNING before it attaches the row (`:814` and then `:818`).
+    - The door sets RESERVED before `hold_door_item` attaches files.
+    - Single calls have no task row.
+  - No admin, QA console or management-command code names `AIJob` (grep: only `billing/holds.py`, `billing/models.py`, `billing/testing/holds.py`, `students/models.py`, `students/student_data_map.py`, `audit/serializers.py`). `billing/admin.py` doesn't register it.
+  - **Result:** for any job a task row points to, every later status write holds the wallet lock. So the status read in step 2 is stable while the receiver holds that lock, and step 4 doesn't need to re-read the job FOR UPDATE.
+  - **B1b-6 obligation:** promotion and expiry will add status writes on jobs that have rows, and they must take the wallet lock first, or this receiver must re-read the job FOR UPDATE.
+
+**The receiver (b'):**
+1. Lock the wallet, found through the job: `select_for_update(of=("self",)).filter(ai_jobs__pk=…)`. None means no job, or a wallet-less one.
+2. A plain fresh read of the row's hold columns and its job's status, in one query.
+3. HELD: the full path, as before.
+4. Not HELD: one F() UPDATE of `deleted_items_*` from the fresh numbers, then C4's checks only if the job is open.
+- The C4 rule moves into `_finish_if_nothing_left` (one place, two callers).
+- **SM condition (2):** inside an open transaction (Collector.delete's), the receiver opens no savepoint per row. Outside one it opens its own atomic.
+  - Django's outermost `atomic` always begins a full transaction, whatever `savepoint` says, so the explicit guard documents the rule rather than changing behavior.
+  - T-18 pins the property: called outside any transaction, a failure after the wallet moved leaves nothing applied.
+
+### §1.16 The declarations for (b') (committed before any run)
+
+**New tests:** T-17 (a stale RETURNED instance whose row was HELD again) and T-18 (outside a transaction, nothing half-applies). **18 tests.**
+
+**Green run 3:** `billing.tests.test_holds_deleted_items`, **`Ran 18`, OK.**
+
+**Plants:** all on the new code, restored by sha256 as before.
+
+| Plant | The change | Kills (must not pass) | Allowed either way |
+|---|---|---|---|
+| PFB-1 | the `BackgroundProcessingTask` connect removed | T-1…T-11, T-13, T-14, T-17 | T-12. T-15 and T-18 (which calls the receiver directly) survive |
+| PFB-2 | `_finish_if_nothing_left` returns at once | T-5, T-6, T-7, T-8, T-8b | the rest pass |
+| PFB-3 | the **HELD path's** `deleted_items_*` update removed | T-1…T-6, T-13, T-14, T-17 | T-12 and the rest. T-10 is now on the not-HELD path, so it moves to PFB-7 |
+| PFB-4 | the release row written with `item=None` | T-1…T-5, T-11 | T-10 and T-12 survive (declared) |
+| PFB-6 | the not-HELD path also moves the wallet by `−(hold_credits − hold_drawn)` | T-9, T-5 (an ERROR on the reserved ≥ 0 check is allowed) | T-10 and the rest |
+| PFB-7 | the not-HELD path's `deleted_items_*` update removed | T-10, T-9, T-5 | T-12 and the rest |
+| PFB-8 | the instance's RETURNED is trusted: the not-HELD path is taken when `instance.hold_state == RETURNED`, whatever the fresh read says | T-17 | the rest |
+
+**The timing:** the same file. The query count now uses `connection.execute_wrapper`. Prediction: `Ran 1`, OK.
+- **Rule (SM):** if the one-job median is ≤ 2 s for 1,000 rows, this step is done.
+- Above 2 s, (c) is not built now. Instead it becomes a B1b-3 speed item and a switch-on checklist line: "large flag-on deletes hold the wallet lock for N s".

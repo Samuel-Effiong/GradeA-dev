@@ -1157,6 +1157,19 @@ def _job_has_rows_to_run(job, excluding_pk):
     ).exists()
 
 
+def _finish_if_nothing_left(job_pk, job_status, deleted_pk):
+    """SM ruling C4: an open job with no live row left to run ends SETTLED
+    if it has a SettlementRecord, otherwise FAILED; never QUEUED. B1b-6
+    replaces this rule with its last-item helper."""
+    if job_status not in OPEN_STATUSES:
+        return
+    job = AIJob.objects.get(pk=job_pk)
+    if _job_has_rows_to_run(job, deleted_pk):
+        return
+    has_settlement = SettlementRecord.objects.filter(job_id=job_pk).exists()
+    finish_job(job, AIJobStatus.SETTLED if has_settlement else AIJobStatus.FAILED)
+
+
 def return_hold_on_item_delete(sender, instance, **kwargs):
     """pre_delete on BackgroundProcessingTask (connected in BillingConfig.ready;
     B1b FB-1, NOTES §1.1). Whatever the flag says, as release_open_holds_on_delete.
@@ -1164,38 +1177,66 @@ def return_hold_on_item_delete(sender, instance, **kwargs):
     A HELD row's hold is returned the way fail_item returns it; the row's
     numbers are added to its job's deleted_items_*, so check_invariants'
     item_sum still adds up; and a job left with nothing to run is finished
-    (C4): SETTLED if it has a SettlementRecord, otherwise FAILED, never
-    QUEUED. B1b-6 replaces that rule with its last-item helper."""
+    (_finish_if_nothing_left).
+
+    Lock order (NOTES §1.15): the wallet first, always. Every writer of a
+    row's hold columns and of a job's status holds that wallet lock, so once
+    it is held a plain read of the row is stable; the instance is never
+    trusted (a RETURNED row can be HELD again: the sweep returns a started
+    row, and its run's next call reserves on it). Pre_delete always runs
+    inside Collector.delete's transaction, hence no savepoint per row."""
     if instance.job_id is None:
         return
-    job = AIJob.objects.filter(pk=instance.job_id).first()
-    if job is None:
-        return
-    with transaction.atomic():
-        # The house lock order: the wallet first, then the job and the row;
-        # the hold state is read from the locked row, never the instance.
-        locked = _lock_wallet_of(job)
-        if locked is None:
-            return
-        job_row = AIJob.objects.select_for_update().get(pk=job.pk)
-        item_row = (
-            BackgroundProcessingTask.objects.select_for_update()
-            .filter(pk=instance.pk, job=job_row)
+    # SM condition (2): no savepoint per row only inside an open transaction
+    # (Collector.delete's). Called outside one, it runs in a full atomic of
+    # its own, so it can never half-apply.
+    savepoint = not transaction.get_connection().in_atomic_block
+    with transaction.atomic(savepoint=savepoint):
+        locked = (
+            CreditWallet.objects.select_for_update(of=("self",))
+            .filter(ai_jobs__pk=instance.job_id)
             .first()
         )
-        if item_row is None:
+        if locked is None:  # no such job, or a wallet-less one (§21n)
             return
-        was_held = item_row.hold_state == HoldState.HELD
-        returned = max(_left(job_row, item_row), 0) if was_held else 0
-        if was_held:
-            _move_wallet(locked.pk, -returned)
-            BackgroundProcessingTask.objects.filter(pk=item_row.pk).update(
-                released_credits=F("released_credits") + returned,
-                hold_state=HoldState.RETURNED,
+        fresh = (
+            BackgroundProcessingTask.objects.filter(
+                pk=instance.pk, job_id=instance.job_id
             )
+            .values(
+                "hold_state",
+                "hold_credits",
+                "hold_drawn",
+                "released_credits",
+                "job__status",
+            )
+            .first()
+        )
+        if fresh is None:
+            return
+        if fresh["hold_state"] != HoldState.HELD:
+            # Nothing to return: carry the row's numbers to its job.
+            AIJob.objects.filter(pk=instance.job_id).update(
+                deleted_items_held=F("deleted_items_held") + fresh["hold_credits"],
+                deleted_items_drawn=F("deleted_items_drawn") + fresh["hold_drawn"],
+                deleted_items_released=F("deleted_items_released")
+                + fresh["released_credits"],
+            )
+            _finish_if_nothing_left(instance.job_id, fresh["job__status"], instance.pk)
+            return
+        job_row = AIJob.objects.select_for_update().get(pk=instance.job_id)
+        item_row = BackgroundProcessingTask.objects.select_for_update().get(
+            pk=instance.pk
+        )
+        returned = max(_left(job_row, item_row), 0)
+        _move_wallet(locked.pk, -returned)
+        BackgroundProcessingTask.objects.filter(pk=item_row.pk).update(
+            released_credits=F("released_credits") + returned,
+            hold_state=HoldState.RETURNED,
+        )
         AIJob.objects.filter(pk=job_row.pk).update(
             released_credits=F("released_credits") + returned,
-            failed_items=F("failed_items") + (1 if was_held else 0),
+            failed_items=F("failed_items") + 1,
             deleted_items_held=F("deleted_items_held") + item_row.hold_credits,
             deleted_items_drawn=F("deleted_items_drawn") + item_row.hold_drawn,
             deleted_items_released=F("deleted_items_released")
@@ -1211,11 +1252,4 @@ def return_hold_on_item_delete(sender, instance, **kwargs):
                 credits=returned,
                 reason_label="failed",
             )
-        if job_row.status in OPEN_STATUSES and not _job_has_rows_to_run(
-            job_row, item_row.pk
-        ):
-            has_settlement = SettlementRecord.objects.filter(job=job_row).exists()
-            finish_job(
-                job_row,
-                AIJobStatus.SETTLED if has_settlement else AIJobStatus.FAILED,
-            )
+        _finish_if_nothing_left(job_row.pk, job_row.status, item_row.pk)

@@ -13,6 +13,8 @@ TransactionTestCase, flag on (as test_holds_wallet_deletion): every delete
 really commits.
 """
 
+from unittest.mock import patch
+
 from django.db import IntegrityError, transaction
 from django.test import TransactionTestCase, override_settings
 
@@ -409,3 +411,48 @@ class SchemaTests(TransactionTestCase):
                 with self.assertRaises(IntegrityError):
                     with transaction.atomic():
                         AIJob.objects.filter(pk=job.pk).update(**{column: -1})
+
+
+class StaleInstanceTests(DeletedItemsBase):
+    def test_t17_a_stale_returned_instance_whose_row_was_held_again(self):
+        """NOTES §1.15: the sweep returns a started row and its run's next
+        call reserves on it again (holds.py:556-557 -> :242 -> :225). The
+        collector's instance says RETURNED; the row is HELD."""
+        self.classroom("t17")
+        job = self.job()
+        start = self.reserved()
+        doomed = self.held_item(job)
+        self.held_item(job)
+        holds().fail_item(job, item=doomed)
+        stale = fresh(doomed)
+        self.assertEqual(stale.hold_state, HoldState.RETURNED)
+        self.assertTrue(holds().reserve(self.wallet, HELD, job, item=doomed))
+        self.assertEqual(fresh(doomed).hold_state, HoldState.HELD)
+        stale.delete()
+        self.assertEqual(
+            self.reserved(), start + HELD, "reserved: only the kept row's hold is left"
+        )
+        self.assert_books_agree()
+        self.assertEqual(deleted_items(job), (2 * HELD, 0, 2 * HELD))
+
+
+class OwnTransactionTests(DeletedItemsBase):
+    def test_t18_called_outside_a_transaction_it_never_half_applies(self):
+        """SM condition (2): outside Collector.delete the receiver opens its
+        own full atomic, so a failure after the wallet moved undoes it."""
+        self.classroom("t18")
+        job = self.job()
+        start = self.reserved()
+        doomed = self.held_item(job)
+        self.held_item(job)
+        module = holds()
+        with patch.object(
+            module, "_finish_if_nothing_left", side_effect=RuntimeError("boom")
+        ):
+            with self.assertRaises(RuntimeError):
+                module.return_hold_on_item_delete(
+                    sender=BackgroundProcessingTask, instance=fresh(doomed)
+                )
+        self.assertEqual(self.reserved(), start + 2 * HELD)
+        self.assertEqual(fresh(doomed).hold_state, HoldState.HELD)
+        self.assertEqual(deleted_items(job), (0, 0, 0))
