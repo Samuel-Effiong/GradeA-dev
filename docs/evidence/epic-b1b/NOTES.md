@@ -1122,3 +1122,30 @@ Fixture reuse: T1 calls `GradingRefundScopeTest.setUp`, and T12 calls `Assignmen
   - the other eight kill PB3-3.
 - None needs a separate reason to stay.
 - Any other pass or fail is a STOP.
+
+**B3 results (at c36534db7, under `flock`):** all as declared. Logs: `step2/b3_*_c36534db.log`.
+- **R1 (flag on): `Ran 109`, `OK (skipped=1)`. R2 (flag unset): `Ran 109`, `OK (skipped=1)`.** The skip is the 1 decorated one. All 12 twins passed on their first run.
+- **The plants:** each was restored; `sha256sum -c` matched `billing/holds.py` after each.
+
+| Plant | Result | Killed by (each failing assertion, as logged) |
+|---|---|---|
+| PB3-1 | `FAILED (failures=4)` | T6, T7: `2 != 1 : the number of settle charges`. T9, T10: `Lists differ: [1100, 1100] != [1100]` (the settle-charges check) |
+| PB3-2 | `FAILED (failures=4)` | T7: `[300] != []`. T9, T10: `[1100] != []` (the refund-row check). **T6** failed one line before the helper, on its own `assertLess(balance)`: `500000 not less than 500000`, because the planted refund restored the balance. It is killed, but by its own assertion; the helper's refund check is proven by T7, T9 and T10 |
+| PB3-3 | `FAILED (failures=11)` | T1, T2, T3, T4, T5, T7, T8, T9, T10, T11, T12: `<n> != 0 : a hold was left reserved` (n = 20003 … 41545, the unreturned holds). T6 passed, as declared |
+
+- The kill sets are **exactly as declared**, by name.
+- **Every twin kills at least one plant:** T6 kills PB3-1 and PB3-2; T7, T9 and T10 kill all three; T1–T5, T8, T11 and T12 kill PB3-3.
+- **B3 is done.**
+
+### §2.11 The 08b §5.2 evidence runs (declared before they run; at the commit that carries this section)
+
+The counts are from `build_suite`.
+
+- **E1, the flag-on run:** `BILLING_HOLDS_ENABLED=True` from the environment, under `flock`, `--parallel 4`. The labels are §21m's (`billing ai_processor assignments students users audit.tests_h273_query_filters audit.tests_route_coverage`) plus `guards66.txt`.
+  - **There are 7409 tests:** 7396 at the survey (§2.2), plus the B4 twin and the 12 B3 twins. B1 and B2 added none.
+  - **Prediction: `Ran 7409`, `OK (skipped=31)`, with 0 failures and 0 errors.** The 31 is the survey's 25 decorated + 6 runtime skips; no edit adds a skip.
+- **E2, the flag-off near run, apps:** `billing students classrooms assignments users AutoGrader.tests_migration_rollback_defaults`, flag unset, `--parallel 4`.
+  - **There are 6347 tests:** 6337 at §1.24, plus 10 twins (billing 3: T1, T2, B4; students 3: T3, T4, T5; assignments 4: T9–T12). T6–T8 are in `ai_processor`, which is outside these apps.
+  - **Prediction: `Ran 6347`, `OK (skipped=23)`:** 19 decorated + 4 runtime, as at §1.24.
+- **E3, the 66 guards, serially, flag unset:** **`Ran 1146`, `OK (skipped=1)`.**
+- Any other result is a STOP.

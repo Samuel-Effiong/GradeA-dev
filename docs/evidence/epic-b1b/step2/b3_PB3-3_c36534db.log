@@ -1,0 +1,2441 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user d2dfe6b5-107f-4afa-a095-300e82244f29.
+Cannot activate automatic trial for user d2dfe6b5-107f-4afa-a095-300e82244f29 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3b689f04-3e44-4a4c-af5f-3d5b62b89023.
+Cannot activate automatic trial for user 3b689f04-3e44-4a4c-af5f-3d5b62b89023 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5ada7a20-8d0e-4336-9723-d7e8628458c2.
+Cannot activate automatic trial for user 5ada7a20-8d0e-4336-9723-d7e8628458c2 (validation): ValueError
+.Free trial plan not found: no trial activated for user 545bd780-e818-49af-9ca8-57cf131d007c.
+Cannot activate automatic trial for user 545bd780-e818-49af-9ca8-57cf131d007c (validation): ValueError
+FFree trial plan not found: no trial activated for user 87ab6459-7918-4811-9d1e-e32692c08ef1.
+Cannot activate automatic trial for user 87ab6459-7918-4811-9d1e-e32692c08ef1 (validation): ValueError
+FFree trial plan not found: no trial activated for user 9cedba5b-206a-447a-976b-6cfb9d4d202e.
+Cannot activate automatic trial for user 9cedba5b-206a-447a-976b-6cfb9d4d202e (validation): ValueError
+
+
+students.services WARNING 2026-11-09 13:33:54,924 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=6ea8a12a-3827-4755-a8e3-c86bef5bf885 answers=dict left_out=all
+
+
+
+
+students.services WARNING 2026-11-09 13:33:54,931 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=6ea8a12a-3827-4755-a8e3-c86bef5bf885 answers=str left_out=all
+
+
+
+
+students.services WARNING 2026-11-09 13:33:54,937 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=6ea8a12a-3827-4755-a8e3-c86bef5bf885 answers=int left_out=all
+
+
+
+
+students.services WARNING 2026-11-09 13:33:54,943 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=6ea8a12a-3827-4755-a8e3-c86bef5bf885 answers=bool left_out=all
+
+
+
+
+students.services WARNING 2026-11-09 13:33:54,949 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=6ea8a12a-3827-4755-a8e3-c86bef5bf885 answers=list left_out=all
+
+
+
+
+students.services WARNING 2026-11-09 13:33:54,956 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=6ea8a12a-3827-4755-a8e3-c86bef5bf885 answers=list left_out=all
+
+
+.Free trial plan not found: no trial activated for user a416e6b3-25ef-42d2-8565-86e79e409285.
+Cannot activate automatic trial for user a416e6b3-25ef-42d2-8565-86e79e409285 (validation): ValueError
+
+
+students.services WARNING 2026-11-09 13:33:55,039 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=c0d248dc-1e5f-41aa-a036-e6b7bbdf4578 answers=dict left_out=all
+
+
+.Free trial plan not found: no trial activated for user c1173e11-65e1-48f7-bb21-868e61c410fe.
+Cannot activate automatic trial for user c1173e11-65e1-48f7-bb21-868e61c410fe (validation): ValueError
+
+
+students.services WARNING 2026-11-09 13:33:55,120 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=93045e0b-6aec-4509-a47f-2acded7fa04d answers=dict left_out=all
+
+
+.Free trial plan not found: no trial activated for user 29247791-c248-4e35-ac99-cbcc2427c338.
+Cannot activate automatic trial for user 29247791-c248-4e35-ac99-cbcc2427c338 (validation): ValueError
+
+
+students.services WARNING 2026-11-09 13:33:55,241 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=df5e1833-50ee-4d70-943a-2273dc6e30bd answers=dict left_out=all
+
+
+
+
+students.services WARNING 2026-11-09 13:33:55,255 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=df5e1833-50ee-4d70-943a-2273dc6e30bd answers=dict left_out=all
+
+
+.Free trial plan not found: no trial activated for user 30a81582-a6ea-4577-bb40-1a9f67baa977.
+Cannot activate automatic trial for user 30a81582-a6ea-4577-bb40-1a9f67baa977 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+
+
+students.services WARNING 2026-11-09 13:33:55,428 services 56710 125698866235264 [request_id=ff8f5dab-e297-4501-9bd7-0c547704a0c5 client_request_id=-] Unreadable answers: submission=f5c158eb-3126-467d-a437-3a685c510d2f answers=dict left_out=all
+
+
+
+
+students.views ERROR 2026-11-09 13:33:55,428 views 56710 125698866235264 [request_id=ff8f5dab-e297-4501-9bd7-0c547704a0c5 client_request_id=-] Grading failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/views.py", line 941, in grade
+    submission = grade_engine(request.user, submission)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/services.py", line 798, in grade_engine
+    _refuse_unreadable_answers(submission)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/services.py", line 787, in _refuse_unreadable_answers
+    raise SubmissionAnswersUnreadableError(ANSWERS_UNREADABLE_FOR_TEACHER)
+students.exceptions.SubmissionAnswersUnreadableError: This submission's answers could not be read. Upload the paper again or re-enter its answers, then grade it.
+.Free trial plan not found: no trial activated for user e1c992dc-be49-4a94-9244-6959bb6cdcce.
+Cannot activate automatic trial for user e1c992dc-be49-4a94-9244-6959bb6cdcce (validation): ValueError
+
+
+students.services WARNING 2026-11-09 13:33:55,536 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=b0eb65f6-2062-4559-8f39-eff32cedbf0f answers=dict left_out=all
+
+
+.Free trial plan not found: no trial activated for user c8c87174-5354-4f89-9420-7f6f89693f17.
+Cannot activate automatic trial for user c8c87174-5354-4f89-9420-7f6f89693f17 (validation): ValueError
+
+
+students.services WARNING 2026-11-09 13:33:55,627 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=9617b0bb-8e85-48b9-a237-8ee29759334f answers=dict left_out=all
+
+
+.Free trial plan not found: no trial activated for user a3dc9bc0-ca8c-476a-8e8a-6ee5839a19c6.
+Cannot activate automatic trial for user a3dc9bc0-ca8c-476a-8e8a-6ee5839a19c6 (validation): ValueError
+
+
+students.services WARNING 2026-11-09 13:33:55,732 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=607683c8-99e0-4650-9ee8-99b3a466b089 answers=list left_out=1
+
+
+.Free trial plan not found: no trial activated for user 74998754-9ef3-43e1-90d4-d9c99073cfc5.
+Cannot activate automatic trial for user 74998754-9ef3-43e1-90d4-d9c99073cfc5 (validation): ValueError
+.Free trial plan not found: no trial activated for user 72118674-0b5e-4dd2-8457-6a2997f7f580.
+Cannot activate automatic trial for user 72118674-0b5e-4dd2-8457-6a2997f7f580 (validation): ValueError
+
+
+students.services WARNING 2026-11-09 13:33:55,924 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=0530a196-bf13-4d3a-a005-a30d5db43ee4 answers=list left_out=1
+
+
+.Free trial plan not found: no trial activated for user 2d35c104-9be3-4032-96a1-18ba70892024.
+Cannot activate automatic trial for user 2d35c104-9be3-4032-96a1-18ba70892024 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,045 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 3 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:56,046 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 1 question(s) graded without a confirmed student answer (2). Flagging for review.
+
+
+
+
+students.services WARNING 2026-11-09 13:33:56,046 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=a2921e43-75e7-4827-a61e-489eb18cfb0e answers=list left_out=1
+
+
+.Free trial plan not found: no trial activated for user 14ab03f4-10f9-46e4-a0b4-8d2cebcce5d7.
+Cannot activate automatic trial for user 14ab03f4-10f9-46e4-a0b4-8d2cebcce5d7 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,151 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 3 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 3 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,151 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 3 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:56,152 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 1 question(s) graded without a confirmed student answer (2). Flagging for review.
+
+
+
+
+students.services WARNING 2026-11-09 13:33:56,152 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=335057f7-f52e-4b05-8860-a5a5bcd1d81b answers=list left_out=1
+
+
+.Free trial plan not found: no trial activated for user bbd19f44-3d61-4797-bca2-1d09958ea978.
+Cannot activate automatic trial for user bbd19f44-3d61-4797-bca2-1d09958ea978 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3beab4fe-c49a-4af9-ab41-ef4b9569bf8c.
+Cannot activate automatic trial for user 3beab4fe-c49a-4af9-ab41-ef4b9569bf8c (validation): ValueError
+.Free trial plan not found: no trial activated for user 84d3ad8b-fb7a-4d3a-a15f-c4d03120dab7.
+Cannot activate automatic trial for user 84d3ad8b-fb7a-4d3a-a15f-c4d03120dab7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2701dde0-48cf-4bd1-b7b1-595b45d01272.
+Cannot activate automatic trial for user 2701dde0-48cf-4bd1-b7b1-595b45d01272 (validation): ValueError
+.Free trial plan not found: no trial activated for user d8442642-017b-4020-9ad0-fc98e4ee3ff5.
+Cannot activate automatic trial for user d8442642-017b-4020-9ad0-fc98e4ee3ff5 (validation): ValueError
+.Free trial plan not found: no trial activated for user 763c0983-56f4-4188-bb7a-589f7a2de22e.
+Cannot activate automatic trial for user 763c0983-56f4-4188-bb7a-589f7a2de22e (validation): ValueError
+.Free trial plan not found: no trial activated for user 42df4b07-2274-42a2-8903-8ccb6a54fe5e.
+Cannot activate automatic trial for user 42df4b07-2274-42a2-8903-8ccb6a54fe5e (validation): ValueError
+F
+
+ai_processor.services INFO 2026-11-09 13:33:56,935 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,936 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,936 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,937 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,937 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,938 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2/2 complete — 2 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,938 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] All 2 batches complete. 12 question evaluations collected. Building overall summary...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,938 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Complete. Score: 96/120 (80.0%)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:56,940 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 1 question(s) graded without a confirmed student answer (2). Flagging for review.
+
+
+.
+
+ai_processor.services INFO 2026-11-09 13:33:56,947 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 12 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 12 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,948 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,948 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,948 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,949 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,949 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,950 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2/2 complete — 2 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,950 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] All 2 batches complete. 12 question evaluations collected. Building overall summary...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,951 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Complete. Score: 96/120 (80.0%)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:56,952 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 1 question(s) graded without a confirmed student answer (2). Flagging for review.
+
+
+.
+
+ai_processor.services INFO 2026-11-09 13:33:56,960 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,960 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,960 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,961 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,961 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,961 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2/2 complete — 2 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,961 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] All 2 batches complete. 12 question evaluations collected. Building overall summary...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,962 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Complete. Score: 96/120 (80.0%)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:56,962 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 question(s) graded without a confirmed student answer (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12). Flagging for review.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,963 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,963 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,963 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,964 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,964 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,964 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2/2 complete — 2 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,964 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] All 2 batches complete. 12 question evaluations collected. Building overall summary...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,965 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Complete. Score: 96/120 (80.0%)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:56,965 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 question(s) graded without a confirmed student answer (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12). Flagging for review.
+
+
+.
+
+ai_processor.services INFO 2026-11-09 13:33:56,972 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 12 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 12 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,973 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,973 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,973 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,974 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,974 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,975 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2/2 complete — 2 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,975 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] All 2 batches complete. 12 question evaluations collected. Building overall summary...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,975 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Complete. Score: 96/120 (80.0%)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:56,977 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 question(s) graded without a confirmed student answer (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12). Flagging for review.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,978 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 12 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 12 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,978 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,979 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,979 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,980 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,980 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,980 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2/2 complete — 2 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,980 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] All 2 batches complete. 12 question evaluations collected. Building overall summary...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,982 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Complete. Score: 96/120 (80.0%)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:56,983 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 question(s) graded without a confirmed student answer (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12). Flagging for review.
+
+
+.
+
+ai_processor.services INFO 2026-11-09 13:33:56,991 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 3 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:56,992 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 1 question(s) graded without a confirmed student answer (2). Flagging for review.
+
+
+.
+
+ai_processor.services INFO 2026-11-09 13:33:56,999 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 3 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 3 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:56,999 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 3 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:57,001 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 1 question(s) graded without a confirmed student answer (2). Flagging for review.
+
+
+.
+
+ai_processor.services INFO 2026-11-09 13:33:57,008 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 3 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:57,009 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 3 question(s) graded without a confirmed student answer (1, 2, 3). Flagging for review.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:57,009 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 3 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:57,010 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 3 question(s) graded without a confirmed student answer (1, 2, 3). Flagging for review.
+
+
+.
+
+ai_processor.services INFO 2026-11-09 13:33:57,017 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 3 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 3 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:57,017 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 3 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:57,018 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 3 question(s) graded without a confirmed student answer (1, 2, 3). Flagging for review.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:57,019 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 3 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 3 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:57,019 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 3 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:57,020 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 3 question(s) graded without a confirmed student answer (1, 2, 3). Flagging for review.
+
+
+..Free trial plan not found: no trial activated for user 7f4ccb03-ac12-4fda-9646-793c3f5a6373.
+Cannot activate automatic trial for user 7f4ccb03-ac12-4fda-9646-793c3f5a6373 (validation): ValueError
+.Free trial plan not found: no trial activated for user 57e35744-2bd0-441a-9bce-f4c8d96a5772.
+Cannot activate automatic trial for user 57e35744-2bd0-441a-9bce-f4c8d96a5772 (validation): ValueError
+
+
+students.services WARNING 2026-11-09 13:33:57,254 services 56710 125698866235264 [request_id=- client_request_id=-] Unreadable answers: submission=e8510b49-c976-4522-b398-a3be26e560b7 answers=dict left_out=all
+
+
+.Free trial plan not found: no trial activated for user a5abbd81-ddb1-4734-a421-4cda1006c60c.
+Cannot activate automatic trial for user a5abbd81-ddb1-4734-a421-4cda1006c60c (validation): ValueError
+.Free trial plan not found: no trial activated for user 4e8a5140-e837-43ed-a6e6-20fe0ad28363.
+Cannot activate automatic trial for user 4e8a5140-e837-43ed-a6e6-20fe0ad28363 (validation): ValueError
+.Free trial plan not found: no trial activated for user cb4cd23f-9ae8-42c9-b38b-88fc3dedcbff.
+Cannot activate automatic trial for user cb4cd23f-9ae8-42c9-b38b-88fc3dedcbff (validation): ValueError
+.Free trial plan not found: no trial activated for user 6a4028c5-34e9-4de4-b7ff-89e1ee656fd9.
+Cannot activate automatic trial for user 6a4028c5-34e9-4de4-b7ff-89e1ee656fd9 (validation): ValueError
+.Free trial plan not found: no trial activated for user ce3276f7-b676-455f-b934-0108b61d98c1.
+Cannot activate automatic trial for user ce3276f7-b676-455f-b934-0108b61d98c1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 384dde61-0440-4810-a18f-c9a8f4e49a21.
+Cannot activate automatic trial for user 384dde61-0440-4810-a18f-c9a8f4e49a21 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8e73f2fb-c143-486f-aa80-ca1f7352ce2b.
+Cannot activate automatic trial for user 8e73f2fb-c143-486f-aa80-ca1f7352ce2b (validation): ValueError
+.Free trial plan not found: no trial activated for user d2d1bd9d-2c77-4ef0-9811-f34c56d64d38.
+Cannot activate automatic trial for user d2d1bd9d-2c77-4ef0-9811-f34c56d64d38 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-09 13:33:57,961 task_tracking 56710 125698866235264 [request_id=- client_request_id=-] Background task 85e874e7-ce01-497b-aa90-41b7a8c8e843 failed: error=SubmissionAlreadyGradedError frames=tasks.py:452:extract_answer_background_task <- services.py:1907:update_submission_from_raw_text <- services.py:1733:_check_submission_open
+
+
+.Free trial plan not found: no trial activated for user 444f7b6a-f59e-4217-8e87-914a25f85eb1.
+Cannot activate automatic trial for user 444f7b6a-f59e-4217-8e87-914a25f85eb1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 759c9bc4-97f5-499d-bd26-89392f9ed64d.
+Cannot activate automatic trial for user 759c9bc4-97f5-499d-bd26-89392f9ed64d (validation): ValueError
+.Free trial plan not found: no trial activated for user 2acd660c-e2c1-41b3-a2b2-d1c972b8a3b5.
+Cannot activate automatic trial for user 2acd660c-e2c1-41b3-a2b2-d1c972b8a3b5 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0c07627e-693a-459a-b412-ee9675d4df59.
+Cannot activate automatic trial for user 0c07627e-693a-459a-b412-ee9675d4df59 (validation): ValueError
+.Free trial plan not found: no trial activated for user 27f47197-d0d9-4b73-b74a-4c58f33c5c56.
+Cannot activate automatic trial for user 27f47197-d0d9-4b73-b74a-4c58f33c5c56 (validation): ValueError
+FsFree trial plan not found: no trial activated for user fc07bcc0-20cd-4847-8dd5-17c87b67cc99.
+Cannot activate automatic trial for user fc07bcc0-20cd-4847-8dd5-17c87b67cc99 (validation): ValueError
+.Free trial plan not found: no trial activated for user 29d10a42-5794-4771-869c-c2c7101bfc66.
+Cannot activate automatic trial for user 29d10a42-5794-4771-869c-c2c7101bfc66 (validation): ValueError
+API request failed with SUBMISSION_EMPTY: The submitted text has no student answers to grade.
+API request refused: ParseError (400)
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user c6dc32fe-e126-4c77-aef3-9c368fc81750.
+Cannot activate automatic trial for user c6dc32fe-e126-4c77-aef3-9c368fc81750 (validation): ValueError
+.Free trial plan not found: no trial activated for user e34e3fe9-e947-4d28-b282-d7fb1c621631.
+Cannot activate automatic trial for user e34e3fe9-e947-4d28-b282-d7fb1c621631 (validation): ValueError
+Free trial plan not found: no trial activated for user 9fc663b1-3e46-477d-b271-75246458d03b.
+Cannot activate automatic trial for user 9fc663b1-3e46-477d-b271-75246458d03b (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: NotAuthenticated (401)
+.Free trial plan not found: no trial activated for user 89b385c7-591d-47e0-9e4c-7bea0495f625.
+Cannot activate automatic trial for user 89b385c7-591d-47e0-9e4c-7bea0495f625 (validation): ValueError
+.Free trial plan not found: no trial activated for user 62a1a82a-18ad-4372-a4b2-7c31da7b9c33.
+Cannot activate automatic trial for user 62a1a82a-18ad-4372-a4b2-7c31da7b9c33 (validation): ValueError
+.Free trial plan not found: no trial activated for user 58a8fc76-e304-47f0-8790-c56e90ce5686.
+Cannot activate automatic trial for user 58a8fc76-e304-47f0-8790-c56e90ce5686 (validation): ValueError
+
+
+students.views ERROR 2026-11-09 13:33:58,690 views 56710 125698866235264 [request_id=03e00765-10fb-40b2-96c0-a77192ed4343 client_request_id=-] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/views.py", line 826, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/services.py", line 1889, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+billing.errors.InsufficientCreditsError: Refill your wallet to continue
+
+
+students.views ERROR 2026-11-09 13:33:58,699 views 56710 125698866235264 [request_id=b1e52eea-54b4-464d-9f0d-629f020186fc client_request_id=-] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/views.py", line 826, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/services.py", line 1889, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+RuntimeError: model exploded
+
+
+django.request ERROR 2026-11-09 13:33:58,701 log 56710 125698866235264 [request_id=- client_request_id=-] Internal Server Error: /api/v1/submissions/76015af8-cbfa-4077-a9bb-cf2c95c7500e
+
+
+.Free trial plan not found: no trial activated for user a75095b1-e635-487a-96ce-6d43f4d2002c.
+Cannot activate automatic trial for user a75095b1-e635-487a-96ce-6d43f4d2002c (validation): ValueError
+Upload door could not estimate a.pdf: FileUnreadableError
+Upload door could not estimate a.pdf: FileUnreadableError
+Upload door could not estimate a.pdf: FileUnreadableError
+.Free trial plan not found: no trial activated for user 791c1cf6-c1de-4277-9973-febeecfcbd3b.
+Cannot activate automatic trial for user 791c1cf6-c1de-4277-9973-febeecfcbd3b (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,071 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 6 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,072 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] 6 pages → 2 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,072 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/2 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,084 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,084 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 2/2 (pages 4–6)...
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,085 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 1: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,085 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 2: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,085 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 3: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,085 services 56710 125698866235264 [request_id=- client_request_id=-] Attempt 1 failed: [Answer Extraction] Chunk 2 failed after 3 attempts. Last error: provider timed out
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,085 services 56710 125698866235264 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,085 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 6 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,086 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] 6 pages → 2 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,086 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/2 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,096 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,096 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 2/2 (pages 4–6)...
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,097 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 1: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,097 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 2: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,097 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 3: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,097 services 56710 125698866235264 [request_id=- client_request_id=-] Attempt 2 failed: [Answer Extraction] Chunk 2 failed after 3 attempts. Last error: provider timed out
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,097 services 56710 125698866235264 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,097 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 6 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,098 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] 6 pages → 2 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,098 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/2 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,107 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,107 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 2/2 (pages 4–6)...
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,107 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 1: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,107 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 2: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,108 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 3: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,108 services 56710 125698866235264 [request_id=- client_request_id=-] Attempt 3 failed: [Answer Extraction] Chunk 2 failed after 3 attempts. Last error: provider timed out
+
+
+.Free trial plan not found: no trial activated for user 8c6ea366-6b78-45a5-82d8-ef52f9f5b5e8.
+Cannot activate automatic trial for user 8c6ea366-6b78-45a5-82d8-ef52f9f5b5e8 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,441 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 6 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,443 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] 6 pages → 2 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,443 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/2 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,453 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,454 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 2/2 (pages 4–6)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,463 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] QQ4: NOT_FOUND_IN_DOCUMENT -> ANSWERED after chunk 2.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,464 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] QQ5: NOT_FOUND_IN_DOCUMENT -> ANSWERED after chunk 2.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,464 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] QQ6: NOT_FOUND_IN_DOCUMENT -> ANSWERED after chunk 2.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,464 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,464 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Done. Merged 6 answers from 2 chunks. Confidence: 100%.
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,464 services 56710 125698866235264 [request_id=- client_request_id=-] Attempt 1 failed: Extracted answers are incomplete: Answer for question 'Q2' does not correspond to any question in this assignment (numbering drift).; Answer for question 'Q3' does not correspond to any question in this assignment (numbering drift).; Answer for question 'Q4' does not correspond to any question in this assignment (numbering drift).; Answer for question 'Q5' does not correspond to any question in this assignment (numbering drift).; Answer for question 'Q6' does not correspond to any question in this assignment (numbering drift).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,464 services 56710 125698866235264 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,464 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 6 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,465 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] 6 pages → 2 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,465 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/2 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,475 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,475 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 2/2 (pages 4–6)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,485 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] QQ4: NOT_FOUND_IN_DOCUMENT -> ANSWERED after chunk 2.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,485 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] QQ5: NOT_FOUND_IN_DOCUMENT -> ANSWERED after chunk 2.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,485 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] QQ6: NOT_FOUND_IN_DOCUMENT -> ANSWERED after chunk 2.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,485 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,485 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Done. Merged 6 answers from 2 chunks. Confidence: 100%.
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,485 services 56710 125698866235264 [request_id=- client_request_id=-] Attempt 2 failed: Extracted answers are incomplete: Answer for question 'Q2' does not correspond to any question in this assignment (numbering drift).; Answer for question 'Q3' does not correspond to any question in this assignment (numbering drift).; Answer for question 'Q4' does not correspond to any question in this assignment (numbering drift).; Answer for question 'Q5' does not correspond to any question in this assignment (numbering drift).; Answer for question 'Q6' does not correspond to any question in this assignment (numbering drift).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,485 services 56710 125698866235264 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,485 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 6 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,486 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] 6 pages → 2 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,486 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/2 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,496 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,496 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 2/2 (pages 4–6)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,506 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] QQ4: NOT_FOUND_IN_DOCUMENT -> ANSWERED after chunk 2.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,507 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] QQ5: NOT_FOUND_IN_DOCUMENT -> ANSWERED after chunk 2.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,507 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] QQ6: NOT_FOUND_IN_DOCUMENT -> ANSWERED after chunk 2.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,507 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,507 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Done. Merged 6 answers from 2 chunks. Confidence: 100%.
+
+
+
+
+ai_processor.answer_completeness WARNING 2026-11-09 13:33:59,507 answer_completeness 56710 125698866235264 [request_id=- client_request_id=-] [AnswerCompleteness] Repaired 5 violation(s) on the final extraction attempt; affected questions are flagged for review. Answer for question 'Q2' does not correspond to any question in this assignment (numbering drift).; Answer for question 'Q3' does not correspond to any question in this assignment (numbering drift).; Answer for question 'Q4' does not correspond to any question in this assignment (numbering drift).; Answer for question 'Q5' does not correspond to any question in this assignment (numbering drift).; Answer for question 'Q6' does not correspond to any question in this assignment (numbering drift).
+
+
+.Free trial plan not found: no trial activated for user 13f74748-4b22-4ccf-9f92-82a1f09118af.
+Cannot activate automatic trial for user 13f74748-4b22-4ccf-9f92-82a1f09118af (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,806 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 6 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,807 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] 6 pages → 2 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,807 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/2 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,815 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,815 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 2/2 (pages 4–6)...
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,815 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 1: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,815 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 2: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,816 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 3: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,816 services 56710 125698866235264 [request_id=- client_request_id=-] Attempt 1 failed: [Answer Extraction] Chunk 2 failed after 3 attempts. Last error: provider timed out
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,816 services 56710 125698866235264 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,816 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 6 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,817 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] 6 pages → 2 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,817 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/2 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,821 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,821 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 2/2 (pages 4–6)...
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,822 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 1: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,822 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 2: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,822 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 3: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,822 services 56710 125698866235264 [request_id=- client_request_id=-] Attempt 2 failed: [Answer Extraction] Chunk 2 failed after 3 attempts. Last error: provider timed out
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,822 services 56710 125698866235264 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,822 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 6 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,823 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] 6 pages → 2 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,823 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/2 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,828 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:33:59,828 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 2/2 (pages 4–6)...
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,828 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 1: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,829 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 2: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,829 services 56710 125698866235264 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 3: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:33:59,829 services 56710 125698866235264 [request_id=- client_request_id=-] Attempt 3 failed: [Answer Extraction] Chunk 2 failed after 3 attempts. Last error: provider timed out
+
+
+FFree trial plan not found: no trial activated for user a4d542b2-33e8-4fbf-b008-7b37315cf9b0.
+Cannot activate automatic trial for user a4d542b2-33e8-4fbf-b008-7b37315cf9b0 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-09 13:33:59,902 task_tracking 56710 125698866235264 [request_id=- client_request_id=-] Background task 2f0e1d39-1290-4627-9429-7aa85de4e198 failed: error=PDFInfoNotInstalledError frames=tasks.py:1050:upload_answers_engine_async <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call <- tasks.py:1050:upload_answers_engine_async <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call <- tasks.py:1050:upload_answers_engine_async <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call <- tasks.py:1050:upload_answers_engine_async <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 036a0d37-42e6-467d-b699-31033038c866.
+Cannot activate automatic trial for user 036a0d37-42e6-467d-b699-31033038c866 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-09 13:33:59,932 task_tracking 56710 125698866235264 [request_id=- client_request_id=-] Background task bc55ec1c-ba1e-4ee6-ba04-bf607a45d3e5 failed: error=FileNotAPdfError frames=tasks.py:1050:upload_answers_engine_async <- services.py:641:prepare_ai_content
+
+
+.Free trial plan not found: no trial activated for user e2648669-bd0a-42df-8d0a-8ec1abf238d4.
+Cannot activate automatic trial for user e2648669-bd0a-42df-8d0a-8ec1abf238d4 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-09 13:33:59,959 task_tracking 56710 125698866235264 [request_id=- client_request_id=-] Background task 5a104391-78a7-49bf-98b8-dc3f829f9a6c failed: error=FileNotAPdfError frames=tasks.py:1050:upload_answers_engine_async <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1216:_execute_mock_call <- services.py:641:prepare_ai_content
+
+
+........Free trial plan not found: no trial activated for user b9469763-1b44-4574-83b0-435f2873b5cc.
+Cannot activate automatic trial for user b9469763-1b44-4574-83b0-435f2873b5cc (validation): ValueError
+.[2026-11-09 13:34:01,340: WARNING/MainProcess] /home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+
+[2026-11-09 13:34:01,357: ERROR/MainProcess] Free trial plan not found: no trial activated for user 242a7158-b4f1-4336-a68e-ebc18f7c2134.
+[2026-11-09 13:34:01,357: WARNING/MainProcess] Cannot activate automatic trial for user 242a7158-b4f1-4336-a68e-ebc18f7c2134 (validation): ValueError
+.[2026-11-09 13:34:01,996: ERROR/MainProcess] Free trial plan not found: no trial activated for user 2e811eff-58b2-4736-8d58-febeee661701.
+[2026-11-09 13:34:01,996: WARNING/MainProcess] Cannot activate automatic trial for user 2e811eff-58b2-4736-8d58-febeee661701 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,007 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 12 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 12 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,007 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,007 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,007 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,036 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,036 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:02,045 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2, attempt 1: AI call failed — model exploded
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:02,056 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2, attempt 2: AI call failed — model exploded
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:02,065 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2, attempt 3: AI call failed — model exploded
+
+
+.[2026-11-09 13:34:02,263: ERROR/MainProcess] Free trial plan not found: no trial activated for user 2fd78483-132a-41ba-af52-72412f8979a0.
+[2026-11-09 13:34:02,263: WARNING/MainProcess] Cannot activate automatic trial for user 2fd78483-132a-41ba-af52-72412f8979a0 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,276 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 12 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 12 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,276 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,276 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,276 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,312 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,312 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,340 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2/2 complete — 2 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,340 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] All 2 batches complete. 12 question evaluations collected. Building overall summary...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,362 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Complete. Score: 48/60 (80.0%)
+
+
+.[2026-11-09 13:34:02,521: ERROR/MainProcess] Free trial plan not found: no trial activated for user 38f715fe-3990-4550-9775-300c4baa8840.
+[2026-11-09 13:34:02,521: WARNING/MainProcess] Cannot activate automatic trial for user 38f715fe-3990-4550-9775-300c4baa8840 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,531 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,531 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services ERROR 2026-11-09 13:34:02,550 services 56710 125698866235264 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:02,555 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,555 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,556 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,556 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+F[2026-11-09 13:34:02,745: ERROR/MainProcess] Free trial plan not found: no trial activated for user e1f5853c-2c72-486c-bc69-49e8ed334b59.
+[2026-11-09 13:34:02,745: WARNING/MainProcess] Cannot activate automatic trial for user e1f5853c-2c72-486c-bc69-49e8ed334b59 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,755 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 12 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 12 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,755 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,755 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,755 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,776 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,776 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,790 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2/2 complete — 2 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,790 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] All 2 batches complete. 12 question evaluations collected. Building overall summary...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:02,805 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Complete. Score: 48/60 (80.0%)
+
+
+.[2026-11-09 13:34:02,995: ERROR/MainProcess] Free trial plan not found: no trial activated for user c5fe4b99-c2e8-4b99-a46a-db2b223db34b.
+[2026-11-09 13:34:02,995: WARNING/MainProcess] Cannot activate automatic trial for user c5fe4b99-c2e8-4b99-a46a-db2b223db34b (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,004 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 12 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 12 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,004 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,004 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,004 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,031 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,031 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,055 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2/2 complete — 2 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,055 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] All 2 batches complete. 12 question evaluations collected. Building overall summary...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,079 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Complete. Score: 48/60 (80.0%)
+
+
+.[2026-11-09 13:34:03,249: ERROR/MainProcess] Free trial plan not found: no trial activated for user 8fca4d27-157f-4ef8-abfd-8267c693a20f.
+[2026-11-09 13:34:03,249: WARNING/MainProcess] Cannot activate automatic trial for user 8fca4d27-157f-4ef8-abfd-8267c693a20f (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,262 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,262 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services ERROR 2026-11-09 13:34:03,297 services 56710 125698866235264 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:03,312 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,312 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,312 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,312 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+.[2026-11-09 13:34:03,494: ERROR/MainProcess] Free trial plan not found: no trial activated for user 7bd4cf93-540a-4dad-8207-ea8c22b650fa.
+[2026-11-09 13:34:03,494: WARNING/MainProcess] Cannot activate automatic trial for user 7bd4cf93-540a-4dad-8207-ea8c22b650fa (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,503 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 12 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 12 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,503 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,504 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,504 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,539 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,539 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,576 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2/2 complete — 2 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,576 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] All 2 batches complete. 12 question evaluations collected. Building overall summary...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:03,611 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Complete. Score: 48/60 (80.0%)
+
+
+.
+
+ai_processor.services INFO 2026-11-09 13:34:03,955 services 56710 125698866235264 [request_id=- client_request_id=-] ai_call trace_id=2ea5112e-1011-466f-b879-7c77bf67e2ad model=x-ai/grok-4.3 prompt_version=- task_type=grade_assignment attempt=1 latency_ms=119 outcome=APITimeoutError
+
+
+.
+
+ai_processor.services INFO 2026-11-09 13:34:03,962 services 56710 125698866235264 [request_id=- client_request_id=-] ai_call trace_id=033c3fcb-9353-4fab-b536-44f25012e97a model=x-ai/grok-4.3 prompt_version=- task_type=grade_assignment attempt=1 latency_ms=1 outcome=APITimeoutError
+
+
+.
+
+ai_processor.services INFO 2026-11-09 13:34:03,970 services 56710 125698866235264 [request_id=- client_request_id=-] ai_call trace_id=43226086-50e3-45ef-8c0c-bf75cf8cc6bc model=x-ai/grok-4.3 prompt_version=- task_type=grade_assignment attempt=1 latency_ms=1 outcome=APITimeoutError
+
+
+.
+
+ai_processor.services INFO 2026-11-09 13:34:03,989 services 56710 125698866235264 [request_id=- client_request_id=-] ai_call trace_id=c1552156-a288-4048-80fa-005d01027487 model=test/model prompt_version=- task_type=grade_assignment attempt=1 latency_ms=12 outcome=ok
+
+
+.[2026-11-09 13:34:04,026: ERROR/MainProcess] Free trial plan not found: no trial activated for user 3292ec11-7892-4ed8-97b4-8d94f5e7dd43.
+[2026-11-09 13:34:04,027: WARNING/MainProcess] Cannot activate automatic trial for user 3292ec11-7892-4ed8-97b4-8d94f5e7dd43 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,044 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 12 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 12 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,044 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,044 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,044 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,057 services 56710 125698866235264 [request_id=- client_request_id=-] ai_call trace_id=b97932ae-f6cc-46f9-aceb-87fdf8bfb009 model=test/model prompt_version=GRADING_ASSIGNMENT_PROMPT_5:957dc251 task_type=grade_assignment attempt=1 latency_ms=1 outcome=ok
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,075 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,075 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,085 services 56710 125698866235264 [request_id=- client_request_id=-] ai_call trace_id=efec8a51-5621-416b-a67d-cea97b9a0c66 model=x-ai/grok-4.3 prompt_version=GRADING_ASSIGNMENT_PROMPT_5:957dc251 task_type=grade_assignment attempt=1 latency_ms=1 outcome=APITimeoutError
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:04,087 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2, attempt 1: AI call failed — Request timed out.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,097 services 56710 125698866235264 [request_id=- client_request_id=-] ai_call trace_id=1b732dec-2cfa-4601-b841-28799f2eafe6 model=x-ai/grok-4.3 prompt_version=GRADING_ASSIGNMENT_PROMPT_5:957dc251 task_type=grade_assignment attempt=1 latency_ms=1 outcome=APITimeoutError
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:04,099 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2, attempt 2: AI call failed — Request timed out.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,109 services 56710 125698866235264 [request_id=- client_request_id=-] ai_call trace_id=3d8ae5d5-dd0b-4b30-a0fe-78241edee7ca model=x-ai/grok-4.3 prompt_version=GRADING_ASSIGNMENT_PROMPT_5:957dc251 task_type=grade_assignment attempt=1 latency_ms=1 outcome=APITimeoutError
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:04,110 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2, attempt 3: AI call failed — Request timed out.
+
+
+.[2026-11-09 13:34:04,334: ERROR/MainProcess] Free trial plan not found: no trial activated for user a1df1e41-fe9b-4274-bbf3-9f001cadc720.
+[2026-11-09 13:34:04,334: WARNING/MainProcess] Cannot activate automatic trial for user a1df1e41-fe9b-4274-bbf3-9f001cadc720 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,351 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Partition: 12 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 12 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,351 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,351 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,351 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,376 services 56710 125698866235264 [request_id=- client_request_id=-] ai_call trace_id=48907f90-f8d8-411c-94c2-a45e88c5635a model=test/model prompt_version=GRADING_ASSIGNMENT_PROMPT_5:957dc251 task_type=grade_assignment attempt=1 latency_ms=2 outcome=ok
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,379 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,379 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,396 services 56710 125698866235264 [request_id=- client_request_id=-] ai_call trace_id=cb172f28-2500-4c06-8ee9-a7a6f8e70269 model=x-ai/grok-4.3 prompt_version=GRADING_ASSIGNMENT_PROMPT_5:957dc251 task_type=grade_assignment attempt=1 latency_ms=1 outcome=APITimeoutError
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:04,398 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2, attempt 1: AI call failed — Request timed out.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,410 services 56710 125698866235264 [request_id=- client_request_id=-] ai_call trace_id=0776276b-fe0b-42e0-a0e0-10dcdca494c7 model=x-ai/grok-4.3 prompt_version=GRADING_ASSIGNMENT_PROMPT_5:957dc251 task_type=grade_assignment attempt=1 latency_ms=1 outcome=APITimeoutError
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:04,411 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2, attempt 2: AI call failed — Request timed out.
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:04,423 services 56710 125698866235264 [request_id=- client_request_id=-] ai_call trace_id=15923de5-5f4e-4aa3-b4a6-0eb1da32f60a model=x-ai/grok-4.3 prompt_version=GRADING_ASSIGNMENT_PROMPT_5:957dc251 task_type=grade_assignment attempt=1 latency_ms=1 outcome=APITimeoutError
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:04,424 services 56710 125698866235264 [request_id=- client_request_id=-] [Grading] Batch 2, attempt 3: AI call failed — Request timed out.
+
+
+F[2026-11-09 13:34:04,689: ERROR/MainProcess] Free trial plan not found: no trial activated for user 23da970c-8132-4870-aab1-bac5bcd3fa50.
+[2026-11-09 13:34:04,689: WARNING/MainProcess] Cannot activate automatic trial for user 23da970c-8132-4870-aab1-bac5bcd3fa50 (validation): ValueError
+[2026-11-09 13:34:04,738: ERROR/MainProcess] Failed to extract assignment from file a.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 110, in upload_assignment_file
+    claim = _claim(course, sha256)
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 200, in _claim
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+.[2026-11-09 13:34:04,946: ERROR/MainProcess] Free trial plan not found: no trial activated for user 87b6ddbd-ad97-4d8e-a758-c180ad52a73e.
+[2026-11-09 13:34:04,947: WARNING/MainProcess] Cannot activate automatic trial for user 87b6ddbd-ad97-4d8e-a758-c180ad52a73e (validation): ValueError
+[2026-11-09 13:34:04,985: ERROR/MainProcess] Failed to extract assignment from file a.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 110, in upload_assignment_file
+    claim = _claim(course, sha256)
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 200, in _claim
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+[2026-11-09 13:34:04,987: ERROR/MainProcess] Failed to extract assignment from file a.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 110, in upload_assignment_file
+    claim = _claim(course, sha256)
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 200, in _claim
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+[2026-11-09 13:34:04,989: ERROR/MainProcess] Failed to extract assignment from file a.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 110, in upload_assignment_file
+    claim = _claim(course, sha256)
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 200, in _claim
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+[2026-11-09 13:34:04,995: ERROR/MainProcess] Failed to extract assignment from file c.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 110, in upload_assignment_file
+    claim = _claim(course, sha256)
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 200, in _claim
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+[2026-11-09 13:34:04,999: ERROR/MainProcess] Failed to extract assignment from file c.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 110, in upload_assignment_file
+    claim = _claim(course, sha256)
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 200, in _claim
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+[2026-11-09 13:34:05,007: ERROR/MainProcess] Failed to extract assignment from file d.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 110, in upload_assignment_file
+    claim = _claim(course, sha256)
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 200, in _claim
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+[2026-11-09 13:34:05,374: ERROR/MainProcess] Failed to extract assignment from file c.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 110, in upload_assignment_file
+    claim = _claim(course, sha256)
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 200, in _claim
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+[2026-11-09 13:34:05,379: ERROR/MainProcess] Failed to extract assignment from file d.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 110, in upload_assignment_file
+    claim = _claim(course, sha256)
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 200, in _claim
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+[2026-11-09 13:34:05,401: ERROR/MainProcess] Failed to extract assignment from file d.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 110, in upload_assignment_file
+    claim = _claim(course, sha256)
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 200, in _claim
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+.[2026-11-09 13:34:05,603: ERROR/MainProcess] Free trial plan not found: no trial activated for user 49f223ca-ca85-4770-8771-53c16eb99f41.
+[2026-11-09 13:34:05,603: WARNING/MainProcess] Cannot activate automatic trial for user 49f223ca-ca85-4770-8771-53c16eb99f41 (validation): ValueError
+[2026-11-09 13:34:05,627: ERROR/MainProcess] Free trial plan not found: no trial activated for user 36a19c74-407c-4d7b-bb39-ffac57961180.
+[2026-11-09 13:34:05,628: WARNING/MainProcess] Cannot activate automatic trial for user 36a19c74-407c-4d7b-bb39-ffac57961180 (validation): ValueError
+[2026-11-09 13:34:05,651: ERROR/MainProcess] Failed to extract assignment from file b.pdf
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 6271, in extract
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/fitz/fitz.py", line 4143, in __init__
+    _fitz.Document_swiginit(self, _fitz.new_Document(filename, stream, filetype, rect, width, height, fontsize))
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fitz.fitz.FileDataError: cannot open broken document
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 621, in prepare_ai_content
+    images = PDFService(uploaded_file).extract()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 6275, in extract
+    raise PDFUnreadableError("Could not read this PDF.") from e
+ai_processor.services.PDFUnreadableError: Could not read this PDF.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 116, in upload_assignment_file
+    content = AssignmentProcessingService.prepare_ai_content(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 643, in prepare_ai_content
+    raise FileUnreadableError(params={"file_name": file_name}) from exc
+assignments.exceptions.FileUnreadableError: We couldn't read b.pdf. It may be damaged, password-protected or incomplete.
+[2026-11-09 13:34:05,757: ERROR/MainProcess] Free trial plan not found: no trial activated for user 76f2f396-b4f6-4817-8390-1e3caef044d7.
+[2026-11-09 13:34:05,757: WARNING/MainProcess] Cannot activate automatic trial for user 76f2f396-b4f6-4817-8390-1e3caef044d7 (validation): ValueError
+[2026-11-09 13:34:05,822: ERROR/MainProcess] Failed to extract assignment from file b.pdf
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 6271, in extract
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/fitz/fitz.py", line 4143, in __init__
+    _fitz.Document_swiginit(self, _fitz.new_Document(filename, stream, filetype, rect, width, height, fontsize))
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fitz.fitz.FileDataError: cannot open broken document
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 621, in prepare_ai_content
+    images = PDFService(uploaded_file).extract()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 6275, in extract
+    raise PDFUnreadableError("Could not read this PDF.") from e
+ai_processor.services.PDFUnreadableError: Could not read this PDF.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 116, in upload_assignment_file
+    content = AssignmentProcessingService.prepare_ai_content(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 643, in prepare_ai_content
+    raise FileUnreadableError(params={"file_name": file_name}) from exc
+assignments.exceptions.FileUnreadableError: We couldn't read b.pdf. It may be damaged, password-protected or incomplete.
+[2026-11-09 13:34:05,878: ERROR/MainProcess] Free trial plan not found: no trial activated for user 5e6ce9db-4d98-47d8-823c-2cc9111ae667.
+[2026-11-09 13:34:05,878: WARNING/MainProcess] Cannot activate automatic trial for user 5e6ce9db-4d98-47d8-823c-2cc9111ae667 (validation): ValueError
+[2026-11-09 13:34:05,985: ERROR/MainProcess] Failed to extract assignment from file b.pdf
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 6271, in extract
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/fitz/fitz.py", line 4143, in __init__
+    _fitz.Document_swiginit(self, _fitz.new_Document(filename, stream, filetype, rect, width, height, fontsize))
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fitz.fitz.FileDataError: cannot open broken document
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 621, in prepare_ai_content
+    images = PDFService(uploaded_file).extract()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 6275, in extract
+    raise PDFUnreadableError("Could not read this PDF.") from e
+ai_processor.services.PDFUnreadableError: Could not read this PDF.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 116, in upload_assignment_file
+    content = AssignmentProcessingService.prepare_ai_content(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 643, in prepare_ai_content
+    raise FileUnreadableError(params={"file_name": file_name}) from exc
+assignments.exceptions.FileUnreadableError: We couldn't read b.pdf. It may be damaged, password-protected or incomplete.
+.[2026-11-09 13:34:06,172: ERROR/MainProcess] Free trial plan not found: no trial activated for user e7f3ea2f-25ab-4b13-859a-1cc623a483cc.
+[2026-11-09 13:34:06,172: WARNING/MainProcess] Cannot activate automatic trial for user e7f3ea2f-25ab-4b13-859a-1cc623a483cc (validation): ValueError
+[2026-11-09 13:34:06,195: ERROR/MainProcess] Failed to extract assignment from file b.pdf
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 6271, in extract
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/fitz/fitz.py", line 4143, in __init__
+    _fitz.Document_swiginit(self, _fitz.new_Document(filename, stream, filetype, rect, width, height, fontsize))
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fitz.fitz.FileDataError: cannot open broken document
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 621, in prepare_ai_content
+    images = PDFService(uploaded_file).extract()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 6275, in extract
+    raise PDFUnreadableError("Could not read this PDF.") from e
+ai_processor.services.PDFUnreadableError: Could not read this PDF.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 116, in upload_assignment_file
+    content = AssignmentProcessingService.prepare_ai_content(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 643, in prepare_ai_content
+    raise FileUnreadableError(params={"file_name": file_name}) from exc
+assignments.exceptions.FileUnreadableError: We couldn't read b.pdf. It may be damaged, password-protected or incomplete.
+[2026-11-09 13:34:06,219: ERROR/MainProcess] Failed to extract assignment from file x.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 547, in _compress_uploaded_image
+    image = Image.open(
+            ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/PIL/Image.py", line 3730, in open
+    raise UnidentifiedImageError(msg)
+PIL.UnidentifiedImageError: cannot identify image file <_io.BytesIO object at 0x72525bc06610>
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 116, in upload_assignment_file
+    content = AssignmentProcessingService.prepare_ai_content(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 601, in prepare_ai_content
+    compressed_bytes = cls._compress_uploaded_image(uploaded_file)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 557, in _compress_uploaded_image
+    raise FileUnreadableError(params={"file_name": file_name}) from exc
+assignments.exceptions.FileUnreadableError: We couldn't read x.png. It may be damaged, password-protected or incomplete.
+.[2026-11-09 13:34:06,444: ERROR/MainProcess] Free trial plan not found: no trial activated for user da76199d-44dc-4058-a004-41bb7f14882d.
+[2026-11-09 13:34:06,444: WARNING/MainProcess] Cannot activate automatic trial for user da76199d-44dc-4058-a004-41bb7f14882d (validation): ValueError
+.[2026-11-09 13:34:06,795: ERROR/MainProcess] Free trial plan not found: no trial activated for user bb2bcfbf-da8b-433c-ba3c-6b354d921c4e.
+[2026-11-09 13:34:06,795: WARNING/MainProcess] Cannot activate automatic trial for user bb2bcfbf-da8b-433c-ba3c-6b354d921c4e (validation): ValueError
+[2026-11-09 13:34:06,906: ERROR/MainProcess] Failed to extract assignment from file c.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 155, in upload_assignment_file
+    assignment = serializer.save()
+                 ^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in save
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_upload_batch_billing.py", line 438, in second_save_fails
+    raise DatabaseError("simulated write failure")
+django.db.utils.DatabaseError: simulated write failure
+.[2026-11-09 13:34:07,130: ERROR/MainProcess] Free trial plan not found: no trial activated for user 7f3f717f-f1a1-47c6-bc79-8b8a77cc33ae.
+[2026-11-09 13:34:07,130: WARNING/MainProcess] Cannot activate automatic trial for user 7f3f717f-f1a1-47c6-bc79-8b8a77cc33ae (validation): ValueError
+
+
+ai_processor.services WARNING 2026-11-09 13:34:07,213 services 56710 125698866235264 [request_id=59b364c3-05b7-4fd0-b167-84ccd6d0feb7 client_request_id=-] Attempt 1 failed: Error during AI model: provider unreachable
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:07,213 services 56710 125698866235264 [request_id=59b364c3-05b7-4fd0-b167-84ccd6d0feb7 client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:07,232 services 56710 125698866235264 [request_id=59b364c3-05b7-4fd0-b167-84ccd6d0feb7 client_request_id=-] Attempt 2 failed: Error during AI model: provider unreachable
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:07,233 services 56710 125698866235264 [request_id=59b364c3-05b7-4fd0-b167-84ccd6d0feb7 client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:07,253 services 56710 125698866235264 [request_id=59b364c3-05b7-4fd0-b167-84ccd6d0feb7 client_request_id=-] Attempt 3 failed: Error during AI model: provider unreachable
+
+
+[2026-11-09 13:34:07,254: ERROR/MainProcess] Failed to extract assignment from file c.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 136, in upload_assignment_file
+    assignment_questions = AssignmentProcessingService.extract_assignment_data(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 1055, in extract_assignment_data
+    ai_processor.extract_assignment_with_retry(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 1862, in extract_assignment_with_retry
+    raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+Exception: All 3 attempts failed. Last error: Error during AI model: provider unreachable
+.[2026-11-09 13:34:07,494: ERROR/MainProcess] Free trial plan not found: no trial activated for user 19eff843-9675-42bb-a072-abb44d846ecc.
+[2026-11-09 13:34:07,494: WARNING/MainProcess] Cannot activate automatic trial for user 19eff843-9675-42bb-a072-abb44d846ecc (validation): ValueError
+
+
+ai_processor.services ERROR 2026-11-09 13:34:07,611 services 56710 125698866235264 [request_id=ad3d0d33-f6b4-473b-ab8d-bf2756bbaeda client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:07,611 services 56710 125698866235264 [request_id=ad3d0d33-f6b4-473b-ab8d-bf2756bbaeda client_request_id=-] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:07,611 services 56710 125698866235264 [request_id=ad3d0d33-f6b4-473b-ab8d-bf2756bbaeda client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-11-09 13:34:07,646 services 56710 125698866235264 [request_id=ad3d0d33-f6b4-473b-ab8d-bf2756bbaeda client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:07,646 services 56710 125698866235264 [request_id=ad3d0d33-f6b4-473b-ab8d-bf2756bbaeda client_request_id=-] Attempt 2 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:07,646 services 56710 125698866235264 [request_id=ad3d0d33-f6b4-473b-ab8d-bf2756bbaeda client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-11-09 13:34:07,683 services 56710 125698866235264 [request_id=ad3d0d33-f6b4-473b-ab8d-bf2756bbaeda client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:07,683 services 56710 125698866235264 [request_id=ad3d0d33-f6b4-473b-ab8d-bf2756bbaeda client_request_id=-] Attempt 3 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+[2026-11-09 13:34:07,729: ERROR/MainProcess] Failed to extract assignment from file c.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 136, in upload_assignment_file
+    assignment_questions = AssignmentProcessingService.extract_assignment_data(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 1055, in extract_assignment_data
+    ai_processor.extract_assignment_with_retry(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 1862, in extract_assignment_with_retry
+    raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+Exception: All 3 attempts failed. Last error: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+.[2026-11-09 13:34:07,962: ERROR/MainProcess] Free trial plan not found: no trial activated for user e4a327c6-42e2-4311-8aac-3a4515f2b061.
+[2026-11-09 13:34:07,962: WARNING/MainProcess] Cannot activate automatic trial for user e4a327c6-42e2-4311-8aac-3a4515f2b061 (validation): ValueError
+[2026-11-09 13:34:08,067: ERROR/MainProcess] Failed to extract assignment from file a.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 156, in upload_assignment_file
+    _complete(claim, assignment)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 220, in _complete
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+.[2026-11-09 13:34:08,293: ERROR/MainProcess] Free trial plan not found: no trial activated for user b3a38809-1fa5-483f-ade7-229d35bcfd9b.
+[2026-11-09 13:34:08,294: WARNING/MainProcess] Cannot activate automatic trial for user b3a38809-1fa5-483f-ade7-229d35bcfd9b (validation): ValueError
+[2026-11-09 13:34:08,327: ERROR/MainProcess] Failed to extract assignment from file a.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 110, in upload_assignment_file
+    claim = _claim(course, sha256)
+            ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 200, in _claim
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+.[2026-11-09 13:34:08,602: ERROR/MainProcess] Free trial plan not found: no trial activated for user aeb856ea-5e68-429e-b470-acf333e664d3.
+[2026-11-09 13:34:08,603: WARNING/MainProcess] Cannot activate automatic trial for user aeb856ea-5e68-429e-b470-acf333e664d3 (validation): ValueError
+.[2026-11-09 13:34:08,982: ERROR/MainProcess] Free trial plan not found: no trial activated for user c33ffc5c-177e-4b18-999b-e04bf0d726de.
+[2026-11-09 13:34:08,982: WARNING/MainProcess] Cannot activate automatic trial for user c33ffc5c-177e-4b18-999b-e04bf0d726de (validation): ValueError
+.[2026-11-09 13:34:09,402: ERROR/MainProcess] Free trial plan not found: no trial activated for user 2fe51111-0a76-4e14-b5ca-858dd48a0653.
+[2026-11-09 13:34:09,402: WARNING/MainProcess] Cannot activate automatic trial for user 2fe51111-0a76-4e14-b5ca-858dd48a0653 (validation): ValueError
+[2026-11-09 13:34:09,492: ERROR/MainProcess] Failed to extract assignment from file b.pdf
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 6271, in extract
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/fitz/fitz.py", line 4143, in __init__
+    _fitz.Document_swiginit(self, _fitz.new_Document(filename, stream, filetype, rect, width, height, fontsize))
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fitz.fitz.FileDataError: cannot open broken document
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 621, in prepare_ai_content
+    images = PDFService(uploaded_file).extract()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 6275, in extract
+    raise PDFUnreadableError("Could not read this PDF.") from e
+ai_processor.services.PDFUnreadableError: Could not read this PDF.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 116, in upload_assignment_file
+    content = AssignmentProcessingService.prepare_ai_content(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 643, in prepare_ai_content
+    raise FileUnreadableError(params={"file_name": file_name}) from exc
+assignments.exceptions.FileUnreadableError: We couldn't read b.pdf. It may be damaged, password-protected or incomplete.
+[2026-11-09 13:34:09,567: ERROR/MainProcess] Failed to extract assignment from file b.pdf
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 6271, in extract
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/fitz/fitz.py", line 4143, in __init__
+    _fitz.Document_swiginit(self, _fitz.new_Document(filename, stream, filetype, rect, width, height, fontsize))
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fitz.fitz.FileDataError: cannot open broken document
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 621, in prepare_ai_content
+    images = PDFService(uploaded_file).extract()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 6275, in extract
+    raise PDFUnreadableError("Could not read this PDF.") from e
+ai_processor.services.PDFUnreadableError: Could not read this PDF.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 116, in upload_assignment_file
+    content = AssignmentProcessingService.prepare_ai_content(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 643, in prepare_ai_content
+    raise FileUnreadableError(params={"file_name": file_name}) from exc
+assignments.exceptions.FileUnreadableError: We couldn't read b.pdf. It may be damaged, password-protected or incomplete.
+.[2026-11-09 13:34:09,780: ERROR/MainProcess] Free trial plan not found: no trial activated for user c1caa1e5-8244-4da3-bdb7-b69b66853e3c.
+[2026-11-09 13:34:09,780: WARNING/MainProcess] Cannot activate automatic trial for user c1caa1e5-8244-4da3-bdb7-b69b66853e3c (validation): ValueError
+.[2026-11-09 13:34:10,105: ERROR/MainProcess] Free trial plan not found: no trial activated for user f90b59ed-5268-423a-8205-6216819816b4.
+[2026-11-09 13:34:10,106: WARNING/MainProcess] Cannot activate automatic trial for user f90b59ed-5268-423a-8205-6216819816b4 (validation): ValueError
+.[2026-11-09 13:34:10,661: ERROR/MainProcess] Free trial plan not found: no trial activated for user e7c9ada8-56fa-4d0c-b91b-e15665fee6fa.
+[2026-11-09 13:34:10,661: WARNING/MainProcess] Cannot activate automatic trial for user e7c9ada8-56fa-4d0c-b91b-e15665fee6fa (validation): ValueError
+[2026-11-09 13:34:10,819: ERROR/MainProcess] Failed to extract assignment from file a.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 156, in upload_assignment_file
+    _complete(claim, assignment)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 220, in _complete
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+F[2026-11-09 13:34:11,162: ERROR/MainProcess] Free trial plan not found: no trial activated for user f1d02742-1df1-4ff6-bf69-ba9efd6ecf2d.
+[2026-11-09 13:34:11,163: WARNING/MainProcess] Cannot activate automatic trial for user f1d02742-1df1-4ff6-bf69-ba9efd6ecf2d (validation): ValueError
+[2026-11-09 13:34:11,414: ERROR/MainProcess] Failed to extract assignment from file c.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 155, in upload_assignment_file
+    assignment = serializer.save()
+                 ^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in save
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_upload_batch_billing.py", line 641, in second_save_fails
+    raise DatabaseError("simulated write failure")
+django.db.utils.DatabaseError: simulated write failure
+F[2026-11-09 13:34:11,684: ERROR/MainProcess] Free trial plan not found: no trial activated for user 6f424c5f-da11-41ca-8c13-0f0bc9b56554.
+[2026-11-09 13:34:11,685: WARNING/MainProcess] Cannot activate automatic trial for user 6f424c5f-da11-41ca-8c13-0f0bc9b56554 (validation): ValueError
+
+
+ai_processor.services ERROR 2026-11-09 13:34:11,954 services 56710 125698866235264 [request_id=bd231364-2bba-473f-8056-11560a1cc223 client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:11,954 services 56710 125698866235264 [request_id=bd231364-2bba-473f-8056-11560a1cc223 client_request_id=-] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:11,954 services 56710 125698866235264 [request_id=bd231364-2bba-473f-8056-11560a1cc223 client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-11-09 13:34:11,979 services 56710 125698866235264 [request_id=bd231364-2bba-473f-8056-11560a1cc223 client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:11,979 services 56710 125698866235264 [request_id=bd231364-2bba-473f-8056-11560a1cc223 client_request_id=-] Attempt 2 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:11,979 services 56710 125698866235264 [request_id=bd231364-2bba-473f-8056-11560a1cc223 client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-11-09 13:34:12,005 services 56710 125698866235264 [request_id=bd231364-2bba-473f-8056-11560a1cc223 client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:12,005 services 56710 125698866235264 [request_id=bd231364-2bba-473f-8056-11560a1cc223 client_request_id=-] Attempt 3 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+[2026-11-09 13:34:12,013: ERROR/MainProcess] Failed to extract assignment from file c.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 966, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 136, in upload_assignment_file
+    assignment_questions = AssignmentProcessingService.extract_assignment_data(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 1055, in extract_assignment_data
+    ai_processor.extract_assignment_with_retry(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 1862, in extract_assignment_with_retry
+    raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+Exception: All 3 attempts failed. Last error: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+F[2026-11-09 13:34:12,242: ERROR/MainProcess] Free trial plan not found: no trial activated for user 933c80ff-6c7a-4eee-9de0-3b03d6cc60e9.
+[2026-11-09 13:34:12,242: WARNING/MainProcess] Cannot activate automatic trial for user 933c80ff-6c7a-4eee-9de0-3b03d6cc60e9 (validation): ValueError
+.[2026-11-09 13:34:12,602: ERROR/MainProcess] Free trial plan not found: no trial activated for user 5e11778b-28cf-4449-8c00-bf3b22e7eca1.
+[2026-11-09 13:34:12,602: WARNING/MainProcess] Cannot activate automatic trial for user 5e11778b-28cf-4449-8c00-bf3b22e7eca1 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-09 13:34:12,645 task_tracking 56710 125698866235264 [request_id=- client_request_id=-] Background task 1626b265-fdbd-49de-8d0c-0f0ddce83580 failed: error=FileNotAPdfError frames=tasks.py:1334:upload_assignment_async <- file_uploads.py:116:upload_assignment_file <- services.py:641:prepare_ai_content
+
+
+[2026-11-09 13:34:12,650: ERROR/MainProcess] Task assignments.tasks.upload_assignment_async[04046902-295e-4ec8-a3bb-b1969a1a09f4] raised unexpected: error=FileNotAPdfError frames=trace.py:453:trace_task <- tasks.py:1334:upload_assignment_async <- file_uploads.py:116:upload_assignment_file <- services.py:641:prepare_ai_content
+.[2026-11-09 13:34:12,855: ERROR/MainProcess] Free trial plan not found: no trial activated for user ee7fba35-884d-4af8-94f4-2a76e722cbf0.
+[2026-11-09 13:34:12,856: WARNING/MainProcess] Cannot activate automatic trial for user ee7fba35-884d-4af8-94f4-2a76e722cbf0 (validation): ValueError
+
+
+ai_processor.services ERROR 2026-11-09 13:34:12,940 services 56710 125698866235264 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:12,940 services 56710 125698866235264 [request_id=- client_request_id=-] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:12,941 services 56710 125698866235264 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-11-09 13:34:12,977 services 56710 125698866235264 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:12,978 services 56710 125698866235264 [request_id=- client_request_id=-] Attempt 2 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:12,978 services 56710 125698866235264 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-11-09 13:34:13,017 services 56710 125698866235264 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:13,017 services 56710 125698866235264 [request_id=- client_request_id=-] Attempt 3 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+students.task_tracking ERROR 2026-11-09 13:34:13,066 task_tracking 56710 125698866235264 [request_id=- client_request_id=-] Background task ad424a9d-c900-44da-bc17-9ce019d3a095 failed: error=Exception frames=tasks.py:1334:upload_assignment_async <- file_uploads.py:136:upload_assignment_file <- services.py:1055:extract_assignment_data <- services.py:1862:extract_assignment_with_retry
+
+
+[2026-11-09 13:34:13,071: ERROR/MainProcess] Task assignments.tasks.upload_assignment_async[50635e6f-960f-4e79-8a7d-a376f11d83cd] raised unexpected: error=Exception frames=trace.py:453:trace_task <- tasks.py:1334:upload_assignment_async <- file_uploads.py:136:upload_assignment_file <- services.py:1055:extract_assignment_data <- services.py:1862:extract_assignment_with_retry
+.[2026-11-09 13:34:13,266: ERROR/MainProcess] Free trial plan not found: no trial activated for user 6e93de27-a9d6-4bda-90ce-9479aa2fea2d.
+[2026-11-09 13:34:13,266: WARNING/MainProcess] Cannot activate automatic trial for user 6e93de27-a9d6-4bda-90ce-9479aa2fea2d (validation): ValueError
+
+
+ai_processor.services ERROR 2026-11-09 13:34:13,359 services 56710 125698866235264 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:13,359 services 56710 125698866235264 [request_id=- client_request_id=-] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:13,359 services 56710 125698866235264 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-11-09 13:34:13,386 services 56710 125698866235264 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:13,386 services 56710 125698866235264 [request_id=- client_request_id=-] Attempt 2 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-09 13:34:13,386 services 56710 125698866235264 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-11-09 13:34:13,410 services 56710 125698866235264 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-09 13:34:13,410 services 56710 125698866235264 [request_id=- client_request_id=-] Attempt 3 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+students.task_tracking ERROR 2026-11-09 13:34:13,422 task_tracking 56710 125698866235264 [request_id=- client_request_id=-] Background task 17147195-8607-4dea-a80e-dd8710cfb45e failed: error=Exception frames=tasks.py:1334:upload_assignment_async <- file_uploads.py:136:upload_assignment_file <- services.py:1055:extract_assignment_data <- services.py:1862:extract_assignment_with_retry
+
+
+[2026-11-09 13:34:13,427: ERROR/MainProcess] Task assignments.tasks.upload_assignment_async[1f7ddc51-a8f8-4246-b564-d633e4ac437a] raised unexpected: error=Exception frames=trace.py:453:trace_task <- tasks.py:1334:upload_assignment_async <- file_uploads.py:136:upload_assignment_file <- services.py:1055:extract_assignment_data <- services.py:1862:extract_assignment_with_retry
+F[2026-11-09 13:34:13,638: ERROR/MainProcess] Free trial plan not found: no trial activated for user 9c04e944-947e-435a-87c5-d777235cd458.
+[2026-11-09 13:34:13,638: WARNING/MainProcess] Cannot activate automatic trial for user 9c04e944-947e-435a-87c5-d777235cd458 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-09 13:34:13,717 task_tracking 56710 125698283607744 [request_id=- client_request_id=-] Background task c1f1ca16-cb16-484e-a844-40294cf2195d failed: error=FileNotAPdfError frames=tasks.py:1050:upload_answers_engine_async <- services.py:641:prepare_ai_content
+
+
+.[2026-11-09 13:34:21,954: ERROR/MainProcess] Free trial plan not found: no trial activated for user 7fb29792-bf26-4cbd-8a89-e075d58d9312.
+[2026-11-09 13:34:21,954: WARNING/MainProcess] Cannot activate automatic trial for user 7fb29792-bf26-4cbd-8a89-e075d58d9312 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-09 13:34:22,041 task_tracking 56710 125698266822336 [request_id=- client_request_id=-] Background task d5601dd0-d7ab-44b0-bf7c-22c283277f8c failed: error=UploadAlreadyInProgressError frames=tasks.py:1334:upload_assignment_async <- file_uploads.py:110:upload_assignment_file <- file_uploads.py:200:_claim
+
+
+[2026-11-09 13:34:22,055: ERROR/MainProcess] Task assignments.tasks.upload_assignment_async[53966981-a6f3-44e9-ab54-2b0276411cd7] raised unexpected: error=UploadAlreadyInProgressError frames=trace.py:453:trace_task <- tasks.py:1334:upload_assignment_async <- file_uploads.py:110:upload_assignment_file <- file_uploads.py:200:_claim
+.
+======================================================================
+FAIL: test_failure_during_persistence_charges_nothing_and_returns_the_hold (billing.tests.test_grading_refund_scope.GradingRefundScopeWithHoldsTest.test_failure_during_persistence_charges_nothing_and_returns_the_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_grading_refund_scope.py", line 265, in test_failure_during_persistence_charges_nothing_and_returns_the_hold
+    assert_hold_ledger(self, self.teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 20003 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_malformed_summary_charges_nothing_and_returns_the_hold (billing.tests.test_grading_refund_scope.GradingRefundScopeWithHoldsTest.test_malformed_summary_charges_nothing_and_returns_the_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_grading_refund_scope.py", line 271, in test_malformed_summary_charges_nothing_and_returns_the_hold
+    assert_hold_ledger(self, self.teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 20003 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_the_edits_refusal_charges_nothing_and_returns_the_hold (students.tests_answers_unreadable.TheEditsRefusalWithHolds.test_the_edits_refusal_charges_nothing_and_returns_the_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_answers_unreadable.py", line 629, in test_the_edits_refusal_charges_nothing_and_returns_the_hold
+    assert_hold_ledger(self, self.teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 20003 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_failure_after_the_call_charges_nothing_and_returns_the_hold (students.tests_async_edit_path.ExtractionWithHoldsTest.test_failure_after_the_call_charges_nothing_and_returns_the_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_async_edit_path.py", line 512, in test_failure_after_the_call_charges_nothing_and_returns_the_hold
+    assert_hold_ledger(self, self.teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 20003 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_a_mid_chunk_failure_charges_nothing_and_returns_the_holds (students.tests_s6d_extraction_refund.ExtractionWithHoldsTests.test_a_mid_chunk_failure_charges_nothing_and_returns_the_holds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_s6d_extraction_refund.py", line 205, in test_a_mid_chunk_failure_charges_nothing_and_returns_the_holds
+    assert_hold_ledger(self, self.teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 22003 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_a_failed_attempt_is_never_charged_the_successful_one_is (ai_processor.tests_grading_pipeline.GradingRunWithHoldsTest.test_a_failed_attempt_is_never_charged_the_successful_one_is)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/tests_grading_pipeline.py", line 470, in test_a_failed_attempt_is_never_charged_the_successful_one_is
+    assert_hold_ledger(self, teacher, kept_count=1)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 25505 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_a_run_that_times_out_charges_nothing_and_returns_the_hold (ai_processor.tests_h256_provider_timeout.TimedOutRunWithHoldsTest.test_a_run_that_times_out_charges_nothing_and_returns_the_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/tests_h256_provider_timeout.py", line 204, in test_a_run_that_times_out_charges_nothing_and_returns_the_hold
+    assert_hold_ledger(self, teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 26597 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_a_claim_taken_over_mid_extraction_charges_nothing (assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_a_claim_taken_over_mid_extraction_charges_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_upload_batch_billing.py", line 676, in test_a_claim_taken_over_mid_extraction_charges_nothing
+    assert_hold_ledger(self, self.teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 34945 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_a_failed_save_charges_nothing_and_it_can_be_retried (assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_a_failed_save_charges_nothing_and_it_can_be_retried)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_upload_batch_billing.py", line 651, in test_a_failed_save_charges_nothing_and_it_can_be_retried
+    assert_hold_ledger(self, self.teacher, kept=[1100])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 34945 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_an_unusable_provider_response_charges_nothing_for_that_file (assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_an_unusable_provider_response_charges_nothing_for_that_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_upload_batch_billing.py", line 630, in test_an_unusable_provider_response_charges_nothing_for_that_file
+    assert_hold_ledger(self, self.teacher, kept=[1100])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 41545 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_an_unusable_response_charges_nothing_and_the_file_is_released (assignments.tests_upload_task_retry_policy.AssignmentUploadTaskWithHoldsTest.test_an_unusable_response_charges_nothing_and_the_file_is_released)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_upload_task_retry_policy.py", line 330, in test_an_unusable_response_charges_nothing_and_the_file_is_released
+    assert_hold_ledger(self, self.teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 37105 != 0 : a hold was left reserved
+
+----------------------------------------------------------------------
+Ran 109 tests in 28.898s
+
+FAILED (failures=11, skipped=1)
+Destroying test database for alias 'default'...
+Found 109 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
