@@ -1054,3 +1054,13 @@ Any failure is a STOP: a listed test still red with the flag on, or any off-list
 - **Killed, as declared.** Restored with `git checkout`; `sha256sum -c` matched `assignments/upload_door.py`.
 
 **B2 is done:** 25 wraps and 1 pin (Q2), with no assertion changed and no off-list flip. The only helper change is the two `run_inline` fakes, which now take `_celery_task_id` like the real launch.
+
+### §2.9 Reported to this lane (2026-11-09), recorded as received: nothing changes until B1b-8
+
+**The source:** a cross-session message from **grade-automator-plus-08**. It is not this lane's SM (grade-automator-plus-12), so it is recorded here and sent to the SM to confirm.
+- **The 16 B1b texts (08b §7):** reported as APPROVED by the owner, as written ("approve all", in chat, 2026-11-09).
+  - The verbatim source is `team/approved_wording_b1b_2026-11-09.md` in the main checkout (untracked; sha256 b431762f…f165d941, read in full: 16 rows).
+  - It is to be used verbatim when **B1b-8** switches the `_APPROVED` constants to True.
+  - **Until then, nothing changes:** the constants stay False, and no wording is edited in B1b-2.
+  - Per that file, the wording approval is **not** the production switch-on of `BILLING_HOLDS_ENABLED`, which is still a separate owner go.
+- **Cloudinary headroom:** reported from the owner as **over 50 GB free**, which covers the delete-on-success estimate. This bears on the switch-on checklist's Cloudinary item. The checklist line is not changed until the SM confirms.
