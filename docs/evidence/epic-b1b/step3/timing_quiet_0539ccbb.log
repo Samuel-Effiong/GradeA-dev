@@ -1,0 +1,34 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 4678daf9-0f94-4111-8815-3a863e81b419.
+Cannot activate automatic trial for user 4678daf9-0f94-4111-8815-3a863e81b419 (validation): ValueError
+Free trial plan not found: no trial activated for user 05a48c9c-9d6a-444b-845c-88e76d3cc151.
+Cannot activate automatic trial for user 05a48c9c-9d6a-444b-845c-88e76d3cc151 (validation): ValueError
+Free trial plan not found: no trial activated for user 0d10146e-4117-4d7d-b353-e7eab353eb0a.
+Cannot activate automatic trial for user 0d10146e-4117-4d7d-b353-e7eab353eb0a (validation): ValueError
+Free trial plan not found: no trial activated for user 3d48a32b-17a7-4d63-b912-ead085cac855.
+Cannot activate automatic trial for user 3d48a32b-17a7-4d63-b912-ead085cac855 (validation): ValueError
+Free trial plan not found: no trial activated for user 2f9d178a-9210-411f-b712-ad74dec2bfba.
+Cannot activate automatic trial for user 2f9d178a-9210-411f-b712-ad74dec2bfba (validation): ValueError
+Free trial plan not found: no trial activated for user 16b730fc-5032-48f2-b6b8-e3f7755d95ce.
+Cannot activate automatic trial for user 16b730fc-5032-48f2-b6b8-e3f7755d95ce (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 1 test in 8.751s
+
+OK
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+FB1-TIMING shape=no_job items=1000 runs=3 seconds=[0.0375, 0.036, 0.035] median_s=0.0360 queries=[23, 23, 23]
+
+FB1-TIMING shape=one_job items=1000 runs=3 seconds=[2.4466, 2.5068, 2.6876] median_s=2.5068 queries=[4734, 4734, 4734]

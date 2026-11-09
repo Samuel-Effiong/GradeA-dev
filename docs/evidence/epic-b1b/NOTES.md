@@ -1541,3 +1541,24 @@ Logs are in `step3/`, with the suffix `_0b2c4066`. E1 and E2 are gzipped.
 6. **E3, the 66 guards, serially: `Ran 1146`, `OK (skipped=1)`.**
 7. `makemigrations --check`: **No changes.**
 8. **The cascade timing, quiet-machine re-run** (SM condition 4): ×3 under `flock`, started only when the 1-minute load is below 2, with the load recorded. **`Ran 1`, OK, `one_job` 4,734 queries ×3.** The time is recorded beside §3.5's, which is not amended. If the median is still ≥ 3.8 s, the checkpoint says so (not a STOP under D0).
+
+### §3.7 Results of the §3.6 re-runs (at 0539ccbb9, under `flock`)
+
+Logs are in `step3/`, with the suffix `_0539ccbb`. E1 and E2 are gzipped. The restore checksums were refreshed at 0539ccbb9 (`billing/holds.py` 4d13fcb2…3aebff), and `sha256sum -c` matched after each plant.
+
+- **SM condition 1:** the settle condition line is byte-identical. `git diff 0b2c40668 0539ccbb9 -- billing/holds.py` shows it as an unchanged context line, and PP1b's anchor (that line) matched exactly once. The before/after table is at §3.6.
+- **1. G+: `Ran 165`, OK**, as declared. The history guard test passes.
+- **2. S1′: `Ran 2`, OK.** The flag-off block is **identical** to S1's (35 statements). Flag on: **37 real queries** (57 statements, 20 of them SAVEPOINT/RELEASE). **The cascade: 4,734.** All three are as declared.
+  - **Recorded:** my new chain's first comparison printed `differ` and `flag-on real: 48`. Both came from the extraction script, not the product:
+    - the flag-off block captured a trailing blank separator line (36 lines against 35);
+    - the flag-on awk range didn't stop at the end of the block.
+  - Re-extracted from the same log, with no re-run: the blank line dropped gives an identical diff, and the block's numbered lines are 57, 20 of them savepoints, so 37. The count pin, the same measurement as a test, passed in G+.
+- **3. PP1b:** FAILED (failures=1), killed by `test_a_call_holds_settles_and_returns_the_rest` with `'RUNNING' != 'SETTLED'`. **PP5:** FAILED (failures=1), killed by the count pin with `38 != 37`. Both are as declared and as at §3.4.
+- **4. E1, flag on: `Ran 7412`, `OK (skipped=31)`**, as declared (9848 MB available).
+- **5. E2, the flag-off near, apps: `Ran 6350`, `OK (skipped=23)`**, as declared.
+- **6. E3, the 66 guards, serially: `Ran 1146`, `OK (skipped=1)`**, as declared.
+- **7. `makemigrations --check`:** No changes detected.
+- **8. The cascade timing, quiet-machine re-run:** it waited 30 s for the load. The load was **1.67**/7.46/10.63 at the start and 1.83/7.12/10.45 at the end. **`Ran 1`, OK.** `one_job` made **4,734 queries ×3**, with times **2.45, 2.51 and 2.69 s, a median of 2.51 s**. `no_job`: 23 queries, median 0.036 s.
+  - §3.5's 4.06 s median (under load) stands as recorded.
+  - **The quiet median is below 3.8 s,** so no checklist change is triggered.
+  - It is also below §1.14's 3.35 s, which was measured under unrecorded load. I don't claim a speed-up from it: the query count is 4,734, one fewer than B1b-1's 4,735.

@@ -1,0 +1,45 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user e8b13c07-0bd6-4511-988b-c9a0ee3f134e.
+Cannot activate automatic trial for user e8b13c07-0bd6-4511-988b-c9a0ee3f134e (validation): ValueError
+.Free trial plan not found: no trial activated for user a17cdc38-7587-49a1-94f0-8a73653d6d81.
+Cannot activate automatic trial for user a17cdc38-7587-49a1-94f0-8a73653d6d81 (validation): ValueError
+.Free trial plan not found: no trial activated for user be0bd029-f7aa-4400-9efd-40fbf8013332.
+Cannot activate automatic trial for user be0bd029-f7aa-4400-9efd-40fbf8013332 (validation): ValueError
+..Free trial plan not found: no trial activated for user 75727c97-b010-4bce-a114-007e96d6adbc.
+Cannot activate automatic trial for user 75727c97-b010-4bce-a114-007e96d6adbc (validation): ValueError
+.Free trial plan not found: no trial activated for user a7771db7-0a0a-408b-b541-947cc95b3dc0.
+Cannot activate automatic trial for user a7771db7-0a0a-408b-b541-947cc95b3dc0 (validation): ValueError
+FFree trial plan not found: no trial activated for user 4e587353-48c4-47cc-9b66-48e581d517d6.
+Cannot activate automatic trial for user 4e587353-48c4-47cc-9b66-48e581d517d6 (validation): ValueError
+.Free trial plan not found: no trial activated for user 554eee42-ad0e-44e7-aaa2-266a239b85f1.
+Cannot activate automatic trial for user 554eee42-ad0e-44e7-aaa2-266a239b85f1 (validation): ValueError
+..Free trial plan not found: no trial activated for user ca97b063-eaf5-4b4b-a30f-8c7619313f12.
+Cannot activate automatic trial for user ca97b063-eaf5-4b4b-a30f-8c7619313f12 (validation): ValueError
+.
+======================================================================
+FAIL: test_a_call_holds_settles_and_returns_the_rest (billing.tests.test_holds_single_call.FlagOnSingleCallTests.test_a_call_holds_settles_and_returns_the_rest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_single_call.py", line 50, in test_a_call_holds_settles_and_returns_the_rest
+    self.assertEqual(job.status, "SETTLED")
+AssertionError: 'RUNNING' != 'SETTLED'
+- RUNNING
++ SETTLED
+
+
+----------------------------------------------------------------------
+Ran 10 tests in 1.679s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+Found 10 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -1,0 +1,158 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user c63f6cfc-3c58-4252-93ce-2985d75d2691.
+Cannot activate automatic trial for user c63f6cfc-3c58-4252-93ce-2985d75d2691 (validation): ValueError
+Free trial plan not found: no trial activated for user 9cd79ee2-def1-45e5-b01b-58f4d0f09668.
+Cannot activate automatic trial for user 9cd79ee2-def1-45e5-b01b-58f4d0f09668 (validation): ValueError
+Found 2 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+B1B3-CALL flag=off queries=35
+    1 billing/access_control.py:189 _resolve_access_context | SELECT "billing_schoolcreditallocation"."id", "billing_schoolcreditallocation"."license_subscription_id", "billing_schoolcreditallocation"."user_id",
+    2 billing/access_control.py:207 _resolve_access_context | SELECT "billing_schoolcreditallocation"."id", "billing_schoolcreditallocation"."license_subscription_id", "billing_schoolcreditallocation"."user_id",
+    3 billing/access_control.py:219 _resolve_access_context | SELECT "billing_usersubscription"."id", "billing_usersubscription"."user_id", "billing_usersubscription"."plan_id", "billing_usersubscription"."is_act
+    4 billing/models.py:776 total_remaining_credits | SELECT SUM(("billing_creditbucket"."total_credits" - "billing_creditbucket"."used_credits")) AS "total" FROM "billing_creditbucket" WHERE ("billing_cr
+    5 billing/models.py:776 total_remaining_credits | SELECT SUM(("billing_creditbucket"."total_credits" - "billing_creditbucket"."used_credits")) AS "total" FROM "billing_creditbucket" WHERE ("billing_cr
+    6 ai_processor/services.py:5704 execute_graded_task | SAVEPOINT SP
+    7 ai_processor/services.py:5707 execute_graded_task | SAVEPOINT SP
+    8 billing/models.py:1014 consume_credits | SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwallet"."refund
+    9 billing/models.py:776 total_remaining_credits | SELECT SUM(("billing_creditbucket"."total_credits" - "billing_creditbucket"."used_credits")) AS "total" FROM "billing_creditbucket" WHERE ("billing_cr
+   10 billing/models.py:1090 consume_credits | SELECT "billing_creditbucket"."id", "billing_creditbucket"."wallet_id", "billing_creditbucket"."bucket_type", "billing_creditbucket"."total_credits",
+   11 billing/models.py:1334 consume_credits | UPDATE "billing_creditbucket" SET "used_credits" = %s, "updated_at" = %s WHERE "billing_creditbucket"."id" = %s
+   12 users/signals.py:107 _payload_viewers | SELECT DISTINCT "classrooms_course"."teacher_id" AS "teacher_id", T4."school_id" AS "teacher__school_id", "classrooms_course"."name" FROM "classrooms_
+   13 billing/signals.py:43 clear_credit_bucket_cache | SELECT "users_customuser"."id" AS "id" FROM "users_customuser" WHERE ("users_customuser"."is_superuser" AND "users_customuser"."user_type" = %s) ORDER
+   14 billing/immutable.py:174 bulk_create | INSERT INTO "billing_creditusagelog" ("id", "user_id", "user_email", "wallet_id", "bucket_id", "course_id", "school_id", "amount", "feature", "task_ty
+   15 billing/immutable.py:174 bulk_create | INSERT INTO "billing_creditledger" ("id", "user_id", "user_email", "bucket_id", "ledger_type", "amount", "reference", "metadata", "stripe_payment_inte
+   16 billing/models.py:1616 after_bulk_create | SELECT "users_customuser"."password", "users_customuser"."last_login", "users_customuser"."is_superuser", "users_customuser"."first_name", "users_cust
+   17 audit/emitter.py:210 emit | SAVEPOINT SP
+   18 audit/emitter.py:211 emit | INSERT INTO "audit_auditevent" ("id", "occurred_at", "actor_id", "actor_role", "actor_email", "school_id", "department_id", "action", "target_type", "
+   19 audit/emitter.py:210 emit | RELEASE SAVEPOINT SP
+   20 billing/models.py:1398 _check_ledger_anomaly | SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwallet"."refund
+   21 billing/models.py:776 total_remaining_credits | SELECT SUM(("billing_creditbucket"."total_credits" - "billing_creditbucket"."used_credits")) AS "total" FROM "billing_creditbucket" WHERE ("billing_cr
+   22 billing/models.py:1180 _record_license_consumption | SELECT "billing_schoolcreditallocation"."id", "billing_schoolcreditallocation"."license_subscription_id" FROM "billing_schoolcreditallocation" INNER J
+   23 ai_processor/services.py:5707 execute_graded_task | RELEASE SAVEPOINT SP
+   24 ai_processor/services.py:5722 execute_graded_task | SAVEPOINT SP
+   25 billing/services.py:2402 record_consumption | SELECT "billing_betaprofile"."id", "billing_betaprofile"."user_id", "billing_betaprofile"."joined_beta_at", "billing_betaprofile"."first_ai_action_at"
+   26 billing/services.py:2420 record_consumption | UPDATE "billing_betaprofile" SET "user_id" = %s, "joined_beta_at" = %s, "first_ai_action_at" = %s, "last_active_at" = %s, "last_login_date" = %s, "ini
+   27 billing/services.py:2423 record_consumption | SELECT "billing_betaprofile"."id", "billing_betaprofile"."user_id", "billing_betaprofile"."joined_beta_at", "billing_betaprofile"."first_ai_action_at"
+   28 billing/services.py:2456 record_consumption | UPDATE "billing_betaprofile" SET "first_ai_action_at" = %s, "has_hit_80_percent" = %s, "has_hit_cap" = %s, "days_to_first_action" = %s WHERE "billing_
+   29 ai_processor/services.py:5722 execute_graded_task | RELEASE SAVEPOINT SP
+   30 billing/services.py:2376 track_activity | SELECT "billing_betaprofile"."id", "billing_betaprofile"."user_id", "billing_betaprofile"."joined_beta_at", "billing_betaprofile"."first_ai_action_at"
+   31 billing/services.py:2389 track_activity | UPDATE "billing_betaprofile" SET "last_active_at" = %s WHERE "billing_betaprofile"."id" = %s
+   32 ai_processor/services.py:5704 execute_graded_task | RELEASE SAVEPOINT SP
+   33 ai_processor/call_record.py:337 write_row | SAVEPOINT SP
+   34 ai_processor/call_record.py:338 write_row | INSERT INTO "ai_processor_aicallrecord" ("id", "created_at", "task_id", "task_type", "feature", "kind", "outcome", "error_class", "model_asked", "mode
+   35 ai_processor/call_record.py:337 write_row | RELEASE SAVEPOINT SP
+
+B1B3-CALL flag=on queries=57
+    1 billing/access_control.py:189 _resolve_access_context | SELECT "billing_schoolcreditallocation"."id", "billing_schoolcreditallocation"."license_subscription_id", "billing_schoolcreditallocation"."user_id",
+    2 billing/access_control.py:207 _resolve_access_context | SELECT "billing_schoolcreditallocation"."id", "billing_schoolcreditallocation"."license_subscription_id", "billing_schoolcreditallocation"."user_id",
+    3 billing/access_control.py:219 _resolve_access_context | SELECT "billing_usersubscription"."id", "billing_usersubscription"."user_id", "billing_usersubscription"."plan_id", "billing_usersubscription"."is_act
+    4 billing/models.py:776 total_remaining_credits | SELECT SUM(("billing_creditbucket"."total_credits" - "billing_creditbucket"."used_credits")) AS "total" FROM "billing_creditbucket" WHERE ("billing_cr
+    5 billing/holds.py:205 create_job | INSERT INTO "billing_aijob" ("id", "job_type", "status", "requested_by_id", "wallet_id", "school_id", "course_id", "assignment_id", "estimate_p50", "e
+    6 billing/holds.py:250 reserve | SAVEPOINT SP
+    7 billing/locks.py:33 lock_wallet_first | SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwallet"."refund
+    8 billing/models.py:776 total_remaining_credits | SELECT SUM(("billing_creditbucket"."total_credits" - "billing_creditbucket"."used_credits")) AS "total" FROM "billing_creditbucket" WHERE ("billing_cr
+    9 billing/holds.py:227 _reserve_locked | UPDATE "billing_creditwallet" SET "reserved_credits" = ("billing_creditwallet"."reserved_credits" + %s) WHERE ("billing_creditwallet"."id" = %s AND "b
+   10 billing/holds.py:230 _reserve_locked | UPDATE "billing_aijob" SET "status" = %s, "reserved_credits" = ("billing_aijob"."reserved_credits" + %s), "reservation_claimed_at" = %s WHERE "billing
+   11 audit/emitter.py:210 emit | SAVEPOINT SP
+   12 audit/emitter.py:211 emit | INSERT INTO "audit_auditevent" ("id", "occurred_at", "actor_id", "actor_role", "actor_email", "school_id", "department_id", "action", "target_type", "
+   13 audit/emitter.py:210 emit | RELEASE SAVEPOINT SP
+   14 billing/holds.py:250 reserve | RELEASE SAVEPOINT SP
+   15 billing/holds.py:968 begin_single_call | SELECT "billing_aijob"."id", "billing_aijob"."job_type", "billing_aijob"."status", "billing_aijob"."requested_by_id", "billing_aijob"."wallet_id", "bi.Free trial plan not found: no trial activated for user e5825dbc-81e7-492a-8815-a33136719bf9.
+Cannot activate automatic trial for user e5825dbc-81e7-492a-8815-a33136719bf9 (validation): ValueError
+
+   16 billing/holds.py:1033 finish | SAVEPOINT SP
+   17 billing/holds.py:310 settle | SAVEPOINT SP
+   18 billing/holds.py:171 _lock_wallet_of | SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwallet"."refund
+   19 billing/holds.py:133 _lock_rows | SELECT "billing_aijob"."id", "billing_aijob"."job_type", "billing_aijob"."status", "billing_aijob"."requested_by_id", "billing_aijob"."wallet_id", "bi
+   20 billing/models.py:776 total_remaining_credits | SELECT SUM(("billing_creditbucket"."total_credits" - "billing_creditbucket"."used_credits")) AS "total" FROM "billing_creditbucket" WHERE ("billing_cr
+   21 billing/holds.py:330 settle | SAVEPOINT SP
+   22 billing/holds.py:331 settle | INSERT INTO "billing_settlementrecord" ("id", "job_id", "item_id", "retry_count", "credits_charged", "settled_at") VALUES (%s, %s, %s, %s, %s, %s)
+   23 billing/holds.py:330 settle | RELEASE SAVEPOINT SP
+   24 billing/holds.py:342 settle | SAVEPOINT SP
+   25 billing/models.py:776 total_remaining_credits | SELECT SUM(("billing_creditbucket"."total_credits" - "billing_creditbucket"."used_credits")) AS "total" FROM "billing_creditbucket" WHERE ("billing_cr
+   26 billing/models.py:1090 consume_credits | SELECT "billing_creditbucket"."id", "billing_creditbucket"."wallet_id", "billing_creditbucket"."bucket_type", "billing_creditbucket"."total_credits",
+   27 billing/models.py:1334 consume_credits | UPDATE "billing_creditbucket" SET "used_credits" = %s, "updated_at" = %s WHERE "billing_creditbucket"."id" = %s
+   28 users/signals.py:107 _payload_viewers | SELECT DISTINCT "classrooms_course"."teacher_id" AS "teacher_id", T4."school_id" AS "teacher__school_id", "classrooms_course"."name" FROM "classrooms_
+   29 billing/signals.py:43 clear_credit_bucket_cache | SELECT "users_customuser"."id" AS "id" FROM "users_customuser" WHERE ("users_customuser"."is_superuser" AND "users_customuser"."user_type" = %s) ORDER
+   30 billing/immutable.py:174 bulk_create | INSERT INTO "billing_creditusagelog" ("id", "user_id", "user_email", "wallet_id", "bucket_id", "course_id", "school_id", "amount", "feature", "task_ty
+   31 billing/immutable.py:174 bulk_create | INSERT INTO "billing_creditledger" ("id", "user_id", "user_email", "bucket_id", "ledger_type", "amount", "reference", "metadata", "stripe_payment_inte
+   32 billing/models.py:1616 after_bulk_create | SELECT "users_customuser"."password", "users_customuser"."last_login", "users_customuser"."is_superuser", "users_customuser"."first_name", "users_cust
+   33 audit/emitter.py:210 emit | SAVEPOINT SP
+   34 audit/emitter.py:211 emit | INSERT INTO "audit_auditevent" ("id", "occurred_at", "actor_id", "actor_role", "actor_email", "school_id", "department_id", "action", "target_type", "
+   35 audit/emitter.py:210 emit | RELEASE SAVEPOINT SP
+   36 billing/models.py:1398 _check_ledger_anomaly | SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwallet"."refund
+   37 billing/models.py:776 total_remaining_credits | SELECT SUM(("billing_creditbucket"."total_credits" - "billing_creditbucket"."used_credits")) AS "total" FROM "billing_creditbucket" WHERE ("billing_cr
+   38 billing/models.py:1180 _record_license_consumption | SELECT "billing_schoolcreditallocation"."id", "billing_schoolcreditallocation"."license_subscription_id" FROM "billing_schoolcreditallocation" INNER J
+   39 billing/holds.py:342 settle | RELEASE SAVEPOINT SP
+   40 billing/holds.py:150 _move_wallet | UPDATE "billing_creditwallet" SET "reserved_credits" = ("billing_creditwallet"."reserved_credits" + %s) WHERE "billing_creditwallet"."id" = %s
+   41 billing/holds.py:362 settle | UPDATE "billing_aijob" SET "status" = %s, "consumed_credits" = ("billing_aijob"."consumed_credits" + %s), "hold_drawn" = ("billing_aijob"."hold_drawn"
+   42 audit/emitter.py:210 emit | SAVEPOINT SP
+   43 audit/emitter.py:211 emit | INSERT INTO "audit_auditevent" ("id", "occurred_at", "actor_id", "actor_role", "actor_email", "school_id", "department_id", "action", "target_type", "
+   44 audit/emitter.py:210 emit | RELEASE SAVEPOINT SP
+   45 billing/holds.py:310 settle | RELEASE SAVEPOINT SP
+   46 billing/holds.py:904 _record_analytics | SAVEPOINT SP
+   47 billing/services.py:2402 record_consumption | SELECT "billing_betaprofile"."id", "billing_betaprofile"."user_id", "billing_betaprofile"."joined_beta_at", "billing_betaprofile"."first_ai_action_at"
+   48 billing/services.py:2420 record_consumption | UPDATE "billing_betaprofile" SET "user_id" = %s, "joined_beta_at" = %s, "first_ai_action_at" = %s, "last_active_at" = %s, "last_login_date" = %s, "ini
+   49 billing/services.py:2423 record_consumption | SELECT "billing_betaprofile"."id", "billing_betaprofile"."user_id", "billing_betaprofile"."joined_beta_at", "billing_betaprofile"."first_ai_action_at"
+   50 billing/services.py:2456 record_consumption | UPDATE "billing_betaprofile" SET "first_ai_action_at" = %s, "has_hit_80_percent" = %s, "has_hit_cap" = %s, "days_to_first_action" = %s WHERE "billing_
+   51 billing/holds.py:904 _record_analytics | RELEASE SAVEPOINT SP
+   52 billing/services.py:2376 track_activity | SELECT "billing_betaprofile"."id", "billing_betaprofile"."user_id", "billing_betaprofile"."joined_beta_at", "billing_betaprofile"."first_ai_action_at"
+   53 billing/services.py:2389 track_activity | UPDATE "billing_betaprofile" SET "last_active_at" = %s WHERE "billing_betaprofile"."id" = %s
+   54 billing/holds.py:1033 finish | RELEASE SAVEPOINT SP
+   55 ai_processor/call_record.py:337 write_row | SAVEPOINT SP
+   56 ai_processor/call_record.py:338 write_row | INSERT INTO "ai_processor_aicallrecord" ("id", "created_at", "task_id", "task_type", "feature", "kind", "outcome", "error_class", "model_asked", "mode
+   57 ai_processor/call_record.py:337 write_row | RELEASE SAVEPOINT SP
+
+B1B3-CASCADE items=1000 held=100 queries=4734
+   1000 billing/holds.py:1267 return_hold_on_item_delete | SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwallet"."refund
+   1000 billing/holds.py:1281 return_hold_on_item_delete | SELECT "students_backgroundprocessingtask"."hold_state" AS "hold_state", "students_backgroundprocessingtask"."hold_credits" AS "hold_credits", "studen
+   1000 billing/holds.py:1219 finish_job_left_empty_on_item_delete | SELECT "billing_aijob"."status" AS "status" FROM "billing_aijob" WHERE "billing_aijob"."id" = %s ORDER BY "billing_aijob"."id" ASC LIMIT ?
+    900 billing/holds.py:1287 return_hold_on_item_delete | UPDATE "billing_aijob" SET "deleted_items_held" = ("billing_aijob"."deleted_items_held" + %s), "deleted_items_drawn" = ("billing_aijob"."deleted_items
+    100 billing/holds.py:1294 return_hold_on_item_delete | SELECT "billing_aijob"."id", "billing_aijob"."job_type", "billing_aijob"."status", "billing_aijob"."requested_by_id", "billing_aijob"."wallet_id", "bi
+    100 billing/holds.py:1295 return_hold_on_item_delete | SELECT "students_backgroundprocessingtask"."id", "students_backgroundprocessingtask"."celery_task_id", "students_backgroundprocessingtask"."requested_
+    100 billing/holds.py:150 _move_wallet | UPDATE "billing_creditwallet" SET "reserved_credits" = ("billing_creditwallet"."reserved_credits" + %s) WHERE "billing_creditwallet"."id" = %s
+    100 billing/holds.py:1300 return_hold_on_item_delete | UPDATE "students_backgroundprocessingtask" SET "released_credits" = ("students_backgroundprocessingtask"."released_credits" + %s), "hold_state" = %s W
+    100 billing/holds.py:1304 return_hold_on_item_delete | UPDATE "billing_aijob" SET "released_credits" = ("billing_aijob"."released_credits" + %s), "failed_items" = ("billing_aijob"."failed_items" + %s), "de
+    100 audit/emitter.py:210 emit | SAVEPOINT SP
+    100 audit/emitter.py:211 emit | INSERT INTO "audit_auditevent" ("id", "occurred_at", "actor_id", "actor_role", "actor_email", "school_id", "department_id", "action", "target_type", "
+    100 audit/emitter.py:210 emit | RELEASE SAVEPOINT SP
+     10 AutoGrader/redis_test_runner.py:64 run_tests | DELETE FROM "students_backgroundprocessingtask" WHERE "students_backgroundprocessingtask"."id" IN (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,.
+----------------------------------------------------------------------
+Ran 2 tests in 6.304s
+
+OK
+Destroying test database for alias 'default'...
+
+      2 assignments/signals.py:310 delete_auto_grading_task | SELECT "django_celery_beat_periodictask"."id", "django_celery_beat_periodictask"."name", "django_celery_beat_periodictask"."task", "django_celery_beat
+      1 AutoGrader/redis_test_runner.py:64 run_tests | SELECT "students_studentsubmission"."id", "students_studentsubmission"."assignment_id", "students_studentsubmission"."student_id", "students_studentsu
+      1 AutoGrader/redis_test_runner.py:64 run_tests | SELECT "students_batchuploadsession"."id" FROM "students_batchuploadsession" WHERE "students_batchuploadsession"."assignment_id" IN (%s)
+      1 AutoGrader/redis_test_runner.py:64 run_tests | SELECT "students_backgroundprocessingtask"."id", "students_backgroundprocessingtask"."celery_task_id", "students_backgroundprocessingtask"."requested_
+      1 AutoGrader/redis_test_runner.py:64 run_tests | DELETE FROM "assignments_assignmentuploadfingerprint" WHERE "assignments_assignmentuploadfingerprint"."assignment_id" IN (%s)
+      1 AutoGrader/redis_test_runner.py:64 run_tests | DELETE FROM "tags_assignmenttag" WHERE "tags_assignmenttag"."assignment_id" IN (%s)
+      1 AutoGrader/redis_test_runner.py:64 run_tests | UPDATE "assignments_assignmentgenerationhistory" SET "assignment_id" = NULL WHERE "assignments_assignmentgenerationhistory"."assignment_id" IN (%s)
+      1 AutoGrader/redis_test_runner.py:64 run_tests | UPDATE "assignments_assignmentgenerationmessage" SET "assignment_id" = NULL WHERE "assignments_assignmentgenerationmessage"."assignment_id" IN (%s)
+      1 AutoGrader/redis_test_runner.py:64 run_tests | UPDATE "billing_aijob" SET "assignment_id" = NULL WHERE "billing_aijob"."assignment_id" IN (%s)
+      1 AutoGrader/redis_test_runner.py:64 run_tests | DELETE FROM "assignments_assignment" WHERE "assignments_assignment"."id" IN (%s)
+      1 assignments/signals.py:129 _bump_assignment_scopes | SELECT "classrooms_studentcourse"."student_id" AS "student_id" FROM "classrooms_studentcourse" WHERE "classrooms_studentcourse"."course_id" = %s
+      1 assignments/signals.py:306 delete_auto_grading_task | SELECT "django_celery_beat_periodictask"."id", "django_celery_beat_periodictask"."name", "django_celery_beat_periodictask"."task", "django_celery_beat
+      1 billing/holds.py:1228 finish_job_left_empty_on_item_delete | SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwallet"."refund
+      1 billing/holds.py:1232 finish_job_left_empty_on_item_delete | SELECT "billing_aijob"."id", "billing_aijob"."job_type", "billing_aijob"."status", "billing_aijob"."requested_by_id", "billing_aijob"."wallet_id", "bi
+      1 billing/holds.py:1195 _job_has_rows_to_run | SELECT %s AS "a" FROM "students_backgroundprocessingtask" WHERE ("students_backgroundprocessingtask"."job_id" = %s AND ("students_backgroundprocessing
+      1 billing/holds.py:1237 finish_job_left_empty_on_item_delete | SELECT %s AS "a" FROM "billing_settlementrecord" WHERE "billing_settlementrecord"."job_id" = %s LIMIT ?
+      1 billing/holds.py:433 finish_job | SAVEPOINT SP
+      1 billing/holds.py:171 _lock_wallet_of | SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwallet"."refund
+      1 billing/holds.py:437 finish_job | UPDATE "billing_aijob" SET "status" = %s WHERE ("billing_aijob"."id" = %s AND "billing_aijob"."status" IN (%s, %s, %s, %s))
+      1 billing/holds.py:442 finish_job | SELECT "billing_aijob"."id", "billing_aijob"."job_type", "billing_aijob"."status", "billing_aijob"."requested_by_id", "billing_aijob"."wallet_id", "bi
+      1 billing/holds.py:444 finish_job | SELECT %s AS "a" FROM "students_backgroundprocessingtask" WHERE "students_backgroundprocessingtask"."job_id" = %s LIMIT ? FOR UPDATE
+      1 billing/holds.py:457 finish_job | UPDATE "billing_aijob" SET "released_credits" = ("billing_aijob"."released_credits" + %s) WHERE "billing_aijob"."id" = %s
+      1 billing/holds.py:433 finish_job | RELEASE SAVEPOINT SP
