@@ -1562,3 +1562,47 @@ Logs are in `step3/`, with the suffix `_0539ccbb`. E1 and E2 are gzipped. The re
   - §3.5's 4.06 s median (under load) stands as recorded.
   - **The quiet median is below 3.8 s,** so no checklist change is triggered.
   - It is also below §1.14's 3.35 s, which was measured under unrecorded load. I don't claim a speed-up from it: the query count is 4,734, one fewer than B1b-1's 4,735.
+
+## §4 B1b-4: the estimate (08b §1.3, plan §3.6 and §9 item 6). The survey, before any edit
+
+**The SM accepted B1b-3 at cce365e1d (2026-11-09).** Standing rules:
+- every green set that touches `billing/holds.py` includes `audit.tests_history_guard`;
+- the B1b-6 obligations carry forward;
+- 66 guard labels until B1b picks up staging at landing, then 67 (`AutoGrader.tests_live_server_backlog_guard`, staging 80839ac76);
+- under `--keepdb --parallel`, drop my own `_N` clones after any schema change.
+
+### §4.1 What exists (at cce365e1d)
+
+| Item | Where | State |
+|---|---|---|
+| `AIJob.estimate_p50`, `estimate_p90`, `sufficiency_verdict` | `billing/models.py:1846–1848` | exist (B1a). **Only `estimate_source` is new** (§1.25, SM ruling) |
+| `BillingSettings` (`cold_start_cost_factor` 3.0, `load()`) | `billing/models.py:1955–1989` | exists, not in admin. Its docstring still says "via Django admin" |
+| `billing/estimates.py` | n/a | does not exist |
+| `billing_settings` and `backtest_credit_estimates` commands | `billing/management/commands/` | neither exists |
+| `AICallRecord` fields the estimate uses | `ai_processor/models.py:254–330` | `processing_task_id`, `assignment_id`, `billed_user_id`, `task_type`, `outcome`, `questions`, `images`, `pdf_items`, `charged_credits`, `created_at` (the only index besides the PK) |
+| The read guard | `ai_processor/tests_call_record_static.NothingReadsOrExposesTheTable.ALLOWED` (`:359`) | gets one entry, `billing/estimates.py` (SM ruling 2026-11-08) |
+| The index guard | `TheColumns.test_the_two_indexes_and_no_more` (`:171`) | **pins the index count.** The two new indexes need it edited to four: an edited pre-existing test, so it gets a break run. 08b §1.3 item 2 said "[UNVERIFIED until the guard runs]"; this is that answer |
+| Per-paper history | grading calls carry `processing_task_id` (`assignments/tasks.py`: every grading task passes it) | one task row per paper. Batch items share `batch_session` (`_dispatch_tracked_grading`, `assignments/tasks.py:1555`) |
+| The cold-start estimator | `AIProcessor.estimate_messages_cost(user_prompt, system_prompt, messages)` (`ai_processor/services.py:5754`) | needs built prompts (see Q3) |
+| Beat tasks | `@single_instance` (`AutoGrader/beat_locks.py`); `known_lock_names()` `:302`; `AutoGrader.tests_beat_locks` | a monthly drift task must be single-instance and known to that guard |
+| Audit | `audit.emitter.emit` (`:134`), action `STATE_CHANGE` (`audit/enums.py:97`) | used by `billing_settings --set` |
+| Latest billing migration | `0082_aijob_deleted_items_validate` | the next are 0083 (`estimate_source`) and the drift-summary table. The two concurrent indexes are `ai_processor` migrations, each `atomic = False` |
+
+### §4.2 The questions for the SM before the red (each with a recommendation)
+
+- **Q1. A past batch, for the backtest and drift.** No `BATCH_GRADING` job exists yet (B1b-6). **Recommendation:** a past batch is the set of `BATCH_SUBMISSION_GRADING` task rows sharing one `batch_session`; a single-paper grade is a batch of 1. A paper's cost is `Σ charged_credits` of its `outcome=charged` grading calls, grouped by `processing_task_id`, for task rows that ended `SUCCESS`.
+- **Q2. The shape of papers not yet graded.** The question bucket comes from `len(assignment.questions)`. `has_images` isn't known before grading. **Recommendation:** for history, `has_images` = any call of the paper with `images > 0`. For the papers being estimated, use the assignment's own history when there is any, otherwise its share of papers with images, otherwise `False`. The source label says which tier was used.
+- **Q3. The cold start (tier 4) without building every prompt.** `estimate_messages_cost` needs the built prompts, and building a grading prompt per submission in an advisory endpoint is heavy. **Recommendation:** build the prompt for one representative submission (the first ungraded one), estimate it once, multiply by the factor and by n, and tag it `source="rough"` with p90 × 1.5 (§9 item 6(d)). It is read-only: no call, no hold, no audit.
+- **Q4. The drift email to the super admin** (plan §3.6). Its subject and body are **new wording, not among the 16 approved texts.** **Recommendation:** build it behind `DRIFT_EMAIL_APPROVED = False`, with the metric `credit_estimate_drift` and the summary row always written. Draft the text for the owner; nothing is sent until it's approved.
+- **Q5. The endpoint returns codes and numbers only:** `{p50, p90, verdict, spendable, projected_remaining_p50, projected_remaining_p90, source, sample_size}`. There is no `message` field in B1b-4; the §7.1 texts are switched on at B1b-8. It **creates no job and writes nothing**. Writing `estimate_*` and `estimate_source` onto a job is B1b-6's batch job. **Recommendation:** accept.
+- **Q6. Who may call it.** **Recommendation:** exactly the grade-all route's permission (`grade_all_submission`, `assignments/views.py:1791`), as one shared check, so the estimate can't be seen by anyone who can't run the batch. The route is added to `audit.tests_route_coverage`'s list.
+- **Q7. The estimate's Gate 6.** **Recommendation:** a `RUN_LOAD_TESTS` test that seeds 90 days of `AICallRecord` rows at 100,000 rows. It times the endpoint's queries (p50/p95 of 50 runs) and records `EXPLAIN` before and after the two indexes. The numbers are declared from a survey run before the indexes land. It is reported, with a STOP only on a sequential scan of `ai_processor_aicallrecord` after the indexes.
+- **Q8. Staging.** Staging moved to 80839ac76. The earlier ruling was "merge staging at each step's start"; your note says B1b picks up label 67 "at landing". **Recommendation:** hold the merge until landing and keep 66 labels, as your note reads. If you prefer the merge now, I merge first, re-count 67 guards and run makemigrations --check before the red.
+
+### §4.3 The plants planned (fragments declared after the rulings)
+- **M-B8:** the verdict computed against p50 (killed by the FR-B-04 boundary tests: exactly p90 → SUFFICIENT, p90 − 1 → MARGINAL, 0 → INSUFFICIENT).
+- **Tier order** (tier 2 before tier 1); **the thresholds** (n ≥ 10 for tier 1, n ≥ 30 otherwise, each off by one); **p90 without √n** (`σ·n`); **the n < 10 branch** using the √n formula.
+- **Tier 3b's per-question scaling dropped;** **rough's × 1.5 dropped;** **the factor hard-coded** instead of read from `BillingSettings`.
+- **`estimates.py` returning a queryset** (the aggregates-only pin); **the endpoint writing a job** (the no-write pin).
+- **Drift thresholds** (85% overall, 80% per cell with n ≥ 30) off by one; **the drift task without `@single_instance`**; **the email sent while `DRIFT_EMAIL_APPROVED` is False.**
+- **`billing_settings --set` without its audit row;** **`--set` accepting an out-of-bounds value.**
