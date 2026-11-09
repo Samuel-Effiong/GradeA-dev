@@ -165,3 +165,9 @@ The billing guards among them run inside the `billing` label.
     students.tests_step_label_words
 
 Any failure is a STOP.
+
+Near results (under flock):
+- Near 06 (`06_near_billing.log.gz`, --parallel 2, 207 s): **Ran 2378, OK**. **As predicted.**
+- Near 07 (`07_guard_sweep.log.gz`, serial, 113 s): **Ran 928, OK (skipped=1)**. **As predicted.**
+
+Ready for the SM to push to beta. No push from Lane 2.
