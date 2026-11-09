@@ -789,3 +789,74 @@ The counts are from `DiscoverRunner.build_suite().countTestCases()` (§1.21 (c))
   - it goes to the SM with the count;
   - no test is edited.
 - A listed test that passes, or one that fails as the other kind, is also reported as a finding.
+
+**Result (at 590c1bd33, under `flock`, 7831 MB available): `Ran 7396 tests in 556.583s`, `FAILED (failures=37, errors=8, skipped=31)`. As declared.** Log: `step2/step2_flagon_survey_590c1bd3.log.gz`.
+- The failing set, parsed from the FAIL/ERROR headers and compared with `diff` against `step2/expected45.tsv` (kind and id), is **exactly the 45**, each as its listed kind.
+- No test outside the 45 failed, and none of the 45 passed.
+- 31 tests were skipped (recorded): 25 decorated and 6 at runtime.
+
+### §2.3 The classification (survey only: no test is edited until the SM rules)
+
+The failing assertion of each test is quoted from the log above. A test's **flag-off meaning** is what it proves today. Its **flag-on meaning** is the same scenario under holds.
+
+**B1, the flag and migration guards (6):**
+
+| Test | Flag on, it fails at | Flag off | Flag on | Proposal |
+|---|---|---|---|---|
+| `test_holds_schema.PlanAndSettingsTests.test_holds_flag_defaults_off` | `:375` `True is not False` | the shipped default is off | n/a: the test is about the default, not the running value | **Not a pin.** `override_settings(False)` would make it vacuous, which weakens it. Instead, read the setting in a subprocess with `BILLING_HOLDS_ENABLED` removed from the environment (`.env` has no such key: `grep -c` gives 0) and assert False. It then holds in either environment. **SM ruling Q1** |
+| `test_holds_schema.ReverseGuardTests.test_reverse_is_refused_while_a_wallet_holds_credits` | `:263`: the flag message is raised before the open-hold check | the open-hold half of 0074's guard | the flag half is **already** `test_reverse_is_refused_with_the_flag_on` (`:266`) | pin flag-off. **Survey correction:** 08b's "add one flag-on test that 0074's reverse is refused with the flag on" already exists, so no new test is needed |
+| `test_holds_schema.ReverseGuardTests.test_reverse_is_allowed_with_the_flag_off_and_no_hold_open` | `:276` ERROR, refused (flag on) | flag-off by name | `:266`, as above | pin flag-off |
+| `test_audit_identity_migration.AuditIdentityMigrationTests` ×3 (`test_backfill_is_idempotent`, `test_the_restore_brings_back_every_apps_leaf`, `test_user_id_survives_and_email_is_backfilled`) | `_migrate` `:163` ERROR, 0074 refused | the audit identity backfill and restore | **only flag-off applies:** these migrate back past 0074, which is refused with the flag on by design (pinned by `:266`) | pin flag-off on the class. The guard reads `django.conf.settings` when it is called, so `override_settings` reaches it |
+
+**B2, the door launch deferred to `on_commit` (26).** `launch_at_door` (`assignments/upload_door.py:184`) calls the launch directly with the flag off. With the flag on it pre-assigns a uuid, writes it on the row, and sends at `on_commit`, which never runs under `TestCase`. The failures are all "never launched": `launch_processing_task` called 0 times, `[] != ['s0.png', …]`, `(0, 1) != (2, 1)`, `'PENDING' != FAILURE`, `0 != 2`, `2 != 12`, and `ValueError: not enough values to unpack` (TheSessionResultsShape ×3).
+- **25 of 26:** wrap the request in `self.captureOnCommitCallbacks(execute=True)`, with the assertions unchanged. With the flag off, the wrapper changes nothing (the launch is direct); with the flag on, it runs the deferred send. So one test has one meaning both ways, and it is run both ways in the evidence (08b).
+  - The files: `students.tests_h223_batch_runs_what_fits` ×8, `students.tests_h274_empty_student_answer_doors` ×4, `assignments.tests_h274_empty_upload_doors` ×1, `students.tests_batch_item_results` ×6, `students.tests_upload_credit_door` ×4, `students.tests_credits_mid_batch` ×1 and `billing.tests.test_h38_part2_removed_teacher_routes` ×1.
+  - **A caution, to be declared per file before the edit:** several of these files post through a shared helper (`Base` in h223, `run_batch` in h274, the `BatchFixture` ones). Wrapping the helper also wraps tests that are not on the list. I will list those by name and run them both ways too, or wrap at the test instead where the helper is shared more widely.
+- **1 of 26 can't keep its assertion with the flag on:** `students.tests_upload_credit_door.StudentUploadDoorTest.test_a_wallet_above_the_estimate_is_queued_as_before`.
+  - It asserts `response.data["task_id"] == "task-1"`, the mocked launch's `.id` (`:208`). With the flag on, the response carries the door's pre-assigned uuid (`'1579b68c-…' != 'task-1'`).
+  - That is a flag-off-only assertion. Its flag-on meaning (the response carries the id the row and the launch use) is **already** pinned on the same student route by `billing.tests.test_holds_door_commit.test_c2_the_response_task_id_is_the_preassigned_id_on_the_row`.
+  - **Proposal:** pin it flag-off, unchanged, and cite c2. No new twin. **SM ruling Q2**
+  - The other `"task-1"` lines in that file (`:220`, `:244`, `:260`, `:272`, `:317`, `:356`) set the mock, but no assertion reads them (grep).
+
+**B3, the charge-then-refund ledger shape (12).** These prove the flag-off refund scope: a charge, then a refund on failure. With the flag on, a failed call is never charged, and settle charges once. The failures say exactly that: `1000 != 0`, `500 != 0`, `3000 != 0` (no refund row to net), `refund_credits called 0 times` ×2, `1 != 2`, `0 != 1 : a call that timed out is never charged`, `[] != [3300, 3300, 3300]`, `([1100], []) != ([1100], [3300])`, `([], []) != ([], [1100])`, `[] != [1100, 1100, 1100]`, and the ERROR in `test_successful_run_keeps_every_charge` (its fake picks the batch by the usage-log count, which stays 0 until settle).
+- **The approach (08b):**
+  - **Pin each flag-off, unchanged.** The flag-off refund path stays live code until it is deleted, which is not in B1b.
+  - **Add a flag-on twin per scenario,** at the same entry point. It uses the B1a flag-on fakes (`billed(teacher, n, result)` with `patch.object(AIProcessor, PROVIDER, return_value=ai_response(n))`, as `test_holds_entry` E-1…E-8 do). Each twin asserts:
+    - no usage row for a failed call;
+    - one charge at settle for what succeeded;
+    - no refund row;
+    - `reserved_credits` back to 0;
+    - the job FAILED or SETTLED as the scenario ends.
+  - The twins go **in the same file**, in a class pinned `BILLING_HOLDS_ENABLED=True`, so they share the scenario's fixture. **SM ruling Q3** (same file, or a new `billing/tests/test_holds_flag_on_twins.py`).
+- **The 12 and their twins:**
+  - `billing.tests.test_grading_refund_scope.GradingRefundScopeTest`: `test_failure_during_persistence_refunds_the_ai_charge` → the twin: persistence dies after a billed grade, nothing is charged and the hold is returned. `test_malformed_summary_also_refunds` → the same, for a malformed summary.
+  - `students.tests_answers_unreadable…test_the_edits_refusal_refunds_the_charge` → the edit's refusal charges nothing.
+  - `students.tests_async_edit_path.ExtractionTaskTest.test_failure_after_the_charge_refunds_it` → a failure after the billed call charges nothing.
+  - `students.tests_s6d_extraction_refund…test_a_mid_chunk_failure_nets_the_ledger_to_zero` → a mid-chunk failure leaves no usage row; the ledger is zero by construction.
+  - `ai_processor.tests_grading_pipeline.PerAttemptRefundSemanticsTest.test_failed_attempt_is_refunded_successful_attempt_is_kept` → one charge at settle, for the successful attempt only.
+  - `ai_processor.tests_grading_pipeline.FailedGradingRunRefundsEveryChargeTest.test_successful_run_keeps_every_charge` → a successful two-batch run is charged once at settle, the sum of both batches. Its fake is driven by call order, not the usage-log count.
+  - `ai_processor.tests_h256_provider_timeout.TimedOutRunRefundsTest.test_a_run_that_times_out_refunds_what_it_charged` → a timed-out call is never charged (the failing message already says so) and the hold is returned.
+  - `assignments.tests_upload_batch_billing`: `FailedFilesAreRefundedTest` ×2 and `LeftoverClaimsTest` ×1 → the failed or taken-over file charges nothing, its hold is returned, and a retry is still possible.
+  - `assignments.tests_upload_task_retry_policy.AssignmentUploadTaskBillingTest.test_an_unusable_response_is_refunded_and_the_file_released` → charges nothing and the file is released.
+- **Existing flag-on coverage, for the record (it doesn't replace the twins, because the entry points differ):**
+  - `test_holds_entry` E-8 (a failed **sync** assignment upload charges nothing);
+  - `test_holds_unit` "a unit that raises charges nothing";
+  - `test_holds_single_call` "a provider failure charges nothing".
+
+**B4, the patched balance (1):** `billing.tests_h281_individual_credit_wording.TheRaiseSitesTagTheRefusal.test_r8_execute_graded_task_nothing_left_individual`.
+- Flag on, it fails at `:433` with `reached the provider`. The patched `total_remaining_credits` and an estimate of 0 skip `begin_single_call`'s reserve.
+- **Flag-off meaning:** the flag-off balance check tags the refusal as individual.
+- **Proposal (08b):** pin it flag-off, unchanged, and add a flag-on twin on a real path:
+  - an individual teacher with a real 0-credit wallet;
+  - an estimate above 0;
+  - the provider patched to raise;
+  - assert `hold_for_call` refuses before the provider, with `error.individual is True`.
+- `test_holds_single_call`'s "cannot be held is refused before the provider" doesn't check the individual tag, so the twin is new.
+
+**The totals for the SM:**
+- 45 tests, all accounted for: B1 6, B2 26, B3 12, B4 1.
+- **Flag-off pins:** 19 (B1 5, B2 1, B3 12, B4 1).
+- **`captureOnCommitCallbacks` wraps:** 25, with assertions unchanged.
+- **Rewritten:** 1 (`test_holds_flag_defaults_off`, Q1).
+- **New flag-on tests:** 13 (B3 12, B4 1). The B1 flag-on test already exists (`:266`), and B2's one flag-on case is c2.
+- No assertion is loosened anywhere.
