@@ -179,3 +179,95 @@ Test-only. Give the live server a listen backlog that holds the whole burst:
   guard that scans every LiveServerTestCase for a backlog of at least WORKERS. I recommend (b).
 - Near: users + students + the 66-label guard list, serial. Beta first (owner go), then
   merge beta into staging (standing rule).
+
+## SM ruling (2026-11-09) and the fix
+
+The SM accepted the checkpoint and ruled:
+- Scope (b): one shared helper with backlog 128, used by every live-server class.
+- Red: one deterministic guard, `AutoGrader.tests_live_server_backlog_guard`. It **joins the standing guard list as label 67**.
+- No forced-stall test in the suite; the probe and its logs stay here as the proof.
+- Plants PL1 (one class reverted) and PL2 (helper backlog back to 10).
+- No retry-on-reset.
+
+**Correction to my checkpoint:** there are **four** live-server classes, not three.
+- `users.tests_activity_middleware_load.HeartbeatThrottleLiveServerTests` has WORKERS = **30**. The 40 I quoted belongs to `HeartbeatThrottleConcurrencyTests`, a TransactionTestCase with no server.
+- I missed `students.tests_post_grading_submission_lock.PostGradingLockLiveHTTPTest` (WORKERS = 12).
+
+The ruled guard scans every class, so the fix covers all four:
+- LoginLockoutLiveServerTests (30)
+- HeartbeatThrottleLiveServerTests (30)
+- UpdateAsyncConcurrencyLiveHTTPTest (12)
+- PostGradingLockLiveHTTPTest (12)
+
+Guard rule: backlog >= max(128, WORKERS).
+- Why not WORKERS alone: a class need not declare its fan-out, and ThreadPoolExecutor's default is up to 32.
+- Why the max: a class declaring more than 128 still needs more.
+- A second test checks that the scan finds at least the four known classes, so the scan cannot go blind without failing.
+- The scan is an AST walk to a fixed point over base-class names, so a subclass in another module is found too. It takes about 4.3 s and is cached, so it runs once.
+
+Helper: `AutoGrader/testing/live_server.py`. `BurstWSGIServer(ThreadedWSGIServer)` sets `request_queue_size = LIVE_SERVER_BACKLOG = 128`, and `BurstLiveServerThread` uses it. Each class sets `server_thread_class = BurstLiveServerThread`. Nothing else in the four classes changes.
+
+Counts from build_suite: guard 2; users + students 1935; sweep 49.
+
+### Declared before the runs
+
+- **R1 red** (guard added, helper not yet written): `AutoGrader.tests_live_server_backlog_guard`, 2 tests. Predicted **Ran 2, FAILED (failures=1)**.
+  - test_every_live_server_class_holds_its_burst lists all four classes as "listen backlog 10 < required 128".
+  - test_the_scan_finds_the_known_live_server_classes passes.
+  - Log `06_red.log`.
+- **G1 green** (helper written and set on all four): the guard plus the four modules (2 + 13 + 11 + 17 + 29 = 72). Predicted **Ran 72, OK (skipped=2)**, the same two skips as run 03. Log `07_green.log`.
+- **PL1**: remove `server_thread_class = BurstLiveServerThread` from LoginLockoutLiveServerTests only; label: the guard. Predicted **Ran 2, FAILED (failures=1)**, naming only `users.tests_login_lockout.LoginLockoutLiveServerTests: listen backlog 10 < required 128`. Killed by test_every_live_server_class_holds_its_burst. Log `08_plant_pl1.log`.
+- **PL2**: `LIVE_SERVER_BACKLOG = 10` in the helper; label: the guard. Predicted **Ran 2, FAILED (failures=1)**, naming all four classes with "listen backlog 10 < required 128". Log `09_plant_pl2.log`.
+  - Each plant is restored from a saved copy and its sha256 checked.
+- **N1 near**: `users students`, --parallel 2, count **1935**. Predicted **OK (skipped=2)**: the two RedisAvailability/CI_REQUIRE skips. Any other skip will be recorded as prediction incomplete. Log `10_near_apps.log`.
+- **N2 guard sweep, SERIAL**: the 59 of the 66 standing guards that exist on beta (the same 7 staging-only labels are absent as in H-300), minus the 11 inside users/students (run in N1), plus the new guard. That is 49 labels, count **830**. Predicted **OK (skipped=1)**, the ssrf peer-introspection skip. Log `11_guard_sweep.log`. Labels:
+
+    AutoGrader.tests_credscan
+    AutoGrader.tests_h271_static_files
+    AutoGrader.tests_network_guard
+    AutoGrader.tests_student_classmates_guard
+    AutoGrader.tests_student_feedback_guard
+    AutoGrader.tests_submission_audience_guard
+    ai_processor.tests_call_record_static
+    ai_processor.tests_h2_grading_benchmark_guard
+    ai_processor.tests_ssrf_guard
+    audit.tests_history_guard
+    audit.tests_route_coverage
+    audit.tests_h273_query_filters
+    billing.tests.test_license_admin_user_guard
+    billing.tests.test_qa_console_guardrail
+    billing.tests.test_qa_time_travel_guardrail
+    billing.tests.test_renewal_guards
+    AutoGrader.tests_cache_invalidation_coverage
+    AutoGrader.tests_codederror_serialization
+    AutoGrader.tests_management_commands_are_commands
+    AutoGrader.tests_no_pii_in_logs
+    AutoGrader.tests_no_playwright_at_import
+    AutoGrader.tests_no_wildcard_invalidation
+    AutoGrader.tests_reason_codes
+    AutoGrader.tests_redis_test_isolation
+    ai_processor.tests_grading_run_pipeline
+    ai_processor.tests_h205_image_fallback
+    ai_processor.tests_provider_block
+    ai_processor.tests_reading_config
+    assignments.tests_schema_extension
+    classrooms.tests_course_roster_scope_sweep
+    classrooms.tests_teacher_access_sweep
+    AutoGrader.tests_h246_sentry_environment
+    AutoGrader.tests_log_scrubbing
+    AutoGrader.tests_sentry_scrubbing
+    AutoGrader.tests_sentry_sends_no_variables
+    AutoGrader.tests_h285_djoser_removed
+    AutoGrader.tests_pip_audit_gate
+    ai_processor.tests_h262_prod_image_dev_tools
+    ai_processor.tests_ai_call_trace
+    ai_processor.tests_grading_cache_key_v2
+    ai_processor.tests_grading_config
+    ai_processor.tests_grading_run_checker
+    assignments.tests_task_results_carry_no_text
+    billing.tests.test_allocation_anchor
+    billing.tests.test_h28_stripe_budget
+    billing.tests.test_logs_carry_no_email
+    billing.tests.test_live_qa_clock
+    billing.tests.test_price_drift_reconciliation
+    AutoGrader.tests_live_server_backlog_guard
