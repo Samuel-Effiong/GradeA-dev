@@ -756,3 +756,36 @@ The counts are from `DiscoverRunner.build_suite().countTestCases()` (§1.21 (c))
     - Status writes are open→open or open→terminal only, conditional on the current status and under the wallet lock. Re-run the §1.21 (a) grep.
     - A double-return plant.
   - **If a CASCADE to AIJob is ever added:** add the "job deleted in the same collector run" test (§1.21 (b)).
+
+---
+
+## §2 B1b-2: the flag-on-day list (08b §5.2). SM GO 2026-11-09, after B1b-1 was ACCEPTED at d4c733b51
+
+**The SM's rules:**
+- Survey first, then report the count and the classification **before** any test is edited.
+- No test is weakened to pass.
+- Each test gets a flag-on and a flag-off meaning, or a stated reason why only one applies.
+- The checkpoint is at the survey.
+- **Landing:** B1b lands on staging as one batch at the end. At the start of each step, merge `origin/staging` if it has moved.
+  - At this step's start, `origin/staging` is bc7dd7a89, which is already in the branch (`merge-base --is-ancestor`). Nothing was merged.
+
+### §2.1 The survey, part 1: static (no run)
+
+- **The 45 still exist by name.** Each of the 45 full ids from B1a §21q (copied here as `step2/expected45.tsv`: class, kind, id) was loaded alone with `DiscoverRunner.build_suite([id])`. Each loads exactly 1 test. None is missing or renamed.
+- **The counts**, from `build_suite` with `BILLING_HOLDS_ENABLED=True` in the environment:
+  - **§21m's labels:** `billing ai_processor assignments students users audit.tests_h273_query_filters audit.tests_route_coverage`. There are **7040** tests: billing 2640, ai_processor 1474, assignments 824, students 1066, users 982, audit 54. That is 6875 at §21q, plus what staging (156 non-merge commits since 042c2642) and B1b-1 added.
+  - **Plus the 66 guards** (08b §5.2: "the same labels plus all 66 guards"): there are **7396** tests, all with unique ids. The extra 356 are the guards outside those labels: AutoGrader 322, audit 13 and classrooms 21.
+  - There are 25 decorated skips.
+
+### §2.2 The survey, part 2: the flag-on run (declared before it runs)
+
+- **The command:**
+  - `BILLING_HOLDS_ENABLED=True` from the environment only, under `flock`, `--parallel 4`, at the commit that carries this section.
+  - The labels are §21m's plus the 66 guards (scratchpad `flagon_labels.txt`).
+- **Prediction: `Ran 7396`, `FAILED (failures=37, errors=8)`. The failing set is exactly the 45 in `step2/expected45.tsv`, each as its listed kind.**
+- **The skip count is recorded, not predicted.** There are 25 decorated skips, and I can't count the runtime skips with the flag on without the run. §21q had 28 at 6875 tests.
+- **This is a survey run.** If a test outside the 45 fails, it is the survey's finding, not something to fix here:
+  - it is classified by reading its assertion and the flag-on path;
+  - it goes to the SM with the count;
+  - no test is edited.
+- A listed test that passes, or one that fails as the other kind, is also reported as a finding.
