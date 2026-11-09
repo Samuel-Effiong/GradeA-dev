@@ -553,3 +553,29 @@ Both runs are at the commit that adds this section, with the flag unset, under `
 - **Prediction: Ran 1146, OK (skipped=1).**
 
 Any failure, or a different count or skip number, is a STOP.
+
+**Results (at 601e9fee7, flag unset, under `flock`):**
+- **Run A (7585 MB available):** Found 6335, **Ran 6335 in 341.755s, OK (skipped=23)**, rc 0, 0 FAIL or ERROR lines. **As declared.** Log: `step1/step1_near_apps_601e9fee.log.gz`.
+- **Run B (7984 MB available, serial):** **Ran 1146 in 160.526s, OK (skipped=1)**, rc 0. **As declared.** Log: `step1/step1_near_guards_601e9fee.log.gz`.
+
+### §1.19 B1b-1 summary (for the SM's checkpoint)
+
+**FB-1 is fixed.** Deleting a task row returns its credit hold whichever road deletes it: instance, QuerySet, full or course-scoped erasure, an assignment, batch-session or teacher cascade. It does so with the flag on or off.
+- The fix also clears the pre-existing `item_sum` false alarm for any row deleted from a job that keeps other rows.
+- **What changed:**
+  - billing 0081 (three `deleted_items_*` columns and a NOT VALID check) and 0082 (VALIDATE);
+  - `return_hold_on_item_delete` plus `_finish_if_nothing_left` in `billing/holds.py`, connected in `billing/apps.py`;
+  - `item_sum` now reads live Σ + `deleted_items_*`.
+- **Evidence:**
+  - three red runs and three green runs, each declared first; the mismatches are recorded as they happened (§1.6, §1.9);
+  - 18 tests in `billing/tests/test_holds_deleted_items.py`;
+  - plants PFB-1…4 and 6…8, all killed (§1.17);
+  - the near runs above.
+- **Open items carried forward:**
+  1. **B1b-3:** large flag-on deletes cost about 5.7 queries per row (5.23 s per 1,000 rows, with the wallet locked). This is also on the switch-on checklist.
+  2. **B1b-6:**
+     - replace C4's terminal rule with the last-item helper, and add a BATCH_GRADING delete test;
+     - every new job-status write (promotion, expiry) must take the wallet lock first;
+     - add a double-return plant for the C3 rule (§1.12).
+  3. **B1b-4:** only `estimate_source` is a new column (§1.3).
+- **Test-writing lessons** are in §1.11, to apply from B1b-2 on.
