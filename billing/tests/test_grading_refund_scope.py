@@ -22,11 +22,13 @@ Run with:
 from datetime import timedelta
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
+from ai_processor.services import AIProcessor
 from assignments.models import Assignment
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
+from billing.testing.holds import ai_response, assert_hold_ledger, call_ai
 from classrooms.models import Course, Session
 from students.models import GradingState, StudentSubmission
 from users.models import CustomUser, UserTypes
@@ -154,6 +156,9 @@ class GradingRefundScopeTest(TestCase):
         # The grade landed — the teacher is correctly charged.
         self.assertEqual(self._used_credits(), 1_000)
 
+    # B1b-2 (NOTES §2.3 B3): the flag-off refund scope, pinned; its flag-on
+    # twin is in GradingRefundScopeWithHoldsTest below.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     def test_failure_during_persistence_refunds_the_ai_charge(self):
         # The load-bearing assertion: the AI call succeeded and committed
         # its charge, then persistence died. Without the outer scope the
@@ -166,6 +171,9 @@ class GradingRefundScopeTest(TestCase):
         self.assertIsNone(self.submission.graded_at)
         self.assertEqual(self._used_credits(), 0)
 
+    # B1b-2 (NOTES §2.3 B3): the flag-off refund scope, pinned; its flag-on
+    # twin is in GradingRefundScopeWithHoldsTest below.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     def test_malformed_summary_also_refunds(self):
         # The grading_summary shape guard raises inside the same block, and
         # must refund for the same reason.
@@ -190,3 +198,74 @@ class GradingRefundScopeTest(TestCase):
                 grade_engine(self.teacher, self.submission)
 
         self.assertEqual(self._used_credits(), 0)
+
+
+@override_settings(BILLING_HOLDS_ENABLED=True)
+class GradingRefundScopeWithHoldsTest(TestCase):
+    """B1b-2 (NOTES §2.10) B3 twins: the same two failures with holds on.
+    The AI step makes one real billed call inside grading's metered unit,
+    then persistence fails: nothing is charged, no refund row is written,
+    and the call's hold is returned."""
+
+    def setUp(self):
+        GradingRefundScopeTest.setUp(self)
+        for patcher in (
+            patch(
+                "ai_processor.services.can_user_access_ai", return_value=(True, None)
+            ),
+            patch.object(
+                AIProcessor, "_AIProcessor__ai_model", return_value=ai_response(1_000)
+            ),
+        ):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def _used_credits(self):
+        return GradingRefundScopeTest._used_credits(self)
+
+    def _run_grading(self, *, result, persist_error=None):
+        from students.services import grade_engine
+
+        def fake_extract(*args, **kwargs):
+            call_ai(self.teacher)  # real, billed, under the run's unit
+            return result
+
+        patches = [
+            patch(
+                "students.services.ai_processor.extract_grade_with_retry",
+                side_effect=fake_extract,
+            )
+        ]
+        if persist_error is not None:
+            patches.append(
+                patch(
+                    "students.services.AssignmentProcessingService."
+                    "html_to_prosemirror_text",
+                    side_effect=persist_error,
+                )
+            )
+        for p in patches:
+            p.start()
+        try:
+            return grade_engine(self.teacher, self.submission)
+        finally:
+            for p in patches:
+                p.stop()
+
+    def test_failure_during_persistence_charges_nothing_and_returns_the_hold(self):
+        with self.assertRaises(RuntimeError):
+            self._run_grading(
+                result=GradingRefundScopeTest._grading_result(self),
+                persist_error=RuntimeError("prosemirror exploded"),
+            )
+        self.submission.refresh_from_db()
+        self.assertEqual(self.submission.grading_state, GradingState.FAILED)
+        self.assertIsNone(self.submission.graded_at)
+        self.assertEqual(self._used_credits(), 0)
+        assert_hold_ledger(self, self.teacher, kept=[])
+
+    def test_malformed_summary_charges_nothing_and_returns_the_hold(self):
+        with self.assertRaises(ValueError):
+            self._run_grading(result={"question_evaluations": []})
+        self.assertEqual(self._used_credits(), 0)
+        assert_hold_ledger(self, self.teacher, kept=[])

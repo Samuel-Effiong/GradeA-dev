@@ -32,6 +32,7 @@ from ai_processor.tests_grading_pipeline import (
     _batch_evaluations_json,
 )
 from billing.models import CreditUsageLog
+from billing.testing.holds import assert_hold_ledger
 
 # The reads, writes and pool waits share the setting; the connect wait is
 # fixed: a host that does not take the connection in 10 s is down.
@@ -133,6 +134,9 @@ class ProviderTimeoutTests(SimpleTestCase):
 
 
 class TimedOutRunRefundsTest(GradingPipelineTestBase):
+    # B1b-2 (NOTES §2.3 B3): the flag-off refund scope, pinned; its flag-on
+    # twin is TimedOutRunWithHoldsTest below.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     def test_a_run_that_times_out_refunds_what_it_charged(self):
         teacher = self._make_teacher_with_credits()
         wallet = teacher.credit_wallet
@@ -162,6 +166,42 @@ class TimedOutRunRefundsTest(GradingPipelineTestBase):
         self.assertEqual(charges.count(), 1, "a call that timed out is never charged")
         self.assertEqual(charges.get().amount, 1_000)
         self.assertTrue(charges.get().is_refunded)
+        wallet.refresh_from_db()
+        self.assertEqual(wallet.total_remaining_credits(), starting_balance)
+
+
+@override_settings(BILLING_HOLDS_ENABLED=True)
+class TimedOutRunWithHoldsTest(GradingPipelineTestBase):
+    """B1b-2 (NOTES §2.10) B3 twin of TimedOutRunRefundsTest: the first batch
+    is answered (and held, under the run's metered unit), every request
+    after it times out. Nothing is charged at all, no refund row is
+    written, and the run's hold is returned."""
+
+    def test_a_run_that_times_out_charges_nothing_and_returns_the_hold(self):
+        teacher = self._make_teacher_with_credits()
+        wallet = teacher.credit_wallet
+        starting_balance = wallet.total_remaining_credits()
+
+        def first_batch_then_silence(request, number):
+            if number == 1:
+                return reply(request, _batch_evaluations_json(1), tokens=1_000)
+            return never_answers(request, number)
+
+        processor = AIProcessor()
+        with ProviderStandIn(processor, first_batch_then_silence) as provider:
+            with self.assertRaises(Exception) as caught:
+                processor.grade_student_submission(teacher, RUBRIC_12Q, ANSWERS_12Q)
+
+        chain: list[type] = []
+        error: BaseException | None = caught.exception
+        while error is not None and len(chain) < 10:
+            chain.append(type(error))
+            error = error.__cause__ or error.__context__
+        self.assertIn(openai.APITimeoutError, chain)
+        self.assertGreater(len(provider.requests), 1)
+
+        self.assertFalse(CreditUsageLog.objects.filter(wallet=wallet).exists())
+        assert_hold_ledger(self, teacher, kept=[])
         wallet.refresh_from_db()
         self.assertEqual(wallet.total_remaining_credits(), starting_balance)
 

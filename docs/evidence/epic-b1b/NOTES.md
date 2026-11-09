@@ -1064,3 +1064,61 @@ Any failure is a STOP: a listed test still red with the flag on, or any off-list
   - **Until then, nothing changes:** the constants stay False, and no wording is edited in B1b-2.
   - Per that file, the wording approval is **not** the production switch-on of `BILLING_HOLDS_ENABLED`, which is still a separate owner go.
 - **Cloudinary headroom:** reported from the owner as **over 50 GB free**, which covers the delete-on-success estimate. This bears on the switch-on checklist's Cloudinary item. The checklist line is not changed until the SM confirms.
+
+### §2.10 B3: 12 pins and 12 twins, and the plants (declared before any run)
+
+**The SM, after the restart:** grade-automator-plus-08 is the B1b SM, continuing from grade-automator-plus-12, and every ruling stands.
+- **Accepted:** the `run_inline` fix, and committing `guards66.txt`.
+- **For B3:** the 12 twins share one assertion helper, so a bug in it would hide in all 12 at once. Each plant records **which twins kill it, by name**. Any twin that kills none of PB3-1/2/3 must say why it stays.
+- The checkpoint comes after B3, the §5.2 flag-on run and the flag-off near run.
+
+**The shared helpers (`billing/testing/holds.py`, new):**
+- `fund(user, credits)` adds one MONTHLY bucket.
+- `real_billed_call(teacher)` makes one billed call through `AIProcessor.execute_graded_task`, called **on the class**. So it stays real where a test has patched the shared `ai_processor` instance's method (the s6d twin).
+- `assert_hold_ledger(test, user, kept=… | kept_count=…)` asserts, in order:
+  1. **not vacuous:** some AIJob of the wallet has `reserved_credits > 0` (a hold was really taken);
+  2. **no refund row:** no `CreditUsageLog` with `is_refunded=True`;
+  3. **the settle charges:** the non-refunded amounts equal `kept` (sorted), or their number equals `kept_count`;
+  4. **nothing left reserved:** `CreditWallet.reserved_credits == 0`.
+
+**The pins (12):** each listed B3 test gets `@override_settings(BILLING_HOLDS_ENABLED=False)`, with the body unchanged, and a comment naming its twin. The survey run (§2.2) is the break side: unpinned, flag on, each one fails.
+
+**The twins (12)**, each in the original's file, in a class pinned `BILLING_HOLDS_ENABLED=True` (Q3). Each twin has the same scenario and the same entry point as the original. The flag-off fake that charged directly (`consume_credits` plus `record_billing_task_id`) is replaced by **real billed calls**: `call_ai` or `real_billed_call` with the provider patched, or the original's own provider fake where it already went through the real `execute_graded_task`.
+
+| # | Twin (file → class.test) | Original | Ledger asserted |
+|---|---|---|---|
+| T1 | `billing.tests.test_grading_refund_scope` → `GradingRefundScopeWithHoldsTest.test_failure_during_persistence_charges_nothing_and_returns_the_hold` | `…refunds_the_ai_charge` | `kept=[]`; FAILED, `graded_at` None, `used == 0` |
+| T2 | same class → `test_malformed_summary_charges_nothing_and_returns_the_hold` | `test_malformed_summary_also_refunds` | `kept=[]`; `used == 0` |
+| T3 | `students.tests_answers_unreadable` → `TheEditsRefusalWithHolds.test_the_edits_refusal_charges_nothing_and_returns_the_hold` | `…refunds_the_charge` | `kept=[]`; answers unchanged |
+| T4 | `students.tests_async_edit_path` → `ExtractionWithHoldsTest.test_failure_after_the_call_charges_nothing_and_returns_the_hold` | `…refunds_it` | `kept=[]`; the row is unchanged |
+| T5 | `students.tests_s6d_extraction_refund` → `ExtractionWithHoldsTests.test_a_mid_chunk_failure_charges_nothing_and_returns_the_holds` | `…nets_the_ledger_to_zero` | 3 billed calls made; `used` unchanged; `kept=[]`; `credit_clause == NOT_CHARGED`; no submission |
+| T6 | `ai_processor.tests_grading_pipeline` → `GradingRunWithHoldsTest.test_a_successful_run_is_charged_once_at_settle` | `test_successful_run_keeps_every_charge` | more than 1 call; the balance went down; `kept_count=1` (one unit, one settle) |
+| T7 | same class → `test_a_failed_attempt_is_never_charged_the_successful_one_is` | `…refunded_successful_attempt_is_kept` | score 10; 2 calls; `kept_count=1` |
+| T8 | `ai_processor.tests_h256_provider_timeout` → `TimedOutRunWithHoldsTest.test_a_run_that_times_out_charges_nothing_and_returns_the_hold` | `…refunds_what_it_charged` | `APITimeoutError` in the chain; more than 1 request; no usage row; `kept=[]`; the balance unchanged |
+| T9 | `assignments.tests_upload_batch_billing` → `UploadBillingWithHoldsTest.test_an_unusable_provider_response_charges_nothing_for_that_file` | `…charged_then_refunded_in_full` | c.png called; `kept=[1100]`; `used == 1100`; no open claims |
+| T10 | same class → `test_a_failed_save_charges_nothing_and_it_can_be_retried` | `…refunds_the_file_and_it_can_be_retried` | `kept=[1100]`, then after the retry `kept=[1100, 3300]`; 1 → 2 assignments |
+| T11 | same class → `test_a_claim_taken_over_mid_extraction_charges_nothing` | `…does_not_save_a_second_copy` | 400 in progress; no assignment; `kept=[]`; the newer claim is still PROCESSING |
+| T12 | `assignments.tests_upload_task_retry_policy` → `AssignmentUploadTaskWithHoldsTest.test_an_unusable_response_charges_nothing_and_the_file_is_released` | `…refunded_and_the_file_released` | the task failed; a.png called; `kept=[]`; the file is released |
+
+Fixture reuse: T1 calls `GradingRefundScopeTest.setUp`, and T12 calls `AssignmentUploadTaskBillingTest.setUp` and `_run`, unbound (neither uses `super()`), so those classes' other tests don't run again. T3, T5, T6/T7/T8 and T9–T11 subclass test-free bases (`AnswerDocumentBase`, `RubricGateTestCase`, `GradingPipelineTestBase`, `BatchUploadBillingFixture`). Grep: no other module imports a twin class.
+
+**The runs:** the 8 files (`step2/b3_labels.txt`), **109 tests** by `build_suite` (97 + 12 twins), 1 decorated skip. Under `flock`, serial.
+- **R1, flag on: `Ran 109`, OK.**
+- **R2, flag unset: `Ran 109`, OK.**
+- The skip count is recorded, not predicted: 1 decorated, plus whatever `tests_async_edit_path`'s real-worker tests skip at runtime.
+- Any failure is a STOP. A failing twin would mean flag-on behavior differs from the scenario's meaning, which is a finding for the SM, not something to adjust.
+
+**The plants** (`scratchpad/plant_b3.py`; each restored with `git checkout` and checked with `sha256sum -c` on `billing/holds.py`). Each runs on the 8 files with the flag **unset**, so only the twins (pinned on) reach the hold paths.
+
+| Plant | The change | Twins that must fail (by name) | Twins that must pass |
+|---|---|---|---|
+| **PB3-1** (SM) | `settle` calls `consume_credits` twice | **T6, T7, T9, T10** (every twin with a settle charge) | T1–T5, T8, T11, T12 (no settle, nothing to double) |
+| **PB3-2** (SM) | `settle` refunds its own charge (`SubscriptionService.refund_credits(record.id)`) | **T6, T7, T9, T10** | T1–T5, T8, T11, T12 |
+| **PB3-3** (SM) | `fail_item` skips `_move_wallet` (`billing/holds.py:378`), so a failed call's hold stays reserved. A failed unit's root goes through `fail_item` and then `finish_job(FAILED)` (`fail_root`, `:864–869`), and `finish_job` returns only what the job's columns still show as left, so this leaves the hold reserved | **T1, T2, T3, T4, T5, T7, T8, T9, T10, T11, T12** (every twin with a failed unit) | **T6** (a pure success, no failed unit) |
+
+- **Every twin kills at least one plant:**
+  - T6 kills PB3-1 and PB3-2;
+  - T7, T9 and T10 kill all three;
+  - the other eight kill PB3-3.
+- None needs a separate reason to stay.
+- Any other pass or fail is a STOP.

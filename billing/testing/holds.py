@@ -147,3 +147,75 @@ def call_ai(teacher, *, prompt=PROMPT):
         user_prompt=prompt,
         prompt_version="b1a-test-v1",
     )
+
+
+# --------------------------------------------------------------------------
+# B1b-2 (NOTES §2.10): the B3 flag-on twins
+# --------------------------------------------------------------------------
+
+
+def fund(user, credits):
+    """Add `credits` in one MONTHLY bucket to `user`'s wallet."""
+    wallet, _ = CreditWallet.objects.get_or_create(user=user)
+    CreditBucket.objects.create(
+        wallet=wallet,
+        bucket_type=CreditBucketType.MONTHLY,
+        total_credits=credits,
+        used_credits=0,
+        expires_at=timezone.now() + timedelta(days=30),
+    )
+    return wallet
+
+
+def real_billed_call(teacher, *, prompt=PROMPT):
+    """One billed call through the real AIProcessor.execute_graded_task,
+    called on the class, so it is real even where a test has patched the
+    shared ai_processor instance's method."""
+    from ai_processor.services import AIProcessor, ai_processor
+
+    return AIProcessor.execute_graded_task(
+        ai_processor,
+        teacher,
+        "Grading Assignment",
+        "grade_assignment",
+        user_prompt=prompt,
+        prompt_version="b1b2-twin",
+    )
+
+
+def assert_hold_ledger(test, user, *, kept=None, kept_count=None):
+    """The flag-on ledger shape a B3 twin asserts (08b §5.2):
+
+    - no usage row is ever refunded (a failed call is never charged, so
+      nothing needs refunding);
+    - the usage rows are exactly what settle charged: `kept` (the sorted
+      amounts) or `kept_count` (how many, where the amount is the
+      provider's token count through the real pricing);
+    - nothing is left reserved on the wallet: every hold was settled or
+      returned;
+    - and a hold was taken at all, so the twin is not vacuous.
+    """
+    from billing.models import CreditUsageLog
+
+    # Not vacuous: a hold was really taken (a twin whose billed call never
+    # ran would pass every check below).
+    test.assertTrue(
+        AIJob.objects.filter(wallet__user=user, reserved_credits__gt=0).exists(),
+        "no hold was ever taken",
+    )
+    logs = list(CreditUsageLog.objects.filter(wallet__user=user))
+    test.assertEqual(
+        sorted(log.amount for log in logs if log.is_refunded),
+        [],
+        "a refund row was written with the flag on",
+    )
+    charged = sorted(log.amount for log in logs if not log.is_refunded)
+    if kept is not None:
+        test.assertEqual(charged, sorted(kept), "the charges settle made")
+    if kept_count is not None:
+        test.assertEqual(len(charged), kept_count, "the number of settle charges")
+    test.assertEqual(
+        CreditWallet.objects.get(user=user).reserved_credits,
+        0,
+        "a hold was left reserved",
+    )
