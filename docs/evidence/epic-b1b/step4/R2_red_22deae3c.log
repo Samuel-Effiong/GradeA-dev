@@ -1,0 +1,630 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+EEEFree trial plan not found: no trial activated for user 5799aa7a-2000-47a1-8407-d709e7ba773e.
+Cannot activate automatic trial for user 5799aa7a-2000-47a1-8407-d709e7ba773e (validation): ValueError
+EFree trial plan not found: no trial activated for user 438bdf17-9315-4c69-beee-e252f23cd76a.
+Cannot activate automatic trial for user 438bdf17-9315-4c69-beee-e252f23cd76a (validation): ValueError
+EFree trial plan not found: no trial activated for user 6510e8f0-9b3a-48d8-b2af-fbd3be3bb7c8.
+Cannot activate automatic trial for user 6510e8f0-9b3a-48d8-b2af-fbd3be3bb7c8 (validation): ValueError
+EFree trial plan not found: no trial activated for user d2635b0c-d875-4ff3-893a-cab4f8e770f6.
+Cannot activate automatic trial for user d2635b0c-d875-4ff3-893a-cab4f8e770f6 (validation): ValueError
+EFree trial plan not found: no trial activated for user 12e03b03-5c25-4605-b0b6-bf152230be30.
+Cannot activate automatic trial for user 12e03b03-5c25-4605-b0b6-bf152230be30 (validation): ValueError
+EFree trial plan not found: no trial activated for user 9e94b30c-e9fd-4766-85ec-5e5cafcb6c00.
+Cannot activate automatic trial for user 9e94b30c-e9fd-4766-85ec-5e5cafcb6c00 (validation): ValueError
+EFree trial plan not found: no trial activated for user 4771f61e-db65-4d09-ae8f-5d105a7a25a7.
+Cannot activate automatic trial for user 4771f61e-db65-4d09-ae8f-5d105a7a25a7 (validation): ValueError
+EFree trial plan not found: no trial activated for user 4c6f17fe-ca86-4cdc-a897-149164fd8f4f.
+Cannot activate automatic trial for user 4c6f17fe-ca86-4cdc-a897-149164fd8f4f (validation): ValueError
+EFree trial plan not found: no trial activated for user ab75573b-4bbd-4d32-a9de-5ee6b21792d6.
+Cannot activate automatic trial for user ab75573b-4bbd-4d32-a9de-5ee6b21792d6 (validation): ValueError
+EFree trial plan not found: no trial activated for user a6b80180-d48c-4161-9fcd-4804f205eb63.
+Cannot activate automatic trial for user a6b80180-d48c-4161-9fcd-4804f205eb63 (validation): ValueError
+EFree trial plan not found: no trial activated for user 19c2d93c-2905-4de3-ae5e-a081de959fe2.
+Cannot activate automatic trial for user 19c2d93c-2905-4de3-ae5e-a081de959fe2 (validation): ValueError
+FFree trial plan not found: no trial activated for user 8b23cd11-226e-4b23-97c1-c9f962e2842d.
+Cannot activate automatic trial for user 8b23cd11-226e-4b23-97c1-c9f962e2842d (validation): ValueError
+FFree trial plan not found: no trial activated for user 74edcfe7-9e87-4b0a-b241-1d8a0b9094d7.
+Cannot activate automatic trial for user 74edcfe7-9e87-4b0a-b241-1d8a0b9094d7 (validation): ValueError
+Free trial plan not found: no trial activated for user b2572ab4-c5bb-4175-9e77-a4d1785624b9.
+Cannot activate automatic trial for user b2572ab4-c5bb-4175-9e77-a4d1785624b9 (validation): ValueError
+FFFree trial plan not found: no trial activated for user cb49f2e1-47b7-497f-a4fc-842d2a28cf03.
+Cannot activate automatic trial for user cb49f2e1-47b7-497f-a4fc-842d2a28cf03 (validation): ValueError
+FFFFFFFFFFree trial plan not found: no trial activated for user a9af4efd-8a53-4201-8d31-97a38ba58f02.
+Cannot activate automatic trial for user a9af4efd-8a53-4201-8d31-97a38ba58f02 (validation): ValueError
+EFree trial plan not found: no trial activated for user bb44735a-f5e6-481d-9f25-f43877ff5c50.
+Cannot activate automatic trial for user bb44735a-f5e6-481d-9f25-f43877ff5c50 (validation): ValueError
+FFree trial plan not found: no trial activated for user 3b34cbcb-c505-4710-8a42-c145f596068c.
+Cannot activate automatic trial for user 3b34cbcb-c505-4710-8a42-c145f596068c (validation): ValueError
+EFree trial plan not found: no trial activated for user 986590bf-817c-4c12-bcb4-28a2d4c754b9.
+Cannot activate automatic trial for user 986590bf-817c-4c12-bcb4-28a2d4c754b9 (validation): ValueError
+E
+======================================================================
+ERROR: test_estimates_band (unittest.loader._FailedTest.test_estimates_band)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_estimates_band
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/loader.py", line 137, in loadTestsFromName
+    module = __import__(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimates_band.py", line 26, in <module>
+    estimates = importlib.import_module("billing.estimates")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'billing.estimates'
+
+
+======================================================================
+ERROR: test_estimate_backtest (unittest.loader._FailedTest.test_estimate_backtest)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_estimate_backtest
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/loader.py", line 137, in loadTestsFromName
+    module = __import__(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_backtest.py", line 28, in <module>
+    estimates = importlib.import_module("billing.estimates")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'billing.estimates'
+
+
+======================================================================
+ERROR: test_estimate_gate6 (unittest.loader._FailedTest.test_estimate_gate6)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_estimate_gate6
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/loader.py", line 137, in loadTestsFromName
+    module = __import__(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_gate6.py", line 49, in <module>
+    estimates = importlib.import_module("billing.estimates")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'billing.estimates'
+
+
+======================================================================
+ERROR: test_a_bad_body_is_a_400 (billing.tests.test_estimate_endpoint.EstimateEndpointTests.test_a_bad_body_is_a_400)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_endpoint.py", line 57, in setUp
+    self.url = reverse("billing-estimate")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'billing-estimate' not found. 'billing-estimate' is not a valid view function or pattern name.
+
+======================================================================
+ERROR: test_a_student_is_refused (billing.tests.test_estimate_endpoint.EstimateEndpointTests.test_a_student_is_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_endpoint.py", line 57, in setUp
+    self.url = reverse("billing-estimate")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'billing-estimate' not found. 'billing-estimate' is not a valid view function or pattern name.
+
+======================================================================
+ERROR: test_a_teacher_with_no_credits_gets_insufficient_not_a_refusal (billing.tests.test_estimate_endpoint.EstimateEndpointTests.test_a_teacher_with_no_credits_gets_insufficient_not_a_refusal)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_endpoint.py", line 57, in setUp
+    self.url = reverse("billing-estimate")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'billing-estimate' not found. 'billing-estimate' is not a valid view function or pattern name.
+
+======================================================================
+ERROR: test_all_ungraded_counts_only_the_ungraded_papers (billing.tests.test_estimate_endpoint.EstimateEndpointTests.test_all_ungraded_counts_only_the_ungraded_papers)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_endpoint.py", line 57, in setUp
+    self.url = reverse("billing-estimate")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'billing-estimate' not found. 'billing-estimate' is not a valid view function or pattern name.
+
+======================================================================
+ERROR: test_anonymous_is_refused (billing.tests.test_estimate_endpoint.EstimateEndpointTests.test_anonymous_is_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_endpoint.py", line 57, in setUp
+    self.url = reverse("billing-estimate")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'billing-estimate' not found. 'billing-estimate' is not a valid view function or pattern name.
+
+======================================================================
+ERROR: test_another_teachers_assignment_is_refused_as_grade_all_refuses_it (billing.tests.test_estimate_endpoint.EstimateEndpointTests.test_another_teachers_assignment_is_refused_as_grade_all_refuses_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_endpoint.py", line 57, in setUp
+    self.url = reverse("billing-estimate")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'billing-estimate' not found. 'billing-estimate' is not a valid view function or pattern name.
+
+======================================================================
+ERROR: test_it_writes_no_job_and_holds_nothing (billing.tests.test_estimate_endpoint.EstimateEndpointTests.test_it_writes_no_job_and_holds_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_endpoint.py", line 57, in setUp
+    self.url = reverse("billing-estimate")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'billing-estimate' not found. 'billing-estimate' is not a valid view function or pattern name.
+
+======================================================================
+ERROR: test_listed_submissions_count_only_those_of_this_assignment (billing.tests.test_estimate_endpoint.EstimateEndpointTests.test_listed_submissions_count_only_those_of_this_assignment)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_endpoint.py", line 57, in setUp
+    self.url = reverse("billing-estimate")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'billing-estimate' not found. 'billing-estimate' is not a valid view function or pattern name.
+
+======================================================================
+ERROR: test_one_request_audit_row_and_no_other_audit_row (billing.tests.test_estimate_endpoint.EstimateEndpointTests.test_one_request_audit_row_and_no_other_audit_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_endpoint.py", line 57, in setUp
+    self.url = reverse("billing-estimate")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'billing-estimate' not found. 'billing-estimate' is not a valid view function or pattern name.
+
+======================================================================
+ERROR: test_the_body_is_codes_and_numbers_only (billing.tests.test_estimate_endpoint.EstimateEndpointTests.test_the_body_is_codes_and_numbers_only)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_endpoint.py", line 57, in setUp
+    self.url = reverse("billing-estimate")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'billing-estimate' not found. 'billing-estimate' is not a valid view function or pattern name.
+
+======================================================================
+ERROR: test_set_changes_one_field_and_writes_one_audit_row (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_set_changes_one_field_and_writes_one_audit_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 51, in test_set_changes_one_field_and_writes_one_audit_row
+    run("--set", "cold_start_cost_factor=2.4", "--by", self.admin.email)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 35, in run
+    call_command("billing_settings", *args, stdout=out)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 112, in call_command
+    raise CommandError("Unknown command: %r" % command_name)
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+======================================================================
+ERROR: test_show_prints_every_field (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_show_prints_every_field)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 44, in test_show_prints_every_field
+    text = run("--show")
+           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 35, in run
+    call_command("billing_settings", *args, stdout=out)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 112, in call_command
+    raise CommandError("Unknown command: %r" % command_name)
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+======================================================================
+ERROR: test_two_sets_are_two_rows (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_two_sets_are_two_rows)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 64, in test_two_sets_are_two_rows
+    run(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 35, in run
+    call_command("billing_settings", *args, stdout=out)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 112, in call_command
+    raise CommandError("Unknown command: %r" % command_name)
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+======================================================================
+FAIL: test_a_refused_set_changes_nothing_even_after_a_good_one (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_a_refused_set_changes_nothing_even_after_a_good_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 131, in test_a_refused_set_changes_nothing_even_after_a_good_one
+    with self.assertRaisesMessage(
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+AssertionError: 'invalid value for unstarted_backstop_hours: -1' not found in "Unknown command: 'billing_settings'"
+
+======================================================================
+FAIL: test_an_unknown_field_is_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_an_unknown_field_is_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 95, in test_an_unknown_field_is_refused
+    with self.assertRaisesMessage(CommandError, "unknown setting: pk"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+AssertionError: 'unknown setting: pk' not found in "Unknown command: 'billing_settings'"
+
+======================================================================
+FAIL: test_by_must_be_an_active_super_admin (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_by_must_be_an_active_super_admin) (by='est.ops.teacher@example.com')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 88, in test_by_must_be_an_active_super_admin
+    with self.subTest(by=by), self.assertRaisesMessage(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+AssertionError: '--by must name an active super admin' not found in "Unknown command: 'billing_settings'"
+
+======================================================================
+FAIL: test_by_must_be_an_active_super_admin (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_by_must_be_an_active_super_admin) (by='nobody@example.com')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 88, in test_by_must_be_an_active_super_admin
+    with self.subTest(by=by), self.assertRaisesMessage(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+AssertionError: '--by must name an active super admin' not found in "Unknown command: 'billing_settings'"
+
+======================================================================
+FAIL: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='cold_start_cost_factor=0')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 113, in test_out_of_bounds_and_wrong_type_values_are_refused
+    with self.subTest(value=value), self.assertRaisesMessage(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+AssertionError: 'invalid value for cold_start_cost_factor: 0' not found in "Unknown command: 'billing_settings'"
+
+======================================================================
+FAIL: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='cold_start_cost_factor=-1')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 113, in test_out_of_bounds_and_wrong_type_values_are_refused
+    with self.subTest(value=value), self.assertRaisesMessage(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+AssertionError: 'invalid value for cold_start_cost_factor: -1' not found in "Unknown command: 'billing_settings'"
+
+======================================================================
+FAIL: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='cold_start_cost_factor=nan')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 113, in test_out_of_bounds_and_wrong_type_values_are_refused
+    with self.subTest(value=value), self.assertRaisesMessage(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+AssertionError: 'invalid value for cold_start_cost_factor: nan' not found in "Unknown command: 'billing_settings'"
+
+======================================================================
+FAIL: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='cold_start_cost_factor=inf')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 113, in test_out_of_bounds_and_wrong_type_values_are_refused
+    with self.subTest(value=value), self.assertRaisesMessage(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+AssertionError: 'invalid value for cold_start_cost_factor: inf' not found in "Unknown command: 'billing_settings'"
+
+======================================================================
+FAIL: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='cold_start_cost_factor=abc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 113, in test_out_of_bounds_and_wrong_type_values_are_refused
+    with self.subTest(value=value), self.assertRaisesMessage(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+AssertionError: 'invalid value for cold_start_cost_factor: abc' not found in "Unknown command: 'billing_settings'"
+
+======================================================================
+FAIL: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='unstarted_backstop_hours=-1')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 113, in test_out_of_bounds_and_wrong_type_values_are_refused
+    with self.subTest(value=value), self.assertRaisesMessage(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+AssertionError: 'invalid value for unstarted_backstop_hours: -1' not found in "Unknown command: 'billing_settings'"
+
+======================================================================
+FAIL: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='unstarted_backstop_hours=40000')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 113, in test_out_of_bounds_and_wrong_type_values_are_refused
+    with self.subTest(value=value), self.assertRaisesMessage(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+AssertionError: 'invalid value for unstarted_backstop_hours: 40000' not found in "Unknown command: 'billing_settings'"
+
+======================================================================
+FAIL: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='unstarted_backstop_hours=1.5')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 113, in test_out_of_bounds_and_wrong_type_values_are_refused
+    with self.subTest(value=value), self.assertRaisesMessage(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+AssertionError: 'invalid value for unstarted_backstop_hours: 1.5' not found in "Unknown command: 'billing_settings'"
+
+======================================================================
+FAIL: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='hold_sweep_margin_minutes=-5')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 113, in test_out_of_bounds_and_wrong_type_values_are_refused
+    with self.subTest(value=value), self.assertRaisesMessage(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+AssertionError: 'invalid value for hold_sweep_margin_minutes: -5' not found in "Unknown command: 'billing_settings'"
+
+======================================================================
+FAIL: test_set_needs_by (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_set_needs_by)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 110, in call_command
+    app_name = get_commands()[command_name]
+               ~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+KeyError: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+django.core.management.base.CommandError: Unknown command: 'billing_settings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 76, in test_set_needs_by
+    with self.assertRaisesMessage(CommandError, "--by is required with --set"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+AssertionError: '--by is required with --set' not found in "Unknown command: 'billing_settings'"
+
+----------------------------------------------------------------------
+Ran 21 tests in 2.934s
+
+FAILED (failures=14, errors=16)
+Destroying test database for alias 'default'...
+Found 21 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

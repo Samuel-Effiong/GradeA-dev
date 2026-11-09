@@ -1767,3 +1767,12 @@ Collateral is recorded as observed and is not a mismatch. A survivor, or a kill 
   - 10 endpoint `NoReverseMatch` setUp errors;
   - 3 settings errors (`Unknown command: 'billing_settings'`);
   - 5 settings failures. `assertRaisesMessage` sees `Unknown command: 'billing_settings'`, which is not the expected text, so each fails with `"--by is required with --set" not found in "Unknown command: 'billing_settings'"` and the like.
+
+**R′ result (at 22deae3c7, under `flock`, flag unset): `Ran 21`, `FAILED (failures=14, errors=16)`. STOP: declared `failures=5`.** Log: `step4/R2_red_22deae3c.log`.
+- **errors=16, as declared:** 3 `ModuleNotFoundError: No module named 'billing.estimates'`, 10 `NoReverseMatch`, 3 `Unknown command`.
+- **All 5 settings tests fail, each with its declared fragment** (`'<refusal text>' not found in "Unknown command: 'billing_settings'"`). No test passes vacuously any more, so the fix works.
+- **The mismatch is in my count:** unittest counts every failing `subTest` as one failure.
+  - `test_out_of_bounds_and_wrong_type_values_are_refused`: 9 (one per value);
+  - `test_by_must_be_an_active_super_admin`: 2 (one per `--by`);
+  - `test_set_needs_by`, `test_an_unknown_field_is_refused` (stops at its first assertion) and `test_a_refused_set_changes_nothing_even_after_a_good_one`: 1 each.
+  - That gives 9 + 2 + 1 + 1 + 1 = **14**. I declared tests, not subtest failures.
