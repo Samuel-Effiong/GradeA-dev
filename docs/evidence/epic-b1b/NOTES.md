@@ -533,3 +533,23 @@ This step had three test-only bugs: a NOT NULL fixture field, a fixture status t
 - **Recorded as:**
   1. **A B1b-3 speed item:** cut the per-row cost of large deletes. Candidates: (c)'s bulk detach pre-pass, or running C4 once per job at the end of the cascade instead of once per row.
   2. **The switch-on checklist line** added at the top of this file.
+
+### §1.18 The B1b-1 near run (declared before it runs)
+
+Both runs are at the commit that adds this section, with the flag unset, under `flock`, with `free -m` ≥ 4000 MB available.
+
+**Run A, the apps:**
+- **Labels:** `billing students classrooms assignments users AutoGrader.tests_migration_rollback_defaults`. The rollback test is added because this step adds billing 0081 and 0082.
+- **Options:** `--parallel 4`, as in B1a.
+- **Counted with `DiscoverRunner.build_suite`** (`scratchpad/count.py`, `sys.argv` set to `test` so the settings see a test run): billing 2638, students 1066, classrooms 813, assignments 824, users 982, the rollback test 12. **Total 6335.**
+- **Skips:**
+  - **19 decorated** (counted from `__unittest_skip__` on the class or method; this includes the opt-in FB-1 timing test);
+  - **4 at run time:** `users.tests_google_auth.LiveGoogleEndpointContractTests` (2, live Google is opt-in), `LiveContractSkipGuardTests` (1, `CI_REQUIRE_NETWORK` not set), and `users.tests_activity_middleware_load.RedisAvailabilityTests` (1, `CI_REQUIRE_REDIS` not set). Redis answers PONG here, so its load tests run. These are the same 4 as B1a §21x.
+- **Prediction: Ran 6335, OK (skipped=23).**
+
+**Run B, the 66 standing guard labels:**
+- Run **serially** (no `--parallel`), so `AutoGrader.tests_redis_test_isolation`'s fork tests run.
+- **Counted:** 1146, with 1 decorated skip. That matches staging's guard sweep (bc7dd7a89: Ran 1146 OK, skipped=1, serial).
+- **Prediction: Ran 1146, OK (skipped=1).**
+
+Any failure, or a different count or skip number, is a STOP.
