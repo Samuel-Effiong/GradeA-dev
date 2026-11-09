@@ -614,3 +614,36 @@ Any failure, or a different count or skip number, is a STOP.
   1. T-20 gets a **second pending row**, so it fails whatever the order on today's code.
   2. **The SM's preferred fix:** C4 moves to a `post_delete` receiver, after the batch delete and in the same transaction. There it takes the wallet lock, reads the job status fresh, checks for rows left (accurate now) and finishes the job. `pre_delete` keeps only the hold return and the `deleted_items_*` carry.
   3. PFB-9 (the `post_delete` check skipped), killed by T-20 (and T-5, T-6, T-7, T-8, T-8b, T-19), plus PFB-1…8 re-run, the timing and the near runs, each declared first.
+
+### §1.21 The SM's ruling on §1.20 (GO on 1–3, 2026-11-09) and the red for the two-pending T-20 (declared)
+
+**The B1b-6 consequence of the order-dependence:** the pre_delete C4 check can't see which siblings the same collector run is about to delete. So any rule that decides "the last item is gone" inside `pre_delete` depends on the visit order. B1b-6's last-item helper must therefore run **after** the rows are gone (in `post_delete`, or after the batch delete), never in `pre_delete`. Its BATCH delete test must include two or more never-held pending rows, so it fails whatever the order.
+
+**(a) "Terminal never reverts": the evidence.**
+- Read from `billing/holds.py` at 68442c89c. There are seven `AIJob` status writes:
+  - **:409–410, `finish_job`:** the only write on an existing job. It is conditional, `filter(pk=job.pk, status__in=OPEN_STATUSES).update(status=to_status)`, so it can't move a terminal job.
+  - **:494 and :496, the successor:** these write a **new** job (`new_job`, made by `create_job` at :480) and never the old one.
+  - **:814** (unit `before_call`), **:936** (`begin_single_call`) and **:1059** (`open_door_job`): each writes a job made by `create_job` a few lines above, in the same function. At :936 the refused road calls `finish_job(FAILED)` and raises first, so :936 never follows a terminal write.
+  - **`create_job`** (:196) sets the first status of a new job.
+- No admin, QA console or management command writes `AIJob.status` (grep: the only non-test, non-migration files that name AIJob are `billing/holds.py`, `billing/models.py`, `billing/testing/holds.py`, `students/models.py`, `students/student_data_map.py` and `audit/serializers.py`; none of the last five writes a status).
+- **So once a job is terminal it stays terminal,** and the `post_delete` receiver may return early on a terminal status read without the lock.
+- **B1b-6 obligation:** B1b-6 adds QUEUED→RUNNING on an existing job. Every new status write must be **open→open or open→terminal only**, conditional on the current status, the way `finish_job` is (`status__in=<the open from-states>`), and under the wallet lock. No write may move a terminal job. B1b-6 must re-run this grep and record the new list.
+
+**(b) Can an AIJob be deleted in the same collector run as its rows? No.**
+- Every FK on AIJob is `on_delete=SET_NULL`: `requested_by`, `wallet`, `course` and `assignment` (`billing/models.py:1806`, `:1816`, `:1824`, `:1831`).
+- `BackgroundProcessingTask.job` is `SET_NULL` too (`students/models.py:635–637`).
+- So no cascade from a user, wallet, course, assignment or task row reaches an AIJob. A collector run that deletes BPT rows only nulls AIJob FKs; it never deletes the job. An AIJob can be deleted only by deleting it directly, and then its rows are detached (`job_id` NULL), not deleted, so the receivers return at `instance.job_id is None` or read nothing.
+- **No test is added for it, because the shape can't happen.** But the `post_delete` receiver still reads the job with `.filter(...).first()` and returns quietly on `None`, so a future CASCADE can't raise `DoesNotExist` mid-delete. If a CASCADE to AIJob is ever added, that change must add the test.
+
+**(c) The near-run count, from `DiscoverRunner.build_suite().countTestCases()`** (scratchpad `count.py`, run at the working tree with T-19/T-20 in place):
+- **Apps (billing students classrooms assignments users AutoGrader.tests_migration_rollback_defaults): 6337.** That is billing 2640, students 1066, classrooms 813, assignments 824, users 982, and AutoGrader rollback 12. There are 19 decorated skips.
+- **Where the +2 comes from:** the B1b-1 near run at 601e9fee7 ran 6335. The file `test_holds_deleted_items.py` went from 18 to 20 tests (T-19 and T-20); nothing else changed. So 6335 + 2 = 6337, and the recount agrees. My earlier "6339" was an arithmetic slip, corrected before any run.
+- **The 66 guards: 1146,** with 1 decorated skip. None of the 66 labels is in this file, so it is unchanged.
+
+**The red, declared (T-20 now has two never-held pending rows, `job(total_items=3)`):**
+- The command is `manage.py test billing.tests.test_holds_deleted_items --noinput`, under `flock`, at the commit that carries this section.
+- **Prediction (today's code, `billing/holds.py` sha256 c2e49f1b…92b0af): `Ran 20`, `FAILED (failures=1)`.**
+  - **T-20 fails on its last assertion:** `'RESERVED' != AIJobStatus.FAILED`, whatever the visit order (the last row visited always sees the other pending row).
+  - Every other assertion in T-20 passes: no rows are left, reserved is back to the start, the books agree, and `deleted_items_*` = (300, 0, 300).
+  - T-1…T-19 pass.
+- Any other result is a STOP.

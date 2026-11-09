@@ -481,11 +481,14 @@ class CascadeTerminalTests(DeletedItemsBase):
         papers; today only a moment between attach and hold) is still in
         the table when the last pre_delete runs."""
         self.classroom("t20")
-        job = self.job(total_items=2)
+        job = self.job(total_items=3)
         start = self.reserved()
         self.held_item(job)
-        pending = make_item(job, assignment=self.assignment)
-        self.assertIsNone(fresh(pending).hold_state)
+        # Two pending rows (SM, §1.20): whatever the collector's visit order,
+        # the last one visited still sees the other.
+        pending = [make_item(job, assignment=self.assignment) for _ in range(2)]
+        for row in pending:
+            self.assertIsNone(fresh(row).hold_state)
         self.assignment.delete()
         self.assertFalse(BackgroundProcessingTask.objects.filter(job=job).exists())
         self.assertEqual(self.reserved(), start, "reserved: back to the start")
