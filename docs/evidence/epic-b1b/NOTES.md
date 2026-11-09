@@ -1196,3 +1196,104 @@ The counts are from `build_suite`.
 - **S3, Gate 6 measurement 3, unchanged** (`TransactionTestCase`, 2000 calls per mode, interleaved): `RUN_LOAD_TESTS=1 manage.py test billing.tests.test_holds_gate6_m3`.
   - **Prediction: `Ran 1`, OK.** Its assertion is now added p95 ≤ 40 ms (§21l), and I expect about 33 ms, as at §21k.
   - The numbers are recorded beside measurements 1–3 as **"measurement 3, re-run at B1b-3 start"**, never replacing them.
+
+### §3.2 Survey results (at f1a28d666, under `flock`; no product code changed)
+
+**S1, the listing: `Ran 2`, OK.** Log: `step3/S1_survey_f1a28d66.log`.
+- **Per call, as listed:** 35 statements with the flag off and 69 with it on. Of those, **10 and 22 are SAVEPOINT/RELEASE**, so the real queries are **25 and 47, which is +22, exactly B1a's §21h count.** My 47/25 prediction was for real queries; the listing also counts the savepoint statements. That is recorded as it is.
+- **The cascade: 4,735**, the same as §1.23.
+
+**S2, the B1a profile: `Ran 1`, OK** (9830 MB available). Log: `step3/S2_profile_f1a28d66.log`.
+
+| Mode | Transaction | Queries (mean) | Wall ms (mean) |
+|---|---|---|---|
+| On | tx1 (reserve) | 5.0 | 5.39 |
+| On | tx2 (settle + finish) | 34.0 | 36.88 |
+| On | tx3 (call record) | 1.0 | 0.98 |
+| On | outside any transaction | 7.0 | 3.78 |
+| Off | tx1 (consume) | 19.0 | 22.12 |
+| Off | tx2 (call record) | 1.0 | 0.88 |
+| Off | outside any transaction | 5.0 | 3.03 |
+
+- Per call: flag on, 54.08 ms wall, 20.73 ms SQL, **33.35 ms non-SQL**. Flag off, 31.55 ms wall, 13.57 ms SQL, 17.98 ms non-SQL.
+- **So about 7 ms of the added time is SQL and about 15 ms is Python** (savepoint handling, the extra audit emits, the model instances). Cutting queries removes their SQL time and part of the Python time, but not all of the added cost.
+
+**S3, measurement 3 re-run at B1b-3 start: `Ran 1`, OK** (10082 MB available; load 2.28/4.32/6.98 at the start, 1.76/3.48/6.32 at the end). Log: `step3/S3_m3_f1a28d66.log`. It is recorded beside measurements 1–3, not replacing them.
+
+| | p50 | p95 |
+|---|---|---|
+| Flag off | 23.078 ms | 35.790 ms |
+| Flag on | 37.540 ms | 58.363 ms |
+| **Added** | **14.462 ms** | **22.573 ms** (was 22.7 / 32.6 at §21k) |
+| Reserve | 6.639 ms | 10.306 ms |
+| Settle | 19.865 ms | 31.826 ms |
+
+- Both modes ran faster than at §21k; the load was lower, and no product code has changed since. **Today's added p95 is 22.6 ms against the 20 ms target and the 40 ms pass mark.**
+
+#### §3.2a The +22 per-call queries by purpose (flag on, `PerCallQueries` line numbers)
+
+| Phase | Added real queries | Purpose |
+|---|---|---|
+| begin (`begin_single_call`) | 5 `create_job` INSERT; 7 `lock_wallet_first`; 8 `total_remaining_credits`; 9 wallet `reserved +=`; 10 job `reserved +=`; 12 audit RESERVED; 15 job status RUNNING; 16 job re-read | 8 |
+| settle | 19 `_lock_wallet_of` **lazy `job.wallet` load**; 20 `lock_wallet_first`; 21 `_lock_rows` job FOR UPDATE; 23 SettlementRecord INSERT; 25 `_free` `total_remaining_credits`; 27 **`consume_credits` re-locks the wallet**; 31 **`clear_credit_bucket_cache` lazy `wallet.user` load**; 44 SettlementRecord `credits_charged` UPDATE; 45 `_move_wallet`; 46 job counters; 48 audit SETTLED (27, 28–30 and 32–42 are the consume path flag-off also runs; 27 and 31 are the extra ones) | 10 |
+| finish (`finish_job(SETTLED)`) | 52 wallet lock; 53 status UPDATE; 54 job FOR UPDATE re-read; 55 items EXISTS; 56 `released += 0` | 5 |
+| less: the flag-off pre-check | flag off reads `total_remaining_credits` twice before the call (4, 5); flag on reads it once (4) | −1 |
+| **Total** | | **+22** |
+
+#### §3.2b Proposals for the per-call cost (each a refactor with no behavior change; the lock order stays wallet first)
+
+| # | Change | Saves | Why it is safe |
+|---|---|---|---|
+| P1 | **Fold the single-call close into `settle`:** `finish_single_call` passes `close=SETTLED`; settle's job-counter UPDATE also sets `status=SETTLED` when the job row it already locked (`_lock_rows`) reads open. `finish_job` is no longer called on the success path | **5** (52–56, plus a savepoint) | For a SINGLE_CALL job, settle already returns the whole remainder (`drawn + leftover = left`), so `finish_job`'s release is always 0 and writes nothing (no audit, `+0`). The status write is still conditional on open, under the wallet and job locks, so it is open→terminal only (the B1b-6 rule) |
+| P2 | **`_lock_wallet_of` locks by `job.wallet_id`** (`select_for_update().get(pk=wallet_id)`, with `DoesNotExist` → None as today), with `select_related("user")` and `of=("self",)` | **2** (19, and 31's lazy `wallet.user`) | The same row locked, by the same statement kind, in the same place. `of=("self",)` keeps the user row unlocked. It also saves the lazy load in `fail_item`, `finish_job` and the sweep wherever the job's wallet isn't cached |
+| P3 | **`consume_credits(..., _wallet_locked=locked)`:** when settle passes the wallet it already locked and read in this transaction, consume uses it instead of re-running `SELECT … FOR UPDATE`. The default is unchanged (None), so every other caller, flag off included, is byte-identical | **1** (27) | The wallet is already locked by this transaction, so a second lock is a no-op round trip. `is_consumption_blocked` is read from the instance taken under that same lock, so a dispute can't land in between |
+| P4 | **SettlementRecord written with `credits_charged`:** `chargeable` is computed before the INSERT (it needs only `_left` and `_free`, both read first) | **1** (44) | The INSERT is still the fence. On `IntegrityError` nothing has been consumed yet, as today, because the consume still comes after the INSERT |
+| P5 | **`begin_single_call`: RUNNING set in `_reserve_locked`'s job UPDATE** (a new `status=` argument, used only by `begin_single_call`; the `estimate == 0` road keeps today's separate UPDATE) | **1** (15) | A new job, ESTIMATED→RUNNING as today, now written under the wallet lock |
+| **Sum** | | **10** | **+22 → +12** |
+
+- **Not proposed** (more invasive, for the SM's view):
+  - settle and consume both call `total_remaining_credits` (25, 28); passing one value through would save 1 but changes `consume_credits`' contract;
+  - the begin re-read (16) could go if the returned instance's counters are set in Python, but callers would then hold a hand-built instance;
+  - removing the audit emits' savepoints would change their failure mode (an audit failure would abort the billing transaction), so no.
+- **Expected:** +12 queries. At about 1.0 ms p50 and 1.5 ms p95 per added query (§21k), added p95 drops from 22.6 ms to about **13–17 ms**, within the 20 ms target. That is not certain, because about 15 ms of the added time is Python (S2), and only part of it goes with the queries.
+
+#### §3.2c The delete cascade: the 4,735 queries by purpose
+
+| Statement | Count | Per |
+|---|---|---|
+| `return_hold_on_item_delete` wallet lock (join) | 1,000 | every row |
+| `return_hold_on_item_delete` fresh read after the lock | 1,000 | every row |
+| `finish_job_left_empty_on_item_delete` status read | 1,000 | every row |
+| the `deleted_items_*` carry UPDATE | 900 | RETURNED rows |
+| job FOR UPDATE, item FOR UPDATE, `_move_wallet`, row UPDATE, job UPDATE, audit (SAVEPOINT + INSERT + RELEASE) | 8 × 100 = 800 | HELD rows |
+| C4 once: wallet lock, job read, rows-to-run EXISTS, SettlementRecord EXISTS, `finish_job` (8) | 13 | once |
+| Django's collector (the 10 batch DELETEs, the parent reads, SET NULLs, the assignment DELETE) and the assignment signals | 22 | once |
+| **Total** | **4,735** | |
+
+**The floor without a new mechanism:** every per-row statement above is load-bearing.
+- **The lock and the fresh read can't be one statement.** In READ COMMITTED, a `SELECT … FOR UPDATE OF wallet` joined to the task row re-checks only the *locked* row after waiting for the lock. The task row's columns would come from the statement's old snapshot, which is the stale-RETURNED hazard of §1.15. The fresh read is safe only as a separate statement after the lock.
+- **Locking the task row instead of the wallet** would break the wallet-first order and invite deadlocks with `reserve` and the sweep.
+- So, row by row, the floor is today's shape: about 4,735 queries and 3.35 s.
+
+**Proposed shape D1: a per-transaction memo**, so the lock and the C4 check happen once per job per delete, not once per row.
+- **The wallet-lock memo.** The first `pre_delete` for job J in a transaction takes the wallet lock as today and records (J → wallet pk) with a **token**: a no-op `transaction.on_commit` callback registered at that moment.
+  - Later rows of J skip the lock. The fresh read stays, because it is still a separate statement after the lock.
+  - **The token makes the memo exact.** Django 5.2.17 drops a callback when its savepoint rolls back (`base.py:416–418`) and clears the list at commit or rollback (`:341`, `:347`). So the memo is valid only while the transaction (and the savepoint) that took the lock is alive. That is exactly as long as Postgres keeps the row lock, and it costs no query to check.
+- **The C4 memo.** `post_delete` records, per (delete origin, J), that C4 has been decided. The delete origin is the `origin` signal argument, held in a `WeakKeyDictionary`.
+  - Every row of J in one collector run is deleted before any `post_delete` (§1.22), so the answer is the same for all of them.
+  - A different delete in the same transaction has a different origin and checks again.
+- **The HELD path's job lock** gets the same memo (same transaction, so the lock persists).
+- **Expected:** RETURNED rows go from 4 queries to 2 (fresh read, carry); HELD rows go from 11 to 8 (fresh read, item lock, move, row UPDATE, job UPDATE, audit ×3); once: about 37.
+  - That is 1,800 + 800 + about 37, so **about 2,640 queries, about 1.9 s per 1,000 rows** if the time scales with the query count.
+  - This is just under 2 s, and only an estimate.
+- **The new risk:** the memo depends on Django's on-commit bookkeeping (`run_on_commit`, a private attribute). It is pinned by a test that fails if Django changes that behavior (a savepoint rollback must invalidate the memo).
+- **The alternative, D0:** accept today's 3.35 s as the floor, as stated above. The switch-on checklist line stays.
+
+#### §3.2d For each change: the plant, the pin, and the flag-off check
+
+| Change | Plant (must go red) | The pin (stops it creeping back) | Flag-off check |
+|---|---|---|---|
+| P1–P5 (together) | Each removed query re-added, one plant per change (P1: `finish_job` called again after settle; P2: the lazy `job.wallet` load restored; P3: consume re-locks; P4: the INSERT-then-UPDATE; P5: the separate status UPDATE) | **A new `assertNumQueries` test:** one billed single call with the flag on, pinned at the exact new count (real queries, through the same `execute_wrapper` count as S1, savepoints excluded), plus a lock-order test: the first billing statement in settle is the wallet `SELECT … FOR UPDATE`, before any write | **S1's flag-off listing is diffed, statement by statement,** before and after (it must be identical), plus the full B1a hold set (Ran 141, §21j), the B1a mutant battery (all killed, fragments unchanged), and the flag-off near |
+| P1 | settle doesn't set SETTLED (the close dropped) | the existing single-call tests (`test_holds_single_call`: SETTLED, `released_credits`) plus the pin | — |
+| P3 | consume skips `is_consumption_blocked` when given the locked wallet | the dispute-block tests run through settle with the flag on (a new test: a blocked wallet is refused at settle) | consume's default road is unchanged: the flag-off listing diff |
+| D1 | (a) the memo survives a savepoint rollback (the token check removed); (b) the C4 memo keyed per transaction, not per origin | **A new cascade count pin:** 50 rows (45 RETURNED, 5 HELD), with the exact count asserted. (a) is killed by a new test that deletes inside a savepoint that rolls back, deletes again, and asserts the wallet lock statement appears again; (b) by a new test with two deletes of one job's rows in one transaction, where the second must still finish the job. T-1…T-20, PFB-1…9b and the timing re-run | the receivers run whatever the flag says; the flag-off near |
