@@ -647,3 +647,50 @@ Any failure, or a different count or skip number, is a STOP.
   - Every other assertion in T-20 passes: no rows are left, reserved is back to the start, the books agree, and `deleted_items_*` = (300, 0, 300).
   - T-1…T-19 pass.
 - Any other result is a STOP.
+
+**Red result (at 5cb2620bd, under `flock`, 7043 MB available; `billing/holds.py` sha256 c2e49f1b…92b0af): `Ran 20`, `FAILED (failures=1)`, as declared.** Log: `step1/step1_red_t20two_5cb2620b.log`.
+- T-20 failed at `test_holds_deleted_items.py:497` with `AssertionError: 'RESERVED' != AIJobStatus.FAILED`. Every earlier assertion in T-20 passed.
+- T-1…T-19 passed.
+
+### §1.22 The fix: C4 moves to `post_delete` (SM GO, §1.20 step 2), and the declarations (committed before any run)
+
+**The code:**
+- **`billing/holds.py`: new `finish_job_left_empty_on_item_delete`,** a `post_delete` receiver on `BackgroundProcessingTask`, connected in `BillingConfig.ready()` (`dispatch_uid` `billing.holds.finish_job_left_empty_on_item_delete`). In order:
+  1. It returns if `instance.job_id` is None.
+  2. It reads the job status without a lock. It returns quietly if the job is gone (`.first()`, §1.21 (b)) or if the status is terminal (it never reverts, §1.21 (a)).
+  3. Otherwise it applies the same savepoint guard as `pre_delete` and takes the wallet lock (the same join).
+  4. It reads the job again (`.filter().first()`) and returns unless the job is still open.
+  5. It asks `_job_has_rows_to_run(job_pk)`. That is the same HELD-or-(unheld and unfinished) EXISTS, but with no exclusion, because the deleted rows are gone now.
+  6. It calls `finish_job(SETTLED if SettlementRecord else FAILED)`.
+- **`return_hold_on_item_delete` (`pre_delete`)** keeps only the hold return and the `deleted_items_*` carry. `_finish_if_nothing_left` and its two calls are removed, and so is the `job__status` field of the fresh read. The lock order is unchanged: the wallet first.
+- **Why `post_delete` is accurate:** `Collector.delete` runs `delete_batch` for every row of the model **before** it sends any `post_delete` for that model. So the first `post_delete` already sees the table without any of the batch's rows.
+- **Cost:** in a cascade, the first row that finds the job open and empty finishes it, and every later row costs one status read.
+
+**One test change, forced by the fix:**
+- T-18 patched `_finish_if_nothing_left`, which no longer exists. It now patches `_audit`, the HELD path's **last** call (after `_move_wallet` and both row updates).
+- It still proves the same thing: a failure after the wallet moved undoes it all.
+- No assertion changed.
+
+**Green, declared:** `billing.tests.test_holds_deleted_items`, **`Ran 20`, OK.** Any other result is a STOP.
+
+**Plants:** each is applied by `scratchpad/plant3.py` and restored with `git checkout`, then checked with `sha256sum -c` against this commit's `billing/holds.py` and `billing/apps.py`.
+
+| Plant | The change | Kills (must not pass) | Allowed either way |
+|---|---|---|---|
+| PFB-1 | the `pre_delete` connect removed (`post_delete` stays) | T-1…T-6, T-9, T-10, T-11, T-13, T-14, T-17, T-19, T-20 | T-7, T-8, T-8b, T-12 (`post_delete`'s `finish_job` may clean up the leak). T-15 and T-18 survive |
+| PFB-2 | `post_delete`'s `finish_job` call replaced by `pass` | T-5, T-6, T-7, T-8, T-8b, T-19, T-20 | none: the rest pass |
+| PFB-3 | the HELD path's `deleted_items_*` update removed | T-1…T-6, T-13, T-14, T-17, T-19, T-20 | T-7, T-11, T-12 |
+| PFB-4 | the release row written with `item=None` | T-1…T-5, T-11 | T-10 and T-12 survive (declared). T-19 and T-20 don't read release rows, so they pass |
+| PFB-6 | the not-HELD path also moves the wallet by −(hold_credits − hold_drawn) | T-9, T-5 | T-10, T-19 (an ERROR on the reserved ≥ 0 check is allowed). T-20's pending rows move 0 |
+| PFB-7 | the not-HELD path's `deleted_items_*` update removed | T-5, T-9, T-10, T-19 | T-20 passes (its pending rows carry zeros) |
+| PFB-8 | the instance's RETURNED is trusted | T-17 | none |
+| **PFB-9** | the `post_delete` check skipped: the receiver returns at once | T-5, T-6, T-7, T-8, T-8b, T-19, T-20 | none |
+| **PFB-9b** (mine, beyond the GO) | the new receiver connected to `pre_delete` instead of `post_delete`, which is C4's old placement | **T-20** | none expected. The pre_delete hold return runs first (connected first), so a HELD row reads RETURNED by its own check. In T-5/T-6/T-7/T-8/T-8b/T-19 the last row visited finishes the job, as in §1.20 |
+
+PFB-9b is the plant that pins the order-dependence. It differs from PFB-9 because its receiver *runs*, only too early.
+
+**The timing:** the same file, on the fix. Prediction: **`Ran 1`, OK.**
+- `no_job` stays about 23 queries: the new receiver returns at `job_id is None` with no query.
+- `one_job` should drop from about 5,727 queries. Each RETURNED row goes from 5 queries (wallet lock, fresh read, UPDATE, job read, EXISTS) to 4 (three in `pre_delete`, one status read in `post_delete`). The C4 work runs once.
+- **My estimate:** about 4,600 queries and about 4.2 s. That is still above the 2 s line, so the B1b-3 speed item and the switch-on checklist line stand, with the number updated.
+- Nothing is asserted about the time.

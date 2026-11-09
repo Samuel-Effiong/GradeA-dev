@@ -446,9 +446,9 @@ class OwnTransactionTests(DeletedItemsBase):
         doomed = self.held_item(job)
         self.held_item(job)
         module = holds()
-        with patch.object(
-            module, "_finish_if_nothing_left", side_effect=RuntimeError("boom")
-        ):
+        # _audit is the HELD path's last call, after the wallet moved and
+        # both rows were written (NOTES §1.22: C4 left this receiver).
+        with patch.object(module, "_audit", side_effect=RuntimeError("boom")):
             with self.assertRaises(RuntimeError):
                 module.return_hold_on_item_delete(
                     sender=BackgroundProcessingTask, instance=fresh(doomed)

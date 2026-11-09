@@ -1146,28 +1146,61 @@ def release_open_holds_on_delete(sender, instance, **kwargs):
         finish_job(job, AIJobStatus.CANCELLED)
 
 
-def _job_has_rows_to_run(job, excluding_pk):
-    """A live row of `job`, other than the one being deleted, that is HELD
-    or was never held and has not finished (SM ruling C4: such a job stays
-    open; B1b-6's last-item helper decides it)."""
-    others = BackgroundProcessingTask.objects.filter(job=job).exclude(pk=excluding_pk)
-    return others.filter(
-        Q(hold_state=HoldState.HELD)
-        | (Q(hold_state__isnull=True) & ~Q(status__in=FINISHED_TASK_STATUSES))
-    ).exists()
+def _job_has_rows_to_run(job_pk):
+    """A live row of the job that is HELD, or was never held and has not
+    finished (SM ruling C4: such a job stays open; B1b-6's last-item helper
+    decides it). Read in post_delete, after the collector's batch delete, so
+    rows the same delete is removing are already gone (NOTES §1.20)."""
+    return (
+        BackgroundProcessingTask.objects.filter(job_id=job_pk)
+        .filter(
+            Q(hold_state=HoldState.HELD)
+            | (Q(hold_state__isnull=True) & ~Q(status__in=FINISHED_TASK_STATUSES))
+        )
+        .exists()
+    )
 
 
-def _finish_if_nothing_left(job_pk, job_status, deleted_pk):
-    """SM ruling C4: an open job with no live row left to run ends SETTLED
-    if it has a SettlementRecord, otherwise FAILED; never QUEUED. B1b-6
-    replaces this rule with its last-item helper."""
-    if job_status not in OPEN_STATUSES:
+def finish_job_left_empty_on_item_delete(sender, instance, **kwargs):
+    """post_delete on BackgroundProcessingTask (connected in
+    BillingConfig.ready; NOTES §1.20-§1.21). SM ruling C4: an open job with
+    no live row left to run ends SETTLED if it has a SettlementRecord,
+    otherwise FAILED; never QUEUED. B1b-6 replaces this rule with its
+    last-item helper, which must also run after the rows are gone.
+
+    It runs after Collector.delete has deleted every row of the batch, so
+    the rows-to-run read is accurate whatever order the collector visited
+    them in (in pre_delete it was not: §1.20).
+
+    The first read is a plain status read without a lock: a terminal job
+    never reverts (§1.21 (a)), so a terminal status can be trusted, and in
+    a cascade every row after the first one that finishes the job costs
+    one query. An open status is read again under the wallet lock."""
+    if instance.job_id is None:
         return
-    job = AIJob.objects.get(pk=job_pk)
-    if _job_has_rows_to_run(job, deleted_pk):
-        return
-    has_settlement = SettlementRecord.objects.filter(job_id=job_pk).exists()
-    finish_job(job, AIJobStatus.SETTLED if has_settlement else AIJobStatus.FAILED)
+    status = (
+        AIJob.objects.filter(pk=instance.job_id)
+        .values_list("status", flat=True)
+        .first()
+    )
+    if status is None or status not in OPEN_STATUSES:
+        return  # no such job (§1.21 (b)), or terminal: it never reverts
+    savepoint = not transaction.get_connection().in_atomic_block
+    with transaction.atomic(savepoint=savepoint):
+        locked = (
+            CreditWallet.objects.select_for_update(of=("self",))
+            .filter(ai_jobs__pk=instance.job_id)
+            .first()
+        )
+        if locked is None:  # a wallet-less job (§21n)
+            return
+        job = AIJob.objects.filter(pk=instance.job_id).first()
+        if job is None or job.status not in OPEN_STATUSES:
+            return
+        if _job_has_rows_to_run(job.pk):
+            return
+        has_settlement = SettlementRecord.objects.filter(job_id=job.pk).exists()
+        finish_job(job, AIJobStatus.SETTLED if has_settlement else AIJobStatus.FAILED)
 
 
 def return_hold_on_item_delete(sender, instance, **kwargs):
@@ -1176,8 +1209,9 @@ def return_hold_on_item_delete(sender, instance, **kwargs):
 
     A HELD row's hold is returned the way fail_item returns it; the row's
     numbers are added to its job's deleted_items_*, so check_invariants'
-    item_sum still adds up; and a job left with nothing to run is finished
-    (_finish_if_nothing_left).
+    item_sum still adds up. A job left with nothing to run is finished
+    after the delete, by finish_job_left_empty_on_item_delete (post_delete):
+    here the siblings the same delete removes are still in the table.
 
     Lock order (NOTES §1.15): the wallet first, always. Every writer of a
     row's hold columns and of a job's status holds that wallet lock, so once
@@ -1208,7 +1242,6 @@ def return_hold_on_item_delete(sender, instance, **kwargs):
                 "hold_credits",
                 "hold_drawn",
                 "released_credits",
-                "job__status",
             )
             .first()
         )
@@ -1222,7 +1255,6 @@ def return_hold_on_item_delete(sender, instance, **kwargs):
                 deleted_items_released=F("deleted_items_released")
                 + fresh["released_credits"],
             )
-            _finish_if_nothing_left(instance.job_id, fresh["job__status"], instance.pk)
             return
         job_row = AIJob.objects.select_for_update().get(pk=instance.job_id)
         item_row = BackgroundProcessingTask.objects.select_for_update().get(
@@ -1252,4 +1284,3 @@ def return_hold_on_item_delete(sender, instance, **kwargs):
                 credits=returned,
                 reason_label="failed",
             )
-        _finish_if_nothing_left(job_row.pk, job_row.status, item_row.pk)

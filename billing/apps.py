@@ -6,11 +6,12 @@ class BillingConfig(AppConfig):
     name = "billing"
 
     def ready(self):
-        from django.db.models.signals import pre_delete
+        from django.db.models.signals import post_delete, pre_delete
 
         import billing.checks  # noqa
         import billing.signals  # noqa
         from billing.holds import (
+            finish_job_left_empty_on_item_delete,
             release_open_holds_on_delete,
             return_hold_on_item_delete,
         )
@@ -28,4 +29,11 @@ class BillingConfig(AppConfig):
             return_hold_on_item_delete,
             sender=BackgroundProcessingTask,
             dispatch_uid="billing.holds.return_hold_on_item_delete",
+        )
+        # NOTES §1.20: C4 runs after the batch delete, so the rows the same
+        # delete removes are gone whatever order the collector visits them.
+        post_delete.connect(
+            finish_job_left_empty_on_item_delete,
+            sender=BackgroundProcessingTask,
+            dispatch_uid="billing.holds.finish_job_left_empty_on_item_delete",
         )
