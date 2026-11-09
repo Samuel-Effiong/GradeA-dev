@@ -200,7 +200,7 @@ Why:
 - **Erasure** deletes the Cloudinary asset, not only the row. A `pre_delete` handler cannot do network I/O safely inside the erasure transaction, so the erasure collects the storage keys and deletes the assets in `transaction.on_commit`. Any asset whose delete fails is handled by the purge's overdue alert.
 - **Export:** the student export lists that a kept file exists (name, size, kept until), not the bytes. This is an `EXPORT_FIELDS` decision for `students/data_export.py`, made explicit so that `FieldListGuardTests.test_every_field_is_decided_exactly_once` stays green.
 - **The privacy document** (docs/GRADE_A_PLUS_BACKEND_DATA_PRIVACY_SECURITY_COMPLIANCE.md) needs one line: uploaded files are kept for `QUEUE_LIFETIME_DAYS` (30) days in Cloudinary, then deleted. **Cloudinary becomes a processor of student work**, where today it holds profile images and benchmark archives. **This is the owner's decision** (§9 Q1).
-- **Guards that will see this:** `students.tests_student_data_map`, `students.tests_app_boundaries`, `AutoGrader.tests_network_guard`, `ai_processor.tests_ssrf_guard` and `AutoGrader.tests_credscan`. All 22 run in every near run anyway (§8).
+- **Guards that will see this:** `students.tests_student_data_map`, `students.tests_app_boundaries`, `AutoGrader.tests_network_guard`, `ai_processor.tests_ssrf_guard` and `AutoGrader.tests_credscan`. All 66 run in every near run anyway (§8).
 
 ### 3.4 Cost and storage
 
@@ -290,7 +290,7 @@ Each class gets one approach. Every changed test follows the doctrine: the edit 
 | **B3, the charge-then-refund ledger shape** | 12 (`billing.tests.test_grading_refund_scope` ×2, `students.tests_answers_unreadable` ×1, `students.tests_async_edit_path` ×1, `students.tests_s6d_extraction_refund` ×1, `ai_processor.tests_grading_pipeline` ×2, `ai_processor.tests_h256_provider_timeout` ×1, `assignments.tests_upload_batch_billing` ×3, `assignments.tests_upload_task_retry_policy` ×1) | These test the **flag-off** refund scope, which stays live code while the flag is off (plan §5). So: pin each as flag-off with `override_settings`, unchanged. Then add a **flag-on twin** for each one's scenario, asserting the hold ledger shape: no usage row for a failed call, one charge at settle, no refund row, the hold returned. The flag-off path keeps its coverage until it is deleted, which is not in B1b |
 | **B4, the patched balance** | 1 (`billing.tests_h281_individual_credit_wording … test_r8_execute_graded_task_nothing_left_individual`) | Pin it flag-off (`override_settings`), unchanged. Add a flag-on twin that reaches the refusal on a real path: an estimate above 0, `total_remaining_credits` 0, and `hold_for_call` refuses before the provider with the same individual wording |
 
-**The evidence:** the flag-on exploratory run of §21m is repeated with the same labels plus all 22 guards (§8). The expectation is OK, with **0** failures and the B4/B3 twins counted. Then the flag-off near is repeated, and it must also be OK.
+**The evidence:** the flag-on exploratory run of §21m is repeated with the same labels plus all 66 guards (§8). The expectation is OK, with **0** failures and the B4/B3 twins counted. Then the flag-off near is repeated, and it must also be OK.
 
 ### 5.3 Gate 6: trimming the 22 extra queries
 
@@ -335,7 +335,7 @@ B1b ends with the flag still **off** in production. The switch-on is a separate,
 ### 6.2 The evidence shown to the owner before production
 
 1. **The test evidence:**
-   - the flag-on near and the flag-off near over the same labels plus all 22 guards, both OK, with exact Ran counts declared in advance;
+   - the flag-on near and the flag-off near over the same labels plus all 66 guards, both OK, with exact Ran counts declared in advance;
    - the B1a and B1b mutant batteries, all killed;
    - the PG 16 CI run of the concurrency tests. That CI job runs the full suite, so **each run needs the owner's go** (standing rule: no full suite without permission).
 2. **The Gate 6 numbers:** measurement 4 against 40 ms, the query count, the estimate query time and the batch timing.
@@ -448,7 +448,7 @@ The "deleted after {days} days" case is approved text 2 (§4).
 - exact Ran counts;
 - a break run for every edited pre-existing test;
 - `makemigrations --check` after every step and every merge;
-- every near run includes **all 22 source-scanning guards** (the standing list);
+- every near run includes **all 66 standing guard labels** (the standing list; 22 until the SM set 66 on 2026-11-09), run serially;
 - any mismatch is a STOP to the SM, recorded as it is.
 
 Evidence goes in `docs/evidence/epic-b1b/`. All Stripe and Cloudinary calls are mocked.
@@ -465,7 +465,7 @@ Evidence goes in `docs/evidence/epic-b1b/`. All Stripe and Cloudinary calls are 
 | B1b-7 | **Warnings, actual cost, gap metric** (plan step 6) | Red/green, the once-per-cycle plant | 1 |
 | B1b-8 | **Approved texts and the switch** (§4): the three texts from the setting; `LATE_DOOR_EMAIL_APPROVED = True`; the §7 texts the owner approved | Verbatim pins at the default and an override | 0.5 |
 | B1b-9 | **The drain** (§6.3): `BILLING_HOLDS_DRAINING`, `billing_holds_drain` and its emergency mode | Red/green; staging drain | 1 |
-| B1b-10 | **The B1b gate:** full battery, the flag-on and flag-off nears with all 22 guards, the PG 16 CI (full suite: the owner's go first), NOTES summary | As declared | 1 |
+| B1b-10 | **The B1b gate:** full battery, the flag-on and flag-off nears with all 66 guards, the PG 16 CI (full suite: the owner's go first), NOTES summary | As declared | 1 |
 | | **Total** | | **26.5** |
 
 **Why this order:**
