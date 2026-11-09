@@ -41,6 +41,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from AutoGrader.testing.live_server import BurstLiveServerThread
 from users.models import UserTypes
 from users.serializers import CustomTokenObtainPairSerializer
 from users.tests_throttling import tightened_rate
@@ -469,6 +470,7 @@ class LoginLockoutLiveServerTests(LiveServerTestCase):
     """
 
     WORKERS = 30
+    server_thread_class = BurstLiveServerThread
 
     def setUp(self):
         cache.clear()
