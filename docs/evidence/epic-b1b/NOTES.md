@@ -1714,3 +1714,9 @@ Collateral is recorded as observed and is not a mismatch. A survivor, or a kill 
 - **E3, the 67 guards, serially: `Ran 1148`**, `OK (skipped=1)`, plus any test the edits add to a guard module (re-counted by `build_suite` before the run);
 - `makemigrations --check`: No changes.
 - Every count is re-taken by `build_suite` at the product commit and recorded before its run.
+
+**Amendment to R, before it runs (at ac64e3a5e):**
+- The pre-commit mypy hook refused `from billing import estimates` (a name that doesn't exist yet). So the band, backtest and Gate 6 modules look it up with `importlib.import_module`, the B1a precedent (§21 step 3).
+- So the red's import fragment is **`ModuleNotFoundError: No module named 'billing.estimates'`** in those three, not `ImportError: cannot import name …`.
+- The endpoint module doesn't import `estimates`; it fails per test on `reverse("billing-estimate")`: **`NoReverseMatch`** in `setUp`, so 10 errors.
+- **R, re-declared:** **`FAILED (errors=21)`**: 3 module import errors (band, backtest, Gate 6), the endpoint's 10 `NoReverseMatch` setUp errors, and the 8 `Unknown command: 'billing_settings'` errors.
