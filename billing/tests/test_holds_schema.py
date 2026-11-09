@@ -5,9 +5,13 @@ missing model fails that test alone (LookupError) instead of the module.
 """
 
 import importlib
+import os
+import subprocess
+import sys
 import uuid
 
 from django.apps import apps
+from django.conf import settings
 from django.db import IntegrityError, connection, models, transaction
 from django.test import TestCase, override_settings
 
@@ -256,6 +260,9 @@ class ReverseGuardTests(TestCase):
         )
         return module.refuse_reverse_with_open_holds
 
+    # B1b-2 (NOTES §2.3 B1): the open-hold half of the guard; its flag half
+    # is test_reverse_is_refused_with_the_flag_on below.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     def test_reverse_is_refused_while_a_wallet_holds_credits(self):
         guard = self.guard()
         wallet = make_wallet()
@@ -270,6 +277,7 @@ class ReverseGuardTests(TestCase):
         with self.assertRaisesMessage(RuntimeError, "BILLING_HOLDS_ENABLED"):
             guard(apps, None)
 
+    @override_settings(BILLING_HOLDS_ENABLED=False)  # B1b-2: flag-off by name
     def test_reverse_is_allowed_with_the_flag_off_and_no_hold_open(self):
         guard = self.guard()
         make_wallet()
@@ -370,6 +378,27 @@ class PlanAndSettingsTests(TestCase):
         self.assertEqual(first.unstarted_backstop_hours, 36)
 
     def test_holds_flag_defaults_off(self):
-        from django.conf import settings
-
-        self.assertIs(getattr(settings, "BILLING_HOLDS_ENABLED", None), False)
+        """The shipped default, not the running value (B1b-2, SM Q1): the
+        settings are loaded in a fresh interpreter with BILLING_HOLDS_ENABLED
+        removed from its environment, so this holds whatever this run's
+        environment sets. No database is touched."""
+        env = {k: v for k, v in os.environ.items() if k != "BILLING_HOLDS_ENABLED"}
+        env["DJANGO_SETTINGS_MODULE"] = os.environ.get(
+            "DJANGO_SETTINGS_MODULE", "AutoGrader.settings"
+        )
+        script = (
+            "import sys; sys.argv = ['manage.py', 'test']; "
+            "from django.conf import settings; "
+            "print(repr(settings.BILLING_HOLDS_ENABLED))"
+        )
+        result = subprocess.run(  # nosec B603: a fixed script, no shell
+            [sys.executable, "-c", script],
+            cwd=settings.BASE_DIR,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr[-2000:])
+        self.assertEqual(result.stdout.strip().splitlines()[-1], "False")

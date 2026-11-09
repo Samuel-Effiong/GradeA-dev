@@ -860,3 +860,43 @@ The failing assertion of each test is quoted from the log above. A test's **flag
 - **Rewritten:** 1 (`test_holds_flag_defaults_off`, Q1).
 - **New flag-on tests:** 13 (B3 12, B4 1). The B1 flag-on test already exists (`:266`), and B2's one flag-on case is c2.
 - No assertion is loosened anywhere.
+
+### §2.4 The SM's rulings on the survey (2026-11-09): ACCEPTED
+
+- **Q1, APPROVED:**
+  - The subprocess runs with `BILLING_HOLDS_ENABLED` removed from its environment, the same `DJANGO_SETTINGS_MODULE` and no DB access, and asserts False.
+  - **Plant:** flip the shipped default in settings; the test must go red. Restored by sha256.
+- **Q2, APPROVED:** the test is pinned flag-off and left unchanged.
+  - A comment cites c2 by its full test id.
+  - NOTES confirm that c2 hits the same student route (URL name), not just the same door.
+- **Q3:** the twins go in the same file as the original, in a class pinned `BILLING_HOLDS_ENABLED=True`.
+- **(a) B2 helper wraps:** every off-list test that a helper-level wrap touches is declared by name and run both flag ways. If a helper wrap turns any flag-off test from red to green or from green to red, that is a STOP.
+- **(b) Plants for the 13 twins,** declared before the build. At least:
+  - B3: settle charges twice, or a refund row is written with the flag on. The twins must kill both.
+  - B3: a hold left reserved after a failed call. The twins' `reserved == 0` check must kill it.
+  - B4: `hold_for_call` skipped for `individual=True`. The B4 twin must kill it.
+- **The build order:** B1, B4, B2 file by file, B3 file by file, with a declaration before every run. Then:
+  - the §5.2 flag-on evidence run;
+  - the flag-off near run (the apps plus the 66 guards, serially), with counts from `build_suite`;
+  - then the checkpoint.
+
+### §2.5 B1: the edits and the declarations (committed before any run)
+
+**The edits:**
+- **`billing/tests/test_holds_schema.py`:**
+  - `PlanAndSettingsTests.test_holds_flag_defaults_off` is **rewritten** (Q1). It runs `sys.executable -c "<script>"` with `cwd=settings.BASE_DIR`.
+    - The environment is the parent's, minus `BILLING_HOLDS_ENABLED`, with the same `DJANGO_SETTINGS_MODULE`.
+    - The script sets `sys.argv = ['manage.py', 'test']` (as the test runner does) and prints `repr(settings.BILLING_HOLDS_ENABLED)`. Reading settings configures them lazily; no `django.setup()` runs and no DB is touched.
+    - The test asserts rc 0, then that the last stdout line is `'False'`.
+  - `ReverseGuardTests.test_reverse_is_refused_while_a_wallet_holds_credits` and `test_reverse_is_allowed_with_the_flag_off_and_no_hold_open` are pinned with `@override_settings(BILLING_HOLDS_ENABLED=False)`, with their bodies unchanged.
+- **`billing/tests/test_audit_identity_migration.py`:** `AuditIdentityMigrationTests` is pinned at class level with `@override_settings(BILLING_HOLDS_ENABLED=False)`, with the bodies unchanged. A comment names the flag-on half by its full id.
+- **The "break" side of the pins** is already in evidence. The survey run (§2.2, same bodies, no pin, flag on) shows each one failing on 0074's refusal. A pin changes only which flag value the test sees.
+
+**The runs** (`billing.tests.test_holds_schema billing.tests.test_audit_identity_migration`, **26 tests** by `build_suite`: 23 + 3; under `flock`, serial):
+- **R1, flag on from the environment (`BILLING_HOLDS_ENABLED=True`): `Ran 26`, OK.**
+- **R2, flag unset: `Ran 26`, OK.**
+- **PB1-1, the plant:** `AutoGrader/settings.py:698` gets `default=True` in place of `default=False`, and the run is made with the flag unset. **Prediction: `Ran 26`, `FAILED (failures=1)`.**
+  - The failure is `test_holds_flag_defaults_off`, on its last assertion: `'True' != 'False'`.
+  - Everything else passes, because the pins hold whatever the default is.
+  - The file is restored with `git checkout` and `sha256sum -c`.
+- Any other result is a STOP.

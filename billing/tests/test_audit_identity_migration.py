@@ -33,7 +33,7 @@ import uuid
 
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 
 BILLING_FROM = ("billing", "0058_alter_licensebillingrecord_record_type")
@@ -55,6 +55,11 @@ BILLING_TO = ("billing", "0060_backfill_audit_identity")
 # the only version that cannot drift from the repository.
 
 
+# B1b-2 (NOTES §2.3 B1): flag-off only. These migrate back past billing 0074,
+# whose reverse is refused with the flag on by design (that half is pinned by
+# billing.tests.test_holds_schema.ReverseGuardTests
+# .test_reverse_is_refused_with_the_flag_on).
+@override_settings(BILLING_HOLDS_ENABLED=False)
 class AuditIdentityMigrationTests(TransactionTestCase):
     """
     TransactionTestCase because the migration executor issues DDL, which
