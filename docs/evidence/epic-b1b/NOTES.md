@@ -311,3 +311,13 @@ While writing the receiver, I read the code under the tests' assumptions and fou
 - `billing/apps.py`: the receiver is connected in `ready()`, with `dispatch_uid="billing.holds.return_hold_on_item_delete"`.
 
 **Green prediction:** `billing.tests.test_holds_deleted_items`, `Ran 16`, OK. Any other result is a STOP.
+
+**Green result (at 4edc94ca2, under `flock`, 8279 MB available): Ran 16, FAILED (failures=2). STOP, the prediction was wrong.** Log: `step1/step1_green_4edc94ca.log`.
+- **T-1:** `AssertionError: '<the row id>' != 'None'` on the release row's `item_id`.
+- **T-11:** `Lists differ: [] != [300]`.
+- **Diagnosis (a one-off traced run of T-1 with a print in the receiver, since removed; `billing/holds.py` was checked against the commit with `git status`, clean):**
+  - The receiver writes the right id: the traced run's row held `74e1ff86-…` and the receiver saw the same pk.
+  - **The tests are wrong.** Django's `Model.delete()` sets the deleted instance's `pk` to `None`. T-1 passes `doomed.pk` to `assert_road` *after* `doomed.delete()`, and T-11 filters on `str(doomed.pk)` after it, so both compare against `'None'`.
+  - **T-10 has the same bug but passes by coincidence:** `released_credits_for(job, None)` counts the job-level row from `finish_job`.
+  - Roads that don't call `delete()` on that instance (QuerySet, erasure, cascades, a teacher's deletion) keep the pk, and they passed.
+- **Proposed fix (for the SM's ruling):** T-1, T-10 and T-11 save the row's pk before the delete and use it after. Nothing else changes. Then green run 2, declared `Ran 16`, OK.
