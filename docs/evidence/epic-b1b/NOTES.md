@@ -1800,3 +1800,49 @@ Collateral is recorded as observed and is not a mismatch. A survivor, or a kill 
 - **Not changed:** the drift task tests keep `check_credit_estimate_drift.run()`. An interim `.apply()` edit was shown unnecessary (`DriftTaskTests` `Ran 9`, OK with `.run()`) and reverted.
 
 **Dev runs (not evidence), under `flock`:** the five new modules `Ran 75`, `OK (skipped=1)`; `makemigrations --check`: No changes. New tests by module: band 34, endpoint 10, backtest 22, settings 8, Gate 6 1 (to be re-taken by `build_suite` at the product commit).
+
+### §4.9 The B1b-4 evidence runs, declared before any run (product at adf473497; this section is committed first)
+
+Every run is under `flock`, one at a time, flag unset unless stated. The counts below were taken by `build_suite` at adf473497.
+
+**1. Break runs** (each runs the unedited pre-existing test against the product, then the edit lands):
+- **BR-1** `ai_processor.tests_call_record_static.NothingReadsOrExposesTheTable.test_no_other_code_names_the_model`: `FAILED (failures=1)`, fragment `['billing/estimates.py'] != []`. Edit: `ALLOWED` gains `"billing/estimates.py"` with a comment citing the SM ruling of 2026-11-08.
+- **BR-2** `ai_processor.tests_call_record_static.TheColumns.test_the_two_indexes_and_no_more`: `FAILED (failures=1)`, fragment `Lists differ: [<Index: fields=['assignment_id', 'created_at'] name='aicall_assignment_created'>`. Edit: renamed `test_the_two_column_indexes_and_the_two_estimate_indexes`; the two column indexes stay pinned, and `_meta.indexes` is pinned to exactly the two named indexes by fields and name.
+- **BR-3** `audit.tests_h273_query_filters…test_every_target_type_the_code_writes_has_a_label`: `FAILED (failures=1)`, fragment `['BillingSettings'] != []`. Edit: `_TARGET_LABEL["BillingSettings"] = "Billing settings"` (D-e, accepted).
+- The three edits are one commit. No test count changes (one rename).
+
+**2. Green** (at the break-run edit commit; labels in `step4/green_labels.txt`):
+- The five new modules, `ai_processor.tests_call_record_static`, `audit.tests_route_coverage`, `audit.tests_h273_query_filters`, `audit.tests_history_guard`, `AutoGrader.tests_beat_locks`, `AutoGrader.tests_migration_rollback_defaults`, `billing.tests.test_holds_schema`, and B1a's hold set (141; it already names `ai_processor.tests_call_record_static`, counted once).
+- **Expected: `Ran 345`, `OK (skipped=1)`** (the Gate 6 test, a decorated skip without `RUN_LOAD_TESTS`).
+- **D-d, recorded before the run:** `write_routes()` is 161 at 11fb31d6f (counted in a temporary worktree, since removed) and 162 at adf473497, with `billing-estimate` the one new route: **+1**.
+
+**3. The plants** (`scratchpad/plant_b4.py`; each runs the five new modules, 75 tests; each file restored and checked by sha256 against `scratchpad/sha_b4.txt`):
+- PE-1 … PE-22 and PE-3b as tabled in §4.6, and PE-23 as in §4.8: **24 plants.** Each is killed by its named test with its fragment. Collateral failures in other tests are recorded as observed and are not a mismatch.
+- **PE-22's subTest count, declared:** in `test_out_of_bounds_and_wrong_type_values_are_refused`, `abc` and `1.5` are still refused (by `to_python`).
+  - The four factor values (`0`, `-1`, `nan`, `inf`) fail with `CommandError not raised`: 4 subTest failures.
+  - `unstarted_backstop_hours=-1` and `hold_sweep_margin_minutes=-5` reach the database's positive check: 2 subTest errors (`IntegrityError`). `unstarted_backstop_hours=40000` is out of smallint range: 1 subTest error (`DataError`).
+  - The test's own final row check then fails (the factor was changed): 1 failure.
+  - So that test alone gives **failures=5, errors=3**.
+- PE-11 plants an `AIJob` create in the view, the same fields as `billing.testing.holds.make_job`.
+- PE-19 removes `@single_instance` from `check_credit_estimate_drift`. `AutoGrader.tests_beat_locks` is outside the plant set, so it isn't run.
+
+**4. The cold-start run** (`step4/b1b4_coldstart.py`, `PYTHONPATH=docs/evidence/epic-b1b/step4`):
+- Test DB only. It seeds 10 single papers at 100 (30 days ago) and one batch of 2 at 300 (5 days ago, call estimate 150 each). The provider's `estimate_messages_cost` is mocked at 100.
+- **Expected: `Ran 1`, `OK`.** The output carries `batches=11 coverage=0.9091` and `suggested_factor=1.0 provider_gap_ratio=2.0`.
+  - Coverage: the 10 singles replay on the rough tier (fewer than 10 papers before each), so p90 = 100 × 3.0 × 1.5 = 450 ≥ 100, and each is covered. The batch replays on the assignment tier (10 papers before it), so p90 = 2 × 100 = 200 < 600, and it is not covered. That gives 10 / 11 = 0.9091.
+  - Rough replay: the median of ten 1.0 and two 3.0 is 1.0. Provider gap: 300 / 150 = 2.0. Only the batch's calls carry an estimate.
+
+**5. Gate 6** (`RUN_LOAD_TESTS=1 billing.tests.test_estimate_gate6`):
+- **Expected: `Ran 1`, `OK`.** The timings (p50/p95 of 50 runs) and the `EXPLAIN` before and after the two indexes are recorded as observed.
+- A STOP only on a sequential scan of `ai_processor_aicallrecord` in the assignment or teacher query after the indexes (Q7, D-g).
+
+**6. E1, E2, E3**, serially, at the break-run edit commit (the counts were re-taken; the edits add no test):
+- **E1, flag on** (`billing ai_processor assignments students users audit.tests_h273_query_filters audit.tests_route_coverage` + the 67 guards, `--parallel 4`): **`Ran 7489`** (7414 + 75), `OK (skipped=32)` (31 + 1, as §4.6).
+- **E2, the flag-off near** (`billing students classrooms assignments users AutoGrader.tests_migration_rollback_defaults`, `--parallel 4`): **`Ran 6425`** (6350 + 75), `OK (skipped=24)` (23 + 1).
+- **E3, the 67 guards, serially:** **`Ran 1148`**, `OK (skipped=1)`.
+- After the runs, my own `test_AutoGrader_N` clones are dropped (0 connections), since the schema changed.
+
+**7. `makemigrations --check`:** No changes detected.
+
+**8. The migration safety check:** the env block of `.github/workflows/migration-safety.yml`, then `scripts/check_migration_safety.py --base origin/staging` (B1b's target).
+- **Expected: exit 0.** `OK … additive only` for `ai_processor/migrations/0007_aicallrecord_assignment_created_index.py`, `0008_aicallrecord_billed_user_created_index.py` and `billing/migrations/0083_b1b4_estimate_source_and_drift_run.py`. Any earlier B1b migration in the diff is recorded as observed (OK or ACK).
