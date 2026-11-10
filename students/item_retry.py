@@ -100,13 +100,16 @@ def kept_file(item):
     ).first()
 
 
+def upload_code_retryable(code):
+    """Whether an upload item failing with `code` can be retried from its
+    kept file (the catalogue's retryable codes plus the late door's)."""
+    return _retryable_as_it_is(code) or code in UPLOAD_EXTRA_RETRYABLE_CODES
+
+
 def _upload_retryable(item):
     return (
         item.status == BackgroundTaskStatus.FAILURE
-        and (
-            _retryable_as_it_is(item.reason_code)
-            or item.reason_code in UPLOAD_EXTRA_RETRYABLE_CODES
-        )
+        and upload_code_retryable(item.reason_code)
         and kept_file(item) is not None
     )
 

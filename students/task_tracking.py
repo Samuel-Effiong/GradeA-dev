@@ -310,7 +310,7 @@ def mark_processing_task_failure(
             describe_error_for_log(error),
         )
 
-    return update_processing_task(
+    processing_task = update_processing_task(
         processing_task_id,
         status=BackgroundTaskStatus.FAILURE,
         meta=meta,
@@ -320,6 +320,26 @@ def mark_processing_task_failure(
         # stores none and reads as error_class SYSTEM (session-results).
         reason_code=failure_reason_code(error),
     )
+    _discard_refused_kept_file(processing_task)
+    return processing_task
+
+
+def _discard_refused_kept_file(processing_task):
+    """Epic B1b-6a (SM, NOTES §6.0): a refused upload can never be retried,
+    so its kept file goes, as on cancel. A code a kept file can retry
+    keeps it, and so does an unclassified failure (code "")."""
+    from .kept_uploads import KEEPABLE_TYPES
+
+    if (
+        processing_task is None
+        or processing_task.task_type not in KEEPABLE_TYPES
+        or not processing_task.reason_code
+    ):
+        return
+    from .item_retry import upload_code_retryable
+
+    if not upload_code_retryable(processing_task.reason_code):
+        _discard_kept_file(processing_task)
 
 
 def failure_reason_code(error):
