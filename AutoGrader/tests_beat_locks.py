@@ -51,6 +51,8 @@ EPIC_ONLY_GUARDED_BEAT_TASKS = {
     # Epic B1a (plan 08 §3.2): credit holds.
     "billing.tasks.sweep_stale_credit_holds",
     "billing.tasks.check_credit_hold_invariants",
+    # Epic B1b-4 (plan 08 §3.6): the monthly estimate drift check.
+    "billing.tasks.check_credit_estimate_drift",
 }
 
 

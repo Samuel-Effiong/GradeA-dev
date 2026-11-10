@@ -1895,3 +1895,53 @@ Every run is under `flock`, one at a time, flag unset unless stated. The counts 
   - Then green is re-run, expecting `Ran 345`, `OK (skipped=1)`.
   - The test's subTest loop then covers 26 tasks: beta's 21 and the 5 epic-only tasks. A failing task is counted as one failure. (Corrected before sending: the first wording said "22 + 4", which totals the same but is the wrong split.)
 - Nothing is edited until the ruling.
+
+### §4.13 The SM's ruling on the green STOP (2026-11-10), the pin survey, and the declarations (before any run)
+
+**The ruling:**
+- Green at 083006e1b is recorded unamended as **"prediction wrong: pre-existing count pin missed in the §4.1 survey".** That run is also the break run for the edited `tests_beat_locks` pin (`22 != 21`). It is not re-run.
+- **The edit (this commit):** `EPIC_ONLY_GUARDED_BEAT_TASKS` (`AutoGrader/tests_beat_locks.py:48`) gains `"billing.tasks.check_credit_estimate_drift"`, with the comment "Epic B1b-4 (plan 08 §3.6): the monthly estimate drift check." Beta's 21 stays. This follows B1a 36e0befa6.
+
+**The pin survey** (SM item 3; a static grep of the test tree, no run). Searched:
+- `assertEqual/LessEqual/GreaterEqual(len(...), N)` over registries;
+- every test file naming `CELERY_BEAT_SCHEDULE`, `beat_entries(`, `known_lock_names`, `ALLOWED_KEYS`, `BEFORE_AFTER_ALLOWLIST`, `get_commands`, `get_models`, `write_routes(`, `_TARGET_LABEL`, `leaf_nodes`, `urlpatterns` or `get_resolver` (31 files);
+- tests naming the previous leaf migrations (`billing` 0082, `ai_processor` 0006);
+- every two-digit `assertEqual(len(x), N)` in a test file.
+
+| Hit | What it pins | Affected by B1b-4? |
+|---|---|---|
+| `AutoGrader/tests_beat_locks.py:430` `len(beta_guarded) == 21` | beta's guarded beat tasks | **yes**: the edit above (epic-only, named) |
+| `ai_processor/tests_call_record_static.py` `ALLOWED`; `TheColumns` index pin | readers of the model; its indexes | **yes**: BR-1, BR-2 (done, §4.11) |
+| `audit/tests_h273_query_filters.py` target labels | every written `target_type` has a label | **yes**: BR-3 (done) |
+| `audit/tests_route_coverage.py` | every write route leaves one audit event | covered by discovery (D-d): `billing-estimate` +1, no edit |
+| `audit/tests_metadata.py:47,191–197` | `len(ALLOWED_KEYS) > 10`; per-action lists ⊆ ALLOWED_KEYS | no: a lower bound, and D-h keeps the subset true |
+| `audit/tests_emitter.py`, `tags/tests_catalog.py:92–93` | specific keys; `BEFORE_AFTER_ALLOWLIST[tags_set()] == {"tag_ids"}` | no: other actions only |
+| `audit/tests_history.py:154–190` | `registry_problems()` (registry → allow-list), forbidden fragments in keys | no: the three new keys are numbers, with no person fragment; no registry spec added |
+| `students/tests_student_data_map.py` | every user FK / bare user-id column is mapped | no: `EstimateDriftRun` and `estimate_source` hold no user column |
+| `students/tests_data_export.py:671,692`, `tests_data_erase.py:783` | their own keys ⊆ ALLOWED_KEYS; export route not a write route | no |
+| `AutoGrader/tests_migration_rollback_defaults.py:327` | the only `db_default` without a Python default is `Assignment.updated_at` | no: no `db_default` added |
+| `AutoGrader/tests_management_commands_are_commands.py` | every command module defines `Command`; `backfill` isn't one | no: both new modules define `Command` |
+| `ai_processor/tests_call_record_static.py:442–470` | 0006's operations; migrating to 0005/0006 and back | no: it names 0006 only, and it passed in the 083006e1b green |
+| `dashboard/tests.py:532,736,1153`, `billing/tests/test_h28_alerting.py:178` | named beat entries' schedules | no: other entries |
+| `billing/tests/test_refusal_handling.py:791` `len(endpoints) == 18` | a hand-built list of credit-guarded endpoints | no: built by hand, and the estimate is deliberately not credit-guarded (D-b) |
+| `AutoGrader/tests_migration_safety_check.py:541` | a fixed dict of 13 real migrations | no |
+| `AutoGrader/test_health.py`, `tests_reason_codes.py`, `audit/tests_command_actor.py`, `audit/tests_sweep_beat_lock.py`, the other `len()` hits (pdf, dashboard, request ids, benchmarks) | unrelated sizes | no |
+
+**No further affected pin.** So none is left to be discovered by a run.
+
+**Plants, now 25 (SM item 4), plus one proof plant (SM item 5): 26 plant runs.** All are in `scratchpad/plant_b4.py`, restored by sha256 against `scratchpad/sha_b4.txt`.
+- **PE-24:** `@single_instance` removed from `check_credit_estimate_drift`. This is the same change as PE-19, which runs on the five new modules. PE-24 runs on `AutoGrader.tests_beat_locks`.
+  - Killed by `RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it`, at its `assertLessEqual(EPIC_ONLY_GUARDED_BEAT_TASKS, set(names))`.
+  - **The fragment.** `assertLessEqual` prints no element or diff lines. Its message is `'%s not less than or equal to %s'`, with both sets through `safe_repr(short=False)`, so it is never shortened. A set's print order varies by run (hash seed), so no whole-line text can be declared. Declared:
+    - the AssertionError line contains `not less than or equal to`;
+    - `'billing.tasks.check_credit_estimate_drift'` occurs exactly once on that line, in the left-hand set (before `not less than`).
+  - Other failures in the module (for example any test of declared locks against `known_lock_names()`) are collateral and recorded as observed.
+- **PE-24b (the proof that the drift task's subTest runs):** the decorator is replaced by one that only attaches `single_instance` (`SingleInstance('billing.tasks.check_credit_estimate_drift', 60, 86400)`). So the lock is declared, but the body is not guarded. Run on `AutoGrader.tests_beat_locks`.
+  - Then the count (21) and the subset hold, and the loop runs.
+  - Declared: `test_every_guarded_beat_task_skips_while_another_run_holds_it` gives **exactly 1 failure**, the subTest for `billing.tasks.check_credit_estimate_drift`, with `no logs of level WARNING or higher triggered on AutoGrader.beat_locks`. The other 25 subTests pass.
+  - Other tests in the module are collateral, recorded as observed.
+- PE-1 … PE-23 and PE-3b run as declared in §4.9 step 3, on the five new modules.
+
+**Green re-run** (at this commit; labels in `step4/green_labels.txt`, unchanged): **`Ran 345`, `OK (skipped=1)`.**
+
+Then §4.9 steps 4–8 as declared, with step 8 as amended in §4.11.
