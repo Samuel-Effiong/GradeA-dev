@@ -2025,3 +2025,152 @@ Then §4.9 steps 4–8 as declared, with step 8 as amended in §4.11.
   - `ACK  classrooms/migrations/0017_session_is_active.py: non-additive, marked as a reviewed expand-contract step`.
   - `ai_processor` 0007 and 0008 and `billing` 0083 each print `OK … additive only`.
 - §4.15's ruling stands: the 481c2e3a3 results are not re-run. **B1b-4 is complete, for the SM's acceptance.**
+
+---
+
+## §5 B1b-5: F4, kept files (08b §3, plan step B1b-5). SM GO 2026-11-10, after B1b-4 was ACCEPTED at 5d0e71688. The survey, before any edit
+
+**The staging merge (§8 doctrine):** origin/staging is 8eade3529, already in HEAD (§4.16). No-op.
+
+**Settled before this step:** the owner's answers, as read by the SM on 2026-11-09:
+- Q1: Cloudinary keeps uploads privately.
+- Q3: if storage is down, the upload is accepted without keeping the file.
+- Q3b: the file is deleted on success.
+- Q10: KeptUpload is DELETE, with the 30-day purge.
+
+Also settled:
+- §0.4: the SDK is called directly, with `type="private"`.
+- The standing rules for `kept_files.py`.
+- Headroom over 50 GB.
+- Text #16 is approved, both retry hints (`team/approved_wording_b1b_2026-11-09.md`). Texts 1–3 (2026-11-08) are approved, and they switch at B1b-8.
+
+### §5.1 What exists (at 5d0e71688)
+
+- **The bytes travel in the Celery message.**
+  - `build_async_upload_payload` / `rebuild_uploaded_file` are at `assignments/services.py:703` / `:714`.
+  - The three routes: `students/views.py:744`, the student `upload-async` (ANSWER_EXTRACTION, one file, inside `transaction.atomic`); `students/views.py:1560`, the teacher batch (BATCH_ANSWER_UPLOAD, loop, no explicit atomic); and `assignments/views.py:1184`, the assignment batch (BATCH_ASSIGNMENT_UPLOAD).
+  - Each calls `launch_at_door(launch_processing_task, …)`.
+- **The workers:** `assignments/tasks.py:1048` (`upload_answers_engine_async`) and `:1330` (`upload_assignment_async`).
+  - The assignment worker also dedupes by `sha256_of_upload_payload(file_payload)` (`assignments/file_uploads.py:84`), which decodes `content_b64`.
+  - A generic exception retries 3 times (`self.retry`), then fails with a fallback text and **no reason code** (`failure_reason_code` returns `""`, `students/task_tracking.py:313`), so it is not retryable.
+- **Retry:** `students/item_retry.py:87` refuses every UPLOAD_ITEM_TYPES item with `REUPLOAD` and `resolution=replace_file`.
+  - The only retry route is batch-scoped: `users/views.py:2820`, `session/<id>/items/<id>/retry`, plus `retry-failed`.
+  - **A student's single upload (ANSWER_EXTRACTION) has no batch session, so no route can retry it.**
+  - A retry relaunches with the original task's arguments:
+    - the extraction prompts are route-local strings (`students/views.py` ~:720 and ~:1470, `assignments/views.py` ~:1100);
+    - the assignment upload also needs `course_id`, which is on `BatchUploadSession.course`, and `topic_id`, **which is stored nowhere**.
+- **Holds on a retry:** a claimed retry row is PENDING with its hold returned. `CreditUnit.enter` (`billing/holds.py:776–806`) opens `open_retry_job` (E-2, SINGLE_ITEM). So retrying an upload item needs no new hold code. The late door (`:800–803`) applies only to a row already finished when its worker starts.
+- **Late-door texts:** `LATE_DOOR_EMAIL_TEXTS` (`billing/holds.py:1118`) still say "upload the file again", and `LATE_DOOR_EMAIL_APPROVED = False` (`:1131`). Text 3 switches at B1b-8.
+- **Erasure:** `students/data_erase.py:177`. BackgroundProcessingTask is DELETE, course-scoped, matched by `requested_by` (`student_data_map.py:93`). The profile image is deleted from storage in `transaction.on_commit` (`data_erase.py:207`), which is the precedent.
+- **Export:** `EXPORT_FIELDS` / `EXPORT_OMITTED` are keyed by model label. The labels are the models in `STUDENT_DATA_MAP`, and `test_every_field_is_decided_exactly_once` (`students/tests_data_export.py:318`) covers each one's concrete fields.
+- **Metrics:** `audit.metrics.count(name, n, tags=)` (e.g. `billing/holds.py:388`).
+- **Test-mode precedent:** `BENCHMARK_ARCHIVE_ENABLED = env.bool(..., default=not _RUNNING_TESTS)` (`settings.py:1623–1625`).
+- **`QUEUE_LIFETIME_DAYS` does not exist yet.** 08b §8 builds it in B1b-6, but `kept_until` (§3.2) needs it now.
+- `students` has no `tasks.py`. The leaf migration is `students/0040_merge`.
+
+### §5.2 The design proposed (08b §3.2–§3.3; departures are marked **[Q]** and wait for a ruling)
+
+- **`students/kept_files.py`** (the §0.4 standing rules):
+  - `store(uploaded_file) -> KeptFile(storage_key, sha256, size)` uses `cloudinary.uploader.upload(..., public_id="kept_uploads/<uuid4 hex>", resource_type="raw", type="private", overwrite=False)`.
+  - `load(storage_key) -> bytes` uses `private_download_url(..., expires_at=now+300)`, fetched server-side. `delete(storage_key)` uses `destroy(..., resource_type="raw", type="private", invalidate=True)`.
+  - The backend is chosen by `KEPT_UPLOADS_BACKEND`: `"cloudinary"`, or `"memory"`, which is the default under test (the `BENCHMARK_ARCHIVE_ENABLED` precedent). The memory backend is a module dict, so no test touches the network.
+- **`students.KeptUpload`** (08b's table): `id` UUID, `processing_task` one-to-one CASCADE, `storage_key`, `original_name`, `content_type`, `size_bytes`, `sha256`, `kept_until`, `purged_at`, `created_at`.
+  - Plus **`relaunch` JSON [Q2]**: the ids a retry needs (`topic_id` for an assignment upload), and never names or bytes.
+  - A partial index on `kept_until` where `purged_at IS NULL` serves the purge.
+  - Migration `students/0041`: CreateModel only, so additive.
+- **The door, all three routes.**
+  - Store the file before the item row. Write the `KeptUpload` row in the item's transaction, and send `file_payload = {"kept_upload_id": "<uuid>"}`.
+  - If `store` raises, the route falls back to today's inline payload, with no `KeptUpload` row, and counts `kept_upload_fallback`.
+  - **"Not kept" is the absence of a row.** It means the same for a fallback file and for any item from before F4: both read as text #16's "wasn't saved" case.
+  - In the teacher batch and assignment batch loops, the item row and its `KeptUpload` row go in one `transaction.atomic()` per file.
+- **The workers accept both payloads.** The inline form stays for the fallback and for messages in flight across the deploy.
+  - A kept payload loads the bytes and checks sha256.
+  - The assignment worker's dedupe takes the sha256 from the `KeptUpload` row in place of `sha256_of_upload_payload`.
+  - **[Q3] A missing asset or a sha256 mismatch:** see §5.3.
+- **Delete on success (Q3b):** at `mark_processing_task_success` in both workers, including `already_uploaded`, the asset is deleted in `on_commit` and `purged_at` is set.
+  - **[Q5]** Also delete on CANCELLED.
+- **Retry (`item_retry.py`):**
+  - An UPLOAD_ITEM_TYPES item is retried in place when all of these hold: it is FAILURE; its code is retryable (`PROVIDER_FAILURE`, `INSUFFICIENT_CREDITS_MID_BATCH`, and **[Q4]** `INSUFFICIENT_CREDITS` for the late door, 08b §3.2 step 5); and its `KeptUpload` exists with `purged_at` null.
+  - It uses the same claim, then relaunches the item's own worker with `{"kept_upload_id"}` and the stored ids, under the existing E-2 retry job.
+  - Every other upload item is refused exactly as today: `REUPLOAD` with `replace_file`. **[Q6]** The wording stays as it is until B1b-8.
+- **Purge (08b §3.2):** `students.tasks.purge_kept_uploads` runs hourly with `@single_instance`, in batches of 200, ordered by `kept_until`.
+  - For each due row: delete the asset, then set `purged_at`. A failed delete leaves the row for the next run.
+  - A row more than 24 h past `kept_until` and still unpurged is counted as `kept_upload_purge_overdue`.
+  - Beat entry: `purge-kept-uploads-hourly`.
+- **Cascade and erasure (08b §3.3):**
+  - A `post_delete` receiver on `KeptUpload` deletes the asset in `transaction.on_commit`. That covers erasure, an item delete, and any other cascade with one rule, so erasure needs no code of its own.
+  - **[Q7]** The data map and the export: see §5.3.
+- **[Q1] `QUEUE_LIFETIME_DAYS`** is added now, exactly as 08b §2.1: `env.int(..., default=30)`, with start-up validation of 1–365. `kept_until = created_at + QUEUE_LIFETIME_DAYS`.
+- **[Q8] The privacy line:** see §5.3.
+- **"Storage measured on staging"** (08b §8 gate): it can only run after the SM pushes and staging runs F4. It is recorded as a switch-on and soak obligation, not as gate evidence of this branch step. **[Q9]**
+
+### §5.3 The questions for the SM (each with a recommendation)
+
+- **Q1. `QUEUE_LIFETIME_DAYS` comes forward from B1b-6 to B1b-5.** `kept_until` needs it, and 08b §2.1 says one variable drives both.
+  - **Recommendation:** add the setting and its 1–365 start-up validation here, with tests. B1b-6 then only reads it.
+- **Q2. Where a retry gets its launch arguments.**
+  - The answer prompts and the assignment prompt become module constants that the routes and the retry share. That is a move, not a text change.
+  - `course_id` comes from `batch_session.course`.
+  - `topic_id` is stored nowhere today. **Recommendation:** `KeptUpload.relaunch = {"topic_id": …}` (ids only), not the mutable `meta`.
+- **Q3. A missing asset or a sha256 mismatch in the worker.** 08b says "a coded, retryable reason", but no existing code fits:
+  - PROVIDER_FAILURE reads "The grading service couldn't finish this item".
+  - A new code needs owner wording.
+  - **Recommendation:** a transient download error retries through the worker's existing `self.retry` (3 tries). A missing asset (not found) or a mismatch is permanent: the row gets `purged_at` (the file is gone), and the item fails unclassified with today's fallback text. A retry is then refused as not kept, and text #16's "wasn't saved" applies at B1b-8.
+  - This departs from 08b's "retryable" and needs no new wording.
+- **Q4. Which codes make a kept upload item retryable.** PROVIDER_FAILURE and INSUFFICIENT_CREDITS_MID_BATCH, as grading. **Plus INSUFFICIENT_CREDITS for upload items only**: 08b §3.2 step 5's late door "failed as retryable", whose spec is not `retryable` today.
+  - **Recommendation:** accept, as an upload-item rule in `item_retry.py`. The reason-code catalogue is unchanged.
+- **Q5. Delete on CANCELLED too?** 08b names success, erasure, cascade and purge.
+  - **Recommendation:** yes. A cancelled item is never retried, so keeping its file only holds student data.
+- **Q6. The wording between B1b-5 and B1b-8.**
+  - Three texts stay as they are until B1b-8 switches them: `INSUFFICIENT_CREDITS_MID_BATCH`'s remediation ("Unfinished uploads need their files uploaded again"), `REUPLOAD` ("its file isn't kept"), and the late-door texts.
+  - After B1b-5 the first is untrue for kept files. Nothing ships between the two steps, because the branch lands at B1b-10.
+  - **Recommendation:** keep the plan's order (08b §8: texts at B1b-8) and change no wording here. **[Owner-wording gap for B1b-8]:** text 3 tells the teacher to "retry" a late door file, but a student's single upload (ANSWER_EXTRACTION) has no retry route (§5.1).
+- **Q7. The data map and the export.** `KeptUpload` has no user column, so `tests_student_data_map` does not ask for it. It is removed with its BackgroundProcessingTask row by CASCADE, and its asset by the §5.2 receiver.
+  - **(a) Map:** **recommendation:** a docstring note in `student_data_map.py` (rows go with their processing task; the asset goes `on_commit`), and **no new map key**. A key for a non-user column would need a new `Match` kind. 08b's "added as DELETE" is met by the cascade.
+  - **(b) Export:** **recommendation:** each exported BackgroundProcessingTask row gains a derived `kept_file` object `{original_name, size_bytes, kept_until, purged_at}` or `null`, never the key, sha256 or bytes. It is added to `EXPORT_CONDITIONAL`-style handling, and the field-decision guard is kept whole.
+  - **(c) A gap, bounded by the purge:** a **teacher's** batch item is matched by `requested_by` = the teacher. A failed teacher-batch file of student X (no submission yet) can't be found by X's erasure. It is deleted at 30 days, or at success.
+- **Q8. The privacy document line** (owner Q1 said one line).
+  - **Recommendation**, the 08b §3.3 sentence: "Uploaded answer and assignment files are kept privately in Cloudinary for QUEUE_LIFETIME_DAYS days (30 by default) so a failed item can be retried without re-uploading, then deleted; a file is deleted as soon as its item succeeds." **Needs your word:** is it new wording? It is an internal doc, not app text.
+- **Q9. The staging storage measurement** moves to the soak and the switch-on checklist, since there is no branch evidence before a push. **Recommendation:** accept.
+
+### §5.4 The hardcoded-count-pin survey (the B1b-4 lesson; a static grep, no run)
+
+Searched:
+- tests naming `content_b64`, `build_async_upload_payload`, `rebuild_uploaded_file`, `file_payload`, `REUPLOAD`, `replace_file` or `UPLOAD_ITEM_TYPES`;
+- beat and lock registries (`EPIC_ONLY_GUARDED_BEAT_TASKS`, `len(beta_guarded) == 21`);
+- tests naming the students leaf migration;
+- `cloudinary` in tests;
+- `EXPORT_FIELDS` / `STUDENT_DATA_MAP` guards;
+- two-digit `len()` pins over registries.
+
+| Hit | What it pins | Affected? |
+|---|---|---|
+| `AutoGrader/tests_beat_locks.py:430` `len(beta_guarded) == 21` | beta's guarded beat tasks | **yes**: `students.tasks.purge_kept_uploads` joins `EPIC_ONLY_GUARDED_BEAT_TASKS` (`:48`), as B1b-4 did |
+| `students/tests_upload_credit_door.py:218`, `:342`, `:382` | the route hands the task `content_b64` equal to the file | **yes**: these become "the task's kept file has the same bytes". 3 edited tests, break runs |
+| `students/tests_credits_mid_batch.py:417` `test_the_rest_stops_uncharged_and_resumes_by_re_upload` | through the real route, a MID item's retry is 409 `replace_file` | **yes**: the file is now kept, so the retry is accepted. Rewritten to the F4 behavior (resumes by retry). Edited test, break run |
+| `students/tests_item_retry.py:253`, `:280–296` | an upload item (made directly, no KeptUpload) is refused with `replace_file`; `REUPLOAD` survives the rebuild | no: a fixture item with no KeptUpload is "not kept", so it is refused as today |
+| `students/tests_item_retry_h38.py:164`, `:172–187`, `:224` | unreachable upload item 404; orphan assignment upload 409 `replace_file` | no: same reason (no KeptUpload) |
+| `assignments/tests_upload_task_retry_policy.py`, `assignments/tests_upload_pipeline.py`, `students/tests_upload_pipeline.py`, `assignments/tests_h219_task_error_text.py`, `AutoGrader/tests_h218_celery_trace_filter.py`, `billing/tests_h281_individual_credit_wording.py:711`, `students/tests_upload_credit_door.py:488`, `students/tests_post_grading_submission_lock.py`, `students/tests_no_grade_tell_before_release.py` | call the workers with an inline `content_b64` payload | no: the workers keep the inline form (§5.2) |
+| `students/tests_data_export.py:318` (field decided once), `students/tests_student_data_map.py` (user links mapped) | export fields per mapped model; every user column mapped | no new key (Q7a); the export's derived field is checked by its own new test |
+| `AutoGrader/tests_reason_codes.py:258` (`"{" not in remediation`) | catalogue remediations | no: no catalogue change (Q4, Q6) |
+| `AutoGrader/tests_migration_safety_check.py:541`, `tests_migration_rollback_defaults.py:327` | a fixed dict of 13 migrations; `db_default` | no: 0041 is a CreateModel with no `db_default` |
+| `ai_processor/tests_benchmark_archive.py`, `AutoGrader/tests_h271_static_files.py` (the `cloudinary` hits) | their own modules | no |
+| `AutoGrader/tests_network_guard.py`, `ai_processor/tests_ssrf_guard.py`, `AutoGrader/tests_credscan.py` | no network, no URL fetch from input, no secrets | must stay green: the memory backend under test, and the download URL is built only inside `kept_files.py` |
+
+**Affected pins: 5 tests in 3 files** (1 registry edit, 4 test edits). Every other hit is unaffected.
+
+### §5.5 The plants planned (fragments declared after the rulings, with the tests)
+
+- **08b's three:** the purge skips a due row; a retry ignores `purged_at`; erasure leaves the asset.
+- **Proposed besides:**
+  - the store fails and the route refuses, in place of falling back;
+  - the worker skips the sha256 check;
+  - success doesn't delete the file;
+  - `kept_until` uses a constant 30 in place of the setting;
+  - the purge sets `purged_at` before the delete succeeds (a failed delete is lost);
+  - a retry relaunches without the kept payload;
+  - the export leaks `storage_key`;
+  - the start-up validation accepts 0;
+  - `@single_instance` is removed from the purge (the PE-24 pattern).
+
+**Next:** the SM's rulings on Q1–Q9. After that, the design as ruled, the tests first, and the red and plant declarations are committed before any run.
