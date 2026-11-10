@@ -2733,3 +2733,15 @@ Run on `students.tests_data_erase`.
    - **PK-6a-2:** the `""` guard removed. Killer `test_an_unclassified_failure_keeps_its_file`, fragment `an unclassified failure keeps its file`.
    - **PK-6a-3:** the discard check uses `_retryable_as_it_is` (the catalogue only) in place of `upload_code_retryable`. Killer `test_a_late_door_credit_refusal_keeps_its_file`, fragment `an upload credit refusal is retryable`.
 4. `makemigrations --check`: `No changes detected` (no model change).
+
+### §6.1 B1b-6a results (product c3504af0e; all under flock): all as declared
+
+- **Break run at 533e80f64:** `Ran 4`, `FAILED (failures=1)`. Killer `test_a_refused_answer_upload_loses_its_file`, with `AssertionError: unexpectedly None : a refused item's file must go`. As declared. Log `step6/BR_6a_533e80f6.log`.
+- **Green at c3504af0e:** `Ran 607`, `OK (skipped=1)`. As declared. Log `step6/G_6a_c3504af0.log`.
+- **Plants:** each was restored with `task_tracking.py` sha256 `7907e5b9d707…` before and after. Each gave `Ran 4`, `FAILED (failures=1)`, killed by the named test with the declared fragment:
+  - PK-6a-1: `a refused item's file must go`;
+  - PK-6a-2: `an unclassified failure keeps its file`;
+  - PK-6a-3: `an upload credit refusal is retryable`.
+  - Logs `step6/P_PK-6a-*_c3504af0.log`.
+- **makemigrations `--check`:** `No changes detected`. As declared.
+- **Next:** the B1b-6 survey (§6.2), before any edit.
