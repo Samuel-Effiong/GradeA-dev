@@ -1,0 +1,40 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user dd1da04d-79ef-4e32-85a2-512a9f224f25.
+Cannot activate automatic trial for user dd1da04d-79ef-4e32-85a2-512a9f224f25 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+
+
+students.task_tracking WARNING 2026-11-10 09:35:15,246 refusals 53629 131040839362432 [request_id=ef164b07-df8f-4eaa-9a87-affcc43189b7 client_request_id=-] Background task 84a96a74-91e5-4d19-b849-b6cb6c36ceec refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 3 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-10 09:35:15,265 refusals 53629 131040839362432 [request_id=ef164b07-df8f-4eaa-9a87-affcc43189b7 client_request_id=-] Background task 17ab6805-f2bd-49f4-bd05-109b68f0add2 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 3 items. The finished items are saved.
+
+
+F
+======================================================================
+FAIL: test_the_rest_stops_uncharged_and_resumes_by_re_upload (students.tests_credits_mid_batch.AnUploadBatchThatRunsOutOfCredits.test_the_rest_stops_uncharged_and_resumes_by_re_upload)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_credits_mid_batch.py", line 468, in test_the_rest_stops_uncharged_and_resumes_by_re_upload
+    self.assertEqual(retry.status_code, 409)
+AssertionError: 202 != 409
+
+----------------------------------------------------------------------
+Ran 1 test in 0.505s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

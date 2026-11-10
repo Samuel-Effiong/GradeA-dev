@@ -1,0 +1,36 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 5d8bf395-4303-468c-bd9e-086096859527.
+Cannot activate automatic trial for user 5d8bf395-4303-468c-bd9e-086096859527 (validation): ValueError
+Free trial plan not found: no trial activated for user ba5e43ec-97fa-4be5-a03c-adeb6c36b8d7.
+Cannot activate automatic trial for user ba5e43ec-97fa-4be5-a03c-adeb6c36b8d7 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+E
+======================================================================
+ERROR: test_every_exported_table_has_its_file_even_when_empty (students.tests_data_export.ExportContentTests.test_every_exported_table_has_its_file_even_when_empty) (label='students.KeptUpload')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_data_export.py", line 411, in test_every_exported_table_has_its_file_even_when_empty
+    self.assertIn(name(label), files)
+                  ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_data_export.py", line 144, in name
+    return data_export.EXPORT_NAMES[key]
+           ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+KeyError: 'students.KeptUpload'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.283s
+
+FAILED (errors=1)
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

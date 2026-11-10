@@ -2449,3 +2449,27 @@ Run on `students.tests_data_erase`.
    - `--base origin/staging`: **exit 0, 6 OK, 0 ACK, 0 FAIL**: billing 0081 and 0082, B1b-4's three, and `students/0041_keptupload.py` as `OK … additive only`.
    - `--base origin/main`: **exit 0, 35 OK, 1 ACK (classrooms 0017), 0 FAIL**: §4.16's 34 OK plus 0041.
 - Any mismatch is recorded unamended and is a STOP.
+
+### §5.12 Results so far at 612ced4de: the break runs as declared; STOP on the green (declared `Ran 602`, `OK (skipped=1)`)
+
+**The break runs (`scratchpad/run_br_b5.sh`): all as declared.** Every restored file was checked clean afterwards. Logs `step5/BR-*_612ced4d.log`.
+- **BR-1-2:** `Ran 2`, `FAILED (failures=2)`:
+  - `(label='students.KeptUpload')` `AssertionError: set() is not true : students.KeptUpload`;
+  - `(key=('students.KeptUpload', 'processing_task'))` `AssertionError: <Match.PROCESSING_TASK: 'PROCESSING_TASK'> not found in ('USER', 'EMAIL', 'OWN_ROW')`.
+- **BR-3:** `Ran 1`, `FAILED (errors=1)`, `KeyError: 'students.KeptUpload'`.
+- **BR-4:** `Ran 1`, `OK`.
+- **BR-5-6-7:** `Ran 3`, `FAILED (errors=3)`, each `KeyError: 'content_b64'`.
+- **BR-8:** `Ran 1`, `FAILED (failures=1)`, `AssertionError: 202 != 409`.
+- **BR-9:** `Ran 1`, `FAILED (failures=1)`, `AssertionError: 22 != 21`.
+
+**The green: `Ran 599`, `FAILED (errors=1, skipped=1)`. STOP.** Log `step5/G_green_612ced4d.log`.
+- **The error:** `ERROR: setUpClass (AutoGrader.tests_h271_static_files.ProductionStaticSettingsTests)`. Because its setUpClass failed, the class's 3 tests did not run (602 − 3 = 599). The other 598 tests passed, plus the 1 declared skip.
+- **The cause, a product defect of mine:** the test loads `AutoGrader/settings.py` as a bare file in a subprocess, with the project not on `sys.path` (`spec_from_file_location`, `cwd` a temp directory). My settings edit added `from AutoGrader.queue_lifetime import parse_queue_lifetime_days` at `settings.py:24`, the only project import in the file. In that subprocess it raises `ModuleNotFoundError: No module named 'AutoGrader'`.
+  - `settings.py` must load standalone, and nothing else in it imports a project module.
+- **Why the development runs missed it:** my dev sets didn't include `AutoGrader.tests_h271_static_files`. The declared green did.
+- Not yet run: the plants, E1/E2/E3, makemigrations, and the safety checks.
+
+**Proposed fix (not applied; for the SM):**
+- **(a) Rec:** `settings.py` loads the parser by file path: `importlib.util.spec_from_file_location` on `Path(__file__).with_name("queue_lifetime.py")`. `queue_lifetime.py` imports only `django.core.exceptions`. There is one source of truth, and the parser tests and PK-11 still cover the code settings uses.
+- **(b):** inline the parse in `settings.py`, keeping `queue_lifetime.py` for the tests. That gives two copies, so I don't recommend it.
+- **Then:** re-run the green, expecting **`Ran 602`, `OK (skipped=1)`**, and continue §5.11 steps 3–8 as declared. The break runs stand: their files don't touch settings, and each loads settings through Django as before, which works with either version.

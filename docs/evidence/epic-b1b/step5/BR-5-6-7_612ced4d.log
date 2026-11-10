@@ -1,0 +1,65 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user fabdfe07-04cd-466d-ab52-4b00d0e7b407.
+Cannot activate automatic trial for user fabdfe07-04cd-466d-ab52-4b00d0e7b407 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+EFree trial plan not found: no trial activated for user 05b0da89-c37c-4867-bff2-eceb8a70881f.
+Cannot activate automatic trial for user 05b0da89-c37c-4867-bff2-eceb8a70881f (validation): ValueError
+EFree trial plan not found: no trial activated for user 654cc93c-2f04-4801-8be8-4dc946b7abdc.
+Cannot activate automatic trial for user 654cc93c-2f04-4801-8be8-4dc946b7abdc (validation): ValueError
+E
+======================================================================
+ERROR: test_a_wallet_above_the_estimate_is_queued_as_before (students.tests_upload_credit_door.StudentUploadDoorTest.test_a_wallet_above_the_estimate_is_queued_as_before)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_upload_credit_door.py", line 218, in test_a_wallet_above_the_estimate_is_queued_as_before
+    self.assertEqual(base64.b64decode(payload["content_b64"]), PNG)
+                                      ~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'content_b64'
+
+======================================================================
+ERROR: test_a_funded_teacher_is_queued_as_before (students.tests_upload_credit_door.TeacherBatchDoorTest.test_a_funded_teacher_is_queued_as_before)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_upload_credit_door.py", line 342, in test_a_funded_teacher_is_queued_as_before
+    self.assertEqual(base64.b64decode(payload["content_b64"]), PNG)
+                                      ~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'content_b64'
+
+======================================================================
+ERROR: test_a_funded_teacher_is_queued_as_before (students.tests_upload_credit_door.AssignmentUploadDoorTest.test_a_funded_teacher_is_queued_as_before)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_upload_credit_door.py", line 382, in test_a_funded_teacher_is_queued_as_before
+    self.assertEqual(base64.b64decode(payload["content_b64"]), PNG)
+                                      ~~~~~~~^^^^^^^^^^^^^^^
+KeyError: 'content_b64'
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.578s
+
+FAILED (errors=3)
+Destroying test database for alias 'default'...
+Found 3 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
