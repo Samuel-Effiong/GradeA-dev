@@ -1893,5 +1893,5 @@ Every run is under `flock`, one at a time, flag unset unless stated. The counts 
   - Beta's 21 stays as it is.
   - With that edit the per-task loop runs for the drift task too, and checks that it returns the skip summary while another run holds its lock.
   - Then green is re-run, expecting `Ran 345`, `OK (skipped=1)`.
-  - The test's subTest loop now covers 22 + 4 = 26 tasks. A failing task is counted as one failure.
+  - The test's subTest loop then covers 26 tasks: beta's 21 and the 5 epic-only tasks. A failing task is counted as one failure. (Corrected before sending: the first wording said "22 + 4", which totals the same but is the wrong split.)
 - Nothing is edited until the ruling.
