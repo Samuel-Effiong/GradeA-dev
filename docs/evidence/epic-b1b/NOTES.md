@@ -2206,3 +2206,104 @@ The §5.2 design is approved, except where a ruling below changes it.
 
   Fragments come from element or diff lines.
 - **Order:** tests first, then red. STOP on any mismatch. No trailers, no push.
+
+### §5.7 Rulings since §5.6, the owner's texts, the design facts, the tests and the red and plant declarations (committed before any run)
+
+**The SM's further rulings (2026-11-10), recorded unamended:**
+- **Q7(b) export name: option (b).** The field decision is made now (`EXPORT_FIELDS["students.KeptUpload"]`, with the rest in `EXPORT_OMITTED`). The nested `kept_file` key stays out of the zip behind a False constant. Tests: it is absent while False, and present with exactly the four keys once True.
+- **Q8: option (c), replacing the earlier Q8 approval.** The privacy doc is customer-facing (it has a published PDF). No privacy-doc change in B1b-5.
+- **Owner approval, 2026-11-10:** "I approve of the kept_file name, and the privacy document wording". These are texts #18–#23.
+  - #18 is built behind `KEPT_FILE_EXPORT_NAME_APPROVED = False` and set True in B1b-8. A test pins the name verbatim.
+  - **Switch-on obligation:** "apply approved texts #19–#23 and regenerate the PDF before F4 runs in production". #23's module paths are `students/kept_files.py` and `students/kept_uploads.py` (both exist after this step). The SM's line fix: the "Not stored" row is line 293 (re-checked here: 293).
+  - Open with the owner: "30 days" in place of "QUEUE_LIFETIME_DAYS days (30 by default)" in #19 and #20. It doesn't affect the build.
+
+**The approved section, copied verbatim** from `team/approved_wording_b1b_2026-11-09.md` (main checkout; file sha256 `2f6e550ea0f9697ed13e6ff5131050b65820bf5694fd741ce68af08052ef6b67`, lines 38–end):
+
+> ## Added 2026-11-10: kept files (B1b-5)
+>
+> Owner, 2026-11-10: "I approve of the kept_file name, and the privacy document wording".
+>
+> | # | Where | Approved text |
+> |---|---|---|
+> | 18 | Student data export zip: nested key on each file-uploads row | `kept_file` (inner keys are the column names original_name, size_bytes, kept_until, purged_at; null when no file is kept) |
+> | 19 | Privacy doc (docs/GRADE_A_PLUS_BACKEND_DATA_PRIVACY_SECURITY_COMPLIANCE.md), new sentence | Uploaded answer and assignment files are kept privately in Cloudinary for QUEUE_LIFETIME_DAYS days (30 by default) so a failed item can be retried without re-uploading, then deleted; a file is deleted as soon as its item succeeds. |
+> | 20 | Privacy doc, "At rest" table row (today line 293, "Not stored") | Uploaded papers \| Kept privately by Cloudinary, encrypted on disk, for up to QUEUE_LIFETIME_DAYS days (30 by default) so a failed item can be retried; deleted as soon as the item succeeds \| AES-256 (Cloudinary's statement) \| Cloudinary |
+> | 21 | Privacy doc, "Where the data lives", new row (after line 390) | Uploaded papers \| Cloudinary \| Answer and assignment files teachers and students upload, kept until the item succeeds or for at most 30 days \| United States |
+> | 22 | Privacy doc, line 374 | Cloudinary (profile pictures, uploaded papers) |
+> | 23 | Privacy doc, evidence table (line 506) | Uploaded file kept until success or 30 days \| <the real module path(s)>, students/tasks.py (purge) |
+>
+> Open (SM suggestion, not yet confirmed by the owner): in #19 and #20, write "30 days" instead of "QUEUE_LIFETIME_DAYS days (30 by default)" for school readers. Until confirmed, the text above stands as approved.
+> Applied at switch-on (before F4 runs in production), with the PDF regenerated. #18 ships behind the export-name constant, set True in B1b-8.
+
+**Design facts found while writing the tests** (for the SM):
+- **D-1.** The two batch routes' prompts are byte-identical, so there is one constant, `assignments/upload_prompts.py: BATCH_UPLOAD_PROMPT`. The student route's prompt is a different string (8-space indent). It is not moved, because no route retries ANSWER_EXTRACTION.
+- **D-2.** `QUEUE_LIFETIME_DAYS` is read as a string and parsed by `AutoGrader/queue_lifetime.py: parse_queue_lifetime_days`, because `env.int` gives no clear message.
+  - A bad value raises `ImproperlyConfigured("QUEUE_LIFETIME_DAYS must be a whole number of days from 1 to 365, got '<raw>'.")` at settings load, which stops web, worker and beat. This is operator text, not app text.
+- **D-3.** `KEPT_UPLOADS_BACKEND`: `"memory"` when tests run, `"cloudinary"` otherwise (env override allowed). The `BENCHMARK_ARCHIVE_ENABLED` precedent.
+- **D-4.** Delete on success and on cancel sits in `mark_processing_task_success` / `mark_processing_task_cancelled` (`students/task_tracking.py`), for the three upload task types only. Any other task type makes no extra query.
+- **D-5.** `purged_at` is set only after a delete succeeded.
+  - A failed delete on success or cancel moves `kept_until` to now and leaves `purged_at` null, so the next hourly purge retries it.
+- **D-6.** The student route stores the file before its transaction. If the transaction does not commit (door refusal, closed submission, any error), the asset is deleted at once.
+  - The batch routes write each file's item row and `KeptUpload` row in one `transaction.atomic()`.
+- **D-7.** A retried upload relaunches its own worker, under the retrying teacher's id (as a grading retry does), with `course_id` from `batch_session.course`.
+  - It writes no `GRADING_REQUESTED` row; the request's middleware audit row stands.
+- **D-8.** The `post_delete` receiver deletes the asset `on_commit`. If that delete fails, the row is already gone, so it logs an error and counts `kept_upload_delete_failed`, a new counter for ops.
+- **D-9.** The retry rule is "row present and `purged_at` null". A file past `kept_until` but not yet purged is still retried.
+- **D-10.** `holds.py` is unchanged. A claimed upload retry runs under E-2's `open_retry_job`, as grading does.
+- **D-11.** `load` uses `requests.get(url, timeout=60)` on the URL from `cloudinary.utils.private_download_url(key, "", resource_type="raw", type="private", expires_at=now+300)`.
+  - **[UNVERIFIED on a real account]:** the empty format for a raw private asset. The staging soak checks one store, load and delete round trip.
+
+**The tests (tests first; no product code at this commit):**
+- `students.tests_kept_files`: 15
+- `students.tests_kept_uploads`: 40
+- `students.tests_kept_upload_retry`: 10
+
+**Edited pre-existing tests (each gets a break run at the product commit, run unedited):**
+- `students.tests_upload_credit_door`:
+  - `StudentUploadDoorTest.test_a_funded_student_is_queued_with_the_whole_file` (the `:218` assertion);
+  - `TeacherBatchDoorTest.test_a_funded_teacher_is_queued_as_before` (`:342`);
+  - `AssignmentUploadDoorTest.test_a_funded_teacher_is_queued_as_before` (`:382`).
+
+  Each now reads the kept file's bytes through the payload's `kept_upload_id`.
+- `students.tests_credits_mid_batch.AnUploadBatchThatRunsOutOfCredits`: `test_the_rest_stops_uncharged_and_resumes_by_re_upload` is renamed `test_the_rest_stops_uncharged_and_resumes_by_retry`. After a top-up, the stopped item is retried in place: 202, success_count 2, failure_list `[(3, MID)]`.
+- `AutoGrader.tests_beat_locks`: `EPIC_ONLY_GUARDED_BEAT_TASKS` gains `"students.tasks.purge_kept_uploads"`, found in the §5.4 survey up front.
+
+**R, the red** (at this commit, flag unset, under `flock`). Labels: `students.tests_kept_files students.tests_kept_uploads students.tests_kept_upload_retry students.tests_upload_credit_door students.tests_credits_mid_batch AutoGrader.tests_beat_locks`. **`Ran 117`** (build_suite). Declared: **`FAILED (failures=5, errors=69)`**:
+- `tests_kept_files`: **14 errors and 1 failure.**
+  - The errors are `ModuleNotFoundError: No module named 'students.kept_files'`.
+  - The failure is `test_tests_use_the_memory_backend`, with `None != 'memory'`. The setting is read with a three-argument `getattr`, because the flake8 B009 hook refuses the two-argument form.
+- `tests_kept_uploads`: **43 errors, 2 failures, 1 pass.**
+  - 37 tests error. `test_anything_else_stops_start_up_with_a_clear_message` errors in each of its 7 subTests, so it counts 7.
+  - The fragments are `No module named 'AutoGrader.queue_lifetime'`, `No module named 'students.kept_files'`, `No module named 'students.tasks'`, `App 'students' doesn't have a 'KeptUpload' model`, `KeyError: 'purge-kept-uploads-hourly'`, `KeyError: ('students.KeptUpload', 'processing_task')`, `KeyError: 'students.KeptUpload'`, `KeyError: 'kept_file'` and `No module named 'assignments.upload_prompts'`.
+  - **The 2 failures:** `test_the_setting_is_thirty_under_test`, with `None != 30`; and `test_the_nested_name_is_switched_on_at_b1b_8`, with `None is not False`.
+  - **The pass:** `AnswerWorkerTests.test_the_inline_payload_still_works`. Today's behavior, kept on purpose: not vacuous, it asserts SUCCESS and one engine call.
+- `tests_kept_upload_retry`: **9 errors, 1 pass.**
+  - The errors are at `keep()`: `No module named 'students.kept_files'`.
+  - **The pass:** `test_a_grading_item_refused_for_credits_is_still_refused`, today's rule kept (SM Q4). Its plant PK-15 proves it can fail.
+- `tests_upload_credit_door`: **3 errors**, the three edited tests: `App 'students' doesn't have a 'KeptUpload' model` (in `_kept_bytes`, after a 202). The other 14 pass.
+- `tests_credits_mid_batch`: **1 failure**, the renamed test: `409 != 202` (today an upload item is never retried). The other 7 pass.
+- `tests_beat_locks`: **1 failure**, `test_every_guarded_beat_task_skips_while_another_run_holds_it`, at `assertLessEqual(EPIC_ONLY_GUARDED_BEAT_TASKS, set(names))`. The line contains `not less than or equal to`, and `'students.tasks.purge_kept_uploads'` occurs once on it, in the left-hand set. The other 26 pass.
+
+**The plants** (at the product commit; each restored by sha256; label set the three new modules, plus where named). Fragments come from element or diff lines, never from a shortened header:
+
+| Plant | Change | Killed by | Fragment |
+|---|---|---|---|
+| PK-1 (08b) | the purge skips rows due within the last hour (`kept_until__lt=now-1h`) | `PurgeTests.test_a_row_past_kept_until_is_deleted_and_marked` | `unexpectedly None` |
+| PK-2 (08b) | the retry ignores `purged_at` | `KeptUploadRetryTests.test_a_purged_file_is_refused_upload_it_again` | `202 != 409` |
+| PK-3 (08b) | erasure leaves the asset (the `post_delete` receiver disconnected) | `ErasureTests.test_a_full_erasure_deletes_the_row_and_the_file` | `True is not false` |
+| PK-4 | a store failure refuses (re-raised) in place of the fallback | `StudentRouteKeepsTheFileTests.test_storage_down_falls_back_to_the_inline_file` | ERROR `KeptFileUnavailable: down` |
+| PK-5 | the worker skips the sha256 check | `AnswerWorkerTests.test_a_corrupt_file_fails_the_item_once_with_the_old_text` | `'SUCCESS' != 'FAILURE'` |
+| PK-6 | success doesn't delete the file | `AnswerWorkerTests.test_a_kept_file_is_loaded_and_deleted_when_the_item_succeeds` | `unexpectedly None` |
+| PK-7 | `kept_until` uses a constant 30 days | `StudentRouteKeepsTheFileTests.test_kept_until_is_the_upload_time_plus_the_setting` | `30 days, 0:00:00 != 3 days, 0:00:00` |
+| PK-8 | the purge sets `purged_at` before the delete | `PurgeTests.test_a_failed_delete_leaves_the_row_unpurged_for_the_next_run` | `is not None` |
+| PK-9 | the retry relaunches with `{"kept_upload_id": None}` | `KeptUploadRetryTests.test_a_kept_answer_upload_stopped_for_credits_is_retried_in_place` | a diff line containing `'kept_upload_id': None` |
+| PK-10 | the export's `kept_file` also carries `storage_key` | `ExportContentTests.test_once_approved_a_kept_row_has_exactly_the_four_keys` | `First extra element 4:` then `'storage_key'` |
+| PK-11 | start-up validation accepts 0 | `QueueLifetimeSettingTests.test_anything_else_stops_start_up_with_a_clear_message` | exactly 1 subTest failure, `raw='0'`: `ImproperlyConfigured not raised` |
+| PK-12 | `@single_instance` removed from `purge_kept_uploads` | `PurgeTests.test_the_task_runs_one_at_a_time` | `unexpectedly None` |
+| PK-13 (SM) | the data-map entry removed; plus `students.tests_student_data_map students.tests_data_export students.tests_data_erase` | `StudentDataMapTests.test_a_kept_upload_is_deleted_with_the_student_through_its_task` | ERROR `KeyError: ('students.KeptUpload', 'processing_task')` |
+| PK-14 (SM) | `BATCH_UPLOAD_PROMPT`'s "return a JSON" becomes "return a JSON." | `SharedPromptTests.test_the_shared_prompt_is_the_old_route_string_byte_for_byte` | a diff line starting `- ` containing `return a JSON.` |
+| PK-15 (SM) | the Q4 rule (INSUFFICIENT_CREDITS retryable) applied to grading items too | `KeptUploadRetryTests.test_a_grading_item_refused_for_credits_is_still_refused` | `202 != 409` |
+
+Collateral is recorded as observed and is not a mismatch. A survivor, or a kill by another test or without its fragment, is a STOP.
+
+**After R:** the product commit. Then the counts are re-taken by `build_suite` and declared before each run: the break runs, the green (the new modules, the edited tests' modules, the guards these touch, and B1a's hold set), the plants, E1/E2/E3, `makemigrations --check`, and the safety check against both bases.

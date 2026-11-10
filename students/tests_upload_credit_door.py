@@ -22,11 +22,13 @@ Run with:
 """
 
 import base64
+import importlib
 import io
 from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.apps import apps
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -137,6 +139,14 @@ def _file(name="a.png", data=PNG, content_type="image/png"):
     return SimpleUploadedFile(name, data, content_type=content_type)
 
 
+def _kept_bytes(payload):
+    """B1b-5 (F4): the bytes of the file a door payload names by its kept id."""
+    row = apps.get_model("students", "KeptUpload").objects.get(
+        pk=payload["kept_upload_id"]
+    )
+    return importlib.import_module("students.kept_files").load(row.storage_key)
+
+
 class _Spy:
     """The estimates the door (or the gate) was given back, in order, by the
     real method."""
@@ -215,7 +225,8 @@ class StudentUploadDoorTest(APITestCase):
         launch.assert_called_once()
         # The door read the file; the task must still be handed all of it.
         payload = launch.call_args.args[3]
-        self.assertEqual(base64.b64decode(payload["content_b64"]), PNG)
+        # B1b-5 (F4): the file is kept at the door and the task gets its id.
+        self.assertEqual(_kept_bytes(payload), PNG)
 
     @patch("students.views.launch_processing_task")
     def test_the_line_is_the_estimate_itself_one_below_refuses_the_estimate_passes(
@@ -339,7 +350,8 @@ class TeacherBatchDoorTest(APITestCase):
         self.assertEqual(launch.call_count, 2)
         for call in launch.call_args_list:
             payload = call.args[3]
-            self.assertEqual(base64.b64decode(payload["content_b64"]), PNG)
+            # B1b-5 (F4): the file is kept at the door and the task gets its id.
+            self.assertEqual(_kept_bytes(payload), PNG)
 
 
 class AssignmentUploadDoorTest(APITestCase):
@@ -379,7 +391,8 @@ class AssignmentUploadDoorTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         launch.assert_called_once()
         payload = launch.call_args.kwargs["file_payload"]
-        self.assertEqual(base64.b64decode(payload["content_b64"]), PNG)
+        # B1b-5 (F4): the file is kept at the door and the task gets its id.
+        self.assertEqual(_kept_bytes(payload), PNG)
 
 
 class TheDoorFunctionTest(TestCase):

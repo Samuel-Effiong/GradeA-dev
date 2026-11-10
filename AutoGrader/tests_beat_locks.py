@@ -53,6 +53,8 @@ EPIC_ONLY_GUARDED_BEAT_TASKS = {
     "billing.tasks.check_credit_hold_invariants",
     # Epic B1b-4 (plan 08 §3.6): the monthly estimate drift check.
     "billing.tasks.check_credit_estimate_drift",
+    # Epic B1b-5 (08b §3.2): the hourly purge of kept upload files.
+    "students.tasks.purge_kept_uploads",
 }
 
 
