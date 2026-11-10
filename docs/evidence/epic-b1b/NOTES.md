@@ -2852,7 +2852,7 @@ Run on `students.tests_data_erase`.
   - `write_routes()` = 162: there is no new route (the job API is B1b-7).
   - No suite test pins the beat schedule's length (grep).
 - **Not resolvable statically: 20 modules run the batch paths, and all of them run flag-on in E1.**
-  - The list is in the scratchpad `batch_tests.txt`; it includes `students/tests_h215a_auto_grade_resilience`, `tests_batch_item_results`, `tests_h38_*`, `tests_s6d_rubric_gate`, `assignments/tests_grading_audit_events`, `billing/tests/test_refusal_handling*` and `audit/tests/test_bench_volume`.
+  - The list is `step6/batch_modules_flagon.txt`; it includes `students/tests_h215a_auto_grade_resilience`, `tests_batch_item_results`, `tests_h38_*`, `tests_s6d_rubric_gate`, `assignments/tests_grading_audit_events`, `billing/tests/test_refusal_handling*` and `audit/tests/test_bench_volume`.
   - With the flag on, a fixture teacher whose spendable credits are below k × p90_paper would now queue papers instead of launching them. Whether each fixture has a wallet and credits differs per module (counted by grep, but not decidable without running).
   - **Q16 options:**
     - (a) A full static read of all 20 modules' fixtures, about half a day, still at risk of misses.
