@@ -1,0 +1,174 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+.Free trial plan not found: no trial activated for user 86aa4df3-a23a-4321-baa9-a84f1e35017f.
+Cannot activate automatic trial for user 86aa4df3-a23a-4321-baa9-a84f1e35017f (validation): ValueError
+.Free trial plan not found: no trial activated for user 99777eca-8cf4-405c-86a5-52d3a3456429.
+Cannot activate automatic trial for user 99777eca-8cf4-405c-86a5-52d3a3456429 (validation): ValueError
+......Free trial plan not found: no trial activated for user db4b359b-10d8-4f06-827e-3207d397ff8f.
+Cannot activate automatic trial for user db4b359b-10d8-4f06-827e-3207d397ff8f (validation): ValueError
+.Free trial plan not found: no trial activated for user 7a596b95-4fe4-4da3-929b-7a9a7643def0.
+Cannot activate automatic trial for user 7a596b95-4fe4-4da3-929b-7a9a7643def0 (validation): ValueError
+.Free trial plan not found: no trial activated for user dda43f03-2e9c-4140-9209-72493d8d8e34.
+Cannot activate automatic trial for user dda43f03-2e9c-4140-9209-72493d8d8e34 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7495b16d-2200-4f41-b272-3ae79481fe42.
+Cannot activate automatic trial for user 7495b16d-2200-4f41-b272-3ae79481fe42 (validation): ValueError
+.Free trial plan not found: no trial activated for user e9031771-5e27-41d3-a9c0-784f172b626f.
+Cannot activate automatic trial for user e9031771-5e27-41d3-a9c0-784f172b626f (validation): ValueError
+.Free trial plan not found: no trial activated for user a35f73b0-cb8c-4ee9-adeb-d78f898759f6.
+Cannot activate automatic trial for user a35f73b0-cb8c-4ee9-adeb-d78f898759f6 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0c9208f0-4060-4e0a-87e3-b63424967204.
+Cannot activate automatic trial for user 0c9208f0-4060-4e0a-87e3-b63424967204 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4ed309e0-1a03-457f-8782-1214fcf36108.
+Cannot activate automatic trial for user 4ed309e0-1a03-457f-8782-1214fcf36108 (validation): ValueError
+.Free trial plan not found: no trial activated for user ff480b9f-8173-4ca4-b700-377edd4fcf91.
+Cannot activate automatic trial for user ff480b9f-8173-4ca4-b700-377edd4fcf91 (validation): ValueError
+.Free trial plan not found: no trial activated for user 84d2ad17-7ef9-4f32-84f4-9e4918bd0505.
+Cannot activate automatic trial for user 84d2ad17-7ef9-4f32-84f4-9e4918bd0505 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2abe058e-f9bf-4de0-a8e8-e5748dc65dd5.
+Cannot activate automatic trial for user 2abe058e-f9bf-4de0-a8e8-e5748dc65dd5 (validation): ValueError
+Free trial plan not found: no trial activated for user 685e4377-0aa8-44b9-b91f-5b5e022ba74c.
+Cannot activate automatic trial for user 685e4377-0aa8-44b9-b91f-5b5e022ba74c (validation): ValueError
+.Free trial plan not found: no trial activated for user 7ef9fbba-88d1-4594-868d-fadaf5c6cc83.
+Cannot activate automatic trial for user 7ef9fbba-88d1-4594-868d-fadaf5c6cc83 (validation): ValueError
+Free trial plan not found: no trial activated for user 39d470e0-832e-402d-86b7-cdd2498295a5.
+Cannot activate automatic trial for user 39d470e0-832e-402d-86b7-cdd2498295a5 (validation): ValueError
+.Free trial plan not found: no trial activated for user 30850a3b-a8b6-4c18-b02d-17fe0942250d.
+Cannot activate automatic trial for user 30850a3b-a8b6-4c18-b02d-17fe0942250d (validation): ValueError
+Free trial plan not found: no trial activated for user bd7ebe05-45c7-4156-ab18-220299865891.
+Cannot activate automatic trial for user bd7ebe05-45c7-4156-ab18-220299865891 (validation): ValueError
+.Free trial plan not found: no trial activated for user 268cf66c-3ac8-4a60-b199-fbe5b91a458c.
+Cannot activate automatic trial for user 268cf66c-3ac8-4a60-b199-fbe5b91a458c (validation): ValueError
+Free trial plan not found: no trial activated for user b9645fbe-21f7-4c0e-a6ca-76baa9fda465.
+Cannot activate automatic trial for user b9645fbe-21f7-4c0e-a6ca-76baa9fda465 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6119e8d5-916f-4ab8-a3ef-c150e83c81d9.
+Cannot activate automatic trial for user 6119e8d5-916f-4ab8-a3ef-c150e83c81d9 (validation): ValueError
+Free trial plan not found: no trial activated for user 1dbeaa82-200c-4473-8e20-64256dd90a88.
+Cannot activate automatic trial for user 1dbeaa82-200c-4473-8e20-64256dd90a88 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1d3ce09b-9239-4f25-bafa-7ead1917a4c8.
+Cannot activate automatic trial for user 1d3ce09b-9239-4f25-bafa-7ead1917a4c8 (validation): ValueError
+Free trial plan not found: no trial activated for user 7e805c8f-13eb-485e-9688-cf152ef3c5f1.
+Cannot activate automatic trial for user 7e805c8f-13eb-485e-9688-cf152ef3c5f1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7224333c-1b85-43aa-ab3f-a06cba60d23f.
+Cannot activate automatic trial for user 7224333c-1b85-43aa-ab3f-a06cba60d23f (validation): ValueError
+Free trial plan not found: no trial activated for user f07e0d3d-d19a-424e-9e52-71865fe97f0c.
+Cannot activate automatic trial for user f07e0d3d-d19a-424e-9e52-71865fe97f0c (validation): ValueError
+.Free trial plan not found: no trial activated for user 965ea821-7968-48cf-9d88-30701b6f5f83.
+Cannot activate automatic trial for user 965ea821-7968-48cf-9d88-30701b6f5f83 (validation): ValueError
+Free trial plan not found: no trial activated for user 76066c20-8b58-4732-962c-d3798e914f6f.
+Cannot activate automatic trial for user 76066c20-8b58-4732-962c-d3798e914f6f (validation): ValueError
+.Free trial plan not found: no trial activated for user 0b097e93-842c-4cbb-b593-2c06cb3b6518.
+Cannot activate automatic trial for user 0b097e93-842c-4cbb-b593-2c06cb3b6518 (validation): ValueError
+Free trial plan not found: no trial activated for user 4fedea2c-9b0f-491f-9e61-a033f13ab879.
+Cannot activate automatic trial for user 4fedea2c-9b0f-491f-9e61-a033f13ab879 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3bcd022e-2fb1-4764-a583-bc75a6ed27c5.
+Cannot activate automatic trial for user 3bcd022e-2fb1-4764-a583-bc75a6ed27c5 (validation): ValueError
+Free trial plan not found: no trial activated for user e5a5b4b1-0074-48ad-90e6-8aaa62ad741c.
+Cannot activate automatic trial for user e5a5b4b1-0074-48ad-90e6-8aaa62ad741c (validation): ValueError
+.Free trial plan not found: no trial activated for user e24c138b-806a-429d-bd64-9fef0c1340cb.
+Cannot activate automatic trial for user e24c138b-806a-429d-bd64-9fef0c1340cb (validation): ValueError
+Free trial plan not found: no trial activated for user 901b4a30-e994-46d7-81bb-3e1b13346d27.
+Cannot activate automatic trial for user 901b4a30-e994-46d7-81bb-3e1b13346d27 (validation): ValueError
+......Free trial plan not found: no trial activated for user d8fe750b-2987-43a5-b330-d122806ba468.
+Cannot activate automatic trial for user d8fe750b-2987-43a5-b330-d122806ba468 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+.Free trial plan not found: no trial activated for user 189a9b9a-0de2-4a9c-965c-3e4b20983d28.
+Cannot activate automatic trial for user 189a9b9a-0de2-4a9c-965c-3e4b20983d28 (validation): ValueError
+API request refused: PermissionDenied (403)
+.Free trial plan not found: no trial activated for user 002706a9-650d-4740-abc0-d44e21c4f0f0.
+Cannot activate automatic trial for user 002706a9-650d-4740-abc0-d44e21c4f0f0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1220ed7a-499b-49ee-a2f8-6a2699312c53.
+Cannot activate automatic trial for user 1220ed7a-499b-49ee-a2f8-6a2699312c53 (validation): ValueError
+.Free trial plan not found: no trial activated for user 19d6b082-7d51-4514-9059-e2afd9ed0d07.
+Cannot activate automatic trial for user 19d6b082-7d51-4514-9059-e2afd9ed0d07 (validation): ValueError
+API request refused: NotAuthenticated (401)
+.Free trial plan not found: no trial activated for user 239a2b7d-628d-4423-a674-34895c120f8f.
+Cannot activate automatic trial for user 239a2b7d-628d-4423-a674-34895c120f8f (validation): ValueError
+Free trial plan not found: no trial activated for user ac7b4224-870e-4efe-b147-f22e0886c7a6.
+Cannot activate automatic trial for user ac7b4224-870e-4efe-b147-f22e0886c7a6 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 845f0c44-5684-4822-b27d-477bdc9764ee.
+Cannot activate automatic trial for user 845f0c44-5684-4822-b27d-477bdc9764ee (validation): ValueError
+.Free trial plan not found: no trial activated for user 807340ab-15b3-4610-82f3-e6205f35c182.
+Cannot activate automatic trial for user 807340ab-15b3-4610-82f3-e6205f35c182 (validation): ValueError
+.Free trial plan not found: no trial activated for user 397515ba-db7a-49f5-ae53-f0103e4cf0d5.
+Cannot activate automatic trial for user 397515ba-db7a-49f5-ae53-f0103e4cf0d5 (validation): ValueError
+.Free trial plan not found: no trial activated for user e4ba6628-a4c1-4d59-92a8-4ff2f1ff2160.
+Cannot activate automatic trial for user e4ba6628-a4c1-4d59-92a8-4ff2f1ff2160 (validation): ValueError
+.Free trial plan not found: no trial activated for user 47e5b7da-f534-40cc-88ef-7e7702f78f2f.
+Cannot activate automatic trial for user 47e5b7da-f534-40cc-88ef-7e7702f78f2f (validation): ValueError
+.Free trial plan not found: no trial activated for user 52ac9e50-18f8-4140-9b41-e9fcf1c19a3d.
+Cannot activate automatic trial for user 52ac9e50-18f8-4140-9b41-e9fcf1c19a3d (validation): ValueError
+.Free trial plan not found: no trial activated for user 736ea875-d1c7-487e-b3f7-f0aa2d5eb6db.
+Cannot activate automatic trial for user 736ea875-d1c7-487e-b3f7-f0aa2d5eb6db (validation): ValueError
+.Free trial plan not found: no trial activated for user 4703330a-fc33-4287-a7fd-fe38adbc3ef0.
+Cannot activate automatic trial for user 4703330a-fc33-4287-a7fd-fe38adbc3ef0 (validation): ValueError
+.......Free trial plan not found: no trial activated for user e7f665b0-44d0-49b9-a0fd-b6295e1c9175.
+Cannot activate automatic trial for user e7f665b0-44d0-49b9-a0fd-b6295e1c9175 (validation): ValueError
+.Free trial plan not found: no trial activated for user b05637be-de3e-458b-b929-1e80486b0409.
+Cannot activate automatic trial for user b05637be-de3e-458b-b929-1e80486b0409 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7a60fe96-604f-4f0c-831f-3b4b521d91b2.
+Cannot activate automatic trial for user 7a60fe96-604f-4f0c-831f-3b4b521d91b2 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5a31d3b8-8851-459f-a058-e91bb2f8480e.
+Cannot activate automatic trial for user 5a31d3b8-8851-459f-a058-e91bb2f8480e (validation): ValueError
+.Free trial plan not found: no trial activated for user d57a8ba2-1710-4153-8c57-98f13ba7249c.
+Cannot activate automatic trial for user d57a8ba2-1710-4153-8c57-98f13ba7249c (validation): ValueError
+.Free trial plan not found: no trial activated for user f83b5322-a5ee-4078-a877-f63fd5c7be75.
+Cannot activate automatic trial for user f83b5322-a5ee-4078-a877-f63fd5c7be75 (validation): ValueError
+.Free trial plan not found: no trial activated for user 32cbe275-b84c-4cf1-9b7a-14e9b078ce6d.
+Cannot activate automatic trial for user 32cbe275-b84c-4cf1-9b7a-14e9b078ce6d (validation): ValueError
+.Free trial plan not found: no trial activated for user 92c64d8d-6627-4bca-8c47-7b10f4fa618f.
+Cannot activate automatic trial for user 92c64d8d-6627-4bca-8c47-7b10f4fa618f (validation): ValueError
+.Free trial plan not found: no trial activated for user 72908ff6-5db2-45ab-bb36-7229b4661063.
+Cannot activate automatic trial for user 72908ff6-5db2-45ab-bb36-7229b4661063 (validation): ValueError
+FFree trial plan not found: no trial activated for user 7a0722c5-305e-43f8-92cb-88d8176eb12f.
+Cannot activate automatic trial for user 7a0722c5-305e-43f8-92cb-88d8176eb12f (validation): ValueError
+.Free trial plan not found: no trial activated for user 13a971bf-9597-4278-a4ea-8d4874f01b16.
+Cannot activate automatic trial for user 13a971bf-9597-4278-a4ea-8d4874f01b16 (validation): ValueError
+..Free trial plan not found: no trial activated for user d0e2df46-2b52-43a5-8186-3cb910211cd1.
+Cannot activate automatic trial for user d0e2df46-2b52-43a5-8186-3cb910211cd1 (validation): ValueError
+.Free trial plan not found: no trial activated for user bd218e4a-bd10-472e-8420-235546b2f0ba.
+Cannot activate automatic trial for user bd218e4a-bd10-472e-8420-235546b2f0ba (validation): ValueError
+.Free trial plan not found: no trial activated for user ae354aac-24ca-494f-abde-9ce230e8ce23.
+Cannot activate automatic trial for user ae354aac-24ca-494f-abde-9ce230e8ce23 (validation): ValueError
+Free trial plan not found: no trial activated for user 571dfab5-081f-4a7b-8f34-c8877eb01389.
+Cannot activate automatic trial for user 571dfab5-081f-4a7b-8f34-c8877eb01389 (validation): ValueError
+.Free trial plan not found: no trial activated for user 17ab6021-96da-456f-93e6-3510786b82f4.
+Cannot activate automatic trial for user 17ab6021-96da-456f-93e6-3510786b82f4 (validation): ValueError
+.Free trial plan not found: no trial activated for user 541c4739-b398-4d9e-99bf-adab7248a7a4.
+Cannot activate automatic trial for user 541c4739-b398-4d9e-99bf-adab7248a7a4 (validation): ValueError
+.Free trial plan not found: no trial activated for user 17572a4c-749f-457c-8a61-41ac7aecb025.
+Cannot activate automatic trial for user 17572a4c-749f-457c-8a61-41ac7aecb025 (validation): ValueError
+.Free trial plan not found: no trial activated for user df298551-9a5e-4d9c-beb6-638d5ee1a4f7.
+Cannot activate automatic trial for user df298551-9a5e-4d9c-beb6-638d5ee1a4f7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 49b9975b-0203-4722-8058-00785613f749.
+Cannot activate automatic trial for user 49b9975b-0203-4722-8058-00785613f749 (validation): ValueError
+.s
+======================================================================
+FAIL: test_the_task_runs_one_at_a_time (billing.tests.test_estimate_backtest.DriftTaskTests.test_the_task_runs_one_at_a_time)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_backtest.py", line 246, in test_the_task_runs_one_at_a_time
+    self.assertIsNotNone(declared_lock(check_credit_estimate_drift))
+AssertionError: unexpectedly None
+
+----------------------------------------------------------------------
+Ran 75 tests in 7.109s
+
+FAILED (failures=1, skipped=1)
+Destroying test database for alias 'default'...
+Found 75 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -1,0 +1,497 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+.Free trial plan not found: no trial activated for user 680e1b7f-e3a5-40bf-822e-3a2aa3b1a66c.
+Cannot activate automatic trial for user 680e1b7f-e3a5-40bf-822e-3a2aa3b1a66c (validation): ValueError
+.Free trial plan not found: no trial activated for user 3583db56-23bd-421d-97fe-58681a9eb0ac.
+Cannot activate automatic trial for user 3583db56-23bd-421d-97fe-58681a9eb0ac (validation): ValueError
+......Free trial plan not found: no trial activated for user 316ef3dc-d3c9-4395-b368-efd207644375.
+Cannot activate automatic trial for user 316ef3dc-d3c9-4395-b368-efd207644375 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7407a33c-4b0c-44cf-a553-0d90a20e403b.
+Cannot activate automatic trial for user 7407a33c-4b0c-44cf-a553-0d90a20e403b (validation): ValueError
+.Free trial plan not found: no trial activated for user f1a73524-c4c6-44ab-b525-0e427841afd6.
+Cannot activate automatic trial for user f1a73524-c4c6-44ab-b525-0e427841afd6 (validation): ValueError
+.Free trial plan not found: no trial activated for user ac258799-cce4-4979-90ef-ee3ee7f0c633.
+Cannot activate automatic trial for user ac258799-cce4-4979-90ef-ee3ee7f0c633 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4e091f51-e30e-45ad-9251-1b03e4caa46e.
+Cannot activate automatic trial for user 4e091f51-e30e-45ad-9251-1b03e4caa46e (validation): ValueError
+.Free trial plan not found: no trial activated for user 1ca73c60-2f77-4dd6-a7e6-413ff37467bd.
+Cannot activate automatic trial for user 1ca73c60-2f77-4dd6-a7e6-413ff37467bd (validation): ValueError
+.Free trial plan not found: no trial activated for user 4ca92ea1-2c99-4df1-b4c1-8f215a074a69.
+Cannot activate automatic trial for user 4ca92ea1-2c99-4df1-b4c1-8f215a074a69 (validation): ValueError
+.Free trial plan not found: no trial activated for user b8d24cb9-b815-4685-8e4e-cbec9cedb73e.
+Cannot activate automatic trial for user b8d24cb9-b815-4685-8e4e-cbec9cedb73e (validation): ValueError
+.Free trial plan not found: no trial activated for user df6b16ce-862d-4d82-9391-2fbe1c6baf10.
+Cannot activate automatic trial for user df6b16ce-862d-4d82-9391-2fbe1c6baf10 (validation): ValueError
+.Free trial plan not found: no trial activated for user e0b3a694-684f-4daa-bd5a-c93553cf36cc.
+Cannot activate automatic trial for user e0b3a694-684f-4daa-bd5a-c93553cf36cc (validation): ValueError
+.Free trial plan not found: no trial activated for user 62e78acd-243c-4ead-ba90-14bfb83823d6.
+Cannot activate automatic trial for user 62e78acd-243c-4ead-ba90-14bfb83823d6 (validation): ValueError
+Free trial plan not found: no trial activated for user e68b622a-adeb-4104-96fa-34a60e49ebb7.
+Cannot activate automatic trial for user e68b622a-adeb-4104-96fa-34a60e49ebb7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6ecf44e1-9443-43bd-be12-06058cbf4811.
+Cannot activate automatic trial for user 6ecf44e1-9443-43bd-be12-06058cbf4811 (validation): ValueError
+Free trial plan not found: no trial activated for user c3633b5b-f965-4a46-ae8f-e25f3bf04571.
+Cannot activate automatic trial for user c3633b5b-f965-4a46-ae8f-e25f3bf04571 (validation): ValueError
+.Free trial plan not found: no trial activated for user 003e9ca9-e5fa-4141-b56f-87a5c6190f38.
+Cannot activate automatic trial for user 003e9ca9-e5fa-4141-b56f-87a5c6190f38 (validation): ValueError
+Free trial plan not found: no trial activated for user 3bde7e63-5b1d-419f-a5df-783e5b099953.
+Cannot activate automatic trial for user 3bde7e63-5b1d-419f-a5df-783e5b099953 (validation): ValueError
+.Free trial plan not found: no trial activated for user 43b58af6-9f23-4c46-a054-adc4a55624d4.
+Cannot activate automatic trial for user 43b58af6-9f23-4c46-a054-adc4a55624d4 (validation): ValueError
+Free trial plan not found: no trial activated for user cb0e7dbf-2b9a-4fcc-8933-bc7a82ec4835.
+Cannot activate automatic trial for user cb0e7dbf-2b9a-4fcc-8933-bc7a82ec4835 (validation): ValueError
+.Free trial plan not found: no trial activated for user 56c489d1-3491-45c0-ad76-60f2a99ee6a5.
+Cannot activate automatic trial for user 56c489d1-3491-45c0-ad76-60f2a99ee6a5 (validation): ValueError
+Free trial plan not found: no trial activated for user c048bbd5-bda0-4f18-9dcf-5dfc5b25e715.
+Cannot activate automatic trial for user c048bbd5-bda0-4f18-9dcf-5dfc5b25e715 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9a714ccb-26b3-4e5f-84da-db716e1a6ebb.
+Cannot activate automatic trial for user 9a714ccb-26b3-4e5f-84da-db716e1a6ebb (validation): ValueError
+Free trial plan not found: no trial activated for user ea1d3f97-e459-4190-abe3-6607e4a9bf09.
+Cannot activate automatic trial for user ea1d3f97-e459-4190-abe3-6607e4a9bf09 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6b289db3-db1e-4a46-a760-17d87d55a4e0.
+Cannot activate automatic trial for user 6b289db3-db1e-4a46-a760-17d87d55a4e0 (validation): ValueError
+Free trial plan not found: no trial activated for user 6d4767db-3ef7-49c6-bf49-3f8f31652e84.
+Cannot activate automatic trial for user 6d4767db-3ef7-49c6-bf49-3f8f31652e84 (validation): ValueError
+.Free trial plan not found: no trial activated for user e1de6d11-e01a-4bfe-a2d5-1bd7a516cdf6.
+Cannot activate automatic trial for user e1de6d11-e01a-4bfe-a2d5-1bd7a516cdf6 (validation): ValueError
+Free trial plan not found: no trial activated for user 837f9a81-6120-4ef1-8d61-9ad7d7edcb97.
+Cannot activate automatic trial for user 837f9a81-6120-4ef1-8d61-9ad7d7edcb97 (validation): ValueError
+.Free trial plan not found: no trial activated for user cc08e3a8-a9df-4268-a5f8-0f4940af50a9.
+Cannot activate automatic trial for user cc08e3a8-a9df-4268-a5f8-0f4940af50a9 (validation): ValueError
+Free trial plan not found: no trial activated for user 6e0b2e65-647e-40ef-b7d6-3bcadb81c33e.
+Cannot activate automatic trial for user 6e0b2e65-647e-40ef-b7d6-3bcadb81c33e (validation): ValueError
+.Free trial plan not found: no trial activated for user fa9cced9-01f7-4c80-a9b7-02cd13e65c7a.
+Cannot activate automatic trial for user fa9cced9-01f7-4c80-a9b7-02cd13e65c7a (validation): ValueError
+Free trial plan not found: no trial activated for user 7a283318-6a30-4e89-b813-f7f91a657b3f.
+Cannot activate automatic trial for user 7a283318-6a30-4e89-b813-f7f91a657b3f (validation): ValueError
+.Free trial plan not found: no trial activated for user 4e7ef5e7-4fb1-4cfa-8004-55cb7e435c7c.
+Cannot activate automatic trial for user 4e7ef5e7-4fb1-4cfa-8004-55cb7e435c7c (validation): ValueError
+Free trial plan not found: no trial activated for user 5b05e739-7d9c-4ad1-8715-0bf91dae07ce.
+Cannot activate automatic trial for user 5b05e739-7d9c-4ad1-8715-0bf91dae07ce (validation): ValueError
+......Free trial plan not found: no trial activated for user 95430c33-5c0d-4229-acfe-eaab5f458522.
+Cannot activate automatic trial for user 95430c33-5c0d-4229-acfe-eaab5f458522 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+.Free trial plan not found: no trial activated for user 761315e5-7869-4bb9-9028-20434fcc3bd6.
+Cannot activate automatic trial for user 761315e5-7869-4bb9-9028-20434fcc3bd6 (validation): ValueError
+API request refused: PermissionDenied (403)
+.Free trial plan not found: no trial activated for user 40624e77-5bae-45d8-b286-a2ba9ced3eba.
+Cannot activate automatic trial for user 40624e77-5bae-45d8-b286-a2ba9ced3eba (validation): ValueError
+.Free trial plan not found: no trial activated for user 8ff0b15b-e37f-47de-94b3-b5d794165e38.
+Cannot activate automatic trial for user 8ff0b15b-e37f-47de-94b3-b5d794165e38 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9019f00d-0cc5-4512-b47a-e430591e4316.
+Cannot activate automatic trial for user 9019f00d-0cc5-4512-b47a-e430591e4316 (validation): ValueError
+API request refused: NotAuthenticated (401)
+.Free trial plan not found: no trial activated for user 29b8d186-b765-4cc7-9311-f9ae9de91ce0.
+Cannot activate automatic trial for user 29b8d186-b765-4cc7-9311-f9ae9de91ce0 (validation): ValueError
+Free trial plan not found: no trial activated for user 6e9d6ce1-d315-437c-b4f1-bfef65b963cd.
+Cannot activate automatic trial for user 6e9d6ce1-d315-437c-b4f1-bfef65b963cd (validation): ValueError
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 6858ecf6-a4e7-43e3-87fe-5104cda63a18.
+Cannot activate automatic trial for user 6858ecf6-a4e7-43e3-87fe-5104cda63a18 (validation): ValueError
+.Free trial plan not found: no trial activated for user e4fbc9b8-ff22-4a1d-aa6b-520b890dff17.
+Cannot activate automatic trial for user e4fbc9b8-ff22-4a1d-aa6b-520b890dff17 (validation): ValueError
+.Free trial plan not found: no trial activated for user ae5624c4-0eec-44a2-a9b1-dade2112eb07.
+Cannot activate automatic trial for user ae5624c4-0eec-44a2-a9b1-dade2112eb07 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2c582423-63be-4f9e-a751-672ba922ec2b.
+Cannot activate automatic trial for user 2c582423-63be-4f9e-a751-672ba922ec2b (validation): ValueError
+.Free trial plan not found: no trial activated for user 79c14328-1b9a-4d3a-95ab-12689fd30b8f.
+Cannot activate automatic trial for user 79c14328-1b9a-4d3a-95ab-12689fd30b8f (validation): ValueError
+.Free trial plan not found: no trial activated for user abe12ee9-3683-4adb-b791-07fc03bb0136.
+Cannot activate automatic trial for user abe12ee9-3683-4adb-b791-07fc03bb0136 (validation): ValueError
+.Free trial plan not found: no trial activated for user eb768e10-0a16-4ca3-acb5-83e4ce35d31d.
+Cannot activate automatic trial for user eb768e10-0a16-4ca3-acb5-83e4ce35d31d (validation): ValueError
+.Free trial plan not found: no trial activated for user f72d2c2e-0a43-4fde-82f7-fbad008367a1.
+Cannot activate automatic trial for user f72d2c2e-0a43-4fde-82f7-fbad008367a1 (validation): ValueError
+.......Free trial plan not found: no trial activated for user 7e9118b2-bfd7-4ab9-9830-c6a8938a5957.
+Cannot activate automatic trial for user 7e9118b2-bfd7-4ab9-9830-c6a8938a5957 (validation): ValueError
+.Free trial plan not found: no trial activated for user 111c5a00-d501-4b6f-ad1e-2cae9f8e8c54.
+Cannot activate automatic trial for user 111c5a00-d501-4b6f-ad1e-2cae9f8e8c54 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4dfed5ee-0386-4e37-889f-03c7b4c7ed4c.
+Cannot activate automatic trial for user 4dfed5ee-0386-4e37-889f-03c7b4c7ed4c (validation): ValueError
+.Free trial plan not found: no trial activated for user 98441303-2686-491e-942c-6d0d39624477.
+Cannot activate automatic trial for user 98441303-2686-491e-942c-6d0d39624477 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7bd18118-f5d0-4a66-81d8-ba0c61c9f76f.
+Cannot activate automatic trial for user 7bd18118-f5d0-4a66-81d8-ba0c61c9f76f (validation): ValueError
+.Free trial plan not found: no trial activated for user 439b1c86-e0a3-42ff-8a9c-0fd89630d728.
+Cannot activate automatic trial for user 439b1c86-e0a3-42ff-8a9c-0fd89630d728 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5890b7c0-44b7-4bb8-9919-58e4c05b5418.
+Cannot activate automatic trial for user 5890b7c0-44b7-4bb8-9919-58e4c05b5418 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8d28b672-ec83-4103-a3d7-6150bfde84bf.
+Cannot activate automatic trial for user 8d28b672-ec83-4103-a3d7-6150bfde84bf (validation): ValueError
+.Free trial plan not found: no trial activated for user a8e9196d-70e8-4194-8510-ad884265d9d3.
+Cannot activate automatic trial for user a8e9196d-70e8-4194-8510-ad884265d9d3 (validation): ValueError
+.Free trial plan not found: no trial activated for user d8f7bddf-6a7b-4c01-bb07-6a0ede8b268c.
+Cannot activate automatic trial for user d8f7bddf-6a7b-4c01-bb07-6a0ede8b268c (validation): ValueError
+.Free trial plan not found: no trial activated for user 6d02a9d0-1f79-434d-8154-55f489fd2844.
+Cannot activate automatic trial for user 6d02a9d0-1f79-434d-8154-55f489fd2844 (validation): ValueError
+..Free trial plan not found: no trial activated for user f46f84aa-c2d3-4451-b64f-a006c4250557.
+Cannot activate automatic trial for user f46f84aa-c2d3-4451-b64f-a006c4250557 (validation): ValueError
+EFree trial plan not found: no trial activated for user 0f20065c-1602-4fc7-8e53-d59e08b4d06b.
+Cannot activate automatic trial for user 0f20065c-1602-4fc7-8e53-d59e08b4d06b (validation): ValueError
+.Free trial plan not found: no trial activated for user f2fb45f8-7327-48c3-9381-04b865f10b89.
+Cannot activate automatic trial for user f2fb45f8-7327-48c3-9381-04b865f10b89 (validation): ValueError
+Free trial plan not found: no trial activated for user 189e16c5-9b73-4cdb-a89a-b862998d1485.
+Cannot activate automatic trial for user 189e16c5-9b73-4cdb-a89a-b862998d1485 (validation): ValueError
+.Free trial plan not found: no trial activated for user e88b71c8-c0cb-4826-91c1-ef31bc3204a2.
+Cannot activate automatic trial for user e88b71c8-c0cb-4826-91c1-ef31bc3204a2 (validation): ValueError
+FFaudit event metadata dropped: action=STATE_CHANGE keys=cold_start_cost_factor (not a finite number)
+Faudit event metadata dropped: action=STATE_CHANGE keys=cold_start_cost_factor (not a finite number)
+FEEEFFree trial plan not found: no trial activated for user 00359961-c6b8-4d17-ae28-6afeaca41228.
+Cannot activate automatic trial for user 00359961-c6b8-4d17-ae28-6afeaca41228 (validation): ValueError
+.Free trial plan not found: no trial activated for user 10c207fb-1378-4186-af1e-ecbe15d8f114.
+Cannot activate automatic trial for user 10c207fb-1378-4186-af1e-ecbe15d8f114 (validation): ValueError
+.Free trial plan not found: no trial activated for user 42762a92-3f9f-4a9f-a6aa-bd7bc3217e5d.
+Cannot activate automatic trial for user 42762a92-3f9f-4a9f-a6aa-bd7bc3217e5d (validation): ValueError
+.Free trial plan not found: no trial activated for user 3d2adecb-5026-44ca-b087-559824d4e8ad.
+Cannot activate automatic trial for user 3d2adecb-5026-44ca-b087-559824d4e8ad (validation): ValueError
+.s
+======================================================================
+ERROR: test_a_refused_set_changes_nothing_even_after_a_good_one (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_a_refused_set_changes_nothing_even_after_a_good_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_billingsettings" violates check constraint "billing_billingsettings_unstarted_backstop_hours_check"
+DETAIL:  Failing row contains (1, 2.4, -1, 15).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 134, in test_a_refused_set_changes_nothing_even_after_a_good_one
+    run(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 35, in run
+    call_command("billing_settings", *args, stdout=out)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 194, in call_command
+    return command.execute(*args, **defaults)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/base.py", line 464, in execute
+    output = self.handle(*args, **options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/management/commands/billing_settings.py", line 55, in handle
+    self._apply(options["set"], options["by"])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/management/commands/billing_settings.py", line 78, in _apply
+    row.save(update_fields=[name])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/models.py", line 1988, in save
+    super().save(*args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 902, in save
+    self.save_base(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1138, in _save_table
+    updated = self._do_update(
+              ^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1203, in _do_update
+    return filtered._update(values) > 0
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1288, in _update
+    return query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_billingsettings" violates check constraint "billing_billingsettings_unstarted_backstop_hours_check"
+DETAIL:  Failing row contains (1, 2.4, -1, 15).
+
+
+======================================================================
+ERROR: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='unstarted_backstop_hours=-1')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_billingsettings" violates check constraint "billing_billingsettings_unstarted_backstop_hours_check"
+DETAIL:  Failing row contains (1, Infinity, -1, 15).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 116, in test_out_of_bounds_and_wrong_type_values_are_refused
+    run("--set", value, "--by", self.admin.email)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 35, in run
+    call_command("billing_settings", *args, stdout=out)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 194, in call_command
+    return command.execute(*args, **defaults)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/base.py", line 464, in execute
+    output = self.handle(*args, **options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/management/commands/billing_settings.py", line 55, in handle
+    self._apply(options["set"], options["by"])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/management/commands/billing_settings.py", line 78, in _apply
+    row.save(update_fields=[name])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/models.py", line 1988, in save
+    super().save(*args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 902, in save
+    self.save_base(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1138, in _save_table
+    updated = self._do_update(
+              ^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1203, in _do_update
+    return filtered._update(values) > 0
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1288, in _update
+    return query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_billingsettings" violates check constraint "billing_billingsettings_unstarted_backstop_hours_check"
+DETAIL:  Failing row contains (1, Infinity, -1, 15).
+
+
+======================================================================
+ERROR: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='unstarted_backstop_hours=40000')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.NumericValueOutOfRange: smallint out of range
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 116, in test_out_of_bounds_and_wrong_type_values_are_refused
+    run("--set", value, "--by", self.admin.email)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 35, in run
+    call_command("billing_settings", *args, stdout=out)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 194, in call_command
+    return command.execute(*args, **defaults)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/base.py", line 464, in execute
+    output = self.handle(*args, **options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/management/commands/billing_settings.py", line 55, in handle
+    self._apply(options["set"], options["by"])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/management/commands/billing_settings.py", line 78, in _apply
+    row.save(update_fields=[name])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/models.py", line 1988, in save
+    super().save(*args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 902, in save
+    self.save_base(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1138, in _save_table
+    updated = self._do_update(
+              ^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1203, in _do_update
+    return filtered._update(values) > 0
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1288, in _update
+    return query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.DataError: smallint out of range
+
+
+======================================================================
+ERROR: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='hold_sweep_margin_minutes=-5')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.CheckViolation: new row for relation "billing_billingsettings" violates check constraint "billing_billingsettings_hold_sweep_margin_minutes_check"
+DETAIL:  Failing row contains (1, Infinity, 36, -5).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 116, in test_out_of_bounds_and_wrong_type_values_are_refused
+    run("--set", value, "--by", self.admin.email)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 35, in run
+    call_command("billing_settings", *args, stdout=out)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/__init__.py", line 194, in call_command
+    return command.execute(*args, **defaults)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/management/base.py", line 464, in execute
+    output = self.handle(*args, **options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/management/commands/billing_settings.py", line 55, in handle
+    self._apply(options["set"], options["by"])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/management/commands/billing_settings.py", line 78, in _apply
+    row.save(update_fields=[name])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/models.py", line 1988, in save
+    super().save(*args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 902, in save
+    self.save_base(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1138, in _save_table
+    updated = self._do_update(
+              ^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1203, in _do_update
+    return filtered._update(values) > 0
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1288, in _update
+    return query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2060, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: new row for relation "billing_billingsettings" violates check constraint "billing_billingsettings_hold_sweep_margin_minutes_check"
+DETAIL:  Failing row contains (1, Infinity, 36, -5).
+
+
+======================================================================
+FAIL: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='cold_start_cost_factor=0')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 113, in test_out_of_bounds_and_wrong_type_values_are_refused
+    with self.subTest(value=value), self.assertRaisesMessage(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+AssertionError: CommandError not raised
+
+======================================================================
+FAIL: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='cold_start_cost_factor=-1')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 113, in test_out_of_bounds_and_wrong_type_values_are_refused
+    with self.subTest(value=value), self.assertRaisesMessage(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+AssertionError: CommandError not raised
+
+======================================================================
+FAIL: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='cold_start_cost_factor=nan')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 113, in test_out_of_bounds_and_wrong_type_values_are_refused
+    with self.subTest(value=value), self.assertRaisesMessage(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+AssertionError: CommandError not raised
+
+======================================================================
+FAIL: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused) (value='cold_start_cost_factor=inf')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 113, in test_out_of_bounds_and_wrong_type_values_are_refused
+    with self.subTest(value=value), self.assertRaisesMessage(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+AssertionError: CommandError not raised
+
+======================================================================
+FAIL: test_out_of_bounds_and_wrong_type_values_are_refused (billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_billing_settings_command.py", line 118, in test_out_of_bounds_and_wrong_type_values_are_refused
+    self.assertEqual(
+AssertionError: Tuples differ: (inf, 36, 15) != (3.0, 36, 15)
+
+First differing element 0:
+inf
+3.0
+
+- (inf, 36, 15)
+?  ^^^
+
++ (3.0, 36, 15)
+?  ^^^
+
+
+----------------------------------------------------------------------
+Ran 75 tests in 7.064s
+
+FAILED (failures=5, errors=4, skipped=1)
+Destroying test database for alias 'default'...
+Found 75 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

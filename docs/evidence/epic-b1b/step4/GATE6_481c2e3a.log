@@ -1,0 +1,117 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user d0624c96-9b86-40e5-9d41-ded21deb1d04.
+Cannot activate automatic trial for user d0624c96-9b86-40e5-9d41-ded21deb1d04 (validation): ValueError
+Free trial plan not found: no trial activated for user 8ee0b39a-ad0a-42d5-8e83-83ac71156a63.
+Cannot activate automatic trial for user 8ee0b39a-ad0a-42d5-8e83-83ac71156a63 (validation): ValueError
+Free trial plan not found: no trial activated for user 2dcf21fa-d93b-4e95-8c27-3b7a98fc0af1.
+Cannot activate automatic trial for user 2dcf21fa-d93b-4e95-8c27-3b7a98fc0af1 (validation): ValueError
+Free trial plan not found: no trial activated for user d977066f-27bb-4577-9123-09c75ad40fff.
+Cannot activate automatic trial for user d977066f-27bb-4577-9123-09c75ad40fff (validation): ValueError
+Free trial plan not found: no trial activated for user 9c64fba3-2fe6-493f-9907-68147b9bd4e7.
+Cannot activate automatic trial for user 9c64fba3-2fe6-493f-9907-68147b9bd4e7 (validation): ValueError
+Free trial plan not found: no trial activated for user c0b0ba2c-3bd4-4843-b5f2-da2be0a4d383.
+Cannot activate automatic trial for user c0b0ba2c-3bd4-4843-b5f2-da2be0a4d383 (validation): ValueError
+Free trial plan not found: no trial activated for user 85160029-7d91-4282-a85b-041dbfe4df3b.
+Cannot activate automatic trial for user 85160029-7d91-4282-a85b-041dbfe4df3b (validation): ValueError
+Free trial plan not found: no trial activated for user 65f3da83-d509-405f-b812-0a7b72d545bd.
+Cannot activate automatic trial for user 65f3da83-d509-405f-b812-0a7b72d545bd (validation): ValueError
+Free trial plan not found: no trial activated for user 902f6ec5-8a92-449f-993f-acdb92c39bca.
+Cannot activate automatic trial for user 902f6ec5-8a92-449f-993f-acdb92c39bca (validation): ValueError
+Free trial plan not found: no trial activated for user ecf7a96a-a740-4e5e-9835-0e9d64fd4969.
+Cannot activate automatic trial for user ecf7a96a-a740-4e5e-9835-0e9d64fd4969 (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 1 test in 63.800s
+
+OK
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+GATE6_EST tier=assignment rows=100000 runs=50 with_p50_ms=14.425 with_p95_ms=15.984 without_p50_ms=27.813 without_p95_ms=31.806
+GATE6_EST tier=teacher rows=100000 runs=50 with_p50_ms=54.732 with_p95_ms=61.904 without_p50_ms=73.962 without_p95_ms=86.234
+GATE6_EST tier=all_papers rows=100000 runs=50 with_p50_ms=369.537 with_p95_ms=415.875 without_p50_ms=375.452 without_p95_ms=442.793
+GATE6_EST_PLAN_WITH tier=assignment
+GroupAggregate  (cost=4951.31..5039.45 rows=1811 width=160)
+  Group Key: ai_processor_aicallrecord.processing_task_id
+  ->  Sort  (cost=4951.31..4956.00 rows=1876 width=80)
+        Sort Key: ai_processor_aicallrecord.processing_task_id
+        ->  Hash Anti Join  (cost=991.34..4849.32 rows=1876 width=80)
+              Hash Cond: ((ai_processor_aicallrecord.task_id)::text = (u0.task_id)::text)
+              ->  Hash Join  (cost=980.69..4814.99 rows=1876 width=117)
+                    Hash Cond: (ai_processor_aicallrecord.processing_task_id = u0_1.id)
+                    ->  Bitmap Heap Scan on ai_processor_aicallrecord  (cost=95.69..3925.05 rows=1880 width=117)
+                          Recheck Cond: ((assignment_id = '9d772b8c-ac54-46f3-ada5-4cff8490500e'::uuid) AND (created_at >= '2026-08-12 05:53:54.950608+00'::timestamp with time zone))
+                          Filter: ((processing_task_id IS NOT NULL) AND ((outcome)::text = 'charged'::text) AND ((task_type)::text = 'grade_assignment'::text))
+                          ->  Bitmap Index Scan on aicall_assignment_created  (cost=0.00..95.22 rows=1880 width=0)
+                                Index Cond: ((assignment_id = '9d772b8c-ac54-46f3-ada5-4cff8490500e'::uuid) AND (created_at >= '2026-08-12 05:53:54.950608+00'::timestamp with time zone))
+                    ->  Hash  (cost=635.00..635.00 rows=20000 width=16)
+                          ->  Seq Scan on students_backgroundprocessingtask u0_1  (cost=0.00..635.00 rows=20000 width=16)
+                                Filter: ((status)::text = 'SUCCESS'::text)
+              ->  Hash  (cost=10.40..10.40 rows=20 width=418)
+                    ->  Seq Scan on billing_creditusagelog u0  (cost=0.00..10.40 rows=20 width=418)
+                          Filter: is_refunded
+GATE6_EST_PLAN_WITHOUT tier=assignment
+GroupAggregate  (cost=8185.57..8493.38 rows=1841 width=160)
+  Group Key: ai_processor_aicallrecord.processing_task_id
+  ->  Gather Merge  (cost=8185.57..8408.37 rows=1913 width=80)
+        Workers Planned: 2
+        ->  Sort  (cost=7185.55..7187.54 rows=797 width=80)
+              Sort Key: ai_processor_aicallrecord.processing_task_id
+              ->  Hash Join  (cost=895.65..7147.14 rows=797 width=80)
+                    Hash Cond: (ai_processor_aicallrecord.processing_task_id = u0_1.id)
+                    ->  Hash Anti Join  (cost=10.65..6260.05 rows=797 width=80)
+                          Hash Cond: ((ai_processor_aicallrecord.task_id)::text = (u0.task_id)::text)
+                          ->  Parallel Seq Scan on ai_processor_aicallrecord  (cost=0.00..6239.33 rows=797 width=117)
+                                Filter: ((processing_task_id IS NOT NULL) AND (created_at >= '2026-08-12 05:54:18.567242+00'::timestamp with time zone) AND ((outcome)::text = 'charged'::text) AND ((task_type)::text = 'grade_assignment'::text) AND (assignment_id = '9d772b8c-ac54-46f3-ada5-4cff8490500e'::uuid))
+                          ->  Hash  (cost=10.40..10.40 rows=20 width=418)
+                                ->  Seq Scan on billing_creditusagelog u0  (cost=0.00..10.40 rows=20 width=418)
+                                      Filter: is_refunded
+                    ->  Hash  (cost=635.00..635.00 rows=20000 width=16)
+                          ->  Seq Scan on students_backgroundprocessingtask u0_1  (cost=0.00..635.00 rows=20000 width=16)
+                                Filter: ((status)::text = 'SUCCESS'::text)
+GATE6_EST_PLAN_WITH tier=teacher
+Sort  (cost=8173.72..8193.58 rows=7942 width=160)
+  Sort Key: ai_processor_aicallrecord.processing_task_id
+  ->  HashAggregate  (cost=7540.14..7659.27 rows=7942 width=160)
+        Group Key: ai_processor_aicallrecord.processing_task_id
+        ->  Hash Anti Join  (cost=1370.67..7252.17 rows=9599 width=80)
+              Hash Cond: ((ai_processor_aicallrecord.task_id)::text = (u0.task_id)::text)
+              ->  Hash Join  (cost=1360.02..7120.32 rows=9601 width=117)
+                    Hash Cond: (ai_processor_aicallrecord.processing_task_id = u0_1.id)
+                    ->  Bitmap Heap Scan on ai_processor_aicallrecord  (cost=475.02..6210.07 rows=9620 width=117)
+                          Recheck Cond: ((billed_user_id = '65f3da83-d509-405f-b812-0a7b72d545bd'::uuid) AND (created_at >= '2026-08-12 05:53:54.952818+00'::timestamp with time zone))
+                          Filter: ((processing_task_id IS NOT NULL) AND ((outcome)::text = 'charged'::text) AND ((task_type)::text = 'grade_assignment'::text))
+                          ->  Bitmap Index Scan on aicall_billed_user_created  (cost=0.00..472.62 rows=9620 width=0)
+                                Index Cond: ((billed_user_id = '65f3da83-d509-405f-b812-0a7b72d545bd'::uuid) AND (created_at >= '2026-08-12 05:53:54.952818+00'::timestamp with time zone))
+                    ->  Hash  (cost=635.00..635.00 rows=20000 width=16)
+                          ->  Seq Scan on students_backgroundprocessingtask u0_1  (cost=0.00..635.00 rows=20000 width=16)
+                                Filter: ((status)::text = 'SUCCESS'::text)
+              ->  Hash  (cost=10.40..10.40 rows=20 width=418)
+                    ->  Seq Scan on billing_creditusagelog u0  (cost=0.00..10.40 rows=20 width=418)
+                          Filter: is_refunded
+GATE6_EST_PLAN_WITHOUT tier=teacher
+Sort  (cost=9413.93..9434.47 rows=8216 width=160)
+  Sort Key: ai_processor_aicallrecord.processing_task_id
+  ->  HashAggregate  (cost=8756.48..8879.72 rows=8216 width=160)
+        Group Key: ai_processor_aicallrecord.processing_task_id
+        ->  Hash Join  (cost=895.65..8454.95 rows=10051 width=80)
+              Hash Cond: (ai_processor_aicallrecord.processing_task_id = u0_1.id)
+              ->  Hash Anti Join  (cost=10.65..7543.55 rows=10051 width=80)
+                    Hash Cond: ((ai_processor_aicallrecord.task_id)::text = (u0.task_id)::text)
+                    ->  Seq Scan on ai_processor_aicallrecord  (cost=0.00..7406.00 rows=10053 width=117)
+                          Filter: ((processing_task_id IS NOT NULL) AND (created_at >= '2026-08-12 05:54:18.570975+00'::timestamp with time zone) AND ((outcome)::text = 'charged'::text) AND ((task_type)::text = 'grade_assignment'::text) AND (billed_user_id = '65f3da83-d509-405f-b812-0a7b72d545bd'::uuid))
+                    ->  Hash  (cost=10.40..10.40 rows=20 width=418)
+                          ->  Seq Scan on billing_creditusagelog u0  (cost=0.00..10.40 rows=20 width=418)
+                                Filter: is_refunded
+              ->  Hash  (cost=635.00..635.00 rows=20000 width=16)
+                    ->  Seq Scan on students_backgroundprocessingtask u0_1  (cost=0.00..635.00 rows=20000 width=16)
+                          Filter: ((status)::text = 'SUCCESS'::text)

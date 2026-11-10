@@ -1945,3 +1945,54 @@ Every run is under `flock`, one at a time, flag unset unless stated. The counts 
 **Green re-run** (at this commit; labels in `step4/green_labels.txt`, unchanged): **`Ran 345`, `OK (skipped=1)`.**
 
 Then §4.9 steps 4–8 as declared, with step 8 as amended in §4.11.
+
+### §4.14 Results at 481c2e3a3 (§4.9 steps 2–8, all under `flock`). STOP: the `origin/main` safety check gave one `FAIL` (exit 1)
+
+**Step 2, green** (flag unset, labels `step4/green_labels.txt`): **`Ran 345`, `OK (skipped=1)`**, as declared. Log `step4/G_green_481c2e3a.log`.
+
+**Step 3, plants: all 26 killed by the named test with the declared fragment.** Each was restored by sha256 against `scratchpad/sha_b4.txt`. Logs: `step4/P_PE-*_481c2e3a.log`.
+- **PE-22:** the killer test gave `failures=5` and `errors=3`.
+  - The failures are `CommandError not raised` ×4, plus the row check `(inf, 36, 15) != (3.0, 36, 15)`.
+  - The errors are `IntegrityError` for backstop −1 and sweep −5, and `DataError` for 40000.
+  - Collateral: `IntegrityError` in `test_a_refused_set_changes_nothing_even_after_a_good_one`.
+- **PE-24:** `'billing.tasks.check_credit_estimate_drift'` occurs once on the `not less than or equal to` line, in the left-hand set. Collateral: `test_every_beat_task_is_locked_or_exempt`.
+- **PE-24b:** exactly 1 failure in `test_every_guarded_beat_task_skips_while_another_run_holds_it`, the drift subTest, with `no logs of level WARNING or higher triggered on AutoGrader.beat_locks`. The other subTests pass, which proves the loop runs.
+  - Collateral (both from the plant's own `max_hold=86400`): `test_a_hung_runs_lock_is_gone_before_the_next_scheduled_run` (`86460 not less than 86400.0`) and `test_max_hold_is_below_the_schedule_interval` (`86400 not less than 86400.0`).
+- **Other collateral, as observed:**
+  - PE-1: `exactly_p50`, `the_payload`.
+  - PE-3: `all_ungraded`, `the_payload`.
+  - PE-5: `from_ten_papers`.
+  - PE-10: 11 errors.
+  - PE-14: `failed_paper`.
+  - PE-21: `two_sets`.
+
+**Step 4, cold start** (`step4/b1b4_coldstart.py`): **`Ran 1`, `OK`.** Output: `batches=11 coverage=0.9091` and `suggested_factor=1.0 provider_gap_ratio=2.0`. Log `step4/C_coldstart_481c2e3a.log`.
+
+**Step 5, Gate 6:** **`Ran 1`, `OK`.** Log `step4/GATE6_481c2e3a.log`.
+- With the indexes, the assignment and teacher plans have no `Seq Scan` on `aicallrecord`. They use `Bitmap Index Scan` on `aicall_assignment_created` / `aicall_billed_user_created`.
+
+| Tier | p50 with indexes | p50 without |
+|---|---|---|
+| assignment | 14.4 ms | 27.8 ms |
+| teacher | 54.7 ms | 74.0 ms |
+| all_papers | 369.5 ms | 375.5 ms |
+
+**Step 6, the E runs (serial):**
+- **E1**, flag on, `--parallel 4`: **`Ran 7489`, `OK (skipped=32)`**, as declared. Log `step4/E1_flagon_481c2e3a.log.gz`.
+- **E2**, flag unset, near apps + rollback, `--parallel 4`: **`Ran 6425`, `OK (skipped=24)`**, as declared. Log `step4/E2_near_apps_481c2e3a.log.gz`.
+- **E3**, the 67 guards, serial: **`Ran 1148`, `OK (skipped=1)`**, as declared. Log `step4/E3_guards_481c2e3a.log`.
+
+**Step 7:** `makemigrations --check --dry-run`: **`No changes detected`**, as declared.
+
+**Step 8, the migration safety check** (CI env block):
+- **`--base origin/staging`: exit 0, 5 OK, 0 ACK, 0 FAIL**, as declared. B1b-4's `ai_processor` 0007 and 0008 and `billing` 0083 each print `OK … additive only`. Log `step4/MS_staging_481c2e3a.log`.
+- **`--base origin/main`: exit 1, 34 OK, 0 ACK, 1 FAIL. This is a STOP under §4.11.** Log `step4/MS_main_481c2e3a.log`.
+  - B1b-4's three migrations print `OK … additive only`, as declared.
+  - The FAIL is `classrooms/migrations/0017_session_is_active.py: non-additive operation without acknowledgement`: two one-step `AddConstraint` UniqueConstraints, `one_active_session_per_school` and `one_active_session_per_teacher`.
+  - 0017 is not a B1b migration. It is a staging-era migration, so it appears in the main…HEAD diff but not in the staging…HEAD diff.
+  - **Cause:** H-287 (beta bcc50d83c, staging 8eade3529) adds `# expand-contract-step: contract` to 0017's line 1. `git grep` finds it on `origin/staging` and not on HEAD.
+  - origin/staging moved to 8eade3529 after this step's merge. Per the doctrine, I did not merge it mid-step. My §4.11 declaration missed that the main…HEAD diff carries staging's unmarked 0017.
+  - Recorded unamended: **"prediction wrong: the main…HEAD diff includes classrooms/0017, which is unacknowledged on this branch because the H-287 marker landed on staging after this step's merge".**
+  - **Proposed (for the SM's ruling):** merge origin/staging 8eade3529, then re-run only `--base origin/main`. The declared outcome would be the same lines, with 0017 as `ACK`, 0 FAIL and exit 0.
+
+**Clean-up:** none of my own clone DBs are left over (no `test_epic_b1b*` in `psql -l`). The other test DBs are not mine and were left alone.
