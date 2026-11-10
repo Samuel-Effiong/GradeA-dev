@@ -2574,3 +2574,13 @@ Run on `students.tests_data_erase`.
   - makemigrations `No changes detected`;
   - safety staging exit 0, 6 OK, 0 ACK, 0 FAIL;
   - safety main exit 0, 35 OK, 1 ACK, 0 FAIL.
+
+### §5.16 Results at 99f2bb689: the green as declared; PK-5b killed by its test, STOP on the fragment
+
+- **The green: `Ran 603`, `OK (skipped=1)`, as declared.** Log `step5/G_green_99f2bb68.log`.
+- **PK-5b: `Ran 66`, `FAILED (failures=2)`.** The count is as declared. The file was restored, with sha256 `a916b34ce161…` both before and after, and `clean=0`. Log `step5/P_PK-5b_99f2bb68.log`.
+  - **Killer:** `test_a_readable_but_different_file_fails_the_item_once`, as declared. **The fragment is not as declared.** Declared `AssertionError: 'SUCCESS' != 'FAILURE'`; observed **`AssertionError: 'SUCCESS' != BackgroundTaskStatus.FAILURE`**. The expected value is the `TextChoices` member, whose repr names the enum, while the reloaded field is a plain str.
+  - **Collateral, as declared:** `test_a_corrupt_file_fails_the_item_once_with_the_old_text`, with `AssertionError: 'FILE_UNREADABLE' != ''`. No other failure.
+- **The cause:** my declaration error, of the same kind as PK-7 (I wrote the value, not its repr). The gap is shown all the same: under the plant, the readable other paper is graded as SUCCESS, and the new test catches it.
+- **Proposed (for the SM):** record PK-5b as "fragment wrong; killed by the named test", with no re-run. Then run §5.11 steps 4–8 as re-declared in §5.15.
+- **Lesson:** a fragment for a comparison with a `TextChoices` member shows `<Enum>.<NAME>` on the expected side.
