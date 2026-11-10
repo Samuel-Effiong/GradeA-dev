@@ -43,6 +43,7 @@ from assignments.upload_door import (
     launch_at_door,
     parked_files,
 )
+from assignments.upload_prompts import BATCH_UPLOAD_PROMPT
 from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
@@ -62,6 +63,7 @@ from classrooms.models import (
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
 from students.grading_gates import ensure_gradable
+from students.kept_uploads import DoorFile
 from students.models import BackgroundTaskType, BatchUploadSession, BatchUploadType
 from students.task_tracking import (
     create_processing_task,
@@ -1100,12 +1102,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if not files:
             raise ParseError("No files were uploaded. Please try again")
 
-        prompt_text = """
-            Analyze the image of an educational assignment and return a JSON
-
-            IMPORTANT: Return only valid JSON matching the required structure.
-            Do not include any explanatory text before or after the JSON
-            """
+        # B1b-5 (SM Q2): shared with the retry of a stopped item.
+        prompt_text = BATCH_UPLOAD_PROMPT
 
         # H-180 / H-223: before the session or any task exists, the door
         # walks the files with a running balance. A file that does not fit
@@ -1181,18 +1179,24 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 )
                 continue
 
-            file_payload = AssignmentProcessingService.build_async_upload_payload(
-                uploaded_file
-            )
+            # Epic B1b-5 (08b §3.2): the file is kept first; its row (with
+            # the topic a retry needs, SM Q2) is written with the item.
+            door_file = DoorFile(uploaded_file)
 
-            processing_task = create_processing_task(
-                requested_by=request.user,
-                task_type=BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD,
-                batch_session=session,
-                file_name=uploaded_file.name,
-                meta={"step": "Queued for batch assignment extraction"},
-                item_index=item_index,
-            )
+            with transaction.atomic():
+                processing_task = create_processing_task(
+                    requested_by=request.user,
+                    task_type=BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD,
+                    batch_session=session,
+                    file_name=uploaded_file.name,
+                    meta={"step": "Queued for batch assignment extraction"},
+                    item_index=item_index,
+                )
+                door_file.attach(
+                    processing_task,
+                    relaunch={"topic_id": str(topic.id) if topic else None},
+                )
+            file_payload = door_file.payload()
             if not door.hold(processing_task, estimates.get(item_index - 1)):
                 # Epic B1a: the file's hold lost a race for the free balance.
                 mark_processing_task_failure(

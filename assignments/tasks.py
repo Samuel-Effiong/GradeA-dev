@@ -49,6 +49,7 @@ from students.exceptions import (
     TaskCancelledError,
 )
 from students.grading_gates import rubric_missing
+from students.kept_uploads import KeptFileLost, is_kept, open_upload
 from students.models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
@@ -1009,6 +1010,14 @@ def format_grade(self, submission_id, prompt, processing_task_id=None):
         raise
 
 
+#: What a failed answer upload says (also a lost kept file's, B1b-5 SM Q3).
+ANSWER_UPLOAD_FALLBACK = (
+    "We couldn't process this submission upload. Please check "
+    "the file and try again, or contact support if this "
+    "continues."
+)
+
+
 # soft/hard limits sized against ai_processor.services.PDFService.MAX_PAGE_COUNT
 # (300) and ANSWERS_EXTRACTION_PAGES_PER_CHUNK (3) - see the comments on
 # both for the real-endpoint timing this is derived from. Re-derive this
@@ -1045,7 +1054,14 @@ def upload_answers_engine_async(
             processing_task_id, meta={"step": "Preparing submission content"}
         )
         ensure_task_not_cancelled(processing_task_id)
-        uploaded_file = AssignmentProcessingService.rebuild_uploaded_file(file_payload)
+        # B1b-5: a kept file is loaded and checked; an inline one (storage
+        # down at the door, or sent before F4) is rebuilt as before.
+        if is_kept(file_payload):
+            uploaded_file, _ = open_upload(file_payload)
+        else:
+            uploaded_file = AssignmentProcessingService.rebuild_uploaded_file(
+                file_payload
+            )
         try:
             content = AssignmentProcessingService.prepare_ai_content(
                 uploaded_file, prompt
@@ -1146,6 +1162,22 @@ def upload_answers_engine_async(
                 file_name, "FAILED", error=task.error if task else message
             )
         return {"status": states.FAILURE, "message": message, **_refusal_code(exc)}
+    except KeptFileLost as exc:
+        # B1b-5 (SM Q3): the kept file is gone or corrupt. No retry can
+        # succeed, so the item fails at once, with the usual text and no
+        # code (a retry is then refused: the file isn't kept).
+        task = mark_processing_task_failure(
+            processing_task_id,
+            exc,
+            meta={"step": "Answer extraction failed", "assignment_id": assignment_id},
+            fallback_message=ANSWER_UPLOAD_FALLBACK,
+        )
+        if session_id:
+            session = BatchUploadSession.objects.get(id=session_id)
+            session.update_result(
+                file_name, "FAILED", error=task.error if task else None
+            )
+        return {"status": states.FAILURE, "message": ANSWER_UPLOAD_FALLBACK}
     except Exception as exc:
         if self.request.retries < self.max_retries:
             # Not a failure yet. Marking FAILURE here (as this used to)
@@ -1167,11 +1199,7 @@ def upload_answers_engine_async(
             processing_task_id,
             exc,
             meta={"step": "Answer extraction failed", "assignment_id": assignment_id},
-            fallback_message=(
-                "We couldn't process this submission upload. Please check "
-                "the file and try again, or contact support if this "
-                "continues."
-            ),
+            fallback_message=ANSWER_UPLOAD_FALLBACK,
         )
         if session_id:
             session = BatchUploadSession.objects.get(id=session_id)
@@ -1327,7 +1355,15 @@ def upload_assignment_async(
             processing_task_id, meta={"step": "Preparing assignment content"}
         )
         ensure_task_not_cancelled(processing_task_id)
-        uploaded_file = AssignmentProcessingService.rebuild_uploaded_file(file_payload)
+        # B1b-5: a kept file is loaded and checked (its row's digest); an
+        # inline one is rebuilt and digested as before.
+        if is_kept(file_payload):
+            uploaded_file, digest = open_upload(file_payload)
+        else:
+            uploaded_file = AssignmentProcessingService.rebuild_uploaded_file(
+                file_payload
+            )
+            digest = sha256_of_upload_payload(file_payload)
         # Checks the file, extracts and saves it with its charges refunded if
         # it fails, and answers a file this course already has an assignment
         # for with that assignment instead of extracting it again.
@@ -1337,7 +1373,7 @@ def upload_assignment_async(
             prompt_text,
             course=course,
             topic=topic,
-            sha256=sha256_of_upload_payload(file_payload),
+            sha256=digest,
             processing_task_id=processing_task_id,
         )
         assignment = outcome.assignment

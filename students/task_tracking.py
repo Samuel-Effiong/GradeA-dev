@@ -267,14 +267,25 @@ def mark_processing_task_started(processing_task_id, meta=None):
     )
 
 
+def _discard_kept_file(processing_task):
+    """Epic B1b-5 (Q3b, Q5): an upload item that succeeded or was cancelled
+    no longer needs its kept file. Upload task types only: no query for any
+    other task."""
+    from .kept_uploads import discard
+
+    discard(processing_task)
+
+
 def mark_processing_task_success(processing_task_id, meta=None):
-    return update_processing_task(
+    processing_task = update_processing_task(
         processing_task_id,
         status=BackgroundTaskStatus.SUCCESS,
         meta=meta,
         finished=True,
         error="",
     )
+    _discard_kept_file(processing_task)
+    return processing_task
 
 
 def mark_processing_task_failure(
@@ -331,12 +342,14 @@ def record_refused_item(*, requested_by, task_type, error, **fields):
 
 
 def mark_processing_task_cancelled(processing_task_id, meta=None):
-    return update_processing_task(
+    processing_task = update_processing_task(
         processing_task_id,
         status=BackgroundTaskStatus.CANCELLED,
         meta=meta,
         finished=True,
     )
+    _discard_kept_file(processing_task)
+    return processing_task
 
 
 def ensure_task_not_cancelled(processing_task_id, *, message=None):

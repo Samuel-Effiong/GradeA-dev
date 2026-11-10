@@ -160,6 +160,8 @@ EXPORT_FIELDS = {
         "created_at",
         "finished_at",
     ),
+    # Epic B1b-5 (SM Q7b): nested in its file-uploads row.
+    "students.KeptUpload": ("original_name", "size_bytes", "kept_until", "purged_at"),
     "ai_processor.ChatSession": (
         "id",
         "course",
@@ -182,6 +184,13 @@ EXPORT_FIELDS = {
     ),
 }
 
+#: Epic B1b-5 (SM Q7b; owner text #18, 2026-11-10): a file-uploads row's
+#: kept file, nested under this key: its name, size, kept-until and purged
+#: times, never the storage key, the digest or the bytes. Owner-approved;
+#: off until B1b-8 switches it on with the other approved texts.
+KEPT_FILE_EXPORT_NAME = "kept_file"
+KEPT_FILE_EXPORT_NAME_APPROVED = False
+
 #: Q1 (SM, 2026-11-08): present only once the teacher has released the
 #: grade; empty (null) before. Conditional on `is_published`.
 EXPORT_CONDITIONAL = {
@@ -198,6 +207,15 @@ EXPORT_CONDITIONAL = {
 
 #: Every column left out, with the reason.
 EXPORT_OMITTED = {
+    "students.KeptUpload": {
+        "id": "internal row id",
+        "processing_task": "the file-uploads row it is nested in",
+        "storage_key": "where the file is stored (internal)",
+        "content_type": _PROCESSING,
+        "sha256": _PROCESSING,
+        "relaunch": _PROCESSING,
+        "created_at": "the same as its file-uploads row's created_at",
+    },
     "users.CustomUser": {
         "password": _SECURITY,
         "activation_token": _SECURITY,
@@ -294,6 +312,8 @@ COURSE_PATH = {
     "students.StudentSubmission": "assignment__course_id",
     "ai_processor.ChatSession": "course_id",
     "students.BackgroundProcessingTask": "assignment__course_id",  # E-Q2
+    # Epic B1b-5: through the processing task it was kept for.
+    "students.KeptUpload": "processing_task__assignment__course_id",
 }
 
 #: Rows in a fixed order: time first, then id.
@@ -409,6 +429,17 @@ def _rows(label, field_name, student, scope):
     rows = []
     for obj in queryset:
         row = _row(label, obj, released_grades)
+        if label == "students.BackgroundProcessingTask" and (
+            KEPT_FILE_EXPORT_NAME_APPROVED
+        ):
+            kept = (
+                apps.get_model("students.KeptUpload")
+                .objects.filter(processing_task_id=obj.pk)
+                .first()
+            )
+            row[KEPT_FILE_EXPORT_NAME] = (
+                _row("students.KeptUpload", kept) if kept is not None else None
+            )
         if label == "ai_processor.ChatSession":
             row[EXPORT_NAMES["messages"]] = [
                 _row("ai_processor.ChatMessage", message)

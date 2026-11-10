@@ -21,6 +21,8 @@ import dj_database_url
 from celery.schedules import crontab
 from environ import Env
 
+from AutoGrader.queue_lifetime import parse_queue_lifetime_days
+
 env = Env()
 env.read_env(".env")
 
@@ -954,6 +956,11 @@ CELERY_BEAT_SCHEDULE = {
         "task": "billing.tasks.check_credit_estimate_drift",
         "schedule": crontab(minute=0, hour=6, day_of_month=1),
     },
+    # Epic B1b-5 (08b §3.2): delete kept upload files past their kept_until.
+    "purge-kept-uploads-hourly": {
+        "task": "students.tasks.purge_kept_uploads",
+        "schedule": crontab(minute=15),
+    },
     "process-annual_plan-credit-grants": {
         "task": "billing.tasks.process_annual_plan_credit_grants",
         "schedule": crontab(minute=0, hour=2),
@@ -1623,6 +1630,22 @@ BENCHMARK_ARCHIVE_PREFIX = env.str(
 _RUNNING_TESTS = "test" in sys.argv or "pytest" in sys.modules
 BENCHMARK_ARCHIVE_ENABLED = env.bool(
     "BENCHMARK_ARCHIVE_ENABLED", default=not _RUNNING_TESTS
+)
+
+# Epic B1b-5 (08b §2.1; the SM brought it forward from B1b-6, Q1): how many
+# days a kept upload file is kept, and (from B1b-6) how long a queued batch
+# waits, and the day count in the approved texts (B1b-8). One value for web,
+# worker and beat, set at the platform's shared level. Not 1-365: start-up
+# stops (AutoGrader/queue_lifetime.py).
+QUEUE_LIFETIME_DAYS = parse_queue_lifetime_days(
+    env.str("QUEUE_LIFETIME_DAYS", default=None)
+)
+
+# Epic B1b-5 (08b §3.2): where kept upload files live. "cloudinary" (private
+# raw assets, students/kept_files.py) everywhere but tests, which use an
+# in-memory store for the same reason uploading is off above.
+KEPT_UPLOADS_BACKEND = env.str(
+    "KEPT_UPLOADS_BACKEND", default="memory" if _RUNNING_TESTS else "cloudinary"
 )
 
 # Email domain for users the live-QA suite creates. Defaults to a

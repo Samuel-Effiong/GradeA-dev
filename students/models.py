@@ -2,6 +2,7 @@ import uuid
 
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models, transaction
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from students.grading_label import FIRST_FORM_NOTE, UNLABELLED
@@ -698,3 +699,45 @@ class ErasedStudentRecord(models.Model):
     #: the erasure must not depend on that account staying).
     erased_by_id = models.UUIDField(null=True, blank=True)
     keep_until = models.DateTimeField()
+
+
+class KeptUpload(models.Model):
+    """An uploaded file kept for its item (Epic B1b-5, 08b §3.2), so a stopped
+    upload item can be retried without a re-upload. The bytes are a private
+    Cloudinary asset (`students.kept_files`); this row says where, what, and
+    until when. Kept after purge (`purged_at` set) so a refused retry can say
+    the file was deleted. See students/kept_uploads.py."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    processing_task = models.OneToOneField(
+        BackgroundProcessingTask,
+        on_delete=models.CASCADE,
+        related_name="kept_upload",
+    )
+    #: The asset's random public id, `kept_uploads/<hex>`; never a file name.
+    storage_key = models.CharField(max_length=255, unique=True)
+    original_name = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=255, blank=True, default="")
+    size_bytes = models.PositiveBigIntegerField()
+    sha256 = models.CharField(max_length=64)
+    #: The ids a retry relaunches with (SM Q2): `{"topic_id": ...}` for an
+    #: assignment upload. Ids only, never names or bytes.
+    relaunch = models.JSONField(default=dict, blank=True)
+    #: created_at + QUEUE_LIFETIME_DAYS (08b §2.1); moved to now when the
+    #: item succeeds or is cancelled.
+    kept_until = models.DateTimeField()
+    #: Set only once the asset's delete succeeded.
+    purged_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["kept_until"],
+                name="keptupload_due",
+                condition=models.Q(purged_at__isnull=True),
+            )
+        ]
+
+    def __str__(self):
+        return f"KeptUpload {self.pk}"

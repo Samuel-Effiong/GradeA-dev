@@ -88,3 +88,17 @@ def invalidate_submission_caches_bulk(submissions):
 @receiver([post_save, post_delete], sender=StudentSubmission)
 def clear_student_submission_cache(sender, instance, **kwargs):
     invalidate_submission_caches(instance)
+
+
+# Epic B1b-5 (08b §3.3): a KeptUpload row deleted by erasure, an item delete
+# or any cascade takes its stored file with it, once the delete commits.
+def _connect_kept_upload_delete():
+    from students.kept_uploads import on_row_deleted
+    from students.models import KeptUpload
+
+    post_delete.connect(
+        on_row_deleted, sender=KeptUpload, dispatch_uid="kept_upload_file_delete"
+    )
+
+
+_connect_kept_upload_delete()

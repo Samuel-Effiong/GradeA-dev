@@ -149,6 +149,8 @@ def _delete_entries(student, scope):
         model = apps.get_model(label)
         if entry.match == Match.EMAIL:
             rows = model.objects.filter(**{f"{field_name}__iexact": student.email})
+        elif entry.match == Match.PROCESSING_TASK:
+            rows = model.objects.filter(**{f"{field_name}__requested_by": student.pk})
         else:
             rows = model.objects.filter(**{field_name: student.pk})
         if scope.course_ids is not None:

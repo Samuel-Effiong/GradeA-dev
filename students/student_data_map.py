@@ -20,8 +20,10 @@ Roles, from the owner's rulings of 2026-11-06:
 
 ``match`` says how a row is found for a student: ``USER`` (the column is
 the student, as a foreign key or a bare id), ``EMAIL`` (the column equals
-the student's email address, ignoring case) or ``OWN_ROW`` (a column on the
-student's own user row). ``stored_file`` marks a column that names a file in
+the student's email address, ignoring case), ``OWN_ROW`` (a column on the
+student's own user row) or ``PROCESSING_TASK`` (the column is a processing
+task, and the row is the student's when that task's ``requested_by`` is;
+Epic B1b-5, the kept upload files). ``stored_file`` marks a column that names a file in
 storage, deleted after the erasure commits.
 
 ``course_scoped`` marks rows that a teacher's erasure (D3: removes the
@@ -47,6 +49,7 @@ class Match(str, Enum):
     USER = "USER"
     EMAIL = "EMAIL"
     OWN_ROW = "OWN_ROW"
+    PROCESSING_TASK = "PROCESSING_TASK"
 
 
 @dataclass(frozen=True)
@@ -88,6 +91,19 @@ STUDENT_DATA_MAP = {
     # SM R3: no course column, so removed by a full erasure only.
     ("dashboard.StudentRiskAlertState", "student"): _own(
         "The at-risk flags teachers see"
+    ),
+    # Epic B1b-5, owner 2026-11-09 (08b §9 Q10; SM Q7a): the kept copy of a
+    # file the student uploaded, found through its processing task. Deleted
+    # with the student (its stored file after commit), purged after
+    # QUEUE_LIFETIME_DAYS. Exported nested in each file-uploads row, never
+    # the bytes. Listed before the processing task so erasure counts it.
+    ("students.KeptUpload", "processing_task"): Entry(
+        Role.DELETE,
+        "Kept copies of files the student uploaded (deleted after "
+        "QUEUE_LIFETIME_DAYS days, or when the item succeeds)",
+        export=True,
+        course_scoped=True,
+        match=Match.PROCESSING_TASK,
     ),
     # SM E-Q2: through its assignment, a teacher's erasure removes it.
     ("students.BackgroundProcessingTask", "requested_by"): _own(

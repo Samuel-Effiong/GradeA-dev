@@ -7,10 +7,13 @@ It is the same row: retry_count + 1, back to PENDING, relaunched with a new
 Celery id, and its trace becomes the retrying request's. Everything else is
 refused with NOT_RETRYABLE (409), and nothing is launched.
 
-An UPLOAD item is never retried in place, whatever its code: its file isn't
-kept (F4), so the answer is "upload the file again", and
-params.resolution = "replace_file" tells a client which action to offer.
-`resolve` is deferred (F2/F3).
+An UPLOAD item (Epic B1b-5, F4) is retried in place the same way when its
+file is kept (a KeptUpload row, not purged) and its code is retryable as it
+is, or INSUFFICIENT_CREDITS (the late door, 08b §3.2 step 5; upload items
+only, SM Q4). It is relaunched with the kept file's id, the shared prompt
+and the ids its route used. Any other upload item answers "upload the file
+again", and params.resolution = "replace_file" tells a client which action
+to offer. `resolve` is deferred (F2/F3).
 
 Two retries of one item race on a conditional UPDATE claim: exactly one
 wins, and the other is refused.
@@ -43,6 +46,10 @@ GRADE_ITEM_TYPES = frozenset({BackgroundTaskType.BATCH_SUBMISSION_GRADING})
 UPLOAD_ITEM_TYPES = frozenset(
     {BackgroundTaskType.BATCH_ANSWER_UPLOAD, BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD}
 )
+
+#: An upload item's codes that a kept file makes retryable (SM Q4): the
+#: catalogue's retryable codes, plus the late door's credit refusal.
+UPLOAD_EXTRA_RETRYABLE_CODES = frozenset({ReasonCode.INSUFFICIENT_CREDITS.value})
 
 #: The "why" of NOT_RETRYABLE for an upload item (a server constant).
 REUPLOAD = (
@@ -84,10 +91,32 @@ def _retryable_as_it_is(code):
     return bool(spec and spec.retryable)
 
 
+def kept_file(item):
+    """`item`'s kept upload file, if it still has one (B1b-5)."""
+    from .models import KeptUpload
+
+    return KeptUpload.objects.filter(
+        processing_task_id=item.pk, purged_at__isnull=True
+    ).first()
+
+
+def _upload_retryable(item):
+    return (
+        item.status == BackgroundTaskStatus.FAILURE
+        and (
+            _retryable_as_it_is(item.reason_code)
+            or item.reason_code in UPLOAD_EXTRA_RETRYABLE_CODES
+        )
+        and kept_file(item) is not None
+    )
+
+
 def refusal_for(item):
     """Why `item` can't be retried in place, as the error to raise; or None
     when it can."""
     if item.task_type in UPLOAD_ITEM_TYPES:
+        if _upload_retryable(item):
+            return None
         return ItemNotRetryable(
             params={"resolution": "replace_file"}, display={"why": REUPLOAD}
         )
@@ -148,6 +177,11 @@ def retry_item(item, requested_by, request=None):
         clear_batch_credit_stop(item.batch_session_id)
     item.refresh_from_db()
 
+    if item.task_type in UPLOAD_ITEM_TYPES:
+        _relaunch_upload(item, requested_by)
+        item.refresh_from_db()
+        return item
+
     from assignments.tasks import grade_engine_async
 
     launch_processing_task(
@@ -173,6 +207,43 @@ def retry_item(item, requested_by, request=None):
     )
     item.refresh_from_db()
     return item
+
+
+def _relaunch_upload(item, requested_by):
+    """B1b-5 (SM Q2): the item's own worker, from its kept file, with the
+    shared prompt and the ids its route used. Under the retrying teacher,
+    as a grading retry. No GRADING_REQUESTED row: the request's own audit
+    row stands."""
+    from assignments.tasks import upload_answers_engine_async, upload_assignment_async
+    from assignments.upload_prompts import BATCH_UPLOAD_PROMPT
+
+    from .models import KeptUpload
+
+    kept = KeptUpload.objects.get(processing_task_id=item.pk)
+    payload = {"kept_upload_id": str(kept.id)}
+    if item.task_type == BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD:
+        launch_processing_task(
+            upload_assignment_async,
+            item,
+            user_id=str(requested_by.id),
+            course_id=str(item.batch_session.course_id),
+            topic_id=kept.relaunch.get("topic_id"),
+            session_id=str(item.batch_session_id),
+            file_payload=payload,
+            prompt_text=BATCH_UPLOAD_PROMPT,
+            file_name=item.file_name,
+        )
+    else:
+        launch_processing_task(
+            upload_answers_engine_async,
+            item,
+            str(item.assignment_id),
+            payload,
+            BATCH_UPLOAD_PROMPT,
+            str(requested_by.id),
+            session_id=str(item.batch_session_id),
+            file_name=item.file_name,
+        )
 
 
 def retry_failed(session, requested_by, reason_codes=None, request=None):

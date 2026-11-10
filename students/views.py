@@ -60,6 +60,7 @@ from assignments.upload_door import (
     parked_files,
     upload_refusal_if_unaffordable,
 )
+from assignments.upload_prompts import BATCH_UPLOAD_PROMPT
 from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
@@ -85,6 +86,7 @@ from .exceptions import (
 )
 from .feedback_projection import grading_result_for_formatter
 from .grading_gates import ensure_gradable
+from .kept_uploads import DoorFile
 from .models import (
     BackgroundTaskType,
     BatchUploadSession,
@@ -741,9 +743,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if refusal is not None:
             return refusal
 
-        file_payload = AssignmentProcessingService.build_async_upload_payload(
-            uploaded_file
-        )
+        # Epic B1b-5 (08b §3.2): the file is kept before its item exists, and
+        # the task gets its id (with storage down, the bytes, as before).
+        door_file = DoorFile(uploaded_file)
 
         # One queued extraction per (student, assignment) at a time. The
         # student's own user row is the lock, so two simultaneous requests
@@ -762,15 +764,23 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     file_name=uploaded_file.name,
                     meta={"step": "Queued for answer extraction"},
                 )
+                door_file.attach(processing_task)
                 # Epic B1a: the file's hold, in this transaction. A refused
                 # hold rolls the row back; nothing is launched.
                 door = DoorHold(request.user, assignment, 1)
                 if not door.hold(processing_task, estimates.get(0)):
                     raise DoorHoldRefused(door.refusal_response(estimates.get(0)))
         except SUBMISSION_CLOSED_ERRORS as exc:
+            door_file.discard()
             return _submission_closed_response(exc)
         except DoorHoldRefused as refused:
+            door_file.discard()
             return refused.response
+        except BaseException:
+            # B1b-5: the item never committed, so its kept file goes now.
+            door_file.discard()
+            raise
+        file_payload = door_file.payload()
 
         task_id = launch_at_door(
             launch_processing_task,
@@ -1469,12 +1479,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if not files:
             raise ParseError("No files uploaded. Please try again.")
 
-        prompt = """
-            Analyze the image of an educational assignment and return a JSON
-
-            IMPORTANT: Return only valid JSON matching the required structure.
-            Do not include any explanatory text before or after the JSON
-            """
+        # B1b-5 (SM Q2): shared with the retry of a stopped item.
+        prompt = BATCH_UPLOAD_PROMPT
 
         # H-180 / H-223: before the session or any task exists, the door
         # walks the files with a running balance. A file that does not fit
@@ -1555,23 +1561,25 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 )
                 continue
 
-            # Read raw file bytes cheaply here; heavy rasterization/compression
-            # happens inside the Celery task, not on the request thread.
-            file_payload = AssignmentProcessingService.build_async_upload_payload(
-                uploaded_file
-            )
+            # Epic B1b-5 (08b §3.2): the file is kept first (heavy
+            # rasterization still happens in the task); its row is written
+            # with the item, in one transaction.
+            door_file = DoorFile(uploaded_file)
 
             # Trigger individual async tasks for each paper
             # This allows parallel processing in Celery
-            processing_task = create_processing_task(
-                requested_by=request.user,
-                task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,
-                batch_session=session,
-                assignment=assignment,
-                file_name=uploaded_file.name,
-                meta={"step": "Queued for batch answer extraction"},
-                item_index=item_index,
-            )
+            with transaction.atomic():
+                processing_task = create_processing_task(
+                    requested_by=request.user,
+                    task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,
+                    batch_session=session,
+                    assignment=assignment,
+                    file_name=uploaded_file.name,
+                    meta={"step": "Queued for batch answer extraction"},
+                    item_index=item_index,
+                )
+                door_file.attach(processing_task)
+            file_payload = door_file.payload()
             if not door.hold(processing_task, estimates.get(item_index - 1)):
                 # Epic B1a: the file's hold lost a race for the free balance.
                 mark_processing_task_failure(
