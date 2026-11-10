@@ -2331,3 +2331,24 @@ Collateral is recorded as observed and is not a mismatch. A survivor, or a kill 
 **Proposed fix (not applied; for the SM):**
 - Lines 170 and 203 expect `200`.
 - The red is re-run expecting **`FAILED (failures=5, errors=69)`**, the §5.7 declaration unchanged: the kept-file test then errors at the `KeptUpload` lookup, as declared.
+
+### §5.9 Four pre-existing pins the §5.4 survey missed (found by reading, while the red STOP is open; no run, no edit)
+
+**What happened:** the §5.4 survey (at 94b5c68e7) assumed Q7(a)'s recommendation: no map key for `KeptUpload`. It marked the map and export guards "unaffected". The SM then ruled the key in (§5.6, Q7a: DELETE, `Match.PROCESSING_TASK`, export=True, course-scoped, nested). Owner text #18 then put a new name in the export. **I did not re-survey after those rulings. That is the error.** Reading the guards for the product edits found:
+
+| Pin | What it requires | Breaks because |
+|---|---|---|
+| `students/tests_student_data_map.py:185` `test_a_course_scoped_table_can_be_scoped_by_course` | a course-scoped entry's table has a `course` or `assignment` column | `KeptUpload` reaches its course through `processing_task.assignment.course` |
+| `students/tests_student_data_map.py:227` `test_every_other_entry_matches_by_user` | every entry's match is `USER`, `EMAIL` or `OWN_ROW` | `PROCESSING_TASK` is new |
+| `students/tests_data_export.py:405` `test_every_exported_table_has_its_file_even_when_empty` | every export=True entry (not OWN_ROW) has its own file in the zip | `KeptUpload` is nested in file-uploads rows, not a file |
+| `students/tests_data_export.py:394` `test_names_are_the_approved_wording` | `EXPORT_NAMES == APPROVED_NAMES` (a fixed dict) | adding `EXPORT_NAMES["kept_file"]` (my new pin test reads it there) |
+
+Also read, and not broken: `students/tests_data_erase.py:104` `_rows_by_owner` filters a non-email, non-own-row entry by `field=user.pk`. For `KeptUpload`, that is `processing_task=<user id>`, which finds nothing, so the full-erasure test's per-table check passes trivially for this table. My `ErasureTests` cover it directly.
+
+**Proposed (for the SM), each with a break run:**
+- (1) `test_a_course_scoped_table_can_be_scoped_by_course`: a `PROCESSING_TASK` entry must reach a course through its processing task's assignment. Checked as `COURSE_PATH[label]` resolving.
+- (2) `test_every_other_entry_matches_by_user`: the allowed set gains `"PROCESSING_TASK"`.
+- (3) `test_every_exported_table_has_its_file_even_when_empty`: `PROCESSING_TASK` entries are skipped, because they are nested.
+- (4) The export name. **Option B (rec):** `kept_file` lives in its own constant, `KEPT_FILE_EXPORT_NAME = "kept_file"`, not in `EXPORT_NAMES`, until B1b-8 switches it on with the `APPROVED_NAMES` pin edit. My new test `test_the_nested_name_is_the_owner_approved_text_verbatim` then pins that constant: an edit of a new test, before any product. **Option A:** `EXPORT_NAMES` and the test's `APPROVED_NAMES` both gain `"kept_file"` now (owner-approved #18).
+- **Alternative to (1):** set `course_scoped=False`. A teacher's course erasure still removes the rows by cascade (their processing task is course-scoped) and the files by the receiver. But the SM ruled the entry course-scoped.
+- **The `_rows_by_owner` helper:** it gains a `PROCESSING_TASK` branch (`processing_task__requested_by=user.pk`), so the full-erasure test checks this table for real. That is an edit of a test helper.
