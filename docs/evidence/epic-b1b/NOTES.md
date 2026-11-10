@@ -1996,3 +1996,22 @@ Then §4.9 steps 4–8 as declared, with step 8 as amended in §4.11.
   - **Proposed (for the SM's ruling):** merge origin/staging 8eade3529, then re-run only `--base origin/main`. The declared outcome would be the same lines, with 0017 as `ACK`, 0 FAIL and exit 0.
 
 **Clean-up:** none of my own clone DBs are left over (no `test_epic_b1b*` in `psql -l`). The other test DBs are not mine and were left alone.
+
+### §4.15 The SM's ruling on the safety STOP (2026-11-10), and the declarations (before the merge and the run)
+
+**The ruling:**
+- §4.14's STOP is recorded unamended, as worded there. The SM notes that part of the miss is the SM's: the SM asked for the main-base run without noting that staging had moved after the step-start merge.
+- Merge origin/staging 8eade3529, then re-run only `--base origin/main`. Nothing else is re-run.
+- Since the merge base 80839ac76, staging adds only the marker lines at the top of `classrooms/0017` plus `docs/evidence/h287`. So the green, plants, cold start, Gate 6 and E1/E2/E3 at 481c2e3a3 stand.
+
+**Declared before the merge** (the pre-merge HEAD is this commit):
+- (a) `git diff --stat <pre-merge HEAD> HEAD -- . ':!docs/evidence'` shows exactly `classrooms/migrations/0017_session_is_active.py | 5 +++++` and `1 file changed, 5 insertions(+)`.
+- (b) `makemigrations --check --dry-run`: `No changes detected`.
+- (c) `scripts/check_migration_safety.py --base origin/main`, under the CI env block:
+  - `classrooms/migrations/0017_session_is_active.py` prints `ACK`;
+  - B1b-4's `ai_processor` 0007 and 0008 and `billing` 0083 print `OK … additive only`;
+  - 0 `FAIL` and exit 0.
+- The merge commit carries no Co-Authored-By trailer.
+- Any mismatch is recorded unamended and is a STOP.
+
+**The +1 skip (SM question):** E1 `skipped=32` is step 3's 31 plus `billing.tests.test_estimate_gate6`. That module is `@unittest.skipUnless(LOAD_TESTS_ENABLED, "load test: set RUN_LOAD_TESTS=1")` (`billing/tests/test_estimate_gate6.py:61`), and RUN_LOAD_TESTS is unset in E1. The same test explains E2's 23 → 24. Both counts were declared that way in §4.9 (31 + 1, per §4.6).
