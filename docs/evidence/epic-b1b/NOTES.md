@@ -2015,3 +2015,13 @@ Then §4.9 steps 4–8 as declared, with step 8 as amended in §4.11.
 - Any mismatch is recorded unamended and is a STOP.
 
 **The +1 skip (SM question):** E1 `skipped=32` is step 3's 31 plus `billing.tests.test_estimate_gate6`. That module is `@unittest.skipUnless(LOAD_TESTS_ENABLED, "load test: set RUN_LOAD_TESTS=1")` (`billing/tests/test_estimate_gate6.py:61`), and RUN_LOAD_TESTS is unset in E1. The same test explains E2's 23 → 24. Both counts were declared that way in §4.9 (31 + 1, per §4.6).
+
+### §4.16 Results after the merge (merge commit 9344f4a14, under the CI env block). All as declared
+
+- **The merge:** 9344f4a14, with parents 732e34443 (§4.15) and 8eade3529 (origin/staging). No Co-Authored-By trailer.
+- **(a)** `git diff --stat 732e34443 HEAD -- . ':!docs/evidence'`: `classrooms/migrations/0017_session_is_active.py | 5 +++++`, `1 file changed, 5 insertions(+)`. As declared.
+- **(b)** `makemigrations --check --dry-run`: `No changes detected`. As declared.
+- **(c)** `--base origin/main`: **exit 0, 34 OK, 1 ACK, 0 FAIL.** As declared. Log `step4/MS_main_9344f4a1.log`.
+  - `ACK  classrooms/migrations/0017_session_is_active.py: non-additive, marked as a reviewed expand-contract step`.
+  - `ai_processor` 0007 and 0008 and `billing` 0083 each print `OK … additive only`.
+- §4.15's ruling stands: the 481c2e3a3 results are not re-run. **B1b-4 is complete, for the SM's acceptance.**
