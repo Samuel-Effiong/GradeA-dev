@@ -2307,3 +2307,27 @@ The §5.2 design is approved, except where a ruling below changes it.
 Collateral is recorded as observed and is not a mismatch. A survivor, or a kill by another test or without its fragment, is a STOP.
 
 **After R:** the product commit. Then the counts are re-taken by `build_suite` and declared before each run: the break runs, the green (the new modules, the edited tests' modules, the guards these touch, and B1a's hold set), the plants, E1/E2/E3, `makemigrations --check`, and the safety check against both bases.
+
+### §5.8 The red result (at 4b380b8a0, under `flock`, flag unset). STOP: declared `failures=5, errors=69`
+
+**`Ran 117`, `FAILED (failures=6, errors=68)`.** Log `step5/R_red_4b380b8a.log`.
+
+**The mismatch:** `StudentRouteKeepsTheFileTests.test_the_file_is_kept_and_the_task_gets_its_id` **FAILS** (declared ERROR at the `KeptUpload` lookup) with `AssertionError: 200 != 202 : b'{"success":true,"message":"Answer Extraction Started",...}'`.
+- **Cause: a fault in my test.** The student `upload-async` route answers `HTTP_200_OK` (`students/views.py:803`), not 202. Only the two batch routes answer 202.
+- The same wrong `202` sits in `test_storage_down_falls_back_to_the_inline_file` (`tests_kept_uploads.py:203`). That test errored earlier in this red (at `kept_files()`, before the post), so the red did not show it.
+- Checked: every other route status in the new tests is right. The teacher batch and assignment routes answer 202 (`students/views.py`, `assignments/views.py` `HTTP_202_ACCEPTED`), the retry routes 202, and the refused door 402 (patched response).
+
+**Everything else is as declared:**
+- `tests_kept_files`: 14 errors (`No module named 'students.kept_files'`), and 1 failure, `None != 'memory'`.
+- `tests_kept_uploads`:
+  - 42 errors, including 7 for the subTests of `test_anything_else_stops_start_up_with_a_clear_message`.
+  - 3 failures: the declared two (`None != 30`, `None is not False`) plus the mismatch above.
+  - 1 pass, `test_the_inline_payload_still_works`.
+- `tests_kept_upload_retry`: 9 errors, and 1 pass, `test_a_grading_item_refused_for_credits_is_still_refused`.
+- `tests_upload_credit_door`: 3 errors, the edited tests.
+- `tests_credits_mid_batch`: 1 failure, `409 != 202`, the renamed test.
+- `tests_beat_locks`: 1 failure at `:432`, the `not less than or equal to` line, with `'students.tasks.purge_kept_uploads'` once, in the left-hand set.
+
+**Proposed fix (not applied; for the SM):**
+- Lines 170 and 203 expect `200`.
+- The red is re-run expecting **`FAILED (failures=5, errors=69)`**, the §5.7 declaration unchanged: the kept-file test then errors at the `KeptUpload` lookup, as declared.

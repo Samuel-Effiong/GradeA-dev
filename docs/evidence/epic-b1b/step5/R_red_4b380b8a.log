@@ -1,0 +1,1712 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 1f9e2efa-dafd-4935-8792-0496070d7cb3.
+Cannot activate automatic trial for user 1f9e2efa-dafd-4935-8792-0496070d7cb3 (validation): ValueError
+EFree trial plan not found: no trial activated for user 9fb25331-a809-4800-b49b-fe6cc3af2c11.
+Cannot activate automatic trial for user 9fb25331-a809-4800-b49b-fe6cc3af2c11 (validation): ValueError
+EFree trial plan not found: no trial activated for user c17aabb4-5c57-40f2-af0b-201d9fe7f9b0.
+Cannot activate automatic trial for user c17aabb4-5c57-40f2-af0b-201d9fe7f9b0 (validation): ValueError
+EFree trial plan not found: no trial activated for user d221be8a-894c-4854-a49d-6756a0a0fe8c.
+Cannot activate automatic trial for user d221be8a-894c-4854-a49d-6756a0a0fe8c (validation): ValueError
+EFree trial plan not found: no trial activated for user a649d8ae-cdcd-4efd-b22e-c138bec31222.
+Cannot activate automatic trial for user a649d8ae-cdcd-4efd-b22e-c138bec31222 (validation): ValueError
+EFree trial plan not found: no trial activated for user 5d8a7a93-49e4-4661-825a-8146c61c185c.
+Cannot activate automatic trial for user 5d8a7a93-49e4-4661-825a-8146c61c185c (validation): ValueError
+.Free trial plan not found: no trial activated for user 00384861-9076-45e2-a58b-2e8957258c0c.
+Cannot activate automatic trial for user 00384861-9076-45e2-a58b-2e8957258c0c (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+EFree trial plan not found: no trial activated for user a858d350-91f2-488f-9676-b78c777a3cb4.
+Cannot activate automatic trial for user a858d350-91f2-488f-9676-b78c777a3cb4 (validation): ValueError
+EFree trial plan not found: no trial activated for user 11425589-173d-4438-8575-e57f769d6e65.
+Cannot activate automatic trial for user 11425589-173d-4438-8575-e57f769d6e65 (validation): ValueError
+EFree trial plan not found: no trial activated for user 4c6f8262-05ac-4787-a47a-24cbe761a536.
+Cannot activate automatic trial for user 4c6f8262-05ac-4787-a47a-24cbe761a536 (validation): ValueError
+EFree trial plan not found: no trial activated for user f6a2edfa-4aa9-4b23-8afc-09f8c8aa60ac.
+Cannot activate automatic trial for user f6a2edfa-4aa9-4b23-8afc-09f8c8aa60ac (validation): ValueError
+EFree trial plan not found: no trial activated for user 8c237a1e-f78a-486f-8ba7-e31f7ceb1ff6.
+Cannot activate automatic trial for user 8c237a1e-f78a-486f-8ba7-e31f7ceb1ff6 (validation): ValueError
+EFree trial plan not found: no trial activated for user 3709aa73-e32b-489b-a112-a6d78b0a08b8.
+Cannot activate automatic trial for user 3709aa73-e32b-489b-a112-a6d78b0a08b8 (validation): ValueError
+EFree trial plan not found: no trial activated for user d4b0aa96-c30e-4aa7-9411-46421f4dbc8a.
+Cannot activate automatic trial for user d4b0aa96-c30e-4aa7-9411-46421f4dbc8a (validation): ValueError
+EFree trial plan not found: no trial activated for user d0fea821-bfd3-467c-bcc7-335d1ecf30fe.
+Cannot activate automatic trial for user d0fea821-bfd3-467c-bcc7-335d1ecf30fe (validation): ValueError
+EFree trial plan not found: no trial activated for user 79450f6b-8dbc-4393-ad83-f8d39fad8b69.
+Cannot activate automatic trial for user 79450f6b-8dbc-4393-ad83-f8d39fad8b69 (validation): ValueError
+EFree trial plan not found: no trial activated for user bcfe59a8-e1df-4fec-a51c-d23efbbfb632.
+Cannot activate automatic trial for user bcfe59a8-e1df-4fec-a51c-d23efbbfb632 (validation): ValueError
+EFree trial plan not found: no trial activated for user e758328b-5431-4108-97cf-ad10ad26a061.
+Cannot activate automatic trial for user e758328b-5431-4108-97cf-ad10ad26a061 (validation): ValueError
+EFree trial plan not found: no trial activated for user eb007d5a-d239-498a-8319-e8324d14ef88.
+Cannot activate automatic trial for user eb007d5a-d239-498a-8319-e8324d14ef88 (validation): ValueError
+EFree trial plan not found: no trial activated for user ab8d3268-6a87-46f0-a9ea-9ebaa3dd8cd3.
+Cannot activate automatic trial for user ab8d3268-6a87-46f0-a9ea-9ebaa3dd8cd3 (validation): ValueError
+EFree trial plan not found: no trial activated for user 92fdda10-c316-4de8-8700-d7668479f042.
+Cannot activate automatic trial for user 92fdda10-c316-4de8-8700-d7668479f042 (validation): ValueError
+EFree trial plan not found: no trial activated for user d48a6430-e357-47b2-8d21-d2ea9c5f047d.
+Cannot activate automatic trial for user d48a6430-e357-47b2-8d21-d2ea9c5f047d (validation): ValueError
+EFree trial plan not found: no trial activated for user 2aa3aed3-5812-4c58-b4d5-f60fe8db2cb5.
+Cannot activate automatic trial for user 2aa3aed3-5812-4c58-b4d5-f60fe8db2cb5 (validation): ValueError
+EFree trial plan not found: no trial activated for user 8f1787ab-f0d3-405e-8b90-b8b34871fe84.
+Cannot activate automatic trial for user 8f1787ab-f0d3-405e-8b90-b8b34871fe84 (validation): ValueError
+EFree trial plan not found: no trial activated for user 022161e4-3797-4ef4-9548-56fc746b00c2.
+Cannot activate automatic trial for user 022161e4-3797-4ef4-9548-56fc746b00c2 (validation): ValueError
+EFree trial plan not found: no trial activated for user 34024cfe-6f0c-438c-b140-3e69defd5568.
+Cannot activate automatic trial for user 34024cfe-6f0c-438c-b140-3e69defd5568 (validation): ValueError
+EFree trial plan not found: no trial activated for user fb1dda4f-6b9e-4154-8cd7-cc9ddd58b732.
+Cannot activate automatic trial for user fb1dda4f-6b9e-4154-8cd7-cc9ddd58b732 (validation): ValueError
+EFree trial plan not found: no trial activated for user b19ffce0-540d-417b-b2bd-d5b14bd023eb.
+Cannot activate automatic trial for user b19ffce0-540d-417b-b2bd-d5b14bd023eb (validation): ValueError
+FFree trial plan not found: no trial activated for user 27efb4ae-ad25-4ca3-b30a-59ed263bb119.
+Cannot activate automatic trial for user 27efb4ae-ad25-4ca3-b30a-59ed263bb119 (validation): ValueError
+EFree trial plan not found: no trial activated for user 8d5d8a07-127b-498b-9c0e-2619a827fbdf.
+Cannot activate automatic trial for user 8d5d8a07-127b-498b-9c0e-2619a827fbdf (validation): ValueError
+Free trial plan not found: no trial activated for user 1360d347-09b7-4819-991c-2692b2227b4e.
+Cannot activate automatic trial for user 1360d347-09b7-4819-991c-2692b2227b4e (validation): ValueError
+EFree trial plan not found: no trial activated for user a20562ef-a164-47b9-8d55-7b0292fbe71c.
+Cannot activate automatic trial for user a20562ef-a164-47b9-8d55-7b0292fbe71c (validation): ValueError
+Free trial plan not found: no trial activated for user bd8bb1c7-c2f5-4246-aad4-6efd0bfc791e.
+Cannot activate automatic trial for user bd8bb1c7-c2f5-4246-aad4-6efd0bfc791e (validation): ValueError
+API request failed with NOT_RETRYABLE: This item can't be retried as it is.
+.Free trial plan not found: no trial activated for user 74f4452d-d452-4827-92f9-b8c0326fef12.
+Cannot activate automatic trial for user 74f4452d-d452-4827-92f9-b8c0326fef12 (validation): ValueError
+Free trial plan not found: no trial activated for user 85311642-1420-4dac-b343-d8a46f620c5a.
+Cannot activate automatic trial for user 85311642-1420-4dac-b343-d8a46f620c5a (validation): ValueError
+EFree trial plan not found: no trial activated for user 9f1d9a5d-2ea8-43c4-9373-e56d04bb3dad.
+Cannot activate automatic trial for user 9f1d9a5d-2ea8-43c4-9373-e56d04bb3dad (validation): ValueError
+Free trial plan not found: no trial activated for user 757a704b-5101-45a9-afd4-bdf69d00c6f9.
+Cannot activate automatic trial for user 757a704b-5101-45a9-afd4-bdf69d00c6f9 (validation): ValueError
+EFree trial plan not found: no trial activated for user 92a7a043-1c0d-4d57-88a4-89239a2b7aaf.
+Cannot activate automatic trial for user 92a7a043-1c0d-4d57-88a4-89239a2b7aaf (validation): ValueError
+Free trial plan not found: no trial activated for user 80c53064-1661-45a5-bd5d-702d1683c283.
+Cannot activate automatic trial for user 80c53064-1661-45a5-bd5d-702d1683c283 (validation): ValueError
+EFree trial plan not found: no trial activated for user 952e97f2-fcf8-414d-b387-4b7686e0ae91.
+Cannot activate automatic trial for user 952e97f2-fcf8-414d-b387-4b7686e0ae91 (validation): ValueError
+Free trial plan not found: no trial activated for user 812b77eb-54ee-4e6a-bee5-9243680e0cc3.
+Cannot activate automatic trial for user 812b77eb-54ee-4e6a-bee5-9243680e0cc3 (validation): ValueError
+EFree trial plan not found: no trial activated for user 0e0be7bd-399a-4114-b22f-66c2629025ba.
+Cannot activate automatic trial for user 0e0be7bd-399a-4114-b22f-66c2629025ba (validation): ValueError
+Free trial plan not found: no trial activated for user de9511c8-c390-4f95-9f9a-9c89ba31d45f.
+Cannot activate automatic trial for user de9511c8-c390-4f95-9f9a-9c89ba31d45f (validation): ValueError
+EFree trial plan not found: no trial activated for user 893151d1-0371-4b49-bbe4-d405fd7a7888.
+Cannot activate automatic trial for user 893151d1-0371-4b49-bbe4-d405fd7a7888 (validation): ValueError
+Free trial plan not found: no trial activated for user 805c6b2d-09aa-410a-8f6f-3f0bffc314d8.
+Cannot activate automatic trial for user 805c6b2d-09aa-410a-8f6f-3f0bffc314d8 (validation): ValueError
+EFree trial plan not found: no trial activated for user 2a935393-9304-4f63-b9cb-aa0d6e578592.
+Cannot activate automatic trial for user 2a935393-9304-4f63-b9cb-aa0d6e578592 (validation): ValueError
+Free trial plan not found: no trial activated for user 27ffb086-c4b2-4d53-8b02-22297fc4fc75.
+Cannot activate automatic trial for user 27ffb086-c4b2-4d53-8b02-22297fc4fc75 (validation): ValueError
+EFree trial plan not found: no trial activated for user cb0dc308-a4d3-4878-adee-f0d85d7aef42.
+Cannot activate automatic trial for user cb0dc308-a4d3-4878-adee-f0d85d7aef42 (validation): ValueError
+Free trial plan not found: no trial activated for user 373dadb9-7ed4-47e1-9966-eef2401c572b.
+Cannot activate automatic trial for user 373dadb9-7ed4-47e1-9966-eef2401c572b (validation): ValueError
+EFree trial plan not found: no trial activated for user e9cd679f-25d3-44df-977c-fae64fb3aef4.
+Cannot activate automatic trial for user e9cd679f-25d3-44df-977c-fae64fb3aef4 (validation): ValueError
+EFree trial plan not found: no trial activated for user d649776f-7307-432f-b863-b8c2ea172289.
+Cannot activate automatic trial for user d649776f-7307-432f-b863-b8c2ea172289 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~20806 credits, 5000 left in the batch
+.Free trial plan not found: no trial activated for user 44c9198a-2fdc-4c1a-9ac2-fbc6d1f57fba.
+Cannot activate automatic trial for user 44c9198a-2fdc-4c1a-9ac2-fbc6d1f57fba (validation): ValueError
+Upload door could not estimate a.png: FileUnreadableError
+.Free trial plan not found: no trial activated for user b9d893a6-0540-4593-8214-e799b975a6b8.
+Cannot activate automatic trial for user b9d893a6-0540-4593-8214-e799b975a6b8 (validation): ValueError
+.Free trial plan not found: no trial activated for user 63a864f0-8949-4015-b1e9-913197574d1d.
+Cannot activate automatic trial for user 63a864f0-8949-4015-b1e9-913197574d1d (validation): ValueError
+EFree trial plan not found: no trial activated for user b2991616-0e4d-4590-8fe0-17a5bae18950.
+Cannot activate automatic trial for user b2991616-0e4d-4590-8fe0-17a5bae18950 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~20806 credits, balance 5000
+.Free trial plan not found: no trial activated for user b737199d-2ab4-46df-830c-d77aeb1e4481.
+Cannot activate automatic trial for user b737199d-2ab4-46df-830c-d77aeb1e4481 (validation): ValueError
+Free trial plan not found: no trial activated for user 151e968d-f88a-446f-8019-61e242a69a83.
+Cannot activate automatic trial for user 151e968d-f88a-446f-8019-61e242a69a83 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~1000000000 credits, balance 100000
+.Free trial plan not found: no trial activated for user c4487a3a-4b64-41dc-ab47-b09e7f4c2079.
+Cannot activate automatic trial for user c4487a3a-4b64-41dc-ab47-b09e7f4c2079 (validation): ValueError
+Free trial plan not found: no trial activated for user 0876f626-6fb4-442f-a729-51a30026fa99.
+Cannot activate automatic trial for user 0876f626-6fb4-442f-a729-51a30026fa99 (validation): ValueError
+Free trial plan not found: no trial activated for user 33da396f-f791-489d-90c7-a84385dacb65.
+Cannot activate automatic trial for user 33da396f-f791-489d-90c7-a84385dacb65 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~20806 credits, balance 20805
+.Free trial plan not found: no trial activated for user a860e631-123c-4269-9bd9-1aa8f6405932.
+Cannot activate automatic trial for user a860e631-123c-4269-9bd9-1aa8f6405932 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~20806 credits, balance 5000
+.Free trial plan not found: no trial activated for user dadeb1db-ffcd-4001-8d9e-395af644325f.
+Cannot activate automatic trial for user dadeb1db-ffcd-4001-8d9e-395af644325f (validation): ValueError
+EFree trial plan not found: no trial activated for user eb05f22d-3887-4f94-ae25-553eeee602f9.
+Cannot activate automatic trial for user eb05f22d-3887-4f94-ae25-553eeee602f9 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~20806 credits, 5000 left in the batch
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~20806 credits, 5000 left in the batch
+.Free trial plan not found: no trial activated for user 66c55eac-c0ce-4ee0-9df8-a8307360d690.
+Cannot activate automatic trial for user 66c55eac-c0ce-4ee0-9df8-a8307360d690 (validation): ValueError
+Upload door refused: InsufficientCreditsError: Upload needs ~20766 credits, balance 5000
+.Free trial plan not found: no trial activated for user 28e843d8-0c49-4229-a9ea-c9d01a643254.
+Cannot activate automatic trial for user 28e843d8-0c49-4229-a9ea-c9d01a643254 (validation): ValueError
+.Free trial plan not found: no trial activated for user c8352940-2b8b-4dba-98e4-2bc51325b6a6.
+Cannot activate automatic trial for user c8352940-2b8b-4dba-98e4-2bc51325b6a6 (validation): ValueError
+..Free trial plan not found: no trial activated for user ff2d4d7a-2669-4dbf-ab9a-4318c2049f21.
+Cannot activate automatic trial for user ff2d4d7a-2669-4dbf-ab9a-4318c2049f21 (validation): ValueError
+Background task 29c3dce7-c333-453e-a3da-14e5286c5365 refused: InsufficientCreditsError: Task requires ~25000 credits, but you only have 5000 credits. Please refill your wallet to continue
+
+
+students.task_tracking WARNING 2026-11-10 07:44:16,158 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task 29c3dce7-c333-453e-a3da-14e5286c5365 refused: StudentUploadNotProcessedError: Your answers were not submitted. Your teacher's account can't process uploads right now. Please keep your file and try again later, or let your teacher know.
+
+
+.Free trial plan not found: no trial activated for user 429c2287-2b16-44fb-ba70-9d064d16e692.
+Cannot activate automatic trial for user 429c2287-2b16-44fb-ba70-9d064d16e692 (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-10 07:44:16,385 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task 48bf58c6-a889-49f2-8d32-6c5b6db21f5e refused: InsufficientCreditsError: Task requires ~25000 credits, but you only have 5000 credits. Please refill your wallet to continue
+
+
+.Free trial plan not found: no trial activated for user 7780bcc7-60f2-443a-970a-9125310e5d53.
+Cannot activate automatic trial for user 7780bcc7-60f2-443a-970a-9125310e5d53 (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-10 07:44:16,865 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task f96ded41-530d-4256-a75e-d829bf2ec8b8 refused: InsufficientCreditsError: balance 0 < estimate 900
+
+
+.Free trial plan not found: no trial activated for user a3ccccec-0531-4596-9b9e-e7ccb2df95be.
+Cannot activate automatic trial for user a3ccccec-0531-4596-9b9e-e7ccb2df95be (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-10 07:44:17,798 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task d2e23208-2892-4550-977c-128492f2bfa7 refused: InsufficientCreditsMidBatchError: Credits ran out after 2 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-10 07:44:17,883 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task aad43931-f650-4069-849b-aab1c9ba6a00 refused: InsufficientCreditsMidBatchError: Credits ran out after 2 of 4 items. The finished items are saved.
+
+
+.Free trial plan not found: no trial activated for user 49525b51-a4b2-4856-b739-714e6d88090b.
+Cannot activate automatic trial for user 49525b51-a4b2-4856-b739-714e6d88090b (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-10 07:44:19,169 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task a00ebd95-1608-4828-98d3-15171cc6e435 refused: InsufficientCreditsMidBatchError: Credits ran out after 2 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-10 07:44:19,211 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task 027a79e9-1ccc-441e-9479-28e6316fd0d4 refused: InsufficientCreditsMidBatchError: Credits ran out after 2 of 4 items. The finished items are saved.
+
+
+.Free trial plan not found: no trial activated for user 5b71f122-7f09-4ede-9dba-56f5192f8395.
+Cannot activate automatic trial for user 5b71f122-7f09-4ede-9dba-56f5192f8395 (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-10 07:44:19,970 refusals 28997 133068731524992 [request_id=cdd1dc32-2957-4643-bd1b-4f6c736773b3 client_request_id=-] Background task 2c428514-01b8-4a3b-a7e1-e522fe4ca4a2 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 3 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-10 07:44:20,029 refusals 28997 133068731524992 [request_id=cdd1dc32-2957-4643-bd1b-4f6c736773b3 client_request_id=-] Background task c4ebe751-5409-4cfa-a47a-b1197b3a7384 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 3 items. The finished items are saved.
+
+
+API request failed with NOT_RETRYABLE: This upload can't be retried as it is, because its file isn't kept. Upload the file again.
+FFree trial plan not found: no trial activated for user 0a94a1c1-c99d-422c-82bc-2663b6bb1183.
+Cannot activate automatic trial for user 0a94a1c1-c99d-422c-82bc-2663b6bb1183 (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-10 07:44:20,744 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task 44dd3826-8ddc-4184-ad93-49e43a09aa40 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-10 07:44:20,785 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task 83ece6b4-4adc-48d9-9a14-2f31ee2985b5 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+.Free trial plan not found: no trial activated for user 430ce75f-44a9-4c4e-bb01-4f164783d34d.
+Cannot activate automatic trial for user 430ce75f-44a9-4c4e-bb01-4f164783d34d (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-10 07:44:21,403 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task e8546f32-959b-48b1-9c71-625884411b22 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-10 07:44:21,439 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task 19204bea-4877-4f1d-8614-a7fda720725e refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+.Free trial plan not found: no trial activated for user 1f3184f3-44f8-4d84-84a4-82fef69eb2dc.
+Cannot activate automatic trial for user 1f3184f3-44f8-4d84-84a4-82fef69eb2dc (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-10 07:44:22,149 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task 06b05985-746b-4f0f-9b9e-c39b964056ed refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-10 07:44:22,212 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task 2f8a6cee-9d67-4d11-bf5a-bbf68c001bf5 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-10 07:44:22,332 refusals 28997 133068731524992 [request_id=9bad8211-c0cc-4b49-a9ce-f2cebb91d905 client_request_id=-] Background task f1fc7167-ba57-4c45-8fe1-7f2717236e51 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-10 07:44:22,427 refusals 28997 133068731524992 [request_id=9bad8211-c0cc-4b49-a9ce-f2cebb91d905 client_request_id=-] Background task 06b05985-746b-4f0f-9b9e-c39b964056ed refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-10 07:44:22,530 refusals 28997 133068731524992 [request_id=9bad8211-c0cc-4b49-a9ce-f2cebb91d905 client_request_id=-] Background task 2f8a6cee-9d67-4d11-bf5a-bbf68c001bf5 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+.Free trial plan not found: no trial activated for user 00e56bfe-dd00-467e-be79-d30c1746f494.
+Cannot activate automatic trial for user 00e56bfe-dd00-467e-be79-d30c1746f494 (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-10 07:44:23,130 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task 124b7a32-6f40-4752-b4a5-09ba17def5f4 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+
+
+students.task_tracking WARNING 2026-11-10 07:44:23,174 refusals 28997 133068731524992 [request_id=- client_request_id=-] Background task f7443e92-ef44-4fd9-8742-774f11463186 refused: InsufficientCreditsMidBatchError: Credits ran out after 1 of 4 items. The finished items are saved.
+
+
+.....FEEEEEEEEEEEEEEFEFEEEEEEEEEFEEEEE............Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t28997:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run crashed-run; this run direct:b6775782a996).
+.........Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t28997:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run direct:9dad9de86baf; this run direct:501936ec50be).
+.
+======================================================================
+ERROR: test_a_corrupt_file_fails_the_item_once_with_the_old_text (students.tests_kept_uploads.AnswerWorkerTests.test_a_corrupt_file_fails_the_item_once_with_the_old_text)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 358, in test_a_corrupt_file_fails_the_item_once_with_the_old_text
+    row = keep(item)
+          ^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_failed_delete_on_success_leaves_the_row_for_the_purge (students.tests_kept_uploads.AnswerWorkerTests.test_a_failed_delete_on_success_leaves_the_row_for_the_purge)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 412, in test_a_failed_delete_on_success_leaves_the_row_for_the_purge
+    row = keep(item)
+          ^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_kept_file_is_loaded_and_deleted_when_the_item_succeeds (students.tests_kept_uploads.AnswerWorkerTests.test_a_kept_file_is_loaded_and_deleted_when_the_item_succeeds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 332, in test_a_kept_file_is_loaded_and_deleted_when_the_item_succeeds
+    row = keep(item)
+          ^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_missing_file_fails_the_item_once_with_the_old_text (students.tests_kept_uploads.AnswerWorkerTests.test_a_missing_file_fails_the_item_once_with_the_old_text)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 376, in test_a_missing_file_fails_the_item_once_with_the_old_text
+    row = keep(item)
+          ^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_storage_down_is_retried_and_the_file_stays_kept (students.tests_kept_uploads.AnswerWorkerTests.test_storage_down_is_retried_and_the_file_stays_kept)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 392, in test_storage_down_is_retried_and_the_file_stays_kept
+    row = keep(item)
+          ^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_no_topic_is_kept_as_none (students.tests_kept_uploads.AssignmentRouteKeepsTheFileTests.test_no_topic_is_kept_as_none)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'keptupload'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 289, in test_no_topic_is_kept_as_none
+    self.assertEqual(KeptUpload().objects.get().relaunch, {"topic_id": None})
+                     ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 88, in KeptUpload
+    return apps.get_model("students", "KeptUpload")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'students' doesn't have a 'KeptUpload' model.
+
+======================================================================
+ERROR: test_the_file_is_kept_with_its_topic_for_a_retry (students.tests_kept_uploads.AssignmentRouteKeepsTheFileTests.test_the_file_is_kept_with_its_topic_for_a_retry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'keptupload'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 276, in test_the_file_is_kept_with_its_topic_for_a_retry
+    row = KeptUpload().objects.get()
+          ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 88, in KeptUpload
+    return apps.get_model("students", "KeptUpload")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'students' doesn't have a 'KeptUpload' model.
+
+======================================================================
+ERROR: test_a_kept_file_is_loaded_and_its_digest_is_the_rows (students.tests_kept_uploads.AssignmentWorkerTests.test_a_kept_file_is_loaded_and_its_digest_is_the_rows)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 441, in test_a_kept_file_is_loaded_and_its_digest_is_the_rows
+    row = keep(item)
+          ^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_cancelled_upload_item_loses_its_file (students.tests_kept_uploads.CancelDeletesTheFileTests.test_a_cancelled_upload_item_loses_its_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 471, in test_a_cancelled_upload_item_loses_its_file
+    row = keep(item)
+          ^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_the_file_goes_only_after_the_delete_commits (students.tests_kept_uploads.DeletedRowTests.test_the_file_goes_only_after_the_delete_commits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 572, in test_the_file_goes_only_after_the_delete_commits
+    row = keep(item)
+          ^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_full_erasure_deletes_the_row_and_the_file (students.tests_kept_uploads.ErasureTests.test_a_full_erasure_deletes_the_row_and_the_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 593, in setUp
+    self.row = keep(item)
+               ^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_teachers_course_erasure_deletes_the_row_and_the_file (students.tests_kept_uploads.ErasureTests.test_a_teachers_course_erasure_deletes_the_row_and_the_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 593, in setUp
+    self.row = keep(item)
+               ^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_once_approved_a_kept_row_has_exactly_the_four_keys (students.tests_kept_uploads.ExportContentTests.test_once_approved_a_kept_row_has_exactly_the_four_keys)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 679, in setUp
+    self.row = keep(self.kept_item)
+               ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_while_not_approved_no_row_has_the_nested_key (students.tests_kept_uploads.ExportContentTests.test_while_not_approved_no_row_has_the_nested_key)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 679, in setUp
+    self.row = keep(self.kept_item)
+               ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_failed_delete_leaves_the_row_unpurged_for_the_next_run (students.tests_kept_uploads.PurgeTests.test_a_failed_delete_leaves_the_row_unpurged_for_the_next_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 513, in test_a_failed_delete_leaves_the_row_unpurged_for_the_next_run
+    row = self.item_kept(timezone.now() - timedelta(minutes=1))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 486, in item_kept
+    return keep(self.answer_item(), until=until, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_row_a_day_overdue_is_counted (students.tests_kept_uploads.PurgeTests.test_a_row_a_day_overdue_is_counted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 524, in test_a_row_a_day_overdue_is_counted
+    self.item_kept(timezone.now() - timedelta(hours=25))
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 486, in item_kept
+    return keep(self.answer_item(), until=until, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_row_already_purged_is_not_deleted_again (students.tests_kept_uploads.PurgeTests.test_a_row_already_purged_is_not_deleted_again)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 507, in test_a_row_already_purged_is_not_deleted_again
+    self.item_kept(timezone.now() - timedelta(days=1), purged=True)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 486, in item_kept
+    return keep(self.answer_item(), until=until, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_row_not_yet_due_is_left (students.tests_kept_uploads.PurgeTests.test_a_row_not_yet_due_is_left)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 500, in test_a_row_not_yet_due_is_left
+    row = self.item_kept(timezone.now() + timedelta(minutes=1))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 486, in item_kept
+    return keep(self.answer_item(), until=until, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_row_past_kept_until_is_deleted_and_marked (students.tests_kept_uploads.PurgeTests.test_a_row_past_kept_until_is_deleted_and_marked)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 493, in test_a_row_past_kept_until_is_deleted_and_marked
+    row = self.item_kept(timezone.now() - timedelta(minutes=1))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 486, in item_kept
+    return keep(self.answer_item(), until=until, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_more_than_one_batch_is_purged_in_one_run (students.tests_kept_uploads.PurgeTests.test_more_than_one_batch_is_purged_in_one_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 542, in test_more_than_one_batch_is_purged_in_one_run
+    self.item_kept(due)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 486, in item_kept
+    return keep(self.answer_item(), until=until, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_the_task_is_scheduled_hourly (students.tests_kept_uploads.PurgeTests.test_the_task_is_scheduled_hourly)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 559, in test_the_task_is_scheduled_hourly
+    entry = settings.CELERY_BEAT_SCHEDULE["purge-kept-uploads-hourly"]
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'purge-kept-uploads-hourly'
+
+======================================================================
+ERROR: test_the_task_purges (students.tests_kept_uploads.PurgeTests.test_the_task_purges)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 551, in test_the_task_purges
+    row = self.item_kept(timezone.now() - timedelta(minutes=1))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 486, in item_kept
+    return keep(self.answer_item(), until=until, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_the_task_runs_one_at_a_time (students.tests_kept_uploads.PurgeTests.test_the_task_runs_one_at_a_time)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 547, in test_the_task_runs_one_at_a_time
+    task = importlib.import_module("students.tasks").purge_kept_uploads
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.tasks'
+
+======================================================================
+ERROR: test_a_refused_upload_leaves_no_row_and_no_file (students.tests_kept_uploads.StudentRouteKeepsTheFileTests.test_a_refused_upload_leaves_no_row_and_no_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 215, in test_a_refused_upload_leaves_no_row_and_no_file
+    before = set(kept_files().MEMORY)
+                 ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_kept_until_is_the_upload_time_plus_the_setting (students.tests_kept_uploads.StudentRouteKeepsTheFileTests.test_kept_until_is_the_upload_time_plus_the_setting)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'keptupload'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 188, in test_kept_until_is_the_upload_time_plus_the_setting
+    row = KeptUpload().objects.get(processing_task__requested_by=student)
+          ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 88, in KeptUpload
+    return apps.get_model("students", "KeptUpload")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'students' doesn't have a 'KeptUpload' model.
+
+======================================================================
+ERROR: test_storage_down_falls_back_to_the_inline_file (students.tests_kept_uploads.StudentRouteKeepsTheFileTests.test_storage_down_falls_back_to_the_inline_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 198, in test_storage_down_falls_back_to_the_inline_file
+    side_effect=kept_files().KeptFileUnavailable("down"),
+                ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_every_file_is_kept_and_sent_by_id_with_the_shared_prompt (students.tests_kept_uploads.TeacherBatchRouteKeepsTheFilesTests.test_every_file_is_kept_and_sent_by_id_with_the_shared_prompt)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'keptupload'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 244, in test_every_file_is_kept_and_sent_by_id_with_the_shared_prompt
+    for row in KeptUpload().objects.filter(
+               ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 88, in KeptUpload
+    return apps.get_model("students", "KeptUpload")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'students' doesn't have a 'KeptUpload' model.
+
+======================================================================
+ERROR: test_a_file_past_kept_until_but_not_yet_purged_is_still_retried (students.tests_kept_upload_retry.KeptUploadRetryTests.test_a_file_past_kept_until_but_not_yet_purged_is_still_retried)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_upload_retry.py", line 90, in test_a_file_past_kept_until_but_not_yet_purged_is_still_retried
+    keep(item, until=timezone.now() - timedelta(minutes=5))
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_kept_answer_upload_stopped_for_credits_is_retried_in_place (students.tests_kept_upload_retry.KeptUploadRetryTests.test_a_kept_answer_upload_stopped_for_credits_is_retried_in_place)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_upload_retry.py", line 37, in test_a_kept_answer_upload_stopped_for_credits_is_retried_in_place
+    row = keep(item)
+          ^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_kept_answer_upload_with_a_provider_failure_is_retried (students.tests_kept_upload_retry.KeptUploadRetryTests.test_a_kept_answer_upload_with_a_provider_failure_is_retried)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_upload_retry.py", line 63, in test_a_kept_answer_upload_with_a_provider_failure_is_retried
+    keep(item)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_kept_assignment_upload_is_relaunched_with_its_course_and_topic (students.tests_kept_upload_retry.KeptUploadRetryTests.test_a_kept_assignment_upload_is_relaunched_with_its_course_and_topic)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_upload_retry.py", line 103, in test_a_kept_assignment_upload_is_relaunched_with_its_course_and_topic
+    row = keep(item, relaunch={"topic_id": str(topic.id)})
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_kept_file_refused_for_its_content_is_refused_upload_it_again (students.tests_kept_upload_retry.KeptUploadRetryTests.test_a_kept_file_refused_for_its_content_is_refused_upload_it_again)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_upload_retry.py", line 95, in test_a_kept_file_refused_for_its_content_is_refused_upload_it_again
+    keep(item)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_kept_late_door_upload_refused_for_credits_is_retried (students.tests_kept_upload_retry.KeptUploadRetryTests.test_a_kept_late_door_upload_refused_for_credits_is_retried)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_upload_retry.py", line 68, in test_a_kept_late_door_upload_refused_for_credits_is_retried
+    keep(item)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_purged_file_is_refused_upload_it_again (students.tests_kept_upload_retry.KeptUploadRetryTests.test_a_purged_file_is_refused_upload_it_again)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_upload_retry.py", line 81, in test_a_purged_file_is_refused_upload_it_again
+    keep(item, purged=True)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_an_upload_retry_is_not_audited_as_grading (students.tests_kept_upload_retry.KeptUploadRetryTests.test_an_upload_retry_is_not_audited_as_grading)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_upload_retry.py", line 130, in test_an_upload_retry_is_not_audited_as_grading
+    keep(item)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_retry_failed_includes_a_kept_upload_item (students.tests_kept_upload_retry.KeptUploadRetryTests.test_retry_failed_includes_a_kept_upload_item)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_upload_retry.py", line 138, in test_retry_failed_includes_a_kept_upload_item
+    keep(kept)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 93, in keep
+    stored = kept_files().store(content)
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 80, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_funded_teacher_is_queued_as_before (students.tests_upload_credit_door.AssignmentUploadDoorTest.test_a_funded_teacher_is_queued_as_before)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'keptupload'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_upload_credit_door.py", line 395, in test_a_funded_teacher_is_queued_as_before
+    self.assertEqual(_kept_bytes(payload), PNG)
+                     ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_upload_credit_door.py", line 144, in _kept_bytes
+    row = apps.get_model("students", "KeptUpload").objects.get(
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'students' doesn't have a 'KeptUpload' model.
+
+======================================================================
+ERROR: test_a_wallet_above_the_estimate_is_queued_as_before (students.tests_upload_credit_door.StudentUploadDoorTest.test_a_wallet_above_the_estimate_is_queued_as_before)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'keptupload'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_upload_credit_door.py", line 229, in test_a_wallet_above_the_estimate_is_queued_as_before
+    self.assertEqual(_kept_bytes(payload), PNG)
+                     ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_upload_credit_door.py", line 144, in _kept_bytes
+    row = apps.get_model("students", "KeptUpload").objects.get(
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'students' doesn't have a 'KeptUpload' model.
+
+======================================================================
+ERROR: test_a_funded_teacher_is_queued_as_before (students.tests_upload_credit_door.TeacherBatchDoorTest.test_a_funded_teacher_is_queued_as_before)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'keptupload'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_upload_credit_door.py", line 354, in test_a_funded_teacher_is_queued_as_before
+    self.assertEqual(_kept_bytes(payload), PNG)
+                     ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_upload_credit_door.py", line 144, in _kept_bytes
+    row = apps.get_model("students", "KeptUpload").objects.get(
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'students' doesn't have a 'KeptUpload' model.
+
+======================================================================
+ERROR: test_a_404_on_load_is_missing (students.tests_kept_files.CloudinaryBackendTests.test_a_404_on_load_is_missing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 103, in test_a_404_on_load_is_missing
+    module = kept_files()
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 30, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_connection_error_on_load_is_unavailable (students.tests_kept_files.CloudinaryBackendTests.test_a_connection_error_on_load_is_unavailable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 112, in test_a_connection_error_on_load_is_unavailable
+    module = kept_files()
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 30, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_server_error_on_load_is_unavailable (students.tests_kept_files.CloudinaryBackendTests.test_a_server_error_on_load_is_unavailable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 120, in test_a_server_error_on_load_is_unavailable
+    module = kept_files()
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 30, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_storage_error_on_delete_is_unavailable (students.tests_kept_files.CloudinaryBackendTests.test_a_storage_error_on_delete_is_unavailable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 147, in test_a_storage_error_on_delete_is_unavailable
+    module = kept_files()
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 30, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_storage_error_on_store_is_unavailable (students.tests_kept_files.CloudinaryBackendTests.test_a_storage_error_on_store_is_unavailable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 83, in test_a_storage_error_on_store_is_unavailable
+    module = kept_files()
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 30, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_delete_destroys_the_private_raw_asset (students.tests_kept_files.CloudinaryBackendTests.test_delete_destroys_the_private_raw_asset)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 129, in test_delete_destroys_the_private_raw_asset
+    module = kept_files()
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 30, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_delete_of_an_asset_already_gone_is_not_an_error (students.tests_kept_files.CloudinaryBackendTests.test_delete_of_an_asset_already_gone_is_not_an_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 142, in test_delete_of_an_asset_already_gone_is_not_an_error
+    module = kept_files()
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 30, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_load_fetches_a_signed_private_download_server_side (students.tests_kept_files.CloudinaryBackendTests.test_load_fetches_a_signed_private_download_server_side)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 89, in test_load_fetches_a_signed_private_download_server_side
+    module = kept_files()
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 30, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_store_uploads_a_private_raw_asset_under_the_random_key (students.tests_kept_files.CloudinaryBackendTests.test_store_uploads_a_private_raw_asset_under_the_random_key)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 69, in test_store_uploads_a_private_raw_asset_under_the_random_key
+    module = kept_files()
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 30, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_deleted_file_is_missing (students.tests_kept_files.MemoryBackendTests.test_a_deleted_file_is_missing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 55, in test_a_deleted_file_is_missing
+    module = kept_files()
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 30, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_a_stored_file_loads_back_byte_for_byte (students.tests_kept_files.MemoryBackendTests.test_a_stored_file_loads_back_byte_for_byte)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 40, in test_a_stored_file_loads_back_byte_for_byte
+    module = kept_files()
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 30, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_deleting_a_missing_file_is_not_an_error (students.tests_kept_files.MemoryBackendTests.test_deleting_a_missing_file_is_not_an_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 62, in test_deleting_a_missing_file_is_not_an_error
+    module = kept_files()
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 30, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_the_key_is_random_and_carries_no_file_name (students.tests_kept_files.MemoryBackendTests.test_the_key_is_random_and_carries_no_file_name)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 47, in test_the_key_is_random_and_carries_no_file_name
+    module = kept_files()
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 30, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_no_public_function_returns_or_names_a_url (students.tests_kept_files.NoUrlLeavesTheModuleTests.test_no_public_function_returns_or_names_a_url)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 155, in test_no_public_function_returns_or_names_a_url
+    module = kept_files()
+             ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 30, in kept_files
+    return importlib.import_module("students.kept_files")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'students.kept_files'
+
+======================================================================
+ERROR: test_the_four_fields_are_exported_and_the_rest_left_out (students.tests_kept_uploads.ExportFieldDecisionTests.test_the_four_fields_are_exported_and_the_rest_left_out)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 639, in test_the_four_fields_are_exported_and_the_rest_left_out
+    data_export.EXPORT_FIELDS["students.KeptUpload"],
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'students.KeptUpload'
+
+======================================================================
+ERROR: test_the_nested_name_is_the_owner_approved_text_verbatim (students.tests_kept_uploads.ExportFieldDecisionTests.test_the_nested_name_is_the_owner_approved_text_verbatim)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 667, in test_the_nested_name_is_the_owner_approved_text_verbatim
+    self.assertEqual(data_export.EXPORT_NAMES["kept_file"], "kept_file")
+                     ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'kept_file'
+
+======================================================================
+ERROR: test_anything_else_stops_start_up_with_a_clear_message (students.tests_kept_uploads.QueueLifetimeSettingTests.test_anything_else_stops_start_up_with_a_clear_message) (raw='0')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 145, in test_anything_else_stops_start_up_with_a_clear_message
+    self.parse(raw)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 127, in parse
+    return importlib.import_module(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.queue_lifetime'
+
+======================================================================
+ERROR: test_anything_else_stops_start_up_with_a_clear_message (students.tests_kept_uploads.QueueLifetimeSettingTests.test_anything_else_stops_start_up_with_a_clear_message) (raw='366')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 145, in test_anything_else_stops_start_up_with_a_clear_message
+    self.parse(raw)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 127, in parse
+    return importlib.import_module(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.queue_lifetime'
+
+======================================================================
+ERROR: test_anything_else_stops_start_up_with_a_clear_message (students.tests_kept_uploads.QueueLifetimeSettingTests.test_anything_else_stops_start_up_with_a_clear_message) (raw='-1')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 145, in test_anything_else_stops_start_up_with_a_clear_message
+    self.parse(raw)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 127, in parse
+    return importlib.import_module(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.queue_lifetime'
+
+======================================================================
+ERROR: test_anything_else_stops_start_up_with_a_clear_message (students.tests_kept_uploads.QueueLifetimeSettingTests.test_anything_else_stops_start_up_with_a_clear_message) (raw='abc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 145, in test_anything_else_stops_start_up_with_a_clear_message
+    self.parse(raw)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 127, in parse
+    return importlib.import_module(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.queue_lifetime'
+
+======================================================================
+ERROR: test_anything_else_stops_start_up_with_a_clear_message (students.tests_kept_uploads.QueueLifetimeSettingTests.test_anything_else_stops_start_up_with_a_clear_message) (raw='1.5')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 145, in test_anything_else_stops_start_up_with_a_clear_message
+    self.parse(raw)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 127, in parse
+    return importlib.import_module(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.queue_lifetime'
+
+======================================================================
+ERROR: test_anything_else_stops_start_up_with_a_clear_message (students.tests_kept_uploads.QueueLifetimeSettingTests.test_anything_else_stops_start_up_with_a_clear_message) (raw='')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 145, in test_anything_else_stops_start_up_with_a_clear_message
+    self.parse(raw)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 127, in parse
+    return importlib.import_module(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.queue_lifetime'
+
+======================================================================
+ERROR: test_anything_else_stops_start_up_with_a_clear_message (students.tests_kept_uploads.QueueLifetimeSettingTests.test_anything_else_stops_start_up_with_a_clear_message) (raw=' ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 145, in test_anything_else_stops_start_up_with_a_clear_message
+    self.parse(raw)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 127, in parse
+    return importlib.import_module(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.queue_lifetime'
+
+======================================================================
+ERROR: test_one_and_three_hundred_sixty_five_are_accepted (students.tests_kept_uploads.QueueLifetimeSettingTests.test_one_and_three_hundred_sixty_five_are_accepted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 138, in test_one_and_three_hundred_sixty_five_are_accepted
+    self.assertEqual(self.parse("1"), 1)
+                     ^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 127, in parse
+    return importlib.import_module(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.queue_lifetime'
+
+======================================================================
+ERROR: test_unset_is_thirty (students.tests_kept_uploads.QueueLifetimeSettingTests.test_unset_is_thirty)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 132, in test_unset_is_thirty
+    self.assertEqual(self.parse(None), 30)
+                     ^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 127, in parse
+    return importlib.import_module(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'AutoGrader.queue_lifetime'
+
+======================================================================
+ERROR: test_the_shared_prompt_is_the_old_route_string_byte_for_byte (students.tests_kept_uploads.SharedPromptTests.test_the_shared_prompt_is_the_old_route_string_byte_for_byte)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 294, in test_the_shared_prompt_is_the_old_route_string_byte_for_byte
+    prompts = importlib.import_module("assignments.upload_prompts")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'assignments.upload_prompts'
+
+======================================================================
+ERROR: test_a_kept_upload_is_deleted_with_the_student_through_its_task (students.tests_kept_uploads.StudentDataMapTests.test_a_kept_upload_is_deleted_with_the_student_through_its_task)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 622, in test_a_kept_upload_is_deleted_with_the_student_through_its_task
+    entry = STUDENT_DATA_MAP[("students.KeptUpload", "processing_task")]
+            ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: ('students.KeptUpload', 'processing_task')
+
+======================================================================
+ERROR: test_one_file_per_item (students.tests_kept_uploads.TheTableTests.test_one_file_per_item)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'keptupload'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 730, in test_one_file_per_item
+    field = KeptUpload()._meta.get_field("processing_task")
+            ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 88, in KeptUpload
+    return apps.get_model("students", "KeptUpload")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'students' doesn't have a 'KeptUpload' model.
+
+======================================================================
+ERROR: test_the_purge_index_covers_only_unpurged_rows (students.tests_kept_uploads.TheTableTests.test_the_purge_index_covers_only_unpurged_rows)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 235, in get_model
+    return self.models[model_name.lower()]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'keptupload'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 724, in test_the_purge_index_covers_only_unpurged_rows
+    (index,) = KeptUpload()._meta.indexes
+               ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 88, in KeptUpload
+    return apps.get_model("students", "KeptUpload")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/registry.py", line 213, in get_model
+    return app_config.get_model(model_name, require_ready=require_ready)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/apps/config.py", line 237, in get_model
+    raise LookupError(
+LookupError: App 'students' doesn't have a 'KeptUpload' model.
+
+======================================================================
+FAIL: test_the_file_is_kept_and_the_task_gets_its_id (students.tests_kept_uploads.StudentRouteKeepsTheFileTests.test_the_file_is_kept_and_the_task_gets_its_id)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 170, in test_the_file_is_kept_and_the_task_gets_its_id
+    self.assertEqual(response.status_code, 202, response.content[:400])
+AssertionError: 200 != 202 : b'{"success":true,"message":"Answer Extraction Started","data":{"task_id":"t-1","message":"Answer Extraction Started"}}'
+
+======================================================================
+FAIL: test_the_rest_stops_uncharged_and_resumes_by_retry (students.tests_credits_mid_batch.AnUploadBatchThatRunsOutOfCredits.test_the_rest_stops_uncharged_and_resumes_by_retry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_credits_mid_batch.py", line 482, in test_the_rest_stops_uncharged_and_resumes_by_retry
+    self.assertEqual(retry.status_code, 202, retry.content[:400])
+AssertionError: 409 != 202 : b'{"success":false,"message":"This upload can\'t be retried as it is, because its file isn\'t kept. Upload the file again.","error":{"field_errors":{"error":"This upload can\'t be retried as it is, because its file isn\'t kept. Upload the file again.","reason_code":"NOT_RETRYABLE","error_class":"USER","remediation":"Fix what its failure message describes first, then try again.","retryable":false,"params'
+
+======================================================================
+FAIL: test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/AutoGrader/tests_beat_locks.py", line 432, in test_every_guarded_beat_task_skips_while_another_run_holds_it
+    self.assertLessEqual(EPIC_ONLY_GUARDED_BEAT_TASKS, set(names))
+AssertionError: {'students.tasks.purge_kept_uploads', 'billing.tasks.check_credit_hold_invariants', 'billing.tasks.sweep_stale_credit_holds', 'audit.tasks.sweep_audit_pii_short_retention', 'billing.tasks.check_credit_estimate_drift', 'audit.tasks.sweep_audit_retention'} not less than or equal to {'dashboard.tasks.send_weekly_student_summaries', 'dashboard.tasks.send_weekly_course_summaries', 'billing.tasks.process_license_monthly_credit_refreshes', 'billing.tasks.cleanup_expired_credit_buckets', 'dashboard.tasks.send_weekly_school_admin_summaries', 'billing.tasks.nightly_stripe_live_qa', 'billing.tasks.sweep_missing_receipt_urls', 'billing.tasks.escalate_stale_licence_stripe_intents', 'audit.tasks.sweep_audit_retention', 'billing.tasks.reconcile_subscription_prices', 'ai_processor.tasks.nightly_grading_benchmark_replay', 'ai_processor.tasks.weekly_grading_benchmark_live', 'billing.tasks.process_annual_plan_credit_grants', 'billing.tasks.replay_safe_failed_stripe_events', 'billing.tasks.reconcile_stripe_prices', 'billing.tasks.recalculate_conversion_probabilities', 'billing.tasks.expire_active_trials', 'billing.tasks.check_credit_hold_invariants', 'billing.tasks.reconcile_subscription_renewals', 'dashboard.tasks.send_at_risk_student_alerts', 'billing.tasks.sweep_stale_credit_holds', 'billing.tasks.process_license_renewals', 'dashboard.tasks.send_teacher_inactivity_alerts', 'audit.tasks.sweep_audit_pii_short_retention', 'billing.tasks.check_credit_estimate_drift', 'billing.tasks.sweep_stale_stripe_events'}
+
+======================================================================
+FAIL: test_tests_use_the_memory_backend (students.tests_kept_files.TheBackendUnderTest.test_tests_use_the_memory_backend)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_files.py", line 35, in test_tests_use_the_memory_backend
+    self.assertEqual(getattr(settings, "KEPT_UPLOADS_BACKEND", None), "memory")
+AssertionError: None != 'memory'
+
+======================================================================
+FAIL: test_the_nested_name_is_switched_on_at_b1b_8 (students.tests_kept_uploads.ExportFieldDecisionTests.test_the_nested_name_is_switched_on_at_b1b_8)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 658, in test_the_nested_name_is_switched_on_at_b1b_8
+    self.assertIs(
+AssertionError: None is not False
+
+======================================================================
+FAIL: test_the_setting_is_thirty_under_test (students.tests_kept_uploads.QueueLifetimeSettingTests.test_the_setting_is_thirty_under_test)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 135, in test_the_setting_is_thirty_under_test
+    self.assertEqual(getattr(settings, "QUEUE_LIFETIME_DAYS", None), 30)
+AssertionError: None != 30
+
+----------------------------------------------------------------------
+Ran 117 tests in 36.122s
+
+FAILED (failures=6, errors=68)
+Destroying test database for alias 'default'...
+Found 117 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
