@@ -2584,3 +2584,17 @@ Run on `students.tests_data_erase`.
 - **The cause:** my declaration error, of the same kind as PK-7 (I wrote the value, not its repr). The gap is shown all the same: under the plant, the readable other paper is graded as SUCCESS, and the new test catches it.
 - **Proposed (for the SM):** record PK-5b as "fragment wrong; killed by the named test", with no re-run. Then run §5.11 steps 4–8 as re-declared in §5.15.
 - **Lesson:** a fragment for a comparison with a `TextChoices` member shows `<Enum>.<NAME>` on the expected side.
+
+### §5.17 SM ruling on PK-5b; E-runs go
+
+- **PK-5b, recorded unamended:** "fragment wrong (enum repr); killed by the named test". No re-run. Under the plant the readable different paper is graded SUCCESS, which proves the gap.
+- **New practice (SM), for fragments:**
+  - Declare the shortest distinctive part you can be sure of. Use the side you control or the test's own `msg=`, and don't write out a repr you haven't seen (here: `'SUCCESS' != `).
+  - Still take fragments from element lines, never from shortened headers.
+- **Go:** §5.11 steps 4–8, as re-declared in §5.15, run one after another under flock. The declarations stand unchanged:
+  - E1 Ran 7556, OK (skipped=32);
+  - E2 Ran 6492, OK (skipped=24);
+  - E3 Ran 1148, OK (skipped=1);
+  - makemigrations: No changes detected;
+  - safety against staging: exit 0, 6 OK, 0 ACK, 0 FAIL;
+  - safety against main: exit 0, 35 OK, 1 ACK, 0 FAIL.
