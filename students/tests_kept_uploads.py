@@ -43,9 +43,12 @@ from PIL import Image
 from rest_framework.response import Response
 from rest_framework.test import APITestCase
 
+from ai_processor.exceptions import ProviderFailureError
 from assignments.tasks import upload_answers_engine_async, upload_assignment_async
 from AutoGrader.beat_locks import declared_lock
+from billing.errors import InsufficientCreditsError
 from classrooms.models import Topic
+from students.exceptions import StudentNameUnmatchedError
 from students.models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
@@ -53,7 +56,10 @@ from students.models import (
     BatchUploadSession,
     BatchUploadType,
 )
-from students.task_tracking import mark_processing_task_cancelled
+from students.task_tracking import (
+    mark_processing_task_cancelled,
+    mark_processing_task_failure,
+)
 from students.tests_upload_credit_door import PNG, RICH, _classroom, _file, _user
 from users.models import UserTypes
 
@@ -506,6 +512,70 @@ class CancelDeletesTheFileTests(_WorkerCase):
         row.refresh_from_db()
         self.assertIsNotNone(row.purged_at)
         self.assertFalse(is_stored(row.storage_key))
+
+
+class RefusalDeletesTheFileTests(_WorkerCase):
+    """B1b-6a (SM, NOTES §5.20): a refused upload can never be retried (its
+    code gets `replace_file`), so its file is not kept, as on cancel (Q5).
+    A failure a kept file can still retry keeps it, and so does an
+    unclassified one (code "")."""
+
+    def fail_item(self, item, error):
+        with self.captureOnCommitCallbacks(execute=True):
+            mark_processing_task_failure(item.id, error)
+        item.refresh_from_db()
+
+    def test_a_refused_answer_upload_loses_its_file(self):
+        item = self.answer_item()
+        row = keep(item)
+        refusal = StudentNameUnmatchedError(
+            params={"file_name": "a.png", "name_state": "no name was found"}
+        )
+        with patch(
+            "assignments.tasks.upload_answers_engine", side_effect=refusal
+        ), self.captureOnCommitCallbacks(execute=True):
+            upload_answers_engine_async.apply(
+                args=(
+                    str(self.assignment.id),
+                    {"kept_upload_id": str(row.id)},
+                    "prompt",
+                    str(self.teacher.id),
+                ),
+                kwargs={"processing_task_id": item.id},
+            )
+        item.refresh_from_db()
+        row.refresh_from_db()
+        self.assertEqual(item.reason_code, "MISSING_STUDENT_NAME")
+        self.assertIsNotNone(row.purged_at, "a refused item's file must go")
+        self.assertFalse(is_stored(row.storage_key))
+
+    def test_a_retryable_failure_keeps_its_file(self):
+        item = self.answer_item()
+        row = keep(item)
+        self.fail_item(item, ProviderFailureError())
+        row.refresh_from_db()
+        self.assertEqual(item.reason_code, "PROVIDER_FAILURE")
+        self.assertIsNone(row.purged_at, "a retryable item keeps its file")
+        self.assertGreater(row.kept_until, timezone.now())
+        self.assertTrue(is_stored(row.storage_key))
+
+    def test_a_late_door_credit_refusal_keeps_its_file(self):
+        item = self.answer_item()
+        row = keep(item)
+        self.fail_item(item, InsufficientCreditsError("Refill your wallet to continue"))
+        row.refresh_from_db()
+        self.assertEqual(item.reason_code, "INSUFFICIENT_CREDITS")
+        self.assertIsNone(row.purged_at, "an upload credit refusal is retryable")
+        self.assertTrue(is_stored(row.storage_key))
+
+    def test_an_unclassified_failure_keeps_its_file(self):
+        item = self.answer_item()
+        row = keep(item)
+        self.fail_item(item, RuntimeError("boom"))
+        row.refresh_from_db()
+        self.assertEqual(item.reason_code, "")
+        self.assertIsNone(row.purged_at, "an unclassified failure keeps its file")
+        self.assertTrue(is_stored(row.storage_key))
 
 
 # --------------------------------------------------------------------------

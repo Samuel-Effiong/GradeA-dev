@@ -2664,3 +2664,72 @@ Run on `students.tests_data_erase`.
 - Measure storage on staging at the soak (Q9).
 - At the soak, do one store, load and delete round trip on a real account. This checks the empty format for a raw private asset ([UNVERIFIED], D-11).
 - Carried forward: the B1b-6 obligations, the 66→67 guard labels at landing, and dropping my own `_N` clones after any schema change.
+
+### §5.20 SM: B1b-5 ACCEPTED at 56532e6d4 (2026-11-10). Rulings
+
+- **What the SM checked:**
+  - the tree is clean, with 0 trailers since 5d0e71688, and origin/staging is contained;
+  - E1, E2 and E3 are OK in the logs, and MS_staging and MS_main show the declared counts.
+- **On the SM's list as written:** D-16 as corrected, the Q7(c) costing, the B1b-8 list and the switch-on obligations.
+- **Q7(c): L0 for B1b.** L1 goes to the owner later.
+- **Refused-item file deletion: APPROVED.** It matches the Q5 rule for CANCELLED: a file that can never be retried shouldn't be kept.
+  - Build it at the start of B1b-6, as a small, separately committed item.
+  - It gets its own test, a break run and a plant, all declared before running.
+- **H-1 (re-sent by the SM; my session lost it at the restart):** the estimate endpoint's `submission_ids` list has no length cap. A teacher could post tens of thousands of UUIDs into one `pk__in`.
+  - Raise it with the SM when B1b-6 touches the grade-all path.
+  - A cap needs an existing message or owner-approved wording, so none is added on my own.
+
+## §6 B1b-6: batch jobs and the queue (08b §1.4, §2, §8; plan step 5). SM GO 2026-11-10, after B1b-5 was ACCEPTED at 56532e6d4
+
+**Standing for this step:**
+- Merge origin/staging if it has moved. At this go it had not: staging is contained in 56532e6d4.
+- Do the count-pin survey up front, and again after any design-changing ruling.
+- Commit the design, tests-first, and the red and plant declarations before any run.
+- Use the shortest certain fragments.
+- STOP on any mismatch or plan departure. No trailers, no push.
+
+**The seven carried B1b-6 obligations (from the B1b-4 checkpoint, verbatim in substance):**
+1. Replace C4's terminal rule with the single last-item helper. The helper runs after the rows are gone (post_delete or after the batch delete), never in pre_delete.
+2. The BATCH_GRADING delete test needs two or more never-held pending rows, so it fails in any visit order.
+3. Every new job-status write (QUEUED→RUNNING, promotion, expiry) is open→open or open→terminal only. It is conditional on the current status and taken under the wallet lock first. Re-run the §1.21(a) grep, which now also names `settle(close_status=...)` and `_reserve_locked(status=...)`, and record the new list.
+4. Add a double-return plant for the C3 rule (§1.12) once the helper is the second writer.
+5. Write `estimate_*` and `estimate_source` onto the BATCH_GRADING job (B1b-4 Q5).
+6. Re-check the backtest and drift definition of a "past batch" once real BATCH_GRADING jobs exist (B1b-4 Q1: BATCH_SUBMISSION_GRADING tasks sharing a batch_session).
+7. If a CASCADE to AIJob is ever added, add the "job deleted in the same collector run" test (§1.21(b)).
+- Plus H-1 (§5.20), to raise when the grade-all path is touched.
+
+### §6.0 B1b-6a: delete a refused upload's kept file (SM approval §5.20). The design, before any edit
+
+*The SM restarted as **grade-automator-plus-c8** (2026-11-10) and re-sent the same B1b-6 order. Reports go there.*
+
+**The rule.** When an upload item fails, its kept file is discarded at once (exactly as on cancel: `kept_uploads.discard`, deleted on commit) if its final code is **non-empty and not upload-retryable**.
+- "Upload-retryable" is the one predicate the retry route already uses: the catalogue's retryable codes, plus `UPLOAD_EXTRA_RETRYABLE_CODES` (INSUFFICIENT_CREDITS).
+- So the refusals lose the file: MISSING_STUDENT_NAME, STUDENT_NOT_ON_ROSTER, the closed-submission codes, the file refusals, and the plan refusals.
+- PROVIDER_FAILURE, INSUFFICIENT_CREDITS_MID_BATCH and INSUFFICIENT_CREDITS keep it.
+- **An unclassified failure (code `""`) keeps its file until the purge.** This is the narrow reading of the approval ("a refused item"), and it leaves D-16's later option open.
+- A lost or corrupt file (KeptFileLost) is already purged.
+- **For ANSWER_EXTRACTION, the same rule applies.** A refused student single-upload loses its file. Its other failures keep theirs until the purge, so B1b-8's open text-3 route question is not pre-empted.
+
+**The code:**
+- `students/item_retry.py`: factor `upload_code_retryable(code)` out of `_upload_retryable`. The retry behavior is unchanged.
+- `students/task_tracking.py: mark_processing_task_failure` keeps the returned task and calls `_discard_refused_kept_file(task)`. That function returns at once for a non-keepable type or a `""` code; otherwise it calls `discard` when the code is not upload-retryable. Imports stay local, as `_discard_kept_file` does, because of the item_retry ↔ task_tracking cycle.
+- **Cost:** for a keepable type failing with a refusal code, one SELECT, plus one UPDATE when a row exists. Nothing for other task types.
+
+**The count-pin survey (recorded even though empty):**
+- No existing test asserts that a kept file survives a refusal. The tests in `tests_kept_upload_retry` create their FAILURE rows directly, not through `mark_processing_task_failure`.
+- No suite test pins a query count on an upload failure path. The grep of `assertNumQueries`/`CaptureQueriesContext` across the upload workers and `mark_processing_task_failure` finds only `docs/evidence/refusal_handling/gate6/test_refusal_handling_scale.py`, an evidence script outside every label.
+- No pre-existing test is edited.
+- **Tests:** 4 new in `students/tests_kept_uploads.py: RefusalDeletesTheFileTests`. Fragments come from each test's own `msg=` (the shortest certain part):
+  - a refusal through the worker loses its file;
+  - PROVIDER_FAILURE keeps it;
+  - INSUFFICIENT_CREDITS keeps it;
+  - `""` keeps it.
+
+**Declarations (before any run; all under flock):**
+1. **Break run** at the tests-first commit: label `students.tests_kept_uploads.RefusalDeletesTheFileTests`. **`Ran 4`, `FAILED (failures=1)`**. The killer is `test_a_refused_answer_upload_loses_its_file`, with fragment `a refused item's file must go`. The other three pass, because they pin today's behavior.
+2. **Green** after the product commit: the 32 labels of `step5/green_labels.txt`. **`Ran 607`, `OK (skipped=1)`** (603 + 4, from cnt.py: TOTAL 607, IMPORT_FAILURES 0).
+3. **Plants** on the product, each restored by sha256. Each is run on the new class (`Ran 4`) and gives `FAILED (failures=1)`:
+   - **PK-6a-1:** the `_discard_refused_kept_file(task)` call removed. Killer `test_a_refused_answer_upload_loses_its_file`, fragment `a refused item's file must go`.
+   - **PK-6a-2:** the `""` guard removed. Killer `test_an_unclassified_failure_keeps_its_file`, fragment `an unclassified failure keeps its file`.
+   - **PK-6a-3:** the discard check uses `_retryable_as_it_is` (the catalogue only) in place of `upload_code_retryable`. Killer `test_a_late_door_credit_refusal_keeps_its_file`, fragment `an upload credit refusal is retryable`.
+4. `makemigrations --check`: `No changes detected` (no model change).
