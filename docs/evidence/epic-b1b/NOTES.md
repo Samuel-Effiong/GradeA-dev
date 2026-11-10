@@ -1878,3 +1878,20 @@ Every run is under `flock`, one at a time, flag unset unless stated. The counts 
   - Every other migration in the main…HEAD diff is recorded as observed (OK or ACK). Any `FAIL` line, or a nonzero exit, is a STOP.
   - The same STOP rule applies to the `origin/staging` run.
 - §4.9 continues from step 2 (green, `Ran 345`).
+
+### §4.12 Green result (at 083006e1b, under `flock`, flag unset). STOP: declared `OK (skipped=1)`
+
+**`Ran 345`, `FAILED (failures=1, skipped=1)`.** Log `step4/G_green_083006e1.log`.
+- **The count matches** (345). **The one failure is a pre-existing pin I missed in the survey:**
+  - The test is `AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it`.
+  - It fails at line 430 with `AssertionError: 22 != 21`, on `self.assertEqual(len(beta_guarded), 21)`.
+  - The new guarded beat entry `billing.tasks.check_credit_estimate_drift` makes the count 22. The test pins beta's own count, 21. Epic-only guarded tasks are named in `EPIC_ONLY_GUARDED_BEAT_TASKS` (`:48`), not counted.
+  - The count assertion sits outside the per-task `subTest` loop, so **the loop never ran**. No guarded task's skip-while-held was checked in this run, the drift task's included.
+- My survey (§4.1) named this guard module for `known_lock_names()` only, and missed the count pin. That is the error. So this is a fourth edited pre-existing test, and this run is its break run, already observed: `22 != 21`.
+- **Proposed (for the SM), the B1a step 2 precedent (36e0befa6):**
+  - `EPIC_ONLY_GUARDED_BEAT_TASKS` gains `"billing.tasks.check_credit_estimate_drift"`, with the comment `# Epic B1b-4 (plan 08 §3.6): the monthly estimate drift check.`
+  - Beta's 21 stays as it is.
+  - With that edit the per-task loop runs for the drift task too, and checks that it returns the skip summary while another run holds its lock.
+  - Then green is re-run, expecting `Ran 345`, `OK (skipped=1)`.
+  - The test's subTest loop now covers 22 + 4 = 26 tasks. A failing task is counted as one failure.
+- Nothing is edited until the ruling.
