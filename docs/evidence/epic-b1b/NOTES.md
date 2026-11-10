@@ -2408,3 +2408,44 @@ Run on `students.tests_data_erase`.
 | BR-9 | `tests_beat_locks.test_every_guarded_beat_task_skips_while_another_run_holds_it` (without the purge in `EPIC_ONLY_GUARDED_BEAT_TASKS`) | FAIL `22 != 21` |
 
 **R2, the red re-run** (at this commit, the same six labels, flag unset, under `flock`): **`Ran 117`**, **`FAILED (failures=5, errors=69)`**, as §5.7 declared.
+
+### §5.11 R2 result, the product, what changed while it was built, and the evidence runs declared (product at cf4f4fc13; this section is committed first)
+
+**R2 (at b8ac437d7, under `flock`, flag unset): `Ran 117`, `FAILED (failures=5, errors=69)`, as declared.** Log `step5/R2_red_b8ac437d.log`. The five failures are exactly the declared ones:
+- the renamed mid-batch test, `409 != 202`;
+- the beat-lock subset line, with the purge once, in the left-hand set;
+- `None != 'memory'`;
+- `None is not False`;
+- `None != 30`.
+
+**The product, cf4f4fc13:** `AutoGrader/queue_lifetime.py`, `assignments/upload_prompts.py`, `students/kept_files.py`, `students/kept_uploads.py`, `students/tasks.py`, `students.KeptUpload` with migration `students/0041_keptupload` (CreateModel only), and edits to the settings (`QUEUE_LIFETIME_DAYS`, `KEPT_UPLOADS_BACKEND`, the beat entry), the three routes, the two workers, `task_tracking`, `signals`, `item_retry`, the data map, erasure and export.
+
+**What changed while the product was built** (development runs logged in the scratchpad, not evidence; recorded so nothing is hidden):
+- **D-12. The inline path in the workers stays exactly today's code:** `AssignmentProcessingService.rebuild_uploaded_file`, and `sha256_of_upload_payload` for the assignment dedupe. Only a kept payload goes through `open_upload`.
+  - My first version sent inline payloads through `open_upload` too. That broke 11 existing tests that patch `rebuild_uploaded_file` and pass a fake payload (`students.tests_post_grading_submission_lock` ×3, `students.tests_no_grade_tell_before_release` ×6, and the two `tests_upload_pipeline` "rebuilds" tests).
+  - The fix is in the product, not in those tests. With it, §5.4's "the workers keep the inline form" holds literally, and none of those tests is edited.
+- **D-13.** `KeptUpload.created_at` has `default=timezone.now`, because the tests' `keep()` helper creates rows without it. The door still sets it explicitly, so `kept_until - created_at` is exact.
+- **D-14.** `KEEPABLE_TYPES` uses the `BackgroundTaskType` enum. The stored values are lower case (`batch_answer_upload`), which my first draft missed.
+- **D-15.** The `on_commit` callbacks use `functools.partial` in place of lambdas, for the mypy hook.
+- **D-16, a finding for the SM.** `upload_assignment_async` has never retried a generic error: its `except Exception` fails the item and re-raises, with no `self.retry`. So the SM Q3 rule "a transient download error retries through `self.retry` (3 tries)" holds for answer uploads only. For an assignment upload, a storage outage at load fails the item unclassified. Its file stays kept, but the item is not retryable, because its code is `""`. No change was made; it is reported.
+- **A name correction to §5.7:** the `:218` door test is `StudentUploadDoorTest.test_a_wallet_above_the_estimate_is_queued_as_before`, not `...test_a_funded_student_is_queued_with_the_whole_file`.
+- The dev run of the green set plus the guards was OK before this commit. Its count is not evidence.
+
+**Declared runs (at cf4f4fc13 or this NOTES commit, serially, under `flock`):**
+1. **The break runs** (`scratchpad/run_br_b5.sh`; each pre-edit test file is restored for its run, then put back and checked clean):
+   - BR-1-2: `Ran 2`, `FAILED (failures=2)`, one subTest failure each, with the fragments of §5.10.
+   - BR-3: `Ran 1`, `FAILED (errors=1)`, `KeyError: 'students.KeptUpload'`.
+   - BR-4: `Ran 1`, `OK` (vacuous for this table).
+   - BR-5-6-7: `Ran 3`, `FAILED (errors=3)`, each `KeyError: 'content_b64'`.
+   - BR-8: `Ran 1`, `FAILED (failures=1)`, `202 != 409`.
+   - BR-9: `Ran 1`, `FAILED (failures=1)`, `22 != 21`.
+2. **The green** (labels `step5/green_labels.txt`, 32 labels; flag unset): **`Ran 602`, `OK (skipped=1)`**. The skip is `ai_processor.tests_ssrf_guard`'s `skipUnless` network test.
+3. **The plants** PK-1…PK-16 (`scratchpad/plant_b5.py`, `run_plants_b5.sh`; restored and checked against `scratchpad/sha_b5.txt`): each killed by its named test with its fragment, as in the §5.7 and §5.10 tables. Collateral is recorded as observed.
+4. **E1, flag on** (`billing ai_processor assignments students users audit.tests_h273_query_filters audit.tests_route_coverage` + the 67 guards, `--parallel 4`): **`Ran 7555`** (7489 + 65 new + 1 new export test), **`OK (skipped=32)`**.
+5. **E2, the flag-off near** (`billing students classrooms assignments users AutoGrader.tests_migration_rollback_defaults`, `--parallel 4`): **`Ran 6491`** (6425 + 66), **`OK (skipped=24)`**.
+6. **E3, the 67 guards, serially:** **`Ran 1148`**, **`OK (skipped=1)`**. No guard module gains a test: `tests_student_data_map`'s edits change no count.
+7. `makemigrations --check --dry-run`: **`No changes detected`**.
+8. **The safety check** (CI env block):
+   - `--base origin/staging`: **exit 0, 6 OK, 0 ACK, 0 FAIL**: billing 0081 and 0082, B1b-4's three, and `students/0041_keptupload.py` as `OK … additive only`.
+   - `--base origin/main`: **exit 0, 35 OK, 1 ACK (classrooms 0017), 0 FAIL**: §4.16's 34 OK plus 0041.
+- Any mismatch is recorded unamended and is a STOP.
