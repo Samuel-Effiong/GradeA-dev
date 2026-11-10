@@ -39,6 +39,7 @@ from django.db.models import Q
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from PIL import Image
 from rest_framework.response import Response
 from rest_framework.test import APITestCase
 
@@ -74,6 +75,16 @@ BATCH_PROMPT_VERBATIM = (
 )
 
 LIMIT_MESSAGE = "QUEUE_LIFETIME_DAYS must be a whole number of days from 1 to 365"
+
+
+def _other_png():
+    """A valid PNG that is not PNG: a different paper (SM §5.15)."""
+    buffer = io.BytesIO()
+    Image.new("RGB", (64, 64), "black").save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+OTHER_PNG = _other_png()
 
 
 def kept_files():
@@ -368,6 +379,25 @@ class AnswerWorkerTests(_WorkerCase):
         self.assertEqual(item.error, ANSWER_FALLBACK)
         engine.assert_not_called()
         self.assertEqual(load.call_count, 1)
+        row.refresh_from_db()
+        self.assertIsNotNone(row.purged_at)
+        self.assertIn("kept_upload_integrity_failure", metric_names(metric))
+
+    @patch("audit.metrics.count")
+    def test_a_readable_but_different_file_fails_the_item_once(self, metric):
+        """SM §5.15: the dangerous case. A valid, readable file that isn't the
+        one kept (another paper) would be graded as this item's; only the
+        sha256 check stops it."""
+        item = self.answer_item()
+        row = keep(item)
+        kept_files().MEMORY[row.storage_key] = OTHER_PNG
+
+        _, engine = self.run_answers(item, {"kept_upload_id": str(row.id)})
+
+        self.assertEqual(item.status, BackgroundTaskStatus.FAILURE)
+        engine.assert_not_called()
+        self.assertEqual(item.reason_code, "")
+        self.assertEqual(item.error, ANSWER_FALLBACK)
         row.refresh_from_db()
         self.assertIsNotNone(row.purged_at)
         self.assertIn("kept_upload_integrity_failure", metric_names(metric))

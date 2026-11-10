@@ -2531,3 +2531,46 @@ Run on `students.tests_data_erase`.
 **Proposed (for the SM):**
 - Record the four as "fragment wrong; killed by the named test", with no re-run, as the BR-2 precedent (§4.10–§4.11).
 - Then run §5.11 steps 4–8 as declared: E1, E2, E3, makemigrations, safety ×2.
+
+### §5.15 The SM's ruling on the plant STOP (2026-11-10), the added test and plant, and the declarations (before any run)
+
+**Recorded unamended:**
+- **PK-4, PK-7 and PK-9:** "fragment wrong; killed by the named test". No re-run (the BR-2 precedent).
+- **Lessons:**
+  - the house exception handler turns a view's raise into a 500;
+  - assertEqual on a timedelta shows the repr;
+  - when maxDiff suppresses the diff, take the element line.
+- **PK-5:** also "fragment wrong; killed". **It also shows a gap:** the corrupt fixture is unreadable, so FILE_UNREADABLE catches it even with the sha check gone. The dangerous case is readable bytes that don't match, such as a valid but different file, where only the sha check stands between the item and grading the wrong paper.
+- The amend of ecd2bf7e3 into 60cbf915c is noted by the SM: local and unpushed.
+- D-16: the SM is correcting the owner, because a manual retry does not work for an unclassified code.
+
+**The added test (this commit):** `students.tests_kept_uploads.AnswerWorkerTests.test_a_readable_but_different_file_fails_the_item_once`.
+- The kept row's sha256 is the fixture PNG's (white 64×64), but the stored bytes are a valid black 64×64 PNG (`OTHER_PNG`).
+- It asserts, in order:
+  - status FAILURE;
+  - the engine is not called;
+  - reason code `""`;
+  - error equals the old fallback text;
+  - `purged_at` is set;
+  - `kept_upload_integrity_failure` is counted.
+
+**Plant PK-5b** (the same change as PK-5: the sha256 check becomes `if False:`), run on the three new modules (**`Ran 66`**):
+
+| Plant | Killer | Fragment |
+|---|---|---|
+| PK-5b | `test_a_readable_but_different_file_fails_the_item_once` | `AssertionError: 'SUCCESS' != 'FAILURE'` (the readable other paper is "graded": the engine fake returns a submission) |
+
+- **Expected collateral, declared:** `test_a_corrupt_file_fails_the_item_once_with_the_old_text`, with `AssertionError: 'FILE_UNREADABLE' != ''`, exactly as PK-5 observed. It is the same change, so that test fails too. **So the new test is not literally the only test that fails.**
+- It is the only test that fails on the dangerous case: graded as SUCCESS, the engine called. The corrupt-file test fails only because the unreadable bytes are refused with a reason code.
+- Any other failure is a mismatch.
+
+**Declared runs** (at this commit, under `flock`):
+- **The green, once more:** **`Ran 603`**, **`OK (skipped=1)`**.
+- **PK-5b:** `Ran 66`, `FAILED (failures=2)`, the killer and collateral above. Restored and checked by sha256.
+- **§5.11 steps 4–8, with the counts adjusted:**
+  - E1 **`Ran 7556`** `OK (skipped=32)`;
+  - E2 **`Ran 6492`** `OK (skipped=24)`;
+  - E3 **`Ran 1148`** `OK (skipped=1)` (the new test is not in a guard module);
+  - makemigrations `No changes detected`;
+  - safety staging exit 0, 6 OK, 0 ACK, 0 FAIL;
+  - safety main exit 0, 35 OK, 1 ACK, 0 FAIL.
