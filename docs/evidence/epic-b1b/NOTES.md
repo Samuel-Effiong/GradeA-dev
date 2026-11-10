@@ -1861,3 +1861,20 @@ Every run is under `flock`, one at a time, flag unset unless stated. The counts 
 - **Proposed (for the SM):**
   - Record BR-2 as "fragment wrong: unittest shortened the header; the failure is at the declared assertion, and the declared element is in the log in full (`First extra element 0:`)". Then the three edits land and §4.9 continues from step 2.
   - Standing practice from now on: a fragment for a list or dict difference is taken from the `First extra element` or diff lines, never from a long header.
+
+### §4.11 The SM's ruling on the BR-2 STOP (2026-11-10), and the edits
+
+- **BR-2 is recorded unamended as "fragment wrong: unittest's safe_repr shortened the header. The failure is at the declared assertion (`tests_call_record_static.py:178`) and the declared element is in the log in full under 'First extra element 0'."** No re-run. The SM checked lines 6, 8 and 11 of `BR2_b4f22702.log`.
+- **BR-1 and BR-3 are accepted as declared.** BR-3's first invocation stays recorded as a label error, with its log kept. It is not a result.
+- **Standing practice from now on:** fragments for list, dict and long-string differences are taken from the "First extra/differing element" or diff lines, never from a header line that safe_repr can shorten.
+- **adf473497 is accepted as the product commit for review.** D-h … D-l and the named test edits are noted, D-k included (a test-input error).
+- **The edits (this commit):**
+  - BR-1: `ALLOWED` gains `billing/estimates.py`.
+  - BR-2: the test becomes `test_the_two_column_indexes_and_the_two_estimate_indexes`. It pins `_meta.indexes` as exactly `[(['assignment_id', 'created_at'], 'aicall_assignment_created'), (['billed_user_id', 'created_at'], 'aicall_billed_user_created')]`.
+  - BR-3: `_TARGET_LABEL["BillingSettings"] = "Billing settings"`, the model's `verbose_name` (`billing/models.py:1980`).
+- **Checked before the runs:** `ai_processor` 0007 and 0008 each have `atomic = False` (line 11) and `AddIndexConcurrently` (line 18).
+- **§4.9 step 8 gains a second run (SM ruling), declared here before it runs:** `scripts/check_migration_safety.py --base origin/main` under the same CI env block. CI uses that base on a PR to main.
+  - **Expected:** B1b-4's three migrations print `OK … additive only`.
+  - Every other migration in the main…HEAD diff is recorded as observed (OK or ACK). Any `FAIL` line, or a nonzero exit, is a STOP.
+  - The same STOP rule applies to the `origin/staging` run.
+- §4.9 continues from step 2 (green, `Ran 345`).

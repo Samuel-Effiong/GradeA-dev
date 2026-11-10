@@ -168,14 +168,22 @@ class TheColumns(SimpleTestCase):
                 self.assertTrue(field.null)
                 self.assertFalse(field.has_default())
 
-    def test_the_two_indexes_and_no_more(self):
+    def test_the_two_column_indexes_and_the_two_estimate_indexes(self):
         indexed = sorted(
             f.name
             for f in AICallRecord._meta.concrete_fields
             if getattr(f, "db_index", False) and not f.primary_key
         )
         self.assertEqual(indexed, ["created_at", "task_id"])
-        self.assertEqual(AICallRecord._meta.indexes, [])
+        # B1b-4 (08b §1.3 item 2, SM ruling 2026-11-08): the estimate's
+        # assignment and teacher tiers, and no other index.
+        self.assertEqual(
+            [(list(i.fields), i.name) for i in AICallRecord._meta.indexes],
+            [
+                (["assignment_id", "created_at"], "aicall_assignment_created"),
+                (["billed_user_id", "created_at"], "aicall_billed_user_created"),
+            ],
+        )
 
     def test_timestamps_are_timezone_aware(self):
         self.assertTrue(settings.USE_TZ)
@@ -363,6 +371,10 @@ class NothingReadsOrExposesTheTable(SimpleTestCase):
         # "ai_processor.AICallRecord" for the erasure map; it neither reads
         # nor exposes the table.
         "students/student_data_map.py",
+        # Epic B1b-4 (SM ruling 2026-11-08): the credit estimate reads
+        # aggregates only and returns plain values (billing.tests.
+        # test_estimates_band.OnlyPlainValuesTests).
+        "billing/estimates.py",
     }
 
     def test_no_other_code_names_the_model(self):
