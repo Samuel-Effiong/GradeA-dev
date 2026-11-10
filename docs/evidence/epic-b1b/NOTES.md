@@ -2745,3 +2745,140 @@ Run on `students.tests_data_erase`.
   - Logs `step6/P_PK-6a-*_c3504af0.log`.
 - **makemigrations `--check`:** `No changes detected`. As declared.
 - **Next:** the B1b-6 survey (§6.2), before any edit.
+
+### §6.2 B1b-6 survey at 21f76085c (before any edit). Sources: plan 08 §2 step 5, §3.2, §3.7, §6.2–6.3; 08b §1.4, §1.6, §2, §8; the approved texts (team/approved_wording_b1b_2026-11-09.md #5–#10, #6/#7 closings, #15)
+
+#### §6.2.1 What exists (re-derived; the line numbers are hints)
+
+- **AIJob** (`billing/models.py:1795`): every plan §3.1 column exists, B1a schema 0074 included. They cover the queue, expiry and estimates: `queued_at`, `expires_at`, `warned_expiry_at`, `stopped_at_item`, `total_items`, `completed_items`, `failed_items`, `held_per_item`, `estimate_p50/p90/source`, `sufficiency_verdict`, `cancel_requested_at`.
+  - The partial indexes `aijob_wallet_open_ix` (RESERVED, RUNNING) and `aijob_queued_expiry_ix` (QUEUED_PENDING_CREDITS, expires_at) exist.
+  - **No schema change is needed for the queue**, apart from the help-text AlterField of 08b §2.2.
+- **holds.py** (B1a):
+  - `create_job`, `reserve(…, item, status)`, `_reserve_locked`, `settle(…, close_status)`, `fail_item`, `finish_job`, `claim_item_start`, the late paths, `sweep_stale_holds` (started items, and job-level types with no row), `check_invariants`, the `Unit` entry rule, and the C3 and C4 delete receivers.
+  - **Counting:** `settle` adds to `completed_items` (`:369`). `fail_item`, `_sweep_item` and the HELD-row delete add to `failed_items`.
+  - **The 36-hour job backstop is not built.** Only `BillingSettings.unstarted_backstop_hours` exists (`billing/models.py:1966`).
+- **Batch items with the flag on today:** the item has no job. Its first call opens a SINGLE_ITEM job (`Unit.enter`, the `attach_item` path), so no batch-level hold, queue or promotion exists. `BATCH_GRADING` is never created (grep: only the enum).
+- **Two dispatch loops** (08b §1.4 item 1, confirmed):
+  - `assignments/tasks.py:_dispatch_tracked_grading` (`:1591`), used by `grade_batch_async` (`:1502`, also the scheduled grade-all through a clocked PeriodicTask) and `auto_grade_due_assignment` (`:1734`).
+  - `_relaunch_failed_dispatches` (`:1682`) resets FAILURE items in place and launches them through `_launch_tracked_grading`.
+  - `AssignmentViewSet.grade_all_submission` (`assignments/views.py:1795`) has its own loop. It passes `request=` to the audit `emit`, and its response is `tasks_data` with each item's celery `task_id`.
+- **BackgroundTaskStatus** has no LAUNCHED value: PENDING, STARTED, CANCELLED, SUCCESS, FAILURE (`students/models.py:543`).
+- **Estimate** (B1b-4): `estimates.estimate()` returns p50, p90, source, … but **not `p90_paper`**. `band()` computes it and the result drops it.
+- **Queue texts:** #5 queued, #8 two days before expiry, #9 restarted, #10 expired, and the closings #6/#7 are approved. They switch on at B1b-8. The precedent while a text is unapproved: `notify_late_door_refusal` sends nothing and logs a warning (`billing/holds.py:1144`).
+- **Cancel** is per item (`students/task_tracking.py:cancel_processing_task`, from `users/views.py:2722`/`2791`). There is no batch or job cancel route.
+- **S7c:** `ensure_batch_has_credits` (session `credits_exhausted_at`) stops an item before its unit. A retry clears it (`clear_batch_credit_stop`).
+- **The beat:** `sweep_stale_credit_holds` and `check_credit_hold_invariants` exist (`AutoGrader/settings.py:945`, `:950`).
+- **H-1 site:** `billing/estimate_views.py:_SubmissionIds`, a `ListField(child=UUIDField())` with no `max_length`.
+
+#### §6.2.2 The design proposed (plan step 5 as amended by 08b). Questions are marked **[Q-n]**; §6.2.4 gives each with a recommendation
+
+1. **One dispatch helper** (08b §1.4, SM-approved).
+   - First commit: a **characterization test** of `grade_all_submission`, green on today's code and pinned flag off: items, indexes, audit rows (with the request's data), and the response body.
+   - Then the view calls `_dispatch_tracked_grading`, which gains an optional `request` (for the audit row) and returns the per-item `(processing_task, task)` pairs the view needs for `tasks_data`.
+   - One plant per caller (view, `grade_batch_async`, auto-grade) proves each goes through the helper.
+2. **Flag off: no change.** The helper launches every item as today **[Q1]**.
+3. **Flag on, inside the helper,** in one transaction:
+   - `create_job(BATCH_GRADING, total_items=n, held_per_item=p90_paper)`, with `estimate_p50/p90/source` written onto the job (obligation 5) **[Q6]**;
+   - create the n items with `job` and `item_index`;
+   - `k = min(n, floor(spendable / p90_paper))`, reserved in one `reserve` under the wallet lock;
+   - claim items 1..k with a conditional UPDATE `hold_state NULL → HELD` (with `hold_credits = held_per_item`) **[Q2]**;
+   - launch each claimed item in `transaction.on_commit` (P-3, M-B20);
+   - items k+1..n stay PENDING with no hold and no Celery message;
+   - if `k < n` and nothing is left running, the job is queued (§3.7) **[Q7]**.
+4. **The last-item helper** (`billing/holds.py: decide_job_after_item`, obligation 1).
+   - It is called by every writer that finishes a held item: settle (batch item), `fail_item`, `_sweep_item`, the backstop, the C4 post_delete receiver (replacing its rule), and the new terminal hook **[Q3]**.
+   - It runs under the wallet lock (the §1.15 lock order). When `completed_items + failed_items` equals the number of claimed items **[Q4]**, it moves the job by one conditional UPDATE on `(id, status)`:
+     - unheld PENDING items remain → `QUEUED_PENDING_CREDITS`, with `stopped_at_item`, `queued_at`, `expires_at = queued_at + QUEUE_LIFETIME_DAYS`, and the hold-left-is-0 assert (anomaly + release on drift);
+     - otherwise → SETTLED if any item settled, else FAILED (C4's rule for a job with nothing left).
+   - Non-batch types keep exactly C4's outcome. It runs after the rows are gone, never in pre_delete.
+5. **Promotion** (atomic, plan §3.7):
+   - `billing.tasks.promote_queued_jobs` runs every 5 minutes, beat-locked with `@single_instance`.
+   - A hook enqueues a per-wallet promotion on commit. It sits on `CreditLedger.record` and `after_bulk_create` for credit-type entries, with no query in the hook **[Q8]**.
+   - For each queued job, oldest `queued_at` first, in one transaction: conditional QUEUED→RESERVED; reserve whole papers that fit; claim; launch on commit; clear the session's S7c stop **[Q14]**. If nothing is granted, roll back.
+6. **Expiry and warning:**
+   - `billing.tasks.expire_queued_jobs` runs every 5 minutes, beat-locked.
+   - At `expires_at − QUEUE_EXPIRY_WARNING_HOURS` (48, a constant), it sends the warning and sets `warned_expiry_at`.
+   - At `expires_at`, a conditional QUEUED→EXPIRED; the unlaunched items become FAILED with INSUFFICIENT_CREDITS_MID_BATCH (retryable, M-B10) **[Q13]**.
+7. **The backstop** goes into `sweep_stale_holds`. A BATCH_GRADING job in RESERVED/RUNNING, or an UPLOAD job in RESERVED, where no item has started or settled for `unstarted_backstop_hours` (36): fail its unstarted HELD items (retryable) in one transaction, return their holds, then call the last-item helper **[Q12]**.
+8. **Notifications** (#5, #8, #9, #10 with closing #6/#7) are built behind `QUEUE_EMAIL_APPROVED = False`, switched on at B1b-8. While False, nothing is sent and a warning is logged (the late-door precedent) **[Q9]**.
+9. **The automatic paths:**
+   - `auto_grade_due_assignment` goes through the helper, so B-1 holds.
+   - `_relaunch_failed_dispatches` (H-215a retry) puts the papers it relaunches into a new BATCH_GRADING job of that retry run **[Q10]**.
+10. **The plan fields** (08b §2.2): a help-text AlterField on `SubscriptionPlan.queue_expiry_days` and `queue_expiry_warning_hours` ("Deprecated (owner 2026-11-08): unused; the queue lifetime is QUEUE_LIFETIME_DAYS.").
+    - It is state-only; `sqlmigrate` should print no statements, which is to be recorded.
+    - Plus the static test: no code outside migrations and that test names either field.
+11. **The grade-all response.** Its shape is unchanged, and every item is listed. An unlaunched (queued) item has `task_id: null` **[Q5]**.
+
+#### §6.2.3 Plan departures found (each needs a ruling; nothing is built before it)
+
+- **D6-a, the count:** finished = `completed_items + failed_items`. The plan says `completed_items` alone; B1a split the two counters.
+- **D6-b, no LAUNCHED status:** the claim is `hold_state NULL → HELD` on a PENDING item. That gives no new status value and no new UI wording.
+- **D6-c, a terminal hook (a plan gap).** The plan assumes every launched item enters its metered unit. But a batch item can end before its unit:
+  - H-38 refusal, run-time RUBRIC_MISSING, already graded, the `only_if_ungraded` skip (marked SUCCESS), cancel, the S7c stop, or a broker failure at launch.
+  - A pre-held item would then keep `hold_state = HELD` with `started_at` set. `sweep_stale_holds` would sweep it about 90 minutes later and **overwrite its status to FAILURE/PROVIDER_FAILURE** (for example, an item that SUCCEEDED by skipping).
+  - It would also never count toward the last item, so its job would never finish.
+  - Proposed: `task_tracking`'s terminal writers call `billing.holds.release_unused_item_hold(task)` for a HELD item with no settlement row. That returns the item's hold as `fail_item` does, counts it once, then runs the last-item helper. **[Q3]**
+- **D6-d, `task_id: null`** for queued items in the grade-all response **[Q5]**.
+
+#### §6.2.4 Questions, each with a recommendation
+
+- **Q1. Flag scope:** jobs, reserve and queue only with `BILLING_HOLDS_ENABLED`; flag off is byte-for-byte today's path. *Rec: yes.*
+- **Q2. The claim** (D6-b). *Rec: accept.*
+- **Q3. The terminal hook** (D6-c). *Rec: accept.* It runs only for items with a job and `hold_state = HELD`. A later `fail_item` or `settle` on that item finds RETURNED and does not count it twice; they already check this.
+- **Q4. The count** (D6-a). Every writer holds the wallet lock, so the helper's read is exact, and its conditional status UPDATE makes the move happen exactly once (P-4). *Rec: accept.*
+- **Q5. `task_id: null`** for a queued item. The item count stays the same, and `UUIDField(read_only=True)` renders None. *Rec: accept.* Not new wording.
+- **Q6. The per-paper hold** = `p90_paper` from the same estimate as the band. `estimates.estimate()` would expose `p90_paper`, and a rough tier uses rough per-paper × 1.5.
+  - The cost is one estimate per batch start: B1b-4's Gate 6 p50 is 14–55 ms for the assignment and teacher tiers, but **370 ms for the all-papers tier**.
+  - *Rec: accept; Gate 6 for the 300-paper batch measures it.*
+- **Q7. k = 0 at grade-all:** keep `HasCreditBalance` (today's 402 on a zero total). A teacher whose credits are all held by other jobs gets a queued job; calling grade-all after the verdict is the "proceed" (D-A8). *Rec: no new refusal or parameter.*
+- **Q8. The hook:** enqueue on commit, per wallet, credit-type entries only, with no query (B1b-3's single-call pin path writes only debits). *Rec: accept.*
+- **Q9. Emails** gated as in the late-door precedent. *Rec: accept.*
+- **Q10. The H-215a retry:** its relaunched papers go into a new job. The first run's job may already be terminal, and a terminal job never reopens (§1.21(a)). *Rec: accept.*
+- **Q11. The view's audit row:** the helper passes the view's `request` to `emit`, so the characterization test's audit pins stay green. *Rec: accept.*
+- **Q12. The backstop's code:** PROVIDER_FAILURE, as the item sweep (retryable; its text says nothing was charged). *Rec: accept.*
+- **Q13. Expiry's code:** INSUFFICIENT_CREDITS_MID_BATCH (plan). *Rec: as planned.*
+- **Q14. S7c with the flag on:** a shortfall refusal under a hold still sets the session's `credits_exhausted_at`. Promotion must clear it when it relaunches, or the promoted items stop at `ensure_batch_has_credits`. *Rec: promotion calls `clear_batch_credit_stop`.*
+- **Q15. Concurrency tests** P-1, P-2 and P-4 on barrier threads, in the `test_holds_concurrency` style, on the test DB (no local PG16 cluster started). The 300-paper Gate 6 is `skipUnless(RUN_LOAD_TESTS)`, as B1b-4's. *Rec: accept.*
+- **Q16, the count-pin method for flag-on batch tests (see §6.2.5).** *Rec: option (b).*
+
+#### §6.2.5 The count-pin survey (up front)
+
+- **Will change, edits planned (each with a break run):**
+  - `AutoGrader.tests_beat_locks`: `EPIC_ONLY` gains `billing.tasks.promote_queued_jobs` and `billing.tasks.expire_queued_jobs` (+2).
+  - `billing/tests/test_holds_deleted_items.py` (C4) only if the helper's outcome differs. For UPLOAD and SINGLE_ITEM it keeps C4 exactly, so **no edit is expected**; T7, T8, T8b, T9 and T20 are re-run as guards.
+- **Unaffected (checked):**
+  - B1b-3's single-call query pin (`test_holds_b1b3_pins.py:72`): the helper and the hook do not run on a SINGLE_CALL.
+  - `test_holds_schema.py:353–360`: the plan fields' defaults stay.
+  - `write_routes()` = 162: there is no new route (the job API is B1b-7).
+  - No suite test pins the beat schedule's length (grep).
+- **Not resolvable statically: 20 modules run the batch paths, and all of them run flag-on in E1.**
+  - The list is in the scratchpad `batch_tests.txt`; it includes `students/tests_h215a_auto_grade_resilience`, `tests_batch_item_results`, `tests_h38_*`, `tests_s6d_rubric_gate`, `assignments/tests_grading_audit_events`, `billing/tests/test_refusal_handling*` and `audit/tests/test_bench_volume`.
+  - With the flag on, a fixture teacher whose spendable credits are below k × p90_paper would now queue papers instead of launching them. Whether each fixture has a wallet and credits differs per module (counted by grep, but not decidable without running).
+  - **Q16 options:**
+    - (a) A full static read of all 20 modules' fixtures, about half a day, still at risk of misses.
+    - (b) **Rec:** after the design ruling, and before the red, a **declared probe run**. The product is applied on a throwaway local branch, never committed to the task branch. The 20 modules run flag on and flag off; each failure is recorded as a pin; then the edits are declared and the probe branch is deleted. The probe proves nothing as gate evidence.
+    - (c) Proceed and treat E1 failures as STOPs.
+- **Re-done after any design-changing ruling,** and recorded even if empty.
+
+#### §6.2.6 The seven obligations, mapped
+
+1. C4 → the last-item helper, after the rows are gone: §6.2.2 item 4.
+2. The BATCH_GRADING delete test with two or more never-held PENDING rows: a new test in `test_holds_deleted_items.py`. Its rows are queued (unclaimed) PENDING rows, so it fails in any visit order.
+3. Every new job-status write (QUEUED→RESERVED promotion, →EXPIRED, →QUEUED, RESERVED→RUNNING at first claim, the backstop) is conditional on its from-status and taken under the wallet lock first. The §1.21(a) grep is re-run after the product, now including `settle(close_status=…)` and `_reserve_locked(status=…)`, and recorded.
+4. The double-return plant for C3 (§1.12), now that the helper is a second writer: planned as PB6-x.
+5. `estimate_*` and `estimate_source` on the job: §6.2.2 item 3.
+6. The past-batch definition (backtest and drift): re-checked once jobs exist. Proposed: past batches stay "BATCH_SUBMISSION_GRADING tasks sharing a batch_session". A BATCH_GRADING job maps 1:1 to a session for new batches; H-215a retry runs add a second job per session (Q10), which the session grouping already merges. *No change proposed*, and this is recorded with the evidence.
+7. A CASCADE to AIJob: none is added (the items' `job` FK stays as B1a's), so the "deleted in the same collector run" test is not triggered. Recorded.
+
+#### §6.2.7 H-1, raised now (B1b-6 touches the grade-all path)
+
+- The estimate endpoint's `submission_ids` has no length cap (`billing/estimate_views.py:_SubmissionIds`).
+- **Option:** DRF's own `ListField(max_length=N)`. Its built-in message, "Ensure this field has no more than {max_length} elements.", is existing framework wording, not new text. Whether that counts as "an existing message" is the SM's call.
+- **N suggested:** 5,000 (above roster import's 2,000 per import, with room for several imports into one course).
+- **Not built** without the SM's word (and the owner's, if the SM wants it).
+
+#### §6.2.8 Size
+
+- 08b's 7.5 days stands.
+- D6-c (the terminal hook) adds about 0.5 day.
+- Q16(b)'s probe adds about 0.25 day.
