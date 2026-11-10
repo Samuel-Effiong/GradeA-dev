@@ -328,3 +328,18 @@ class AICallRecord(models.Model):
     school_id = models.UUIDField(null=True, blank=True)
     assignment_id = models.UUIDField(null=True, blank=True)
     processing_task_id = models.UUIDField(null=True, blank=True)
+
+    class Meta:
+        # B1b-4 (08b §1.3 item 2, SM ruling 2026-11-08): the estimate's
+        # assignment and teacher tiers filter on these over 90 days. Each is
+        # built concurrently in its own non-atomic migration (0007, 0008).
+        indexes = [
+            models.Index(
+                fields=["assignment_id", "created_at"],
+                name="aicall_assignment_created",
+            ),
+            models.Index(
+                fields=["billed_user_id", "created_at"],
+                name="aicall_billed_user_created",
+            ),
+        ]

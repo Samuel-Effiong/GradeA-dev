@@ -141,6 +141,11 @@ ALLOWED_KEYS = frozenset(
         # events for an escalation and for a manual close. A status, never
         # the free-text reason or note.
         "intent_status",
+        # Epic B1b-4: BillingSettings' editable fields, numbers only, on the
+        # `billing_settings --set` STATE_CHANGE before/after.
+        "cold_start_cost_factor",
+        "unstarted_backstop_hours",
+        "hold_sweep_margin_minutes",
         # H-273: reason label derived from exception class or status code
         "reason_label",
         # H-273: failing field names on ValidationError (names only, never messages)
@@ -421,6 +426,16 @@ _GRADE_FIELDS = frozenset(
 )
 
 BEFORE_AFTER_ALLOWLIST = {
+    # Epic B1b-4: `manage.py billing_settings --set` records the one field it
+    # changed, old and new (08b §1.3 item 5). Exactly BillingSettings'
+    # editable fields; numbers only.
+    AuditAction.STATE_CHANGE: frozenset(
+        {
+            "cold_start_cost_factor",
+            "unstarted_backstop_hours",
+            "hold_sweep_margin_minutes",
+        }
+    ),
     AuditAction.GRADE_CHANGE: _GRADE_FIELDS,
     # AI grading's own before/after (SM note 2): the same grade fields, on
     # the one GRADING_COMPLETED event, with no GRADE_CHANGE beside it.

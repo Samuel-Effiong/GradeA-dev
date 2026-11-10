@@ -66,7 +66,7 @@ class EstimateEndpointTests(TestCase):
             {"assignment_id": str(self.assignment.pk), "submission_ids": "all_ungraded"}
         )
         self.assertEqual(response.status_code, 200, response.content)
-        body = response.json()
+        body = response.json()["data"]
         self.assertEqual(body["n"], 3)
         self.assertEqual(body["p50"], 300)
         self.assertEqual(body["source"], "assignment")
@@ -87,12 +87,12 @@ class EstimateEndpointTests(TestCase):
             }
         )
         self.assertEqual(response.status_code, 200, response.content)
-        self.assertEqual(response.json()["n"], 1)
+        self.assertEqual(response.json()["data"]["n"], 1)
 
     def test_the_body_is_codes_and_numbers_only(self):
         body = self.post(
             {"assignment_id": str(self.assignment.pk), "submission_ids": "all_ungraded"}
-        ).json()
+        ).json()["data"]
         self.assertEqual(
             set(body),
             {
@@ -132,8 +132,8 @@ class EstimateEndpointTests(TestCase):
         )
         self.assertNotEqual(response.status_code, 402, "refused like grade-all")
         self.assertEqual(response.status_code, 200, response.content)
-        self.assertEqual(response.json()["spendable"], 0)
-        self.assertEqual(response.json()["verdict"], "INSUFFICIENT")
+        self.assertEqual(response.json()["data"]["spendable"], 0)
+        self.assertEqual(response.json()["data"]["verdict"], "INSUFFICIENT")
 
     def test_another_teachers_assignment_is_refused_as_grade_all_refuses_it(self):
         intruder = ai_ready_teacher("est.ep.intruder@example.com", 10_000)

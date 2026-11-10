@@ -137,13 +137,17 @@ class OnlyPlainValuesTests(TestCase):
         with patch.object(AIProcessor, "estimate_messages_cost", return_value=10):
             results = {
                 "paper_costs": estimates.paper_costs(assignment_id=assignment.pk),
+                "paper_costs_sql": estimates.paper_costs_sql(
+                    assignment_id=assignment.pk
+                ),
                 "band": estimates.band([1, 2, 3], 3),
                 "estimate": estimates.estimate(assignment, 3, teacher=user),
                 "verdict": estimates.verdict(1, 2, 3),
                 "advise": estimates.advise(user, assignment, 3),
                 "past_batches": estimates.past_batches(days=90),
                 "backtest": estimates.backtest(days=90),
-                "cold_start_ratio": estimates.cold_start_ratio(days=90),
+                "provider_gap_ratio": estimates.provider_gap_ratio(days=90),
+                "rough_replay_ratio": estimates.rough_replay_ratio(days=90),
                 "drift_reasons": estimates.drift_reasons(estimates.backtest(days=90)),
                 "shape_of": estimates.shape_of(assignment),
                 "spendable_of": estimates.spendable_of(user),
@@ -384,7 +388,7 @@ class AdviceTests(TestCase):
     def test_the_payload(self):
         user = teacher("advice")
         assignment = make_assignment(user, "Advice")
-        papers(user, assignment, [100] * 10)
+        papers(user, assignment, [100] * 8 + [300] * 2)
         with patch.object(estimates, "spendable_of", return_value=700):
             result = estimates.advise(user, assignment, 5)
         self.assertEqual(

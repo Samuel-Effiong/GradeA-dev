@@ -949,6 +949,11 @@ CELERY_BEAT_SCHEDULE = {
         "task": "billing.tasks.check_credit_hold_invariants",
         "schedule": crontab(minute=30, hour=5),
     },
+    # Epic B1b-4 (plan 08 §3.6): monthly estimate drift check. Reports only.
+    "check-credit-estimate-drift-monthly": {
+        "task": "billing.tasks.check_credit_estimate_drift",
+        "schedule": crontab(minute=0, hour=6, day_of_month=1),
+    },
     "process-annual_plan-credit-grants": {
         "task": "billing.tasks.process_annual_plan_credit_grants",
         "schedule": crontab(minute=0, hour=2),

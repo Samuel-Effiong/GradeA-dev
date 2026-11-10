@@ -1845,6 +1845,8 @@ class AIJob(models.Model):
     # --- Estimate (X-3) ---
     estimate_p50 = models.IntegerField(null=True, blank=True)
     estimate_p90 = models.IntegerField(null=True, blank=True)
+    # B1b-4: which tier gave the estimate (billing.estimates SOURCE_*).
+    estimate_source = models.CharField(max_length=16, null=True, blank=True)
     sufficiency_verdict = models.CharField(max_length=16, null=True, blank=True)
 
     # --- Hold accounting (plan 08 §3.2) ---
@@ -1953,7 +1955,9 @@ class SettlementRecord(models.Model):
 
 
 class BillingSettings(models.Model):
-    """Singleton editable billing settings (one row via Django admin)."""
+    """Singleton billing settings, one row. Not in Django admin (SM ruling
+    2026-11-08): read and changed with `manage.py billing_settings`, which
+    audits every change."""
 
     cold_start_cost_factor = models.FloatField(
         default=3.0,
@@ -1987,6 +1991,28 @@ class BillingSettings(models.Model):
     def load(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class EstimateDriftRun(models.Model):
+    """One run of the monthly estimate drift check (plan 08 §3.6): the band
+    coverage overall and per shape x batch-size cell, so the trend is
+    visible. It only reports; nothing reads it to change an estimate."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ran_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    window_days = models.PositiveSmallIntegerField()
+    batches = models.PositiveIntegerField(default=0)
+    coverage = models.FloatField(null=True, blank=True)
+    cells = models.JSONField(default=list, blank=True)
+    suggested_factor = models.FloatField(null=True, blank=True)
+    current_factor = models.FloatField()
+    drifted = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-ran_at"]
+
+    def __str__(self):
+        return f"EstimateDriftRun {self.ran_at:%Y-%m-%d} coverage={self.coverage}"
 
 
 class BetaProfile(models.Model):

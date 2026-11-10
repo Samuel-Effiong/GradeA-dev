@@ -1803,6 +1803,21 @@ def check_credit_hold_invariants(self):
     return f"Credit hold invariants: {len(problems)} problem(s)"
 
 
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
+def check_credit_estimate_drift(self):
+    """Monthly (B1b-4, plan 08 §3.6): replay the trailing 90 days of batches
+    against the estimate. Writes one EstimateDriftRun row every run; on drift
+    (coverage under 85% overall, or under 80% in a cell of at least 30
+    batches) it emits credit_estimate_drift and, once approved text #17 is
+    switched on, emails the super admin. Reports only: it never changes an
+    estimate or the cold-start factor."""
+    from .estimates import drift_check
+
+    result = drift_check()
+    return f"Credit estimate drift: drifted={result['drifted']}"
+
+
 #: A connection problem is retried with backoff (60s, 2m, 4m, 8m, 16m):
 #: about half an hour in all, well inside the 24 hours Stripe honours the
 #: refund's idempotency key for.

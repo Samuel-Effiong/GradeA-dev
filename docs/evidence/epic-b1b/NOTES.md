@@ -1776,3 +1776,27 @@ Collateral is recorded as observed and is not a mismatch. A survivor, or a kill 
   - `test_by_must_be_an_active_super_admin`: 2 (one per `--by`);
   - `test_set_needs_by`, `test_an_unknown_field_is_refused` (stops at its first assertion) and `test_a_refused_set_changes_nothing_even_after_a_good_one`: 1 each.
   - That gives 9 + 2 + 1 + 1 + 1 = **14**. I declared tests, not subtest failures.
+
+### §4.8 The SM's ruling on R′ (2026-11-09), and what changed while the product was built (before the product commit)
+
+**R′ is recorded as "prediction wrong: subTest failures counted separately (14, not 5)".** No test fails vacuously. Standing rule from now on: a declaration counts each failing `subTest` as one failure.
+
+**D-f changed (SM ruling):**
+- `cold_start_cost_factor` is suggested from the **rough replay**: the median over papers of actual ÷ the rough tier's own unscaled figure (`estimates.rough_replay_ratio`). `backtest()["suggested_factor"]` is that number.
+- actual ÷ the real call's recorded estimate is kept as `estimates.provider_gap_ratio`, **for information only**. `backtest_credit_estimates --cold-start` prints both: `suggested_factor=…` and `provider_gap_ratio=…`.
+- Tier 4 stays `"rough"` with p90 × 1.5 until the owner sets the factor.
+- Ruled test change (backtest module, 21 → 22 tests): `test_the_cold_start_ratio_is_the_median_actual_over_estimate` becomes `test_the_provider_gap_ratio_is_reported_for_information`, and `test_the_suggested_factor_closes_the_rough_tiers_own_gap` is added. `OnlyPlainValuesTests` lists the two ratios in place of `cold_start_ratio`.
+- **New plant PE-23:** `suggested_factor` taken from `provider_gap_ratio`. Killed by `test_the_suggested_factor_closes_the_rough_tiers_own_gap`, fragment `2.0 != 3.0`.
+
+**Amendment to §4.6's migrations:** one billing migration, **0083** (`EstimateDriftRun` plus `AIJob.estimate_source`), not 0083 + 0084. The two `ai_processor` migrations are 0007 and 0008, as declared.
+
+**Found while building, each a correction recorded as it is (for the SM):**
+- **D-h. Audit allow-lists.** The `billing_settings --set` row's before/after keys must be on both lists, or the emitter drops them ("not on the allow-list") and before/after arrive as `{}`. So the three editable fields (`cold_start_cost_factor`, `unstarted_backstop_hours`, `hold_sweep_margin_minutes`) go on `audit.metadata.ALLOWED_KEYS` **and** on `BEFORE_AFTER_ALLOWLIST[STATE_CHANGE]`. Numbers only.
+- **D-i. `target_id=None`.** `BillingSettings` has an integer pk and the emitter takes UUIDs only (`target_id: not a UUID`, which rejects the row). The row is a singleton, so `target_type="BillingSettings"` names it and `target_id` is `None`. Found with a temporary `strict=True`, since removed.
+- **D-j. The endpoint tests read the response envelope.** Every DRF response goes through `users.renderers.APIJSONRenderer`, which wraps the body as `{"success", "message", "data"}` (house precedent: `billing/tests/test_billing_transaction_tenant_isolation.py:64` reads `["data"]`). The four 200-path tests read `response.json()["data"]`. `test_the_body_is_codes_and_numbers_only` asserts the **data**'s keys exactly, and that `"message"` is not among them. The envelope's own `message` is the house wrapper, not a field of this endpoint. This is a fault in my tests, not a product change.
+- **D-k. `AdviceTests.test_the_payload`'s fixture contradicted its own expectation.** With every paper at 100 and n = 5 (< 10), p50 = p90 = 500, so 700 is SUFFICIENT by the declared rule, not MARGINAL. The fixture becomes `[100] * 8 + [300] * 2` (nearest-rank p50 paper 100, p90 paper 300). So p50 = 500 and p90 = 1500, and the declared expectation (MARGINAL, `projected_remaining_p50` 200) stands unchanged.
+- **D-l. `paper_costs_sql` (the Gate 6 EXPLAIN helper) is public.** So `OnlyPlainValuesTests` needs it in its results. The product returns its params as text (timestamps ISO), so it stays plain, and the test lists it.
+- **Formatting:** imports are sorted with `isort --profile=black` (the pre-commit setting), so no unrelated file churns.
+- **Not changed:** the drift task tests keep `check_credit_estimate_drift.run()`. An interim `.apply()` edit was shown unnecessary (`DriftTaskTests` `Ran 9`, OK with `.run()`) and reverted.
+
+**Dev runs (not evidence), under `flock`:** the five new modules `Ran 75`, `OK (skipped=1)`; `makemigrations --check`: No changes. New tests by module: band 34, endpoint 10, backtest 22, settings 8, Gate 6 1 (to be re-taken by `build_suite` at the product commit).

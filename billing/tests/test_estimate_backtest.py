@@ -11,6 +11,7 @@ from django.core.management import call_command
 from django.test import TestCase
 
 from ai_processor.models import AICallRecord
+from ai_processor.services import AIProcessor
 from AutoGrader.beat_locks import declared_lock
 from billing.models import BillingSettings
 from billing.testing.holds import ai_ready_teacher
@@ -117,16 +118,28 @@ class BacktestTests(TestCase):
         self.assertIn("batches=3", text)
         self.assertIn("coverage=", text)
 
-    def test_the_cold_start_ratio_is_the_median_actual_over_estimate(self):
+    def test_the_provider_gap_ratio_is_reported_for_information(self):
         for cost, estimate in ((200, 100), (300, 100), (900, 100)):
             task = paper(self.teacher, self.assignment, cost)
             AICallRecord.objects.filter(processing_task_id=task.pk).update(
                 estimate=estimate
             )
-        self.assertEqual(estimates.cold_start_ratio(days=90), 3.0)
-        out = StringIO()
-        call_command("backtest_credit_estimates", "--cold-start", stdout=out)
-        self.assertIn("cold_start_ratio=3.0", out.getvalue())
+        self.assertEqual(estimates.provider_gap_ratio(days=90), 3.0)
+
+    def test_the_suggested_factor_closes_the_rough_tiers_own_gap(self):
+        """SM ruling 2026-11-09 (D-f): the factor the rough tier applies is
+        actual / the rough tier's own figure, not actual / the real call's
+        recorded estimate (that one is reported for information)."""
+        for _ in range(3):
+            task = paper(self.teacher, self.assignment, 300)
+            AICallRecord.objects.filter(processing_task_id=task.pk).update(estimate=150)
+        with patch.object(AIProcessor, "estimate_messages_cost", return_value=100):
+            self.assertEqual(estimates.rough_replay_ratio(days=90), 3.0)
+            self.assertEqual(estimates.backtest(days=90)["suggested_factor"], 3.0)
+            out = StringIO()
+            call_command("backtest_credit_estimates", "--cold-start", stdout=out)
+        self.assertIn("suggested_factor=3.0", out.getvalue())
+        self.assertIn("provider_gap_ratio=2.0", out.getvalue())
 
 
 class DriftDecisionTests(TestCase):
