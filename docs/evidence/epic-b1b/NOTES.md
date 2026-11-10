@@ -2496,3 +2496,38 @@ Run on `students.tests_data_erase`.
 **A dev check** (scratchpad, not evidence): `AutoGrader.tests_h271_static_files` plus `QueueLifetimeSettingTests`, `Ran 11`, OK.
 
 **Declared (§5.11 steps 2–8, unchanged; the break runs stand):** the green `Ran 602`, `OK (skipped=1)`; then the plants; E1 `Ran 7555` OK (skipped=32); E2 `Ran 6491` OK (skipped=24); E3 `Ran 1148` OK (skipped=1); makemigrations `No changes detected`; safety staging exit 0 with 6 OK, 0 ACK, 0 FAIL; safety main exit 0 with 35 OK, 1 ACK, 0 FAIL.
+
+### §5.14 Results at 60cbf915c: the green as declared; the plants, STOP on four fragments
+
+**The green: `Ran 602`, `OK (skipped=1)`, as declared.** Log `step5/G_green_60cbf915.log`.
+
+**The plants** (`scratchpad/run_plants_b5.sh`; every file restored, `clean=0`, and its sha256 equal to `scratchpad/sha_b5.txt` re-taken at 60cbf915c). Logs `step5/P_PK-*_60cbf915.log`. **All 16 were killed by the named test. Four of them are not as declared:**
+
+| Plant | Run | Killer (named) | Declared | Observed | As declared? |
+|---|---|---|---|---|---|
+| PK-1 | Ran 65, failures=3 | `test_a_row_past_kept_until_is_deleted_and_marked` | `unexpectedly None` | `unexpectedly None` | yes. Collateral: `test_more_than_one_batch_is_purged_in_one_run` (`True is not false`), `test_the_task_purges` (`unexpectedly None`) |
+| PK-2 | Ran 65, failures=1 | `test_a_purged_file_is_refused_upload_it_again` | `202 != 409` | `202 != 409` | yes |
+| PK-3 | Ran 65, failures=3 | `test_a_full_erasure_deletes_the_row_and_the_file` | `True is not false` | `True is not false` | yes. Collateral: `test_the_file_goes_only_after_the_delete_commits`, `test_a_teachers_course_erasure_deletes_the_row_and_the_file` (both `True is not false`) |
+| **PK-4** | Ran 65, **failures=1** | `test_storage_down_falls_back_to_the_inline_file` | **ERROR** `KeptFileUnavailable: down` | **FAIL** `AssertionError: 500 != 200 : b'{"success":false,"message":"An unexpected error occurred. Please try again.","error":{}}'`. The exception appears in the log as `students.kept_files.KeptFileUnavailable: down`, from the house exception handler's log line, not as the test's error | **no** |
+| **PK-5** | Ran 65, failures=1 | `test_a_corrupt_file_fails_the_item_once_with_the_old_text` | `'SUCCESS' != 'FAILURE'` | `AssertionError: 'FILE_UNREADABLE' != ''`. Without the check, the corrupt bytes reach `prepare_ai_content`, which refuses them as FILE_UNREADABLE. So the status assertion holds (FAILURE), and the reason-code assertion is the first to fail | **no** |
+| PK-6 | Ran 65, failures=3 | `test_a_kept_file_is_loaded_and_deleted_when_the_item_succeeds` | `unexpectedly None` | `unexpectedly None` | yes. Collateral: `test_a_kept_file_is_loaded_and_its_digest_is_the_rows` (`unexpectedly None`), `test_a_failed_delete_on_success_leaves_the_row_for_the_purge` (`... not less than or equal to ...`) |
+| **PK-7** | Ran 65, failures=1 | `test_kept_until_is_the_upload_time_plus_the_setting` | `30 days, 0:00:00 != 3 days, 0:00:00` | `AssertionError: datetime.timedelta(days=30) != datetime.timedelta(days=3)`. assertEqual prints the repr, not the str | **no** |
+| PK-8 | Ran 65, failures=2 | `test_a_failed_delete_leaves_the_row_unpurged_for_the_next_run` | `is not None` | `datetime.datetime(2026, 11, 10, 9, 45, 48, 123975, tzinfo=datetime.timezone.utc) is not None` | yes. Collateral: `test_a_row_a_day_overdue_is_counted` (`0 != 1`) |
+| **PK-9** | Ran 65, failures=2 | `test_a_kept_answer_upload_stopped_for_credits_is_retried_in_place` | a diff line containing `'kept_upload_id': None` | No diff lines were printed: `Diff is 692 characters long. Set self.maxDiff to None to see it.` The value shows only in the shortened element line: `First differing element 0:` / `('ass[146 chars]id': None}, ...` | **no** |
+| PK-10 | Ran 65, failures=1 | `test_once_approved_a_kept_row_has_exactly_the_four_keys` | `First extra element 4:` then `'storage_key'` | the same, lines 176–177 | yes |
+| PK-11 | Ran 65, failures=1 | `test_anything_else_stops_start_up_with_a_clear_message` | exactly 1 subTest failure, `raw='0'`, `ImproperlyConfigured not raised` | the same | yes |
+| PK-12 | Ran 65, failures=1 | `test_the_task_runs_one_at_a_time` | `unexpectedly None` | `unexpectedly None` | yes |
+| PK-13 | Ran 179, failures=1, errors=2 | `test_a_kept_upload_is_deleted_with_the_student_through_its_task` | ERROR `KeyError: ('students.KeptUpload', 'processing_task')` | the same | yes. Collateral: `tests_data_erase` `test_every_delete_table_loses_only_the_targets_rows` (ERROR, the same KeyError), `tests_student_data_map` `test_every_other_entry_matches_by_user` (`Lists differ: [] != [('students.KeptUpload', 'processing_task')]`) |
+| PK-14 | Ran 65, failures=5 | `test_the_shared_prompt_is_the_old_route_string_byte_for_byte` | a diff line starting `- ` containing `return a JSON.` | `-             Analyze the image of an educational assignment and return a JSON.` | yes. Collateral: the two route tests and the two retry tests that compare against the verbatim prompt |
+| PK-15 | Ran 65, failures=1 | `test_a_grading_item_refused_for_credits_is_still_refused` | `202 != 409` | `202 != 409` | yes |
+| PK-16 | Ran 46, failures=1 | `test_every_delete_table_loses_only_the_targets_rows` | `set() is not true` | `set() is not true` | yes |
+
+**The four mismatches are my declaration errors, not survivors.** Each plant was killed by its named test.
+- **PK-4:** I assumed the test client re-raises. The house handler turns the exception into a 500 response.
+- **PK-5:** I didn't trace that corrupt bytes still fail as a FILE_UNREADABLE refusal.
+- **PK-7:** I wrote the str form; assertEqual prints the repr.
+- **PK-9:** I declared a diff-line fragment for a diff that maxDiff suppresses. This breaks the standing practice: the element line was the right source.
+
+**Proposed (for the SM):**
+- Record the four as "fragment wrong; killed by the named test", with no re-run, as the BR-2 precedent (§4.10–§4.11).
+- Then run §5.11 steps 4–8 as declared: E1, E2, E3, makemigrations, safety ×2.

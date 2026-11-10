@@ -1,0 +1,190 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user e0a68cdc-44b5-4b5f-b3b3-f6f0d277f3d5.
+Cannot activate automatic trial for user e0a68cdc-44b5-4b5f-b3b3-f6f0d277f3d5 (validation): ValueError
+
+
+students.kept_uploads ERROR 2026-11-10 09:45:46,370 kept_uploads 86779 136704547911552 [request_id=- client_request_id=-] Kept upload 8edf8484-206d-4ce9-abb6-65e52474be34: the file is corrupt.
+
+
+
+
+students.task_tracking ERROR 2026-11-10 09:45:46,371 task_tracking 86779 136704547911552 [request_id=- client_request_id=-] Background task 0ec6f1f6-3fe2-4cee-9ba8-133e5721f118 failed: error=KeptFileLost frames=tasks.py:1060:upload_answers_engine_async <- kept_uploads.py:144:open_upload <- kept_uploads.py:125:_lost
+
+
+.Free trial plan not found: no trial activated for user 901b283a-a171-4bf3-b3ba-4a4309b4a4e7.
+Cannot activate automatic trial for user 901b283a-a171-4bf3-b3ba-4a4309b4a4e7 (validation): ValueError
+
+
+students.kept_uploads WARNING 2026-11-10 09:45:46,466 kept_uploads 86779 136704547911552 [request_id=- client_request_id=-] Kept upload d70f3922-6ae9-428e-91c5-87c1561aad73: delete failed; the purge retries.
+
+
+.Free trial plan not found: no trial activated for user d3cf4ec0-634f-457d-a114-c8159c50ba86.
+Cannot activate automatic trial for user d3cf4ec0-634f-457d-a114-c8159c50ba86 (validation): ValueError
+.Free trial plan not found: no trial activated for user 9dd5b3c5-cee0-4dae-857b-b8cfdcb3c81f.
+Cannot activate automatic trial for user 9dd5b3c5-cee0-4dae-857b-b8cfdcb3c81f (validation): ValueError
+
+
+students.kept_uploads ERROR 2026-11-10 09:45:46,614 kept_uploads 86779 136704547911552 [request_id=- client_request_id=-] Kept upload 46c918f4-4248-4292-9b91-562361e58944: the file is missing.
+
+
+
+
+students.task_tracking ERROR 2026-11-10 09:45:46,614 task_tracking 86779 136704547911552 [request_id=- client_request_id=-] Background task 1d18befb-7561-4ae2-9b4a-0f5618db7278 failed: error=KeptFileLost frames=tasks.py:1060:upload_answers_engine_async <- kept_uploads.py:142:open_upload <- kept_uploads.py:125:_lost
+
+
+.Free trial plan not found: no trial activated for user 0990ccb8-e6fe-4b11-8c45-ab74914019bd.
+Cannot activate automatic trial for user 0990ccb8-e6fe-4b11-8c45-ab74914019bd (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-10 09:45:46,747 task_tracking 86779 136704547911552 [request_id=- client_request_id=-] Background task a1f03a48-45b0-4404-83cf-fe8c89400352 failed: error=KeptFileUnavailable frames=tasks.py:1060:upload_answers_engine_async <- kept_uploads.py:140:open_upload <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call <- tasks.py:1060:upload_answers_engine_async <- kept_uploads.py:140:open_upload <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call <- tasks.py:1060:upload_answers_engine_async <- kept_uploads.py:140:open_upload <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call <- tasks.py:1060:upload_answers_engine_async <- kept_uploads.py:140:open_upload <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user daf59bc8-6517-4681-afae-87d19e30baee.
+Cannot activate automatic trial for user daf59bc8-6517-4681-afae-87d19e30baee (validation): ValueError
+.Free trial plan not found: no trial activated for user 79e46de2-5449-4d53-8e9f-e7ffb1918d18.
+Cannot activate automatic trial for user 79e46de2-5449-4d53-8e9f-e7ffb1918d18 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user 42ff0e84-8189-4d5d-9d37-b04801770e90.
+Cannot activate automatic trial for user 42ff0e84-8189-4d5d-9d37-b04801770e90 (validation): ValueError
+.Free trial plan not found: no trial activated for user 2cbaaf2e-4d97-455d-986c-ceb23e6d630b.
+Cannot activate automatic trial for user 2cbaaf2e-4d97-455d-986c-ceb23e6d630b (validation): ValueError
+.Free trial plan not found: no trial activated for user 7264f00c-67a9-4765-8389-25bcff6b83aa.
+Cannot activate automatic trial for user 7264f00c-67a9-4765-8389-25bcff6b83aa (validation): ValueError
+.Free trial plan not found: no trial activated for user 213f3966-b5d4-41d0-865f-5630fc541db3.
+Cannot activate automatic trial for user 213f3966-b5d4-41d0-865f-5630fc541db3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1e7d032e-4334-4167-8150-09265fafd7b2.
+Cannot activate automatic trial for user 1e7d032e-4334-4167-8150-09265fafd7b2 (validation): ValueError
+.Free trial plan not found: no trial activated for user cad255fb-bdb6-4273-8e80-26fd5310af0c.
+Cannot activate automatic trial for user cad255fb-bdb6-4273-8e80-26fd5310af0c (validation): ValueError
+.Free trial plan not found: no trial activated for user d30c8527-bcae-4f60-beed-5dc6563e0de1.
+Cannot activate automatic trial for user d30c8527-bcae-4f60-beed-5dc6563e0de1 (validation): ValueError
+.Free trial plan not found: no trial activated for user bc3f101c-90f5-42d1-9bbd-0c6bb8f7105c.
+Cannot activate automatic trial for user bc3f101c-90f5-42d1-9bbd-0c6bb8f7105c (validation): ValueError
+.Free trial plan not found: no trial activated for user c7f0b741-07dd-4ffb-8bed-30160b631f4b.
+Cannot activate automatic trial for user c7f0b741-07dd-4ffb-8bed-30160b631f4b (validation): ValueError
+
+
+students.kept_uploads WARNING 2026-11-10 09:45:48,128 kept_uploads 86779 136704547911552 [request_id=- client_request_id=-] Kept upload d2c65ea8-aeb5-4d8e-b88c-149a761d1ec0: delete failed; the purge retries.
+
+
+FFree trial plan not found: no trial activated for user 93247b6a-cc45-451e-b173-22740f21fb28.
+Cannot activate automatic trial for user 93247b6a-cc45-451e-b173-22740f21fb28 (validation): ValueError
+
+
+students.kept_uploads WARNING 2026-11-10 09:45:48,198 kept_uploads 86779 136704547911552 [request_id=- client_request_id=-] Kept upload a08dfb75-64d8-4678-a0ad-7c8a5faffdd0: delete failed; the purge retries.
+
+
+
+
+students.kept_uploads WARNING 2026-11-10 09:45:48,199 kept_uploads 86779 136704547911552 [request_id=- client_request_id=-] Kept upload 48f2e1d6-791a-421c-866d-e0e9e6ffa4fe: delete failed; the purge retries.
+
+
+FFree trial plan not found: no trial activated for user e659d380-f558-4b33-9669-29085f7fdd3c.
+Cannot activate automatic trial for user e659d380-f558-4b33-9669-29085f7fdd3c (validation): ValueError
+.Free trial plan not found: no trial activated for user c54945a4-d7ef-4f99-961c-b11e626baeff.
+Cannot activate automatic trial for user c54945a4-d7ef-4f99-961c-b11e626baeff (validation): ValueError
+.Free trial plan not found: no trial activated for user 3af2a2db-3e99-44f2-b7cf-e469cfe32d4c.
+Cannot activate automatic trial for user 3af2a2db-3e99-44f2-b7cf-e469cfe32d4c (validation): ValueError
+.Free trial plan not found: no trial activated for user 19142a6f-b9be-4c00-a021-5497f7d2f355.
+Cannot activate automatic trial for user 19142a6f-b9be-4c00-a021-5497f7d2f355 (validation): ValueError
+.Free trial plan not found: no trial activated for user 53e17bbd-3ce2-457e-b564-49eafac26d0a.
+Cannot activate automatic trial for user 53e17bbd-3ce2-457e-b564-49eafac26d0a (validation): ValueError
+.Free trial plan not found: no trial activated for user 4b283a73-d999-4168-9cd4-ea7d28952d49.
+Cannot activate automatic trial for user 4b283a73-d999-4168-9cd4-ea7d28952d49 (validation): ValueError
+.Free trial plan not found: no trial activated for user 76bfb257-1f60-4ccb-ae1f-157b1ce608fd.
+Cannot activate automatic trial for user 76bfb257-1f60-4ccb-ae1f-157b1ce608fd (validation): ValueError
+.Free trial plan not found: no trial activated for user 1d94fd2a-24b4-41f2-8175-b52ba1ad6399.
+Cannot activate automatic trial for user 1d94fd2a-24b4-41f2-8175-b52ba1ad6399 (validation): ValueError
+.Free trial plan not found: no trial activated for user f95b2af0-4f85-4f69-97ab-8323f618f02f.
+Cannot activate automatic trial for user f95b2af0-4f85-4f69-97ab-8323f618f02f (validation): ValueError
+.Free trial plan not found: no trial activated for user bc372ea5-a3d0-4bee-a1f2-c8c85e23c1f7.
+Cannot activate automatic trial for user bc372ea5-a3d0-4bee-a1f2-c8c85e23c1f7 (validation): ValueError
+
+
+students.kept_uploads WARNING 2026-11-10 09:45:49,324 kept_uploads 86779 136704547911552 [request_id=b8c669e4-00bd-4896-9591-a3907a5aadeb client_request_id=-] Kept upload: storage unavailable; sending inline.
+
+
+.Free trial plan not found: no trial activated for user d95664d5-9677-4cea-bfee-ec913c22f877.
+Cannot activate automatic trial for user d95664d5-9677-4cea-bfee-ec913c22f877 (validation): ValueError
+.Free trial plan not found: no trial activated for user e203e19c-710f-4bd1-aa08-5de4dcc13b1a.
+Cannot activate automatic trial for user e203e19c-710f-4bd1-aa08-5de4dcc13b1a (validation): ValueError
+.Free trial plan not found: no trial activated for user 112a78e6-b205-4d5f-bda6-a1a62ece43bd.
+Cannot activate automatic trial for user 112a78e6-b205-4d5f-bda6-a1a62ece43bd (validation): ValueError
+Free trial plan not found: no trial activated for user 5e56195b-5e1b-4c63-8312-77dabad7273a.
+Cannot activate automatic trial for user 5e56195b-5e1b-4c63-8312-77dabad7273a (validation): ValueError
+.Free trial plan not found: no trial activated for user 3ded12e4-30b7-4a5f-928e-0721c9ce7116.
+Cannot activate automatic trial for user 3ded12e4-30b7-4a5f-928e-0721c9ce7116 (validation): ValueError
+Free trial plan not found: no trial activated for user 7939c7a7-ccdb-4517-b94d-bea64c721ea0.
+Cannot activate automatic trial for user 7939c7a7-ccdb-4517-b94d-bea64c721ea0 (validation): ValueError
+API request failed with NOT_RETRYABLE: This item can't be retried as it is.
+.Free trial plan not found: no trial activated for user 0a72ac1e-fed2-4167-80cd-066982c21c53.
+Cannot activate automatic trial for user 0a72ac1e-fed2-4167-80cd-066982c21c53 (validation): ValueError
+Free trial plan not found: no trial activated for user 93392b63-2aa0-48ca-92f1-66814a1d813a.
+Cannot activate automatic trial for user 93392b63-2aa0-48ca-92f1-66814a1d813a (validation): ValueError
+.Free trial plan not found: no trial activated for user f65e93b5-c5ad-48a4-8429-7443a2604b5d.
+Cannot activate automatic trial for user f65e93b5-c5ad-48a4-8429-7443a2604b5d (validation): ValueError
+Free trial plan not found: no trial activated for user d0b23255-31a7-4e8b-9bf6-560adf91fd26.
+Cannot activate automatic trial for user d0b23255-31a7-4e8b-9bf6-560adf91fd26 (validation): ValueError
+.Free trial plan not found: no trial activated for user 48e9a4a7-7ae7-428b-a8c9-9c5a6994f649.
+Cannot activate automatic trial for user 48e9a4a7-7ae7-428b-a8c9-9c5a6994f649 (validation): ValueError
+Free trial plan not found: no trial activated for user 622334b0-2356-4615-947d-d81d25893d10.
+Cannot activate automatic trial for user 622334b0-2356-4615-947d-d81d25893d10 (validation): ValueError
+.Free trial plan not found: no trial activated for user 1567669b-91e3-4883-a68f-9d1b1f602c8c.
+Cannot activate automatic trial for user 1567669b-91e3-4883-a68f-9d1b1f602c8c (validation): ValueError
+Free trial plan not found: no trial activated for user e7564f01-6735-4e1b-9b73-9cd9c84f8b08.
+Cannot activate automatic trial for user e7564f01-6735-4e1b-9b73-9cd9c84f8b08 (validation): ValueError
+API request failed with NOT_RETRYABLE: This upload can't be retried as it is, because its file isn't kept. Upload the file again.
+.Free trial plan not found: no trial activated for user 6ca2e62b-002c-46a7-a5ca-d598effe2f2b.
+Cannot activate automatic trial for user 6ca2e62b-002c-46a7-a5ca-d598effe2f2b (validation): ValueError
+Free trial plan not found: no trial activated for user 84b23bcb-96d9-4d5d-be27-e9fce97c39af.
+Cannot activate automatic trial for user 84b23bcb-96d9-4d5d-be27-e9fce97c39af (validation): ValueError
+.Free trial plan not found: no trial activated for user cc8d04c0-fa7f-4902-91da-23a672f848b7.
+Cannot activate automatic trial for user cc8d04c0-fa7f-4902-91da-23a672f848b7 (validation): ValueError
+Free trial plan not found: no trial activated for user d663564a-f983-41ce-8d1f-102359c89bf0.
+Cannot activate automatic trial for user d663564a-f983-41ce-8d1f-102359c89bf0 (validation): ValueError
+API request failed with NOT_RETRYABLE: This upload can't be retried as it is, because its file isn't kept. Upload the file again.
+.Free trial plan not found: no trial activated for user 691f9d76-7706-489d-9ef8-8fce5e28f835.
+Cannot activate automatic trial for user 691f9d76-7706-489d-9ef8-8fce5e28f835 (validation): ValueError
+Free trial plan not found: no trial activated for user 51ac3006-d8ee-4012-b968-5f2a8074a527.
+Cannot activate automatic trial for user 51ac3006-d8ee-4012-b968-5f2a8074a527 (validation): ValueError
+.Free trial plan not found: no trial activated for user 407f36b2-e6e8-417f-85d5-bf8e45bf7fe4.
+Cannot activate automatic trial for user 407f36b2-e6e8-417f-85d5-bf8e45bf7fe4 (validation): ValueError
+Free trial plan not found: no trial activated for user f4ace297-dfa9-4f84-9dd3-281a013a92a1.
+Cannot activate automatic trial for user f4ace297-dfa9-4f84-9dd3-281a013a92a1 (validation): ValueError
+...........................
+======================================================================
+FAIL: test_a_failed_delete_leaves_the_row_unpurged_for_the_next_run (students.tests_kept_uploads.PurgeTests.test_a_failed_delete_leaves_the_row_unpurged_for_the_next_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 522, in test_a_failed_delete_leaves_the_row_unpurged_for_the_next_run
+    self.assertIsNone(row.purged_at)
+AssertionError: datetime.datetime(2026, 11, 10, 9, 45, 48, 123975, tzinfo=datetime.timezone.utc) is not None
+
+======================================================================
+FAIL: test_a_row_a_day_overdue_is_counted (students.tests_kept_uploads.PurgeTests.test_a_row_a_day_overdue_is_counted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 538, in test_a_row_a_day_overdue_is_counted
+    self.assertEqual(len(overdue), 1)
+AssertionError: 0 != 1
+
+----------------------------------------------------------------------
+Ran 65 tests in 4.789s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...
+Found 65 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
