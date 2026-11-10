@@ -2958,3 +2958,33 @@ Run on `students.tests_data_erase`.
   - The probe's product code is carried to the task branch only after the red, as the normal product commit.
   - The branch and worktree are deleted, and that is recorded.
 - Expected: `tests_beat_locks` fails on the probe, since `EPIC_ONLY` lacks the two new tasks. That is a pin already known (§6.4).
+
+### §6.5a The probe widened (declared before it runs; still probe, not evidence)
+
+**Why:** writing the probe product showed that the grade-all refactor (one helper, approved) moves grade-all's launch out of `assignments/views.py`. A grep finds about 15 modules that patch `assignments.views.launch_processing_task` or `assignments.views.grade_engine_async`, for example `tests_course_ownership_*`, `tests_epic_a_crud_audit`, `tests_h223_batch_runs_what_fits`, `tests_batch_item_results` and `tests_upload_credit_door`.
+- Some of those patches cover grade-all, and those would miss after the refactor.
+- Most of these modules are not in the §6.5 set.
+- **So the probe uses the standing wide sets** in place of the 20-module list:
+  - **P-on** = E1's labels with `BILLING_HOLDS_ENABLED=True`: billing, ai_processor, assignments, students, users, `audit.tests_h273_query_filters`, `audit.tests_route_coverage`, plus the 66 guards.
+  - **P-off** = E2's labels with the flag unset: billing, students, classrooms, assignments, users, `AutoGrader.tests_migration_rollback_defaults`.
+- Both run under flock with `--parallel 4 --noinput`, as `eruns_b5.sh` runs them.
+- Everything else in §6.5 stands: the logs go in `step6/probe/` headed "PROBE, NOT EVIDENCE", no counts are declared, failures are classified as pin or probe bug, and the branch and worktree are deleted afterwards.
+
+**The probe product as written** (branch `probe/b1b-6`, uncommitted on that branch):
+- `billing/batch_queue.py` (new): open, start and claim; `decide_after_item`; promotion; expiry and warning; backstop; gated emails.
+- `billing/holds.py`:
+  - `finish_job(from_statuses=)`;
+  - `_after_batch_item` after settle, `fail_item` and `_sweep_item`;
+  - `mark_running` at the first start;
+  - the C4 receiver calls the helper for BATCH_GRADING;
+  - the backstop in `sweep_stale_holds`;
+  - `detach_item`.
+- `billing/estimates.py`: `paper_hold_estimate` (estimate() unchanged).
+- `billing/models.py`: the credit-entry hook on `record` and `after_bulk_create`; plan-field help texts.
+- `billing/migrations/0084` (help text only; `sqlmigrate` prints `(no-op)` for both fields).
+- `billing/tasks.py`: `promote_queued_jobs`, `promote_queued_jobs_for_wallet` and `expire_queued_jobs`.
+- `AutoGrader/settings.py`: two beat entries.
+- `students/task_tracking.py`: `_release_unused_hold` in the terminal writers.
+- `assignments/tasks.py`: the one helper with the flag-on job path, `launch_batch_item`, and the H-215a waiting and adopt handling.
+- `assignments/views.py`: grade-all through the helper.
+- Checks on the probe: `manage.py check` clean; `makemigrations --check` gives "No changes detected".
