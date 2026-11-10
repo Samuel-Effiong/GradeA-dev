@@ -176,3 +176,17 @@ S2 labels:
     billing.tests.test_live_qa_clock
     billing.tests.test_price_drift_reconciliation
     AutoGrader.tests_live_server_backlog_guard
+
+### First S1 attempt: interrupted by session restart, no result
+
+The first S1 run (2026-11-09) was cut off by a Claude session restart before it finished. Its log has no "Ran" or "OK" line. It is recorded as **interrupted by session restart, no result**, not as a pass or a fail. The partial log is kept as 04_staging_near_apps.interrupted.log.gz (sha256 of the uncompressed log: 2f5e6d316fa5fabab7d8e35f66128906c9902904624567df9e8cf261ef2d9241). S2 never started.
+
+### Rerun results (2026-11-10, exactly as declared, under flock)
+
+Before the rerun, the clones test_h287_0017_marker_1/_2 were dropped again (0 connections).
+
+- **S1** classrooms + users + AutoGrader.tests_migration_rollback_defaults, --parallel 2: **Ran 1807 tests, OK (skipped=4)**. As predicted.
+- **S2** 62-label serial guard sweep: **Ran 1079 tests, OK (skipped=1)**. As predicted.
+- **T trailers:** checked at commit (see the commit report to the SM).
+
+Logs: 04_staging_near_apps.log.gz, 05_staging_guard_sweep.log.gz. No push from Lane 2.
