@@ -2174,3 +2174,35 @@ Searched:
   - `@single_instance` is removed from the purge (the PE-24 pattern).
 
 **Next:** the SM's rulings on Q1–Q9. After that, the design as ruled, the tests first, and the red and plant declarations are committed before any run.
+
+### §5.6 The SM's rulings on Q1–Q9 (2026-11-10), recorded unamended
+
+The §5.2 design is approved, except where a ruling below changes it.
+- **Q1: APPROVED.** `QUEUE_LIFETIME_DAYS` is added here, exactly as 08b §2.1. B1b-6 only reads it.
+- **Q2: APPROVED.**
+  - The prompts move to shared module constants, byte-identical. A test asserts that each constant equals the old route string, pasted verbatim.
+  - `KeptUpload.relaunch` holds ids only.
+- **Q3: APPROVED, as a recorded departure from 08b §3.2 step 3.**
+  - Why: a missing or corrupt file can't succeed on retry, and a new code would need owner wording.
+  - A transient download error retries through `self.retry` (3 tries).
+  - A not-found or a sha256 mismatch is permanent: set `purged_at`, and fail unclassified with today's fallback text.
+  - Counter `kept_upload_integrity_failure`.
+  - The SM tells the owner about the departure.
+- **Q4: APPROVED, for upload items only.** A test asserts that a grading item with INSUFFICIENT_CREDITS is still refused. No catalogue change.
+- **Q5: APPROVED.** The file is deleted on CANCELLED too.
+- **Q6: APPROVED.** The plan's order is kept, and no wording changes now.
+  - **The B1b-8 gap, recorded:** a student's single upload (ANSWER_EXTRACTION) has no batch session, so text 3's "retry" has no route. The SM raises it with the owner.
+- **Q7(a): NOT APPROVED.** The owner approved "KeptUpload's role is DELETE, with a 30-day purge" in `student_data_map.py` (2026-11-09).
+  - The map gets the entry as DELETE, matched through its processing task's student, with a new `Match` kind if one is needed. The cascade being enough in practice doesn't replace the owner-approved entry.
+  - Its guard test must fail if the entry is removed, and that is planted.
+- **Q7(b): APPROVED,** as an explicit `EXPORT_FIELDS` decision: `kept_file {original_name, size_bytes, kept_until, purged_at}` or null. Never the key, sha256 or bytes.
+- **Q7(c): recorded as a bounded gap.** The SM tells the owner. No fix now. The checkpoint says whether the KeptUpload can be linked to the student once extraction identifies them, and at what cost.
+- **Q8: APPROVED as written,** verbatim and in US spelling. It goes in the internal privacy doc.
+- **Q9: APPROVED.** Storage measurement moves to the soak and the switch-on checklist.
+- **Plants:** 08b's three, the §5.5 nine, plus three more:
+  - the data-map entry removed (Q7a);
+  - a byte change in a prompt constant (Q2);
+  - the Q4 rule applied to grading items.
+
+  Fragments come from element or diff lines.
+- **Order:** tests first, then red. STOP on any mismatch. No trailers, no push.
