@@ -124,9 +124,11 @@ def metric_names(metric):
 
 class QueueLifetimeSettingTests(SimpleTestCase):
     def parse(self, raw):
+        # SM ruling (NOTES §5.13): the parser lives in settings.py, which must
+        # load as a bare file, so it imports no project module.
         return importlib.import_module(
-            "AutoGrader.queue_lifetime"
-        ).parse_queue_lifetime_days(raw)
+            "AutoGrader.settings"
+        )._parse_queue_lifetime_days(raw)
 
     def test_unset_is_thirty(self):
         self.assertEqual(self.parse(None), 30)

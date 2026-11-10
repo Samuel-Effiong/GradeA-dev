@@ -2473,3 +2473,26 @@ Run on `students.tests_data_erase`.
 - **(a) Rec:** `settings.py` loads the parser by file path: `importlib.util.spec_from_file_location` on `Path(__file__).with_name("queue_lifetime.py")`. `queue_lifetime.py` imports only `django.core.exceptions`. There is one source of truth, and the parser tests and PK-11 still cover the code settings uses.
 - **(b):** inline the parse in `settings.py`, keeping `queue_lifetime.py` for the tests. That gives two copies, so I don't recommend it.
 - **Then:** re-run the green, expecting **`Ran 602`, `OK (skipped=1)`**, and continue §5.11 steps 3–8 as declared. The break runs stand: their files don't touch settings, and each loads settings through Django as before, which works with either version.
+
+### §5.13 The SM's ruling on the green STOP (2026-11-10): option (c). The fix, and the declarations (before any run)
+
+**Recorded unamended:** "prediction wrong: product defect, settings.py gained its only project import, which tests_h271_static_files loads as a bare file".
+
+**The ruling:** option (c), neither (a) nor (b).
+- The parser moves into `settings.py` as the private `_parse_queue_lifetime_days`, with private constants `_QUEUE_LIFETIME_DEFAULT_DAYS`, `_QUEUE_LIFETIME_MIN_DAYS` and `_QUEUE_LIFETIME_MAX_DAYS`. `settings.py` imports only `django.core.exceptions` (`ImproperlyConfigured`) for it.
+- `AutoGrader/queue_lifetime.py` is deleted.
+- The parser tests and PK-11 point at `AutoGrader.settings._parse_queue_lifetime_days`.
+- (a) was refused: loading a sibling file by path inside settings is a pattern nobody else uses, and it hides a dependency.
+- **D-16** is noted by the SM as existing behavior. No change in B1b-5; it is listed for the owner as a possible later item.
+
+**The fix (this commit):**
+- `AutoGrader/settings.py`: the `AutoGrader.queue_lifetime` import is removed; the parser and constants are added beside `QUEUE_LIFETIME_DAYS`. The ImproperlyConfigured message text is unchanged.
+- `AutoGrader/queue_lifetime.py`: deleted.
+- **Test-import edit, named with its reason:** `students/tests_kept_uploads.py`, `QueueLifetimeSettingTests.parse`, now calls `importlib.import_module("AutoGrader.settings")._parse_queue_lifetime_days`. Reason: the module it named no longer exists, and the parser lives in `settings.py`, which must load as a bare file. The four tests' assertions are unchanged.
+- **PK-11 (scratchpad `plant_b5.py`):** the target is now `AutoGrader/settings.py`, `and _QUEUE_LIFETIME_MIN_DAYS <= int(text) <= _QUEUE_LIFETIME_MAX_DAYS` changed to `and 0 <= int(text) <= _QUEUE_LIFETIME_MAX_DAYS`. Killer and fragment are unchanged: exactly 1 subTest failure, `raw='0'`, `ImproperlyConfigured not raised`. `sha_b5.txt` is re-taken at this commit.
+
+**The grep (SM item 4), before any run:** `grep -rn 'queue_lifetime'` over every `.py` file, before the fix, found only `AutoGrader/settings.py:24` (the import) and `:1639–1640` (the comment and the call), and `students/tests_kept_uploads.py:128–129`. The other hit, `billing/tests/test_holds_schema.py:359 test_plan_queue_lifetime_defaults`, is a test name, not an import. After the fix, no `.py` file names `AutoGrader.queue_lifetime`.
+
+**A dev check** (scratchpad, not evidence): `AutoGrader.tests_h271_static_files` plus `QueueLifetimeSettingTests`, `Ran 11`, OK.
+
+**Declared (§5.11 steps 2–8, unchanged; the break runs stand):** the green `Ran 602`, `OK (skipped=1)`; then the plants; E1 `Ran 7555` OK (skipped=32); E2 `Ran 6491` OK (skipped=24); E3 `Ran 1148` OK (skipped=1); makemigrations `No changes detected`; safety staging exit 0 with 6 OK, 0 ACK, 0 FAIL; safety main exit 0 with 35 OK, 1 ACK, 0 FAIL.

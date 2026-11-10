@@ -19,9 +19,8 @@ from pathlib import Path
 
 import dj_database_url
 from celery.schedules import crontab
+from django.core.exceptions import ImproperlyConfigured
 from environ import Env
-
-from AutoGrader.queue_lifetime import parse_queue_lifetime_days
 
 env = Env()
 env.read_env(".env")
@@ -1635,9 +1634,32 @@ BENCHMARK_ARCHIVE_ENABLED = env.bool(
 # Epic B1b-5 (08b §2.1; the SM brought it forward from B1b-6, Q1): how many
 # days a kept upload file is kept, and (from B1b-6) how long a queued batch
 # waits, and the day count in the approved texts (B1b-8). One value for web,
-# worker and beat, set at the platform's shared level. Not 1-365: start-up
-# stops (AutoGrader/queue_lifetime.py).
-QUEUE_LIFETIME_DAYS = parse_queue_lifetime_days(
+# worker and beat, set at the platform's shared level. Not a whole number
+# from 1 to 365: start-up stops, so a typo never becomes 0 days or a huge
+# number. Parsed here, not in a project module: settings.py must load as a
+# bare file (AutoGrader/tests_h271_static_files.py; SM ruling, NOTES §5.13).
+_QUEUE_LIFETIME_DEFAULT_DAYS = 30
+_QUEUE_LIFETIME_MIN_DAYS = 1
+_QUEUE_LIFETIME_MAX_DAYS = 365
+
+
+def _parse_queue_lifetime_days(raw):
+    """The setting from its raw environment value (None when unset)."""
+    if raw is None:
+        return _QUEUE_LIFETIME_DEFAULT_DAYS
+    text = str(raw).strip()
+    if (
+        text.isdigit()
+        and _QUEUE_LIFETIME_MIN_DAYS <= int(text) <= _QUEUE_LIFETIME_MAX_DAYS
+    ):
+        return int(text)
+    raise ImproperlyConfigured(
+        f"QUEUE_LIFETIME_DAYS must be a whole number of days from "
+        f"{_QUEUE_LIFETIME_MIN_DAYS} to {_QUEUE_LIFETIME_MAX_DAYS}, got {raw!r}."
+    )
+
+
+QUEUE_LIFETIME_DAYS = _parse_queue_lifetime_days(
     env.str("QUEUE_LIFETIME_DAYS", default=None)
 )
 
