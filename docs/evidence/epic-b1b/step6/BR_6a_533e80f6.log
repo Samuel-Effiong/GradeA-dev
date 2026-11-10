@@ -1,0 +1,54 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 9b7a4cb6-ae84-49e1-b240-5f5cd9286aab.
+Cannot activate automatic trial for user 9b7a4cb6-ae84-49e1-b240-5f5cd9286aab (validation): ValueError
+
+
+students.task_tracking WARNING 2026-11-10 16:37:58,896 refusals 1555670 124652229269376 [request_id=- client_request_id=-] Background task a87f2a8c-44d4-4b2a-a63f-d591924af7b6 refused: InsufficientCreditsError: Refill your wallet to continue
+
+
+.Free trial plan not found: no trial activated for user 2e4da513-e132-4ffe-a9d4-49ae5e2b4199.
+Cannot activate automatic trial for user 2e4da513-e132-4ffe-a9d4-49ae5e2b4199 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-10 16:37:58,989 task_tracking 1555670 124652229269376 [request_id=- client_request_id=-] Background task 303a0a79-611d-40c0-9545-e8d9595e88fe failed: error=StudentNameUnmatchedError frames=tasks.py:1085:upload_answers_engine_async <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+FFree trial plan not found: no trial activated for user 2af6fc8d-24d2-47c5-ad62-9d720029ed1f.
+Cannot activate automatic trial for user 2af6fc8d-24d2-47c5-ad62-9d720029ed1f (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-10 16:37:59,042 task_tracking 1555670 124652229269376 [request_id=- client_request_id=-] Background task 3ea2df5d-6f74-4628-b4bb-54e0e7069445 failed: error=ProviderFailureError
+
+
+.Free trial plan not found: no trial activated for user a7089169-f8f2-4fc0-b83f-eea1db05b208.
+Cannot activate automatic trial for user a7089169-f8f2-4fc0-b83f-eea1db05b208 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-10 16:37:59,081 task_tracking 1555670 124652229269376 [request_id=- client_request_id=-] Background task 28f37bf5-0811-42fd-87ea-52c8b7fd734c failed: error=RuntimeError
+
+
+.
+======================================================================
+FAIL: test_a_refused_answer_upload_loses_its_file (students.tests_kept_uploads.RefusalDeletesTheFileTests.test_a_refused_answer_upload_loses_its_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 549, in test_a_refused_answer_upload_loses_its_file
+    self.assertIsNotNone(row.purged_at, "a refused item's file must go")
+AssertionError: unexpectedly None : a refused item's file must go
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.250s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+Found 4 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
