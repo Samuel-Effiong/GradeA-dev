@@ -1846,3 +1846,18 @@ Every run is under `flock`, one at a time, flag unset unless stated. The counts 
 
 **8. The migration safety check:** the env block of `.github/workflows/migration-safety.yml`, then `scripts/check_migration_safety.py --base origin/staging` (B1b's target).
 - **Expected: exit 0.** `OK … additive only` for `ai_processor/migrations/0007_aicallrecord_assignment_created_index.py`, `0008_aicallrecord_billed_user_created_index.py` and `billing/migrations/0083_b1b4_estimate_source_and_drift_run.py`. Any earlier B1b migration in the diff is recorded as observed (OK or ACK).
+
+### §4.10 Results of the break runs (at b4f22702e, under `flock`). STOP on BR-2's fragment
+
+- **BR-1: as declared.** `Ran 1`, `FAILED (failures=1)`, `AssertionError: Lists differ: ['billing/estimates.py'] != []`. Log `step4/BR1_b4f22702.log`.
+- **BR-2: STOP. The failure is as declared, but the fragment text is not.** `Ran 1`, `FAILED (failures=1)`, at the declared assertion (`self.assertEqual(AICallRecord._meta.indexes, [])`, line 178). Log `step4/BR2_b4f22702.log`.
+  - unittest shortens the header line: `AssertionError: Lists differ: [<Index: fields=['assignment_id', 'created[119 chars]ed'>] != []`.
+  - The declared fragment `Lists differ: [<Index: fields=['assignment_id', 'created_at'] name='aicall_assignment_created'>` is therefore **not in the log as one string**. Its element is there in full: `First extra element 0:` / `<Index: fields=['assignment_id', 'created_at'] name='aicall_assignment_created'>`. The diff lines show both new indexes.
+  - My error: I wrote the fragment from the list's repr without allowing for unittest's `safe_repr` shortening of a long first line.
+- **BR-3: as declared, on the second invocation.** `Ran 1`, `FAILED (failures=1)`, `AssertionError: Lists differ: ['BillingSettings'] != []`. Log `step4/BR3_b4f22702.log`.
+  - The first invocation never reached the test. My shell lookup of the class name returned an empty string, so the label was `audit.tests_h273_query_filters..test_every_target_type…` and the run ERRORed with `AttributeError: module 'audit.tests_h273_query_filters' has no attribute ''`. Kept as `step4/BR3_labelerror_b4f22702.log`.
+  - The second invocation used the class `TargetLabelTests`. This was a fault in my harness, not a test result. Recorded as it is.
+- **Nothing edited.** The BR-1/2/3 edits wait for the SM's ruling on BR-2.
+- **Proposed (for the SM):**
+  - Record BR-2 as "fragment wrong: unittest shortened the header; the failure is at the declared assertion, and the declared element is in the log in full (`First extra element 0:`)". Then the three edits land and §4.9 continues from step 2.
+  - Standing practice from now on: a fragment for a list or dict difference is taken from the `First extra element` or diff lines, never from a long header.
