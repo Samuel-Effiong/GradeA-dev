@@ -2882,3 +2882,79 @@ Run on `students.tests_data_erase`.
 - 08b's 7.5 days stands.
 - D6-c (the terminal hook) adds about 0.5 day.
 - Q16(b)'s probe adds about 0.25 day.
+
+### §6.3 SM rulings on the §6.2 survey (2026-11-10, recorded unamended)
+
+**The design in §6.2.2 is approved** except where a ruling below changes it.
+
+**Departures:**
+- **D6-a: APPROVED.** finished = completed_items + failed_items.
+- **D6-b: APPROVED.** The claim is hold_state NULL→HELD on PENDING, with no new status.
+- **D6-c / Q3: APPROVED, +0.5 day.** "A real correctness gap." The plants must cover:
+  - the hook removed: a skipped SUCCESS item gets overwritten to FAILURE by the sweep, or its job never finishes. Declare which test kills it;
+  - the hook double-counting, where the later fail_item/settle finds RETURNED.
+- **D6-d / Q5: APPROVED for the server.** But `task_id: null` is a change the web app sees, flag-on only.
+  - **Switch-on checklist:** "frontend must handle task_id null for queued items (confirm with the frontend before switch-on)".
+  - No frontend work in B1b.
+
+**Questions:**
+- Q1: yes. Flag off must be byte-for-byte today's path. The characterization test pins it.
+- Q2: approved.
+- Q4: approved.
+- **Q6: APPROVED.** The 300-paper Gate 6 reports the batch-start time per tier, including all-papers. It is reported, not a STOP threshold; the SM judges it at the checkpoint.
+- Q7: APPROVED. No new refusal or parameter.
+- Q8–Q12: approved.
+- Q13: as planned.
+- **Q14: APPROVED.** Promotion calls `clear_batch_credit_stop`. Add a test where a promoted item gets past `ensure_batch_has_credits`, plus a plant that removes the call.
+- Q15: approved.
+- **Q16: option (b),** with these conditions:
+  - Declare the probe before running: which modules, flag on and off, under flock.
+  - Keep its logs under `step6/probe/`, labeled "probe, not evidence".
+  - The pins it finds are declared and edited before the red, each with a break run.
+  - The probe's product code may be reused, but it lands on the task branch only after the red, as the normal product commit.
+  - Delete the probe branch afterwards and record that.
+- **H-1: NOT approved yet.** No code anywhere uses `ListField(max_length=...)`, so DRF's "Ensure this field has no more than 5000 elements." would be a new message a user could see. The SM is asking the owner. Until they answer, nothing is built for H-1.
+- **Obligations 1–7:** mapped as proposed. No. 6 (no change) and No. 7 (not triggered) are accepted, with the reasons recorded (§6.2.6).
+- Re-do the pin survey after these rulings (D6-c changes the design) and record it. No trailers, no push. STOP on any mismatch.
+
+### §6.4 The count-pin survey, re-done after §6.3 (D6-c adds the terminal hook)
+
+- **The hook's reach.** `release_unused_item_hold(task)` is called from `task_tracking`'s terminal writers:
+  - `mark_processing_task_success`, `_failure` and `_cancelled`;
+  - `cancel_processing_task`;
+  - the launch-failure path in `launch_processing_task`.
+- **It reads only the row those writers already hold** (`job_id`, `hold_state`). For a row with no job, or one not HELD, it makes **no query**.
+  - With the flag off, no row is ever HELD.
+  - With the flag on, rows are HELD only for SINGLE_ITEM/UPLOAD/retry jobs (B1a) and the new BATCH_GRADING items.
+  - So the only new queries are on held rows that end before settling. That covers B1a's door and retry rows when they end outside their unit.
+- **New pin found by this re-survey:** B1a door and retry rows that end through `mark_processing_task_failure` **before** their unit's `fail_item` already return their hold today via `fail_item`, inside the unit's exception path.
+  - The unit catches the exception first, so `fail_item` runs before the worker's `mark_processing_task_failure`. The hook then finds RETURNED and does nothing.
+  - **No count change is expected.** This is to be confirmed by the probe on `billing.tests.test_holds_*`, which is added to the probe set below.
+- **The query-count pins** (`assertNumQueries`/`CaptureQueriesContext` files, §6.2.5 grep):
+  - none drives a held batch item through a terminal writer;
+  - B1b-3's single-call pin has no task row.
+  - **Unaffected.**
+- **Everything else in §6.2.5 stands:**
+  - `AutoGrader.tests_beat_locks` +2 (`EPIC_ONLY`), with an edit and a break run;
+  - the C4 tests, re-run as guards;
+  - the 20 flag-on batch modules go to the probe.
+
+### §6.5 The probe declaration (Q16(b); before it runs)
+
+- **What it is: probe, not evidence.**
+  - A throwaway local branch `probe/b1b-6`, made from the task branch head, in my own worktree `~/Documents/Projects/Grade-Automator-Plus-b1b6-probe`.
+  - The B1b-6 product, as designed in §6.2.2 and §6.3, is written there. Tests are not written there.
+- **Modules:**
+  - the 20 in `step6/batch_modules_flagon.txt`;
+  - every `billing.tests.test_holds_*` module (the C4 tests, the sweep and the entry rule are touched by the helper and the hook);
+  - `AutoGrader.tests_beat_locks`.
+- **Two runs,** under `flock ~/.machine-fullsuite.lock`, `--parallel 4 --noinput`:
+  - (P-on) with `BILLING_HOLDS_ENABLED=True`;
+  - (P-off) with it unset.
+- **Logs:** `step6/probe/P-on_<sha>.log` and `P-off_<sha>.log`, each headed "PROBE, NOT EVIDENCE".
+- **No expected counts are declared.** The probe's only output is the list of failing tests.
+- **Afterwards:**
+  - every failure is recorded with its fragment and classified: (i) a pin, where the test asserts today's batch behavior → declared and edited before the red, each with a break run; or (ii) a product bug in the probe code → fixed in the probe and the probe re-run (recorded).
+  - The probe's product code is carried to the task branch only after the red, as the normal product commit.
+  - The branch and worktree are deleted, and that is recorded.
+- Expected: `tests_beat_locks` fails on the probe, since `EPIC_ONLY` lacks the two new tasks. That is a pin already known (§6.4).
