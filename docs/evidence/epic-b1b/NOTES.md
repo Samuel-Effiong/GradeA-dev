@@ -2598,3 +2598,69 @@ Run on `students.tests_data_erase`.
   - makemigrations: No changes detected;
   - safety against staging: exit 0, 6 OK, 0 ACK, 0 FAIL;
   - safety against main: exit 0, 35 OK, 1 ACK, 0 FAIL.
+
+### §5.18 Results of §5.11 steps 4–8 at b2223fdcd (product = 99f2bb689 + NOTES only): all as declared
+
+| Run | Declared (§5.15) | Observed | Log |
+|---|---|---|---|
+| E1 flag on, wide | `Ran 7556`, `OK (skipped=32)` | `Ran 7556`, `OK (skipped=32)` | `step5/E1_flagon_b2223fdc.log.gz` |
+| E2 flag off, near apps | `Ran 6492`, `OK (skipped=24)` | `Ran 6492`, `OK (skipped=24)` | `step5/E2_near_apps_b2223fdc.log.gz` |
+| E3 the 66 guards, serial | `Ran 1148`, `OK (skipped=1)` | `Ran 1148`, `OK (skipped=1)` | `step5/E3_guards_b2223fdc.log` |
+| makemigrations `--check` | `No changes detected` | `No changes detected` | (stdout) |
+| safety vs origin/staging | exit 0, 6 OK, 0 ACK, 0 FAIL | exit 0, 6 OK, 0 ACK, 0 FAIL | `step5/MS_staging_b2223fdc.log` |
+| safety vs origin/main | exit 0, 35 OK, 1 ACK, 0 FAIL | exit 0, 35 OK, 1 ACK, 0 FAIL | `step5/MS_main_b2223fdc.log` |
+
+- **Memory:** available before E1, E2 and E3 was 7169, 9539 and 9780 MB, all above the 4000 MB floor.
+- **Test DBs:** no `test_AutoGrader_N` clone of mine is left. The other `test_*` databases listed belong to other sessions and were not touched.
+- E1 and E2 logs are gzipped (3.5 MB and 2.7 MB).
+
+## §5.19 B1b-5 checkpoint
+
+**The shas:**
+- product: cf4f4fc13, plus the fix 60cbf915c;
+- the last test added: 99f2bb689;
+- evidence head: this commit.
+
+**The record of runs:**
+- red: §5.8 STOP, then R2 as declared (§5.11);
+- break runs as declared (§5.12);
+- green: STOP at 599 (§5.12), then 602 (§5.14) and 603 (§5.16), both as declared;
+- plants:
+  - PK-1..16: all killed by the named test (§5.14).
+  - PK-5b: killed (§5.16).
+  - The five fragment mismatches, PK-4/5/7/9 and PK-5b, were my declaration errors. They are recorded unamended, as the SM ruled (§5.15, §5.17).
+- E-runs: as declared (§5.18).
+
+**D-items:** D-1..D-15 are in §5.7 and §5.11, unchanged. **D-16, as corrected:**
+- `upload_assignment_async` has never retried a generic error. A storage outage at load therefore fails an assignment-upload item with code `""`.
+- **A manual retry does not work for it:** the retry rule needs PROVIDER_FAILURE or a credits code, so `""` is refused with `replace_file`.
+- The file stays kept until it is purged at `kept_until`. No change was made in B1b-5; it is listed for the owner as a possible later item.
+
+**Q7(c): can the kept file be linked to the student once extraction identifies them, and at what cost?**
+- **Where the student becomes known.**
+  - In a teacher batch, the student is first known in `students/services.py: upload_answers_engine`, at `_match_enrolled_student`. That is after the billed extraction and before the row-locked `transaction.atomic()` save.
+  - On success the kept file is deleted (D-4), so the gap is only a failed item.
+- **When the item fails before the match, a link is not possible.** This covers the credit stops, provider failure, extraction errors and `CannotAssociateStudentError`. The student is unknown, and the file itself is the only thing that could name them.
+- **When the item fails after the match, a link is possible.** These items keep their file under the teacher for up to `kept_until` (QUEUE_LIFETIME_DAYS, 30):
+  - the refusals under the lock: SubmissionAlreadyGraded, SubmissionBeingGraded, SubmissionLimitReached;
+  - a generic error in the save after the last retry.
+- **Cost of the link (option L1), about half a step:**
+  - A migration, students 0042: AddField `KeptUpload.student`, a nullable FK with SET_NULL. It is safe under the migration safety check.
+  - About 5 product lines: an `update(student=...)` right after the match. It must sit outside the atomic block, or a refusal rolls the link back.
+  - A second data-map entry, `("students.KeptUpload","student")`: USER, DELETE, course-scoped.
+  - The export would need the student's kept files outside the teacher's file-uploads rows, which are where `kept_file` is nested today. **That likely needs a new top-level export name, which is new owner wording.**
+  - About 6 new tests, and edits to the map and export pins (`tests_student_data_map`, `tests_data_export`).
+- **Without the link (L0):** the exposure ends at the 30-day purge, and the approved privacy texts already state the 30-day keep.
+- **Recommendation:** L0 for B1b, and the owner decides on L1 as a later item.
+- **Observation, no change made:** a refused item's file can never be retried, because refusal codes get `replace_file`. It is kept until the purge for no use. Deleting it at refusal is a one-line change in the same hooks as D-4, plus a test.
+
+**B1b-8 list:**
+- Move `KEPT_FILE_EXPORT_NAME` ("kept_file") into `EXPORT_NAMES` and `APPROVED_NAMES` together, and set `KEPT_FILE_EXPORT_NAME_APPROVED` to True.
+- Text 3's "retry" has no route for a student's single upload (ANSWER_EXTRACTION, no batch session). Owner wording, or a retry route, is needed.
+- The texts that switch at B1b-8: the INSUFFICIENT_CREDITS_MID_BATCH remediation, REUPLOAD ("its file isn't kept"), and the late-door texts (`LATE_DOOR_EMAIL_APPROVED`).
+
+**Switch-on and soak obligations:**
+- Apply privacy texts #19–#23 and regenerate the PDF before F4 runs in production. The "Not stored" row is line 293. #23's module paths are `students/kept_files.py` and `students/kept_uploads.py`. Still open with the owner: "30 days" in #19 and #20.
+- Measure storage on staging at the soak (Q9).
+- At the soak, do one store, load and delete round trip on a real account. This checks the empty format for a raw private asset ([UNVERIFIED], D-11).
+- Carried forward: the B1b-6 obligations, the 66→67 guard labels at landing, and dropping my own `_N` clones after any schema change.
