@@ -407,10 +407,28 @@ class ExportContentTests(_ExportCase):
         for (label, _), entry in STUDENT_DATA_MAP.items():
             if not entry.export or entry.match == "OWN_ROW":
                 continue
+            if entry.match == "PROCESSING_TASK":
+                # Epic B1b-5 (SM §5.10): nested in its parent file's rows,
+                # checked by test_a_kept_file_rides_in_the_file_uploads_rows.
+                continue
             with self.subTest(label=label):
                 self.assertIn(name(label), files)
                 self.assertIsInstance(self.rows(files, label), list)
         self.assertEqual(self.rows(files, "ai_processor.ChatSession"), [])
+
+    def test_a_kept_file_rides_in_the_file_uploads_rows(self):
+        # Epic B1b-5 (SM §5.10): the nested entry's positive check. The key
+        # is absent while its name awaits B1b-8, present on every row once on.
+        label = "students.BackgroundProcessingTask"
+        rows = self.rows(self.files(), label)
+        self.assertTrue(rows)
+        for row in rows:
+            self.assertNotIn("kept_file", row)
+        with mock.patch("students.data_export.KEPT_FILE_EXPORT_NAME_APPROVED", True):
+            rows = self.rows(self.files(), label)
+        self.assertTrue(rows)
+        for row in rows:
+            self.assertIn("kept_file", row)
 
     def test_every_file_is_json_except_the_image(self):
         files = self.files()

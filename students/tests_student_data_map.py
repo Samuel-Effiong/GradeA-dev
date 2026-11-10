@@ -24,6 +24,9 @@ from django.test import SimpleTestCase
 
 from students.student_data_map import ROLES, STUDENT_DATA_MAP, Role, entries_with_role
 
+#: Epic B1b-5 (SM §5.10): the one entry matched through a processing task.
+KEPT_UPLOAD_KEY = ("students.KeptUpload", "processing_task")
+
 # A bare (non-FK) column whose name says it holds a user's id.
 # SM R1: also any name ending in "_by_id" (created_by_id, reviewed_by_id).
 USER_ID_COLUMN = re.compile(
@@ -189,6 +192,15 @@ class StepOneBRulingsTests(SimpleTestCase):
             if not entry.course_scoped:
                 continue
             with self.subTest(label=label):
+                if getattr(entry, "match", None) == "PROCESSING_TASK":
+                    # Epic B1b-5 (SM §5.10): through its processing task's
+                    # assignment; the path must resolve.
+                    from students.data_export import COURSE_PATH
+
+                    path = COURSE_PATH[label]
+                    self.assertEqual(path, "processing_task__assignment__course_id")
+                    apps.get_model(label).objects.filter(**{f"{path}__in": []})
+                    continue
                 names = {f.name for f in apps.get_model(label)._meta.concrete_fields}
                 self.assertTrue(names & {"course", "assignment"}, label)
 
@@ -227,9 +239,19 @@ class StepOneBRulingsTests(SimpleTestCase):
     def test_every_other_entry_matches_by_user(self):
         for key, entry in STUDENT_DATA_MAP.items():
             with self.subTest(key=key):
-                self.assertIn(
-                    getattr(entry, "match", None), ("USER", "EMAIL", "OWN_ROW")
-                )
+                allowed: tuple[str, ...] = ("USER", "EMAIL", "OWN_ROW")
+                if key == KEPT_UPLOAD_KEY:
+                    # Epic B1b-5 (SM §5.10): the kept files only.
+                    allowed = ("PROCESSING_TASK",)
+                self.assertIn(getattr(entry, "match", None), allowed)
+        self.assertEqual(
+            [
+                key
+                for key, entry in STUDENT_DATA_MAP.items()
+                if getattr(entry, "match", None) == "PROCESSING_TASK"
+            ],
+            [KEPT_UPLOAD_KEY],
+        )
 
     def test_processing_records_go_with_a_teachers_erasure(self):  # E-Q2
         entry = STUDENT_DATA_MAP[("students.BackgroundProcessingTask", "requested_by")]

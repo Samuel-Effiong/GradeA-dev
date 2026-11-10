@@ -167,7 +167,7 @@ class StudentRouteKeepsTheFileTests(APITestCase):
         with self.captureOnCommitCallbacks(execute=True):
             response = self.post(student, assignment)
 
-        self.assertEqual(response.status_code, 202, response.content[:400])
+        self.assertEqual(response.status_code, 200, response.content[:400])
         item = BackgroundProcessingTask.objects.get(requested_by=student)
         row = KeptUpload().objects.get(processing_task=item)
         self.assertEqual(launch.call_args.args[3], {"kept_upload_id": str(row.id)})
@@ -200,7 +200,7 @@ class StudentRouteKeepsTheFileTests(APITestCase):
             with self.captureOnCommitCallbacks(execute=True):
                 response = self.post(student, assignment)
 
-        self.assertEqual(response.status_code, 202, response.content[:400])
+        self.assertEqual(response.status_code, 200, response.content[:400])
         payload = launch.call_args.args[3]
         import base64
 
@@ -662,9 +662,10 @@ class ExportFieldDecisionTests(SimpleTestCase):
     def test_the_nested_name_is_the_owner_approved_text_verbatim(self):
         # Approved text #18 (owner, 2026-11-10), team/approved_wording_b1b_
         # 2026-11-09.md at sha256 2f6e550e...ef6b67: `kept_file`.
-        from students import data_export
-
-        self.assertEqual(data_export.EXPORT_NAMES["kept_file"], "kept_file")
+        # Option B (SM §5.10): its own constant until B1b-8 moves it into
+        # EXPORT_NAMES with the APPROVED_NAMES pin.
+        data_export = importlib.import_module("students.data_export")
+        self.assertEqual(data_export.KEPT_FILE_EXPORT_NAME, "kept_file")
 
 
 class ExportContentTests(TestCase):

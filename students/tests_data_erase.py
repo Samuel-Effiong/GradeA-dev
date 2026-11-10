@@ -112,6 +112,13 @@ def _rows_by_owner(label, field_name, entry, user):
         )
     if entry.match == Match.OWN_ROW:
         return set()
+    if entry.match == "PROCESSING_TASK":
+        # Epic B1b-5 (SM §5.10): the kept files, through their task.
+        return set(
+            model.objects.filter(
+                **{f"{field_name}__requested_by": user.pk}
+            ).values_list("pk", flat=True)
+        )
     return set(
         model.objects.filter(**{field_name: user.pk}).values_list("pk", flat=True)
     )
@@ -214,6 +221,17 @@ class _EraseWorld(World):
         )
         user.task_b_alone = BackgroundProcessingTask.objects.create(
             requested_by=user, task_type="UPLOAD", assignment=self.b1
+        )
+        # Epic B1b-5 (SM §5.10): a kept upload file, so the full erasure's
+        # per-table check is real for students.KeptUpload.
+        apps.get_model("students.KeptUpload").objects.create(
+            processing_task=user.task_a_alone,
+            storage_key=f"kept_uploads/{uuid4().hex}",
+            original_name="a.png",
+            size_bytes=1,
+            sha256="0" * 64,
+            kept_until=now + timedelta(days=30),
+            created_at=now,
         )
         for course in (self.course_a, self.course_b):
             chat = ChatSession.objects.create(user=user, course=course)
@@ -342,6 +360,8 @@ class FullErasureTests(_EraseCase):
         mine = delete_rows(self.w.target)
         theirs = delete_rows(self.w.classmate)
         self.assertTrue(any(mine.values()))
+        # Epic B1b-5 (SM §5.10): the kept file is really found.
+        self.assertTrue(mine[("students.KeptUpload", "processing_task")])
         response = self.erase(self.w.superadmin)
         self.assertEqual(response.status_code, 200, response.content[:400])
         for key, entry in STUDENT_DATA_MAP.items():

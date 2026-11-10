@@ -2352,3 +2352,59 @@ Also read, and not broken: `students/tests_data_erase.py:104` `_rows_by_owner` f
 - (4) The export name. **Option B (rec):** `kept_file` lives in its own constant, `KEPT_FILE_EXPORT_NAME = "kept_file"`, not in `EXPORT_NAMES`, until B1b-8 switches it on with the `APPROVED_NAMES` pin edit. My new test `test_the_nested_name_is_the_owner_approved_text_verbatim` then pins that constant: an edit of a new test, before any product. **Option A:** `EXPORT_NAMES` and the test's `APPROVED_NAMES` both gain `"kept_file"` now (owner-approved #18).
 - **Alternative to (1):** set `course_scoped=False`. A teacher's course erasure still removes the rows by cascade (their processing task is course-scoped) and the files by the receiver. But the SM ruled the entry course-scoped.
 - **The `_rows_by_owner` helper:** it gains a `PROCESSING_TASK` branch (`processing_task__requested_by=user.pk`), so the full-erasure test checks this table for real. That is an edit of a test helper.
+
+### §5.10 The SM's rulings on §5.8 and §5.9 (2026-11-10), the edits, the re-done pin survey and the declarations (before any run)
+
+**Rulings, recorded unamended:**
+- **§5.8:** recorded as "prediction wrong: my test expected 202; the student upload-async route answers 200 (students/views.py:803)". Lines 170 and 203 now expect 200. The red is re-run expecting **`FAILED (failures=5, errors=69)`**, with §5.7 unchanged.
+- **§5.9 (four pins missed; my error, recorded):**
+  - (1) APPROVED. A PROCESSING_TASK entry must reach a course through `COURSE_PATH[label]` (`processing_task__assignment__course_id`). `course_scoped` stays True. The rule for every other table is exactly as before.
+  - (2) APPROVED, narrowly. PROCESSING_TASK is allowed only for `students.KeptUpload`, and the test asserts that no other entry uses it.
+  - (3) APPROVED, for nested PROCESSING_TASK entries only. Plus the positive check: the file-uploads rows carry `kept_file` when the constant is True, and don't when it's False.
+  - (4) **Option B.** `KEPT_FILE_EXPORT_NAME` stays outside `EXPORT_NAMES` until B1b-8, which moves it into `EXPORT_NAMES` and `APPROVED_NAMES` together. **On the B1b-8 list.**
+  - Helper: APPROVED. `_rows_by_owner` gets a PROCESSING_TASK branch. Plus a plant that makes the branch return nothing, with its outcome declared first.
+- **New standing practice:** after any ruling that changes the design, re-do the count-pin survey for that step before the next run, and record it even when it's empty.
+
+**The edits (this commit):**
+- `students/tests_kept_uploads.py`:
+  - lines 170 and 203 expect 200;
+  - `test_the_nested_name_is_the_owner_approved_text_verbatim` reads `importlib.import_module("students.data_export").KEPT_FILE_EXPORT_NAME`. At the red it still ERRORs (now `AttributeError`, was `KeyError: 'kept_file'`), so the counts are unchanged.
+- `students/tests_student_data_map.py`:
+  - (1) in `test_a_course_scoped_table_can_be_scoped_by_course`, a PROCESSING_TASK entry's `COURSE_PATH` must be `processing_task__assignment__course_id` and must resolve in a filter. The other tables are unchanged.
+  - (2) in `test_every_other_entry_matches_by_user`, PROCESSING_TASK is allowed only for `KEPT_UPLOAD_KEY`, and the list of entries using it must equal `[KEPT_UPLOAD_KEY]`.
+- `students/tests_data_export.py`:
+  - (3) `test_every_exported_table_has_its_file_even_when_empty` skips PROCESSING_TASK entries;
+  - new test: `ExportContentTests.test_a_kept_file_rides_in_the_file_uploads_rows`, for no key while False and a key on every row while True.
+- `students/tests_data_erase.py`:
+  - `_rows_by_owner` gains the PROCESSING_TASK branch;
+  - the erasure world gives each student one `KeptUpload` row (on `task_a_alone`);
+  - `test_every_delete_table_loses_only_the_targets_rows` asserts that the target's KeptUpload set is non-empty.
+
+**The count-pin survey, re-done after the §5.6, §5.7 and §5.10 design rulings** (a static grep of the test tree for `STUDENT_DATA_MAP`, `entries_with_role`, `EXPORT_NAMES`, `EXPORT_FIELDS`, `EXPORT_OMITTED`, `COURSE_PATH`, `Match`, `KEPT_FILE`, `kept_upload`, plus every §5.4 search again):
+- The hits are the five files above plus `billing/tests/test_holds_requester_kept.py:83`. That one is not affected: it names `billing.AIJob` only.
+- `tests_data_erase` has no exact row or `item_count` pin (`:421` is `assertGreater(..., 0)`, `:653` counts StudentCourse), so the added world rows change no count.
+- No query-count pin covers the erasure.
+- `test_names_are_the_approved_wording` is unchanged and unaffected under option B.
+- **No further affected pin.**
+
+**Plant added:**
+
+| Plant | Change | Killed by | Fragment |
+|---|---|---|---|
+| PK-16 (SM) | `_rows_by_owner`'s PROCESSING_TASK branch returns `set()` | `FullErasureTests.test_every_delete_table_loses_only_the_targets_rows` | `set() is not true` (the non-empty assertion fails first; without it, the test would be vacuously green) |
+
+Run on `students.tests_data_erase`.
+
+**The break runs, declared now, run at the product commit** (each with the pre-edit version of its test restored by sha256 for the run, against the product):
+
+| BR | Test (pre-edit) | Declared |
+|---|---|---|
+| BR-1 | `tests_student_data_map.test_a_course_scoped_table_can_be_scoped_by_course` | 1 subTest failure, `label='students.KeptUpload'`: `set() is not true : students.KeptUpload` |
+| BR-2 | `tests_student_data_map.test_every_other_entry_matches_by_user` | 1 subTest failure, `key=('students.KeptUpload', 'processing_task')`: `not found in ('USER', 'EMAIL', 'OWN_ROW')` with `PROCESSING_TASK` on the line |
+| BR-3 | `tests_data_export.test_every_exported_table_has_its_file_even_when_empty` | 1 subTest error, `label='students.KeptUpload'`: `KeyError: 'students.KeptUpload'` |
+| BR-4 | `tests_data_erase.test_every_delete_table_loses_only_the_targets_rows` (old helper, no world row) | **OK**, vacuous for this table, which is why it was strengthened |
+| BR-5/6/7 | `tests_upload_credit_door`, the three `:218`/`:342`/`:382` tests | each `KeyError: 'content_b64'` (ERROR) |
+| BR-8 | `tests_credits_mid_batch.test_the_rest_stops_uncharged_and_resumes_by_re_upload` | FAIL `202 != 409` |
+| BR-9 | `tests_beat_locks.test_every_guarded_beat_task_skips_while_another_run_holds_it` (without the purge in `EPIC_ONLY_GUARDED_BEAT_TASKS`) | FAIL `22 != 21` |
+
+**R2, the red re-run** (at this commit, the same six labels, flag unset, under `flock`): **`Ran 117`**, **`FAILED (failures=5, errors=69)`**, as §5.7 declared.
