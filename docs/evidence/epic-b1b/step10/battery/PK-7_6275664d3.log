@@ -1,0 +1,52 @@
+B1b-10 battery PK-7 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 6275664d3
+label: students.tests_kept_uploads.StudentRouteKeepsTheFileTests.test_kept_until_is_the_upload_time_plus_the_setting
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/students/kept_uploads.py b/students/kept_uploads.py
+index 2570be943..217edd096 100644
+--- a/students/kept_uploads.py
++++ b/students/kept_uploads.py
+@@ -88,7 +88,7 @@ class DoorFile:
+             size_bytes=self.stored.size_bytes,
+             sha256=self.stored.sha256,
+             relaunch=relaunch or {},
+-            kept_until=now + timedelta(days=settings.QUEUE_LIFETIME_DAYS),
++            kept_until=now + timedelta(days=30),
+             created_at=now,
+         )
+         return self.row
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 12134485-4d9a-4d20-86ed-d42e50238c25.
+Cannot activate automatic trial for user 12134485-4d9a-4d20-86ed-d42e50238c25 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+F
+======================================================================
+FAIL: test_kept_until_is_the_upload_time_plus_the_setting (students.tests_kept_uploads.StudentRouteKeepsTheFileTests.test_kept_until_is_the_upload_time_plus_the_setting)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 208, in test_kept_until_is_the_upload_time_plus_the_setting
+    self.assertEqual(row.kept_until - row.created_at, timedelta(days=3))
+AssertionError: datetime.timedelta(days=30) != datetime.timedelta(days=3)
+
+----------------------------------------------------------------------
+Ran 1 test in 0.743s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for students/kept_uploads.py

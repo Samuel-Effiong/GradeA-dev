@@ -1,0 +1,52 @@
+B1b-10 battery PE-4 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 6275664d3
+label: billing.tests.test_estimates_band.TierTests.test_twenty_nine_of_the_teachers_shape_fall_through_to_all_papers
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/billing/estimates.py b/billing/estimates.py
+index 53531cf70..caa5db263 100644
+--- a/billing/estimates.py
++++ b/billing/estimates.py
+@@ -47,7 +47,7 @@ from students.models import (
+
+ HISTORY_DAYS = 90
+ ASSIGNMENT_MIN = 10
+-SHAPE_MIN = 30
++SHAPE_MIN = 29
+ Z90 = 1.28
+ ROUGH_P90_FACTOR = 1.5
+
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 2202cc35-f3d4-4373-82f7-8b9659627289.
+Cannot activate automatic trial for user 2202cc35-f3d4-4373-82f7-8b9659627289 (validation): ValueError
+Free trial plan not found: no trial activated for user eb8c0402-33ed-4f25-8ea3-6de951bbdce2.
+Cannot activate automatic trial for user eb8c0402-33ed-4f25-8ea3-6de951bbdce2 (validation): ValueError
+F
+======================================================================
+FAIL: test_twenty_nine_of_the_teachers_shape_fall_through_to_all_papers (billing.tests.test_estimates_band.TierTests.test_twenty_nine_of_the_teachers_shape_fall_through_to_all_papers)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimates_band.py", line 270, in test_twenty_nine_of_the_teachers_shape_fall_through_to_all_papers
+    self.assertEqual(result["source"], "shape")
+AssertionError: 'teacher_shape' != 'shape'
+- teacher_shape
++ shape
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.225s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/estimates.py

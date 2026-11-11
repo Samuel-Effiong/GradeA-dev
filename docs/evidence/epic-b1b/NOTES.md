@@ -5010,3 +5010,15 @@ The fragments were rendered from unittest's own messages (no test run). No pre-e
 |---|---|---|---|
 | B10-PB3-2 (re-run, alone) | as B10; serial; under flock; at this commit | PB3-2's 4 killers (`step10/battery_pb3-2.json`) | **Ran 4, FAILED (failures=4)**, with `[300] != []`, `[1100] != []` and `500000 not less than 500000` |
 | B10 (continued) | as B10 | `--from PB3-3`, plants 35–129 | each as its row in `step10/battery_table.md`; PB6-3 Ran 2, OK (declared survivor) |
+
+**Interruption, recorded unamended (2026-11-11, at 6275664d3).** The re-run and continuation went as follows:
+- PB3-2 alone matched its declaration: Ran 4, FAILED (failures=4), with every fragment present.
+- `--from PB3-3` then ran plants 35–98, PB3-3 through PB6-6, and each matched its row; PB6-3 gave Ran 2, OK, its declared survivor. The results are in `step10/battery/battery_summary_6275664d3.jsonl` and the per-plant logs.
+- The runner was then killed while PB6-7 ran: the Claude Code session that started it ended. PB6-7 therefore has no result and no log, and its edit was left applied.
+- Before the restore, the working tree equaled HEAD plus PB6-7's single edit exactly (`billing/holds.py`, `fail_item`: `count_it = True`); nothing else was changed.
+- The restore was `git checkout -- billing/holds.py`. The sha256 is `2ee8d66297ea991bb9239d90ff7a4d111077e979964f0345f0a822605161dffc`, matching HEAD.
+- This is not a mismatch or a survivor; no plant result changes. It goes into the gate summary as a deviation.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| B10 (resumed) | as B10; serial; under flock; at this commit | `--from PB6-7`, plants 99–129 | each as its row in `step10/battery_table.md` |

@@ -1,0 +1,48 @@
+B1b-10 battery PE-23 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 6275664d3
+label: billing.tests.test_estimate_backtest.BacktestTests.test_the_suggested_factor_closes_the_rough_tiers_own_gap
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/billing/estimates.py b/billing/estimates.py
+index 53531cf70..140b827f5 100644
+--- a/billing/estimates.py
++++ b/billing/estimates.py
+@@ -548,7 +548,7 @@ def backtest(*, days=HISTORY_DAYS, now=None):
+         "coverage": round(covered / total, 4) if total else None,
+         "cells": out_cells,
+         "ratio_quantiles": _quantiles(ratios),
+-        "suggested_factor": rough_replay_ratio(days=days, now=now),
++        "suggested_factor": provider_gap_ratio(days=days, now=now),
+     }
+
+
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 1a5ef4b3-0e70-4907-8e1c-a077155e9396.
+Cannot activate automatic trial for user 1a5ef4b3-0e70-4907-8e1c-a077155e9396 (validation): ValueError
+F
+======================================================================
+FAIL: test_the_suggested_factor_closes_the_rough_tiers_own_gap (billing.tests.test_estimate_backtest.BacktestTests.test_the_suggested_factor_closes_the_rough_tiers_own_gap)
+SM ruling 2026-11-09 (D-f): the factor the rough tier applies is
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_backtest.py", line 138, in test_the_suggested_factor_closes_the_rough_tiers_own_gap
+    self.assertEqual(estimates.backtest(days=90)["suggested_factor"], 3.0)
+AssertionError: 2.0 != 3.0
+
+----------------------------------------------------------------------
+Ran 1 test in 0.138s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/estimates.py

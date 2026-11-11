@@ -1,0 +1,50 @@
+B1b-10 battery PE-20 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 6275664d3
+label: billing.tests.test_estimate_backtest.DriftTaskTests.test_drift_sends_no_email_while_the_text_is_not_approved
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/billing/estimates.py b/billing/estimates.py
+index 53531cf70..4cc60624c 100644
+--- a/billing/estimates.py
++++ b/billing/estimates.py
+@@ -663,7 +663,7 @@ def drift_check(now=None):
+     )
+     if reasons:
+         emit_drift_metric(reasons)
+-        if DRIFT_EMAIL_APPROVED:
++        if True:
+             _send_drift_email(report, current_factor)
+     return {"run_id": str(row.pk), "drifted": bool(reasons), "reasons": reasons}
+
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 10a85759-6b80-4d27-aac5-0739579ad4b9.
+Cannot activate automatic trial for user 10a85759-6b80-4d27-aac5-0739579ad4b9 (validation): ValueError
+F
+======================================================================
+FAIL: test_drift_sends_no_email_while_the_text_is_not_approved (billing.tests.test_estimate_backtest.DriftTaskTests.test_drift_sends_no_email_while_the_text_is_not_approved)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimate_backtest.py", line 214, in test_drift_sends_no_email_while_the_text_is_not_approved
+    send.assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to not have been called. Called 1 times.
+Calls: [call(subject='Credit estimates need a look', message="This month's check of credit estimates found that fewer batches than expected stayed within the high estimate.\n\nOverall: 50% of 100 batches stayed within the high estimate. The target is at least 85%.\n\nGroups below 80% (only groups with at least 30 batches are checked):\n\n\nSuggested cold-start factor: 2.5 (now 3.0).\n\nNothing has been changed. Estimates only change when someone changes the factor.", from_email='Grade A+ <support@gradeautomator.com>', recipient_list=['est.drift.admin@example.com'])].
+
+----------------------------------------------------------------------
+Ran 1 test in 0.070s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/estimates.py

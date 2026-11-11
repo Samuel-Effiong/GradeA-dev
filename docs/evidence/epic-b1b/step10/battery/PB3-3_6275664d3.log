@@ -1,0 +1,544 @@
+B1b-10 battery PB3-3 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 6275664d3
+label: billing.tests.test_grading_refund_scope.GradingRefundScopeWithHoldsTest.test_failure_during_persistence_charges_nothing_and_returns_the_hold billing.tests.test_grading_refund_scope.GradingRefundScopeWithHoldsTest.test_malformed_summary_charges_nothing_and_returns_the_hold students.tests_answers_unreadable.TheEditsRefusalWithHolds.test_the_edits_refusal_charges_nothing_and_returns_the_hold students.tests_async_edit_path.ExtractionWithHoldsTest.test_failure_after_the_call_charges_nothing_and_returns_the_hold students.tests_s6d_extraction_refund.ExtractionWithHoldsTests.test_a_mid_chunk_failure_charges_nothing_and_returns_the_holds ai_processor.tests_grading_pipeline.GradingRunWithHoldsTest.test_a_failed_attempt_is_never_charged_the_successful_one_is ai_processor.tests_h256_provider_timeout.TimedOutRunWithHoldsTest.test_a_run_that_times_out_charges_nothing_and_returns_the_hold assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_an_unusable_provider_response_charges_nothing_for_that_file assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_a_failed_save_charges_nothing_and_it_can_be_retried assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_a_claim_taken_over_mid_extraction_charges_nothing assignments.tests_upload_task_retry_policy.AssignmentUploadTaskWithHoldsTest.test_an_unusable_response_charges_nothing_and_the_file_is_released
+env set: none
+declared: Ran 11, FAILED (failures=11)
+diff --git a/billing/holds.py b/billing/holds.py
+index 6e9194e3c..884423153 100644
+--- a/billing/holds.py
++++ b/billing/holds.py
+@@ -479,7 +479,6 @@ def fail_item(job, *, item=None):
+         job_row, item_row = _lock_rows(job, item)
+         count_it = item_row is None or item_row.hold_state == HoldState.HELD
+         amount = max(_left(job_row, item_row), 0)
+-        _move_wallet(locked.pk, -amount)
+         AIJob.objects.filter(pk=job_row.pk).update(
+             released_credits=F("released_credits") + amount,
+             failed_items=F("failed_items") + (1 if count_it else 0),
+Found 11 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user b88cbaab-1b59-4a5d-af55-4bd7eecd0f32.
+Cannot activate automatic trial for user b88cbaab-1b59-4a5d-af55-4bd7eecd0f32 (validation): ValueError
+FFree trial plan not found: no trial activated for user 2be377ae-cd6b-4267-91a8-94f16dc3c156.
+Cannot activate automatic trial for user 2be377ae-cd6b-4267-91a8-94f16dc3c156 (validation): ValueError
+FFree trial plan not found: no trial activated for user 08503ac9-b1a3-452e-9c3a-6bef45604b28.
+Cannot activate automatic trial for user 08503ac9-b1a3-452e-9c3a-6bef45604b28 (validation): ValueError
+FFree trial plan not found: no trial activated for user de217095-59bc-4683-bac9-03c14362c88e.
+Cannot activate automatic trial for user de217095-59bc-4683-bac9-03c14362c88e (validation): ValueError
+FFree trial plan not found: no trial activated for user 6331fa49-8b79-493d-ba50-34d7a959a4d6.
+Cannot activate automatic trial for user 6331fa49-8b79-493d-ba50-34d7a959a4d6 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,692 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 6 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,694 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] 6 pages → 2 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,694 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/2 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,706 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,706 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 2/2 (pages 4–6)...
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:25,707 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 1: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:25,707 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 2: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:25,707 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 3: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:25,707 services 530448 139739674531712 [request_id=- client_request_id=-] Attempt 1 failed: [Answer Extraction] Chunk 2 failed after 3 attempts. Last error: provider timed out
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,707 services 530448 139739674531712 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,708 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 6 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,709 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] 6 pages → 2 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,709 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/2 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,720 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,720 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 2/2 (pages 4–6)...
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:25,721 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 1: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:25,721 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 2: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:25,721 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 3: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:25,721 services 530448 139739674531712 [request_id=- client_request_id=-] Attempt 2 failed: [Answer Extraction] Chunk 2 failed after 3 attempts. Last error: provider timed out
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,721 services 530448 139739674531712 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,721 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Large submission detected: 6 pages. Switching to chunked extraction.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,724 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] 6 pages → 2 chunks of up to 3 pages each.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,724 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 1/2 (pages 1–3)...
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,737 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Chunk 1/2 complete. Running total: 6 questions mapped.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,738 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Processing chunk 2/2 (pages 4–6)...
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:25,738 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 1: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:25,739 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 2: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:25,739 services 530448 139739674531712 [request_id=- client_request_id=-] [Answer Extraction] Chunk 2, attempt 3: AI call failed — provider timed out
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:25,740 services 530448 139739674531712 [request_id=- client_request_id=-] Attempt 3 failed: [Answer Extraction] Chunk 2 failed after 3 attempts. Last error: provider timed out
+
+
+FFree trial plan not found: no trial activated for user 46a26850-79ab-49f4-a717-cd9993a8e085.
+Cannot activate automatic trial for user 46a26850-79ab-49f4-a717-cd9993a8e085 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,845 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,845 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services ERROR 2026-11-11 13:14:25,900 services 530448 139739674531712 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:25,920 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,920 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,921 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:25,921 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+FFree trial plan not found: no trial activated for user 4d6154dc-41cc-482a-95ca-f3260eab9eeb.
+Cannot activate automatic trial for user 4d6154dc-41cc-482a-95ca-f3260eab9eeb (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-11 13:14:26,409 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] Partition: 12 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 12 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:26,410 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:26,410 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:26,410 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:26,771 services 530448 139739674531712 [request_id=- client_request_id=-] ai_call trace_id=530f0ec0-e39d-4b12-988d-598145eefdc5 model=test/model prompt_version=GRADING_ASSIGNMENT_PROMPT_5:957dc251 task_type=grade_assignment attempt=1 latency_ms=322 outcome=ok
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:26,775 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:26,775 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:26,800 services 530448 139739674531712 [request_id=- client_request_id=-] ai_call trace_id=1ec0ac38-378f-43ed-9417-65e1dc8bc70a model=x-ai/grok-4.3 prompt_version=GRADING_ASSIGNMENT_PROMPT_5:957dc251 task_type=grade_assignment attempt=1 latency_ms=2 outcome=APITimeoutError
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:26,802 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] Batch 2, attempt 1: AI call failed — Request timed out.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:26,818 services 530448 139739674531712 [request_id=- client_request_id=-] ai_call trace_id=622d72bd-ad89-452b-81b3-615cc0993e1c model=x-ai/grok-4.3 prompt_version=GRADING_ASSIGNMENT_PROMPT_5:957dc251 task_type=grade_assignment attempt=1 latency_ms=2 outcome=APITimeoutError
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:26,820 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] Batch 2, attempt 2: AI call failed — Request timed out.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:26,837 services 530448 139739674531712 [request_id=- client_request_id=-] ai_call trace_id=dbcb603b-8fd6-4524-922f-922a9b35b873 model=x-ai/grok-4.3 prompt_version=GRADING_ASSIGNMENT_PROMPT_5:957dc251 task_type=grade_assignment attempt=1 latency_ms=2 outcome=APITimeoutError
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:26,839 services 530448 139739674531712 [request_id=- client_request_id=-] [Grading] Batch 2, attempt 3: AI call failed — Request timed out.
+
+
+FFree trial plan not found: no trial activated for user efcf8371-85ef-441f-9f70-11f7fa6b0af5.
+Cannot activate automatic trial for user efcf8371-85ef-441f-9f70-11f7fa6b0af5 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+
+
+ai_processor.services ERROR 2026-11-11 13:14:27,323 services 530448 139739674531712 [request_id=1a67490a-6567-404a-baf6-054c593e8fd7 client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:27,323 services 530448 139739674531712 [request_id=1a67490a-6567-404a-baf6-054c593e8fd7 client_request_id=-] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:27,323 services 530448 139739674531712 [request_id=1a67490a-6567-404a-baf6-054c593e8fd7 client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-11-11 13:14:27,351 services 530448 139739674531712 [request_id=1a67490a-6567-404a-baf6-054c593e8fd7 client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:27,352 services 530448 139739674531712 [request_id=1a67490a-6567-404a-baf6-054c593e8fd7 client_request_id=-] Attempt 2 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:27,352 services 530448 139739674531712 [request_id=1a67490a-6567-404a-baf6-054c593e8fd7 client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-11-11 13:14:27,381 services 530448 139739674531712 [request_id=1a67490a-6567-404a-baf6-054c593e8fd7 client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:27,381 services 530448 139739674531712 [request_id=1a67490a-6567-404a-baf6-054c593e8fd7 client_request_id=-] Attempt 3 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+Failed to extract assignment from file c.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 974, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 136, in upload_assignment_file
+    assignment_questions = AssignmentProcessingService.extract_assignment_data(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 1055, in extract_assignment_data
+    ai_processor.extract_assignment_with_retry(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 1862, in extract_assignment_with_retry
+    raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+Exception: All 3 attempts failed. Last error: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+FFree trial plan not found: no trial activated for user 8c51ba06-8821-4a77-81b9-2376657b2254.
+Cannot activate automatic trial for user 8c51ba06-8821-4a77-81b9-2376657b2254 (validation): ValueError
+Failed to extract assignment from file c.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 974, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 155, in upload_assignment_file
+    assignment = serializer.save()
+                 ^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in save
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_upload_batch_billing.py", line 641, in second_save_fails
+    raise DatabaseError("simulated write failure")
+django.db.utils.DatabaseError: simulated write failure
+FFree trial plan not found: no trial activated for user a0dfb1d2-d7e8-4cf2-8820-22a57646b5b2.
+Cannot activate automatic trial for user a0dfb1d2-d7e8-4cf2-8820-22a57646b5b2 (validation): ValueError
+Failed to extract assignment from file a.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 974, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 156, in upload_assignment_file
+    _complete(claim, assignment)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 220, in _complete
+    raise UploadAlreadyInProgressError(IN_PROGRESS_MESSAGE)
+assignments.exceptions.UploadAlreadyInProgressError: This file is already being turned into an assignment by another upload. It will appear in the course when that finishes, so there is no need to upload it again.
+FFree trial plan not found: no trial activated for user b61a0d0b-0ba5-4d28-921f-31e6f60f04d9.
+Cannot activate automatic trial for user b61a0d0b-0ba5-4d28-921f-31e6f60f04d9 (validation): ValueError
+
+
+ai_processor.services ERROR 2026-11-11 13:14:28,915 services 530448 139739674531712 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:28,916 services 530448 139739674531712 [request_id=- client_request_id=-] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:28,916 services 530448 139739674531712 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-11-11 13:14:28,960 services 530448 139739674531712 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:28,960 services 530448 139739674531712 [request_id=- client_request_id=-] Attempt 2 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:14:28,960 services 530448 139739674531712 [request_id=- client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-11-11 13:14:29,010 services 530448 139739674531712 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:14:29,010 services 530448 139739674531712 [request_id=- client_request_id=-] Attempt 3 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+students.task_tracking ERROR 2026-11-11 13:14:29,036 task_tracking 530448 139739674531712 [request_id=- client_request_id=-] Background task 0317e8e2-cff6-4e5a-8f33-2a09e90e3c0d failed: error=Exception frames=tasks.py:1372:upload_assignment_async <- file_uploads.py:136:upload_assignment_file <- services.py:1055:extract_assignment_data <- services.py:1862:extract_assignment_with_retry
+
+
+F
+======================================================================
+FAIL: test_failure_during_persistence_charges_nothing_and_returns_the_hold (billing.tests.test_grading_refund_scope.GradingRefundScopeWithHoldsTest.test_failure_during_persistence_charges_nothing_and_returns_the_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_grading_refund_scope.py", line 265, in test_failure_during_persistence_charges_nothing_and_returns_the_hold
+    assert_hold_ledger(self, self.teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 20003 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_malformed_summary_charges_nothing_and_returns_the_hold (billing.tests.test_grading_refund_scope.GradingRefundScopeWithHoldsTest.test_malformed_summary_charges_nothing_and_returns_the_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_grading_refund_scope.py", line 271, in test_malformed_summary_charges_nothing_and_returns_the_hold
+    assert_hold_ledger(self, self.teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 20003 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_the_edits_refusal_charges_nothing_and_returns_the_hold (students.tests_answers_unreadable.TheEditsRefusalWithHolds.test_the_edits_refusal_charges_nothing_and_returns_the_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_answers_unreadable.py", line 629, in test_the_edits_refusal_charges_nothing_and_returns_the_hold
+    assert_hold_ledger(self, self.teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 20003 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_failure_after_the_call_charges_nothing_and_returns_the_hold (students.tests_async_edit_path.ExtractionWithHoldsTest.test_failure_after_the_call_charges_nothing_and_returns_the_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_async_edit_path.py", line 513, in test_failure_after_the_call_charges_nothing_and_returns_the_hold
+    assert_hold_ledger(self, self.teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 20003 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_a_mid_chunk_failure_charges_nothing_and_returns_the_holds (students.tests_s6d_extraction_refund.ExtractionWithHoldsTests.test_a_mid_chunk_failure_charges_nothing_and_returns_the_holds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_s6d_extraction_refund.py", line 205, in test_a_mid_chunk_failure_charges_nothing_and_returns_the_holds
+    assert_hold_ledger(self, self.teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 22003 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_a_failed_attempt_is_never_charged_the_successful_one_is (ai_processor.tests_grading_pipeline.GradingRunWithHoldsTest.test_a_failed_attempt_is_never_charged_the_successful_one_is)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/tests_grading_pipeline.py", line 470, in test_a_failed_attempt_is_never_charged_the_successful_one_is
+    assert_hold_ledger(self, teacher, kept_count=1)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 25505 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_a_run_that_times_out_charges_nothing_and_returns_the_hold (ai_processor.tests_h256_provider_timeout.TimedOutRunWithHoldsTest.test_a_run_that_times_out_charges_nothing_and_returns_the_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/tests_h256_provider_timeout.py", line 204, in test_a_run_that_times_out_charges_nothing_and_returns_the_hold
+    assert_hold_ledger(self, teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 26597 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_an_unusable_provider_response_charges_nothing_for_that_file (assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_an_unusable_provider_response_charges_nothing_for_that_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_upload_batch_billing.py", line 630, in test_an_unusable_provider_response_charges_nothing_for_that_file
+    assert_hold_ledger(self, self.teacher, kept=[1100])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 41545 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_a_failed_save_charges_nothing_and_it_can_be_retried (assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_a_failed_save_charges_nothing_and_it_can_be_retried)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_upload_batch_billing.py", line 651, in test_a_failed_save_charges_nothing_and_it_can_be_retried
+    assert_hold_ledger(self, self.teacher, kept=[1100])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 34945 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_a_claim_taken_over_mid_extraction_charges_nothing (assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_a_claim_taken_over_mid_extraction_charges_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_upload_batch_billing.py", line 676, in test_a_claim_taken_over_mid_extraction_charges_nothing
+    assert_hold_ledger(self, self.teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 34945 != 0 : a hold was left reserved
+
+======================================================================
+FAIL: test_an_unusable_response_charges_nothing_and_the_file_is_released (assignments.tests_upload_task_retry_policy.AssignmentUploadTaskWithHoldsTest.test_an_unusable_response_charges_nothing_and_the_file_is_released)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_upload_task_retry_policy.py", line 330, in test_an_unusable_response_charges_nothing_and_the_file_is_released
+    assert_hold_ledger(self, self.teacher, kept=[])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 217, in assert_hold_ledger
+    test.assertEqual(
+AssertionError: 37105 != 0 : a hold was left reserved
+
+----------------------------------------------------------------------
+Ran 11 tests in 4.831s
+
+FAILED (failures=11)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/holds.py

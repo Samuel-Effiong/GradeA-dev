@@ -1,0 +1,56 @@
+B1b-10 battery PE-9 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 6275664d3
+label: billing.tests.test_estimates_band.ColdStartTests.test_the_rough_estimate_uses_the_settings_factor_and_p90_times_1_5
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/billing/estimates.py b/billing/estimates.py
+index 53531cf70..44a0889c4 100644
+--- a/billing/estimates.py
++++ b/billing/estimates.py
+@@ -298,7 +298,7 @@ def _rough_paper_cost(assignment, representative):
+
+ def _rough(per_paper, n, factor=None):
+     if factor is None:
+-        factor = BillingSettings.load().cold_start_cost_factor
++        factor = 3.0
+     p50 = math.ceil(n * per_paper * factor)
+     return {
+         "p50": int(p50),
+@@ -393,7 +393,7 @@ def _estimate_and_paper(history, assignment, n, *, teacher_id, rough_per_paper):
+     )
+     if chosen is None:
+         per_paper = rough_per_paper()
+-        factor = BillingSettings.load().cold_start_cost_factor
++        factor = 3.0
+         return _rough(per_paper, n, factor), math.ceil(
+             per_paper * factor * ROUGH_P90_FACTOR
+         )
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 695e8fef-e0e9-41e9-8845-b2c3b97f38e3.
+Cannot activate automatic trial for user 695e8fef-e0e9-41e9-8845-b2c3b97f38e3 (validation): ValueError
+F
+======================================================================
+FAIL: test_the_rough_estimate_uses_the_settings_factor_and_p90_times_1_5 (billing.tests.test_estimates_band.ColdStartTests.test_the_rough_estimate_uses_the_settings_factor_and_p90_times_1_5)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimates_band.py", line 355, in test_the_rough_estimate_uses_the_settings_factor_and_p90_times_1_5
+    self.assertEqual(result["p50"], 4 * 1_000 * 2)
+AssertionError: 12000 != 8000
+
+----------------------------------------------------------------------
+Ran 1 test in 0.130s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/estimates.py

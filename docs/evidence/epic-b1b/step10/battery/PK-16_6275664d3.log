@@ -1,0 +1,53 @@
+B1b-10 battery PK-16 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 6275664d3
+label: students.tests_data_erase.FullErasureTests.test_every_delete_table_loses_only_the_targets_rows
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/students/tests_data_erase.py b/students/tests_data_erase.py
+index 3975cc1d6..7f847c28f 100644
+--- a/students/tests_data_erase.py
++++ b/students/tests_data_erase.py
+@@ -114,11 +114,7 @@ def _rows_by_owner(label, field_name, entry, user):
+         return set()
+     if entry.match == "PROCESSING_TASK":
+         # Epic B1b-5 (SM §5.10): the kept files, through their task.
+-        return set(
+-            model.objects.filter(
+-                **{f"{field_name}__requested_by": user.pk}
+-            ).values_list("pk", flat=True)
+-        )
++        return set()
+     return set(
+         model.objects.filter(**{field_name: user.pk}).values_list("pk", flat=True)
+     )
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user da1ef3f3-d0d0-41ec-8f23-156647b0b90f.
+Cannot activate automatic trial for user da1ef3f3-d0d0-41ec-8f23-156647b0b90f (validation): ValueError
+Free trial plan not found: no trial activated for user ac004c57-dc77-4d84-ab8a-18666db23a1a.
+Cannot activate automatic trial for user ac004c57-dc77-4d84-ab8a-18666db23a1a (validation): ValueError
+F
+======================================================================
+FAIL: test_every_delete_table_loses_only_the_targets_rows (students.tests_data_erase.FullErasureTests.test_every_delete_table_loses_only_the_targets_rows)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_data_erase.py", line 360, in test_every_delete_table_loses_only_the_targets_rows
+    self.assertTrue(mine[("students.KeptUpload", "processing_task")])
+AssertionError: set() is not true
+
+----------------------------------------------------------------------
+Ran 1 test in 0.490s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for students/tests_data_erase.py

@@ -1,0 +1,51 @@
+B1b-10 battery PK-6a-2 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 6275664d3
+label: students.tests_kept_uploads.RefusalDeletesTheFileTests.test_an_unclassified_failure_keeps_its_file
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/students/task_tracking.py b/students/task_tracking.py
+index cfeab51bb..edc0e642c 100644
+--- a/students/task_tracking.py
++++ b/students/task_tracking.py
+@@ -362,7 +362,6 @@ def _discard_refused_kept_file(processing_task):
+     if (
+         processing_task is None
+         or processing_task.task_type not in KEEPABLE_TYPES
+-        or not processing_task.reason_code
+     ):
+         return
+     from .item_retry import upload_code_retryable
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 3b05e584-355f-4f12-90aa-8fdbe31d757c.
+Cannot activate automatic trial for user 3b05e584-355f-4f12-90aa-8fdbe31d757c (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 13:38:33,878 task_tracking 555685 128444396566400 [request_id=- client_request_id=-] Background task 36b8ee12-ef08-429a-bd38-5c420f7aaf40 failed: error=RuntimeError
+
+
+F
+======================================================================
+FAIL: test_an_unclassified_failure_keeps_its_file (students.tests_kept_uploads.RefusalDeletesTheFileTests.test_an_unclassified_failure_keeps_its_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 577, in test_an_unclassified_failure_keeps_its_file
+    self.assertIsNone(row.purged_at, "an unclassified failure keeps its file")
+AssertionError: datetime.datetime(2026, 11, 11, 13, 38, 33, 889476, tzinfo=datetime.timezone.utc) is not None : an unclassified failure keeps its file
+
+----------------------------------------------------------------------
+Ran 1 test in 0.124s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for students/task_tracking.py

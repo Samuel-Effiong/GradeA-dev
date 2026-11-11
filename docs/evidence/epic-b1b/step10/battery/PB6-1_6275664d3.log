@@ -1,0 +1,48 @@
+B1b-10 battery PB6-1 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 6275664d3
+label: billing.tests.test_batch_queue.PromotionTests.test_promotion_holds_only_the_papers_that_now_fit
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/billing/batch_queue.py b/billing/batch_queue.py
+index 59b1f21a2..15ea98ef6 100644
+--- a/billing/batch_queue.py
++++ b/billing/batch_queue.py
+@@ -336,7 +336,8 @@ def promote_job(job):
+             for session_id in {row.batch_session_id for row in claimed}:
+                 if session_id:
+                     clear_batch_credit_stop(session_id)
+-            ids = [row.pk for row in claimed]
++            ids = [row.pk for row in waiting]
++            claimed = waiting
+             transaction.on_commit(partial(launch_claimed, ids))
+             transaction.on_commit(
+                 partial(
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 04e9aded-8ce0-4753-883a-56dfece9f45d.
+Cannot activate automatic trial for user 04e9aded-8ce0-4753-883a-56dfece9f45d (validation): ValueError
+F
+======================================================================
+FAIL: test_promotion_holds_only_the_papers_that_now_fit (billing.tests.test_batch_queue.PromotionTests.test_promotion_holds_only_the_papers_that_now_fit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 442, in test_promotion_holds_only_the_papers_that_now_fit
+    self.assertEqual(launched, 2, "the promoter launched beyond k")
+AssertionError: 4 != 2 : the promoter launched beyond k
+
+----------------------------------------------------------------------
+Ran 1 test in 0.527s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/batch_queue.py

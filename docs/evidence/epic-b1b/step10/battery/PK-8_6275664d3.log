@@ -1,0 +1,61 @@
+B1b-10 battery PK-8 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 6275664d3
+label: students.tests_kept_uploads.PurgeTests.test_a_failed_delete_leaves_the_row_unpurged_for_the_next_run
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/students/kept_uploads.py b/students/kept_uploads.py
+index 2570be943..6d71bc08a 100644
+--- a/students/kept_uploads.py
++++ b/students/kept_uploads.py
+@@ -149,14 +149,14 @@ def open_upload(file_payload):
+
+
+ def _delete_then_mark(row_id, storage_key):
++    _model().objects.filter(pk=row_id, purged_at__isnull=True).update(
++        purged_at=timezone.now()
++    )
+     try:
+         kept_files.delete(storage_key)
+     except kept_files.KeptFileError:
+         logger.warning("Kept upload %s: delete failed; the purge retries.", row_id)
+         return False
+-    _model().objects.filter(pk=row_id, purged_at__isnull=True).update(
+-        purged_at=timezone.now()
+-    )
+     return True
+
+
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user fd1a74fe-a990-4bdc-9c3e-24c9ad1e8faf.
+Cannot activate automatic trial for user fd1a74fe-a990-4bdc-9c3e-24c9ad1e8faf (validation): ValueError
+
+
+students.kept_uploads WARNING 2026-11-11 13:32:50,122 kept_uploads 549249 140208532432768 [request_id=- client_request_id=-] Kept upload 725b81f3-2581-4b47-aaa2-0c1b79345b5c: delete failed; the purge retries.
+
+
+F
+======================================================================
+FAIL: test_a_failed_delete_leaves_the_row_unpurged_for_the_next_run (students.tests_kept_uploads.PurgeTests.test_a_failed_delete_leaves_the_row_unpurged_for_the_next_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_kept_uploads.py", line 622, in test_a_failed_delete_leaves_the_row_unpurged_for_the_next_run
+    self.assertIsNone(row.purged_at)
+AssertionError: datetime.datetime(2026, 11, 11, 13, 32, 50, 121225, tzinfo=datetime.timezone.utc) is not None
+
+----------------------------------------------------------------------
+Ran 1 test in 0.159s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for students/kept_uploads.py
