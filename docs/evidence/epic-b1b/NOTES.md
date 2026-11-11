@@ -4742,3 +4742,7 @@ The fragments were rendered from unittest's own assertion messages, and the erro
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | R9 (red) | BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial; at this commit | `billing.tests.test_b1b9_drain` | **Ran 35, FAILED (failures=28, errors=10)**: as the table |
+
+### §9.5 R9 result: as declared
+
+R9 at e20a1f61d (`step9/R9_red_e20a1f61d.log`): **Ran 35 tests, FAILED (failures=28, errors=10)**, exit 1. Each failure and error is the declared test with the declared fragment. The 3 declared passes pass: `…held_row_keeps_running…`, `…nested_unit_follows_a_held_root`, `…q92_the_door_reads_spendable`. No mismatch.

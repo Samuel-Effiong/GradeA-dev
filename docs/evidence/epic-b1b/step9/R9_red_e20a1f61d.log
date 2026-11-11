@@ -1,0 +1,484 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 0bde254a-e553-4fa6-bb8e-3c42c9822ec6.
+Cannot activate automatic trial for user 0bde254a-e553-4fa6-bb8e-3c42c9822ec6 (validation): ValueError
+FFree trial plan not found: no trial activated for user c930aa25-05fc-4588-95a2-a38b4736bb90.
+Cannot activate automatic trial for user c930aa25-05fc-4588-95a2-a38b4736bb90 (validation): ValueError
+.Free trial plan not found: no trial activated for user 05631425-0cc6-461c-8082-fb406d81f92b.
+Cannot activate automatic trial for user 05631425-0cc6-461c-8082-fb406d81f92b (validation): ValueError
+FFree trial plan not found: no trial activated for user 69aa8aef-5931-4120-90e1-f6c6593c1eb9.
+Cannot activate automatic trial for user 69aa8aef-5931-4120-90e1-f6c6593c1eb9 (validation): ValueError
+FFree trial plan not found: no trial activated for user b84fa364-d666-4140-a596-0816b4b033f3.
+Cannot activate automatic trial for user b84fa364-d666-4140-a596-0816b4b033f3 (validation): ValueError
+.Free trial plan not found: no trial activated for user a3feb112-6865-4e48-b194-4dd18f2820af.
+Cannot activate automatic trial for user a3feb112-6865-4e48-b194-4dd18f2820af (validation): ValueError
+FFree trial plan not found: no trial activated for user c45ba301-74e4-4b3f-a2d1-15f965dc4361.
+Cannot activate automatic trial for user c45ba301-74e4-4b3f-a2d1-15f965dc4361 (validation): ValueError
+FFree trial plan not found: no trial activated for user 914c6f92-bedf-4ea9-b5eb-2c887e4b1783.
+Cannot activate automatic trial for user 914c6f92-bedf-4ea9-b5eb-2c887e4b1783 (validation): ValueError
+FFree trial plan not found: no trial activated for user 97e85da2-35a5-4140-aa84-2adfdd05c906.
+Cannot activate automatic trial for user 97e85da2-35a5-4140-aa84-2adfdd05c906 (validation): ValueError
+FFree trial plan not found: no trial activated for user 66171c3b-fc3d-438f-a029-4212da015b9e.
+Cannot activate automatic trial for user 66171c3b-fc3d-438f-a029-4212da015b9e (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+Upload door refused: InsufficientCreditsError: Upload needs ~5000 credits, balance 4000
+.Free trial plan not found: no trial activated for user 5d058e87-20a1-412d-8d88-4244b3bc0d29.
+Cannot activate automatic trial for user 5d058e87-20a1-412d-8d88-4244b3bc0d29 (validation): ValueError
+FFree trial plan not found: no trial activated for user 065705e3-6856-4578-b035-c242f4cde1e9.
+Cannot activate automatic trial for user 065705e3-6856-4578-b035-c242f4cde1e9 (validation): ValueError
+FFFree trial plan not found: no trial activated for user 2767ce20-9a67-4a73-94db-5a48a9255682.
+Cannot activate automatic trial for user 2767ce20-9a67-4a73-94db-5a48a9255682 (validation): ValueError
+FFree trial plan not found: no trial activated for user 4b810bfa-1e4f-446e-bc0e-ac596cfaed68.
+Cannot activate automatic trial for user 4b810bfa-1e4f-446e-bc0e-ac596cfaed68 (validation): ValueError
+FFree trial plan not found: no trial activated for user c7e71606-8f1b-4d8e-a93c-529bd7230bdd.
+Cannot activate automatic trial for user c7e71606-8f1b-4d8e-a93c-529bd7230bdd (validation): ValueError
+FFree trial plan not found: no trial activated for user a4f792da-dcf9-4f12-9b17-b6dd642b1afc.
+Cannot activate automatic trial for user a4f792da-dcf9-4f12-9b17-b6dd642b1afc (validation): ValueError
+FFree trial plan not found: no trial activated for user cdf05ca0-183f-4f21-baf6-dfd9671f1cf2.
+Cannot activate automatic trial for user cdf05ca0-183f-4f21-baf6-dfd9671f1cf2 (validation): ValueError
+FEFree trial plan not found: no trial activated for user ff7c6019-be3c-48eb-8a7a-81d72cfdac15.
+Cannot activate automatic trial for user ff7c6019-be3c-48eb-8a7a-81d72cfdac15 (validation): ValueError
+EFFree trial plan not found: no trial activated for user 0c0a1acc-7a7f-4adf-a164-5daae95bb26c.
+Cannot activate automatic trial for user 0c0a1acc-7a7f-4adf-a164-5daae95bb26c (validation): ValueError
+EEEEEEFree trial plan not found: no trial activated for user d339f894-70b0-4083-a345-1fc12c521f72.
+Cannot activate automatic trial for user d339f894-70b0-4083-a345-1fc12c521f72 (validation): ValueError
+EFree trial plan not found: no trial activated for user 31923db2-1740-45a3-ad6e-83ab39c7ef41.
+Cannot activate automatic trial for user 31923db2-1740-45a3-ad6e-83ab39c7ef41 (validation): ValueError
+FFree trial plan not found: no trial activated for user 7634452f-c093-4bfb-974a-ae48ec24163d.
+Cannot activate automatic trial for user 7634452f-c093-4bfb-974a-ae48ec24163d (validation): ValueError
+FFFFree trial plan not found: no trial activated for user 3ed51c52-b1fd-4a4d-af44-3e432568c6aa.
+Cannot activate automatic trial for user 3ed51c52-b1fd-4a4d-af44-3e432568c6aa (validation): ValueError
+FFree trial plan not found: no trial activated for user 4b53687e-d873-4767-bea3-c6fbbf7a44f3.
+Cannot activate automatic trial for user 4b53687e-d873-4767-bea3-c6fbbf7a44f3 (validation): ValueError
+FFree trial plan not found: no trial activated for user d269917d-2f3c-4b7e-91f8-f8f0b71e76f2.
+Cannot activate automatic trial for user d269917d-2f3c-4b7e-91f8-f8f0b71e76f2 (validation): ValueError
+EFree trial plan not found: no trial activated for user 7870542b-a6e0-4ce4-8acf-eabfa3b91e45.
+Cannot activate automatic trial for user 7870542b-a6e0-4ce4-8acf-eabfa3b91e45 (validation): ValueError
+FFFFree trial plan not found: no trial activated for user 32398107-0538-4d25-a236-62e2f6742722.
+Cannot activate automatic trial for user 32398107-0538-4d25-a236-62e2f6742722 (validation): ValueError
+FFree trial plan not found: no trial activated for user 2a993a28-ac25-4f61-bd46-fc10a6fc8918.
+Cannot activate automatic trial for user 2a993a28-ac25-4f61-bd46-fc10a6fc8918 (validation): ValueError
+FFree trial plan not found: no trial activated for user fe6c0dd9-36dc-4d45-94d5-8d95ef14748a.
+Cannot activate automatic trial for user fe6c0dd9-36dc-4d45-94d5-8d95ef14748a (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 12:15:42,838 task_tracking 446827 129869315958656 [request_id=- client_request_id=-] Background task 92d54b8f-12ba-44f8-bfae-aede6dd528f1 failed: error=ConnectionError
+
+
+
+
+students.task_tracking ERROR 2026-11-11 12:15:42,850 task_tracking 446827 129869315958656 [request_id=- client_request_id=-] Background task a782e735-288d-48c9-b061-2db392331a94 failed: error=ConnectionError
+
+
+Batch paper 92d54b8f-12ba-44f8-bfae-aede6dd528f1 was not launched: error=ConnectionError
+F
+======================================================================
+ERROR: test_force_is_keyword_only_and_off_by_default (billing.tests.test_b1b9_drain.ForceLimitTests.test_force_is_keyword_only_and_off_by_default)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 371, in test_force_is_keyword_only_and_off_by_default
+    force = inspect.signature(holds().sweep_stale_holds).parameters["force"]
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+KeyError: 'force'
+
+======================================================================
+ERROR: test_force_returns_unstarted_holds_and_a_fresh_job_with_no_row (billing.tests.test_b1b9_drain.ForceLimitTests.test_force_returns_unstarted_holds_and_a_fresh_job_with_no_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 415, in test_force_returns_unstarted_holds_and_a_fresh_job_with_no_row
+    result = holds().sweep_stale_holds(force=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: sweep_stale_holds() got an unexpected keyword argument 'force'
+
+======================================================================
+ERROR: test_the_sweep_alone_leaves_an_unstarted_hold (billing.tests.test_b1b9_drain.ForceLimitTests.test_the_sweep_alone_leaves_an_unstarted_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 405, in test_the_sweep_alone_leaves_an_unstarted_hold
+    holds().sweep_stale_holds(force=False)
+TypeError: sweep_stale_holds() got an unexpected keyword argument 'force'
+
+======================================================================
+ERROR: test_draining_with_the_flag_off_logs_one_warning (billing.tests.test_b1b9_drain.StartUpWarningTests.test_draining_with_the_flag_off_logs_one_warning)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 350, in test_draining_with_the_flag_off_logs_one_warning
+    holds().warn_if_draining_with_holds_off()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'warn_if_draining_with_holds_off'
+
+======================================================================
+ERROR: test_no_warning_otherwise (billing.tests.test_b1b9_drain.StartUpWarningTests.test_no_warning_otherwise) (enabled=True, draining=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 359, in test_no_warning_otherwise
+    holds().warn_if_draining_with_holds_off()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'warn_if_draining_with_holds_off'
+
+======================================================================
+ERROR: test_no_warning_otherwise (billing.tests.test_b1b9_drain.StartUpWarningTests.test_no_warning_otherwise) (enabled=True, draining=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 359, in test_no_warning_otherwise
+    holds().warn_if_draining_with_holds_off()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'warn_if_draining_with_holds_off'
+
+======================================================================
+ERROR: test_no_warning_otherwise (billing.tests.test_b1b9_drain.StartUpWarningTests.test_no_warning_otherwise) (enabled=False, draining=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 359, in test_no_warning_otherwise
+    holds().warn_if_draining_with_holds_off()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'warn_if_draining_with_holds_off'
+
+======================================================================
+ERROR: test_the_app_checks_it_once_at_start_up (billing.tests.test_b1b9_drain.StartUpWarningTests.test_the_app_checks_it_once_at_start_up)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 364, in test_the_app_checks_it_once_at_start_up
+    with patch("billing.holds.warn_if_draining_with_holds_off") as warn:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1467, in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1437, in get_original
+    raise AttributeError(
+AttributeError: <module 'billing.holds' from '/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/holds.py'> does not have the attribute 'warn_if_draining_with_holds_off'
+
+======================================================================
+ERROR: test_a_hold_that_settles_during_the_wait_ends_drained (billing.tests.test_b1b9_drain.DrainCommandTests.test_a_hold_that_settles_during_the_wait_ends_drained)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 497, in test_a_hold_that_settles_during_the_wait_ends_drained
+    with patch(f"{COMMAND}.sleep", side_effect=settle) as sleep:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1451, in __enter__
+    self.target = self.getter()
+                  ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/pkgutil.py", line 528, in resolve_name
+    result = getattr(result, p)
+             ^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.management.commands' has no attribute 'billing_holds_drain'
+
+======================================================================
+ERROR: test_the_default_timeout_is_the_sweep_window_and_ten_minutes (billing.tests.test_b1b9_drain.DrainCommandTests.test_the_default_timeout_is_the_sweep_window_and_ten_minutes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 505, in test_the_default_timeout_is_the_sweep_window_and_ten_minutes
+    module = importlib.import_module(COMMAND)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.management.commands.billing_holds_drain'
+
+======================================================================
+FAIL: test_a_single_call_takes_no_hold (billing.tests.test_b1b9_drain.DrainingCallTests.test_a_single_call_takes_no_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 127, in test_a_single_call_takes_no_hold
+    self.assert_ran_flag_off()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 120, in assert_ran_flag_off
+    self.assertEqual(AIJob.objects.count(), jobs)
+AssertionError: 1 != 0
+
+======================================================================
+FAIL: test_q91_a_late_door_opens_no_job_and_runs_flag_off (billing.tests.test_b1b9_drain.DrainingCallTests.test_q91_a_late_door_opens_no_job_and_runs_flag_off)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 170, in test_q91_a_late_door_opens_no_job_and_runs_flag_off
+    self.assert_ran_flag_off(jobs=1)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 120, in assert_ran_flag_off
+    self.assertEqual(AIJob.objects.count(), jobs)
+AssertionError: 2 != 1
+
+======================================================================
+FAIL: test_q91_a_nested_unit_follows_a_flag_off_root (billing.tests.test_b1b9_drain.DrainingCallTests.test_q91_a_nested_unit_follows_a_flag_off_root)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 208, in test_q91_a_nested_unit_follows_a_flag_off_root
+    self.assertEqual(SettlementRecord.objects.count(), 0)
+AssertionError: 1 != 0
+
+======================================================================
+FAIL: test_q91_a_retry_opens_no_job_and_runs_flag_off (billing.tests.test_b1b9_drain.DrainingCallTests.test_q91_a_retry_opens_no_job_and_runs_flag_off)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 161, in test_q91_a_retry_opens_no_job_and_runs_flag_off
+    self.assert_ran_flag_off(jobs=1)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 120, in assert_ran_flag_off
+    self.assertEqual(AIJob.objects.count(), jobs)
+AssertionError: 2 != 1
+
+======================================================================
+FAIL: test_q91_a_row_with_no_job_is_not_attached_and_runs_flag_off (billing.tests.test_b1b9_drain.DrainingCallTests.test_q91_a_row_with_no_job_is_not_attached_and_runs_flag_off)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 149, in test_q91_a_row_with_no_job_is_not_attached_and_runs_flag_off
+    self.assertIsNone(fresh(row).job_id)
+AssertionError: UUID('7ca5141c-7cd9-4e05-ae45-8c56e8f7f008') is not None
+
+======================================================================
+FAIL: test_q91_a_unit_with_no_row_runs_flag_off (billing.tests.test_b1b9_drain.DrainingCallTests.test_q91_a_unit_with_no_row_runs_flag_off)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 142, in test_q91_a_unit_with_no_row_runs_flag_off
+    self.assert_ran_flag_off(charges=2)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 120, in assert_ran_flag_off
+    self.assertEqual(AIJob.objects.count(), jobs)
+AssertionError: 1 != 0
+
+======================================================================
+FAIL: test_q92_a_call_the_total_covers_but_spendable_does_not_is_refused (billing.tests.test_b1b9_drain.DrainingCallTests.test_q92_a_call_the_total_covers_but_spendable_does_not_is_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 138, in test_q92_a_call_the_total_covers_but_spendable_does_not_is_refused
+    self.assertEqual(AIJob.objects.count(), 1)
+AssertionError: 2 != 1
+
+======================================================================
+FAIL: test_the_door_holds_nothing_and_launches_at_once (billing.tests.test_b1b9_drain.DrainingDoorTests.test_the_door_holds_nothing_and_launches_at_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 235, in test_the_door_holds_nothing_and_launches_at_once
+    self.assertEqual(callbacks, [])
+AssertionError: Lists differ: [<assignments.upload_door._DoorLaunchOnCommit object at 0x761d6d484e90>] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+<assignments.upload_door._DoorLaunchOnCommit object at 0x761d6d484e90>
+
+- [<assignments.upload_door._DoorLaunchOnCommit object at 0x761d6d484e90>]
++ []
+
+======================================================================
+FAIL: test_a_credit_entry_enqueues_no_promotion (billing.tests.test_b1b9_drain.DrainingPromotionTests.test_a_credit_entry_enqueues_no_promotion)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 296, in test_a_credit_entry_enqueues_no_promotion
+    promote.assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to not have been called. Called 1 times.
+Calls: [call('45ed9d3b-b989-4437-a74e-cb748e7b3a46')].
+
+======================================================================
+FAIL: test_the_promotion_tasks_promote_nothing (billing.tests.test_b1b9_drain.DrainingPromotionTests.test_the_promotion_tasks_promote_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 308, in test_the_promotion_tasks_promote_nothing
+    every.assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'promote_all' to not have been called. Called 1 times.
+Calls: [call(), call().__str__()].
+
+======================================================================
+FAIL: test_expired_is_silent (billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_expired_is_silent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 327, in test_expired_is_silent
+    self.send("expired", left=3).assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to not have been called. Called 1 times.
+Calls: [call(subject='Your waiting papers have stopped waiting', message='3 papers from Fractions waited 30 days for credits and have stopped waiting. Nothing was charged for them. You can grade them at any time by retrying them after you add credits.', from_email='Grade A+ <support@gradeautomator.com>', recipient_list=['b1b8.q.522e00@example.com'])].
+
+======================================================================
+FAIL: test_expiry_warning_is_silent (billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_expiry_warning_is_silent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 321, in test_expiry_warning_is_silent
+    self.send("expiry_warning").assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to not have been called. Called 1 times.
+Calls: [call(subject='Your waiting papers expire in 2 days', message="3 papers from Fractions are still waiting for credits. If you don't add credits by 2026-12-11, they will stop waiting. You can still grade them later by retrying them.", from_email='Grade A+ <support@gradeautomator.com>', recipient_list=['b1b8.q.d08c43@example.com'])].
+
+======================================================================
+FAIL: test_queued_is_silent (billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_queued_is_silent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 317, in test_queued_is_silent
+    self.send("queued").assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to not have been called. Called 1 times.
+Calls: [call(subject='Your grading batch is waiting for credits', message='Your credits ran out while grading Fractions. 2 of 5 papers were graded and saved. The other 3 papers will start again on their own when you add credits. They will wait for 30 days, until 2026-12-11.\n\nTop up your credits to continue.', from_email='Grade A+ <support@gradeautomator.com>', recipient_list=['b1b8.q.62d989@example.com'])].
+
+======================================================================
+FAIL: test_restarted_is_silent (billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_restarted_is_silent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 324, in test_restarted_is_silent
+    self.send("restarted", started=2, left=3).assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to not have been called. Called 1 times.
+Calls: [call(subject='Your grading batch has started again', message='Credits arrived, so grading Fractions has started again for 2 of the 3 waiting papers.', from_email='Grade A+ <support@gradeautomator.com>', recipient_list=['b1b8.q.e9dc4f@example.com'])].
+
+======================================================================
+FAIL: test_the_beat_expiry_still_expires_and_sends_nothing (billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_the_beat_expiry_still_expires_and_sends_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 338, in test_the_beat_expiry_still_expires_and_sends_nothing
+    send.assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to not have been called. Called 1 times.
+Calls: [call(subject='Your waiting papers have stopped waiting', message='2 papers from Fractions waited 30 days for credits and have stopped waiting. Nothing was charged for them. You can grade them at any time by retrying them after you add credits.', from_email='Grade A+ <support@gradeautomator.com>', recipient_list=['b1b8.q.7ca9ea@example.com'])].
+
+======================================================================
+FAIL: test_only_the_emergency_command_passes_force (billing.tests.test_b1b9_drain.ForceLimitTests.test_only_the_emergency_command_passes_force)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 395, in test_only_the_emergency_command_passes_force
+    self.assertEqual(
+AssertionError: Items in the second set but not the first:
+'billing/management/commands/billing_holds_drain.py'
+
+======================================================================
+FAIL: test_an_open_hold_exits_1_naming_its_wallet_and_job (billing.tests.test_b1b9_drain.DrainCommandTests.test_an_open_hold_exits_1_naming_its_wallet_and_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 471, in test_an_open_hold_exits_1_naming_its_wallet_and_job
+    self.assertIn(str(self.wallet.pk), text)
+AssertionError: '340a9287-3b42-4712-b8b0-605225b0d46a' not found in "Unknown command: 'billing_holds_drain'"
+
+======================================================================
+FAIL: test_it_refuses_without_both_settings (billing.tests.test_b1b9_drain.DrainCommandTests.test_it_refuses_without_both_settings) (enabled=False, draining=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 459, in test_it_refuses_without_both_settings
+    self.assertEqual(code, 2, text)
+AssertionError: 1 != 2 : Unknown command: 'billing_holds_drain'
+
+======================================================================
+FAIL: test_it_refuses_without_both_settings (billing.tests.test_b1b9_drain.DrainCommandTests.test_it_refuses_without_both_settings) (enabled=True, draining=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 459, in test_it_refuses_without_both_settings
+    self.assertEqual(code, 2, text)
+AssertionError: 1 != 2 : Unknown command: 'billing_holds_drain'
+
+======================================================================
+FAIL: test_it_refuses_without_both_settings (billing.tests.test_b1b9_drain.DrainCommandTests.test_it_refuses_without_both_settings) (enabled=False, draining=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 459, in test_it_refuses_without_both_settings
+    self.assertEqual(code, 2, text)
+AssertionError: 1 != 2 : Unknown command: 'billing_holds_drain'
+
+======================================================================
+FAIL: test_nothing_open_prints_drained (billing.tests.test_b1b9_drain.DrainCommandTests.test_nothing_open_prints_drained)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 464, in test_nothing_open_prints_drained
+    self.assertIn("DRAINED", text)
+AssertionError: 'DRAINED' not found in "Unknown command: 'billing_holds_drain'"
+
+======================================================================
+FAIL: test_queued_jobs_are_expired_with_no_email (billing.tests.test_b1b9_drain.DrainCommandTests.test_queued_jobs_are_expired_with_no_email)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 481, in test_queued_jobs_are_expired_with_no_email
+    self.assertEqual(fresh(job).status, AIJobStatus.EXPIRED)
+AssertionError: 'QUEUED_PENDING_CREDITS' != AIJobStatus.EXPIRED
+
+======================================================================
+FAIL: test_the_emergency_refuses_unless_the_flag_is_off_and_draining_on (billing.tests.test_b1b9_drain.DrainCommandTests.test_the_emergency_refuses_unless_the_flag_is_off_and_draining_on) (enabled=True, draining=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 517, in test_the_emergency_refuses_unless_the_flag_is_off_and_draining_on
+    self.assertEqual(code, 2, text)
+AssertionError: 1 != 2 : Unknown command: 'billing_holds_drain'
+
+======================================================================
+FAIL: test_the_emergency_refuses_unless_the_flag_is_off_and_draining_on (billing.tests.test_b1b9_drain.DrainCommandTests.test_the_emergency_refuses_unless_the_flag_is_off_and_draining_on) (enabled=False, draining=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 517, in test_the_emergency_refuses_unless_the_flag_is_off_and_draining_on
+    self.assertEqual(code, 2, text)
+AssertionError: 1 != 2 : Unknown command: 'billing_holds_drain'
+
+======================================================================
+FAIL: test_the_emergency_refuses_unless_the_flag_is_off_and_draining_on (billing.tests.test_b1b9_drain.DrainCommandTests.test_the_emergency_refuses_unless_the_flag_is_off_and_draining_on) (enabled=True, draining=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 517, in test_the_emergency_refuses_unless_the_flag_is_off_and_draining_on
+    self.assertEqual(code, 2, text)
+AssertionError: 1 != 2 : Unknown command: 'billing_holds_drain'
+
+======================================================================
+FAIL: test_the_emergency_returns_every_hold_at_once_and_prints_drained (billing.tests.test_b1b9_drain.DrainCommandTests.test_the_emergency_returns_every_hold_at_once_and_prints_drained)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 528, in test_the_emergency_returns_every_hold_at_once_and_prints_drained
+    self.assertEqual(fresh(started).hold_state, "RETURNED")
+AssertionError: 'HELD' != 'RETURNED'
+- HELD
++ RETURNED
+
+
+======================================================================
+FAIL: test_a_batch_makes_no_job_and_sends_every_paper (billing.tests.test_b1b9_drain.DrainingBatchTests.test_a_batch_makes_no_job_and_sends_every_paper)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 256, in test_a_batch_makes_no_job_and_sends_every_paper
+    self.assertEqual(len(self.sent), 3)
+AssertionError: 0 != 3
+
+======================================================================
+FAIL: test_an_auto_grade_retry_while_draining_relaunches_its_papers_flag_off (billing.tests.test_b1b9_drain.DrainingBatchTests.test_an_auto_grade_retry_while_draining_relaunches_its_papers_flag_off)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 281, in test_an_auto_grade_retry_while_draining_relaunches_its_papers_flag_off
+    self.assertEqual(AIJob.objects.filter(job_type="BATCH_GRADING").count(), 1)
+AssertionError: 2 != 1
+
+----------------------------------------------------------------------
+Ran 35 tests in 4.165s
+
+FAILED (failures=28, errors=10)
+Destroying test database for alias 'default'...
+Found 35 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
