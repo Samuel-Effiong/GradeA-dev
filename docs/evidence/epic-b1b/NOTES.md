@@ -5097,3 +5097,19 @@ The fragments were rendered from unittest's own messages (no test run). No pre-e
 - A read-only check: since f90bb9b23, B1b changes under `users/` only in `views.py` and `serializers.py`, both for task status (`kept_until`, B1b-8). It does not touch `filters.py`, `list_serializers.py`, `user_list.py`, the list view or either test module.
 - So the cause is not yet known. It is either an interaction in the parallel run (pollution from another module) or a real interaction with B1b code elsewhere (for example billing models the list annotates).
 - E-on has not run. Nothing has been changed.
+
+**SM ruling on the E-off STOP (-31, 2026-11-11).**
+- The battery result is accepted: 129 as declared, PB6-3 the declared survivor.
+- The diagnostic run is approved: at HEAD, flag off (the five unset), serial, `users.tests_user_list_sorting` + `users.tests_user_list_payload_pin` alone.
+- The SM's leading suspect is a real interaction: B1b's new `CreditWalletSerializer` fields (`balance_status`, `reserved_credits`, `spendable`), nested in each list row (see `docs/evidence/user-list-sorting/DESIGN.md` §9).
+- If the modules fail alone:
+  1. a read-only diagnosis: the pin diff summarized by key and row type;
+  2. the extra queries grouped by SQL;
+  3. a fix plan in which the new wallet fields read only data the list already prefetches or annotates, with the counts fixed again.
+- The pin is re-taken only for the new keys; every existing key stays byte-identical.
+- No change to the Fixer's user-list files without a ruling.
+- If they pass alone, find the polluting module and report before any change.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| B10-D1 (diagnostic) | BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK and USER_LIST_PIN_WRITE unset; serial (no `--parallel`); under flock with `--noinput`; at this commit | `users.tests_user_list_sorting users.tests_user_list_payload_pin` (50 + 3 tests, by unittest's loader) | **Ran 53.** This run is a diagnostic, so its outcome is the question. If the interaction is real (the leading suspect): **FAILED (failures=18)**, the same 18 as E-off. If it is pollution: **OK**. Anything else is a third finding and goes to the SM. |
