@@ -231,3 +231,39 @@ Declared for the rerun:
 Side finding, not in scope: the retrieve cache ignores query params, so a
 filtered retrieve inside the TTL returns the unfiltered answer. That is
 existing behavior, unchanged here.
+
+Q-gate-2 result: as declared. 1 killed (4 subTests). Restore sha256 OK. Log
+plants/Q-gate-2.log.
+
+R2e result: as declared. Ran 52, OK. Log R2e_green.log.
+
+## EXPLAIN ANALYZE (scratch seed, not kept)
+
+The seed was 2000 teachers with wallets and 3 buckets each, then ANALYZE,
+then a 25-row page. Files: explain_*.txt.
+
+| sort | execution time |
+|---|---|
+| default | 5.3 ms |
+| -credits_left | 16.6 ms |
+| -papers_graded | 9.3 ms |
+| plan_tier | **235.8 ms** |
+
+The seq scans are on tables that are empty or tiny in the seed, plus the
+users scan that any computed sort needs. No index is needed.
+
+The plan_tier sort was slow because the rank Case repeated the
+current-plan subquery once per tier, 6 times. The fix computes the rank
+inside the single plan lookup. Behavior is unchanged; OrderingTests
+.test_plan_tier_follows_the_ruled_rank covers it.
+
+Declared for this change:
+- R2f green: Ran 52, OK.
+- EXPLAIN plan_tier is re-run, and should land near the other sorts
+  (under 30 ms).
+
+R2f result: as declared. Ran 52, OK. Log R2f_green.log.
+
+EXPLAIN re-run: as declared. plan_tier 14.2 ms (it was 235.8). The other
+sorts: default 6.3, -credits_left 20.2, -papers_graded 10.4 ms. The
+explain_*.txt files hold the re-run plans.

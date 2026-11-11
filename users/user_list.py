@@ -140,13 +140,22 @@ def _expressions():
         "plan_tier": (lambda: plan_field("tier"), ("current_plan_id",)),
         "plan_category": (lambda: plan_field("category"), ("current_plan_id",)),
         "plan_interval": (lambda: plan_field("interval"), ("current_plan_id",)),
+        # The rank is read in the same plan lookup: a Case over plan_tier
+        # repeated the whole plan subquery once per tier (EXPLAIN, NOTES).
         "plan_tier_rank": (
-            lambda: Case(
-                *(When(plan_tier=t, then=Value(i)) for i, t in enumerate(TIER_RANK)),
-                default=Value(None),
+            lambda: Subquery(
+                SubscriptionPlan.objects.filter(pk=OuterRef("current_plan_id"))
+                .annotate(
+                    rank=Case(
+                        *(When(tier=t, then=Value(i)) for i, t in enumerate(TIER_RANK)),
+                        default=Value(None),
+                        output_field=IntegerField(),
+                    )
+                )
+                .values("rank")[:1],
                 output_field=IntegerField(),
             ),
-            ("plan_tier",),
+            ("current_plan_id",),
         ),
         "activated_at": (lambda: F("email_verified_at"), ()),
         "assignments_created": (
