@@ -53,6 +53,7 @@ from AutoGrader.reason_codes import CodedError, coded_entry
 from AutoGrader.uploads import PayloadEmpty, PayloadTooLarge, validate_upload_size
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
+from billing.job_ref import ai_job_schema, settled_job_id, tracking, with_ai_job_id
 from classrooms.models import (
     COURSE_ACCESS_ENROLLMENT_STATUSES,
     Topic,
@@ -218,7 +219,7 @@ def _not_graded_entries(submissions):
         request=AssignmentTextSerializer,
         responses={
             202: OpenApiResponse(
-                response=AssignmentListSerializer,
+                response=ai_job_schema(AssignmentListSerializer),
                 description="Assignment created successfully",
             ),
             400: OpenApiResponse(
@@ -287,7 +288,7 @@ def _not_graded_entries(submissions):
         description="Update an existing assignment.",
         request=AssignmentTextSerializer,
         responses={
-            200: AssignmentListSerializer,
+            200: ai_job_schema(AssignmentListSerializer),
             400: OpenApiResponse(description="Invalid input"),
             # 401: OpenApiResponse(description="Authentication credentials were not provided"),
             # 403: OpenApiResponse(description="You do not have permission to perform this action"),
@@ -418,6 +419,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return super().get_serializer_class()
 
     @transaction.atomic
+    @with_ai_job_id
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -610,6 +612,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             assignment.was_overridden = True
             assignment.overridden_at = timezone.now()
 
+    @with_ai_job_id
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(
@@ -966,20 +969,23 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 continue
 
             try:
-                outcome = upload_assignment_file(
-                    request.user,
-                    uploaded_file,
-                    prompt_text,
-                    course=course,
-                    topic=topic,
-                    sha256=sha256_of_uploaded_file(uploaded_file),
-                )
+                # B1b-7 D7-e: one job per file, so each item names its own.
+                with tracking() as jobs:
+                    outcome = upload_assignment_file(
+                        request.user,
+                        uploaded_file,
+                        prompt_text,
+                        course=course,
+                        topic=topic,
+                        sha256=sha256_of_uploaded_file(uploaded_file),
+                    )
 
                 successful.append(
                     {
                         "file_name": file_name,
                         "assignment": AssignmentListSerializer(outcome.assignment).data,
                         "already_uploaded": outcome.already_uploaded,
+                        "ai_job_id": settled_job_id(jobs),
                     }
                 )
 
@@ -1418,7 +1424,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         """,
         request=AssignmentGeneratorSerializer,
         responses={
-            201: GeneratedAssignmentSerializer,
+            201: ai_job_schema(GeneratedAssignmentSerializer),
             400: OpenApiResponse(
                 description="Bad request - invalid data",
             ),
@@ -1442,6 +1448,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         url_path=r"generate/(?P<course_id>[-\w]+)",
         url_name="generate",
     )
+    @with_ai_job_id
     def generate_assignment_from_prompt(self, request, course_id, *args, **kwargs):
         """
         Generate a new assignment draft based on text prompts.

@@ -4071,3 +4071,26 @@ Each plant is one edit to the product at e0fc5ffb7 (`billing/low_balance.py`, `b
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | R3 (red) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset (the classes set BILLING_HOLDS_ENABLED=True themselves); under flock with `--noinput`; serial | `billing.tests.test_b1b7_ai_job_id` (16 tests) | **Ran 16, FAILED (failures=12, errors=3)**. The 12 failures are `ViewTests`: 11 with `'absent' != '` (the key is missing), and `test_assignments_upload_two_files_give_two_ids` with `Lists differ: ['absent', 'absent']`. The 3 errors are the three `job_ref` rule tests (`No module named 'billing.job_ref'`). `test_a_failed_attempt_carries_no_charge` passes. |
+
+**R3 result:** Ran 16, FAILED (failures=12, errors=3). **As declared**, each with its declared fragment, and `test_a_failed_attempt_carries_no_charge` passes, so §7.19 (5) is confirmed: a FAILED attempt's hold is returned and nothing is charged. Log: `step7/R3_red_01c5322c6.log`.
+
+### §7.20 The D7-e build; R4 green and plants PB7-e1, PB7-e2 declared (before they run)
+
+**The product (this commit):**
+- `billing/job_ref.py` (new), as designed in §7.19.
+- `billing/holds.py`: `_note_settled(job.pk)` in `Unit.settle_root` after the settlement, and in `_SingleCallHold.finish` after its atomic block commits. There is none on any fail or abandon path.
+- **`@with_ai_job_id` on:**
+  - students `grade`, `upload_answers`, `partial_update`;
+  - assignments `create`, `partial_update`, `generate_assignment_from_prompt`;
+  - billing `custom_ai_prompt`;
+  - `dashboard.views.run_dashboard_ai_chat` (its three actions).
+- `upload_assignment`: each file runs in its own `tracking()`, and the `successful[]` item gains `"ai_job_id": settled_job_id(jobs)`.
+- **OpenAPI:** every success response of those views is `ai_job_schema(...)`, the same serializer plus a nullable read-only `ai_job_id`. `manage.py spectacular` builds 6 `…WithAIJob` components; `CustomAIReplyWithAIJob` shows `ai_job_id: {type: string, format: uuid, readOnly: true, nullable: true}`. The only text is the field's help text (API docs, not app wording).
+- **`upload_assignment`'s schema is not changed:** the route is `exclude=True` (`assignments/views.py:845`), so it has no published schema.
+- **`write_routes()` re-counted: 162.** pre-commit is clean on the six files.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| R4 (green) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial | `billing.tests.test_b1b7_ai_job_id` (16 tests) | **Ran 16, OK** |
+| PB7-e1 (§7.19's plant: FAILED counted as settled) | as R4; after R4; at this commit; reverted and sha256-checked against this commit's `billing/holds.py` | `billing.tests.test_b1b7_ai_job_id` | `holds.abandon_single_call` also calls `_note_settled(job.pk)`. **Ran 16, FAILED (failures=1)**: only `test_a_retry_then_success_names_the_settled_job`, fragment `None != '` (two jobs recorded, so null). |
+| PB7-e2 (§7.9's plant: the helper dropped from one view) | as PB7-e1, for `students/views.py` | `billing.tests.test_b1b7_ai_job_id` | `@with_ai_job_id` removed from students `grade`. **Ran 16, FAILED (failures=1)**: only `test_students_grade`, fragment `'absent' != '` |

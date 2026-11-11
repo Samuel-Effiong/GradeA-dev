@@ -52,6 +52,7 @@ from AutoGrader.cache_generation import (
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.query_params import boolean_query_param
+from billing.job_ref import ai_job_schema, with_ai_job_id
 from billing.models import CONVERSION_FACTOR, CreditBucketType, CreditUsageLog
 from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal, refusal_response
 from billing.services import FEATURE_TO_ANALYTICS_FIELD
@@ -190,6 +191,7 @@ def dashboard_context_section(title, build, *, user, task_type):
     return f"### {title}\n{body}"
 
 
+@with_ai_job_id
 def run_dashboard_ai_chat(
     request, prompt, *, assistant_type, role, context, feature, task_type
 ):
@@ -1162,7 +1164,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         tags=["Super Admin"],
         summary="Get AI detailed information about analytics ",
         request=CustomAIPrompt,
-        responses={200: CustomAIReply},
+        responses={200: ai_job_schema(CustomAIReply)},
     )
     @action(
         detail=False,
@@ -2937,7 +2939,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         tags=["School Admin"],
         summary="Get AI detailed information about analytics ",
         request=CustomAIPrompt,
-        responses={200: CustomAIReply},
+        responses={200: ai_job_schema(CustomAIReply)},
     )
     @action(
         detail=False,
@@ -4067,6 +4069,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         tags=["Teacher Admin"],
         summary="Teacher AI Extraction and Grading Insights",
         request=CustomAIPrompt,
+        responses={200: ai_job_schema(CustomAIReply)},
     )
     @action(
         detail=False,

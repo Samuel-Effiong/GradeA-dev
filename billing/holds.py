@@ -501,6 +501,13 @@ def emit_estimate_gap(job_pk):
     )
 
 
+def _note_settled(job_pk):
+    """B1b-7 D7-e: the request's settled-job record (billing.job_ref)."""
+    from .job_ref import note_settled
+
+    note_settled(job_pk)
+
+
 def _after_batch_item(job_row):
     """B1b-6: the last-item helper, for a BATCH_GRADING job only (no query
     for any other job type)."""
@@ -1017,6 +1024,7 @@ class Unit:
         if self.owns_job:
             # A shared batch or door job finishes in step 5, not here.
             finish_job(self.job, AIJobStatus.SETTLED)
+        _note_settled(self.job.pk)
         if outcome.settled and outcome.chargeable and self.billed is not None:
             _record_analytics(
                 self.billed,
@@ -1181,6 +1189,7 @@ class _SingleCallHold:
         except BaseException:
             self.abandon()
             raise
+        _note_settled(self.job.pk)
         record_billing_task_id(billing_task_id)
 
     def abandon(self):

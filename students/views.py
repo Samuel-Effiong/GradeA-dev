@@ -70,6 +70,7 @@ from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.reason_codes import CodedError, coded_response
 from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
 from billing.errors import InsufficientCreditsError
+from billing.job_ref import ai_job_schema, with_ai_job_id
 from classrooms.models import EnrollmentStatusType, teacher_course_access_q
 from classrooms.permissions import IsStudent, IsTeacher
 from users.mixins import UserCacheMixin
@@ -265,7 +266,7 @@ def _assignment_taught_by(assignment_id, teacher):
         description="Update a student submission.",
         request=StudentSubmissionUpdateSerializer,
         responses={
-            200: StudentSubmissionListSerializer,
+            200: ai_job_schema(StudentSubmissionListSerializer),
             400: OpenApiResponse(description="Invalid input"),
             404: OpenApiResponse(description="Student submission not found"),
         },
@@ -543,7 +544,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         },
         responses={
             201: OpenApiResponse(
-                response=StudentUploadAnswerSerializer,
+                response=ai_job_schema(StudentUploadAnswerSerializer),
                 description="Answer processed successfully",
             ),
             400: OpenApiResponse(
@@ -588,6 +589,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         url_name="upload-answers",
         permission_classes=[IsAuthenticated, IsStudent, HasCreditBalance],
     )
+    @with_ai_job_id
     def upload_answers(self, request, assignment_id=None, *args, **kwargs):
         assignment = _assignment_open_to_student(assignment_id, request.user)
 
@@ -812,6 +814,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         return Response(serializer.data, status=HTTP_200_OK)
 
+    @with_ai_job_id
     def partial_update(self, request, *args, **kwargs):
         """
         Synchronous raw-text edit: re-extracts answers inside the request.
@@ -927,7 +930,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         tags=["07 Student Submissions"],
         request=None,
         responses={
-            HTTP_200_OK: StudentSubmissionDetailSerializer,
+            HTTP_200_OK: ai_job_schema(StudentSubmissionDetailSerializer),
         },
     )
     @action(
@@ -936,6 +939,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
         url_path="grade",
     )
+    @with_ai_job_id
     def grade(self, request, pk=None):
         # get_object() runs get_queryset() (which scopes teachers to their
         # own courses) plus check_object_permissions — using the manager
