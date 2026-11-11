@@ -76,3 +76,10 @@ The 43 that fail:
 
 Caveat, as on staging: id tiebreak and two keys combined depend on random
 tie order. Predicted to fail.
+
+R1 result (R1_red.log): Ran 54, FAILED (failures=54, errors=19). The totals
+count subTests. By distinct test: **43 fail and 11 pass, the same sets as
+declared.** Both caveat tests failed, as predicted. Each failure is for the
+declared reason: KeyError on the new keys; AttributeError (no
+users.views.list_queryset); OpenApi "'last_login_after' not found" and
+"'last_login' not found in set()".
