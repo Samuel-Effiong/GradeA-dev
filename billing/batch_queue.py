@@ -58,7 +58,7 @@ RUNNING_STATUSES = (AIJobStatus.RESERVED, AIJobStatus.RUNNING)
 
 #: Owner-approved texts #5, #8, #9, #10 and closings #6/#7
 #: (team/approved_wording_b1b_2026-11-09.md), switched on at B1b-8.
-QUEUE_EMAIL_APPROVED = False
+QUEUE_EMAIL_APPROVED = True
 QUEUE_EMAIL_TEXTS = {
     "queued": (
         "Your grading batch is waiting for credits",
@@ -255,6 +255,24 @@ def mark_running(job):
         AIJob.objects.filter(pk=job.pk, status=AIJobStatus.RESERVED).update(
             status=AIJobStatus.RUNNING
         )
+
+
+def close_if_nothing_waits(task):
+    """Q8-6 (1): a cancelled paper of a QUEUED_PENDING_CREDITS job. When no
+    paper of the job is left to run, the job is finished CANCELLED (its
+    conditional move), with no email."""
+    if task is None or task.job_id is None:
+        return
+    job = AIJob.objects.filter(
+        pk=task.job_id, status=AIJobStatus.QUEUED_PENDING_CREDITS
+    ).first()
+    if job is None or holds._job_has_rows_to_run(job.pk):
+        return
+    holds.finish_job(
+        job,
+        AIJobStatus.CANCELLED,
+        from_statuses=(AIJobStatus.QUEUED_PENDING_CREDITS,),
+    )
 
 
 def release_unused_item_hold(task):
@@ -512,10 +530,10 @@ def notify(job_pk, kind, **counts):
             kind,
         )
         return
-    _send(job_pk, kind, **counts)  # pragma: no cover (B1b-8)
+    _send(job_pk, kind, **counts)
 
 
-def _send(job_pk, kind, **counts):  # pragma: no cover (B1b-8 switches it on)
+def _send(job_pk, kind, **counts):
     from AutoGrader.tasks import send_email_task
 
     from .errors import is_individual_teacher
@@ -535,6 +553,9 @@ def _send(job_pk, kind, **counts):  # pragma: no cover (B1b-8 switches it on)
         "days": settings.QUEUE_LIFETIME_DAYS,
         "expires_on": job.expires_at.date().isoformat() if job.expires_at else "",
     }
+    if kind in ("expiry_warning", "expired") and values["left"] == 0:
+        # Q8-6 (2): nothing waits (a cancelled batch), so nothing is said.
+        return
     closing = (
         QUEUE_EMAIL_CLOSING_INDIVIDUAL
         if is_individual_teacher(teacher)

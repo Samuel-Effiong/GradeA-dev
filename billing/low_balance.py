@@ -16,8 +16,8 @@ warning fields, so concurrent settlements send at most one. An allocation of
 bucket sends nothing and writes nothing: the 0% text ("You've used all of
 this cycle's credits") would not be true.
 
-The emails are approved texts #11-#13 with closing #6/#7, and stay off
-(LOW_BALANCE_EMAIL_APPROVED False) until B1b-8, as the queue emails do.
+The emails are approved texts #11-#13 with closing #6/#7, switched on at
+B1b-8 (LOW_BALANCE_EMAIL_APPROVED True).
 """
 
 import logging
@@ -30,8 +30,8 @@ from .models import CONVERSION_FACTOR, CreditBucket, CreditBucketType, CreditWal
 
 logger = logging.getLogger(__name__)
 
-# B1b-8 switches the texts on (08b §5 B1b-8 row).
-LOW_BALANCE_EMAIL_APPROVED = False
+# Switched on at B1b-8 (08b §8, NOTES §8.2).
+LOW_BALANCE_EMAIL_APPROVED = True
 
 # team/approved_wording_b1b_2026-11-09.md #11-#13, verbatim.
 LOW_BALANCE_TEXTS = {
@@ -122,7 +122,9 @@ def check_low_balance(wallet_id):
         return None
     total = allocation(wallet)
     cycle = cycle_bucket(wallet)
-    if total <= 0 or cycle is None:
+    if total <= 0 or cycle is None or cycle.expires_at is None:
+        # D8-a (SM, §8.5): no expires_at gives no {cycle_end}, so no text
+        # would be true: nothing is claimed or sent.
         return None
     spendable = _spendable(wallet)
     level = level_of(spendable, total)

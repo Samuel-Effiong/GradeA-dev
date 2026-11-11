@@ -4417,3 +4417,64 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
 - **D8-a APPROVED as proposed** (no `expires_at` → no claim, no email). Its own test is `LowBalanceNoExpiryTests.test_a_cycle_bucket_with_no_expiry_sends_no_warning`. Its plant joins the end-checkpoint list.
 - **§8.3's decisions noted:** batch row = `UPLOAD_ITEM_TYPES`; other rows' log text unchanged; the shared `staff_only_keys` decorator.
 - **Then:** green, plants, the near (billing + students + assignments + dashboard + users + guards67, environment stated), the end checkpoint. No push, no trailers.
+
+### §8.6 The B1b-8 product and documents; R6 green, the break run BR8, G8, and plants P8-1..P8-5 declared (before they run)
+
+**The product (this commit):**
+- **Text 1:** `AutoGrader/reason_codes.py` `mid_batch_remediation(days=None)` builds approved text 1 from `QUEUE_LIFETIME_DAYS`. The `INSUFFICIENT_CREDITS_MID_BATCH` spec calls it once at load, so the stored remediation has no `{`.
+- **Text 2 and #16b (Q8-1):** `students/item_retry.py` `_upload_display(item)`: no `KeptUpload` row → `NOT_SAVED` (#16b); `purged_at >= kept_until` → `deleted_after_days()` (text 2); otherwise `{}` (the catalogue's default `why`). `resolution: replace_file` on all. `REUPLOAD` is removed.
+- **Text 3 (Q8-3):** `billing/holds.py` `LATE_DOOR_EMAIL_TEXTS` is now approved text 3, with `{days}`; `LATE_DOOR_EMAIL_APPROVED = True`. `notify_late_door_refusal` emails the teacher only for `row.task_type in UPLOAD_ITEM_TYPES`; any other row logs today's line, unchanged. The student notice is unchanged.
+- **Q8-6:**
+  - `billing/batch_queue.py`: `QUEUE_EMAIL_APPROVED = True`.
+  - `close_if_nothing_waits(task)` finishes a `QUEUED_PENDING_CREDITS` job CANCELLED when `holds._job_has_rows_to_run` is false (a conditional move, no email). It is called from `students/task_tracking.cancel_processing_task` through `_close_cancelled_queue`.
+  - `_send` returns early for `expiry_warning`/`expired` when `left == 0`.
+  - Both `# pragma: no cover` marks are removed.
+- **D8-a:** `billing/low_balance.check_low_balance` returns early when the cycle bucket has no `expires_at`. `LOW_BALANCE_EMAIL_APPROVED = True`.
+- **Other switches:** `billing/estimates.py` `DRIFT_EMAIL_APPROVED = True`. `students/data_export.py`: `EXPORT_NAMES` gains `"kept_file": "kept_file"`, `KEPT_FILE_EXPORT_NAME = EXPORT_NAMES["kept_file"]`, and `KEPT_FILE_EXPORT_NAME_APPROVED = True`.
+- **Q8-2:**
+  - `AutoGrader/staff_only.py` (new): `is_student_request(args)` and `staff_only_keys(*keys)` (drops keys from a student's 2xx dict body). `billing/job_ref.py` now uses `is_student_request`; its behavior is unchanged.
+  - `users/serializers.py` `TaskStatusSerializer.kept_until` (read-only, nullable; help text says students don't get it).
+  - `users/views.py` `task_status`: `@staff_only_keys("kept_until")`, and `kept_until` is read from the unpurged `KeptUpload`.
+  - **The §7.25 sweep on the task-status response:** 9 test files call it. The only whole-key pin hit is `students/tests_upload_credit_door.py:208`, which is an upload refusal body, not task status. **No task-status key pin.**
+- pre-commit clean on all product files.
+
+**The documents (Q8-4):**
+- **Privacy document:** `docs/GRADE_A_PLUS_BACKEND_DATA_PRIVACY_SECURITY_COMPLIANCE.md` gets the owner's 2026-11-11 texts #19–#21 and #22/#23, each checked byte-for-byte against `team/approved_wording_b1b_2026-11-09.md` (sha256 `9714cdfd…`); #23's path placeholder is filled with the real paths.
+  - #20 replaces the "Not stored" row (line 293).
+  - #19 is a new paragraph right after the "At rest" table. **Its place is my choice; the wording file names none.**
+  - #22 replaces line 374's first cell.
+  - #21 is a new row after line 390.
+  - #23 replaces the evidence row "Uploaded file deleted after reading" (line 506), which is no longer true.
+- **The privacy PDF, regenerated:** `pandoc <md> -s -o <pdf> --pdf-engine=…/AutoGrader_env/bin/weasyprint --css ~/Documents/Projects/GAP-docs/.pdf-style.css --metadata pagetitle="Grade A Plus - Backend"` (WeasyPrint 69.0, as the committed PDF's Producer).
+  - **The committed PDF's stylesheet is not in the repo or anywhere on this machine.** It used Nimbus Sans, 24 pages; this sheet uses DejaVu Sans, 20 pages. So the layout differs, and the text is the markdown's. The recipe is recorded here so it can be reproduced.
+  - Checked with `pdftotext`: each new text appears once. pdf sha256 `3899ea9a65fe63c8…`.
+- **Reason codes:** `docs/GRADE_A_PLUS_REASON_CODES.md` lines 348 and 375 now state text 1 and the Q8-1 messages, so the developer document matches the catalogue. Its PDF was not regenerated (H-34's precedent: markdown only).
+
+**Runs (all: BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial):**
+
+| Run | State | Label | Declared |
+|---|---|---|---|
+| R6 (green) | this commit | `billing.tests.test_b1b8_texts` | **Ran 24, OK** |
+| BR8 (the break run: the 9 pre-existing tests, unedited, against the product) | this commit | `billing.tests.test_holds_door billing.tests.test_batch_queue billing.tests.test_estimate_backtest students.tests_kept_uploads students.tests_data_export students.tests_item_retry` (11 + 43 + 22 + 45 + 47 + 13 = **181** by build_suite, 0 static skips) | **Ran 181, FAILED (failures=8, errors=1)**: see the list below |
+| G8 (the 9 edited) | the edit commit | the same 6 modules | **Ran 181, OK** |
+
+**The 9 tests BR8 must show failing, with fragments rendered by unittest:**
+1. `test_holds_door…test_once_approved_the_teacher_is_emailed_naming_the_file`: `Expected 'delay' to have been called once. Called 0 times.` (its row is `ANSWER_EXTRACTION`). **Edit:** the row becomes `BATCH_ANSWER_UPLOAD`.
+2. `test_holds_door…test_the_texts_are_one_pending_constant_the_email_switch_is_off_and_the_student_notice_is_on`: `True is not False`. **Edit:** the switch is pinned True.
+3. `test_batch_queue.QueueEmailTests.test_no_queue_email_is_sent_before_the_texts_are_approved`: `True is not False`. **Edit:** it pins True and patches the switch False for the no-send check.
+4. `test_estimate_backtest…test_drift_sends_no_email_while_the_text_is_not_approved`: `True is not false`. **Edit:** it patches the switch False.
+5. `tests_kept_uploads…test_the_nested_name_is_switched_on_at_b1b_8`: `True is not False`. **Edit:** the pin is True.
+6. `tests_kept_uploads.ExportContentTests.test_while_not_approved_no_row_has_the_nested_key`: `'kept_file' unexpectedly found in`. **Edit:** it patches the switch False.
+7. `tests_data_export…test_names_are_the_approved_wording`: `{'dow[504 chars]s', 'kept_file': 'kept_file', 'manifest_counts[117 chars]les'} != {'dow[504 chars]s', 'manifest_counts': 'record_counts', 'manif[91 chars]les'}`. **Edit:** `APPROVED_NAMES` gains `"kept_file": "kept_file"` (owner text #18).
+8. `tests_data_export…test_a_kept_file_rides_in_the_file_uploads_rows`: `'kept_file' unexpectedly found in`. **Edit:** its "absent" half patches the switch False.
+9. `tests_item_retry.TheRefusalSurvivesSerialization…`: **ERROR** `cannot import name 'REUPLOAD' from 'students.item_retry'`. **Edit:** it uses `NOT_SAVED`.
+
+**Plants** (each reverted after its run and sha256-checked against the product commit; label `billing.tests.test_b1b8_texts`, 24 tests; run after G8):
+
+| Plant | The edit | Declared |
+|---|---|---|
+| P8-1 (D8-a) | `low_balance.check_low_balance`: `or cycle.expires_at is None` removed | **Ran 24, FAILED (errors=1)**: only `test_a_cycle_bucket_with_no_expiry_sends_no_warning`, `'NoneType' object has no attribute 'date'` |
+| P8-2 (Q8-2 student guard) | `users/views.py`: `@staff_only_keys("kept_until")` removed | **Ran 24, FAILED (failures=1)**: only `test_a_student_never_reads_it`, `'kept_until' unexpectedly found in` |
+| P8-3 (Q8-6 (1)) | `students/task_tracking.py`: the `_close_cancelled_queue(processing_task)` call removed | **Ran 24, FAILED (failures=1)**: only `test_cancelling_every_waiting_paper_closes_the_job_with_no_email`, `'QUEUED_PENDING_CREDITS' != AIJobStatus.CANCELLED` |
+| P8-4 (Q8-6 (2)) | `batch_queue._send`: the `left == 0` return removed | **Ran 24, FAILED (failures=2)**: `test_no_warning_when_nothing_waits` and `test_no_expiry_email_when_nothing_waited`, `Expected 'delay' to not have been called. Called 1 times.` |
+| P8-5 (Q8-3) | `holds.notify_late_door_refusal`: `or row.task_type not in UPLOAD_ITEM_TYPES` removed | **Ran 24, FAILED (failures=1)**: only `test_a_single_upload_is_logged_and_the_teacher_is_not_emailed`, `no logs of level WARNING or higher triggered on billing.holds` |

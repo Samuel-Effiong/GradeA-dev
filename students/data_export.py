@@ -78,6 +78,9 @@ EXPORT_NAMES = {
     "users.UserActivity": "activity.json",
     "users.Settings": "settings.json",
     "messages": "messages",
+    # Owner text #18 (2026-11-10), in with B1b-8: a file-uploads row's
+    # kept file, nested under this key.
+    "kept_file": "kept_file",
     "manifest_counts": "record_counts",
     "manifest_scope": "scope",
     "manifest_generated_at": "created_at",
@@ -186,10 +189,10 @@ EXPORT_FIELDS = {
 
 #: Epic B1b-5 (SM Q7b; owner text #18, 2026-11-10): a file-uploads row's
 #: kept file, nested under this key: its name, size, kept-until and purged
-#: times, never the storage key, the digest or the bytes. Owner-approved;
-#: off until B1b-8 switches it on with the other approved texts.
-KEPT_FILE_EXPORT_NAME = "kept_file"
-KEPT_FILE_EXPORT_NAME_APPROVED = False
+#: times, never the storage key, the digest or the bytes. Owner-approved,
+#: on since B1b-8 (NOTES §8.2) with the other approved texts.
+KEPT_FILE_EXPORT_NAME = EXPORT_NAMES["kept_file"]
+KEPT_FILE_EXPORT_NAME_APPROVED = True
 
 #: Q1 (SM, 2026-11-08): present only once the teacher has released the
 #: grade; empty (null) before. Conditional on `is_published`.

@@ -73,6 +73,7 @@ from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.reason_codes import add_coded_envelope
 from AutoGrader.safe_logging import describe_error_for_log
+from AutoGrader.staff_only import staff_only_keys
 from AutoGrader.tasks import send_email_task
 from billing.services import AnalyticsService
 from classrooms.models import (
@@ -89,6 +90,7 @@ from students.models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
     BatchUploadSession,
+    KeptUpload,
 )
 from students.task_access import teacher_may_reach
 from students.task_context import get_session_context, get_task_context
@@ -2744,6 +2746,7 @@ class TaskViewSet(viewsets.ViewSet):
         },
     )
     @action(detail=False, methods=["get"], url_path="status/(?P<task_id>[^/.]+)")
+    @staff_only_keys("kept_until")
     def task_status(self, request, task_id=None):
         """
         Retrieve the status of a background task by its ID, enriched with context.
@@ -2782,6 +2785,13 @@ class TaskViewSet(viewsets.ViewSet):
             "resource_id": context["resource_id"],
             "action": context["action"],
             "additional_ids": context["additional_ids"],
+            # B1b-8 (SM Q8-2): a kept upload file's end, for approved hint
+            # #16; a student's body drops it (staff_only_keys above).
+            "kept_until": KeptUpload.objects.filter(
+                processing_task_id=processing_task.pk, purged_at__isnull=True
+            )
+            .values_list("kept_until", flat=True)
+            .first(),
         }
 
         serializer = TaskStatusSerializer(data)

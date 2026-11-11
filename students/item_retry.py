@@ -27,6 +27,7 @@ retry-failed skips them. grade_engine_async checks again when it runs.
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.db.models import F, Q
 from django.http import Http404
 from django.utils import timezone
@@ -51,11 +52,35 @@ UPLOAD_ITEM_TYPES = frozenset(
 #: catalogue's retryable codes, plus the late door's credit refusal.
 UPLOAD_EXTRA_RETRYABLE_CODES = frozenset({ReasonCode.INSUFFICIENT_CREDITS.value})
 
-#: The "why" of NOT_RETRYABLE for an upload item (a server constant).
-REUPLOAD = (
-    "This upload can't be retried as it is, because its file isn't kept. "
+#: The "why" of NOT_RETRYABLE for an upload item (B1b-8, SM Q8-1). Owner-
+#: approved: text 2 (team/approved_wording_2026-11-08.md) when the kept file
+#: reached the end of its lifetime, #16b (approved_wording_b1b_2026-11-09.md)
+#: when no file was ever kept. Any other case reads the catalogue's default.
+NOT_SAVED = (
+    "This upload can't be retried because its file wasn't saved. "
     "Upload the file again."
 )
+
+
+def deleted_after_days(days=None):
+    days = settings.QUEUE_LIFETIME_DAYS if days is None else days
+    return (
+        f"This upload can't be retried because its file was deleted after {days} "
+        "days. Upload the file again."
+    )
+
+
+def _upload_display(item):
+    """Q8-1: no row -> #16b; purged by the lifetime purge (purged_at at or
+    after kept_until) -> text 2; anything else -> the default `why`."""
+    from .models import KeptUpload
+
+    row = KeptUpload.objects.filter(processing_task_id=item.pk).first()
+    if row is None:
+        return {"why": NOT_SAVED}
+    if row.purged_at is not None and row.purged_at >= row.kept_until:
+        return {"why": deleted_after_days()}
+    return {}
 
 
 class ItemNotRetryable(CodedError):
@@ -121,7 +146,7 @@ def refusal_for(item):
         if _upload_retryable(item):
             return None
         return ItemNotRetryable(
-            params={"resolution": "replace_file"}, display={"why": REUPLOAD}
+            params={"resolution": "replace_file"}, display=_upload_display(item)
         )
     if (
         item.task_type not in GRADE_ITEM_TYPES

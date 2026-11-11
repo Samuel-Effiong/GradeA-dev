@@ -71,7 +71,7 @@ CHARGED = "charged"
 
 # Approved text #17 (owner, 2026-11-09; team/approved_wording_b1b_2026-11-09.md).
 # Ships False; switched on at B1b-8 with the other _APPROVED constants.
-DRIFT_EMAIL_APPROVED = False
+DRIFT_EMAIL_APPROVED = True
 DRIFT_EMAIL_SUBJECT = "Credit estimates need a look"
 DRIFT_EMAIL_PARAGRAPHS = (
     "This month's check of credit estimates found that fewer batches than "

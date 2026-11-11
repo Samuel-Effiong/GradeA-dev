@@ -345,7 +345,7 @@ HTTP 402 · USER · Retryable
 | Field | Detail |
 |----|----|
 | Message | Credits ran out after `{completed}` of `{total}` items. The finished items are saved. |
-| What to do | Top up credits, then resume the remaining items. Unfinished uploads need their files uploaded again. |
+| What to do | Top up credits, then resume the remaining items. Your files are kept for 30 days, so you won't need to upload them again. (The number of days is `QUEUE_LIFETIME_DAYS`, 30 by default; B1b-8.) |
 | Params | `completed`, `total` |
 | Returned by | Per item only, in any batch. |
 | Notes | When no item had finished, the message is "Credits ran out before any of the {total} items were finished." The session reports `stopped_at_item`. After a top-up, grading items can be resumed with `retry-failed`; upload items must be uploaded again. |
@@ -372,7 +372,7 @@ HTTP 409 · USER · Not retryable
 | What to do | Fix what its failure message describes first, then try again. |
 | Params | `resolution`, `why` |
 | Returned by | Whole request: `POST tasks/session/{session_id}/items/{item_id}/retry` only. |
-| Notes | For an upload item the message is "This upload can't be retried as it is, because its file isn't kept. Upload the file again." and `params` is `{"resolution": "replace_file"}`. For anything else the message is "This item can't be retried as it is." and `params` is empty. |
+| Notes | For an upload item, `params` is `{"resolution": "replace_file"}` and the message says why (B1b-8): if no file was ever kept, "This upload can't be retried because its file wasn't saved. Upload the file again."; if its kept file was deleted at the end of its lifetime, "This upload can't be retried because its file was deleted after 30 days. Upload the file again." (the days are `QUEUE_LIFETIME_DAYS`); otherwise "This item can't be retried as it is.". For anything else the message is "This item can't be retried as it is." and `params` is empty. |
 
 #### `SUBMISSION_NOT_GRADED`
 

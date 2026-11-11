@@ -17,6 +17,8 @@ import functools
 
 from rest_framework import serializers
 
+from AutoGrader.staff_only import is_student_request
+
 _settled: contextvars.ContextVar = contextvars.ContextVar(
     "billing_settled_jobs", default=None
 )
@@ -44,17 +46,6 @@ def settled_job_id(jobs):
     return str(jobs[0]) if len(jobs) == 1 else None
 
 
-def _is_student(args):
-    """Whether the request among a view's arguments is a student's."""
-    from users.models import UserTypes
-
-    for arg in args:
-        user = getattr(arg, "user", None)
-        if user is not None and hasattr(arg, "method"):
-            return getattr(user, "user_type", None) == UserTypes.STUDENT
-    return False
-
-
 def with_ai_job_id(view=None, *, staff_only=False):
     """A view (or view helper) whose 2xx JSON-object body gains `ai_job_id`.
 
@@ -72,7 +63,7 @@ def with_ai_job_id(view=None, *, staff_only=False):
             if (
                 200 <= response.status_code < 300
                 and isinstance(data, dict)
-                and not (staff_only and _is_student(args))
+                and not (staff_only and is_student_request(args))
             ):
                 data["ai_job_id"] = settled_job_id(jobs)
             return response

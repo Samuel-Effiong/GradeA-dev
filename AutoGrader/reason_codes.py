@@ -36,6 +36,7 @@ import string
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -141,6 +142,17 @@ def _overage_cap_variant(params):
 
 def _mid_batch_variant(params):
     return "none_finished" if params.get("completed") == 0 else None
+
+
+def mid_batch_remediation(days=None):
+    """Owner-approved text 1 (team/approved_wording_2026-11-08.md), with the
+    days filled in from QUEUE_LIFETIME_DAYS (08b §4; SM 2026-11-08: built
+    once when the catalogue loads, so the stored remediation has no `{`)."""
+    days = settings.QUEUE_LIFETIME_DAYS if days is None else days
+    return (
+        "Top up credits, then resume the remaining items. Your files are kept "
+        f"for {days} days, so you won't need to upload them again."
+    )
 
 
 REASON_CODES: dict[ReasonCode, ReasonSpec] = {
@@ -251,9 +263,9 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         status.HTTP_402_PAYMENT_REQUIRED,
         "Credits ran out after {completed} of {total} items. The finished "
         "items are saved.",
-        # F4: uploads are not stored, so unfinished uploads are re-uploaded.
-        "Top up credits, then resume the remaining items. Unfinished uploads "
-        "need their files uploaded again.",
+        # Owner-approved text 1 (team/approved_wording_2026-11-08.md, B1b-8):
+        # the files are kept (F4); built once from the setting.
+        mid_batch_remediation(),
         retryable=True,
         params=frozenset({"completed", "total"}),
         # Approved by QA (the founder), 2026-10-01: when not one item had

@@ -1258,22 +1258,26 @@ def hold_door_item(job, item, estimate):
 # The late-door notice (plan 08 §3.5; owner ruling 2026-10-30)
 # --------------------------------------------------------------------------
 
-#: PENDING OWNER APPROVAL (SM 2026-11-06). Draft texts only: nothing is sent
-#: while LATE_DOOR_EMAIL_APPROVED is False.
+#: Owner-approved text 3 (team/approved_wording_2026-11-08.md), with {days}
+#: from QUEUE_LIFETIME_DAYS; on at B1b-8. Sent for batch rows only (SM Q8-3):
+#: a student's single upload has no retry route, so "retry it" would not be
+#: true there; that case stays logged.
 LATE_DOOR_EMAIL_TEXTS = {
     "subject": "We couldn't process {file_name}",
     "individual": (
         "We couldn't process {file_name} because your credits ran out while "
-        "it was waiting. Nothing was charged for it. Top up your credits, "
-        "then upload the file again."
+        "it was waiting. Nothing was charged for it. Your file is kept for "
+        "{days} days. Top up your credits, then retry it. You won't need to "
+        "upload it again."
     ),
     "license": (
         "We couldn't process {file_name} because your credits ran out while "
-        "it was waiting. Nothing was charged for it. Ask your school "
-        "administrator for more credits, then upload the file again."
+        "it was waiting. Nothing was charged for it. Your file is kept for "
+        "{days} days. Ask your school administrator for more credits, then "
+        "retry it. You won't need to upload it again."
     ),
 }
-LATE_DOOR_EMAIL_APPROVED = False
+LATE_DOOR_EMAIL_APPROVED = True
 #: The student side reuses STUDENT_UPLOAD_NOT_PROCESSED unchanged. On: the
 #: owner ruled the student is told (relayed by the SM 2026-11-08).
 LATE_DOOR_STUDENT_NOTICE_APPROVED = True
@@ -1283,10 +1287,11 @@ def notify_late_door_refusal(row, job):
     """A late door file could not be held: the teacher is told which file,
     once the texts are approved. Never logs the file name."""
     from AutoGrader.tasks import send_email_task
+    from students.item_retry import UPLOAD_ITEM_TYPES
 
     teacher = job.wallet.user
     name = row.file_name or "your file"
-    if not LATE_DOOR_EMAIL_APPROVED:
+    if not LATE_DOOR_EMAIL_APPROVED or row.task_type not in UPLOAD_ITEM_TYPES:
         logger.warning(
             "Late door file refused (task %s); the notice texts await owner "
             "approval, so no email was sent.",
@@ -1296,7 +1301,9 @@ def notify_late_door_refusal(row, job):
         variant = "individual" if is_individual_teacher(teacher) else "license"
         send_email_task.delay(
             subject=LATE_DOOR_EMAIL_TEXTS["subject"].format(file_name=name),
-            message=LATE_DOOR_EMAIL_TEXTS[variant].format(file_name=name),
+            message=LATE_DOOR_EMAIL_TEXTS[variant].format(
+                file_name=name, days=settings.QUEUE_LIFETIME_DAYS
+            ),
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[teacher.email],
         )

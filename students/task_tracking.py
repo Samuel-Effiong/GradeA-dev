@@ -292,6 +292,17 @@ def _release_unused_hold(processing_task):
     release_unused_item_hold(processing_task)
 
 
+def _close_cancelled_queue(processing_task):
+    """Epic B1b-8 (SM Q8-6): a cancel that leaves a queued batch with nothing
+    to run closes it, so no expiry email is sent for it. No query unless the
+    row has a job."""
+    if processing_task is None or processing_task.job_id is None:
+        return
+    from billing.batch_queue import close_if_nothing_waits
+
+    close_if_nothing_waits(processing_task)
+
+
 def mark_processing_task_success(processing_task_id, meta=None):
     processing_task = update_processing_task(
         processing_task_id,
@@ -524,6 +535,7 @@ def cancel_processing_task(processing_task):
         processing_task.save(update_fields=update_fields)
         cleanup_cancelled_task_artifacts(processing_task)
         _release_unused_hold(processing_task)
+        _close_cancelled_queue(processing_task)
 
     if processing_task.celery_task_id:
         # The revoke is an accelerator, not the cancellation itself: the
