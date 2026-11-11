@@ -1,0 +1,46 @@
+B1b-10 battery PB6-8 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at e38a43e50
+label: billing.tests.test_batch_queue.EndedBeforeItsUnitTests.test_a_paper_the_hook_released_then_deleted_returns_its_hold_once
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/billing/batch_queue.py b/billing/batch_queue.py
+index 59b1f21a2..302eabda4 100644
+--- a/billing/batch_queue.py
++++ b/billing/batch_queue.py
+@@ -287,6 +287,7 @@ def release_unused_item_hold(task):
+     if job is None or job.job_type != AIJobType.BATCH_GRADING:
+         return
+     holds.fail_item(job, item=task)
++    holds._move_wallet(job.wallet_id, -task.hold_credits)
+
+
+ # --------------------------------------------------------------------------
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 5432e898-5a7b-46dc-92d4-17d9cded563b.
+Cannot activate automatic trial for user 5432e898-5a7b-46dc-92d4-17d9cded563b (validation): ValueError
+F
+======================================================================
+FAIL: test_a_paper_the_hook_released_then_deleted_returns_its_hold_once (billing.tests.test_batch_queue.EndedBeforeItsUnitTests.test_a_paper_the_hook_released_then_deleted_returns_its_hold_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 407, in test_a_paper_the_hook_released_then_deleted_returns_its_hold_once
+    self.assertEqual(self.reserved(), PER, "a hold returned twice")
+AssertionError: 0 != 100 : a hold returned twice
+
+----------------------------------------------------------------------
+Ran 1 test in 0.396s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/batch_queue.py

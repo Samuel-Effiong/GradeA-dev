@@ -5022,3 +5022,12 @@ The fragments were rendered from unittest's own messages (no test run). No pre-e
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | B10 (resumed) | as B10; serial; under flock; at this commit | `--from PB6-7`, plants 99–129 | each as its row in `step10/battery_table.md` |
+
+**B10 resumed (`--from PB6-7`, at e38a43e50): STOP at PB6-11, recorded unamended.**
+- PB6-7, PB6-8, PB6-9 and PB6-10 each matched their declaration.
+- PB6-11 gave Ran 1, FAILED (failures=1), matching the declared count, and the failing test was its killer, `GradeAllTests.test_a_waiting_paper_is_listed_with_no_task_id`.
+- The declared fragment is missing: it is `'celery-a144b1e3' is not None : D6-d: a waiting paper has no task`, but this run printed `AssertionError: 'celery-d1a58282' is not None : D6-d: a waiting paper has no task`.
+- Cause: the fragment was copied verbatim from step 6's log (`step6/PB6-11_4cbd823a4.log`), and that log contains the random task id of that run. Each run makes a new id, so this fragment could never match. The plant itself is the step 6 edit replayed verbatim, and it was killed by the same assertion.
+- Restored: sha256 matches HEAD for `assignments/views.py`. The runner stopped (exit 3); plants 104–129 have not run.
+- A scan of every fragment in the manifest for run-specific values (task ids, UUIDs, long hex strings, addresses, primary keys) finds only PB6-11.
+- This is a STOP to the SM; nothing is changed until the ruling.
