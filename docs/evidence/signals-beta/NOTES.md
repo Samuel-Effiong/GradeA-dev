@@ -251,3 +251,7 @@ list as brief 3).
 Count from build_suite at HEAD: 4406 (brief 3's 4356 + the 50 tests brief 4
 adds).
 Expected: Ran 4406, OK, failures 0, errors 0. Skip count not predicted.
+
+N1 result: Ran 4406 tests in 655.867s, OK (skipped=5). Matches the
+prediction (Ran 4406, OK). The skip count was not predicted; it is the same 5
+as brief 3's near. Log N1_near.log.gz.

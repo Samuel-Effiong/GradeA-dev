@@ -254,3 +254,34 @@ Reproduce:
 
 A likely fix (not applied): take `.data["results"][:10]` when paginated,
 or build the leads from the queryset directly.
+
+## 12. How it landed (notes for review)
+
+- **One module.** billing/intent_signals.py holds the rules. In billing/views.py,
+  intent_signals, intent_signal_distribution, intent_signal_detail and
+  summary read it, and every hand-written copy of the four rules is gone
+  (including `primary_use_case`, which now reads `is_power_grader`, the same
+  comparison). The user list reads it through users.user_list.ensure_signals
+  (beta_profile__, TEACHER scope).
+- **Strict flag filters.** django-filter's BooleanFilter quietly ignores an
+  unknown value (R2), while the design promised a 400. So the 4 flag
+  filters on both endpoints accept only "true" and "false"
+  (intent_signals.flag_filter; OpenAPI enum ["true", "false"]). Brief 2's
+  `has_plan` keeps its lenient BooleanFilter, unchanged.
+- **OpenAPI example (side finding 3, fixed).** Beyond the missing
+  frequent_user key, the example was nested a level too deep:
+  drf-spectacular wraps each example value as one item of a paginated
+  list's results, so a list of two rows rendered as `results: [[row,
+  row]]`. It is now two examples of one row each ("Conversion Leads
+  Example" and "Conversion Leads Example 2", the second keeping the
+  existing description text), each with all 4 flags. Docs only.
+- **custom_ai_prompt test coverage (for brief 5).**
+  billing/tests/test_custom_ai_prompt_beta.py checks the prompt text the
+  user sends, never the leads section, which is why section 11's bug went
+  unnoticed.
+- **users/list_serializers.py**: brief 4 adds 5 fields to UserListSerializer
+  only. ListCreditWalletSerializer is untouched, which keeps the Fixes
+  Worker's B1b overrides (SM -31 FYI) clear of this merge.
+- **Staging merge**: billing/views.py and billing/intent_signals.py have no
+  staging-side differences. users/user_list.py's signals code sits apart
+  from the credits_left hunk.
