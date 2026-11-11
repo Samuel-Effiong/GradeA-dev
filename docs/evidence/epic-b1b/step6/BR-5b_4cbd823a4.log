@@ -1,0 +1,199 @@
+B1b-6 BR-5b (NOTES §6.6.13): ENV BILLING_HOLDS_ENABLED=True, RUN_LOAD_TESTS unset; unedited students/tests_h215a_auto_grade_resilience.py from 1576369ad on 4cbd823a4 (product 8e8acc617)
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user c1ab17e8-e973-43e3-8a85-e936c3f7dfc8.
+Cannot activate automatic trial for user c1ab17e8-e973-43e3-8a85-e936c3f7dfc8 (validation): ValueError
+FFree trial plan not found: no trial activated for user 2e87d6a2-9fed-448d-b012-377f03ce9e79.
+Cannot activate automatic trial for user 2e87d6a2-9fed-448d-b012-377f03ce9e79 (validation): ValueError
+FFree trial plan not found: no trial activated for user bdccad9c-015f-4530-a420-37dde7e493d2.
+Cannot activate automatic trial for user bdccad9c-015f-4530-a420-37dde7e493d2 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-11 08:17:30,654 services 89752 138269423359872 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:17:30,654 services 89752 138269423359872 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:17:30,734 services 89752 138269423359872 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:17:30,734 services 89752 138269423359872 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+.Free trial plan not found: no trial activated for user 0c8aa9e2-8d14-46ce-bdb9-6ad28b447011.
+Cannot activate automatic trial for user 0c8aa9e2-8d14-46ce-bdb9-6ad28b447011 (validation): ValueError
+FFree trial plan not found: no trial activated for user c8a7d1c8-00a3-49ce-a944-b882415c885a.
+Cannot activate automatic trial for user c8a7d1c8-00a3-49ce-a944-b882415c885a (validation): ValueError
+FFree trial plan not found: no trial activated for user 8f6736e9-4028-42e9-bcb5-a5958f37c706.
+Cannot activate automatic trial for user 8f6736e9-4028-42e9-bcb5-a5958f37c706 (validation): ValueError
+FFree trial plan not found: no trial activated for user f14a0cf6-43a5-4d84-86f3-78f73e154f91.
+Cannot activate automatic trial for user f14a0cf6-43a5-4d84-86f3-78f73e154f91 (validation): ValueError
+.Free trial plan not found: no trial activated for user 07d089ad-91a0-46e4-aecc-3005470555bd.
+Cannot activate automatic trial for user 07d089ad-91a0-46e4-aecc-3005470555bd (validation): ValueError
+.Free trial plan not found: no trial activated for user 321fb968-3a9c-4735-8092-ed5bcb275b76.
+Cannot activate automatic trial for user 321fb968-3a9c-4735-8092-ed5bcb275b76 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5600d041-00bb-4070-b239-1caa7a9a944f.
+Cannot activate automatic trial for user 5600d041-00bb-4070-b239-1caa7a9a944f (validation): ValueError
+FFree trial plan not found: no trial activated for user 54591db4-9012-41db-8cd2-f6d55acfc9e3.
+Cannot activate automatic trial for user 54591db4-9012-41db-8cd2-f6d55acfc9e3 (validation): ValueError
+Auto-grade skipped (H-38): assignment 20cba58f-f043-4bdd-9c51-a1aaff94b9ea, course 3254262d-8cec-4333-aaa5-064943d4bcce is no longer reachable by its teacher 54591db4-9012-41db-8cd2-f6d55acfc9e3.
+.Free trial plan not found: no trial activated for user 0d0686f2-c0fd-4347-af58-6db0e9c1eba1.
+Cannot activate automatic trial for user 0d0686f2-c0fd-4347-af58-6db0e9c1eba1 (validation): ValueError
+auto_grade_due_assignment failed: assignment=692b1e6f-508d-4caa-89af-e6d6ed8aec38 error=DoesNotExist frames=tasks.py:1936:auto_grade_due_assignment <- manager.py:87:manager_method <- query.py:635:get
+.Free trial plan not found: no trial activated for user e481906e-3a04-4128-9a7a-117612c2d524.
+Cannot activate automatic trial for user e481906e-3a04-4128-9a7a-117612c2d524 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:17:31,368 task_tracking 89752 138269423359872 [request_id=- client_request_id=-] Background task 75a4a259-e643-4f76-8ea2-b14d061d2b89 failed: error=RubricMissingError
+
+
+Grading of assignment fdf0a079-1f42-48df-acf2-d5b3911a71b7 refused at run time: RUBRIC_MISSING (1 submission(s) not dispatched).
+.Free trial plan not found: no trial activated for user 1f2a74c0-7793-4596-98ca-20611de41240.
+Cannot activate automatic trial for user 1f2a74c0-7793-4596-98ca-20611de41240 (validation): ValueError
+auto_grade_due_assignment failed: assignment=00ec223f-7d11-4414-b55b-b1a3d66654a4 error=RuntimeError frames=tasks.py:1936:auto_grade_due_assignment <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+.Free trial plan not found: no trial activated for user 6d279d5b-5d48-4e60-bbf1-6530c16d0d35.
+Cannot activate automatic trial for user 6d279d5b-5d48-4e60-bbf1-6530c16d0d35 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7af879a1-4429-437b-b846-e636c024c830.
+Cannot activate automatic trial for user 7af879a1-4429-437b-b846-e636c024c830 (validation): ValueError
+FFree trial plan not found: no trial activated for user a75de68c-3eef-48aa-98ff-8c0e04d7d7fd.
+Cannot activate automatic trial for user a75de68c-3eef-48aa-98ff-8c0e04d7d7fd (validation): ValueError
+FFree trial plan not found: no trial activated for user 39234eee-355d-4eab-a645-a6c3fab2fabc.
+Cannot activate automatic trial for user 39234eee-355d-4eab-a645-a6c3fab2fabc (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+F
+======================================================================
+FAIL: test_a_scheduled_batch_paper_graded_meanwhile_is_skipped (students.tests_h215a_auto_grade_resilience.APaperGradedMeanwhileIsNotGradedAgainTest.test_a_scheduled_batch_paper_graded_meanwhile_is_skipped)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h215a_auto_grade_resilience.py", line 259, in test_a_scheduled_batch_paper_graded_meanwhile_is_skipped
+    message = self.queue(
+              ^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h215a_auto_grade_resilience.py", line 201, in queue
+    self.assertEqual(len(sent), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_an_auto_paper_graded_by_the_teacher_meanwhile_is_skipped (students.tests_h215a_auto_grade_resilience.APaperGradedMeanwhileIsNotGradedAgainTest.test_an_auto_paper_graded_by_the_teacher_meanwhile_is_skipped)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h215a_auto_grade_resilience.py", line 217, in test_an_auto_paper_graded_by_the_teacher_meanwhile_is_skipped
+    message = self.queue(lambda: auto_grade_due_assignment(str(self.assignment.id)))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h215a_auto_grade_resilience.py", line 201, in queue
+    self.assertEqual(len(sent), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_two_deliveries_of_one_auto_paper_charge_once (students.tests_h215a_auto_grade_resilience.APaperGradedMeanwhileIsNotGradedAgainTest.test_two_deliveries_of_one_auto_paper_charge_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h215a_auto_grade_resilience.py", line 241, in test_two_deliveries_of_one_auto_paper_charge_once
+    message = self.queue(lambda: auto_grade_due_assignment(str(self.assignment.id)))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h215a_auto_grade_resilience.py", line 201, in queue
+    self.assertEqual(len(sent), 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_a_beat_start_retried_for_real_completes_and_sends_the_missed_papers (students.tests_h215a_auto_grade_resilience.AnOutageIsRetriedTest.test_a_beat_start_retried_for_real_completes_and_sends_the_missed_papers)
+Beat starts the task with the id positionally
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h215a_auto_grade_resilience.py", line 418, in test_a_beat_start_retried_for_real_completes_and_sends_the_missed_papers
+    self.assertEqual(outcome.result, "Auto-grading started for 2 submissions.")
+AssertionError: 'Auto-grading started for 3 submissions.' != 'Auto-grading started for 2 submissions.'
+- Auto-grading started for 3 submissions.
+?                          ^
++ Auto-grading started for 2 submissions.
+?                          ^
+
+
+======================================================================
+FAIL: test_a_broker_outage_mid_dispatch_resends_only_the_missed_papers (students.tests_h215a_auto_grade_resilience.AnOutageIsRetriedTest.test_a_broker_outage_mid_dispatch_resends_only_the_missed_papers)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h215a_auto_grade_resilience.py", line 368, in test_a_broker_outage_mid_dispatch_resends_only_the_missed_papers
+    self.assertEqual(retry.call_count, 1, "a broker outage was not retried")
+AssertionError: 0 != 1 : a broker outage was not retried
+
+======================================================================
+FAIL: test_two_outages_on_one_paper_reuse_its_item_twice (students.tests_h215a_auto_grade_resilience.AnOutageIsRetriedTest.test_two_outages_on_one_paper_reuse_its_item_twice)
+The relaunch goes through the real launcher, so a second outage
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h215a_auto_grade_resilience.py", line 435, in test_two_outages_on_one_paper_reuse_its_item_twice
+    self.assertEqual(outcome.result, "Auto-grading started for 2 submissions.")
+AssertionError: 'Auto-grading started for 3 submissions.' != 'Auto-grading started for 2 submissions.'
+- Auto-grading started for 3 submissions.
+?                          ^
++ Auto-grading started for 2 submissions.
+?                          ^
+
+
+======================================================================
+FAIL: test_every_auto_grade_dispatch_carries_the_flag (students.tests_h215a_auto_grade_resilience.TheFlagIsOnEveryAutomaticDispatchTest.test_every_auto_grade_dispatch_carries_the_flag)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h215a_auto_grade_resilience.py", line 294, in test_every_auto_grade_dispatch_carries_the_flag
+    self.assertEqual(
+AssertionError: Lists differ: [] != [True, True]
+
+Second list contains 2 additional elements.
+First extra element 0:
+True
+
+- []
++ [True, True]
+
+======================================================================
+FAIL: test_every_scheduled_batch_dispatch_carries_the_flag (students.tests_h215a_auto_grade_resilience.TheFlagIsOnEveryAutomaticDispatchTest.test_every_scheduled_batch_dispatch_carries_the_flag)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h215a_auto_grade_resilience.py", line 300, in test_every_scheduled_batch_dispatch_carries_the_flag
+    self.assertEqual(
+AssertionError: Lists differ: [] != [True, True]
+
+Second list contains 2 additional elements.
+First extra element 0:
+True
+
+- []
++ [True, True]
+
+======================================================================
+FAIL: test_after_a_retry_the_batch_reads_complete_with_no_failure (students.tests_h215a_auto_grade_resilience.TheTeacherSeesOneLinePerPaperTest.test_after_a_retry_the_batch_reads_complete_with_no_failure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h215a_auto_grade_resilience.py", line 473, in test_after_a_retry_the_batch_reads_complete_with_no_failure
+    self.assertEqual(response.data["progress"], "3 / 3")
+AssertionError: '0 / 3' != '3 / 3'
+- 0 / 3
+? ^
++ 3 / 3
+? ^
+
+
+----------------------------------------------------------------------
+Ran 18 tests in 1.452s
+
+FAILED (failures=9)
+Destroying test database for alias 'default'...
+Found 18 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+restored sha256 OK

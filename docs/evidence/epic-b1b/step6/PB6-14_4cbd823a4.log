@@ -1,0 +1,63 @@
+B1b-6 PB6-14 (NOTES §6.6.5/§6.6.10/§6.6.13): ENV BILLING_HOLDS_ENABLED unset, RUN_LOAD_TESTS unset; planted in assignments/tasks.py on 4cbd823a4 (product 8e8acc617)
+ assignments/tasks.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user b405626d-a142-4c2b-8fe7-1819184fa663.
+Cannot activate automatic trial for user b405626d-a142-4c2b-8fe7-1819184fa663 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:23:47,715 task_tracking 95692 140048227710848 [request_id=- client_request_id=-] Background task 754ed313-a839-42c4-8aa9-151a03778e6f failed: error=ConnectionError
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:23:47,733 task_tracking 95692 140048227710848 [request_id=- client_request_id=-] Background task e670328f-1264-49dd-9128-638657fd4b10 failed: error=ConnectionError
+
+
+Batch paper 754ed313-a839-42c4-8aa9-151a03778e6f was not launched: error=ConnectionError
+
+
+ai_processor.services INFO 2026-11-11 08:23:47,823 services 95692 140048227710848 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:23:47,823 services 95692 140048227710848 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+F
+======================================================================
+FAIL: test_after_an_outage_and_retry_the_teacher_sees_one_line_per_paper (billing.tests.test_batch_queue.AutomaticPathTests.test_after_an_outage_and_retry_the_teacher_sees_one_line_per_paper)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 741, in test_after_an_outage_and_retry_the_teacher_sees_one_line_per_paper
+    self.assertEqual(response.data["progress"], "3 / 3")
+AssertionError: '1 / 3' != '3 / 3'
+- 1 / 3
+? ^
++ 3 / 3
+? ^
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.971s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+restored sha256 OK

@@ -1,0 +1,26 @@
+B1b-6 PB6-3 (NOTES §6.6.5/§6.6.10/§6.6.13): ENV BILLING_HOLDS_ENABLED unset, RUN_LOAD_TESTS unset; planted in billing/batch_queue.py on 4cbd823a4 (product 8e8acc617)
+ billing/batch_queue.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user c4633efe-ef5e-4aa8-8cf8-bf11740b9f08.
+Cannot activate automatic trial for user c4633efe-ef5e-4aa8-8cf8-bf11740b9f08 (validation): ValueError
+.Free trial plan not found: no trial activated for user 0c0d6013-8330-4183-92b8-1490fd81371d.
+Cannot activate automatic trial for user 0c0d6013-8330-4183-92b8-1490fd81371d (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 2 tests in 1.097s
+
+OK
+Destroying test database for alias 'default'...
+Found 2 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+restored sha256 OK

@@ -1,0 +1,41 @@
+B1b-6 PB6-4 (NOTES §6.6.5/§6.6.10/§6.6.13): ENV BILLING_HOLDS_ENABLED unset, RUN_LOAD_TESTS unset; planted in assignments/tasks.py on 4cbd823a4 (product 8e8acc617)
+ assignments/tasks.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user ce4c6819-4a84-431d-8745-fca1f5bad29f.
+Cannot activate automatic trial for user ce4c6819-4a84-431d-8745-fca1f5bad29f (validation): ValueError
+F
+======================================================================
+FAIL: test_no_message_is_sent_before_the_batch_commits (billing.tests.test_batch_queue.BatchStartTests.test_no_message_is_sent_before_the_batch_commits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 252, in test_no_message_is_sent_before_the_batch_commits
+    self.assertEqual(self.sent, [], "P-3: a message before commit")
+AssertionError: Lists differ: ['0df8a1f3-3493-4847-97b7-0372d2723096', '[73 chars]a41'] != []
+
+First list contains 3 additional elements.
+First extra element 0:
+'0df8a1f3-3493-4847-97b7-0372d2723096'
+
++ []
+- ['0df8a1f3-3493-4847-97b7-0372d2723096',
+-  '998fcde9-fb72-45dc-8b49-18517dc336a4',
+-  '000a072a-e993-4160-83f8-99718a885a41'] : P-3: a message before commit
+
+----------------------------------------------------------------------
+Ran 1 test in 0.521s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+restored sha256 OK

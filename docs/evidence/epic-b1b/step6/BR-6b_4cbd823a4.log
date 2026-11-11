@@ -1,0 +1,139 @@
+B1b-6 BR-6b (NOTES §6.6.13): ENV BILLING_HOLDS_ENABLED=True, RUN_LOAD_TESTS unset; unedited students/tests_h38_tasks_namespace.py from 1576369ad on 4cbd823a4 (product 8e8acc617)
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 76d838fc-bebc-475b-90a7-67eb05d8a183.
+Cannot activate automatic trial for user 76d838fc-bebc-475b-90a7-67eb05d8a183 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user 0951c2ff-4034-4317-9ed1-1717b286618a.
+Cannot activate automatic trial for user 0951c2ff-4034-4317-9ed1-1717b286618a (validation): ValueError
+Grading refused (H-38): submission 8b16c24d-3ddc-46bf-9fb9-a8d804b2d1d1, user e815bda8-8bf0-465b-9b5f-227f03330dad can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:17:44,196 task_tracking 89893 134378504484736 [request_id=- client_request_id=-] Background task 73d96271-140a-49b6-bf00-11613396ef29 failed: error=CourseNotReachableError frames=tasks.py:697:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 8cbc2196-6e2d-418e-bee7-d9123eb86a54.
+Cannot activate automatic trial for user 8cbc2196-6e2d-418e-bee7-d9123eb86a54 (validation): ValueError
+API request refused: Http404 (404)
+
+
+django.request WARNING 2026-11-11 08:17:44,500 log 89893 134378504484736 [request_id=- client_request_id=-] Not Found: /api/v1/tasks/session-results/dff471ca-6e99-43f3-975e-e5499825c89e
+
+
+API request refused: NotFound (404)
+
+
+django.request WARNING 2026-11-11 08:17:44,509 log 89893 134378504484736 [request_id=- client_request_id=-] Not Found: /api/v1/tasks/status/01a14511-1c6f-402c-9c3a-8825ebab50f2
+
+
+API request refused: NotFound (404)
+
+
+django.request WARNING 2026-11-11 08:17:44,518 log 89893 134378504484736 [request_id=- client_request_id=-] Not Found: /api/v1/tasks/cancel/01a14511-1c6f-402c-9c3a-8825ebab50f2
+
+
+API request refused: Http404 (404)
+
+
+django.request WARNING 2026-11-11 08:17:44,523 log 89893 134378504484736 [request_id=- client_request_id=-] Not Found: /api/v1/tasks/cancel-session/dff471ca-6e99-43f3-975e-e5499825c89e
+
+
+Grading refused (H-38): submission 917daeef-b27c-43b7-8580-8e0b21742ed9, user 8cbc2196-6e2d-418e-bee7-d9123eb86a54 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:17:44,530 task_tracking 89893 134378504484736 [request_id=- client_request_id=-] Background task aae01052-ad68-429c-9a71-81bf5385f0cf failed: error=CourseNotReachableError frames=tasks.py:697:grade_engine_async
+
+
+Auto-grade skipped (H-38): assignment e04da552-0296-46d4-9a3a-a3c2881503b8, course cdda9d94-37a7-4bdb-b4f9-2662eb50f67d is no longer reachable by its teacher 8cbc2196-6e2d-418e-bee7-d9123eb86a54.
+.Free trial plan not found: no trial activated for user 470d1843-e369-4992-9593-ac4ef778294c.
+Cannot activate automatic trial for user 470d1843-e369-4992-9593-ac4ef778294c (validation): ValueError
+Free trial plan not found: no trial activated for user 8e68f0d2-94ae-46d3-978d-d0a18ea62d81.
+Cannot activate automatic trial for user 8e68f0d2-94ae-46d3-978d-d0a18ea62d81 (validation): ValueError
+Grading refused (H-38): submission 177dc9ee-3374-4df8-8e0f-a7ced8839b02, user 470d1843-e369-4992-9593-ac4ef778294c can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:17:44,718 task_tracking 89893 134378504484736 [request_id=- client_request_id=-] Background task a1dbeb11-8850-4070-9661-604a9c98fd43 failed: error=CourseNotReachableError frames=tasks.py:697:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 76b8aae5-7dc5-47aa-88da-6af76040487f.
+Cannot activate automatic trial for user 76b8aae5-7dc5-47aa-88da-6af76040487f (validation): ValueError
+Free trial plan not found: no trial activated for user 0d295b4f-014a-4f5c-855d-ce4c954fbf1c.
+Cannot activate automatic trial for user 0d295b4f-014a-4f5c-855d-ce4c954fbf1c (validation): ValueError
+FFree trial plan not found: no trial activated for user 39c56f70-e9cd-4bf8-ab29-194e9df128d2.
+Cannot activate automatic trial for user 39c56f70-e9cd-4bf8-ab29-194e9df128d2 (validation): ValueError
+Free trial plan not found: no trial activated for user ce8af918-2c90-41c7-8a40-7a0da0f436aa.
+Cannot activate automatic trial for user ce8af918-2c90-41c7-8a40-7a0da0f436aa (validation): ValueError
+API request refused: Http404 (404)
+API request refused: NotFound (404)
+API request refused: NotFound (404)
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 227c18a4-889f-4d50-9266-bba277ab773c.
+Cannot activate automatic trial for user 227c18a4-889f-4d50-9266-bba277ab773c (validation): ValueError
+Batch grading refused (H-38): assignment 615ea1e3-02d7-4159-9425-3a04d89821a3, user 227c18a4-889f-4d50-9266-bba277ab773c can no longer reach its course.
+.Free trial plan not found: no trial activated for user 84bdabb2-3f8e-4a4b-9092-51a32db1f249.
+Cannot activate automatic trial for user 84bdabb2-3f8e-4a4b-9092-51a32db1f249 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: NotFound (404)
+API request refused: NotFound (404)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: NotFound (404)
+API request refused: NotFound (404)
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 44891574-963a-4932-9038-09d5f990a250.
+Cannot activate automatic trial for user 44891574-963a-4932-9038-09d5f990a250 (validation): ValueError
+Grading refused (H-38): submission 0d106972-6234-4e46-8334-e79bd033c06b, user 44891574-963a-4932-9038-09d5f990a250 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:17:45,772 task_tracking 89893 134378504484736 [request_id=- client_request_id=-] Background task 8c896c55-9cec-409e-87b9-7be216b90e85 failed: error=CourseNotReachableError frames=tasks.py:697:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 51b8ad04-6e34-40cd-b7a6-6f397110d497.
+Cannot activate automatic trial for user 51b8ad04-6e34-40cd-b7a6-6f397110d497 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: NotFound (404)
+API request refused: NotFound (404)
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user f5396925-3162-4c27-a0b1-25b57fe149e9.
+Cannot activate automatic trial for user f5396925-3162-4c27-a0b1-25b57fe149e9 (validation): ValueError
+Auto-grade skipped (H-38): assignment c2de6b6a-62be-4a16-99c0-0ae6e904b6db, course a8ad6539-531a-4eb8-a8f9-b2c39a266883 is no longer reachable by its teacher f5396925-3162-4c27-a0b1-25b57fe149e9.
+.Free trial plan not found: no trial activated for user 40232abb-f413-4dc5-b79b-c68b4572924f.
+Cannot activate automatic trial for user 40232abb-f413-4dc5-b79b-c68b4572924f (validation): ValueError
+FFree trial plan not found: no trial activated for user eb98b1de-45e3-4536-b29d-1ae394fa30c2.
+Cannot activate automatic trial for user eb98b1de-45e3-4536-b29d-1ae394fa30c2 (validation): ValueError
+.
+======================================================================
+FAIL: test_the_beat_now_grades_as_the_new_owner (students.tests_h38_tasks_namespace.ReassignedCourseTests.test_the_beat_now_grades_as_the_new_owner)
+Control: the course isn't blocked, only the ex-owner is.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h38_tasks_namespace.py", line 292, in test_the_beat_now_grades_as_the_new_owner
+    self.assertEqual(delay.call_count, 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_the_auto_grade_beat_still_grades_before_removal (students.tests_h38_tasks_namespace.TasksAfterRemovalTests.test_the_auto_grade_beat_still_grades_before_removal)
+Control: a member's due assignment is still auto-graded.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h38_tasks_namespace.py", line 218, in test_the_auto_grade_beat_still_grades_before_removal
+    self.assertEqual(delay.call_count, 1)
+AssertionError: 0 != 1
+
+----------------------------------------------------------------------
+Ran 13 tests in 2.671s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...
+Found 13 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+restored sha256 OK
