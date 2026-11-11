@@ -859,7 +859,7 @@ class OpenApiTests(Base):
         from drf_spectacular.generators import SchemaGenerator
 
         schema = SchemaGenerator().get_schema(request=None, public=True)
-        operation = schema["paths"]["/api/v1/users/"]["get"]
+        operation = schema["paths"]["/api/v1/users"]["get"]
         return {p["name"]: p for p in operation.get("parameters", [])}
 
     def test_ordering_lists_every_allowed_value(self):

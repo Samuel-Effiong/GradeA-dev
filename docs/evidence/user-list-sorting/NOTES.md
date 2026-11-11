@@ -110,3 +110,16 @@ arbitrary on the base.
   random UUIDs happen to sort like W, X, Y, Z (1 in 24).
 - test_two_keys_combine depends on the order of two tied "A" rows.
 I predict both fail.
+
+## R1 red, result (log R1_red.log)
+
+Ran 51, FAILED (failures=52, errors=19). The totals count subTests. By
+distinct test: **41 fail and 10 pass, the same sets as declared.** The two
+caveat tests (id tiebreak, two keys) both failed, as predicted.
+
+Prediction incomplete: OpenApiTests (both) failed for the wrong reason, a
+KeyError on "/api/v1/users/". The schema path has no trailing slash
+("/api/v1/users"). This is a test defect, fixed in the test only. The rerun
+R1b (log R1b_openapi_red.log) gives Ran 2, FAILED (failures=2), now for the
+right reasons: "'last_login_after' not found in {...}" and "'last_login' not
+found in set()" (the ordering parameter has no enum today).
