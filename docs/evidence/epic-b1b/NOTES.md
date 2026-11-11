@@ -157,6 +157,8 @@ All non-test `metered_unit(` uses: `ai_processor/services.py:4637`, `students/se
 ---
 
 - **Large flag-on deletes hold the wallet lock for about 3.3 s per 1,000 task rows** (B1b-1 §1.23, after C4 moved to `post_delete`; it was 5.23 s at §1.17: an assignment cascade of 1,000 rows in one open job takes a median of 3.35 s inside the delete's transaction, with the teacher's wallet locked). Read this before switch-on, and before any admin bulk delete with the flag on.
+- **D6-d** (SM §6.3, B1b-6 §6.6.6): the frontend must handle `task_id: null` for queued items in the grade-all response. Confirm with the frontend before switch-on. There is no frontend work in B1b.
+- **Queue emails gated** (B1b-6): `billing/batch_queue.py:61 QUEUE_EMAIL_APPROVED = False`. The queue emails stay off until the owner approves their wording.
 
 ---
 
@@ -3247,3 +3249,66 @@ Every run is under `flock ~/.machine-fullsuite.lock` with `--noinput`, at the pr
 - **The guard list is 67** (`guards67.txt`). E3 has used it since B1b-4 (§4, 1146 + 2 = 1148). The "66 guards" in §5.18's E3 row was my naming slip: that run's count, 1148, is the 67-label list. `test_holds_entry` is a guard, but its count is unchanged.
 
 **(4) Standing practice, from here on:** every run declaration states its environment, `BILLING_HOLDS_ENABLED` and any other env that changes the path, even when unset.
+
+#### §6.6.14 B1b-6 results: the plants, G6, the E-runs, obligations 3, 6 and 7, and the probe deleted
+
+**Every run matched its declaration. Nothing was amended.** All runs were under flock with `--noinput`, at product `8e8acc617` (NOTES- and evidence-only commits on top).
+
+| Run | ENV | Declared | Result | Log |
+|---|---|---|---|---|
+| BR-4b..7b, R2b | `BILLING_HOLDS_ENABLED=True` | §6.6.13 | as declared | `step6/BR-*b_*.log`, `R2b_4cbd823a4.log` (4611e9825) |
+| PB6-1..14 | unset | §6.6.5 / §6.6.10 | 13 killed with the declared fragments; PB6-3 the declared survivor, Ran 2, OK. Every plant restored and sha256-checked | `step6/PB6-*_4cbd823a4.log` (4611e9825) |
+| G6 | `RUN_LOAD_TESTS=1`; flag unset (the class pins True) | Ran 2, OK (skipped=1), three `GATE6_B6` lines | Ran 2, OK (skipped=1), three lines (below) | `step6/G6_4611e9825.log` |
+| E1 | `BILLING_HOLDS_ENABLED=True`; `--parallel 4` | Ran 7606, OK (skipped=34) | **Ran 7606, OK (skipped=34)** | `step6/E1_flagon_4611e9825.log.gz` |
+| E2 | unset; `--parallel 4` | Ran 6542, OK (skipped=26) | **Ran 6542, OK (skipped=26)** | `step6/E2_near_apps_4611e9825.log.gz` |
+| E3 | unset; serial; `guards67.txt` | Ran 1148, OK (skipped=1) | **Ran 1148, OK (skipped=1)** | `step6/E3_guards_4611e9825.log` |
+| makemigrations | unset | `No changes detected` | `No changes detected`, exit 0 | `step6/MM_4611e9825.log` |
+| safety vs origin/staging | unset | exit 0, 7 OK, 0 ACK, 0 FAIL | exit 0, 7 OK, 0 ACK, 0 FAIL | `step6/MS_staging_4611e9825.log` |
+| safety vs origin/main | unset | exit 0, 36 OK, 1 ACK, 0 FAIL | exit 0, 36 OK, 1 ACK (`classrooms/0017`, the known reviewed step), 0 FAIL | `step6/MS_main_4611e9825.log` |
+
+E1 and E2 are gzipped (3.6 MB and 2.7 MB raw). The evidence was committed at c57348dfb.
+
+**G6: the 300-paper batch start, beside the plan's Gate 6 figures.** The batch start runs from creating the 300 items, through the estimate, hold and claim, to the sends after commit (the sends are mocked). It ran on B1b-4's fixture of 100,000 call rows (90 days).
+
+| Tier | start_ms | queries | held_per_item | Per paper |
+|---|---|---|---|---|
+| assignment | 1184.6 | 2122 | 1356 | 3.9 ms, 7.1 queries |
+| teacher_shape | 1301.6 | 2122 | 1356 | 4.3 ms, 7.1 queries |
+| per_question | 1314.4 | 2122 | 21165 | 4.4 ms, 7.1 queries |
+
+The plan's figures (08b §5.4 and §6.2 item 2):
+- **The 40 ms p95 budget** is per AI call (measurement 4), not per batch. It is the only pass line in §5.4. The batch start is a one-off cost per batch, not a per-call one. Per paper it is about 4 ms, a tenth of the per-call budget.
+- **"A 300-paper batch's reserve and promotion, timed"**: §5.4 gives no threshold. It is reported, for the SM and the owner to judge.
+- **For comparison, B1b-4's estimate Gate 6** (same fixture) gave all_papers 369.5 ms, assignment 14.4 ms and teacher 54.7 ms. Every tier above includes the all_papers read (see the test's docstring), so about 0.37 s of each start is the estimate.
+- **The query count is flat across tiers**, 2122, about 7 per paper (the item row, claim and dispatch per paper). It does not grow with the call-row history.
+- **Gap, flagged:** G6 times the **reserve** (the batch start) only. **Promotion is not timed.** §5.4 names both. Timing a 300-paper promotion would need one more opt-in load test (start with too little credit so all 300 queue, top up, then time `promote_job`). It is not built, and it needs the SM's word.
+
+**Obligation 3: the §1.21(a) grep, re-run at HEAD** (`billing/batch_queue.py`, `billing/holds.py`; every write of `AIJob.status`):
+- **New in B1b-6, all conditional on the from-status and under the wallet lock:**
+  - `batch_queue.py:159-161` (`start_batch_claim`): ESTIMATED→RESERVED, `filter(pk, status=ESTIMATED)`, after `_lock_wallet_of` and `select_for_update` (:153-156).
+  - `batch_queue.py:191-192` (`_queue_locked`): →QUEUED_PENDING_CREDITS, `status__in=from_statuses`. The default is RUNNING_STATUSES (RESERVED, RUNNING); the batch start passes ESTIMATED only. Its callers already hold the lock (`_locked` suffix; :163, :229).
+  - `batch_queue.py:255-257` (`mark_running`): RESERVED→RUNNING, `filter(pk, status=RESERVED)`, after `_lock_wallet_of` (:254).
+  - `batch_queue.py:306-308` (`promote_job`): QUEUED→RESERVED, `filter(pk, status=QUEUED_PENDING_CREDITS)`, after `_lock_wallet_of` (:303). One winner; PB6-3 is the declared survivor (§6.6.10).
+  - `batch_queue.py:233` (last item) and `:404-408` (expiry): through `holds.finish_job`, which takes the wallet lock and is now conditional on `from_statuses` (`holds.py:471-484`). The last item passes RUNNING_STATUSES; expiry passes QUEUED_PENDING_CREDITS only, so it never ends a promoted job.
+  - The backstop (`backstop_unstarted`, :432) writes no status itself. It ends a job only through `after_batch_item`, that is through `finish_job` / `_queue_locked` as above.
+- **Named by the obligation, unchanged in B1b-6:** `settle(close_status=…)` (`holds.py:322`, applied at :389-394 only `if job_row.status in OPEN_STATUSES`, under the lock; its one caller is `finish_single_call`, :1074). `_reserve_locked(status=…)` (`holds.py:231`, `F("status")` when None): B1b-6's one new caller (`claim_batch_rows_locked`, :576) passes no status.
+- **Pre-existing B1a / B1b-3 unconditional writes, none added by B1b-6** (`git diff 56532e6d4 HEAD`): `holds.py:600` / `:602` (the successor `new_job`), `:932`, `:1057` and `:1184`. Each writes a job made by `create_job` earlier in the same function, as §1.21(a) recorded.
+- **Every other unconditional `AIJob` update in the two files writes no status** (new or old): the estimate fields (`batch_queue.py:139`), `released_credits` (`batch_queue.py:187`, :491; `holds.py:440`, :504, :676), `reserved_credits` (`holds.py:269`) and the deleted-item counters (`holds.py:536`, :1384, :1401).
+- **So no write moves a terminal job,** and the §1.21(a) conclusion stands (once terminal, always terminal).
+
+**Obligations 6 and 7, recorded as ruled (§6.3):**
+- No. 6, the past-batch definition: **no change.**
+- No. 7, a CASCADE to AIJob: **not triggered** (none added).
+
+**The D6-d switch-on item** is added to the switch-on checklist at the top of these NOTES (from §6.6.6).
+
+**The probe deleted (§6.6.9 (7)), 2026-11-11:**
+- Before deletion, each of the probe worktree's 20 changed or new files was compared with the task branch at c57348dfb: all 20 were byte-identical (`cmp`).
+- The branch tip `f43a31653` is in `task/epic-b1b`.
+- Then `git worktree remove --force ~/Documents/Projects/Grade-Automator-Plus-b1b6-probe` and `git branch -d probe/b1b-6` ("Deleted branch probe/b1b-6 (was f43a31653)").
+- `git worktree list` no longer shows it, and the directory is gone.
+
+**Carried forward:**
+- B1b-6b (H-1, `max_length=500`) is next after acceptance.
+- The privacy re-copy of #19-#21 is at B1b-8.
+- The switch-on item `QUEUE_EMAIL_APPROVED=False`: the queue emails stay gated until the owner approves.
