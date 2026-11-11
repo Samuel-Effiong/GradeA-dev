@@ -4094,3 +4094,25 @@ Each plant is one edit to the product at e0fc5ffb7 (`billing/low_balance.py`, `b
 | R4 (green) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial | `billing.tests.test_b1b7_ai_job_id` (16 tests) | **Ran 16, OK** |
 | PB7-e1 (§7.19's plant: FAILED counted as settled) | as R4; after R4; at this commit; reverted and sha256-checked against this commit's `billing/holds.py` | `billing.tests.test_b1b7_ai_job_id` | `holds.abandon_single_call` also calls `_note_settled(job.pk)`. **Ran 16, FAILED (failures=1)**: only `test_a_retry_then_success_names_the_settled_job`, fragment `None != '` (two jobs recorded, so null). |
 | PB7-e2 (§7.9's plant: the helper dropped from one view) | as PB7-e1, for `students/views.py` | `billing.tests.test_b1b7_ai_job_id` | `@with_ai_job_id` removed from students `grade`. **Ran 16, FAILED (failures=1)**: only `test_students_grade`, fragment `'absent' != '` |
+
+**§7.20 results:**
+
+| Run | Got | Log |
+|---|---|---|
+| R4 at 198abed6e | **Ran 16, OK**: as declared | `step7/R4_green_198abed6e.log` |
+| PB7-e1 at 3a85ba0a1 (the R4-log commit; product files identical to 198abed6e) | **Ran 16, FAILED (failures=1)**: only `test_a_retry_then_success_names_the_settled_job`, `None != '0246909d-…'`. As declared. Restored; `billing/holds.py` sha256 `05f5992d…ba94` MATCHES 198abed6e | `step7/PB7-e1_3a85ba0a1.log` |
+| PB7-e2 at 3a85ba0a1 | **Ran 16, FAILED (failures=1)**: only `test_students_grade`, `'absent' != '022a7e46-…'`. As declared. Restored; `students/views.py` sha256 `6ee232e0…1e86` MATCHES 198abed6e | `step7/PB7-e2_3a85ba0a1.log` |
+
+### §7.21 The B1b-7 near run, declared (before it runs)
+
+- **Count** (`bsk.py`, build_suite plus static skips) at this commit: `billing users` + the 67 guards = **4718 tests, 10 static skips**.
+  - That is N2's 4670 plus the 48 B1b-7 tests (32 + 16).
+  - The static skips are N2's 10, unchanged.
+- **Skips:** 10 static, + 4 users runtime skips, + 2 `--parallel` fork skips (§6.7.3) = **16**.
+- `billing.tests.test_batch_gate6` counts 3, inside the 4718.
+- **No migration** in B1b-7 (`makemigrations --check` is not run here; no model file changed), so there is no rollback-defaults label.
+- **Outside this label:** D7-e touched views in `students`, `assignments` and `dashboard`, whose own app suites are not in the ruled near. Raised at the checkpoint; not run unasked.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| N3 (near) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; `--parallel 4`; under flock with `--noinput`; at this commit | `billing users` + `guards67.txt` | **Ran 4718, OK (skipped=16)**, 0 FAIL, 0 ERROR |
