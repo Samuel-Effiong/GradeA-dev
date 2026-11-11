@@ -3523,3 +3523,19 @@ The logs go to `step6b/`. Any mismatch is recorded unamended and is a STOP.
 | R2b (green) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput` | this NOTES and test commit, plus the uncommitted fix (`billing/estimate_views.py` sha256 `b006f54451222783b3e7dda3089cb04f023d50c044cddba9808dd025af6090e9`) | `billing.tests.test_estimate_endpoint` | **Ran 13, OK** |
 
 After R2b, the fix is committed, and N2 runs at that commit as declared in §6.7.3: Ran 4670, OK (skipped=16). The test count is unchanged.
+
+### §6.7.5 B1b-6b results after the owner's message: all as declared
+
+| Run | Declared | Result | Log (`step6b/`) |
+|---|---|---|---|
+| R2b, e92827865 + the fix (sha256 `b006f544…90e9`) | Ran 13, OK | **Ran 13, OK** | `R2b_green_e92827865+fix.log` |
+| N2, at 9be233973 (the fix committed); ENV BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; `--parallel 4` | Ran 4670, OK (skipped=16) | **Ran 4670, OK (skipped=16)**, 0 FAIL, 0 ERROR | `N2_near_9be233973.log.gz` |
+
+- **The product commit:** 9be233973, `billing/estimate_views.py` only. `users/renderers.py` is untouched.
+- **The behavior:**
+  - a listed body of more than 500 ids gets a 400;
+  - `message` is the owner-approved sentence, byte for byte from the wording file (sha256 `cae152f8…5cbf`, line 66);
+  - `field_errors.submission_ids` carries DRF's "Ensure this field has no more than 500 elements." (code `max_items`);
+  - `"all_ungraded"` has no limit.
+- **The plant:** PB6b-1 (§6.7.2) covers the length check. The structured-refusal step has no plant of its own. Its removal would bring back the prefixed message, which `test_501_listed_ids_are_refused_with_the_drf_message` asserts against. A plant for it is offered to the SM and was not run.
+- B1b-6b is ready for the SM's checkpoint.
