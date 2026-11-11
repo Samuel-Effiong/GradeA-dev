@@ -50,7 +50,13 @@ from billing.models import (
     SubscriptionPlan,
     UserSubscription,
 )
-from classrooms.models import Course, School, Session
+from classrooms.models import (
+    Course,
+    EnrollmentStatusType,
+    School,
+    Session,
+    StudentCourse,
+)
 from students.models import StudentSubmission
 from users.models import UserTypes
 
@@ -147,6 +153,7 @@ class Base(APITestCase):
         )
 
     def license(self, plan, admin_user, is_active=True):
+        self._n += 1
         return LicenseSubscription.objects.create(
             school=School.objects.create(name=f"School {self._n}"),
             admin_user=admin_user,
@@ -736,10 +743,13 @@ class QueryCountTests(Base):
                     self.assertEqual(self.count(size, ordering=f"-{key}"), base)
             with self.subTest(size=size, filters=True):
                 self.assertEqual(
+                    # Filters that keep every row: an empty page skips
+                    # its prefetches and would compare nothing.
                     self.count(
                         size,
-                        last_login_before=self.now.isoformat(),
+                        plan_tier="PRO",
                         has_plan="true",
+                        plan_category="INDIVIDUAL",
                         ordering="credits_left",
                     ),
                     base,
@@ -840,6 +850,32 @@ class ListOnlyTests(Base):
 
         self.assertEqual(response.status_code, 200, response.content)
         self.assert_none_of_the_keys(response.data["user"], "sign-in")
+
+    def test_the_list_filters_do_nothing_off_the_list_for_others(self):
+        # Added after R1 (NOTES): filter_queryset runs under get_object(), so
+        # for a teacher a plan or date filter on a retrieve would answer
+        # 200-vs-404 about another account. For anyone but a super admin
+        # the new filters are no-ops.
+        teacher = self.stamp(self.person(), email_verified_at=self.now)
+        course = self.course(teacher)
+        student = self.person(user_type=UserTypes.STUDENT)
+        StudentCourse.objects.create(
+            student=student,
+            course=course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+        client = self.as_user(teacher)
+        detail = reverse("user-detail", kwargs={"pk": student.pk})
+        self.assertEqual(client.get(detail).status_code, 200)
+
+        for params in (
+            {"plan_tier": "PRO"},
+            {"has_plan": "true"},
+            {"last_login_after": self.now.isoformat()},
+            {"activated_before": (self.now - timedelta(days=999)).isoformat()},
+        ):
+            with self.subTest(params):
+                self.assertEqual(client.get(detail, params).status_code, 200)
 
     def test_a_teacher_still_cannot_list(self):
         teacher = self.person()
