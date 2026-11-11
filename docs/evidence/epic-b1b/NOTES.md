@@ -3478,3 +3478,18 @@ The logs go to `step6b/`. Any mismatch is recorded unamended and is a STOP.
 - The fix stays uncommitted (sha256 `b4868d46b6aacbc781af4e9ac64d1b4aae1c77b5f654744f8e85082c99cb8dd9`). It will be committed only after the SM relays the owner's answer on the message.
 
 **STOP to the SM.** The question: is the mismatch a prediction error with the run accepted, or should N1 be re-declared (skipped=16) and re-run? Nothing is re-run until the SM rules. For later declarations: a run with the 67 guards under `--parallel` gets +2 runtime skips from this module, which a serial run does not.
+
+### §6.7.3 SM ruling on the §6.7.2 STOP (grade-automator-plus-16, 2026-11-11), recorded unamended in substance
+
+- **Option (1): a prediction error.** The SM checked the cause: `AutoGrader/tests_redis_test_isolation.py`'s `setUp` skips both fork tests when `current_process().daemon` is true, so the 2 extra skips are expected under `--parallel`. Ran and OK both match, with 0 FAIL and 0 ERROR. **N1 is accepted as run for the R2 state.** §6.7.2 stays unamended.
+- R1, R2 and PB6b-1 are accepted.
+- **No re-run now.** The near runs again once the product is committed after the owner's answer. That run is declared now:
+
+| Run | ENV | State | Label | Declared |
+|---|---|---|---|---|
+| N2 (near) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; `--parallel 4`; under flock with `--noinput` | the product commit made after the owner's answer | `billing users` + the 67 guards (`guards67.txt`) | **Ran 4670, OK (skipped=16)**. The counts are adjusted only if the owner's wording changes the test count |
+
+- **Standing from now on:**
+  - guards67 under `--parallel` carries +2 runtime skips (the two fork tests);
+  - `billing.tests.test_batch_gate6` counts 3.
+- The owner's answer on the top-level message is still pending. **The fix stays uncommitted** (`billing/estimate_views.py`, sha256 `b4868d46b6aacbc781af4e9ac64d1b4aae1c77b5f654744f8e85082c99cb8dd9`) until the SM relays it.
