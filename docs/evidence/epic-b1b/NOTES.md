@@ -4002,3 +4002,14 @@ Each plant is one edit to the product at e0fc5ffb7 (`billing/low_balance.py`, `b
 | PB7-other (§7.13) | `job_views.visible_jobs`: the `license_subscription__school_id=user.school_id` condition removed (the active-allocation condition stays) | `billing.tests.test_b1b7_job_api.JobApiTests.test_a_school_admin_of_another_license_gets_404` | **Ran 1, FAILED (failures=1)**, fragment `200 != 404` |
 | PB7-5 | `holds.finish_job`: `if to_status == AIJobStatus.SETTLED:` becomes `if to_status in (AIJobStatus.SETTLED, AIJobStatus.FAILED):` | `billing.tests.test_b1b7_gap_metric` | **Ran 8, FAILED (failures=1)**: only `test_a_failed_or_expired_job_emits_nothing` (`First list contains 2 additional elements.`) |
 | PB7-6 | `holds.emit_estimate_gap`: `actual <= job_row.estimate_p90` becomes `actual < job_row.estimate_p90` | `billing.tests.test_b1b7_gap_metric` | **Ran 8, FAILED (failures=1)**: only `test_the_band_edge_is_a_hit` (`not found in`) |
+
+**§7.17 results (at 4e29ce47c): every plant AS DECLARED.** Each file was restored, and its sha256 MATCHES the e0fc5ffb7 blob (`low_balance.py` `371a07ba…4bb5`, `job_views.py` `fa93d7b0…99da`, `holds.py` `c089dca0…13fe`).
+
+| Plant | Got | Log |
+|---|---|---|
+| PB7-1 | Ran 17, FAILED (failures=2): `test_the_same_level_again_in_the_cycle_sends_nothing` (`… : a level was sent twice`), `test_two_settlements_crossing_25_percent_send_once` (`2 != 1 : two racing checks sent twice`) | `step7/PB7-1_4e29ce47c.log` |
+| PB7-2 | Ran 17, FAILED (failures=2): the same two, the same fragments | `step7/PB7-2_4e29ce47c.log` |
+| PB7-3 | Ran 17, FAILED (failures=1): `test_a_new_cycle_starts_over` (`Second list contains 1 additional elements.`) | `step7/PB7-3_4e29ce47c.log` |
+| PB7-other | Ran 1, FAILED (failures=1): `200 != 404` | `step7/PB7-other_4e29ce47c.log` |
+| PB7-5 | Ran 8, FAILED (failures=1): `test_a_failed_or_expired_job_emits_nothing` (`First list contains 2 additional elements.`) | `step7/PB7-5_4e29ce47c.log` |
+| PB7-6 | Ran 8, FAILED (failures=1): `test_the_band_edge_is_a_hit` (`… not found in [...]`) | `step7/PB7-6_4e29ce47c.log` |
