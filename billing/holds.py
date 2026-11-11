@@ -26,6 +26,7 @@ import logging
 import uuid
 from collections import namedtuple
 from datetime import timedelta
+from functools import partial
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
@@ -385,11 +386,14 @@ def settle(
         unbilled = actual - chargeable
 
         _move_wallet(locked.pk, -(drawn + leftover))
-        close = (
-            close_status
-            if close_status is not None and job_row.status in OPEN_STATUSES
-            else F("status")
-        )
+        closing = close_status is not None and job_row.status in OPEN_STATUSES
+        close = close_status if closing else F("status")
+        if closing and close_status == AIJobStatus.SETTLED:
+            transaction.on_commit(partial(emit_estimate_gap, job_row.pk))
+        if chargeable > 0:
+            # B1b-7 (plan §3.9): the low-balance check, after the charge
+            # commits.
+            transaction.on_commit(partial(_check_low_balance, locked.pk))
         AIJob.objects.filter(pk=job_row.pk).update(
             status=close,
             consumed_credits=F("consumed_credits") + chargeable,
@@ -459,6 +463,44 @@ def fail_item(job, *, item=None):
     return amount
 
 
+def _check_low_balance(wallet_pk):
+    from .low_balance import check_low_balance
+
+    check_low_balance(wallet_pk)
+
+
+def gap_bucket(actual, p50):
+    """B1b-7 (NOTES §7.10, SM Q7-5): actual / p50, bucketed. Integer
+    compares, so the edges are exact: <0.5, [0.5, 0.8), [0.8, 1.2],
+    (1.2, 2], >2."""
+    if actual * 10 < 5 * p50:
+        return "<0.5"
+    if actual * 10 < 8 * p50:
+        return "0.5-0.8"
+    if actual * 10 <= 12 * p50:
+        return "0.8-1.2"
+    if actual <= 2 * p50:
+        return "1.2-2"
+    return ">2"
+
+
+def emit_estimate_gap(job_pk):
+    """B1b-7 (plan §3.10, NFR-OBS-03): once per job that settles with an
+    estimate. The actual cost is consumed + unbilled credits. Internal
+    metrics; no alert in B1b."""
+    job_row = AIJob.objects.filter(pk=job_pk).first()
+    if job_row is None or not job_row.estimate_p50 or job_row.estimate_p50 <= 0:
+        return
+    actual = job_row.consumed_credits + job_row.unbilled_credits
+    audit_metrics.count(
+        "credit_estimate_gap", tags={"bucket": gap_bucket(actual, job_row.estimate_p50)}
+    )
+    hit = job_row.estimate_p90 is not None and actual <= job_row.estimate_p90
+    audit_metrics.count(
+        "credit_estimate_band_hit", tags={"hit": "true" if hit else "false"}
+    )
+
+
 def _after_batch_item(job_row):
     """B1b-6: the last-item helper, for a BATCH_GRADING job only (no query
     for any other job type)."""
@@ -486,6 +528,10 @@ def finish_job(job, to_status, from_statuses=OPEN_STATUSES):
         )
         if not moved:
             return None
+        if to_status == AIJobStatus.SETTLED:
+            # B1b-7 (plan §3.10): this caller won the move, so the gap metric
+            # is emitted once per settled job.
+            transaction.on_commit(partial(emit_estimate_gap, job.pk))
         job_row = AIJob.objects.select_for_update().get(pk=job.pk)
         items = BackgroundProcessingTask.objects.select_for_update().filter(job=job_row)
         if items.exists():

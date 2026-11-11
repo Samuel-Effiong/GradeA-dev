@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .billing_transaction_views import BillingTransactionViewSet
 from .estimate_views import BillingEstimateView
+from .job_views import AIJobDetailView
 from .license_overage_offline_views import LicenseOverageOfflineRequestViewSet
 from .license_views import LicenseSubscriptionViewSet, SchoolCreditAllocationViewSet
 from .payment_method_views import PaymentMethodViewSet
@@ -74,6 +75,9 @@ router.register(
 
 urlpatterns = router.urls + [
     path("billing/estimate", BillingEstimateView.as_view(), name="billing-estimate"),
+    path(
+        "billing/jobs/<uuid:pk>", AIJobDetailView.as_view(), name="billing-job-detail"
+    ),
     path("stripe/webhooks", stripe_webhook, name="stripe-webhook"),
     path("stripe/webhooks/thin", thin_webhook, name="stripe-webhook-thin"),
     path("qa/time-travel", BillingTimeTravelView.as_view(), name="qa-time-travel"),

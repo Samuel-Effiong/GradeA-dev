@@ -889,6 +889,10 @@ class CreditWalletSerializer(serializers.ModelSerializer):
     credit_percentage_remaining = serializers.SerializerMethodField(read_only=True)
     bucket_breakdown = serializers.SerializerMethodField(read_only=True)
     feature_usage_breakdown = serializers.SerializerMethodField(read_only=True)
+    # B1b-7 (contract §7.10): codes and numbers only; the app shows the texts.
+    balance_status = serializers.SerializerMethodField(read_only=True)
+    reserved_credits = serializers.IntegerField(read_only=True)
+    spendable = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = CreditWallet
@@ -904,10 +908,23 @@ class CreditWalletSerializer(serializers.ModelSerializer):
             "credit_percentage_remaining",
             "bucket_breakdown",
             "feature_usage_breakdown",
+            "balance_status",
+            "reserved_credits",
+            "spendable",
             "created_at",
             "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]
+
+    def get_balance_status(self, obj) -> str | None:
+        from .low_balance import balance_status
+
+        return balance_status(obj)
+
+    def get_spendable(self, obj) -> int:
+        from .holds import spendable_credits
+
+        return spendable_credits(obj)
 
     def get_total_remaining_credits(self, obj) -> int:
         return obj.total_remaining_credits()

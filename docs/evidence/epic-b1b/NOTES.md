@@ -3943,3 +3943,17 @@ The plant is reverted afterwards and the file checked by sha256 against 9be23397
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | R1b (red) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial | the three B1b-7 modules (32 tests) | **Ran 32, FAILED (failures=8, errors=25)**: 17 low_balance (`No module named 'billing.low_balance'`) + 8 `test_the_bucket_edges` subTests (`has no attribute 'gap_bucket'`); the 8 failures as in §7.11; the fixed other-license test passes |
+
+### §7.14 The D7-a..d build, and the green run R2 declared (before it runs)
+
+**The product (this commit):**
+- `billing/low_balance.py` (new): the allocation, the cycle bucket, the levels, `balance_status`, `check_low_balance` (one conditional UPDATE claims a level per cycle) and the email, behind `LOW_BALANCE_EMAIL_APPROVED = False`.
+- `billing/holds.py`: `settle` queues `_check_low_balance` on commit when it charged anything; `finish_job` and `settle`'s close queue `emit_estimate_gap` on commit when the caller wins the move to SETTLED; `gap_bucket` as §7.10.
+- `billing/serializers.py`: `CreditWalletSerializer` gains read-only `balance_status`, `reserved_credits`, `spendable`.
+- `billing/job_views.py` (new) and `billing/urls.py`: `GET billing/jobs/<uuid:pk>`, `billing-job-detail`, a `RetrieveAPIView` whose queryset is the user's visible jobs (owner / same-license school admin / super admin; else 404), with its `extend_schema`.
+- **`write_routes()` re-counted after the product: 162** (unchanged; the job API is read-only).
+- pre-commit (black, isort, mypy, flake8, bandit) passes on the five files.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| R2 (green) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial | the three B1b-7 modules (32 results: 24 tests + 8 subTests) | **Ran 32, OK** |
