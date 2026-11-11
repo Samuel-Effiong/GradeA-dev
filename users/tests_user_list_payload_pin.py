@@ -7,7 +7,7 @@ the list on the base commit, BEFORE any change, by running this test once
 with USER_LIST_PIN_WRITE=1 (NOTES, step P0). On beta: base origin/beta
 2c8165b69 (docs/evidence/user-list-beta/NOTES.md, P0).
 Afterwards the list must reproduce it exactly, minus the nine keys the
-sorting work adds on purpose.
+sorting work adds on purpose and the five signal keys (brief 4).
 
 Normalized only where a value cannot repeat between runs: every UUID
 becomes "<uuid>" (a wallet's or settings' `user` is checked against its
@@ -33,7 +33,7 @@ from billing.models import (
 )
 from users.models import Settings, UserTypes
 
-from .tests_user_list_sorting import NEW_KEYS, Base
+from .tests_user_list_sorting import NEW_KEYS, SIGNAL_KEYS, Base
 
 PIN = Path(__file__).parent / "test_data" / "user_list_payload_pin.json"
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
@@ -134,7 +134,7 @@ class MixedFixture(Base):
         out = {}
         for person in people:
             row = dict(rows[str(person.pk)])
-            for key in NEW_KEYS:
+            for key in (*NEW_KEYS, *SIGNAL_KEYS):
                 row.pop(key, None)
             for nested in ("credit_wallet", "settings"):
                 if row.get(nested):
@@ -187,7 +187,7 @@ class SingleRetrieveParityTests(MixedFixture):
         for person in people:
             with self.subTest(person.email):
                 listed = dict(rows[str(person.pk)])
-                for key in NEW_KEYS:
+                for key in (*NEW_KEYS, *SIGNAL_KEYS):
                     listed.pop(key, None)
                 single = admin.get(reverse("user-detail", kwargs={"pk": person.pk}))
                 self.assertEqual(single.status_code, 200, single.content)

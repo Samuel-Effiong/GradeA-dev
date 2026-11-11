@@ -195,3 +195,62 @@ Re-estimate: **5-6 h** after the rulings, against the brief's half day.
 That breaks down as tests and pins 2 h, product 1.5 h, plants 45 min, near
 15 min, evidence and checkpoint 45 min. The extra comes from Q-S1's two
 surfaces and the 4 pins.
+
+## 9. Rulings (SM -31 on bc5eafb7c): GO
+
+- **Q-S1 YES.** intent_signal_detail and summary use the shared module too,
+  each pinned byte-identical on the base first. summary keeps its
+  all-profiles cohort.
+- **Q-S2, DRF convention.** `signals` = count ascending; `-signals` = count
+  descending (the owner's "most signals first"). The tie-break is ALWAYS
+  conversion_probability DESC NULLS LAST, then id ascending, in both
+  directions. The OpenAPI description says exactly that.
+- **Q-S3, TEACHER only** on the user list. Every other user gets 0, all
+  flags False and a null score.
+- **Q-S4, inclusive** `>= now - 7d`. Boundary tests: exactly 7 days → True,
+  1 µs earlier → False, null → False.
+- **Q-S5:** the cache test and plant are on the user list only.
+- The 6 plants in section 5 are accepted. The 5-6 h estimate is accepted.
+- Side finding 3 (the OpenAPI example's flags): fixed in this job, docs
+  only, to show all 4 keys.
+
+## 10. Backlog: summary counts a different cohort (do not change here)
+
+`BetaAnalyticViewSet.summary` (billing/views.py, the `stats =
+self.get_queryset().aggregate(...)` block, about line 2201) runs over
+`BetaProfile.objects.all()`. intent_signals filters to user_type TEACHER and
+intent_signal_distribution uses get_teacher_beta_profiles(). So a profile
+whose user is no longer a teacher counts in summary's active_recent,
+high_consumption, habit_formation and primary_graders, but in neither the
+leads list nor the chart. Only that kind of profile can make them disagree,
+since profiles are created only for teachers. This job keeps summary's
+cohort and routes only its four rules through the shared module.
+
+## 11. Bug for the owner (not in this job): the custom AI prompt never gets leads
+
+Where: billing/views.py:2625, in `BetaAnalyticViewSet.custom_ai_prompt`
+(POST analytics beta/custom-ai-prompt):
+
+    try:
+        intent_leads = self.intent_signals(request, *args, **kwargs).data[:10]
+    except Exception:
+        intent_leads = []
+
+`intent_signals` paginates (DEFAULT_PAGINATION_CLASS =
+StandardPageNumberPagination), so `.data` is the paginated dict
+{count, next, previous, results}, not a list. Slicing a dict raises; on this
+Python (3.12) it is `KeyError: slice(None, 10, None)` (checked). The bare
+`except Exception` swallows it, so `intent_leads` is always `[]`, and the
+prompt's "TOP 10 HIGH-INTENT LEADS" section (line 2702) is always an empty
+list.
+
+Reproduce:
+1. Create a teacher with a BetaProfile, as a super admin.
+2. Call `BetaAnalyticViewSet.intent_signals` the way custom_ai_prompt does;
+   its `.data` is a dict.
+3. Evaluate `.data[:10]`: KeyError.
+4. Or POST beta/custom-ai-prompt with the AI call mocked and inspect the
+   prompt text: the leads section is `[]`.
+
+A likely fix (not applied): take `.data["results"][:10]` when paginated,
+or build the leads from the queryset directly.

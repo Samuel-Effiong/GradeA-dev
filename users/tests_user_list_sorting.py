@@ -79,6 +79,14 @@ NEW_KEYS = (
     "credits_left",
     "credits_used",
 )
+#: Brief 4 (signals, users.tests_user_list_signals): five more list-only keys.
+SIGNAL_KEYS = (
+    "signal_count",
+    "at_80_percent",
+    "frequent_user",
+    "active_last_week",
+    "is_power_grader",
+)
 OLD_ORDERING_KEYS = ("first_name", "last_name", "email", "username")
 FILTER_PARAMS = (
     "last_login_after",
