@@ -3539,3 +3539,24 @@ After R2b, the fix is committed, and N2 runs at that commit as declared in §6.7
   - `"all_ungraded"` has no limit.
 - **The plant:** PB6b-1 (§6.7.2) covers the length check. The structured-refusal step has no plant of its own. Its removal would bring back the prefixed message, which `test_501_listed_ids_are_refused_with_the_drf_message` asserts against. A plant for it is offered to the SM and was not run.
 - B1b-6b is ready for the SM's checkpoint.
+
+### §6.7.6 SM: B1b-6b ACCEPTED at cbc4cb5eb (grade-automator-plus-16, 2026-11-11), recorded unamended in substance; PB6b-2 declared (before it runs)
+
+**The acceptance:**
+- B1b-6b is ACCEPTED: 3 commits over d4b7c0a9e, 0 trailers, a clean tree, `users/renderers.py` untouched, and `OVER_LIMIT_MESSAGE` equal to line 66 of the wording file.
+- The edge case is accepted (an invalid `assignment_id` plus over 500 shows only the sentence).
+
+**The wording file's sha changed; its line 66 did not.**
+- The SM appended the kept-uploads (L1) section to `team/approved_wording_b1b_2026-11-09.md` after my §6.7.4 check.
+- Its sha256 is now `9714cdfd7f051f091766ecc1b9eb73b5d936f9b0b7d32933e90d1a8bf444b48c`, re-checked here; it was `cae152f8…5cbf`.
+- Line 66 is unchanged (re-checked), so no re-run is needed (SM).
+
+**PB6b-2, declared.**
+- **The plant:** in `billing/estimate_views.py:_shown_errors`, the over-limit return `{"code": "max_items", "message": OVER_LIMIT_MESSAGE, **errors}` is replaced by `errors` unchanged. The renderer then shows the prefixed form.
+- **The fragment:** computed with unittest's own `assertEqual` on the two strings, not guessed.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| PB6b-2 | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; at the NOTES commit (product = 9be233973) | `billing.tests.test_estimate_endpoint` | **Ran 13, FAILED (failures=1)**: only `test_501_listed_ids_are_refused_with_the_drf_message`, fragment `'Submission ids: Ensure this field has no [19 chars]nts.' != 'You can get a cost estimate` |
+
+The plant is reverted afterwards and the file checked by sha256 against 9be233973's blob. The log goes to `step6b/PB6b-2_<sha>.log`.
