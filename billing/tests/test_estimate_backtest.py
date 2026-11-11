@@ -207,8 +207,10 @@ class DriftTaskTests(TestCase):
         send.assert_not_called()
 
     def test_drift_sends_no_email_while_the_text_is_not_approved(self):
-        self.assertFalse(estimates.DRIFT_EMAIL_APPROVED)
-        send, _ = self.run_task(report(0.5))
+        # B1b-8: text #17 is on; the off path still holds.
+        self.assertTrue(estimates.DRIFT_EMAIL_APPROVED)
+        with patch.object(estimates, "DRIFT_EMAIL_APPROVED", False):
+            send, _ = self.run_task(report(0.5))
         send.assert_not_called()
 
     def test_once_approved_drift_emails_the_super_admin(self):

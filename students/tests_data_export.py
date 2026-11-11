@@ -103,6 +103,8 @@ APPROVED_NAMES = {
     "users.UserActivity": "activity.json",
     "users.Settings": "settings.json",
     "messages": "messages",
+    # Owner text #18 (2026-11-10), in EXPORT_NAMES from B1b-8.
+    "kept_file": "kept_file",
     "manifest_counts": "record_counts",
     "manifest_scope": "scope",
     "manifest_generated_at": "created_at",
@@ -420,7 +422,8 @@ class ExportContentTests(_ExportCase):
         # Epic B1b-5 (SM §5.10): the nested entry's positive check. The key
         # is absent while its name awaits B1b-8, present on every row once on.
         label = "students.BackgroundProcessingTask"
-        rows = self.rows(self.files(), label)
+        with mock.patch("students.data_export.KEPT_FILE_EXPORT_NAME_APPROVED", False):
+            rows = self.rows(self.files(), label)
         self.assertTrue(rows)
         for row in rows:
             self.assertNotIn("kept_file", row)

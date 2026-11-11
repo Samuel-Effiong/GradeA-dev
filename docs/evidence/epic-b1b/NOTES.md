@@ -4498,3 +4498,22 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
   - **(A) Recommended:** the H-34 owner adds the field decision for `admin_locked_at` on beta (an admin security flag; most likely omitted from a student's export, as the other sign-in lock fields are, though that choice is theirs and the owner's), then merges to staging, and I merge staging again. Until then, B1b-8's runs carry this one known failure, declared as such.
   - **(B)** I add the decision on `task/epic-b1b`. Not recommended: it is H-34's field and a beta defect, and staging must hold every beta fix.
 - **Holding.** No test edits (G8), plants or near until the SM rules.
+
+### §8.8 SM ruling on the §8.7 STOP (grade-automator-plus-16, 2026-11-11), recorded unamended in substance; G8 re-declared
+
+- **A.** The SM confirmed: origin/staging's `data_export.py` has no `admin_locked_at` decision, and beta has no `data_export.py` at all (so beta CI was green). The Fixer is fixing it on staging (`"admin_locked_at": _SECURITY`, next to `locked_until`). The SM pushes it and tells me; then I re-merge staging and re-run the guard test.
+- **Until then:** BR8 is accepted as run (9 failures + 1 error, the 9th failure explained). Go on with G8, the plants and the near, **declaring this ONE known failure explicitly in each run that covers `students.tests_data_export`**. Any other difference is a STOP.
+- **End-checkpoint notes accepted for the review:** the PDF stylesheet (the original is gone; DejaVu, 20 pages; recipe in §8.6), and #19's placement. The SM shows the owner both.
+
+**The edits (this commit), as §8.6 listed:**
+1. `test_holds_door`: `late_door_refusal(tag, task_type="answer_extraction")`; `test_once_approved…` passes `batch_answer_upload`. The pin is now True.
+2. `test_batch_queue`: the pin is True, and the no-send check patches the switch False.
+3. `test_estimate_backtest`: the pin is True, and the no-send check patches the switch False.
+4. `tests_kept_uploads`: the pin is True, and `test_while_not_approved…` patches the switch False.
+5. `tests_data_export`: `APPROVED_NAMES` gains `"kept_file": "kept_file"`; the "absent" half of `test_a_kept_file_rides…` patches the switch False.
+6. `tests_item_retry`: it uses `NOT_SAVED`.
+- **Observation, no edit:** `test_holds_door…test_no_email_is_sent_while_the_texts_await_approval` still passes unedited, now because its row is a single upload (Q8-3). Its name predates the switch.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| G8 | all four unset; under flock with `--noinput`; serial; at this commit | the 6 modules of BR8 (181) | **Ran 181, FAILED (failures=1)**: only the known `students.tests_data_export.FieldListGuardTests.test_every_field_is_decided_exactly_once` subTest `label='users.CustomUser'`, `Items in the second set but not the first:` / `'admin_locked_at' : users.CustomUser` (§8.7/§8.8) |

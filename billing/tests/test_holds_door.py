@@ -233,12 +233,14 @@ class TeacherDoorTests(APITestCase):
 
 @override_settings(BILLING_HOLDS_ENABLED=True)
 class LateDoorNoticeTests(APITestCase):
-    def late_door_refusal(self, tag):
+    def late_door_refusal(self, tag, task_type="answer_extraction"):
         """A swept door row comes back; its new UPLOAD job cannot hold."""
         teacher, _, _, _, _ = classroom(tag, estimate_for() + 1_000)
         wallet = wallet_of(teacher)
         old = make_job(wallet, "UPLOAD", total_items=1, status="RUNNING")
-        row = make_item(old, file_name="paper-7.png", status="FAILURE")
+        row = make_item(
+            old, file_name="paper-7.png", status="FAILURE", task_type=task_type
+        )
         holds().reserve(wallet, 50, old, item=row)
         holds().fail_item(old, item=row)
         holds().reserve(wallet, estimate_for(), make_job(wallet))  # spend it
@@ -257,7 +259,8 @@ class LateDoorNoticeTests(APITestCase):
         with patch("AutoGrader.tasks.send_email_task.delay") as send, patch.object(
             holds(), "LATE_DOOR_EMAIL_APPROVED", True
         ):
-            teacher = self.late_door_refusal("d8")
+            # B1b-8 (SM Q8-3): the teacher is emailed for a batch row only.
+            teacher = self.late_door_refusal("d8", task_type="batch_answer_upload")
         send.assert_called_once()
         kwargs = send.call_args.kwargs
         self.assertEqual(kwargs["recipient_list"], [teacher.email])
@@ -268,5 +271,6 @@ class LateDoorNoticeTests(APITestCase):
     ):
         texts = holds().LATE_DOOR_EMAIL_TEXTS
         self.assertEqual(set(texts), {"subject", "individual", "license"})
-        self.assertIs(holds().LATE_DOOR_EMAIL_APPROVED, False)
+        # B1b-8: text 3 is owner-approved and switched on.
+        self.assertIs(holds().LATE_DOOR_EMAIL_APPROVED, True)
         self.assertIs(holds().LATE_DOOR_STUDENT_NOTICE_APPROVED, True)

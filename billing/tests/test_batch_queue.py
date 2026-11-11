@@ -817,10 +817,11 @@ class DeleteTests(BatchBase):
 
 class QueueEmailTests(TransactionTestCase):
     def test_no_queue_email_is_sent_before_the_texts_are_approved(self):
-        self.assertIs(batch_queue.QUEUE_EMAIL_APPROVED, False)
-        with patch("AutoGrader.tasks.send_email_task.delay") as send, self.assertLogs(
-            "billing.batch_queue", "WARNING"
-        ):
+        # B1b-8: the texts are approved and on; the off path still holds.
+        self.assertIs(batch_queue.QUEUE_EMAIL_APPROVED, True)
+        with patch("AutoGrader.tasks.send_email_task.delay") as send, patch.object(
+            batch_queue, "QUEUE_EMAIL_APPROVED", False
+        ), self.assertLogs("billing.batch_queue", "WARNING"):
             batch_queue.notify(uuid.uuid4(), "queued")
         send.assert_not_called()
 

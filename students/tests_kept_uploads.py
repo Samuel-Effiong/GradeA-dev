@@ -757,8 +757,9 @@ class ExportFieldDecisionTests(SimpleTestCase):
     def test_the_nested_name_is_switched_on_at_b1b_8(self):
         from students import data_export
 
+        # B1b-8: owner text #18 is switched on.
         self.assertIs(
-            getattr(data_export, "KEPT_FILE_EXPORT_NAME_APPROVED", None), False
+            getattr(data_export, "KEPT_FILE_EXPORT_NAME_APPROVED", None), True
         )
 
     def test_the_nested_name_is_the_owner_approved_text_verbatim(self):
@@ -797,7 +798,8 @@ class ExportContentTests(TestCase):
         return {row["file_name"]: row for row in rows}, "".join(text.values())
 
     def test_while_not_approved_no_row_has_the_nested_key(self):
-        rows, _ = self.uploads()
+        with patch("students.data_export.KEPT_FILE_EXPORT_NAME_APPROVED", False):
+            rows, _ = self.uploads()
         self.assertEqual(sorted(rows), ["kept.png", "plain.png"])
         for row in rows.values():
             self.assertNotIn("kept_file", row)
