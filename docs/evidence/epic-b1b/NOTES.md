@@ -4013,3 +4013,24 @@ Each plant is one edit to the product at e0fc5ffb7 (`billing/low_balance.py`, `b
 | PB7-other | Ran 1, FAILED (failures=1): `200 != 404` | `step7/PB7-other_4e29ce47c.log` |
 | PB7-5 | Ran 8, FAILED (failures=1): `test_a_failed_or_expired_job_emits_nothing` (`First list contains 2 additional elements.`) | `step7/PB7-5_4e29ce47c.log` |
 | PB7-6 | Ran 8, FAILED (failures=1): `test_the_band_edge_is_a_hit` (`… not found in [...]`) | `step7/PB7-6_4e29ce47c.log` |
+
+### §7.18 D7-e design gap: which job `ai_job_id` names when one request opens several (a checkpoint to the SM; no D7-e code or tests committed)
+
+**How a request gets its jobs (read-only):**
+- `execute_graded_task` (`ai_processor/services.py:5668`) calls `holds.hold_for_call`. Inside a metered unit (`holds.current_unit()`, a contextvar), the unit's root opens **one** job at its first call (`Unit.before_call`, `billing/holds.py:965`). Outside a unit, **each provider call opens its own SINGLE_CALL job** (`begin_single_call`, `:1087`).
+- The view never holds the job. So `ai_job_id` needs a request-scoped record of the job(s) a request settled (proposed: a contextvar in `billing/job_ref.py`, written where a root unit or a single call settles, read by `attach_ai_job_id`).
+
+**One job per request (no ambiguity):**
+- `students` `grade` (`students/services.py:1130` unit; the nested unit at `ai_processor/services.py:4637` joins it), `upload_answers` (`:1539`), `partial_update` (`:1884`);
+- `upload_assignment`, per file (`assignments/file_uploads.py:132` unit), so one id per `successful[]` item as ruled in §7.9.
+
+**Several jobs per request:**
+- **(i) Chunked extraction outside a unit:** `assignments` `create` and `partial_update` reach `AssignmentProcessingService.extract_assignment_data` (`assignments/services.py:1033`) with **no metered unit** (none in `assignments/services.py`). `extract_assignment_with_retry` (`ai_processor/services.py:1777`) goes chunked above 3 page images, so **one request settles one SINGLE_CALL job per chunk.**
+- **(ii) Retry wrappers outside a unit:** `generate_assignment_from_prompt_with_retry` (`:5411`), `custom_ai_prompt_retry` (`:5897`, behind billing `custom_ai_prompt` and the 3 dashboard actions) and the non-chunked `extract_assignment_with_retry` loop each give **one FAILED job per failed attempt, then one SETTLED job.**
+
+**Options:**
+- **(A) Recommended:** `ai_job_id` = the job of the request's **last successful settlement**. That settles (ii): the FAILED attempts are not the result. For (i), wrap `extract_assignment_data`'s in-request callers (`create`, `partial_update`) in `metered_unit`, as answers extraction already is (`students/services.py:1534` comment), so a chunked request is one job. **But that changes billing:** a mid-chunk failure would refund the chunks already charged. That is the same rule as answers and grading, but it is a product change outside D7-e's words.
+- **(B)** (A) without the wrap: a chunked request names only its last chunk's job, so the job API's actual cost would show one chunk of several. Not recommended.
+- **(C)** Leave `ai_job_id` out whenever a request settled more than one job.
+
+**Asked of the SM:** A, B or C (or other), and whether (A)'s unit wrap is in B1b-7 scope. D7-e tests wait for the ruling. The near run waits too, because it must include D7-e.
