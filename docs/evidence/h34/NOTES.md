@@ -600,3 +600,59 @@ Test-only fix, before any product edit:
 - Prediction, by test: 4 pass (L6 control; ReadOnlyFields `test_nobody_else_sees_them` and `test_the_sign_in_payload_does_not_carry_them`; L12). The other 56 fail or error, for the same causes as R1.
 
 **R1b result (red):** Ran 60. FAILED (failures=4, errors=59; subtests counted one by one). By test, 56 did not pass and 4 passed: exactly the 4 predicted. Matches the prediction. Logs: 01_red.log.gz (R1) and 01b_red.log.gz (R1b).
+
+## Product (uncommitted at declaration) and run R2 (green)
+
+What was built:
+
+- Model field `admin_locked_at` and migration 0042 (nullable AddField).
+- `users/sign_in_lock.py`: `lock_users`, `unlock_users`, `may_lock`, `lock_message` (R1).
+- Audit: ACCOUNT_LOCK / ACCOUNT_UNLOCK, plus the three unlock keys.
+- Reason code ACCOUNT_LOCKED_BY_ADMIN, with its spec (R2).
+- `audit.admin_action.emit_named_admin_event` (R3).
+- The checks at login, Google, verify, the code request, reset and invited-admin activation.
+- The auth-class backstop. It reuses the existing REVOKED_MESSAGE, so there is no new text.
+- POST users/{id}/lock/ and /unlock/ (IsSuperAdmin).
+- The back-office actions "Lock sign-in" / "Unlock sign-in", with no success message (no new text). The two lock columns are shown read-only.
+- `sign_in_locked` / `login_locked_until` for super admins.
+- The reason-code doc entry and the login endpoint's API description.
+
+Audit reasons at the generic doors (internal, not shown):
+
+- verify: ACCOUNT_LOCKED_BY_ADMIN failure, through its usual `refuse`;
+- reset and invited-admin activation: ACCOUNT_LOCKED_BY_ADMIN, denied;
+- Google: ACCOUNT_LOCKED_BY_ADMIN, denied.
+
+Known limit, not built (F2 stays open per the owner): reset-password's full `user.save()` can write back a stale `admin_locked_at=None` if a lock lands between its read and its save, a window of milliseconds. The backstop does not cover that case. Recorded, not fixed.
+
+**Run R2 (green).**
+
+- Env: as R1, on the working tree (product uncommitted).
+- Labels (counts from build_suite), 251 in total:
+
+| Label | Count |
+|---|---:|
+| users.tests_admin_sign_in_lock | 57 |
+| audit.tests_route_coverage | 25 |
+| AutoGrader.tests_reason_codes | 61 |
+| audit.tests_metadata | 28 |
+| audit.tests_enums | 3 |
+| users.tests_roads_that_sign_in_or_activate | 10 |
+| audit.tests_history_guard | 13 |
+| users.tests_auth_lock_envelope | 7 |
+| users.tests_login_lockout | 13 |
+| users.tests_switched_off_means_out | 25 |
+| users.tests_auth_audit_events | 9 |
+
+Prediction: Ran 251, OK.
+
+**R2 result:** Ran 251. FAILED (failures=4): L10 `test_a_lock_leaves_one_account_lock_event_and_no_admin_action`, L8, and both L11 lock and unlock tests.
+
+Prediction wrong/incomplete:
+
+- Every failure was a test defect: `AuditEvent.target_id`, `actor_id` and `school_id` are UUIDs, and the tests compared them with `str(pk)`. Each failure shows the same UUID on both sides.
+- The same defect made L2 `assertNotEqual(event.actor_id, str(target.pk))` vacuous; it could never fail.
+- No product change. Test fix: the 7 comparisons use the pk itself. Database filters such as `target_id=str(...)` were already correct.
+- Log: 02_green.log.gz.
+
+**Run R2b (green).** Same env and labels as R2, 251 tests. Prediction: Ran 251, OK.

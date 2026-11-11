@@ -249,7 +249,7 @@ class L2PasswordSignInTests(Base):
         event = events.get()
         self.assertEqual(event.outcome, "DENIED")
         self.assertEqual(event.reason_code, CODE)
-        self.assertNotEqual(event.actor_id, str(target.pk))
+        self.assertNotEqual(event.actor_id, target.pk)
 
     def test_the_admin_lock_answers_even_during_a_five_try_lock(self):
         target = self.locked(self.person("l2e.h34@x.example"))
@@ -657,8 +657,8 @@ class L8UnlockFiveTryLockTests(Base):
                 "cleared_failed_attempts": 5,
             },
         )
-        self.assertEqual(event.target_id, str(target.pk))
-        self.assertEqual(event.school_id, str(self.school.pk))
+        self.assertEqual(event.target_id, target.pk)
+        self.assertEqual(event.school_id, self.school.pk)
 
 
 # ---------------------------------------------------------------------------
@@ -747,8 +747,8 @@ class L10AuditTests(Base):
         self.assertEqual([e.action for e in events], ["ACCOUNT_LOCK"])
         event = events[0]
         self.assertEqual(event.target_type, "CustomUser")
-        self.assertEqual(event.target_id, str(target.pk))
-        self.assertEqual(event.school_id, str(self.school.pk))
+        self.assertEqual(event.target_id, target.pk)
+        self.assertEqual(event.school_id, self.school.pk)
         self.assertEqual(event.outcome, "SUCCESS")
 
     def test_an_unlock_leaves_one_account_unlock_event_and_no_admin_action(self):
@@ -891,7 +891,7 @@ class L11BackOfficeTests(Base):
         events = AuditEvent.objects.filter(action="ACCOUNT_LOCK")
         self.assertEqual(
             [(e.target_id, e.actor_id) for e in events],
-            [(str(fresh.pk), str(self.admin.pk))],
+            [(fresh.pk, self.admin.pk)],
         )
         invalidated.assert_called_once()
         self.assertEqual([u.pk for u in invalidated.call_args.args[0]], [fresh.pk])
@@ -909,7 +909,7 @@ class L11BackOfficeTests(Base):
                 "target_id", flat=True
             )
         )
-        self.assertEqual(targets, {str(locked.pk), str(five.pk)})
+        self.assertEqual(targets, {locked.pk, five.pk})
         locked.refresh_from_db()
         five.refresh_from_db()
         self.assertIsNone(locked.admin_locked_at)
