@@ -209,3 +209,253 @@ Residual risk the owner must see:
 - Docs: 3 lines if W3 is allowed; plus 1 line and a catalogue test if W1 is approved.
 - No migration.
 - About one working day including the plants, the near run and the beta→staging merge.
+
+---
+
+## Owner ruling (2026-11-11, relayed by the SM grade-automator-plus-d6; recorded unamended)
+
+> 1. NO lockout extension. Keep today's behavior (5 tries, 15 min) and today's messages unchanged. Options A/B/C are dropped. Do not build F1/F2/F3 either; they are not approved. Note them as open findings.
+> 2. Internal notes: approved (W3). Update the developer docs to match today's behavior exactly, including fixing the login/sign-in drift you found. Docs only, no user-facing text.
+> 3. NEW, design first: an admin UNLOCK and an admin LOCK for an account. The owner wants:
+>    - unlock: clears the failed count and the login lock;
+>    - lock: an admin stops an account from signing in, and the user sees a message explaining it. I am drafting that message for the owner now; do not invent any wording.
+
+### Effect on this file
+
+- Sections 2 and 4 above (options A/B/C, T1-T9, P1-P7) are **dropped**. They stay above as the record of what was proposed.
+- **Open findings, not approved and not built:**
+  - F1: a reset does not clear the login lock.
+  - F2: the reset's full save can lose a concurrent failure.
+  - F3: Google sign-in neither checks nor clears the lock.
+- **Settled by item 3:**
+  - F4 (no operator unlock) is covered by the admin UNLOCK.
+- **Still open:**
+  - F5 (existence oracle, deliberate under H-274).
+  - F6 (reset recovery denial).
+
+## Item 2: developer docs (W3, approved)
+
+docs/GRADE_A_PLUS_REASON_CODES.md now describes today's behavior exactly. It is docs only; no product file or user-facing text changed, and no test reads this file.
+
+- **Line 410:** the message is now "Too many failed sign-in attempts. Please try again later.", the exact text in reason_codes.py:371 and serializers.py:490. It said "login" before.
+- **Line 414 notes:**
+  - The count is per account.
+  - During a lock, every attempt gets this answer, even with the correct password. The password is not checked, the attempt is not counted and the lock is not extended.
+  - Only a successful password sign-in clears the count. The lock running out, a password reset and Google sign-in leave it in place, so the next wrong password after a lock runs out locks the account again.
+- **Line 812:** "15 minutes from the fifth wrong password; attempts during the lock do not extend it."
+- **Line 877:** the count stays until a successful password sign-in.
+
+## Item 3: admin LOCK / UNLOCK (DESIGN ONLY, no product edit)
+
+### 3.1 What exists (origin/beta bcc50d83c)
+
+**Back office (Django admin), users/admin.py:**
+
+- `activate_users` (:117) is `history.record_bulk(queryset, is_active=True)` and writes one PERMISSION_CHANGE per changed user, naming the admin.
+- `deactivate_users` (:126) is a single record_bulk that sets `is_active=False` and, only for rows active at that moment, raises `token_epoch` (H-202, which revokes every session). Both actions call `invalidate_user_caches`.
+- `save_model` (:146) revokes sessions when the edit form switches is_active off.
+- The admin does not show `failed_login_attempts` or `locked_until`. **Nothing can clear a lock** except a successful password login or a shell.
+
+**What a deactivated user sees today:**
+
+| Door | Answer |
+|---|---|
+| Password login | The generic 401 `invalid_credentials` "That email and password don't match. ...". This is the same as a wrong password, and the correct password is not counted as a failure (tests_login_lockout:217). There is no deactivation message. |
+| Google sign-in, verified account (users/views.py:2370) | 401 `account_deactivated` "This account has been deactivated. Please contact support.", audit ACCOUNT_DEACTIVATED. |
+| Google sign-in, never-verified inactive account | **Switched ON**. Google proves the mailbox, which is the H-164/H-203 completion road. |
+| Password reset (views.py:1484) | Generic 400, the attempt spent, audit ACCOUNT_DEACTIVATED denied. |
+| OTP request | Neutral. |
+| Per-request auth (users/authentication.py:60) | Rejects a token whose epoch is stale, and SimpleJWT rejects an inactive user. |
+
+**`is_active` already carries three meanings:**
+
+- a self-registered account not yet verified;
+- an invited school admin who has not activated yet;
+- an account deliberately switched off (verified + inactive).
+
+Two mailbox roads switch the first two ON: /auth/verify and Google. It is also shown on other users' views (rosters, the school summary; see the comment at admin.py:111) and used by roster import (ROW_ACCOUNT_DISABLED).
+
+**Super-admin API:**
+
+- `CustomUserViewSet` (users/views.py:280): list/create/destroy need `IsSuperAdmin` (classrooms/permissions.py:69, which needs both is_superuser and user_type SUPER_ADMIN). IsSuperAdmin is also the automatic ADMIN_ACTION audit hook: a denial is emitted at once, and a grant is finished by AdminActionAuditMiddleware as exactly one event naming the requester ("its named one, or this").
+- PATCH lets a super admin edit anyone. `is_active` is read-only for everyone (serializers.py extra_kwargs). **There is no API that activates, deactivates or unlocks a user.**
+
+**School admins today:**
+
+- They can **see** their own school's users plus students enrolled under their school's teachers (get_queryset).
+- They **cannot edit** anyone but themselves (partial_update, "You can only modify your own account.").
+- Their only management power over people is the license: add/remove teachers (billing/license_views.py:396), which moves a seat and does not stop sign-in.
+- Students have `school = NULL` and are reached only through enrollments, so one student can be under several schools.
+
+### 3.2 Design: a NEW state, not a reuse of is_active (recommended)
+
+**New column:** `CustomUser.admin_locked_at`, a nullable DateTimeField. "Locked" means it is not null.
+
+- No locked-by column: who did it is in the audit event, and leaving it out avoids an FK index build on users_customuser.
+- One nullable AddField is an expand-safe migration, needs no db_default and does not touch the rollback-defaults list.
+
+**Why not is_active:**
+
+1. **Mailbox roads would undo it.** /auth/verify and Google switch a never-verified inactive account ON (views.py:2350-2370). A lock stored in is_active on such an account is undone by anyone who controls the mailbox, which is exactly the person being locked out.
+2. **The owner wants a message.** Deactivated accounts deliberately get the generic "don't match" answer at password login. Showing a message through is_active would change the answer for every pending and switched-off account too.
+3. **is_active has side effects a lock should not have.** It changes how the user shows on rosters and the school summary, and roster import refuses them (ROW_ACCOUNT_DISABLED). A lock should stop signing in and nothing else; the student's work, grades and enrollments stay as they are.
+4. **Unlock is exact.** Clearing `admin_locked_at` cannot switch on a pending registration by accident.
+
+**Behavior of the lock:**
+
+- **Locking:** one UPDATE sets `admin_locked_at = now` and `token_epoch = F()+1`, which revokes every live session and refresh token at once. The epoch is checked on every request (authentication.py:60) and on refresh (tokens.py:48). Then `invalidate_user_caches`.
+- **Indefinite:** it lasts until an admin unlocks. There is no expiry.
+- **Every door refuses a locked account.** Today's token-issuing roads (the FOR_USER sites pinned by users.tests_roads_that_sign_in_or_activate) are listed below. Each would be a separate decision for the owner:
+
+| Door | Proposed answer |
+|---|---|
+| POST auth/login (serializers.py:511, beside today's ACCOUNT_LOCKED check) | Refused **before** the password is checked, with the owner's message and a new code. The password is not checked and nothing is counted. |
+| Google sign-in (views.py:2476) | Refused with the same code and message. It does not switch the account on. |
+| /auth/verify (views.py:1106) and invited-admin activation (views.py:2104) | Refused, with the generic answer each already gives. |
+| POST auth/otp, RESET_PASSWORD | Neutral reply, **no code mailed**. |
+| POST auth/reset-password (views.py:1547) | Refused with the generic 400, no password set, the lock unchanged. |
+| change-password (views.py:1701) | Needs a live session, which the epoch bump already killed. |
+| Refresh | Dead (epoch). |
+| Per-request auth (MustChangePasswordJWTAuthentication) | **Also rejects a locked user**, as a backstop, so a token from any road added later is useless. The user row is already loaded there, so the check costs nothing extra. |
+
+**Why the login check comes before the password check:** this matches today's ACCOUNT_LOCKED.
+
+- If the message came only after a correct password, the message itself would confirm a guessed password.
+- Before the password check, the message tells anyone who types the address that the account exists and is locked. That is the same exposure ACCOUNT_LOCKED already has (F5, deliberate under H-274).
+- **Question Q1 for the owner:** the alternative is the generic "don't match" answer for a wrong password and the message only for the correct one. That is safer for existence but confirms passwords.
+
+**UNLOCK clears, in one UPDATE:** `admin_locked_at = None`, `failed_login_attempts = 0`, `locked_until = None`.
+
+- Unlock is the owner's way out for both kinds of lock.
+- It does not touch is_active, so it never activates a pending or deactivated account.
+- It does not reset the epoch; the old sessions stay dead.
+
+### 3.3 Who may lock or unlock
+
+Rules for both options:
+
+- **Nobody may lock themselves.**
+- **Nobody may lock a super admin** (is_superuser or user_type SUPER_ADMIN), so a super admin cannot lock another super admin either.
+- Unlock follows the same scope as lock, so self-unlock is impossible anyway: a locked user has no session.
+
+**(a) Super admin only (RECOMMENDED for the first build):**
+
+- Two back-office actions on CustomUserAdmin, "Lock sign-in" and "Unlock sign-in". Their labels are internal back-office text; I will ask whether they count as wording.
+- Two API routes on CustomUserViewSet: `POST users/{id}/lock/` and `POST users/{id}/unlock/`, permission `IsAuthenticated, IsSuperAdmin`. IsSuperAdmin gives the ADMIN_ACTION hook and the denied event for free.
+- A read-only field on the user serializer, shown to super admins only: `sign_in_locked` (bool), plus perhaps `login_locked_until` so support can see a 5-try lock. Q3.
+- Cost: about 150-200 product lines and about 350 test lines.
+
+**(b) Also school admins, for their own school's teachers and students.** Extra cost:
+
+- **Scope.** Teachers are easy (`school_id == admin.school_id`). Students carry no school; they are reached only through enrollments under the school's teachers.
+- **Multi-school students.** A student enrolled under two schools would be locked out of **both** by one school's admin. This needs a rule, either:
+  - refuse when the student has an enrollment under another school; or
+  - allow it and tell the other school.
+
+  This is a new owner decision.
+- **Peer locks.** A school admin must not lock another school admin. Proposal: teachers and students only.
+- **More surface.** The same two routes with a second permission path (IsSchoolAdmin plus an object scope check), new denial tests for every role and cross-school pair, the school's activity log showing the event (`school_id` on the event), and new frontend screens for school admins.
+- **Interaction with the license.** A locked teacher still holds a seat. Does the school admin expect locking to free it? Q4.
+- Cost: about 60-80 more product lines and 150-200 more test lines.
+
+**Recommendation:** build (a) now; (b) can follow as its own step once the multi-school rule is decided.
+
+### 3.4 Audit, reason code, envelope, frontend
+
+**Audit (recommended):** two new AuditAction values, `ACCOUNT_LOCK` and `ACCOUNT_UNLOCK`.
+
+- `actor` = the admin, `target` = the user, `school_id` = the user's school.
+- Metadata on unlock: `{had_admin_lock, had_login_lock, cleared_failed_attempts}`.
+- `AuditEvent.action` is a free CharField with no choices, so this needs no migration.
+- On the API route the named event is the one event naming the requester, and ADMIN_ACTION steps aside, as the middleware already does ("its named one, or this").
+- Why not reuse PERMISSION_CHANGE by adding `admin_locked_at` to the CustomUser Tracked fields:
+  - unlocking a 5-try lock alone changes no tracked field, so it would leave no event;
+  - counters are excluded from history by design (history.py:124).
+- The back-office actions emit the same two events. activate/deactivate keep their PERMISSION_CHANGE.
+
+**Locked-login refusal:**
+
+- AUTH_LOGIN, outcome DENIED, actor anonymous (as today's failure_actor), target the user.
+- A new reason code. Suggested internal name `ACCOUNT_SUSPENDED`, or `ACCOUNT_LOCKED_BY_ADMIN`; the name is a frontend contract, so this is Q2.
+
+**Envelope:**
+
+- HTTP 401 via `EnvelopedAuthenticationFailed`, like ACCOUNT_LOCKED: `detail` plus the envelope (reason_code, error_class USER, remediation, **retryable false**, params {}, reference).
+- `code` equals the reason code, with no legacy lower-case value, since this code is new.
+- The message and remediation are **the owner's text, being drafted by the SM**. No wording is in this design.
+- A new ReasonSpec in AutoGrader/reason_codes.py.
+- A new section in docs/GRADE_A_PLUS_REASON_CODES.md.
+
+**Frontend needs (no frontend work by us):**
+
+1. The sign-in screen and the Google sign-in callback: handle the new reason code on 401, show `message`, and do not offer "try again later".
+2. Super-admin user screens: `POST users/{id}/lock/` and `POST users/{id}/unlock/` (200 with the updated user, 403 for others, 400 for self or super-admin targets with the reason code from Q5), and the read-only `sign_in_locked` field.
+3. Nothing changes for deactivate.
+
+### 3.5 Questions for the owner (nothing will be built or worded without answers)
+
+- **Q1** Show the lock message before the password check (an existence leak, the same as today's ACCOUNT_LOCKED), or only after a correct password (confirms passwords)? Recommend: before.
+- **Q2** The reason code name, and the message and remediation text (SM drafting).
+- **Q3** Show super admins `sign_in_locked` and the 5-try `login_locked_until`?
+- **Q4** (b) only: multi-school students, and whether a lock frees a license seat.
+- **Q5** The refusal texts for "you can't lock yourself" and "you can't lock a super admin" are new wording. Use the existing generic PermissionDenied texts instead?
+- **Q6** Do the back-office action labels ("Lock sign-in" / "Unlock sign-in") need approval?
+- **Q7** Reset and Google answers for a locked account: the generic reset answer, and the lock message on Google (proposed)?
+
+### 3.6 Tests first (new module users/tests_admin_sign_in_lock.py), plants, pins, size
+
+**Red-first tests (scope (a)):**
+
+| Test | Checks |
+|---|---|
+| L1 | Lock sets `admin_locked_at` and raises token_epoch once; an access token from before the lock now gets 401 on users/me; its refresh token is refused. |
+| L2 | Locked login, correct and wrong password: the new code, `check_password` never called, `failed_login_attempts` unchanged, one AUTH_LOGIN DENIED event. |
+| L3 | Google sign-in on a locked verified account and a locked never-verified one: refused, and the account is **not** switched on. |
+| L4 | The RESET_PASSWORD OTP request is neutral and mails nothing; reset-password with a valid existing code is refused, sets no password and keeps the lock. |
+| L5 | /auth/verify and invited-admin activation are refused for a locked account. |
+| L6 | Backstop: a token minted directly for a locked user (EpochRefreshToken.for_user) is refused by the per-request auth class. |
+| L7 | Unlock clears `admin_locked_at`, `failed_login_attempts` and `locked_until`; login works at once; `is_active` is untouched (a pending account stays inactive). |
+| L8 | Unlock of a 5-try lock alone (no admin lock) clears it and writes ACCOUNT_UNLOCK with `had_login_lock`. |
+| L9 | Rules: lock self gives 400; lock a super admin gives 400; school admin, teacher and student callers get 403 with the IsSuperAdmin denied event; unknown id gives 404. |
+| L10 | Audit: exactly one ACCOUNT_LOCK / ACCOUNT_UNLOCK naming the requester, with the right target and school_id, and no extra ADMIN_ACTION. |
+| L11 | Back-office actions: same effects and events; the lock never applies to super admins in the selection or to the acting admin; caches invalidated. |
+| L12 | Pin, green before and after: a deactivated user's login answer is unchanged (generic invalid_credentials). |
+| L13 | Pin: the lock does not change roster or enrollment state. |
+
+**Plants (one per run, kill declared first):**
+
+| Plant | Mutation | Killed by |
+|---|---|---|
+| Q-P1 | No epoch bump | L1 |
+| Q-P2 | Lock check after authenticate | L2 |
+| Q-P3 | No check on Google | L3 |
+| Q-P4 | No check on reset | L4 |
+| Q-P5 | No backstop in the auth class | L6 |
+| Q-P6 | Unlock leaves the failed count | L7 |
+| Q-P7 | Super-admin target allowed | L9 |
+| Q-P8 | Self-lock allowed | L9 |
+| Q-P9 | Unlock sets `is_active=True` | L7 |
+
+**Count pins and guards that will move or must be satisfied:**
+
+- users.tests_roads_that_sign_in_or_activate: pins every FOR_USER / ACTIVE_TRUE / SET_PASSWORD site with a count. The design adds no such site; unlock writes no is_active. The guard must stay green unchanged.
+- audit.tests_route_coverage: the two new write routes must each leave exactly one event naming the requester in its superadmin sweep. They are covered by the named events, with no registry entry needed unless the sweep's empty-body call returns before the event; checked at build.
+- AutoGrader.tests_reason_codes (61): a new ReasonCode and spec. The catalogue tests will count it; its docs row too.
+- audit.tests_history_guard: no `.update(**…)`; static keywords only.
+- AutoGrader.tests_cache_user_fanout: the lock changes nothing other users display unless Q3 shows `sign_in_locked` to admins; then the caches are invalidated as activate does.
+- AutoGrader.tests_migration_rollback_defaults (12): unaffected (nullable column).
+- scripts/check_migration_safety.py: a nullable AddField. Expected to pass with no acknowledgement; run before and after as in H-287.
+- Existing lock tests (tests_login_lockout 13, tests_auth_lock_envelope 7, tests_h274 6, tests_auth_audit_events 9): unchanged, with L12 as an extra pin.
+
+**Near (beta):**
+
+- `users` (982 now) + AutoGrader.tests_migration_rollback_defaults + `audit` route coverage + AutoGrader.tests_reason_codes + the 2 classrooms guard labels.
+- Then the 56-label serial sweep (1023).
+- New counts will be declared at build.
+
+**Size:**
+
+- (a): about 150-200 product lines (model field and migration, `lock_sign_in`/`unlock_sign_in` on the model, 2 admin actions, 2 API actions, checks at login, Google, verify, activation, OTP and reset, the auth-class backstop, 2 audit actions, 1 reason code and docs).
+- Tests: about 350-400 lines.
+- About 1.5-2 working days including the plants and both nears.
+- (b) adds about 1 day.
