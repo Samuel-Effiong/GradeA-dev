@@ -5307,3 +5307,55 @@ The SM ACCEPTED the gate summary (§10.3, f015c6f92) and asked that the branch f
 - **D2c: MISMATCH (declaration defect), recorded unamended; STOP to the SM.** Ran 2, **OK**. The queries are as declared: 5 rows default = **13**, 25 rows default = **13**, 5 rows `-credits_left` = **13**. The pin section is **not** as declared. I declared `added` = the 5 signal keys on each row; it shows all 7 rows `identical`. Log: `step10/D2c_82fad80f2.log`.
   - Cause: my declaration was wrong about the fixture. `d2_diag.py` reads `MixedFixture.listed_payload()`, which since the merge pops `(*NEW_KEYS, *SIGNAL_KEYS)` (`users/tests_user_list_payload_pin.py:136`) before d2_diag compares. So `identical` means the payload minus the 14 list-only keys still equals the pin, which is the pin test's own check (passed in D1c).
   - No product or test file changed. Nothing re-run.
+
+## B1b-11: no queue, no kept files, no resume (owner meeting decision, 2026-11-11)
+
+### §11.0 The owner's direction, the SM's rulings and the plan (declared before any change)
+
+**The owner's direction** (relayed by SM -cf, 2026-11-11; it replaces B1b-10b, which was stopped before any edit):
+1. The estimate comes first (B1b-4 stays).
+2. If the estimate is short, nothing starts and the teacher is told to top up (the credit shop).
+3. If credits run out partway through a task or batch, it stops. Finished items are kept and the rest are not run. The teacher reads the owner's text, as given: "Batch grading could not be completed due to insufficient AI credits. 13 of 15 assignments were graded successfully. To finish grading, please top up your credits or wait for your balance to refill." The upload variant says "uploading" / "uploaded".
+4. Nothing is ever paused, queued or resumed later. No student file is stored on Cloudinary or anywhere else.
+
+**SM rulings.**
+- Plan GO as written.
+- Q1: grade-all gets a door: if the batch's p90 estimate is more than the balance, the answer is 402 and nothing is created. The two batch upload routes get a WHOLE-batch door: if any file does not fit the running balance, the answer is 402 and nothing is created. This replaces H-223's per-file parking. A single upload keeps its per-file door. Both use the existing approved credit message, in both flag states.
+- Q2: "assignments" as given, with "graded" for grading and "uploaded" for uploads.
+- Refinement ACCEPTED: stopped papers stay FAILURE with INSUFFICIENT_CREDITS_MID_BATCH, now `retryable=False`, carrying the owner's text. Running papers that hold credits finish.
+- Leaving 0074's `QUEUED_PENDING_CREDITS` status and the AIJob `queued_at`, `expires_at`, `warned_expiry_at` and `stopped_at_item` columns unused, with no migration, is ACCEPTED as **tech debt**: they are on staging already, nothing writes them after B1b-11, and a later migration may drop them. The same goes for BillingSettings `queue_expiry_days` and `queue_expiry_warning_hours` (deprecated at 0084) and BatchUploadSession `credits_exhausted_at`, which is still written as the stop mark.
+- The credit message does not name the credit shop: "There aren't enough AI credits to do this. Top up your credits or ask your school administrator, then try again." (individual: "...Top up your credits, then try again."). The 402 carries `code: insufficient_credits`. The SM was told; it is unchanged unless the owner asks.
+
+**Removed.**
+- The queue: in `billing/batch_queue.py`, queueing, promotion, expiry, the expiry warning and the queue emails (#5, #8, #9, #10 and the closings #6/#7 used there). In `billing/tasks.py`, the promote/expire tasks and their 2 beat entries. In `billing/models.py`, the promotion on credit entries. In the drain command, `expire_queued_jobs`.
+- `QUEUE_LIFETIME_DAYS`: the setting, its parser, and every use.
+- Kept uploads: `students/kept_files.py`, `students/kept_uploads.py`, `KeptUpload` and migration `students/0041_keptupload.py` (never on staging or beta), the hourly purge, the post_delete receiver and `KEPT_UPLOADS_BACKEND`. The three routes and two workers send and read the file inline again, as before B1b-5. `kept_until` goes from task status. The export's `kept_file` and the data map and erasure entries go. In the privacy document, #19, #20, #21 and #23 go and #22 reads "Cloudinary (profile pictures)"; the PDF is regenerated.
+- Resume: INSUFFICIENT_CREDITS_MID_BATCH is not retryable. `clear_batch_credit_stop` goes. Upload items are never retried in place. A PROVIDER_FAILURE grade item is still retried.
+- Untrue texts deleted: text 1 (the mid-batch remediation), text 2, #16's kept variant, the text 3 email (the late door's refusal stays and is logged; the student notice stays) and, from #13, "Batches that run out will wait for {days} days." The QA "none_finished" variant goes: 0 of N reads the owner's text.
+
+**The stop path.**
+1. Flag off (S7c): the credit refusal that runs out marks the session as today. Every item still to run fails at its pre-provider check with INSUFFICIENT_CREDITS_MID_BATCH, uncharged.
+2. Flag on: where a batch job used to queue (`decide_after_item`), its papers that never got a hold fail the same way, and the job ends SETTLED or FAILED. If `start_batch` holds nothing, every paper fails (0 of N).
+3. The message is "Batch grading could not be completed due to insufficient AI credits. {completed} of {total} assignments were graded successfully." The remediation is "To finish grading, please top up your credits or wait for your balance to refill." An upload batch uses the variant "upload" (both sentences). The counts are taken when the batch stops.
+4. The paper that ran out has no partial result. The SM asked whether a flag-off charge can fail after the provider call: it can (`ai_processor/services.py`, `wallet.consume_credits` after the call). Test S-3 below pins that it leaves no saved grade and is counted as not completed.
+
+**Tests** (new module `students/tests_b1b11_no_queue.py`, red before the product change):
+- S-1/S-2: flag off, a grading batch and an upload batch that run out: the owner's text and counts, not retryable, `resumable` false, retry-failed retries nothing.
+- S-3: flag off, the charge after the provider call fails: no saved grade, counted as not completed.
+- S-4: flag on, a batch job whose papers do not all fit: the unheld papers fail with the owner's text, the job is never QUEUED_PENDING_CREDITS, and its holds are all returned.
+- D-1/D-2: the grade-all door and the whole-batch upload door: 402, nothing created; the single upload unchanged.
+- R-1..R-n: the removed behavior is absent: no `KeptUpload` model, no `kept_files` or `kept_uploads` module, no `QUEUE_LIFETIME_DAYS`, no queue beat entries, no `kept_until` key, an upload item is not retryable, and the texts above are absent.
+- Tests that pin removed behavior are deleted or edited: `students/tests_kept_files.py`, `tests_kept_uploads.py` and `tests_kept_upload_retry.py`, plus the resume, queue and text cases in `students/tests_credits_mid_batch.py`, `billing/tests/test_batch_queue.py` and `billing/tests/test_b1b8_texts.py`. Every deletion is listed at the end checkpoint.
+
+**Plants** (3, all on the stop path; `step11/plants.py`, restored and checked by sha256):
+- C-1: flag off, the items still to run are not stopped (the pre-provider check is removed). Killed by S-1.
+- C-2: flag on, the unheld papers are left PENDING instead of failed. Killed by S-4.
+- C-3: the count is off by one (completed + 1). Killed by S-1.
+- The 13 PK/P8 plants and the B1b-6 queue plants are retired: recorded, not run.
+
+**Runs** (env: BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK, USER_LIST_PIN_WRITE and INTENT_SIGNALS_PIN_WRITE all unset unless stated; under flock with `--noinput`):
+- R11-red: the new module before the product change: it FAILs or ERRORs, each test for the reason it tests. Recorded per test.
+- R11-green: the same module after the change: OK.
+- N11: the near (`billing students assignments dashboard users` + `guards67.txt`, `--parallel 4`, flag off). The count is declared from `build_suite` before it runs. Declared: OK, 0 FAIL, 0 ERROR.
+- B11-on: `billing` alone with `BILLING_HOLDS_ENABLED=1`, `--parallel 4`. The count is declared before it runs. Declared: OK.
+- No battery and no E-on of the whole set (SM).
