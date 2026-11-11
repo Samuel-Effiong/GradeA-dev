@@ -105,6 +105,17 @@ class LeadOrderingTests(LeadsBase):
         zero = self.teacher(50.0)
         return four, one, zero
 
+    def test_no_param_keeps_the_score_order_when_counts_disagree(self):
+        # The fixture above cannot tell the default from -signals (its score
+        # order is its count order); this one can (added before the plants).
+        four, one, zero = self.mixed()
+        by_score = [one.email, zero.email, four.email]
+
+        self.assertEqual(self.emails(), by_score)
+        for ignored in ("", "score", "signal_count"):
+            with self.subTest(ordering=ignored):
+                self.assertEqual(self.emails(ordering=ignored), by_score)
+
     def test_signals_is_count_ascending(self):
         four, one, zero = self.mixed()
 

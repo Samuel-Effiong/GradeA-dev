@@ -183,3 +183,16 @@ lenient BooleanFilter, unchanged.
 The same 9 labels, Ran 138. Expected: OK.
 
 R2b result (R2b_green.log): Ran 138, OK, as predicted.
+
+### Before the plants: a gap found while declaring plant 4 (R3, declared)
+
+Tracing plant 4 ("intent-signals always applies the signals order") showed it
+would SURVIVE. The pin fixture's score order equals its count order, so
+neither the pin nor test_no_param_keeps_todays_order can tell the default
+from -signals. Added
+LeadOrderingTests.test_no_param_keeps_the_score_order_when_counts_disagree
+(three teachers whose scores disagree with their counts; no param and three
+ignored values must keep the score order).
+R3 label: that test. Expected: Ran 1, OK on the product.
+
+R3 result (R3_gap_test.log): Ran 1, OK, as predicted.
