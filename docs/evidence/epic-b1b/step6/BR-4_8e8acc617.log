@@ -1,0 +1,165 @@
+B1b-6 BR-4 (NOTES §6.6.4): unedited students/tests_batch_item_results.py from 1576369ad on product 8e8acc617
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user c0eeea92-d1fa-483c-ae3d-a512c32fbe6c.
+Cannot activate automatic trial for user c0eeea92-d1fa-483c-ae3d-a512c32fbe6c (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+Upload door could not estimate big.pdf: PayloadTooLarge
+
+
+students.task_tracking ERROR 2026-11-11 08:11:50,008 task_tracking 81569 128763681671040 [request_id=5e254a38-52fa-4f47-97c0-8f5486670dc2 client_request_id=-] Background task 12f208fc-9f89-42d6-907a-761d21f41ad6 failed: error=PayloadTooLarge frames=views.py:1533:batch_upload <- uploads.py:74:validate_upload_size
+
+
+.Free trial plan not found: no trial activated for user e010b66f-6f31-43f8-99c9-577a47f07c19.
+Cannot activate automatic trial for user e010b66f-6f31-43f8-99c9-577a47f07c19 (validation): ValueError
+Upload door could not estimate big.pdf: PayloadTooLarge
+
+
+students.task_tracking ERROR 2026-11-11 08:11:50,133 task_tracking 81569 128763681671040 [request_id=318ae0df-7e1e-4e29-abb4-93d5067565c6 client_request_id=-] Background task c9744a47-eb32-4bbe-ae30-0ee6cc29eed6 failed: error=PayloadTooLarge frames=views.py:1156:upload_assignment_async <- uploads.py:74:validate_upload_size
+
+
+.Free trial plan not found: no trial activated for user 0bb190fa-c5d1-418b-857f-ee4ccd9eaf53.
+Cannot activate automatic trial for user 0bb190fa-c5d1-418b-857f-ee4ccd9eaf53 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:11:50,207 task_tracking 81569 128763681671040 [request_id=- client_request_id=-] Background task 12b8a9b8-26e9-42e8-bed9-a08e75f8220c failed: error=RuntimeError
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:11:50,211 task_tracking 81569 128763681671040 [request_id=- client_request_id=-] Background task 5da99164-abd8-4189-9b17-cbe07fa8765c failed: error=RuntimeError
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:11:50,215 task_tracking 81569 128763681671040 [request_id=- client_request_id=-] Background task 8cb3775d-1b50-43b0-85bd-b051c6c9390e failed: error=RuntimeError
+
+
+.Free trial plan not found: no trial activated for user 8f92fee4-0b0f-48a4-942f-5f2b477751d3.
+Cannot activate automatic trial for user 8f92fee4-0b0f-48a4-942f-5f2b477751d3 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:11:50,314 task_tracking 81569 128763681671040 [request_id=- client_request_id=-] Background task 63db46c5-4d1e-41a0-854e-89eb8178012e failed: error=FileUnreadableError
+
+
+
+
+students.task_tracking WARNING 2026-11-11 08:11:50,319 refusals 81569 128763681671040 [request_id=- client_request_id=-] Background task cc7b121b-2c2d-4d47-bb82-05a2a1fcaf7b refused: InsufficientCreditsError: balance 3, needs 9
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:11:50,321 task_tracking 81569 128763681671040 [request_id=- client_request_id=-] Background task 97cfb397-4cdb-4779-86f9-815211319696 failed: error=RuntimeError
+
+
+.Free trial plan not found: no trial activated for user 1d7a2d90-4da6-41f9-add7-58335b15e76d.
+Cannot activate automatic trial for user 1d7a2d90-4da6-41f9-add7-58335b15e76d (validation): ValueError
+.Free trial plan not found: no trial activated for user 041ce329-4863-4201-a8bd-882f9d20a185.
+Cannot activate automatic trial for user 041ce329-4863-4201-a8bd-882f9d20a185 (validation): ValueError
+.Free trial plan not found: no trial activated for user 26bf2c80-bb47-4168-b63e-1e65f599038d.
+Cannot activate automatic trial for user 26bf2c80-bb47-4168-b63e-1e65f599038d (validation): ValueError
+.Free trial plan not found: no trial activated for user 0875072a-a422-480b-a4cd-ed9ce88e75fc.
+Cannot activate automatic trial for user 0875072a-a422-480b-a4cd-ed9ce88e75fc (validation): ValueError
+.Free trial plan not found: no trial activated for user 2bc1b030-ab60-4cc0-9529-675fb75dd2f5.
+Cannot activate automatic trial for user 2bc1b030-ab60-4cc0-9529-675fb75dd2f5 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:11:50,763 task_tracking 81569 128763681671040 [request_id=fd0b4616-a91f-4f6a-a8d3-4cf4c8f323de client_request_id=-] Background task 93f22849-e4d9-4c17-81ac-c21b756d66be failed: error=RuntimeError frames=tasks.py:1087:upload_answers_engine_async <- services.py:1544:upload_answers_engine <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user da4785f3-e9c2-4ad3-9f63-ad1cd661d943.
+Cannot activate automatic trial for user da4785f3-e9c2-4ad3-9f63-ad1cd661d943 (validation): ValueError
+Upload door could not estimate b.png: FileUnreadableError
+
+
+students.task_tracking ERROR 2026-11-11 08:11:50,858 task_tracking 81569 128763681671040 [request_id=6268bb9a-6de2-4ace-bbe1-8c34e599d7cf client_request_id=-] Background task c8e8b525-98e4-4458-856a-4750deb9e737 failed: error=FileUnreadableError frames=tasks.py:1068:upload_answers_engine_async <- services.py:601:prepare_ai_content <- services.py:557:_compress_uploaded_image
+
+
+.Free trial plan not found: no trial activated for user 13cc8656-df50-4145-9cc8-de5abf9191d3.
+Cannot activate automatic trial for user 13cc8656-df50-4145-9cc8-de5abf9191d3 (validation): ValueError
+Upload door could not estimate big1.pdf: PayloadTooLarge
+Upload door could not estimate big2.pdf: PayloadTooLarge
+Upload door could not estimate junk1.png: FileUnreadableError
+Upload door could not estimate junk2.png: FileUnreadableError
+Upload door could not estimate notes1.txt: FileTypeUnsupportedError
+Upload door could not estimate notes2.txt: FileTypeUnsupportedError
+Upload door could not estimate blank1.pdf: SubmissionEmptyError
+Upload door could not estimate blank2.pdf: SubmissionEmptyError
+
+
+students.task_tracking ERROR 2026-11-11 08:11:51,131 task_tracking 81569 128763681671040 [request_id=7886e58b-468d-40e5-97cd-25f4874a9d42 client_request_id=-] Background task 9c7f7250-7f95-4a1e-9082-35f355e070e0 failed: error=PayloadTooLarge frames=views.py:1533:batch_upload <- uploads.py:74:validate_upload_size
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:11:51,158 task_tracking 81569 128763681671040 [request_id=7886e58b-468d-40e5-97cd-25f4874a9d42 client_request_id=-] Background task 17e2c51a-7f6e-4ea1-ba46-3297ee18fbe7 failed: error=PayloadTooLarge frames=views.py:1533:batch_upload <- uploads.py:74:validate_upload_size
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:11:51,202 task_tracking 81569 128763681671040 [request_id=7886e58b-468d-40e5-97cd-25f4874a9d42 client_request_id=-] Background task 2966163c-94c6-4828-9239-4451c3f9d7ca failed: error=FileUnreadableError frames=tasks.py:1068:upload_answers_engine_async <- services.py:601:prepare_ai_content <- services.py:557:_compress_uploaded_image
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:11:51,248 task_tracking 81569 128763681671040 [request_id=7886e58b-468d-40e5-97cd-25f4874a9d42 client_request_id=-] Background task 33296997-4821-4845-9266-0a9af9a1951c failed: error=FileUnreadableError frames=tasks.py:1068:upload_answers_engine_async <- services.py:601:prepare_ai_content <- services.py:557:_compress_uploaded_image
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:11:51,297 task_tracking 81569 128763681671040 [request_id=7886e58b-468d-40e5-97cd-25f4874a9d42 client_request_id=-] Background task e8174501-64c5-4ec1-9ca1-9d416f58e9bf failed: error=FileTypeUnsupportedError frames=tasks.py:1068:upload_answers_engine_async <- services.py:590:prepare_ai_content
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:11:51,344 task_tracking 81569 128763681671040 [request_id=7886e58b-468d-40e5-97cd-25f4874a9d42 client_request_id=-] Background task 9cc49af1-bc14-4d79-b275-c41cff08a233 failed: error=FileTypeUnsupportedError frames=tasks.py:1068:upload_answers_engine_async <- services.py:590:prepare_ai_content
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:11:51,416 task_tracking 81569 128763681671040 [request_id=7886e58b-468d-40e5-97cd-25f4874a9d42 client_request_id=-] Background task 092a05dc-7f75-4c1f-b30c-223a5c21460c failed: error=SubmissionEmptyError frames=tasks.py:1068:upload_answers_engine_async <- services.py:623:prepare_ai_content
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:11:51,464 task_tracking 81569 128763681671040 [request_id=7886e58b-468d-40e5-97cd-25f4874a9d42 client_request_id=-] Background task 1e5342b1-5bb5-486d-a278-b5a27202db2b failed: error=SubmissionEmptyError frames=tasks.py:1068:upload_answers_engine_async <- services.py:623:prepare_ai_content
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:11:51,519 task_tracking 81569 128763681671040 [request_id=7886e58b-468d-40e5-97cd-25f4874a9d42 client_request_id=-] Background task 1b81fa56-267f-4d87-b0aa-c7bebd3b5662 failed: error=StudentNameUnmatchedError frames=tasks.py:1087:upload_answers_engine_async <- services.py:1574:upload_answers_engine <- services.py:2000:_match_enrolled_student
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:11:51,581 task_tracking 81569 128763681671040 [request_id=7886e58b-468d-40e5-97cd-25f4874a9d42 client_request_id=-] Background task 5fc93af3-8a34-429a-b3e5-c4efe6daf5c8 failed: error=StudentNameUnmatchedError frames=tasks.py:1087:upload_answers_engine_async <- services.py:1574:upload_answers_engine <- services.py:2036:_match_enrolled_student
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:11:51,646 task_tracking 81569 128763681671040 [request_id=7886e58b-468d-40e5-97cd-25f4874a9d42 client_request_id=-] Background task 16202fde-15e4-485a-b72a-705ea2d82137 failed: error=StudentNotOnRosterError frames=tasks.py:1087:upload_answers_engine_async <- services.py:1574:upload_answers_engine <- services.py:2022:_match_enrolled_student
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:11:51,704 task_tracking 81569 128763681671040 [request_id=7886e58b-468d-40e5-97cd-25f4874a9d42 client_request_id=-] Background task f81d2486-8120-4d6b-9dc0-559d8f9323eb failed: error=StudentNotOnRosterError frames=tasks.py:1087:upload_answers_engine_async <- services.py:1574:upload_answers_engine <- services.py:2022:_match_enrolled_student
+
+
+.
+----------------------------------------------------------------------
+Ran 11 tests in 2.331s
+
+OK
+Destroying test database for alias 'default'...
+Found 11 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+restored sha256 OK

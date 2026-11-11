@@ -3173,3 +3173,33 @@ GO for tests-first, with two additions declared before R1.
 - **PB6-3:** a declared survivor, as ruled. Declared Ran 2, OK.
 - **PB6-14:** as above.
 - **The product commit** is the probe's product, then black and isort, plus bugs 4-6. It is the same 10 files + migration 0084.
+
+#### §6.6.11 Results so far, and a STOP (recorded unamended)
+
+| Run | Sha | Declared | Result | Log |
+|---|---|---|---|---|
+| R0 | e7453ecf7 | Ran 1, OK | Ran 1, OK, as declared | `step6/R0_char_e7453ecf7.log` |
+| R1 | 74288e60f | Ran 188, FAILED (failures=2, errors=42, skipped=2) | **as declared**: failures `not less than or equal to` (beat_locks) and `False is not true` (help text); errors 40 `ModuleNotFoundError`, 1 `KeyError: 'billing.tasks.promote_queued_jobs'`, 1 `has no attribute 'paper_hold_estimate'` | `step6/R1_red_74288e60f.log` |
+| R2 | 8e8acc617 | Ran 189, OK (skipped=2) | as declared | `step6/R2_green_8e8acc617.log` |
+| BR-1 | 8e8acc617 | Ran 27, failures=1, `23 != 21` | as declared | `step6/BR-1_8e8acc617.log` |
+| BR-2 | 8e8acc617 | Ran 34, failures=1, `a new public function needs a plain-values check here` | as declared | `step6/BR-2_8e8acc617.log` |
+| BR-3 | 8e8acc617 | Ran 16, failures=2, er2/er8 fragments | as declared | `step6/BR-3_8e8acc617.log` |
+| **BR-4** | 8e8acc617 | Ran 11, failures=2 | **Ran 11, OK: MISMATCH** | `step6/BR-4_8e8acc617.log` |
+| **BR-5** | 8e8acc617 | Ran 18, failures=9 | **Ran 18, OK: MISMATCH** | `step6/BR-5_8e8acc617.log` |
+| **BR-6** | 8e8acc617 | Ran 13, failures=2 | **Ran 13, OK: MISMATCH** | `step6/BR-6_8e8acc617.log` |
+| **BR-7** | 8e8acc617 | Ran 24, failures=1 | **Ran 24, OK: MISMATCH** | `step6/BR-7_8e8acc617.log` |
+
+Every BR file was restored by `git checkout`, and each sha256 matched the committed file's.
+
+**STOP to the SM.** No plant, Gate 6 or E-run has been made since.
+
+**Cause, found by reading only (nothing re-run):**
+- The four student modules do not pin `BILLING_HOLDS_ENABLED`. They exercise the flag-on batch path only when the environment sets it, as E1/P-on do (`settings.py:699`, `env.bool("BILLING_HOLDS_ENABLED", default=False)`).
+- The probe's `P-unedited-on-final` run, which my fragments came from, ran with the env flag on. Its log is cloned-database, E1-style.
+- My §6.6.4 declaration of BR-4..7 left that condition out, so BR-4..7 ran with the env unset. There the unedited tests take today's flag-off path and pass.
+- BR-1..3's modules pin the flag themselves, so the env makes no difference to them.
+- The same gap applies to R2. With the env unset, the four edited student modules ran on the flag-off path. Their flag-on behavior is exercised by E1 (env flag on).
+
+**Proposed (for the SM's ruling; not done):**
+- Re-declare BR-4..7 with `BILLING_HOLDS_ENABLED=True` in the environment, with the fragments unchanged as in §6.6.4, and run them as BR-4b..7b.
+- Add an R2b run of the four edited modules with the env flag on: declared Ran 66, OK.

@@ -1,0 +1,1290 @@
+B1b-6 R1 red (NOTES §6.6.3 as amended in §6.6.10): declared Ran 188, FAILED (failures=2, errors=42, skipped=2), at 74288e60f
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+ss....F.Free trial plan not found: no trial activated for user cd6687be-7fc9-4161-8dd4-b7f3ef89f14a.
+Cannot activate automatic trial for user cd6687be-7fc9-4161-8dd4-b7f3ef89f14a (validation): ValueError
+.Free trial plan not found: no trial activated for user 7b81526a-4a8c-46d7-824e-7ee8838af6da.
+Cannot activate automatic trial for user 7b81526a-4a8c-46d7-824e-7ee8838af6da (validation): ValueError
+......Free trial plan not found: no trial activated for user 24e50b0d-c365-496c-a85e-6409f55547d8.
+Cannot activate automatic trial for user 24e50b0d-c365-496c-a85e-6409f55547d8 (validation): ValueError
+.Free trial plan not found: no trial activated for user bbe576ad-1209-4e5d-9412-4b555568fc4e.
+Cannot activate automatic trial for user bbe576ad-1209-4e5d-9412-4b555568fc4e (validation): ValueError
+.Free trial plan not found: no trial activated for user 5f10faf7-85ca-4422-8922-9bab0cf6372c.
+Cannot activate automatic trial for user 5f10faf7-85ca-4422-8922-9bab0cf6372c (validation): ValueError
+.Free trial plan not found: no trial activated for user e7b611e4-7cdc-4fa9-a445-1462e053ff0e.
+Cannot activate automatic trial for user e7b611e4-7cdc-4fa9-a445-1462e053ff0e (validation): ValueError
+EFree trial plan not found: no trial activated for user 035cb87a-28af-468e-b24f-205812dd48bd.
+Cannot activate automatic trial for user 035cb87a-28af-468e-b24f-205812dd48bd (validation): ValueError
+.Free trial plan not found: no trial activated for user 0aed60ea-3a49-4699-bf32-470881e216e5.
+Cannot activate automatic trial for user 0aed60ea-3a49-4699-bf32-470881e216e5 (validation): ValueError
+.Free trial plan not found: no trial activated for user 05906762-0219-4763-a64c-1105a79db2e8.
+Cannot activate automatic trial for user 05906762-0219-4763-a64c-1105a79db2e8 (validation): ValueError
+.Free trial plan not found: no trial activated for user ae18e348-d6ed-4b6f-9ecb-61b64aca37b4.
+Cannot activate automatic trial for user ae18e348-d6ed-4b6f-9ecb-61b64aca37b4 (validation): ValueError
+.Free trial plan not found: no trial activated for user bf800de6-5f04-4f42-8975-c5d74e8cb583.
+Cannot activate automatic trial for user bf800de6-5f04-4f42-8975-c5d74e8cb583 (validation): ValueError
+.Free trial plan not found: no trial activated for user fbf82a2b-3132-42f1-9d55-b47e99725c08.
+Cannot activate automatic trial for user fbf82a2b-3132-42f1-9d55-b47e99725c08 (validation): ValueError
+.Free trial plan not found: no trial activated for user 87372d96-92de-4f9c-855f-b739a4584f95.
+Cannot activate automatic trial for user 87372d96-92de-4f9c-855f-b739a4584f95 (validation): ValueError
+Free trial plan not found: no trial activated for user ccdfb75c-4662-4656-9864-002702fe5e5a.
+Cannot activate automatic trial for user ccdfb75c-4662-4656-9864-002702fe5e5a (validation): ValueError
+.Free trial plan not found: no trial activated for user 2e45c0c0-4ee3-4ce5-8e0f-5c913edead89.
+Cannot activate automatic trial for user 2e45c0c0-4ee3-4ce5-8e0f-5c913edead89 (validation): ValueError
+Free trial plan not found: no trial activated for user 14f76387-51c4-403c-b704-3c2880313450.
+Cannot activate automatic trial for user 14f76387-51c4-403c-b704-3c2880313450 (validation): ValueError
+.Free trial plan not found: no trial activated for user eee9101c-1b46-4f9f-b8a7-e987699d33b8.
+Cannot activate automatic trial for user eee9101c-1b46-4f9f-b8a7-e987699d33b8 (validation): ValueError
+Free trial plan not found: no trial activated for user 3bc5ecc7-ceb4-4308-9450-1b54a3a24362.
+Cannot activate automatic trial for user 3bc5ecc7-ceb4-4308-9450-1b54a3a24362 (validation): ValueError
+.Free trial plan not found: no trial activated for user c87beb52-f556-49f7-b63e-082748cd7c94.
+Cannot activate automatic trial for user c87beb52-f556-49f7-b63e-082748cd7c94 (validation): ValueError
+Free trial plan not found: no trial activated for user 73c55b44-9ec2-42f4-9267-97217dc6f04f.
+Cannot activate automatic trial for user 73c55b44-9ec2-42f4-9267-97217dc6f04f (validation): ValueError
+.Free trial plan not found: no trial activated for user b0b52ee9-bbf3-4a78-a3e7-810f4c982999.
+Cannot activate automatic trial for user b0b52ee9-bbf3-4a78-a3e7-810f4c982999 (validation): ValueError
+Free trial plan not found: no trial activated for user 2af046d5-7767-49a5-b3be-bd3d3652861e.
+Cannot activate automatic trial for user 2af046d5-7767-49a5-b3be-bd3d3652861e (validation): ValueError
+.Free trial plan not found: no trial activated for user 751226be-e2c5-407f-a37a-46b864541eca.
+Cannot activate automatic trial for user 751226be-e2c5-407f-a37a-46b864541eca (validation): ValueError
+Free trial plan not found: no trial activated for user c4c7d974-6ac5-4031-bcfa-cf45c7f2e04b.
+Cannot activate automatic trial for user c4c7d974-6ac5-4031-bcfa-cf45c7f2e04b (validation): ValueError
+.Free trial plan not found: no trial activated for user 49057679-378b-48ef-b8f1-4a89b8bdc9dc.
+Cannot activate automatic trial for user 49057679-378b-48ef-b8f1-4a89b8bdc9dc (validation): ValueError
+Free trial plan not found: no trial activated for user c222763d-68cd-40b2-a95d-970b10423764.
+Cannot activate automatic trial for user c222763d-68cd-40b2-a95d-970b10423764 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7c2144cc-51ba-4e32-8ef4-3eb257d70e1e.
+Cannot activate automatic trial for user 7c2144cc-51ba-4e32-8ef4-3eb257d70e1e (validation): ValueError
+Free trial plan not found: no trial activated for user 6efb0885-da90-4462-9e09-7334123d5770.
+Cannot activate automatic trial for user 6efb0885-da90-4462-9e09-7334123d5770 (validation): ValueError
+.Free trial plan not found: no trial activated for user 825bb14c-695b-4c17-b6c2-c352eb304796.
+Cannot activate automatic trial for user 825bb14c-695b-4c17-b6c2-c352eb304796 (validation): ValueError
+Free trial plan not found: no trial activated for user 22a5eab2-bdaf-4637-9531-636022e1960e.
+Cannot activate automatic trial for user 22a5eab2-bdaf-4637-9531-636022e1960e (validation): ValueError
+.Free trial plan not found: no trial activated for user cd695ab1-2103-46a8-a55d-79cdcb1a2f34.
+Cannot activate automatic trial for user cd695ab1-2103-46a8-a55d-79cdcb1a2f34 (validation): ValueError
+Free trial plan not found: no trial activated for user b50e7ffe-bf1c-450f-88b4-837fce6472f5.
+Cannot activate automatic trial for user b50e7ffe-bf1c-450f-88b4-837fce6472f5 (validation): ValueError
+.Free trial plan not found: no trial activated for user e6270123-6896-42bf-ab4c-2ec112654cd2.
+Cannot activate automatic trial for user e6270123-6896-42bf-ab4c-2ec112654cd2 (validation): ValueError
+Free trial plan not found: no trial activated for user 6e30f7da-3b47-4d83-a1cc-6b0d65715211.
+Cannot activate automatic trial for user 6e30f7da-3b47-4d83-a1cc-6b0d65715211 (validation): ValueError
+......Free trial plan not found: no trial activated for user b607c14c-22da-4ff9-ae57-966fbf409e3c.
+Cannot activate automatic trial for user b607c14c-22da-4ff9-ae57-966fbf409e3c (validation): ValueError
+.Free trial plan not found: no trial activated for user 445db796-781e-4945-8cd6-3a7aed1e3d8b.
+Cannot activate automatic trial for user 445db796-781e-4945-8cd6-3a7aed1e3d8b (validation): ValueError
+.Free trial plan not found: no trial activated for user 37e7de41-a9c4-4301-8ed0-d67351fff00c.
+Cannot activate automatic trial for user 37e7de41-a9c4-4301-8ed0-d67351fff00c (validation): ValueError
+.Free trial plan not found: no trial activated for user ab727654-01bf-4701-9a4f-1f1ecc2aaac5.
+Cannot activate automatic trial for user ab727654-01bf-4701-9a4f-1f1ecc2aaac5 (validation): ValueError
+.Free trial plan not found: no trial activated for user fd28c454-0616-46c4-89e8-17728aa19b52.
+Cannot activate automatic trial for user fd28c454-0616-46c4-89e8-17728aa19b52 (validation): ValueError
+.Free trial plan not found: no trial activated for user bf6fb59e-5588-4960-98c9-ec42f4a85caf.
+Cannot activate automatic trial for user bf6fb59e-5588-4960-98c9-ec42f4a85caf (validation): ValueError
+.Free trial plan not found: no trial activated for user f936df9b-a09b-44d2-8526-c1dbefcef33d.
+Cannot activate automatic trial for user f936df9b-a09b-44d2-8526-c1dbefcef33d (validation): ValueError
+.Free trial plan not found: no trial activated for user cc35329b-f5c1-4817-8294-1387cf4abd95.
+Cannot activate automatic trial for user cc35329b-f5c1-4817-8294-1387cf4abd95 (validation): ValueError
+.Free trial plan not found: no trial activated for user 07395234-35be-413f-a953-3c2da14bb1b3.
+Cannot activate automatic trial for user 07395234-35be-413f-a953-3c2da14bb1b3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 631eefba-357d-4f52-b32b-24ceffea26d1.
+Cannot activate automatic trial for user 631eefba-357d-4f52-b32b-24ceffea26d1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 40235561-0ebc-4dd8-b803-a6aca015fb22.
+Cannot activate automatic trial for user 40235561-0ebc-4dd8-b803-a6aca015fb22 (validation): ValueError
+.Free trial plan not found: no trial activated for user c5447e1a-3c1b-45f1-9960-d400511d8b78.
+Cannot activate automatic trial for user c5447e1a-3c1b-45f1-9960-d400511d8b78 (validation): ValueError
+.Free trial plan not found: no trial activated for user 85931f4f-4528-4b29-9afa-28cecb61fe48.
+Cannot activate automatic trial for user 85931f4f-4528-4b29-9afa-28cecb61fe48 (validation): ValueError
+.Free trial plan not found: no trial activated for user 40a40955-9b1f-4d0a-b036-d9359bb98e94.
+Cannot activate automatic trial for user 40a40955-9b1f-4d0a-b036-d9359bb98e94 (validation): ValueError
+...Free trial plan not found: no trial activated for user 2dcc23fe-93e8-4899-a8d5-bac1777ee126.
+Cannot activate automatic trial for user 2dcc23fe-93e8-4899-a8d5-bac1777ee126 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+Upload door could not estimate big.pdf: PayloadTooLarge
+
+
+students.task_tracking ERROR 2026-11-11 08:07:38,244 task_tracking 76793 131062817990528 [request_id=52789c02-5808-4068-8e94-425a06fe3db2 client_request_id=-] Background task 064462cf-1719-4058-84c4-1483254120fe failed: error=PayloadTooLarge frames=views.py:1533:batch_upload <- uploads.py:74:validate_upload_size
+
+
+.Free trial plan not found: no trial activated for user 5544c108-ffe8-46a9-a756-f6845a6db6ea.
+Cannot activate automatic trial for user 5544c108-ffe8-46a9-a756-f6845a6db6ea (validation): ValueError
+Upload door could not estimate big.pdf: PayloadTooLarge
+
+
+students.task_tracking ERROR 2026-11-11 08:07:38,663 task_tracking 76793 131062817990528 [request_id=77542ae2-4de3-4cdc-bcac-3576cd285f34 client_request_id=-] Background task c432fa58-90d8-4dcc-8e96-9854fb081c7c failed: error=PayloadTooLarge frames=views.py:1155:upload_assignment_async <- uploads.py:74:validate_upload_size
+
+
+.Free trial plan not found: no trial activated for user 30fc0d67-db4f-4f3a-a97c-f6870f64289a.
+Cannot activate automatic trial for user 30fc0d67-db4f-4f3a-a97c-f6870f64289a (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:07:38,904 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 7afc762e-3754-4486-8e95-dc552dc86fb5 failed: error=RuntimeError
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:38,922 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task ce4e3cbf-8905-4c34-bd29-f243d1538b3a failed: error=RuntimeError
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:38,936 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 3a0b4733-7f74-422f-b46d-1258f0ac84e7 failed: error=RuntimeError
+
+
+.Free trial plan not found: no trial activated for user f5f5716e-faab-4092-b38a-49555c81518a.
+Cannot activate automatic trial for user f5f5716e-faab-4092-b38a-49555c81518a (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:07:39,303 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 3603f88a-4070-4a3f-ad77-8fd852c7d075 failed: error=FileUnreadableError
+
+
+
+
+students.task_tracking WARNING 2026-11-11 08:07:39,317 refusals 76793 131062817990528 [request_id=- client_request_id=-] Background task 6c9480fc-8782-4c63-ba83-e87df1aef305 refused: InsufficientCreditsError: balance 3, needs 9
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:39,327 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 1759d03c-2a5f-4260-a354-a5a739d49e84 failed: error=RuntimeError
+
+
+.Free trial plan not found: no trial activated for user d9da49de-44ce-4750-8b04-393979c87e3b.
+Cannot activate automatic trial for user d9da49de-44ce-4750-8b04-393979c87e3b (validation): ValueError
+.Free trial plan not found: no trial activated for user 65df8cab-3cf2-4fc8-9c66-a45ef8f1a99c.
+Cannot activate automatic trial for user 65df8cab-3cf2-4fc8-9c66-a45ef8f1a99c (validation): ValueError
+.Free trial plan not found: no trial activated for user 45be8026-3377-4e82-8619-a387ee552445.
+Cannot activate automatic trial for user 45be8026-3377-4e82-8619-a387ee552445 (validation): ValueError
+.Free trial plan not found: no trial activated for user b5bc9700-0377-4729-8958-d3139f247126.
+Cannot activate automatic trial for user b5bc9700-0377-4729-8958-d3139f247126 (validation): ValueError
+.Free trial plan not found: no trial activated for user ebc203be-6aa6-4570-b5bf-aa0501da12b4.
+Cannot activate automatic trial for user ebc203be-6aa6-4570-b5bf-aa0501da12b4 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:07:41,030 task_tracking 76793 131062817990528 [request_id=8f6deb10-afbf-4c62-8e0d-9c034dc82e38 client_request_id=-] Background task 18c06572-7dfc-485f-9b43-61341ed38c6f failed: error=RuntimeError frames=tasks.py:1085:upload_answers_engine_async <- services.py:1544:upload_answers_engine <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 55802f50-b2ba-4fe7-9b66-bfd35d030d6a.
+Cannot activate automatic trial for user 55802f50-b2ba-4fe7-9b66-bfd35d030d6a (validation): ValueError
+Upload door could not estimate b.png: FileUnreadableError
+
+
+students.task_tracking ERROR 2026-11-11 08:07:41,437 task_tracking 76793 131062817990528 [request_id=e70337b5-b31e-45c7-87a6-2ce1e018708a client_request_id=-] Background task e20b1dc8-b946-435a-9fc2-025c799375f3 failed: error=FileUnreadableError frames=tasks.py:1066:upload_answers_engine_async <- services.py:601:prepare_ai_content <- services.py:557:_compress_uploaded_image
+
+
+.Free trial plan not found: no trial activated for user c3a5653d-665e-41cd-a958-ab2e181b51e0.
+Cannot activate automatic trial for user c3a5653d-665e-41cd-a958-ab2e181b51e0 (validation): ValueError
+Upload door could not estimate big1.pdf: PayloadTooLarge
+Upload door could not estimate big2.pdf: PayloadTooLarge
+Upload door could not estimate junk1.png: FileUnreadableError
+Upload door could not estimate junk2.png: FileUnreadableError
+Upload door could not estimate notes1.txt: FileTypeUnsupportedError
+Upload door could not estimate notes2.txt: FileTypeUnsupportedError
+Upload door could not estimate blank1.pdf: SubmissionEmptyError
+Upload door could not estimate blank2.pdf: SubmissionEmptyError
+
+
+students.task_tracking ERROR 2026-11-11 08:07:42,263 task_tracking 76793 131062817990528 [request_id=e118845f-e88b-4a47-ace9-42806c7bf252 client_request_id=-] Background task 4b9256b8-c400-491b-89d6-5efe1bbda0da failed: error=PayloadTooLarge frames=views.py:1533:batch_upload <- uploads.py:74:validate_upload_size
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:42,346 task_tracking 76793 131062817990528 [request_id=e118845f-e88b-4a47-ace9-42806c7bf252 client_request_id=-] Background task 2d548722-dc18-4084-ae5b-1dbcf2833062 failed: error=PayloadTooLarge frames=views.py:1533:batch_upload <- uploads.py:74:validate_upload_size
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:42,474 task_tracking 76793 131062817990528 [request_id=e118845f-e88b-4a47-ace9-42806c7bf252 client_request_id=-] Background task 77946ced-9158-4abc-b7c4-d5653bdefd44 failed: error=FileUnreadableError frames=tasks.py:1066:upload_answers_engine_async <- services.py:601:prepare_ai_content <- services.py:557:_compress_uploaded_image
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:42,611 task_tracking 76793 131062817990528 [request_id=e118845f-e88b-4a47-ace9-42806c7bf252 client_request_id=-] Background task ab7f0b91-f0e2-4643-a2f6-4bb102b380f2 failed: error=FileUnreadableError frames=tasks.py:1066:upload_answers_engine_async <- services.py:601:prepare_ai_content <- services.py:557:_compress_uploaded_image
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:42,747 task_tracking 76793 131062817990528 [request_id=e118845f-e88b-4a47-ace9-42806c7bf252 client_request_id=-] Background task ac50a455-0fd8-40cc-bf0d-d410b4b8392a failed: error=FileTypeUnsupportedError frames=tasks.py:1066:upload_answers_engine_async <- services.py:590:prepare_ai_content
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:42,884 task_tracking 76793 131062817990528 [request_id=e118845f-e88b-4a47-ace9-42806c7bf252 client_request_id=-] Background task a7a201cc-5a11-405a-8046-acfd8a56a608 failed: error=FileTypeUnsupportedError frames=tasks.py:1066:upload_answers_engine_async <- services.py:590:prepare_ai_content
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:43,061 task_tracking 76793 131062817990528 [request_id=e118845f-e88b-4a47-ace9-42806c7bf252 client_request_id=-] Background task a3dd72f0-790b-46bc-b2aa-5e55db4257d0 failed: error=SubmissionEmptyError frames=tasks.py:1066:upload_answers_engine_async <- services.py:623:prepare_ai_content
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:43,191 task_tracking 76793 131062817990528 [request_id=e118845f-e88b-4a47-ace9-42806c7bf252 client_request_id=-] Background task 27621cdf-b21d-43f7-81a3-f78e2fdd9ceb failed: error=SubmissionEmptyError frames=tasks.py:1066:upload_answers_engine_async <- services.py:623:prepare_ai_content
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:43,365 task_tracking 76793 131062817990528 [request_id=e118845f-e88b-4a47-ace9-42806c7bf252 client_request_id=-] Background task e41a8bab-d1c6-4185-9cfe-803ab60a03ba failed: error=StudentNameUnmatchedError frames=tasks.py:1085:upload_answers_engine_async <- services.py:1574:upload_answers_engine <- services.py:2000:_match_enrolled_student
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:43,556 task_tracking 76793 131062817990528 [request_id=e118845f-e88b-4a47-ace9-42806c7bf252 client_request_id=-] Background task af266dea-3675-423d-b669-2c45d2b6162c failed: error=StudentNameUnmatchedError frames=tasks.py:1085:upload_answers_engine_async <- services.py:1574:upload_answers_engine <- services.py:2036:_match_enrolled_student
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:43,730 task_tracking 76793 131062817990528 [request_id=e118845f-e88b-4a47-ace9-42806c7bf252 client_request_id=-] Background task 8a501097-8a4d-45af-91bd-a62ba3856026 failed: error=StudentNotOnRosterError frames=tasks.py:1085:upload_answers_engine_async <- services.py:1574:upload_answers_engine <- services.py:2022:_match_enrolled_student
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:43,922 task_tracking 76793 131062817990528 [request_id=e118845f-e88b-4a47-ace9-42806c7bf252 client_request_id=-] Background task 8a681e6f-1a6b-42e9-9995-436d4af511e1 failed: error=StudentNotOnRosterError frames=tasks.py:1085:upload_answers_engine_async <- services.py:1574:upload_answers_engine <- services.py:2022:_match_enrolled_student
+
+
+.Free trial plan not found: no trial activated for user e9f52f9c-d3c4-4e83-ba50-4b17844b45ad.
+Cannot activate automatic trial for user e9f52f9c-d3c4-4e83-ba50-4b17844b45ad (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-11 08:07:45,277 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:07:45,277 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+.Free trial plan not found: no trial activated for user 85f7b54a-9df4-44d1-9278-d2f0f9b47057.
+Cannot activate automatic trial for user 85f7b54a-9df4-44d1-9278-d2f0f9b47057 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-11 08:07:45,707 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:07:45,708 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+.Free trial plan not found: no trial activated for user ece3dab3-65db-40bd-946e-4fab70b7fae9.
+Cannot activate automatic trial for user ece3dab3-65db-40bd-946e-4fab70b7fae9 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-11 08:07:46,057 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:07:46,057 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:07:46,211 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:07:46,211 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+.Free trial plan not found: no trial activated for user 759a8951-db91-4efc-bf70-a39af6a6cc74.
+Cannot activate automatic trial for user 759a8951-db91-4efc-bf70-a39af6a6cc74 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-11 08:07:46,553 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:07:46,554 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+.Free trial plan not found: no trial activated for user c598ab93-8e0a-426c-9416-a29fb2be2bab.
+Cannot activate automatic trial for user c598ab93-8e0a-426c-9416-a29fb2be2bab (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:07:47,081 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 566d44ad-9d31-4cd2-8ddf-3424551ae9b3 failed: error=ConnectionError
+
+
+.Free trial plan not found: no trial activated for user 87c559bd-1056-4faf-b5bb-367e6f02ee13.
+Cannot activate automatic trial for user 87c559bd-1056-4faf-b5bb-367e6f02ee13 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:07:47,399 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 1ddca29e-2f29-4c98-9b1c-67d68ba7eb52 failed: error=ConnectionError
+
+
+.Free trial plan not found: no trial activated for user 8b33591e-0c5b-4953-a410-62bf4a7f2663.
+Cannot activate automatic trial for user 8b33591e-0c5b-4953-a410-62bf4a7f2663 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8caac77a-4e36-43dd-b3ae-5cd544f07478.
+Cannot activate automatic trial for user 8caac77a-4e36-43dd-b3ae-5cd544f07478 (validation): ValueError
+.Free trial plan not found: no trial activated for user abac1e11-172d-4884-8c4a-edbe84f7cc14.
+Cannot activate automatic trial for user abac1e11-172d-4884-8c4a-edbe84f7cc14 (validation): ValueError
+.Free trial plan not found: no trial activated for user 785ba35c-c18e-4f68-9a86-b6654978c18a.
+Cannot activate automatic trial for user 785ba35c-c18e-4f68-9a86-b6654978c18a (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:07:48,075 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 1ad10c93-36d0-4458-8b30-7514a3f2f86b failed: error=ConnectionError
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:07:48,105 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 1ad10c93-36d0-4458-8b30-7514a3f2f86b failed: error=ConnectionError
+
+
+.Free trial plan not found: no trial activated for user f0fdb65f-1f88-471f-b227-57151f53aa04.
+Cannot activate automatic trial for user f0fdb65f-1f88-471f-b227-57151f53aa04 (validation): ValueError
+Auto-grade skipped (H-38): assignment 138f68cd-9b65-48e1-831a-fcc26451530c, course 7d3a0492-0580-418a-8622-4f302797353d is no longer reachable by its teacher f0fdb65f-1f88-471f-b227-57151f53aa04.
+.Free trial plan not found: no trial activated for user 7249204f-c02b-4366-9557-e17b089d9df6.
+Cannot activate automatic trial for user 7249204f-c02b-4366-9557-e17b089d9df6 (validation): ValueError
+auto_grade_due_assignment failed: assignment=5c669e9d-3e10-48c3-beb3-f0afa58db687 error=DoesNotExist frames=tasks.py:1737:auto_grade_due_assignment <- manager.py:87:manager_method <- query.py:635:get
+.Free trial plan not found: no trial activated for user 3b42e384-16bd-4058-a8d6-0d41ea4c313b.
+Cannot activate automatic trial for user 3b42e384-16bd-4058-a8d6-0d41ea4c313b (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:07:48,558 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task d2d3b8fd-bc04-445d-a8dd-8290b337dc0b failed: error=RubricMissingError
+
+
+Grading of assignment 0525bee4-e633-41c2-8307-3c5a4a7d7488 refused at run time: RUBRIC_MISSING (1 submission(s) not dispatched).
+.Free trial plan not found: no trial activated for user d39af3de-196f-4d08-8859-bd8633c91d9e.
+Cannot activate automatic trial for user d39af3de-196f-4d08-8859-bd8633c91d9e (validation): ValueError
+auto_grade_due_assignment failed: assignment=28bfe2ee-9419-46d5-a8e2-abb9b51aa3da error=RuntimeError frames=tasks.py:1737:auto_grade_due_assignment <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+.Free trial plan not found: no trial activated for user 269b6e14-2312-4c23-bf7c-34ff291b662a.
+Cannot activate automatic trial for user 269b6e14-2312-4c23-bf7c-34ff291b662a (validation): ValueError
+.Free trial plan not found: no trial activated for user 5a938ecd-2087-423e-94e3-2e72077e5d2f.
+Cannot activate automatic trial for user 5a938ecd-2087-423e-94e3-2e72077e5d2f (validation): ValueError
+.Free trial plan not found: no trial activated for user ad726458-854a-4b71-8ea1-a803e88bc2b6.
+Cannot activate automatic trial for user ad726458-854a-4b71-8ea1-a803e88bc2b6 (validation): ValueError
+.Free trial plan not found: no trial activated for user 42c5653c-9691-4576-b81b-91abf2e47be2.
+Cannot activate automatic trial for user 42c5653c-9691-4576-b81b-91abf2e47be2 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:07:49,503 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 38fbba39-d4b5-4c8e-9e36-44ebe317e6f8 failed: error=ConnectionError
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:07:49,619 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:07:49,619 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:07:49,819 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:07:49,819 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:07:50,086 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:07:50,087 services 76793 131062817990528 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+.Free trial plan not found: no trial activated for user 8fff619d-aa66-47c1-abd8-de95546e7903.
+Cannot activate automatic trial for user 8fff619d-aa66-47c1-abd8-de95546e7903 (validation): ValueError
+.Free trial plan not found: no trial activated for user 94a39fc6-34c8-4713-baaf-bb5d19c43dc4.
+Cannot activate automatic trial for user 94a39fc6-34c8-4713-baaf-bb5d19c43dc4 (validation): ValueError
+Grading refused (H-38): submission 8101270f-ca46-404e-b4ad-262581688b6d, user 21517561-53d2-4361-9def-50726a5fad3b can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:07:51,644 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 0866aada-cd9c-4b9f-a734-3a764e7d78b9 failed: error=CourseNotReachableError frames=tasks.py:695:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user b7b36e6a-54a9-4e85-a750-9878f1c9d407.
+Cannot activate automatic trial for user b7b36e6a-54a9-4e85-a750-9878f1c9d407 (validation): ValueError
+API request refused: Http404 (404)
+
+
+django.request WARNING 2026-11-11 08:07:52,214 log 76793 131062817990528 [request_id=- client_request_id=-] Not Found: /api/v1/tasks/session-results/fb36efc9-c259-49eb-ab8e-6fc87eaf92d8
+
+
+API request refused: NotFound (404)
+
+
+django.request WARNING 2026-11-11 08:07:52,235 log 76793 131062817990528 [request_id=- client_request_id=-] Not Found: /api/v1/tasks/status/7b3c2aa4-4c1d-410a-af49-148a1bc6f92c
+
+
+API request refused: NotFound (404)
+
+
+django.request WARNING 2026-11-11 08:07:52,258 log 76793 131062817990528 [request_id=- client_request_id=-] Not Found: /api/v1/tasks/cancel/7b3c2aa4-4c1d-410a-af49-148a1bc6f92c
+
+
+API request refused: Http404 (404)
+
+
+django.request WARNING 2026-11-11 08:07:52,272 log 76793 131062817990528 [request_id=- client_request_id=-] Not Found: /api/v1/tasks/cancel-session/fb36efc9-c259-49eb-ab8e-6fc87eaf92d8
+
+
+Grading refused (H-38): submission 89558d58-bb7e-41e5-9a54-7e3a111fa44c, user b7b36e6a-54a9-4e85-a750-9878f1c9d407 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:07:52,294 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task d98e9c3c-38e4-41ae-975a-9dbe2c4b9f3b failed: error=CourseNotReachableError frames=tasks.py:695:grade_engine_async
+
+
+Auto-grade skipped (H-38): assignment 4d2502b8-d632-498e-b7c8-454d891e3fb0, course 3345cc3f-7717-4613-b31e-1b5f9a1859c3 is no longer reachable by its teacher b7b36e6a-54a9-4e85-a750-9878f1c9d407.
+.Free trial plan not found: no trial activated for user f0db0c0b-222d-4d55-9fd8-a8ff3651cf78.
+Cannot activate automatic trial for user f0db0c0b-222d-4d55-9fd8-a8ff3651cf78 (validation): ValueError
+Free trial plan not found: no trial activated for user fa38c9bf-3bef-4ef2-9a3a-a9e6c4e03ef0.
+Cannot activate automatic trial for user fa38c9bf-3bef-4ef2-9a3a-a9e6c4e03ef0 (validation): ValueError
+Grading refused (H-38): submission 12b304d4-d8d0-41c0-9cf7-1fa3b637cf55, user f0db0c0b-222d-4d55-9fd8-a8ff3651cf78 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:07:52,862 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task d24fb9de-f27d-4217-b18e-2e25b29ebde7 failed: error=CourseNotReachableError frames=tasks.py:695:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user b44d236b-f880-49f6-945d-4d50946aeef4.
+Cannot activate automatic trial for user b44d236b-f880-49f6-945d-4d50946aeef4 (validation): ValueError
+Free trial plan not found: no trial activated for user ce7960ff-3bd6-4aff-b52b-279cab379f9d.
+Cannot activate automatic trial for user ce7960ff-3bd6-4aff-b52b-279cab379f9d (validation): ValueError
+.Free trial plan not found: no trial activated for user c7dc133a-c247-403b-b8ed-100b1baff3b8.
+Cannot activate automatic trial for user c7dc133a-c247-403b-b8ed-100b1baff3b8 (validation): ValueError
+Free trial plan not found: no trial activated for user 0478fa73-ba37-428e-89f2-dc0fb7d83553.
+Cannot activate automatic trial for user 0478fa73-ba37-428e-89f2-dc0fb7d83553 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: NotFound (404)
+API request refused: NotFound (404)
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user f06df0ea-d0f8-4fd2-abf2-58ce73dfa84f.
+Cannot activate automatic trial for user f06df0ea-d0f8-4fd2-abf2-58ce73dfa84f (validation): ValueError
+Batch grading refused (H-38): assignment 0507681c-5b4f-40f0-b3a1-253b2a1fba7a, user f06df0ea-d0f8-4fd2-abf2-58ce73dfa84f can no longer reach its course.
+.Free trial plan not found: no trial activated for user b7287a68-6c01-45a4-8943-3eddfecfdcfd.
+Cannot activate automatic trial for user b7287a68-6c01-45a4-8943-3eddfecfdcfd (validation): ValueError
+API request refused: Http404 (404)
+API request refused: NotFound (404)
+API request refused: NotFound (404)
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+API request refused: NotFound (404)
+API request refused: NotFound (404)
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user e014e862-8b5d-46c7-97a5-76879ac88e16.
+Cannot activate automatic trial for user e014e862-8b5d-46c7-97a5-76879ac88e16 (validation): ValueError
+Grading refused (H-38): submission 5c6e30ce-db59-48b6-8f7f-39ebc8688507, user e014e862-8b5d-46c7-97a5-76879ac88e16 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:07:55,580 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task d0bcd560-449c-4704-9f98-76e6c64f4f20 failed: error=CourseNotReachableError frames=tasks.py:695:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 7345c665-5fa7-47ce-b69f-ee9448d6c388.
+Cannot activate automatic trial for user 7345c665-5fa7-47ce-b69f-ee9448d6c388 (validation): ValueError
+API request refused: Http404 (404)
+API request refused: NotFound (404)
+API request refused: NotFound (404)
+API request refused: Http404 (404)
+.Free trial plan not found: no trial activated for user 79959127-9656-4979-b69b-40df05399124.
+Cannot activate automatic trial for user 79959127-9656-4979-b69b-40df05399124 (validation): ValueError
+Auto-grade skipped (H-38): assignment ecd24696-4f4e-40e4-a627-be9db989e193, course 2f8eb15a-61e1-4e61-9c90-7dbd2c006f38 is no longer reachable by its teacher 79959127-9656-4979-b69b-40df05399124.
+.Free trial plan not found: no trial activated for user 6557b998-330c-490a-b76b-2aef2f7ecbd2.
+Cannot activate automatic trial for user 6557b998-330c-490a-b76b-2aef2f7ecbd2 (validation): ValueError
+.Free trial plan not found: no trial activated for user dd0a9867-c5a1-44c5-a507-2df8fc781b98.
+Cannot activate automatic trial for user dd0a9867-c5a1-44c5-a507-2df8fc781b98 (validation): ValueError
+.Free trial plan not found: no trial activated for user c5a2aa68-6c59-494e-a5b6-813a3283d357.
+Cannot activate automatic trial for user c5a2aa68-6c59-494e-a5b6-813a3283d357 (validation): ValueError
+Free trial plan not found: no trial activated for user 2e7be4b4-a394-4ba8-9e90-299a4706fa73.
+Cannot activate automatic trial for user 2e7be4b4-a394-4ba8-9e90-299a4706fa73 (validation): ValueError
+Batch grading refused (H-38): assignment 32b5d68c-beb5-4435-93c1-814c17883a53, user 2e7be4b4-a394-4ba8-9e90-299a4706fa73 can no longer reach its course.
+.Free trial plan not found: no trial activated for user 8a321eac-1340-47cc-9b05-633c4d256bae.
+Cannot activate automatic trial for user 8a321eac-1340-47cc-9b05-633c4d256bae (validation): ValueError
+Free trial plan not found: no trial activated for user e8037dc8-2bd7-443b-965e-bb632a0b4890.
+Cannot activate automatic trial for user e8037dc8-2bd7-443b-965e-bb632a0b4890 (validation): ValueError
+Grading refused (H-38): submission 8915c3df-9c4a-4ac0-8a34-679afbcf6609, user e8037dc8-2bd7-443b-965e-bb632a0b4890 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:07:58,697 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task None failed: error=CourseNotReachableError frames=tasks.py:695:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 9af92958-9a45-44fc-b683-6e0a8330b41f.
+Cannot activate automatic trial for user 9af92958-9a45-44fc-b683-6e0a8330b41f (validation): ValueError
+Free trial plan not found: no trial activated for user 6c987ff3-8c5b-4c81-b598-f7194ca6f45c.
+Cannot activate automatic trial for user 6c987ff3-8c5b-4c81-b598-f7194ca6f45c (validation): ValueError
+Free trial plan not found: no trial activated for user 9f4364a1-8ba8-4f57-b46f-8fd2433ffd8d.
+Cannot activate automatic trial for user 9f4364a1-8ba8-4f57-b46f-8fd2433ffd8d (validation): ValueError
+Grading refused (H-38): submission 0623f38e-9132-40e3-8a58-6e070f4cd6af, user 9f4364a1-8ba8-4f57-b46f-8fd2433ffd8d can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:07:59,288 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 96afb818-5e85-486f-94f4-314253b93d05 failed: error=CourseNotReachableError frames=tasks.py:695:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 029287d1-ba85-42b0-b3ad-847a5e385c67.
+Cannot activate automatic trial for user 029287d1-ba85-42b0-b3ad-847a5e385c67 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:07:59,851 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task None failed: error=RuntimeError frames=tasks.py:708:grade_engine_async <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 3265528b-07e5-43f5-83d7-1146b1c18422.
+Cannot activate automatic trial for user 3265528b-07e5-43f5-83d7-1146b1c18422 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:08:00,341 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task b34221ba-9f8b-43df-9c70-5df553c6b1ab failed: error=RuntimeError frames=tasks.py:708:grade_engine_async <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 8d9ea65e-9a96-4bc9-be94-2d1496e7809f.
+Cannot activate automatic trial for user 8d9ea65e-9a96-4bc9-be94-2d1496e7809f (validation): ValueError
+Grading refused (H-38): submission 34ef3064-e6df-4f5d-ab14-e40661c492a2, user 8d9ea65e-9a96-4bc9-be94-2d1496e7809f can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:08:00,956 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 46695c38-982b-4b79-a314-c714c07abbde failed: error=CourseNotReachableError frames=tasks.py:695:grade_engine_async
+
+
+Batch grading refused (H-38): assignment 5a90463c-6fd6-41b7-bb64-eb4c1d524685, user 8d9ea65e-9a96-4bc9-be94-2d1496e7809f can no longer reach its course.
+Auto-grade skipped (H-38): assignment 5a90463c-6fd6-41b7-bb64-eb4c1d524685, course a9e6dc29-8c8d-4aef-97b9-a0862e19dce3 is no longer reachable by its teacher 8d9ea65e-9a96-4bc9-be94-2d1496e7809f.
+.Free trial plan not found: no trial activated for user 0213a8c8-c464-4ab7-80c3-96556e22b3fa.
+Cannot activate automatic trial for user 0213a8c8-c464-4ab7-80c3-96556e22b3fa (validation): ValueError
+.Free trial plan not found: no trial activated for user c9c86af2-7d5d-4d5c-9695-84e00155fbdf.
+Cannot activate automatic trial for user c9c86af2-7d5d-4d5c-9695-84e00155fbdf (validation): ValueError
+Auto-grade skipped (H-38): assignment 8d1a5c98-76fb-468b-b6ae-71932a507973, course 1d2fc38b-064f-4096-bab0-76b3b515e8c6 is no longer reachable by its teacher c9c86af2-7d5d-4d5c-9695-84e00155fbdf.
+.Free trial plan not found: no trial activated for user 1aa42273-c7e9-463a-a18d-546bb28fff93.
+Cannot activate automatic trial for user 1aa42273-c7e9-463a-a18d-546bb28fff93 (validation): ValueError
+Auto-grade skipped (H-38): assignment aea4a951-4a32-4089-b4e5-60c2d07ca813, course 158ddf62-b05d-40fd-8ef4-7c213fdfb4cf is no longer reachable by its teacher 1aa42273-c7e9-463a-a18d-546bb28fff93.
+.Free trial plan not found: no trial activated for user 949c7b74-7a39-495b-866e-c03d5f3df792.
+Cannot activate automatic trial for user 949c7b74-7a39-495b-866e-c03d5f3df792 (validation): ValueError
+Auto-grade skipped (H-38): assignment 2335d09c-883b-4d4b-8dd8-2b521df20580, course 603eff84-540e-48a8-8eec-1781337be467 is no longer reachable by its teacher 949c7b74-7a39-495b-866e-c03d5f3df792.
+Batch grading refused (H-38): assignment 2335d09c-883b-4d4b-8dd8-2b521df20580, user 949c7b74-7a39-495b-866e-c03d5f3df792 can no longer reach its course.
+Grading refused (H-38): submission ee596f36-ee36-470b-8595-42ef9f401ba9, user 949c7b74-7a39-495b-866e-c03d5f3df792 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:08:03,348 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task dee303ad-40a4-43d9-ae45-57bab53d674e failed: error=CourseNotReachableError frames=tasks.py:695:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 4aaa8506-0d0d-4618-be0b-2799d868b2c8.
+Cannot activate automatic trial for user 4aaa8506-0d0d-4618-be0b-2799d868b2c8 (validation): ValueError
+Batch grading refused (H-38): assignment c814b56f-dd5c-45a3-bcfb-7ea2e15072d1, user 4aaa8506-0d0d-4618-be0b-2799d868b2c8 can no longer reach its course.
+.Free trial plan not found: no trial activated for user 32aa039b-fe83-4b10-b530-f64ecc830937.
+Cannot activate automatic trial for user 32aa039b-fe83-4b10-b530-f64ecc830937 (validation): ValueError
+Batch grading refused (H-38): assignment f39147d3-892b-4157-b5b2-80ec1f96ef09, user 32aa039b-fe83-4b10-b530-f64ecc830937 can no longer reach its course.
+.Free trial plan not found: no trial activated for user 29b6ebf2-a3cc-4349-be1b-f958a816d4a2.
+Cannot activate automatic trial for user 29b6ebf2-a3cc-4349-be1b-f958a816d4a2 (validation): ValueError
+Grading refused (H-38): submission 0675f56e-d442-4672-80f9-e9054dad5b82, user 29b6ebf2-a3cc-4349-be1b-f958a816d4a2 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:08:05,262 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 3c548d44-29a8-4242-beaf-8e02401ec996 failed: error=CourseNotReachableError frames=tasks.py:695:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 021a330b-5c1f-4004-bda6-3ad51cb15457.
+Cannot activate automatic trial for user 021a330b-5c1f-4004-bda6-3ad51cb15457 (validation): ValueError
+Grading refused (H-38): submission 4fe5797c-3469-43ab-a5ba-de1ae7e5aa8b, user 021a330b-5c1f-4004-bda6-3ad51cb15457 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:08:05,817 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task None failed: error=CourseNotReachableError frames=tasks.py:695:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 4829cb4b-eba4-4698-94dc-7ccbd3546e11.
+Cannot activate automatic trial for user 4829cb4b-eba4-4698-94dc-7ccbd3546e11 (validation): ValueError
+.Free trial plan not found: no trial activated for user afdee20a-90f0-442a-a159-683e61c532e7.
+Cannot activate automatic trial for user afdee20a-90f0-442a-a159-683e61c532e7 (validation): ValueError
+.Free trial plan not found: no trial activated for user b202035b-670d-4dd8-a941-1cbd2bb840e5.
+Cannot activate automatic trial for user b202035b-670d-4dd8-a941-1cbd2bb840e5 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:08:07,518 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task db938378-b3be-41ca-b6a9-f311ddcfab16 failed: error=CourseNotReachableError frames=tasks.py:695:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 751626b9-e099-4d8a-bc82-e0aaa6538404.
+Cannot activate automatic trial for user 751626b9-e099-4d8a-bc82-e0aaa6538404 (validation): ValueError
+.Free trial plan not found: no trial activated for user 557a5950-1027-41bc-b17d-19dfe697d62a.
+Cannot activate automatic trial for user 557a5950-1027-41bc-b17d-19dfe697d62a (validation): ValueError
+Grading refused (H-38): submission 4c937a46-5a7b-474c-bca9-94697f1560e2, user 557a5950-1027-41bc-b17d-19dfe697d62a can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:08:08,841 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 96269d17-3925-4d9e-88f4-f70db4a8f7d9 failed: error=CourseNotReachableError frames=tasks.py:695:grade_engine_async
+
+
+Batch grading refused (H-38): assignment 76c08bb4-d100-4dde-bc9a-7ac7ca6a55c1, user 557a5950-1027-41bc-b17d-19dfe697d62a can no longer reach its course.
+Auto-grade skipped (H-38): assignment 76c08bb4-d100-4dde-bc9a-7ac7ca6a55c1, course b2259b5a-77b7-4103-972e-61086d7d01db is no longer reachable by its teacher 557a5950-1027-41bc-b17d-19dfe697d62a.
+.Free trial plan not found: no trial activated for user debe8eac-e46e-458e-95e0-51daf8e936e3.
+Cannot activate automatic trial for user debe8eac-e46e-458e-95e0-51daf8e936e3 (validation): ValueError
+.Free trial plan not found: no trial activated for user 580e161d-e300-4c4c-b042-7c3d61c36142.
+Cannot activate automatic trial for user 580e161d-e300-4c4c-b042-7c3d61c36142 (validation): ValueError
+Auto-grade skipped (H-38): assignment 2944ed11-65cf-4a96-9795-9096d416791d, course 8788cbfb-ddf1-4384-ae51-856494f841fc is no longer reachable by its teacher 580e161d-e300-4c4c-b042-7c3d61c36142.
+.Free trial plan not found: no trial activated for user 0bc95767-a2e2-4e90-9f51-5977fc8f7a60.
+Cannot activate automatic trial for user 0bc95767-a2e2-4e90-9f51-5977fc8f7a60 (validation): ValueError
+Batch grading refused (H-38): assignment b5abfe18-03bd-4daf-b752-ec3e9e6792c0, user 0bc95767-a2e2-4e90-9f51-5977fc8f7a60 can no longer reach its course.
+.Free trial plan not found: no trial activated for user 3a60667e-f21b-4805-b108-06a67ace6177.
+Cannot activate automatic trial for user 3a60667e-f21b-4805-b108-06a67ace6177 (validation): ValueError
+Grading refused (H-38): submission 048a5588-0fba-4aa7-a365-56035e27611f, user 3a60667e-f21b-4805-b108-06a67ace6177 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:08:11,042 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 08630078-e2af-4f94-b919-adec6009db87 failed: error=CourseNotReachableError frames=tasks.py:695:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user cc20bef4-6847-4a68-b12f-aa1be8972e1d.
+Cannot activate automatic trial for user cc20bef4-6847-4a68-b12f-aa1be8972e1d (validation): ValueError
+Grading refused (H-38): submission 622adbf8-cbed-4feb-9a36-4f8a939ba6b2, user cc20bef4-6847-4a68-b12f-aa1be8972e1d can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:08:11,694 task_tracking 76793 131062817990528 [request_id=- client_request_id=-] Background task 52fce075-abfe-41ea-8a1b-86322e8b285c failed: error=CourseNotReachableError frames=tasks.py:695:grade_engine_async
+
+
+Batch grading refused (H-38): assignment 905c7b75-e110-4f2e-a931-3e38b3c42c46, user cc20bef4-6847-4a68-b12f-aa1be8972e1d can no longer reach its course.
+.EEEEEEEEEEEEEEEE.FEEEEEEEEEEEEEEEEEEEEEEEEE............Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t76793:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run crashed-run; this run direct:d94235706c20).
+.........Beat task AutoGrader.tests_beat_locks.h65_probe_task: another run already holds the lock; skipping this one (key gaplus-t76793:1:beat-lock:AutoGrader.tests_beat_locks.h65_probe_task, held by run direct:810f8c65999c; this run direct:762fd8ef159c).
+.
+======================================================================
+ERROR: test_every_public_function_returns_plain_values (billing.tests.test_estimates_band.OnlyPlainValuesTests.test_every_public_function_returns_plain_values)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_estimates_band.py", line 145, in test_every_public_function_returns_plain_values
+    "paper_hold_estimate": estimates.paper_hold_estimate(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.estimates' has no attribute 'paper_hold_estimate'
+
+======================================================================
+ERROR: test_a_broker_outage_at_the_start_is_retried_without_duplicates (billing.tests.test_batch_queue.AutomaticPathTests.test_a_broker_outage_at_the_start_is_retried_without_duplicates)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_scheduled_batch_is_one_job (billing.tests.test_batch_queue.AutomaticPathTests.test_a_scheduled_batch_is_one_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_after_an_outage_and_retry_the_teacher_sees_one_line_per_paper (billing.tests.test_batch_queue.AutomaticPathTests.test_after_an_outage_and_retry_the_teacher_sees_one_line_per_paper)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_an_automatic_run_that_runs_out_queues_and_resumes (billing.tests.test_batch_queue.AutomaticPathTests.test_an_automatic_run_that_runs_out_queues_and_resumes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_waiting_papers_are_not_sent_again_by_a_retry (billing.tests.test_batch_queue.AutomaticPathTests.test_waiting_papers_are_not_sent_again_by_a_retry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_broker_backlog_younger_than_36_hours_is_left (billing.tests.test_batch_queue.BackstopTests.test_a_broker_backlog_younger_than_36_hours_is_left)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_papers_none_of_which_started_in_36_hours_fail_and_return_holds (billing.tests.test_batch_queue.BackstopTests.test_papers_none_of_which_started_in_36_hours_fail_and_return_holds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_batch_holds_the_papers_that_fit_and_the_rest_wait (billing.tests.test_batch_queue.BatchStartTests.test_a_batch_holds_the_papers_that_fit_and_the_rest_wait)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_teacher_without_a_wallet_is_sent_as_with_the_flag_off (billing.tests.test_batch_queue.BatchStartTests.test_a_teacher_without_a_wallet_is_sent_as_with_the_flag_off)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_no_message_is_sent_before_the_batch_commits (billing.tests.test_batch_queue.BatchStartTests.test_no_message_is_sent_before_the_batch_commits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_nothing_fits_queues_the_job_at_once (billing.tests.test_batch_queue.BatchStartTests.test_nothing_fits_queues_the_job_at_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_the_estimate_is_written_on_the_job (billing.tests.test_batch_queue.BatchStartTests.test_the_estimate_is_written_on_the_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_with_the_flag_off_every_paper_is_sent_and_no_job_is_made (billing.tests.test_batch_queue.BatchStartTests.test_with_the_flag_off_every_paper_is_sent_and_no_job_is_made)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_promotion_and_expiry_run_every_five_minutes (billing.tests.test_batch_queue.BeatTests.test_promotion_and_expiry_run_every_five_minutes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 855, in test_promotion_and_expiry_run_every_five_minutes
+    self.assertEqual(schedule["billing.tasks.promote_queued_jobs"], 300.0)
+                     ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'billing.tasks.promote_queued_jobs'
+
+======================================================================
+ERROR: test_deleting_a_batch_with_waiting_papers_ends_the_job (billing.tests.test_batch_queue.DeleteTests.test_deleting_a_batch_with_waiting_papers_ends_the_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_deleting_the_held_paper_queues_a_job_whose_papers_wait (billing.tests.test_batch_queue.DeleteTests.test_deleting_the_held_paper_queues_a_job_whose_papers_wait)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_cancelled_held_paper_returns_its_hold (billing.tests.test_batch_queue.EndedBeforeItsUnitTests.test_a_cancelled_held_paper_returns_its_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_paper_the_hook_released_is_not_counted_twice (billing.tests.test_batch_queue.EndedBeforeItsUnitTests.test_a_paper_the_hook_released_is_not_counted_twice)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_paper_the_hook_released_then_deleted_returns_its_hold_once (billing.tests.test_batch_queue.EndedBeforeItsUnitTests.test_a_paper_the_hook_released_then_deleted_returns_its_hold_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_skipped_paper_returns_its_hold_and_the_sweep_leaves_it (billing.tests.test_batch_queue.EndedBeforeItsUnitTests.test_a_skipped_paper_returns_its_hold_and_the_sweep_leaves_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_expires_at_is_fixed_when_the_job_queues (billing.tests.test_batch_queue.ExpiryTests.test_expires_at_is_fixed_when_the_job_queues)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_expiry_fails_the_waiting_papers_as_retryable (billing.tests.test_batch_queue.ExpiryTests.test_expiry_fails_the_waiting_papers_as_retryable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_expiry_never_ends_a_promoted_job (billing.tests.test_batch_queue.ExpiryTests.test_expiry_never_ends_a_promoted_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_promotion_and_expiry_at_once_have_one_winner (billing.tests.test_batch_queue.ExpiryTests.test_promotion_and_expiry_at_once_have_one_winner)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_the_warning_goes_once_48_hours_before_expiry (billing.tests.test_batch_queue.ExpiryTests.test_the_warning_goes_once_48_hours_before_expiry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_waiting_paper_is_listed_with_no_task_id (billing.tests.test_batch_queue.GradeAllTests.test_a_waiting_paper_is_listed_with_no_task_id)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_job_whose_papers_all_failed_ends_failed (billing.tests.test_batch_queue.LastItemTests.test_a_job_whose_papers_all_failed_ends_failed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_one_paper_batch_settles_when_its_paper_settles (billing.tests.test_batch_queue.LastItemTests.test_a_one_paper_batch_settles_when_its_paper_settles)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_the_last_paper_queues_a_job_whose_other_papers_wait (billing.tests.test_batch_queue.LastItemTests.test_the_last_paper_queues_a_job_whose_other_papers_wait)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_the_last_paper_settles_a_job_with_nothing_waiting (billing.tests.test_batch_queue.LastItemTests.test_the_last_paper_settles_a_job_with_nothing_waiting)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_two_papers_finishing_at_once_move_the_job_once (billing.tests.test_batch_queue.LastItemTests.test_two_papers_finishing_at_once_move_the_job_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_credit_entry_enqueues_the_wallets_promotion_after_commit (billing.tests.test_batch_queue.PromotionTests.test_a_credit_entry_enqueues_the_wallets_promotion_after_commit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_debit_entry_enqueues_nothing (billing.tests.test_batch_queue.PromotionTests.test_a_debit_entry_enqueues_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_promoted_paper_gets_past_the_batch_credit_stop (billing.tests.test_batch_queue.PromotionTests.test_a_promoted_paper_gets_past_the_batch_credit_stop)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_a_settled_papers_leftover_promotes_a_queued_job_at_once (billing.tests.test_batch_queue.PromotionTests.test_a_settled_papers_leftover_promotes_a_queued_job_at_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_nothing_fitting_leaves_the_job_queued (billing.tests.test_batch_queue.PromotionTests.test_nothing_fitting_leaves_the_job_queued)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_promotion_holds_only_the_papers_that_now_fit (billing.tests.test_batch_queue.PromotionTests.test_promotion_holds_only_the_papers_that_now_fit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_two_promoters_at_once_launch_each_paper_once (billing.tests.test_batch_queue.PromotionTests.test_two_promoters_at_once_launch_each_paper_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_with_the_flag_off_a_credit_entry_enqueues_nothing (billing.tests.test_batch_queue.PromotionTests.test_with_the_flag_off_a_credit_entry_enqueues_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 106, in setUp
+    module = importlib.import_module("billing.batch_queue")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_no_queue_email_is_sent_before_the_texts_are_approved (billing.tests.test_batch_queue.QueueEmailTests.test_no_queue_email_is_sent_before_the_texts_are_approved)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 820, in test_no_queue_email_is_sent_before_the_texts_are_approved
+    self.assertIs(batch_queue.QUEUE_EMAIL_APPROVED, False)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 66, in __getattr__
+    return getattr(importlib.import_module("billing.batch_queue"), name)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+ERROR: test_the_texts_are_the_owner_approved_ones_verbatim (billing.tests.test_batch_queue.QueueEmailTests.test_the_texts_are_the_owner_approved_ones_verbatim)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 828, in test_the_texts_are_the_owner_approved_ones_verbatim
+    texts = batch_queue.QUEUE_EMAIL_TEXTS
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 66, in __getattr__
+    return getattr(importlib.import_module("billing.batch_queue"), name)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.batch_queue'
+
+======================================================================
+FAIL: test_every_guarded_beat_task_skips_while_another_run_holds_it (AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/AutoGrader/tests_beat_locks.py", line 435, in test_every_guarded_beat_task_skips_while_another_run_holds_it
+    self.assertLessEqual(EPIC_ONLY_GUARDED_BEAT_TASKS, set(names))
+AssertionError: {'audit.tasks.sweep_audit_pii_short_retention', 'billing.tasks.check_credit_estimate_drift', 'billing.tasks.expire_queued_jobs', 'billing.tasks.sweep_stale_credit_holds', 'audit.tasks.sweep_audit_retention', 'billing.tasks.promote_queued_jobs', 'billing.tasks.check_credit_hold_invariants', 'students.tasks.purge_kept_uploads'} not less than or equal to {'billing.tasks.escalate_stale_licence_stripe_intents', 'dashboard.tasks.send_teacher_inactivity_alerts', 'dashboard.tasks.send_weekly_school_admin_summaries', 'dashboard.tasks.send_weekly_course_summaries', 'ai_processor.tasks.nightly_grading_benchmark_replay', 'dashboard.tasks.send_at_risk_student_alerts', 'billing.tasks.process_license_monthly_credit_refreshes', 'billing.tasks.process_license_renewals', 'billing.tasks.cleanup_expired_credit_buckets', 'dashboard.tasks.send_weekly_student_summaries', 'billing.tasks.sweep_stale_credit_holds', 'billing.tasks.expire_active_trials', 'billing.tasks.recalculate_conversion_probabilities', 'audit.tasks.sweep_audit_retention', 'billing.tasks.replay_safe_failed_stripe_events', 'billing.tasks.sweep_stale_stripe_events', 'billing.tasks.check_credit_estimate_drift', 'billing.tasks.process_annual_plan_credit_grants', 'ai_processor.tasks.weekly_grading_benchmark_live', 'students.tasks.purge_kept_uploads', 'billing.tasks.nightly_stripe_live_qa', 'audit.tasks.sweep_audit_pii_short_retention', 'billing.tasks.reconcile_stripe_prices', 'billing.tasks.reconcile_subscription_renewals', 'billing.tasks.reconcile_subscription_prices', 'billing.tasks.check_credit_hold_invariants', 'billing.tasks.sweep_missing_receipt_urls'}
+
+======================================================================
+FAIL: test_their_help_text_says_they_are_deprecated (billing.tests.test_batch_queue.DeprecatedPlanFieldTests.test_their_help_text_says_they_are_deprecated)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_batch_queue.py", line 889, in test_their_help_text_says_they_are_deprecated
+    self.assertTrue(help_text.startswith("Deprecated (owner 2026-11-08)"))
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 188 tests in 78.886s
+
+FAILED (failures=2, errors=42, skipped=2)
+Destroying test database for alias 'default'...
+Found 188 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

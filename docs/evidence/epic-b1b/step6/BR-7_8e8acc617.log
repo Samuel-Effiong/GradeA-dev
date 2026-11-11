@@ -1,0 +1,161 @@
+B1b-6 BR-7 (NOTES §6.6.4): unedited students/tests_h38_n3_refusal_audit.py from 1576369ad on product 8e8acc617
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user bf231f4c-617e-48ce-bcc2-9310af3d6dcc.
+Cannot activate automatic trial for user bf231f4c-617e-48ce-bcc2-9310af3d6dcc (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+Free trial plan not found: no trial activated for user 96cd26f2-2c2c-43a0-9664-0fd6bc23bc8d.
+Cannot activate automatic trial for user 96cd26f2-2c2c-43a0-9664-0fd6bc23bc8d (validation): ValueError
+Batch grading refused (H-38): assignment 91ca7c4b-b462-48be-9198-e35976c9dca6, user 96cd26f2-2c2c-43a0-9664-0fd6bc23bc8d can no longer reach its course.
+.Free trial plan not found: no trial activated for user 8a7aedc9-9e93-4cbd-a926-45cec4da9c2a.
+Cannot activate automatic trial for user 8a7aedc9-9e93-4cbd-a926-45cec4da9c2a (validation): ValueError
+Free trial plan not found: no trial activated for user 075f43cd-f1c6-464d-ad9b-0430a7e3c68f.
+Cannot activate automatic trial for user 075f43cd-f1c6-464d-ad9b-0430a7e3c68f (validation): ValueError
+Grading refused (H-38): submission 0c72c8a6-a0a6-4079-8110-ce99bb489aa3, user 075f43cd-f1c6-464d-ad9b-0430a7e3c68f can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:12:39,913 task_tracking 82523 128071577372544 [request_id=- client_request_id=-] Background task None failed: error=CourseNotReachableError frames=tasks.py:697:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 8fce274e-2948-45ce-abde-cc370b0d465b.
+Cannot activate automatic trial for user 8fce274e-2948-45ce-abde-cc370b0d465b (validation): ValueError
+Free trial plan not found: no trial activated for user 293af59c-6a5b-475e-9a81-3bfc7b9e89ff.
+Cannot activate automatic trial for user 293af59c-6a5b-475e-9a81-3bfc7b9e89ff (validation): ValueError
+Free trial plan not found: no trial activated for user 3525cea3-2a71-4a75-b10b-9999e7962b19.
+Cannot activate automatic trial for user 3525cea3-2a71-4a75-b10b-9999e7962b19 (validation): ValueError
+Grading refused (H-38): submission f7feb144-b4f5-462b-9bc4-7cc770d9bb5d, user 3525cea3-2a71-4a75-b10b-9999e7962b19 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:12:40,126 task_tracking 82523 128071577372544 [request_id=- client_request_id=-] Background task d3b67aa3-8080-4c3e-88e9-bddd9e67647c failed: error=CourseNotReachableError frames=tasks.py:697:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 69a103af-0b95-4d81-9f4c-11d7c95286e0.
+Cannot activate automatic trial for user 69a103af-0b95-4d81-9f4c-11d7c95286e0 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:12:40,351 task_tracking 82523 128071577372544 [request_id=- client_request_id=-] Background task None failed: error=RuntimeError frames=tasks.py:710:grade_engine_async <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user fc0f38db-d06c-4fcd-a755-3b700a7954ac.
+Cannot activate automatic trial for user fc0f38db-d06c-4fcd-a755-3b700a7954ac (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:12:40,520 task_tracking 82523 128071577372544 [request_id=- client_request_id=-] Background task e74a0697-0a09-465c-a4dd-0c5b6fd1f368 failed: error=RuntimeError frames=tasks.py:710:grade_engine_async <- mock.py:1139:__call__ <- mock.py:1143:_mock_call <- mock.py:1198:_execute_mock_call
+
+
+.Free trial plan not found: no trial activated for user 9218f22d-8665-4c40-b223-228fc898375e.
+Cannot activate automatic trial for user 9218f22d-8665-4c40-b223-228fc898375e (validation): ValueError
+Grading refused (H-38): submission f2e17274-01e3-41e7-95c7-08674c9dae28, user 9218f22d-8665-4c40-b223-228fc898375e can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:12:40,716 task_tracking 82523 128071577372544 [request_id=- client_request_id=-] Background task a1ae4ebe-7218-40cd-8aa4-eb008203b2c1 failed: error=CourseNotReachableError frames=tasks.py:697:grade_engine_async
+
+
+Batch grading refused (H-38): assignment 5457fa1d-2ab2-40dd-9f9a-d27218a79f9a, user 9218f22d-8665-4c40-b223-228fc898375e can no longer reach its course.
+Auto-grade skipped (H-38): assignment 5457fa1d-2ab2-40dd-9f9a-d27218a79f9a, course f9657624-1011-4657-ab01-27e338c76525 is no longer reachable by its teacher 9218f22d-8665-4c40-b223-228fc898375e.
+.Free trial plan not found: no trial activated for user a89fa691-d249-4682-8e03-84ad2eb5926e.
+Cannot activate automatic trial for user a89fa691-d249-4682-8e03-84ad2eb5926e (validation): ValueError
+.Free trial plan not found: no trial activated for user 49412c59-4ab8-4c90-b357-ee0ddd11f1c7.
+Cannot activate automatic trial for user 49412c59-4ab8-4c90-b357-ee0ddd11f1c7 (validation): ValueError
+Auto-grade skipped (H-38): assignment 08784922-8618-4964-855f-fa9c3f63a2ae, course 7db75f2a-f6b1-47cf-822b-0abd42e70919 is no longer reachable by its teacher 49412c59-4ab8-4c90-b357-ee0ddd11f1c7.
+.Free trial plan not found: no trial activated for user 50a994be-a06e-4622-bb57-453b7fc01cab.
+Cannot activate automatic trial for user 50a994be-a06e-4622-bb57-453b7fc01cab (validation): ValueError
+Auto-grade skipped (H-38): assignment ae0f3ed0-04b2-4b64-869b-845673ff1663, course 6120fbb7-ea4f-4aaa-a1ca-f6fd8e21263e is no longer reachable by its teacher 50a994be-a06e-4622-bb57-453b7fc01cab.
+.Free trial plan not found: no trial activated for user 0ea91c04-970f-4972-b277-95adba38bcc2.
+Cannot activate automatic trial for user 0ea91c04-970f-4972-b277-95adba38bcc2 (validation): ValueError
+Auto-grade skipped (H-38): assignment 69adbd45-0882-4616-8a53-3768ae46e626, course df8d1116-0dfe-4f6a-8215-425bcfc3c062 is no longer reachable by its teacher 0ea91c04-970f-4972-b277-95adba38bcc2.
+Batch grading refused (H-38): assignment 69adbd45-0882-4616-8a53-3768ae46e626, user 0ea91c04-970f-4972-b277-95adba38bcc2 can no longer reach its course.
+Grading refused (H-38): submission 9ce37e9f-ba74-498e-b120-d32db26b996c, user 0ea91c04-970f-4972-b277-95adba38bcc2 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:12:41,507 task_tracking 82523 128071577372544 [request_id=- client_request_id=-] Background task eb2aeb27-c195-4c56-8df5-582d6e800c87 failed: error=CourseNotReachableError frames=tasks.py:697:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 4c93fe25-9afb-4cf0-aaff-a175931d32b1.
+Cannot activate automatic trial for user 4c93fe25-9afb-4cf0-aaff-a175931d32b1 (validation): ValueError
+Batch grading refused (H-38): assignment beaf1943-31aa-436c-90d1-42ddd0d30130, user 4c93fe25-9afb-4cf0-aaff-a175931d32b1 can no longer reach its course.
+.Free trial plan not found: no trial activated for user 051555f0-1596-436a-9256-d5edaf118883.
+Cannot activate automatic trial for user 051555f0-1596-436a-9256-d5edaf118883 (validation): ValueError
+Batch grading refused (H-38): assignment b47ef812-963a-444a-bc16-52a5005f0725, user 051555f0-1596-436a-9256-d5edaf118883 can no longer reach its course.
+.Free trial plan not found: no trial activated for user 87fb03c8-457b-4c4e-85a2-03f1d8e772c3.
+Cannot activate automatic trial for user 87fb03c8-457b-4c4e-85a2-03f1d8e772c3 (validation): ValueError
+Grading refused (H-38): submission abe46aae-3850-4042-9577-3e25d471e1cf, user 87fb03c8-457b-4c4e-85a2-03f1d8e772c3 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:12:42,169 task_tracking 82523 128071577372544 [request_id=- client_request_id=-] Background task a3badec6-d969-43b0-8dec-356dab4426a9 failed: error=CourseNotReachableError frames=tasks.py:697:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user ad7bfeeb-2cd7-4f0c-93ef-0e30065d4cc9.
+Cannot activate automatic trial for user ad7bfeeb-2cd7-4f0c-93ef-0e30065d4cc9 (validation): ValueError
+Grading refused (H-38): submission c81a610c-aeb5-4a17-a3eb-78fb32f4deed, user ad7bfeeb-2cd7-4f0c-93ef-0e30065d4cc9 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:12:42,353 task_tracking 82523 128071577372544 [request_id=- client_request_id=-] Background task None failed: error=CourseNotReachableError frames=tasks.py:697:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 2de94fa3-4529-4bc4-85b2-7906da936f62.
+Cannot activate automatic trial for user 2de94fa3-4529-4bc4-85b2-7906da936f62 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3bd91cc0-00dc-4854-85e0-c1651bf069d8.
+Cannot activate automatic trial for user 3bd91cc0-00dc-4854-85e0-c1651bf069d8 (validation): ValueError
+.Free trial plan not found: no trial activated for user 5dbbfb42-e079-44b8-b955-39602b433df2.
+Cannot activate automatic trial for user 5dbbfb42-e079-44b8-b955-39602b433df2 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:12:42,891 task_tracking 82523 128071577372544 [request_id=- client_request_id=-] Background task 80395765-4233-4257-b452-82ed08db62b9 failed: error=CourseNotReachableError frames=tasks.py:697:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user 47ecf46b-041f-4ba4-9f9d-2e9eaca0c7d0.
+Cannot activate automatic trial for user 47ecf46b-041f-4ba4-9f9d-2e9eaca0c7d0 (validation): ValueError
+.Free trial plan not found: no trial activated for user 8e53e786-0d67-4c7d-a2a4-acb4e742a002.
+Cannot activate automatic trial for user 8e53e786-0d67-4c7d-a2a4-acb4e742a002 (validation): ValueError
+Grading refused (H-38): submission 2adb0e13-bf61-48fc-8db4-4c4fd204ddcd, user 8e53e786-0d67-4c7d-a2a4-acb4e742a002 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:12:43,267 task_tracking 82523 128071577372544 [request_id=- client_request_id=-] Background task 59c84301-2341-47bd-b394-b0a9dc94a5d8 failed: error=CourseNotReachableError frames=tasks.py:697:grade_engine_async
+
+
+Batch grading refused (H-38): assignment c5a3d359-e5d4-4eb5-8db5-bbee523c9929, user 8e53e786-0d67-4c7d-a2a4-acb4e742a002 can no longer reach its course.
+Auto-grade skipped (H-38): assignment c5a3d359-e5d4-4eb5-8db5-bbee523c9929, course 09c849e1-ef52-4837-a38d-df0e07bdd3b1 is no longer reachable by its teacher 8e53e786-0d67-4c7d-a2a4-acb4e742a002.
+.Free trial plan not found: no trial activated for user bbed4ca7-43bc-4a96-9a09-c882b2b6b3bb.
+Cannot activate automatic trial for user bbed4ca7-43bc-4a96-9a09-c882b2b6b3bb (validation): ValueError
+.Free trial plan not found: no trial activated for user debd96e6-e475-4b9d-823a-f57e2706746b.
+Cannot activate automatic trial for user debd96e6-e475-4b9d-823a-f57e2706746b (validation): ValueError
+Auto-grade skipped (H-38): assignment 6d6c2729-41a9-4ca6-9f6a-71be669d1f3b, course 03593d8b-d2c7-4395-ac97-79015b851ec0 is no longer reachable by its teacher debd96e6-e475-4b9d-823a-f57e2706746b.
+.Free trial plan not found: no trial activated for user 0cab1ab6-67b9-464a-a6b0-358f6897d237.
+Cannot activate automatic trial for user 0cab1ab6-67b9-464a-a6b0-358f6897d237 (validation): ValueError
+Batch grading refused (H-38): assignment 2638d804-acd8-4539-afeb-70eb039fdeec, user 0cab1ab6-67b9-464a-a6b0-358f6897d237 can no longer reach its course.
+.Free trial plan not found: no trial activated for user b2aefce9-2ac0-43d7-b785-02a53ad07b5c.
+Cannot activate automatic trial for user b2aefce9-2ac0-43d7-b785-02a53ad07b5c (validation): ValueError
+Grading refused (H-38): submission 4d5d8670-d003-41dd-ac9e-a970a9941a5a, user b2aefce9-2ac0-43d7-b785-02a53ad07b5c can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:12:44,220 task_tracking 82523 128071577372544 [request_id=- client_request_id=-] Background task 28ba67c7-97da-4a00-8bb5-7d269065abdd failed: error=CourseNotReachableError frames=tasks.py:697:grade_engine_async
+
+
+.Free trial plan not found: no trial activated for user b62ff50f-27f9-4b6f-9551-0dd89a501dc8.
+Cannot activate automatic trial for user b62ff50f-27f9-4b6f-9551-0dd89a501dc8 (validation): ValueError
+Grading refused (H-38): submission 0fc2aed8-32d0-48a8-a607-5955339aca7d, user b62ff50f-27f9-4b6f-9551-0dd89a501dc8 can no longer reach its course.
+
+
+students.task_tracking ERROR 2026-11-11 08:12:44,466 task_tracking 82523 128071577372544 [request_id=- client_request_id=-] Background task 0d71c874-0cee-4e6e-b5c9-e566bdb4df45 failed: error=CourseNotReachableError frames=tasks.py:697:grade_engine_async
+
+
+Batch grading refused (H-38): assignment dda94ddf-d304-4a5d-a823-7d2d4a22d378, user b62ff50f-27f9-4b6f-9551-0dd89a501dc8 can no longer reach its course.
+.
+----------------------------------------------------------------------
+Ran 24 tests in 5.206s
+
+OK
+Destroying test database for alias 'default'...
+Found 24 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+restored sha256 OK
