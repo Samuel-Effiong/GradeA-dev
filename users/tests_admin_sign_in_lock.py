@@ -203,7 +203,7 @@ class L1LockEndsSessionsTests(Base):
 class L2PasswordSignInTests(Base):
     def assert_lock_answer(self, response, message):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertNotIn("access", response.json())
+        self.assertNotIn("access", response.data)
         fields = self.fields(response)
         self.assertEqual(fields["reason_code"], CODE)
         self.assertEqual(fields["code"], CODE)
@@ -400,7 +400,7 @@ class L3GoogleTests(Base):
         response = self.google(target.email)
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertNotIn("access", response.json())
+        self.assertNotIn("access", response.data)
         fields = self.fields(response)
         self.assertEqual(fields["reason_code"], CODE)
         self.assertEqual(fields["detail"], MESSAGE_SCHOOL)
@@ -484,7 +484,7 @@ class L4ResetTests(Base):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.content, unknown.content)
-        self.assertNotIn("access", response.json())
+        self.assertNotIn("access", response.data)
         target.refresh_from_db()
         self.assertEqual(target.password, before)
         self.assertIsNotNone(target.admin_locked_at)
@@ -546,7 +546,7 @@ class L5ActivationTests(Base):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertNotIn("access", response.json())
+        self.assertNotIn("access", response.data)
         target.refresh_from_db()
         self.assertFalse(target.is_active)
         self.assertEqual(target.password, before)
@@ -940,7 +940,7 @@ class ReadOnlyFieldsTests(Base):
         data = (
             self.as_user(self.admin)
             .get(reverse("user-detail", kwargs={"pk": target.pk}))
-            .json()
+            .data
         )
 
         self.assertIs(data["sign_in_locked"], True)
@@ -949,16 +949,18 @@ class ReadOnlyFieldsTests(Base):
     def test_nobody_else_sees_them(self):
         target = self.person("f2.h34@x.example")
 
-        data = self.as_user(target).get(reverse("user-me")).json()
+        data = self.as_user(target).get(reverse("user-me")).data
 
+        self.assertEqual(data["email"], target.email)
         self.assertNotIn("sign_in_locked", data)
         self.assertNotIn("login_locked_until", data)
 
     def test_the_sign_in_payload_does_not_carry_them(self):
         target = self.person("f3.h34@x.example")
 
-        user = self.login(target.email).json()["user"]
+        user = self.login(target.email).data["user"]
 
+        self.assertEqual(user["email"], target.email)
         self.assertNotIn("sign_in_locked", user)
         self.assertNotIn("login_locked_until", user)
 

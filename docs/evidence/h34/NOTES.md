@@ -579,3 +579,17 @@ Prediction:
   - L12 `test_a_deactivated_account_still_gets_invalid_credentials`.
 - The other 56 fail or error. Causes: no `admin_locked_at` field (FieldError/AttributeError), no `user-lock`/`user-unlock` route (NoReverseMatch), no ACCOUNT_LOCKED_BY_ADMIN code (ValueError), no back-office actions, no helper.
 - Nothing outside these labels is run.
+
+**R1 result (red):** Ran 60. FAILED (failures=4, errors=60). Subtests are counted one by one: the 3 callers in `test_no_other_role_may_lock_or_unlock` and the 6 refusal cases in `test_refusals_leave_todays_admin_action`. By test, 57 did not pass and 3 passed: L6 control, ReadOnlyFields `test_nobody_else_sees_them`, and L12.
+
+Prediction wrong/incomplete:
+
+- `test_the_sign_in_payload_does_not_carry_them` was predicted to pass but errored with KeyError 'user'.
+- Cause, a test defect: the renderer (users/renderers.py `api_response`) wraps success bodies as `{"success", "message", "data"}`. The test read `.json()`, where the existing tests read `response.data`.
+- The same defect made `test_nobody_else_sees_them` pass vacuously; the keys were never in `.json()`'s top level.
+
+Test-only fix, before any product edit:
+
+- the success-path reads use `response.data` (3 places);
+- the 4 `assertNotIn("access", ...)` checks read `response.data`;
+- the two read-only-field tests now also assert `email` is present, so they cannot pass on an empty body.
