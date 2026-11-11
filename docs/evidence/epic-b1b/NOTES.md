@@ -3352,3 +3352,73 @@ The plan's figures (08b §5.4 and §6.2 item 2):
 The log goes to `step6/G6b_<sha>.log`, with the ENV in its header. Any other result is a STOP.
 
 **Count note for later declarations:** `billing.tests.test_batch_gate6` now holds 3 tests (build_suite: 3). Without `RUN_LOAD_TESTS` all three skip, so any later run that includes the `billing` label counts **+1 test and +1 skip** against §6.6.13 (for example, E1 would become 7607 with skipped=35).
+
+#### §6.6.16 G6b results: as declared
+
+**Run:** G6b at 4536d7616. ENV `RUN_LOAD_TESTS=1`; BILLING_HOLDS_ENABLED unset (the class pins True); serial.
+- **Result:** Ran 1, OK, matching the declaration.
+- **Log:** `step6/G6b_4536d7616.log` (commit ecb3a7f51).
+- **Noise:** the log has 11 "Cannot activate automatic trial" lines. They come from creating the fixture's teachers, and the G6 log has the same 11.
+
+| Tier | promote_ms | queries | promoted | held_per_item | Per paper |
+|---|---|---|---|---|---|
+| assignment | 341.4 | 615 | 300 | 1356 | 1.1 ms, 2.05 queries |
+| teacher_shape | 389.8 | 615 | 300 | 1356 | 1.3 ms, 2.05 queries |
+| per_question | 426.8 | 615 | 300 | 21165 | 1.4 ms, 2.05 queries |
+
+- **promoted=300 in every tier,** and 300 papers were sent.
+- **No captured query reads the call-history table,** asserted in the test. The query count, 615, is the same in all three tiers. So the promotion's queries don't grow with the history.
+- **Beside G6:**
+  - The start took 1184.6 to 1314.4 ms and 2122 queries; of that, about 370 ms is the estimate's all_papers read.
+  - The promotion reads no estimate. Per paper it costs about a third of the start's time and queries.
+- **No pass threshold** (SM ruling). The numbers go to the SM and the owner.
+
+---
+
+## §6.7 B1b-6b: H-1, the estimate list limit (owner 2026-11-11: max_length=500). The pin survey, before any edit
+
+**What the owner set** (via the SM, 2026-11-11):
+- `_SubmissionIds`'s list gets `max_length=500`, with DRF's standard message, "Ensure this field has no more than 500 elements.".
+- `"all_ungraded"` stays unlimited.
+
+**The site:** `billing/estimate_views.py:28-32`. `_SubmissionIds.to_internal_value` returns `"all_ungraded"` as it is, and otherwise runs `serializers.ListField(child=serializers.UUIDField()).run_validation(data)`. The limit would be `ListField(..., max_length=500)` there. No other product code uses `ListField(max_length=…)` (grep).
+
+**The pins:**
+- `billing.tests.test_estimate_endpoint` (build_suite: 10). `test_a_bad_body_is_a_400` checks the status code only, and no test sends more than 3 ids. So no current test pins the absence of a limit, and none breaks with a limit of 500.
+- Nothing else in the code sends `submission_ids` (grep). The G6 and G6b tests call `_dispatch_tracked_grading`, not the endpoint.
+- Plan 08 §3.6 (`08_epic_b1_implementation_plan.md:488`) describes the body `{assignment_id, submission_ids | "all_ungraded"}`. It names no limit, so no doc pin changes.
+- `users.tests_h296_message_rewording` (build_suite: 38) pins the renderer's rewording. **That is the finding below.**
+
+**FINDING (needs a ruling before any edit): with a plain `ListField(max_length=500)`, the user would not see DRF's message.**
+- **What the user sees:** the error renderer (`users/renderers.py`) builds the response's top-level `message` with `flatten_errors`. That is the text the web app shows. Since H-296, `_reworded_field_error` (`:55-76`) rewords **any** field error whose code is `max_length`, to "Use {n} characters or fewer for {label}." That rule was written for strings (`users/tests_h296_message_rewording.py:167-173`, `test_3_4_max_length`).
+- **The clash:** DRF's `ListField` uses the same code, `max_length`, for its element limit.
+- **The probe:** run in-memory with no DB and no product edit (`scratchpad/h1_probe.py`, a copy of the serializer with `max_length=500`):
+  - 500 ids: valid.
+  - 501 ids: invalid. `field_errors` is `["Ensure this field has no more than 500 elements."]` (code `max_length`), **but the top-level `message` is "Use 500 characters or fewer for submission ids."**
+- That top-level `message` is wrong for a list of ids. It is also not the owner-approved DRF message.
+
+**Options. None is built, and each needs the SM's word (the wording possibly the owner's):**
+- **(a) Endpoint-local (recommended).**
+  - **The change:** `_SubmissionIds` checks the length itself. If the body is a list of more than 500 entries, it raises `ValidationError` with DRF's own text, taken from `ListField.default_error_messages["max_length"]` with 500 filled in. It gives that error a code other than `max_length` (for example `max_items`). The renderer is not touched.
+  - **What the user sees:** the `message` falls to the renderer's existing old form, **"Submission ids: Ensure this field has no more than 500 elements."**, and `field_errors` carries DRF's text unchanged (probe: any code the renderer doesn't know gives this form).
+  - **Scope:** one file, and H-296 is unaffected.
+- **(b) Renderer.**
+  - **The change:** in `_reworded_field_error`, reword `max_length` only when the text says "characters". Use a plain `ListField(max_length=500)` at the site.
+  - **What the user sees:** the same `message` as (a).
+  - **Scope:** it touches a shared renderer that every endpoint uses, so its near run must include `users` and every H-296 label. No endpoint uses a list limit today, so nothing else changes now.
+- **(c) As written.** Accept "Use 500 characters or fewer for submission ids.". **Not recommended:** that wording is wrong for a list, and it is not the approved text.
+
+**Either way, the `message` has the field prefix.** The renderer's old form always adds the field name, so in (a) and (b) the user sees "Submission ids: Ensure this field has no more than 500 elements." and not the bare DRF sentence. Whether that prefixed form counts as the approved wording is the SM's (or the owner's) call.
+
+**The plan once ruled** (unchanged from the owner's decision):
+1. **Tests first,** in `billing/tests/test_estimate_endpoint.py`:
+   - 500 ids are accepted (200);
+   - 501 ids are refused with 400, and both `field_errors.submission_ids` and the `message` are exactly as ruled;
+   - `"all_ungraded"` on an assignment with more than 500 ungraded papers is unaffected (200; whether the 500+ papers are created or mocked will be set in the declaration).
+2. Red, then the fix, then green.
+3. One plant (the limit removed) with its killer.
+4. The near run on `billing` (plus `users` if (b)), with every declaration stating its env.
+
+**Counts for the later declarations:** `billing.tests.test_estimate_endpoint` is 10 now and will be 13 with the three tests. `users.tests_h296_message_rewording` is 38.
+
+**No edits have been made.** Waiting for the SM's go and the choice of (a), (b) or (c).
