@@ -895,8 +895,31 @@ class ListOnlyTests(Base):
 
 class OpenApiTests(Base):
     def list_parameters(self):
+        from drf_spectacular import extensions
         from drf_spectacular.generators import SchemaGenerator
 
+        # Generating a schema resolves every registered extension's
+        # target_class from its import path to the class, in place, for the
+        # rest of the process; assignments.tests_schema_extension pins the
+        # path. Put each one back afterwards.
+        registered = {
+            ext
+            for base in (
+                extensions.OpenApiAuthenticationExtension,
+                extensions.OpenApiSerializerExtension,
+                extensions.OpenApiSerializerFieldExtension,
+                extensions.OpenApiViewExtension,
+                extensions.OpenApiFilterExtension,
+            )
+            for ext in base._registry
+        }
+        saved = {ext: ext.__dict__.get("target_class") for ext in registered}
+
+        def restore():
+            for ext, target in saved.items():
+                ext.target_class = target
+
+        self.addCleanup(restore)
         schema = SchemaGenerator().get_schema(request=None, public=True)
         operation = schema["paths"]["/api/v1/users"]["get"]
         return {p["name"]: p for p in operation.get("parameters", [])}

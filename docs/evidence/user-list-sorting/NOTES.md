@@ -283,3 +283,29 @@ Count from build_suite: 4631 (users 1091, billing 2619, plus the guards).
 
 Expected: Ran 4631, OK, failures 0, errors 0. Skip count not predicted. The
 opt-in network, Redis and real-AI guards skip, as in earlier runs.
+
+### N1 near: result (2026-11-11)
+
+Environment: venv h284_deps_env, settings_worktree, --keepdb, --parallel 1,
+under flock ~/.machine-fullsuite.lock, test DB test_user_list_sorting.
+Labels users, billing and the 67 guards.
+
+Result: Ran 4631 (count as predicted), FAILED (failures=2, errors=1, skipped=9).
+**Prediction wrong**: declared OK.
+
+1. assignments.tests_schema_extension, 1 FAIL + 1 ERROR. Caused by my test.
+   OpenApiTests generates a schema, and drf-spectacular's _load_class then
+   replaces every registered extension's target_class (an import path)
+   with the class itself, in place, for the rest of the process. The guard
+   pins the path. Isolation (N1_diag.log): the guard alone is OK. Running
+   OpenApiTests first reproduces 1 FAIL + 1 ERROR. Running OrderingTests
+   first is OK. Fix, test only: OpenApiTests snapshots every registered
+   extension's target_class and restores it on cleanup. After the fix,
+   OpenApiTests followed by the guard gives 11 OK.
+2. classrooms.tests_teacher_access_sweep.test_no_unlisted_direct_owner_scoping,
+   1 FAIL. The H-38 sweep flags the two D5 lines in users/user_list.py
+   (assignments_created and papers_graded scope on course__teacher). This is
+   the same kind of line as the existing ALLOWED entry in classrooms/views.py
+   (`Assignment.objects.filter(course__teacher=OuterRef("id"))`, "admin
+   reporting aggregate per teacher; not teacher access"). Changing a guard
+   is not mine to decide, so it is held for an SM ruling. Not fixed.

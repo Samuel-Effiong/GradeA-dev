@@ -198,3 +198,89 @@ Near run: users, billing and guards67.
 - **D7, "key-pin sweep"**: I read it as a test pinning the exact key set of
   retrieve, me, patch, lock and unlock. If you mean an existing harness,
   name it.
+
+## 8. Rulings (SM -16, 2026-11-11) and how they landed
+
+- **D1: B (the owner changed it from A).** The existing per-row queries are
+  fixed in this job.
+  - Before: **309 queries** for a 25-row page (M0).
+  - After: **13 queries, fixed whatever the page size** (M1). Pinned by
+    QueryCountTests: 5 rows == 25 rows, cold cache, under every sort key and
+    under filters.
+  - The existing payload is pinned to the base commit's by
+    users/tests_user_list_payload_pin.py, a snapshot captured before any
+    change, and it passes unchanged.
+  - How it's done:
+    - list_queryset() adds select_related("settings", "credit_wallet") and
+      prefetches the wallet's buckets, the active subscriptions (with
+      plan), the active managed licenses and the active allocations (with
+      license).
+    - The 4 cycle-usage sums are SQL annotations.
+    - ListCreditWalletSerializer (users/list_serializers.py) reads these.
+      Each method falls back to CreditWalletSerializer's own when the data
+      is absent.
+  - No hardening backlog item is needed now.
+- **D2: A.** The list may be up to CACHE_TTL (5 min) stale. The list cache
+  key already hashes every query param; CacheKeyTests pin it, and plant
+  Q-cache kills 14 tests.
+- **D3:** TRIAL < BETA < STANDARD < PRO < POWER < CUSTOM, as a rank inside
+  the plan lookup.
+- **D4:** every null sorts last in both directions. credits_left is null
+  with no wallet.
+- **D5:** course.teacher. **Co-teachers are not counted**: an assignment
+  counts only for its course's teacher, and Assignment.teacher (in review
+  for removal) is ignored.
+- **D6:** the nine keys and eight params are API keys only. They are
+  documented in OpenAPI: the ordering enum and a description, and the
+  filters come from django-filter.
+- **D7:** no existing test pins a whole key set on these responses (NOTES).
+  ListOnlyTests pins the nine keys' absence on retrieve, me, patch, lock,
+  unlock and the sign-in payload, for a super admin and a teacher.
+
+Found in build, not in the plan: the new filters are **no-ops for anyone
+but a super admin**. filter_queryset runs under get_object(), so for a
+teacher or school admin a plan or date filter on a retrieve would be a
+200-vs-404 oracle on another account. Test ListOnlyTests
+.test_the_list_filters_do_nothing_off_the_list_for_others; plant Q-gate.
+
+Side finding, out of scope and unchanged: UserCacheMixin keys a retrieve by
+instance id alone, so a filtered retrieve inside the TTL returns the cached,
+unfiltered answer.
+
+## 9. billing/serializers.py and the B1b merge
+
+**CreditWalletSerializer is not changed.** The per-row work is overridden
+in a subclass, users.list_serializers.ListCreditWalletSerializer, that only
+the list uses. Every other caller behaves as before.
+
+B1b adds balance_status, reserved_credits and spendable to
+CreditWalletSerializer. After the merge, ListCreditWalletSerializer
+inherits them, and any of them that queries per row will turn
+QueryCountTests red (5 rows != 25 rows). That's the intended alarm. To keep
+them at 0 extra queries:
+
+- reserved_credits: a wallet column. It is already loaded by
+  select_related("credit_wallet"), so it costs nothing if B1b declares it as
+  a plain model field.
+- spendable: override in ListCreditWalletSerializer as
+  `max(0, self._live_remaining(obj, buckets) - obj.reserved_credits)` over
+  the prefetched buckets, the same as billing.holds._free. Don't call
+  billing.holds.spendable_credits(wallet): it re-reads the wallet with
+  CreditWallet.objects.get(), one query per row.
+- balance_status: override it to read the same in-memory spendable and
+  totals. If it needs another relation (a plan or a threshold), add a
+  Prefetch to users.user_list.list_queryset.
+- The prefetched buckets are the full set for the wallet (no filter), so any
+  live/expired split can be made in Python with the row's clock
+  (`self._now`).
+
+## 10. Performance (EXPLAIN ANALYZE, 2000 users, 25-row page)
+
+| sort | time |
+|---|---|
+| default | 6.3 ms |
+| -credits_left | 20.2 ms |
+| -papers_graded | 10.4 ms |
+| plan_tier | 14.2 ms (it was 235.8 before the rank moved into the plan lookup) |
+
+No index or migration was needed. The plans are in explain_*.txt.
