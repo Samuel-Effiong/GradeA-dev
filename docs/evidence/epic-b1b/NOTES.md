@@ -5058,3 +5058,27 @@ The fragments were rendered from unittest's own messages (no test run). No pre-e
 |---|---|---|---|
 | B10-PB6-11 (re-run, alone) | as B10; serial; under flock; at this commit | PB6-11's killer (`step10/battery_pb6-11.json`) | **Ran 1, FAILED (failures=1)**, with `is not None : D6-d: a waiting paper has no task` |
 | B10 (continued) | as B10 | `--from PB6-12`, plants 104–129 | each as its row in `step10/battery_table.md` |
+
+**B10 battery: complete. All 129 plants as declared; 0 retired; 1 declared survivor (PB6-3, §6.6.10); 0 undeclared survivors.**
+- The final result for each plant is its last row across the four summary files: `battery_summary_49f7616af.jsonl` (plants 1–34), `_6275664d3` (PB3-2 re-run, 35–98), `_e38a43e50` (PB6-7..PB6-11) and `_47ea14979` (PB6-11 re-run, PB6-12..P9-7).
+- 131 rows in all. The two rows that did not match are kept unamended:
+  - PB3-2 at 49f7616af: errors=4, the plant defect;
+  - PB6-11 at e38a43e50: its fragment held step 6's random id.
+- Each was re-run after the SM's ruling and matched.
+- Every one of the 131 restores matched HEAD by sha256.
+- **Deviations, for the gate summary:**
+  1. The rebuilt plant PB3-2 passed a UUID where `refund_credits` takes a `str` task id (STOP, ruled, fixed). The other 57 rebuilt plants were reviewed, and none had the same defect.
+  2. The session restart killed the runner during PB6-7. The tree was exactly HEAD plus that edit; it was restored with a matching sha256 and resumed (SM: accepted).
+  3. PB6-11's fragment held step 6's random celery id (STOP, ruled a manifest fragment defect, fixed).
+
+**E-off and E-on, re-declared at this commit before either runs.**
+- They are unchanged from §10.1's table: since 49f7616af only `docs/` has changed, so `bsk.py`'s count at 67851f24e still holds.
+- Labels: `billing ai_processor assignments students users dashboard audit.tests_h273_query_filters audit.tests_route_coverage` + the 67 labels in `guards67.txt`.
+- Run: `--parallel 4 --noinput`, under flock.
+
+| Run | ENV | Declared |
+|---|---|---|
+| E-off | BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK all unset | **Ran 8261, OK (skipped=37)**, 0 FAIL, 0 ERROR |
+| E-on | the same four unset; `BILLING_HOLDS_ENABLED=True` from the environment | **Ran 8261, OK (skipped=37)**, 0 FAIL, 0 ERROR |
+
+- They run in that order, E-off first, and each log goes to `step10/`.

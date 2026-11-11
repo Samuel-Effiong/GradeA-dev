@@ -1,0 +1,66 @@
+B1b-10 battery P9-7 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 47ea14979
+label: billing.tests.test_b1b9_drain.ForceLimitTests.test_only_the_emergency_command_passes_force billing.tests.test_b1b9_drain.DrainCommandTests.test_the_emergency_returns_every_hold_at_once_and_prints_drained
+env set: none
+declared: Ran 2, FAILED (failures=2)
+diff --git a/billing/management/commands/billing_holds_drain.py b/billing/management/commands/billing_holds_drain.py
+index 75366f534..bdcfcf498 100644
+--- a/billing/management/commands/billing_holds_drain.py
++++ b/billing/management/commands/billing_holds_drain.py
+@@ -161,7 +161,7 @@ class Command(BaseCommand):
+             "Flag-off emergency: record who ordered it, when and why in NOTES."
+         )
+         expired = expire_queued_jobs()
+-        swept = holds.sweep_stale_holds(force=True)
++        swept = holds.sweep_stale_holds()
+         finished = 0
+         for job in list(AIJob.objects.filter(status__in=holds.OPEN_STATUSES)):
+             if job.status == AIJobStatus.QUEUED_PENDING_CREDITS:
+Found 2 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+FFree trial plan not found: no trial activated for user df30c4e1-e27a-4cd7-b8cb-e7d95e1c60c4.
+Cannot activate automatic trial for user df30c4e1-e27a-4cd7-b8cb-e7d95e1c60c4 (validation): ValueError
+F
+======================================================================
+FAIL: test_only_the_emergency_command_passes_force (billing.tests.test_b1b9_drain.ForceLimitTests.test_only_the_emergency_command_passes_force)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 395, in test_only_the_emergency_command_passes_force
+    self.assertEqual(
+AssertionError: Items in the second set but not the first:
+'billing/management/commands/billing_holds_drain.py'
+
+======================================================================
+FAIL: test_the_emergency_returns_every_hold_at_once_and_prints_drained (billing.tests.test_b1b9_drain.DrainCommandTests.test_the_emergency_returns_every_hold_at_once_and_prints_drained)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 533, in test_the_emergency_returns_every_hold_at_once_and_prints_drained
+    self.assertEqual(
+AssertionError: Tuples differ: ('PENDING', '') != ('FAILURE', 'PROVIDER_FAILURE')
+
+First differing element 0:
+'PENDING'
+'FAILURE'
+
+- ('PENDING', '')
++ ('FAILURE', 'PROVIDER_FAILURE')
+
+----------------------------------------------------------------------
+Ran 2 tests in 1.634s
+
+FAILED (failures=2)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/management/commands/billing_holds_drain.py

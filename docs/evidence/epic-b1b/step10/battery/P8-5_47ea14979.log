@@ -1,0 +1,50 @@
+B1b-10 battery P8-5 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 47ea14979
+label: billing.tests.test_b1b8_texts.LateDoorEmailTests.test_a_single_upload_is_logged_and_the_teacher_is_not_emailed
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/billing/holds.py b/billing/holds.py
+index 6e9194e3c..26cc73fe4 100644
+--- a/billing/holds.py
++++ b/billing/holds.py
+@@ -1358,7 +1358,7 @@ def notify_late_door_refusal(row, job):
+
+     teacher = job.wallet.user
+     name = row.file_name or "your file"
+-    if not LATE_DOOR_EMAIL_APPROVED or row.task_type not in UPLOAD_ITEM_TYPES:
++    if not LATE_DOOR_EMAIL_APPROVED:
+         logger.warning(
+             "Late door file refused (task %s); the notice texts await owner "
+             "approval, so no email was sent.",
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user a07881bd-30df-4880-ba55-9189b82022bb.
+Cannot activate automatic trial for user a07881bd-30df-4880-ba55-9189b82022bb (validation): ValueError
+F
+======================================================================
+FAIL: test_a_single_upload_is_logged_and_the_teacher_is_not_emailed (billing.tests.test_b1b8_texts.LateDoorEmailTests.test_a_single_upload_is_logged_and_the_teacher_is_not_emailed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b8_texts.py", line 256, in test_a_single_upload_is_logged_and_the_teacher_is_not_emailed
+    with self.assertLogs("billing.holds", "WARNING") as logs:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/_log.py", line 84, in __exit__
+    self._raiseFailure(
+AssertionError: no logs of level WARNING or higher triggered on billing.holds
+
+----------------------------------------------------------------------
+Ran 1 test in 0.187s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/holds.py

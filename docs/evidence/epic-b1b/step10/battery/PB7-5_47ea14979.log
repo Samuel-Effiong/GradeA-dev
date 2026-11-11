@@ -1,0 +1,55 @@
+B1b-10 battery PB7-5 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 47ea14979
+label: billing.tests.test_b1b7_gap_metric.GapMetricTests.test_a_failed_or_expired_job_emits_nothing
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/billing/holds.py b/billing/holds.py
+index 6e9194e3c..29968e50a 100644
+--- a/billing/holds.py
++++ b/billing/holds.py
+@@ -574,7 +574,7 @@ def finish_job(job, to_status, from_statuses=OPEN_STATUSES):
+         )
+         if not moved:
+             return None
+-        if to_status == AIJobStatus.SETTLED:
++        if to_status in (AIJobStatus.SETTLED, AIJobStatus.FAILED):
+             # B1b-7 (plan §3.10): this caller won the move, so the gap metric
+             # is emitted once per settled job.
+             transaction.on_commit(partial(emit_estimate_gap, job.pk))
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 2fed4ed2-9f0f-4ad7-a1bb-1ce50e449b26.
+Cannot activate automatic trial for user 2fed4ed2-9f0f-4ad7-a1bb-1ce50e449b26 (validation): ValueError
+F
+======================================================================
+FAIL: test_a_failed_or_expired_job_emits_nothing (billing.tests.test_b1b7_gap_metric.GapMetricTests.test_a_failed_or_expired_job_emits_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_gap_metric.py", line 98, in test_a_failed_or_expired_job_emits_nothing
+    self.assertEqual(self.finish(self.job(), AIJobStatus.FAILED), [])
+AssertionError: Lists differ: [('credit_estimate_gap', {'bucket': '1.2-2[47 chars]e'})] != []
+
+First list contains 2 additional elements.
+First extra element 0:
+('credit_estimate_gap', {'bucket': '1.2-2'})
+
++ []
+- [('credit_estimate_gap', {'bucket': '1.2-2'}),
+-  ('credit_estimate_band_hit', {'hit': 'false'})]
+
+----------------------------------------------------------------------
+Ran 1 test in 0.040s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/holds.py

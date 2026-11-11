@@ -1,0 +1,50 @@
+B1b-10 battery PB7-other (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 47ea14979
+label: billing.tests.test_b1b7_job_api.JobApiTests.test_a_school_admin_of_another_license_gets_404
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/billing/job_views.py b/billing/job_views.py
+index 80540362b..f4936de54 100644
+--- a/billing/job_views.py
++++ b/billing/job_views.py
+@@ -78,9 +78,6 @@ def visible_jobs(user):
+     if user.user_type == UserTypes.SCHOOL_ADMIN and user.school_id is not None:
+         scope |= Q(
+             wallet__user__school_credit_allocations__is_active=True,
+-            wallet__user__school_credit_allocations__license_subscription__school_id=(
+-                user.school_id
+-            ),
+         )
+     return jobs.filter(scope).distinct()
+
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 594d8fd5-5e99-4f51-83e7-2834b5f10cb9.
+Cannot activate automatic trial for user 594d8fd5-5e99-4f51-83e7-2834b5f10cb9 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+F
+======================================================================
+FAIL: test_a_school_admin_of_another_license_gets_404 (billing.tests.test_b1b7_job_api.JobApiTests.test_a_school_admin_of_another_license_gets_404)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_job_api.py", line 155, in test_a_school_admin_of_another_license_gets_404
+    self.assertEqual(self.get(admin).status_code, 404)
+AssertionError: 200 != 404
+
+----------------------------------------------------------------------
+Ran 1 test in 0.138s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/job_views.py

@@ -1,0 +1,55 @@
+B1b-10 battery P8-1 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 47ea14979
+label: billing.tests.test_b1b8_texts.LowBalanceNoExpiryTests.test_a_cycle_bucket_with_no_expiry_sends_no_warning
+env set: none
+declared: Ran 1, FAILED (errors=1)
+diff --git a/billing/low_balance.py b/billing/low_balance.py
+index 14f1d028b..fe1ad89be 100644
+--- a/billing/low_balance.py
++++ b/billing/low_balance.py
+@@ -122,7 +122,7 @@ def check_low_balance(wallet_id):
+         return None
+     total = allocation(wallet)
+     cycle = cycle_bucket(wallet)
+-    if total <= 0 or cycle is None or cycle.expires_at is None:
++    if total <= 0 or cycle is None:
+         # D8-a (SM, §8.5): no expires_at gives no {cycle_end}, so no text
+         # would be true: nothing is claimed or sent.
+         return None
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 04163e08-ee7d-4b03-85dc-110a5b6d81d3.
+Cannot activate automatic trial for user 04163e08-ee7d-4b03-85dc-110a5b6d81d3 (validation): ValueError
+E
+======================================================================
+ERROR: test_a_cycle_bucket_with_no_expiry_sends_no_warning (billing.tests.test_b1b8_texts.LowBalanceNoExpiryTests.test_a_cycle_bucket_with_no_expiry_sends_no_warning)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b8_texts.py", line 432, in test_a_cycle_bucket_with_no_expiry_sends_no_warning
+    claimed = module("billing.low_balance").check_low_balance(wallet.pk)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/low_balance.py", line 148, in check_low_balance
+    notify(wallet, level, spendable, cycle)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/low_balance.py", line 161, in notify
+    _send(wallet, level, spendable, cycle)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/low_balance.py", line 175, in _send
+    cycle_end=cycle.expires_at.date().isoformat(),
+              ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'date'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.047s
+
+FAILED (errors=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/low_balance.py
