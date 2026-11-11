@@ -5219,3 +5219,59 @@ This confirms the cause recorded above.
 | E-on (2nd) | the same four unset; `BILLING_HOLDS_ENABLED=True` from the environment | the same | **Ran 8278, OK (skipped=37)**, 0 FAIL, 0 ERROR |
 
 - They run in that order; a mismatch is a STOP.
+
+**D1b, E-off (2nd) and E-on (2nd) at 5f6bf06ea: all as declared.**
+- D1b: Ran 70 tests in 14.430s, **OK**.
+- E-off: **Ran 8278 tests in 665.766s, OK (skipped=37)**, 0 FAIL, 0 ERROR. Log `step10/E-off2_5f6bf06ea.log.gz`; the sha256 of the uncompressed log is `ac3a5c3d0e2a3c0d1723d51ea4a25afd177c9cbf4f6558d5eb68c615207741c7`.
+- E-on (`BILLING_HOLDS_ENABLED=True`): **Ran 8278 tests in 533.422s, OK (skipped=37)**, 0 FAIL, 0 ERROR. Log `step10/E-on2_5f6bf06ea.log.gz`; the sha256 of the uncompressed log is `92a757ca54c8c33d3e86de544916c260713d12d643ee05b08f487a42766f4a34`.
+
+### §10.3 The B1b gate summary (local parts done; for the SM's review before the PG16 push)
+
+**1. Kill targets and evidence**
+- **The battery** (`step10/battery.json`; 129 plants: 121 same, 8 re-anchored, 0 retired):
+  - all **129 as declared**, with 1 declared survivor (PB6-3, ruling §6.6.10) and **0 undeclared survivors**;
+  - 131 rows across `battery_summary_{49f7616af,6275664d3,e38a43e50,47ea14979}.jsonl`; every restore's sha256 matches HEAD.
+  - This covers B1a's 21 mutants and the plants of B1b steps 1–9 (PFB, PE, PK, PP, PB3/4/6/6b/7, P8, P9).
+- **The E-off fix** (15379808e): PL-1..PL-4 each killed as declared (`battery_summary_15379808e.jsonl`).
+- **Nears at 5f6bf06ea:** E-off and E-on, **Ran 8278, OK (skipped=37)** each. The labels are `billing ai_processor assignments students users dashboard audit.tests_h273_query_filters audit.tests_route_coverage` + the 67 guards.
+- **Per-step evidence:** each step's own red, green, plants and nears are in §1–§9, each ACCEPTED by the SM at its END (B1b-1 d4c733b51 … B1b-9 58e10d3cc).
+
+**2. Deviations and STOPs in B1b-10, each with its ruling**
+1. **PB3-2 rebuilt-plant defect (UUID vs str task_id).** The plant errored (errors=4) instead of failing. STOP; the SM ruled, the plant was corrected to `str(record.id)`, and the re-run matched its declaration. The other 57 rebuilt plants were reviewed: no similar defect.
+2. **Restart interruption during PB6-7.** The tree was exactly HEAD plus that one edit; it was restored with a matching sha256 and resumed (ACCEPTED, -31). Not a mismatch.
+3. **PB6-11's fragment held step 6's random celery id.** STOP; ruled a manifest fragment defect, the id was dropped, and the re-run matched. A scan of all fragments for run-specific values found 1 hit (this one).
+4. **The first E-off failed**: 18 failures, all in the merged user-list tests (staging f90bb9b23 at 67851f24e). STOP.
+   - D1 showed a real interaction, not pollution. D2 measured it: B1b-7's `spendable` and `balance_status` cost 7 queries per row, and the pin differed only by the 3 new wallet keys.
+   - Fixed per the SM-approved plan: `status_from` (pure), and the list's two overrides over prefetched buckets.
+   - Result: back to **13** queries at every size. The pin gained only 18 `+` lines; 17 new parity tests.
+   - The first E-off log is kept unamended.
+   - Root cause on my side: the merged modules were not run at the merge. That is now a **standing rule** (§10.2): run the merged modules alone right after any merge, declared.
+- Deviations in earlier steps were ruled at each step's END (for example B1b-9's undeclared trial run, §9.6, and the assertion added after R9). None is reopened here.
+
+**3. The PG16 run (owner GO, 2026-11-11), declared before the push**
+- The SM pushes `task/epic-b1b` and opens a **draft PR into `dev` titled DO NOT MERGE**. It is closed unmerged after the run, with no workflow change (§10.0).
+- **Count at 5f6bf06ea** (`build_suite`, the whole suite, flag unset): **10085 tests, 33 static skips**. That is 10068 at 67851f24e plus the 17 new tests.
+- Runtime skips in CI: **53**, the same as B1a's CI run (9483, skipped=81, against 28 static at 5899077ee). No module added since skips at runtime under CI's env.
+- **Declared for the tests job: Ran 10085, OK (skipped=86)**, 0 FAIL, 0 ERROR.
+  - The one known flaky test, named in advance, is B1a's live-server lockout flake. Any failure, that one included, is recorded unamended and is a STOP.
+  - `makemigrations --check`: "No changes detected". Coverage and the whole-repo mypy pass.
+- `pre-commit.yml` and `audit.yml` are expected green.
+- **`migration-safety.yml` is expected to FAIL on its base**, as in B1a: `dev` dates from May 2026, so every later migration counts as new. Every B1b migration should be reported additive.
+- **Proven only there:** PG 16, not the local 18.6, for:
+  - the barrier and `TransactionTestCase` concurrency tests: B1a's `test_holds_concurrency` and `test_holds_gate`; B1b's `test_batch_queue` (two promoters, promotion against expiry, two papers finishing at once), `test_b1b7_low_balance` (send once), `students.tests_item_retry` (exactly one wins);
+  - every B1b migration applied.
+- `write_routes()` stays 164: no `urls` or `views` file has changed since 67851f24e.
+
+**4. Owner items still open** (held by the SM; none blocks this gate)
+- The production switch-on of `BILLING_HOLDS_ENABLED`: a separate owner go. The wording approval is not it.
+- (a) AIJob cancel; (c) a teacher on a spent license budget gets no low-balance email (allocation 0); (b) the unit wrap: not reachable today, still listed.
+- The text-3 student variant, the PDF stylesheet, #19's placement, and D8-a.
+- "30 days" in privacy texts #19 and #20.
+- Running `billing_holds_drain` on staging or production: an owner go each time (runbook `docs/ops/billing_holds_drain.md`).
+
+**5. Deferred to staging** (they cannot be proven on the branch)
+- The §6.2 staging proof.
+- The 7-day soak. At the soak: measure storage (Q9), and do one store, load and delete round trip on a real account ([UNVERIFIED] D-11, the empty format for a raw private asset).
+- Before F4 runs in production: apply privacy texts #19–#23 and regenerate the PDF.
+- The staging drain run, at the end of the soak (owner go).
+- At landing: the 67 guard labels; dropping my own `_N` test-DB clones after any schema change.
