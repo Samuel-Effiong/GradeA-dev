@@ -4693,3 +4693,52 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
 - **Q9-6, start-up.** `DRAINING=true` with `ENABLED=false` is the emergency path's state, so it is allowed, with one WARNING log at start-up. Accept, or refuse to start?
 - **Q9-7, size:** 08b gives 1 day; I estimate 1.5–2 days, with Q9-1's unit rule and Q9-3's forced sweep.
 - **Staging:** origin/staging was merged at 991ba0fd0; I re-check and merge at the start of the build, after the GO.
+
+### §9.3 SM ruling on the §9.2 checkpoint (grade-automator-plus-16, 2026-11-11), recorded unamended in substance
+
+GO to code. The drift line (51eb99fe1) is noted; the SM will show it to the owner.
+- **Q9-1 YES.** A unit is "already held" only when its task row is HELD. No row, a SINGLE_ITEM attach, a retry and a late door are new work and run flag-off while draining. Nested units follow their root. One test per case.
+- **Q9-2 B.** While draining, the flag-off check and the door's `_balance` use spendable (total less reserved). This **departs from 08b's "exactly as flag off" by SM ruling**, because it stops open holds being overspent. A test where the total covers the call but spendable doesn't. A plant: back to the total.
+- **Q9-3 YES, with limits.** `force` is keyword-only, default False, passed only by the emergency command; a test or grep guard for that. A plant: drop force in the emergency path.
+- **Q9-4 ACCEPT.** The four `batch_queue.notify` kinds are silent while draining; low-balance and drift are unaffected. The runbook says so, including that drained queued jobs get no email. Each kind tested.
+- **Q9-5 ACCEPT.** Default `--timeout` = `item_sweep_window()` + 10 min, exit 1 on timeout, the open items named.
+- **Q9-6 ALLOW**, one WARNING at start-up (engineering log text only). Tested to log once.
+- **Q9-7 ACCEPT** 1.5–2 days.
+- The runbook states that running the command on staging or production is an owner go every time. No beat or cron entry for it.
+
+### §9.4 The merge, the B1b-9 tests first, and R9 red declared (before it runs)
+
+**The merge:** `git fetch origin staging`: `origin/staging` is already an ancestor of HEAD (last merged at 991ba0fd0); nothing to merge. `write_routes()` re-counted: **164**. B1b-9 adds no route.
+
+**Design decisions made here (within the §9.3 rulings):**
+- `holds.holds_draining()` reads the setting; `holds.holds_for_new_work()` = `holds_enabled() and not holds_draining()`. The queue emails are silent whenever the setting is on (the normal drain and the emergency state).
+- **Q9-2, the flag-off emergency:** with the flag OFF, the flag-off check keeps the total. 08b §6.3 says of the emergency: "With the flag off, the spendable balance ignores `reserved_credits`, so teachers are not blocked meanwhile." Spendable applies while the flag is on and draining. The door's `_balance` already reads spendable whenever the flag is on, so draining needs no door change there (its test passes at the red).
+- **Q9-1's edges:**
+  - A HELD row whose start claim loses (its hold was returned between the read and the claim) falls to the successor case, so it runs flag-off while draining.
+  - A late message on a returned grading row still exits before any call, as today: it opens no job, and it keeps the sweep's "nothing charged" report true.
+  - A row already settled for its retry still exits, as today.
+  - A nested unit under a flag-off root stays flag-off (an open refund scope is how it knows).
+- **The drain command expires `QUEUED_PENDING_CREDITS` jobs in every poll round**, not only at the start: a running batch whose held papers finish while others wait moves to QUEUED during the drain.
+- **The emergency and an unstarted item still in the broker:** the forced sweep marks it FAILURE `PROVIDER_FAILURE` (retryable) and returns its hold. If its message runs later, the flag is off, so it runs as flag-off work. Stated in the runbook.
+- **Test case types:** the command tests are `TransactionTestCase` (08b §6.3's four). The gate-site tests are `TestCase`, like their neighbors in `test_holds_entry` and `test_holds_door`; the batch tests reuse `BatchBase` (`TransactionTestCase`).
+
+**The new module** `billing/tests/test_b1b9_drain.py` (build_suite: **35 tests, 0 static skips**; subTests: `StartUpWarningTests.test_no_warning_otherwise` ×3, `DrainCommandTests.test_it_refuses_without_both_settings` ×3, `…test_the_emergency_refuses…` ×3):
+
+| Class | Tests | Red expectation |
+|---|---|---|
+| `DrainingCallTests` | 9 | FAIL `1 != 0`: `…single_call_takes_no_hold`, `…unit_with_no_row…`, `…nested_unit_follows_a_flag_off_root`. FAIL `2 != 1`: `…q92_…spendable_does_not_is_refused`, `…retry_opens_no_job…`, `…late_door_opens_no_job…`. FAIL `') is not None`: `…row_with_no_job_is_not_attached…`. Pass: `…held_row_keeps_running…`, `…nested_unit_follows_a_held_root` |
+| `DrainingDoorTests` | 2 | `…holds_nothing_and_launches_at_once` FAIL `Lists differ: [` … `!= []`; `…q92_the_door_reads_spendable` passes |
+| `DrainingBatchTests` | 2 | `…makes_no_job…` FAIL `0 != 3`; `…auto_grade_retry…` FAIL `2 != 1` |
+| `DrainingPromotionTests` | 2 | `…credit_entry…` FAIL `Expected 'delay' to not have been called. Called 1 times.`; `…promotion_tasks…` FAIL `Expected 'promote_all' to not have been called. Called 1 times.` |
+| `DrainingQueueEmailTests` | 5 | 5 FAIL `Expected 'delay' to not have been called. Called 1 times.` |
+| `StartUpWarningTests` | 3 | ERROR `AttributeError: module 'billing.holds' has no attribute 'warn_if_draining_with_holds_off'` (1 + 3 subTests); `…once_at_start_up` ERROR `AttributeError: <module 'billing.holds' from '` … `does not have the attribute 'warn_if_draining_with_holds_off'` |
+| `ForceLimitTests` | 4 | `…keyword_only…` ERROR `KeyError: 'force'`; `…only_the_emergency_command…` FAIL `Items in the second set but not the first:\n'billing/management/commands/billing_holds_drain.py'`; `…sweep_alone…` and `…force_returns…` ERROR `TypeError: sweep_stale_holds() got an unexpected keyword argument 'force'` |
+| `DrainCommandTests` | 8 | `…refuses_without_both_settings` 3 subTests FAIL `1 != 2 : Unknown command: 'billing_holds_drain'`; `…nothing_open…` FAIL `'DRAINED' not found in "Unknown command: 'billing_holds_drain'"`; `…open_hold_exits_1…` FAIL `not found in "Unknown command: 'billing_holds_drain'"`; `…queued_jobs_are_expired…` FAIL `'QUEUED_PENDING_CREDITS' != AIJobStatus.EXPIRED`; `…settles_during_the_wait…` ERROR `AttributeError: module 'billing.management.commands' has no attribute 'billing_holds_drain'`; `…default_timeout…` ERROR `ModuleNotFoundError: No module named 'billing.management.commands.billing_holds_drain'`; `…emergency_refuses…` 3 subTests FAIL `1 != 2 : Unknown command: 'billing_holds_drain'`; `…emergency_returns_every_hold…` FAIL `'HELD' != 'RETURNED'` |
+
+The fragments were rendered from unittest's own assertion messages, and the error texts from the same expressions in Python (no test run).
+
+**The tally:** failures = 7 + 1 + 2 + 2 + 5 + 1 + 10 = **28**; errors = 5 + 3 + 2 = **10**; 3 pass.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| R9 (red) | BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial; at this commit | `billing.tests.test_b1b9_drain` | **Ran 35, FAILED (failures=28, errors=10)**: as the table |
