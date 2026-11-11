@@ -4529,3 +4529,13 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
 - **Cause, in my edit (§8.8 item 2):** in that module, `batch_queue` is a lazy proxy (`_BatchQueue`, `billing/tests/test_batch_queue.py:61-69`), not the module. So `patch.object(batch_queue, "QUEUE_EMAIL_APPROVED", False)` set the attribute on the proxy. The real switch stayed True, and `notify` went on to `_send` for a random job id.
 - **The other 8 edits behaved as intended.** The `test_estimate_backtest` edit patches the real `estimates` module and passed.
 - **Proposed fix (test-only, the same test):** patch by path, `patch("billing.batch_queue.QUEUE_EMAIL_APPROVED", False)`. Then re-run G8 as declared (Ran 181, FAILED (failures=1), the known one).
+
+### §8.10 SM ruling on the §8.9 STOP (grade-automator-plus-16, 2026-11-11), recorded unamended in substance; G8b declared
+
+- **GO for the test-only fix:** `patch("billing.batch_queue.QUEUE_EMAIL_APPROVED", False)` in that one test (this commit).
+- **Lesson:** before `patch.object` on a module name, check that it is the module and not a proxy. The remaining plants are applied by file edit and checked by sha256, with no `patch.object`. Any test patching in this step patches by dotted path.
+- Any other difference is a STOP. No push, no trailers.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| G8b | all four unset; under flock with `--noinput`; serial; at this commit | the 6 modules of BR8 (181) | **Ran 181, FAILED (failures=1)**: only the known `students.tests_data_export…test_every_field_is_decided_exactly_once` subTest `label='users.CustomUser'`, `'admin_locked_at' : users.CustomUser` |
