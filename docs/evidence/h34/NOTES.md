@@ -497,3 +497,39 @@ State: HOLDING. No product edit.
 Wording file read: the main checkout's team/approved_wording_h34_admin_lock_2026-11-11.md (owner quote there: "Only super admin get the locks" / "I approve").
 
 State: GO for the survey. Labels still pending, so STOP before the product commit unless they are confirmed by then.
+
+## Labels approved (2026-11-11, SM relay; recorded unamended)
+
+> SM: the owner APPROVED the Django admin action labels "Lock sign-in" and "Unlock sign-in" (2026-11-11). They are added as texts #3 and #4 in team/approved_wording_h34_admin_lock_2026-11-11.md. The label STOP before the product commit is lifted. Use them verbatim. Carry on as briefed: survey checkpoint (with the student-message proposal) first.
+
+## Count-pin survey (before tests-first)
+
+What the change will move, and which guard forces each move:
+
+| # | Pin | Today | After | Forced by |
+|---|---|---|---|---|
+| C1 | `audit.enums.AuditAction` | - | +2: ACCOUNT_LOCK, ACCOUNT_UNLOCK | SM ruling; `tests_enums` (value == name, <= 64 chars) |
+| C2 | `METADATA_ALLOWLIST` | - | +2 entries (one per new action) | `audit.tests_metadata.PerActionAllowListTest.test_every_action_has_an_entry` |
+| C3 | `ALLOWED_KEYS` | - | +3: had_admin_lock, had_login_lock, cleared_failed_attempts (unlock); lock uses the existing `source` | `test_every_per_action_key_is_also_in_the_shared_pool` |
+| C4 | `audit.enums.ReasonCode` | - | +1: ACCOUNT_LOCKED_BY_ADMIN | emitter refuses unknown codes; `AutoGrader.tests_reason_codes` emitted-literal scan |
+| C5 | `REASON_CODES` | - | +1 user-facing spec (not audit-only) | `test_every_code_is_user_facing_or_audit_only_and_not_both` |
+| C6 | users migrations | leaf 0041_revokedsession | 0042, AddField admin_locked_at NULL | nullable, so no db_default needed (`tests_migration_rollback_defaults` checks NOT NULL only); nothing pins the leaf name |
+| C7 | write routes | - | +2: `user-lock`, `user-unlock` (router basename "user") | `audit.tests_route_coverage`: anonymous gets 401; a super admin with a made-up id gets 404, so one ADMIN_ACTION; no registry entry needed |
+
+Checked, expected NOT to move:
+
+- `users.tests_roads_that_sign_in_or_activate`: no new FOR_USER, ACTIVE_TRUE or SET_PASSWORD site. Unlock never touches is_active; the checks only refuse.
+- `audit.tests_history_guard`: the lock UPDATE uses explicit keywords, not `.update(**...)`.
+- `STUDENT_RECORD_ACTIONS` (pinned exactly): unchanged. Lock and unlock are GENERAL.
+- `audit.E001` lock thresholds: the admin lock has no attempt threshold, so it is not added.
+- `assertNumQueries`: none on login or the auth class in users/audit. admin_locked_at is read from the row already loaded, so 0 extra queries; the student-message lookup costs 1 query, on the locked branch only.
+- `tests_volume_report` and the metadata loops iterate `AuditAction`, so they scale on their own.
+- `tests_cache_user_fanout`: the lock writes by UPDATE (no save signal) and calls `invalidate_user_caches` explicitly.
+- `CustomUserSerializer` for non-super-admins: no new keys. The two read-only fields appear only to super admins.
+- ACCOUNT_LOCKED behavior and its pins (`tests_auth_lock_envelope`, `tests_auth_audit_events:103`, `tests_login_lockout`): unchanged.
+
+### Points that need an SM ruling
+
+- R1, the student message. Students have no school. Proposal: message 1 (school administrator) if the student has a non-WITHDRAWN enrollment in a course whose teacher has a school (`StudentCourse` with `course__teacher__school__isnull=False`, `enrollment_status != WITHDRAWN`), otherwise message 2 (Grade A Plus team). Reason: "any enrollment" would send a student of an independent teacher, or one who has only been withdrawn, to a school administrator who does not exist. Teachers and school admins: message 1 if school_id is set, else message 2. Super admins cannot be locked.
+- R2, the remediation. To keep to no third text, the spec's remediation is "" (the body carries `remediation: null`, the existing "nothing to do" form). Both approved sentences already say what to do. The two messages are `message` plus `alternative_messages={"no_school": ...}`, picked by `variant_from_params` would need a param; instead the raiser names the variant.
+- R3, one event per request. IsSuperAdmin tags every granted request, and the middleware then ALWAYS writes ADMIN_ACTION (`audit/admin_action.py:92`). If the API view also writes ACCOUNT_LOCK with the admin as actor, a successful lock leaves TWO events naming the requester, which breaks the "exactly one event naming the requester" rule. No existing IsSuperAdmin view writes its own named event, so there is no precedent. Proposal: after a successful lock or unlock, the view writes ACCOUNT_LOCK/ACCOUNT_UNLOCK and removes the request's ADMIN_ACTION tag (a small helper in audit/admin_action.py), so the named event is the one. A refused or failed call (404, self, super-admin target) keeps today's ADMIN_ACTION. In the back office, each locked user gets one ACCOUNT_LOCK naming the admin, and the generic STATE_CHANGE is then skipped by the existing rule, as `deactivate_users` already does with PERMISSION_CHANGE.
