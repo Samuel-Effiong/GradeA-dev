@@ -290,6 +290,14 @@ class DoorHold:
             )
         return credit_holds.hold_door_item(self.job, row, estimate)
 
+    def seal(self):
+        """The request has held every file it will: the door job may now
+        close at its last item (door-close fix, 2026-11-12)."""
+        if self.job is not None:
+            from billing.batch_queue import seal_door_job
+
+            seal_door_job(self.job)
+
     def refusal(self, estimate):
         error = InsufficientCreditsError(
             f"Upload needs ~{estimate} credits, more than is free to hold",

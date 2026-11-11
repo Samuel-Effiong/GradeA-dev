@@ -222,6 +222,11 @@ def decide_after_item(job_pk):
         claimed = rows.filter(hold_state__isnull=False).count()
         if job_row.completed_items + job_row.failed_items < claimed:
             return None
+        if job_row.job_type == AIJobType.UPLOAD and claimed < job_row.total_items:
+            # Door-close fix: the door launches each file as it is held, so
+            # an early file can end before the request has attached the
+            # rest. Its request seals the job (seal_door_job) when done.
+            return None
         if rows.filter(hold_state=HoldState.HELD).exists():
             return None
         if _waiting(job_pk).exists():
@@ -235,11 +240,40 @@ def decide_after_item(job_pk):
         return None
 
 
+#: Jobs that end at their last item (B1b-6; UPLOAD door jobs: the door-close
+#: fix, 2026-11-12).
+LAST_ITEM_JOB_TYPES = (AIJobType.BATCH_GRADING, AIJobType.UPLOAD)
+
+
 def after_batch_item(job_row):
     """The hook every finishing writer calls (settle, fail_item, the sweeps):
     nothing for any other job type."""
-    if job_row is not None and job_row.job_type == AIJobType.BATCH_GRADING:
+    if job_row is not None and job_row.job_type in LAST_ITEM_JOB_TYPES:
         decide_after_item(job_row.pk)
+
+
+def seal_door_job(job):
+    """The door request has attached every file it will hold: the job's
+    total becomes what it holds (a file the door could not estimate, or
+    whose hold lost the race, never joined it), and the job closes now if
+    every file already ended. Also the backstop's way to close a stalled
+    door job whatever its request reached."""
+    if job is None or job.job_type != AIJobType.UPLOAD:
+        return None
+    savepoint = not transaction.get_connection().in_atomic_block
+    with transaction.atomic(savepoint=savepoint):
+        if holds._lock_wallet_of(job) is None:
+            return None
+        job_row = AIJob.objects.select_for_update().get(pk=job.pk)
+        if job_row.status not in RUNNING_STATUSES:
+            return None
+        claimed = BackgroundProcessingTask.objects.filter(
+            job_id=job.pk, hold_state__isnull=False
+        ).count()
+        total = max(claimed, job_row.completed_items + job_row.failed_items)
+        if total != job_row.total_items:
+            AIJob.objects.filter(pk=job.pk).update(total_items=total)
+    return decide_after_item(job.pk)
 
 
 def mark_running(job):
@@ -480,7 +514,10 @@ def backstop_unstarted(now=None):
         for row_pk in list(rows):
             if _backstop_item(job, row_pk, ReasonCode.PROVIDER_FAILURE.value):
                 failed += 1
-        after_batch_item(AIJob.objects.filter(pk=job.pk).first())
+        if job.job_type == AIJobType.UPLOAD:
+            seal_door_job(job)
+        else:
+            after_batch_item(AIJob.objects.filter(pk=job.pk).first())
     return failed
 
 

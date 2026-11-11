@@ -548,9 +548,9 @@ def _note_settled(job_pk):
 
 
 def _after_batch_item(job_row):
-    """B1b-6: the last-item helper, for a BATCH_GRADING job only (no query
-    for any other job type)."""
-    if job_row.job_type == AIJobType.BATCH_GRADING:
+    """B1b-6: the last-item helper, for a BATCH_GRADING job and (door-close
+    fix) an UPLOAD door job; no query for any other job type."""
+    if job_row.job_type in (AIJobType.BATCH_GRADING, AIJobType.UPLOAD):
         from .batch_queue import decide_after_item
 
         decide_after_item(job_row.pk)
@@ -1077,7 +1077,8 @@ class Unit:
             **(self.settle_kwargs or {}),
         )
         if self.owns_job:
-            # A shared batch or door job finishes in step 5, not here.
+            # A shared batch or door job ends at its last item
+            # (batch_queue.decide_after_item), not here.
             finish_job(self.job, AIJobStatus.SETTLED)
         _note_settled(self.job.pk)
         if outcome.settled and outcome.chargeable and self.billed is not None:

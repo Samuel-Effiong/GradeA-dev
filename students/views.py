@@ -1616,6 +1616,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 }
             )
             task_ids.append(task_id)
+        # Door-close fix: every file this request will hold is attached.
+        door.seal()
 
         emit(
             AuditAction.SUBMISSION_UPLOAD,

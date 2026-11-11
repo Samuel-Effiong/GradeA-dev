@@ -174,7 +174,7 @@ class DoorJobClosesAtItsLastItemTests(APITestCase):
         self.assertTrue(door.hold(only, DOOR_ESTIMATE))
         fail_row(only)
         self.assertNotIn(fresh(door.job).status, TERMINAL)
-        getattr(door, "seal")()  # noqa: B009 - added by the fix
+        door.seal()
         self.assert_closed(door.job, teacher, "FAILED")
 
     def test_the_batch_view_seals_so_a_file_that_lost_its_hold_race_does_not_block(
@@ -213,9 +213,12 @@ class DoorJobClosesAtItsLastItemTests(APITestCase):
 @override_settings(BILLING_HOLDS_ENABLED=True)
 class BackstopClosesStalledDoorJobsTests(APITestCase):
     def stall(self, job):
-        AIJob.objects.filter(pk=job.pk).update(
-            reservation_claimed_at=timezone.now() - timedelta(hours=40)
-        )
+        """Nothing about the job started or settled for 40 hours."""
+        from billing.models import SettlementRecord
+
+        long_ago = timezone.now() - timedelta(hours=40)
+        AIJob.objects.filter(pk=job.pk).update(reservation_claimed_at=long_ago)
+        SettlementRecord.objects.filter(job_id=job.pk).update(settled_at=long_ago)
 
     def test_an_unsealed_door_job_with_an_unstarted_file_is_failed_and_closed(self):
         from billing.batch_queue import backstop_unstarted

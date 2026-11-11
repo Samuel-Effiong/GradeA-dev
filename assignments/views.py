@@ -1237,6 +1237,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "item_id": processing_task.id,
                 }
             )
+        # Door-close fix: every file this request will hold is attached.
+        door.seal()
 
         data = {
             "session_id": session.id,
