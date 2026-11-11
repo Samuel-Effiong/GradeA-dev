@@ -3809,3 +3809,98 @@ The plant is reverted afterwards and the file checked by sha256 against 9be23397
 - **Proposed:** each `successful[]` entry gets `ai_job_id` (one object per file). That keeps the list shape the app already reads, as a field added to each item. The 207 object gets the same through its `successful` list.
 - **This needs the SM's ruling** before any `ai_job_id` code. No new wording is needed.
 - Everything else in B1b-7 goes ahead with tests first.
+
+### §7.9 SM ruling on the §7.8 checkpoint (grade-automator-plus-16, 2026-11-11), recorded unamended in substance
+
+- **`upload_assignment`: (a) ACCEPTED.** Add `ai_job_id` to each `successful[]` entry, in both the 201 list and the 207 object. The outer shapes stay unchanged, and failed entries get no `ai_job_id`.
+  - Pin: a 201 list item has it; in a 207 the successful items have it and the failed ones don't; two files give two different ids.
+- **The 12-view list is ACCEPTED** (08b's 4 kept, 8 new, plus the corrections: `update_grade`, `teacher_feedback` and `student_summary` out, and the async-only ones out). It **replaces 08b's 7.**
+  - Every other body is a JSON object, with a top-level key added through the one helper.
+  - Update each view's OpenAPI response schema, with no new wording.
+  - One test per view, plus a plant that drops the helper call from one view.
+- **The DateField key is ACCEPTED as the date, with no migration.** Two MONTHLY buckets on the same date only means fewer emails, never extra ones.
+- Carry on with tests first for all of D7-a..e. Declare red in NOTES first, with the env.
+
+### §7.10 The contract the tests pin (the product names; all from §7.2 and the rulings)
+
+**`billing/low_balance.py`, new:**
+- **`LOW_BALANCE_EMAIL_APPROVED = False`.**
+- **`LOW_BALANCE_TEXTS`:** `{25: (subject, body), 10: …, 0: …}`, texts #11–#13 verbatim. The body is followed by `"\n\n"` and closing line #6 (individual) or #7 (license), the way the queue email adds its closing.
+- **`cycle_bucket(wallet)`:**
+  - the live MONTHLY bucket with the latest `created_at`;
+  - else the live non-OVERAGE bucket with a non-null `expires_at` and the latest `expires_at`;
+  - else None.
+- **`allocation(wallet)`:** `plan_used_credits() + plan_remaining_credits()`.
+- **`level_of(spendable, allocation)`:** 0 if spendable == 0; 10 if spendable × 100 ≤ 10 × allocation; 25 if ≤ 25 × allocation; else None. It is None whenever allocation ≤ 0.
+- **`balance_status(wallet)`:**
+  - with allocation ≤ 0, or no cycle bucket: `"out"` if spendable == 0, else None;
+  - otherwise the level mapped: 25 → `"low"`, 10 → `"very_low"`, 0 → `"out"`, None → None.
+- **`check_low_balance(wallet_id)`:** returns the level it claimed, or None.
+  - It writes nothing and sends nothing when the allocation is ≤ 0 or there is no cycle bucket.
+  - Otherwise it makes one conditional UPDATE: the cycle key differs, OR `low_balance_warned_level` is null, OR the new level is below it. It sets the level and the key (the bucket's `created_at` date).
+  - It sends only when the UPDATE moved a row and `LOW_BALANCE_EMAIL_APPROVED` is True. When not approved it logs a WARNING (the queue-email precedent).
+  - **The placeholders:** `{remaining}` = floor(spendable ÷ `CONVERSION_FACTOR`), the display units the teacher sees on the credits screen (`display_balance`); `{cycle_end}` = the bucket's `expires_at` date in ISO form, as the queue email does; `{days}` = `settings.QUEUE_LIFETIME_DAYS`.
+- **The hook:** `holds.settle` adds `transaction.on_commit(partial(low_balance.check_low_balance, wallet_id))` after a settlement that charged.
+
+**`CreditWalletSerializer`:** gains read-only `balance_status`, `reserved_credits` and `spendable`.
+
+**The job API:** `GET billing/jobs/<uuid:pk>`, name `billing-job-detail`.
+- **The body's keys:** exactly `id, job_type, state, estimate{p50,p90,source}, verdict, actual{consumed_credits,unbilled_credits}, items{total,completed,failed,left}, stopped_at_item, queued_at, expires_at, created_at`.
+- **`left`:** = total − completed − failed.
+- **The owner** is the job's wallet's user.
+- **The school admin's scope:** a `SCHOOL_ADMIN` whose `school_id` equals the school of an active `SchoolCreditAllocation` license held by that user.
+- **The super admin:** `is_superuser` and user_type `SUPER_ADMIN`.
+- **Everyone else:** 404. Anonymous: 401.
+
+**The gap metric:** `holds.emit_estimate_gap(job_row)` runs wherever a job's status moves to SETTLED with the caller winning the move (`finish_job`, and `settle`'s close), when `estimate_p50` is set and positive.
+- **actual** = `consumed_credits + unbilled_credits` (plan §3.10: "consumed_credits and unbilled_credits are the actual cost").
+- **`credit_estimate_gap`**, with tag `bucket` = `holds.gap_bucket(actual, p50)`:
+  - `"<0.5"` (r < 0.5);
+  - `"0.5-0.8"` (0.5 ≤ r < 0.8);
+  - `"0.8-1.2"` (0.8 ≤ r ≤ 1.2);
+  - `"1.2-2"` (1.2 < r ≤ 2);
+  - `">2"` (r > 2).
+  - The edges are mine: the labels are the SM's, and each label's own ends are inclusive in the middle band. Recorded here.
+- **`credit_estimate_band_hit`**, with tag `hit` = `"true"` if actual ≤ p90, else `"false"`.
+
+### §7.11 Tests first for D7-a..d, and the red run declared (before it runs)
+
+**Sequencing:** D7-e (`ai_job_id`, the 12 views plus `upload_assignment`) gets its own tests-first commit and red run, after these, because each view needs its own AI-mocked fixture. Its product code waits for its own red.
+
+**The three new modules** (build_suite counts at this commit; no static skips):
+- **`billing.tests.test_b1b7_low_balance`, 17 tests.**
+  - `WarningTests` (8): 25% sends once with the exact text; the same level again sends nothing (**08b's once-per-cycle check**); 25 → 10 → 0 each send; a jump sends only the lowest level; above 25% sends nothing; a new cycle starts over; unapproved, the fields move and nothing is sent; a license teacher gets closing #7.
+  - `AllocationAndCycleTests` (4): a zero allocation (empty MONTHLY plus OVERAGE) sends nothing, writes nothing and doesn't crash; no live non-OVERAGE bucket gives the same; MONTHLY + CARRY_OVER gives the MONTHLY cycle; no MONTHLY plus a never-expiring MANUAL_GRANT sends nothing.
+  - `BalanceStatusTests` (3): the edges 25,001 / 25,000 / 10,001 / 10,000 / 1 / 0 of 100,000; a zero allocation is `out` only when nothing is spendable; the wallet endpoint shows `balance_status`, `reserved_credits` and `spendable`.
+  - `FlagOffTests` (1): with the flag off, a real billed call that crosses 25% sends nothing.
+  - `ConcurrentSettlementTests` (1, `TransactionTestCase`, real threads): two racing checks at 25% send once.
+- **`billing.tests.test_b1b7_job_api`, 7 tests:**
+  - the owner gets 200 with the exact key set and values;
+  - another teacher, a student and an unknown id get 404;
+  - anonymous gets 401;
+  - a school admin of the owner's license gets 200 with the key set;
+  - a school admin of another license gets 404;
+  - the super admin gets 200;
+  - a removed teacher (allocation inactive) is out of the school admin's scope, though the owner still gets 200.
+- **`billing.tests.test_b1b7_gap_metric`, 8 tests:**
+  - the bucket edges;
+  - a settled job emits both metrics once (actual = consumed + unbilled);
+  - within the band is a hit; the band edge is a hit;
+  - no estimate emits nothing; FAILED or EXPIRED emits nothing; a second finish emits nothing;
+  - a single call with no estimate emits nothing.
+
+**`write_routes()`:** counted at this commit with `audit.tests_route_coverage.write_routes()`, it is **162**. It will be re-counted after the product and must still be 162. The guard `audit.tests_route_coverage` is in `guards67.txt` (line 11), so it runs in the near.
+
+**The red run, declared.** Each prediction comes from what the code does today:
+- `billing.low_balance` doesn't exist, so every low-balance test errors at the module import inside the test (`setUp` or the test body). Fragment: `No module named 'billing.low_balance'`.
+- The job route doesn't exist, so every request gets Django's 404. The four tests expecting 404 pass; the rest fail.
+- `holds.gap_bucket` doesn't exist, and nothing emits. The four "emits nothing" tests pass.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| R1 (red) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial | `billing.tests.test_b1b7_low_balance billing.tests.test_b1b7_job_api billing.tests.test_b1b7_gap_metric` | **Ran 32, FAILED (failures=8, errors=18)** |
+
+**R1's breakdown, all predicted:**
+- low_balance: 17 errors, `No module named 'billing.low_balance'`.
+- job_api: 5 failures (`200` or `401` expected, `404` got): owner, anonymous, same-license admin, super admin, removed teacher. 2 pass: other/student/unknown, and other-license admin.
+- gap_metric: 1 error (`has no attribute 'gap_bucket'`) and 3 failures (settled, within the band, the band edge). 4 pass.
