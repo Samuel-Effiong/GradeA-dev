@@ -737,3 +737,27 @@ All four match the predictions:
 
 - Run error: I first ran sqlmigrate under the CI env, which has no reachable database (password authentication failed). It was rerun with `--settings=settings_worktree`.
 - This was not a declared run with a predicted outcome; it was my env mistake, recorded here.
+
+## Near runs on beta (declared before running)
+
+- Env: worktree Grade-Automator-Plus-h34 at branch head (product 583859a30, plus evidence and NOTES only); base origin/beta bcc50d83c; venv ~/Documents/Virtualenvs/h284_deps_env; `--settings=settings_worktree --keepdb --noinput`; test DB test_h34_lockout_extension; each run under `flock ~/.machine-fullsuite.lock`.
+- The two runs go one after the other, each serial (no --parallel).
+- Counts are from build_suite().countTestCases().
+
+**N1 near apps:** labels `users AutoGrader.tests_migration_rollback_defaults classrooms.tests_course_roster_scope_sweep classrooms.tests_teacher_access_sweep`.
+
+| Label | Count |
+|---|---:|
+| users | 1039 (982 on beta + 57 new) |
+| AutoGrader.tests_migration_rollback_defaults | 12 |
+| classrooms.tests_course_roster_scope_sweep | 4 |
+| classrooms.tests_teacher_access_sweep | 9 |
+| **Total** | **1064** |
+
+The two classrooms labels are the guard labels from the beta guard list that sit outside users.
+
+Prediction: **Ran 1064, OK (skipped=3)**. The 3 skips are in users, as on beta in H-287: the 2 live Google contract opt-ins and CI_REQUIRE_REDIS.
+
+**N2 guard sweep:** the 56 labels of h34_sweep.txt (the same list as H-287's N2), 1026 tests: 1023 on beta + the 3 new tests in audit.tests_route_coverage.
+
+Prediction: **Ran 1026, OK (skipped=1)** (ssrf, CI_REQUIRE_NETWORK).
