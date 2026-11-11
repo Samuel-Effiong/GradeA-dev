@@ -5275,3 +5275,29 @@ This confirms the cause recorded above.
 - Before F4 runs in production: apply privacy texts #19–#23 and regenerate the PDF.
 - The staging drain run, at the end of the soak (owner go).
 - At landing: the 67 guard labels; dropping my own `_N` test-DB clones after any schema change.
+
+### §10.4 Merge of origin/staging 670cfc557 before the PG16 push (SM -cf, 2026-11-11)
+
+The SM ACCEPTED the gate summary (§10.3, f015c6f92) and asked that the branch first take staging's two new merges, so CI proves the exact tree that goes to staging.
+
+**The merge** (`b86a5c9f2`, parents f015c6f92 and 670cfc557): `origin/staging` at **670cfc557** brings 1724b835f (user list on beta, evidence only) and 670cfc557 (signals sort and filter, beta 84948e0ac). **No conflicts.** Git auto-merged `billing/views.py`, `users/list_serializers.py` and `users/views.py`.
+- Outside `docs/`: `billing/intent_signals.py` (new), `billing/views.py`, `users/filters.py`, `users/list_serializers.py` (`UserListSerializer` only: 5 fields; `ListCreditWalletSerializer` is untouched), `users/user_list.py`, `users/views.py`, and the tests `billing/tests/test_intent_signals.py`, `billing/tests/test_intent_signals_pins.py` (+ its data JSON), `users/tests_user_list_signals.py`, plus `SIGNAL_KEYS` in `users/tests_user_list_sorting.py` and its exclusion in `users/tests_user_list_payload_pin.py`.
+- No conflict in product code, so per the SM no E-off or E-on re-run.
+- No migration: `makemigrations --check --dry-run`: "No changes detected". No `urls.py` changed; **`write_routes()` = 164** (re-counted at b86a5c9f2).
+
+**Counts at b86a5c9f2** (`bsk.py`, `build_suite`, the five and both pin-write flags unset):
+- The merged modules: `users.tests_user_list_signals` 26, `users.tests_user_list_sorting` 50, `users.tests_user_list_payload_pin` 3, `billing.tests.test_intent_signals` 22, `billing.tests.test_intent_signals_pins` 2, `classrooms.tests_teacher_access_sweep` 9, `billing.tests.test_b1b10_list_wallet_parity` 17: **129 tests, 0 static skips**.
+- The whole suite: **10135 tests, 33 static skips** = 10085 + 50 (26 + 22 + 2 new signals tests).
+- Runtime skips in the new modules: one `skipTest`, in `test_intent_signals_pins`, reached only with `INTENT_SIGNALS_PIN_WRITE=1`, which CI does not set. So CI's runtime skips stay **53**.
+
+**The PG16 declaration is re-declared** (replaces §10.3 item 3's count; everything else there stands): **Ran 10135, OK (skipped=86)**, 0 FAIL, 0 ERROR. The named flaky test, the `migration-safety.yml` expected FAIL on its `dev` base, and "any failure is a STOP" are unchanged.
+
+**The runs, declared before either runs** (standing rule §10.2: the merged modules alone, right after the merge):
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| D1c | BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK, USER_LIST_PIN_WRITE, INTENT_SIGNALS_PIN_WRITE all unset; serial; under flock with `--noinput`; at this commit | the seven modules above | **Ran 129, OK** (no skips) |
+| D2c | as D1c | `step10/d2_diag.py` (unchanged) | **Ran 2, OK**. The three pages cost **13** queries each, now with B1b's wallet fields and the signals keys. The pin section: for each of the 7 rows, `added` = exactly the 5 signal keys (`active_last_week`, `at_80_percent`, `frequent_user`, `is_power_grader`, `signal_count`) at row scope; nothing removed or changed; `credit_wallet` identical (d2_diag does not drop the signal keys the pin test drops). Any count other than 13 goes to the SM before anything else. |
+
+- `SignalQueryCountTests` (in D1c) covers a fixed cost under `?ordering=signals` and the signal filters; D2c's three pages show the absolute 13.
+- They run in that order; any mismatch is recorded unamended and is a STOP.
