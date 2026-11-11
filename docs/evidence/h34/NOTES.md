@@ -552,3 +552,30 @@ Checked, expected NOT to move:
 > Then red, product, green, plants Q-P1..9 plus the two R3 plants, migration safety (vs origin/beta and origin/main), near as declared, with every declaration stating its env. Checkpoint to grade-automator-plus-d6. No push.
 
 Wording source: the main checkout's team/approved_wording_h34_admin_lock_2026-11-11.md, sha256 d3d1a12e7b02be9dda85771b3cdd3a505ca2712b5e616c5b983bf9081a64e229 (read 2026-11-11; texts #1-#4). team/ is excluded locally (.git/info/exclude), so it is not in the worktree. The tests pin the texts as literals copied from that file, and the test module names this sha.
+
+## Tests first (red), declared before the run
+
+New tests, counted with build_suite().countTestCases():
+
+- `users.tests_admin_sign_in_lock`: 57 (L1-L13, R1 sentence cases, R2 spec pins, R3 caller guard, back office, read-only fields).
+- `audit.tests_route_coverage.AdminSignInLockRouteTests`: 3. This is R3's route-coverage condition; the label goes from 22 to 25.
+
+Rulings applied in the tests:
+
+- Self and super-admin targets get 403 with DRF's generic "You do not have permission to perform this action." This is SM Q5; the design's L9 said 400, and the ruling overrides it.
+- Back office: no success message after the actions, so no new wording is needed. Only the approved labels are shown.
+
+**Run R1 (red).**
+
+- Env: worktree Grade-Automator-Plus-h34 at the commit holding these tests; venv ~/Documents/Virtualenvs/h284_deps_env; `--settings=settings_worktree --keepdb` (test DB test_h34_lockout_extension); under `flock ~/.machine-fullsuite.lock`.
+- Labels: `users.tests_admin_sign_in_lock audit.tests_route_coverage.AdminSignInLockRouteTests`, 60 tests.
+
+Prediction:
+
+- 4 pass:
+  - L6 `test_control_the_same_token_works_for_an_unlocked_account`;
+  - ReadOnlyFields `test_nobody_else_sees_them`;
+  - ReadOnlyFields `test_the_sign_in_payload_does_not_carry_them`;
+  - L12 `test_a_deactivated_account_still_gets_invalid_credentials`.
+- The other 56 fail or error. Causes: no `admin_locked_at` field (FieldError/AttributeError), no `user-lock`/`user-unlock` route (NoReverseMatch), no ACCOUNT_LOCKED_BY_ADMIN code (ValueError), no back-office actions, no helper.
+- Nothing outside these labels is run.
