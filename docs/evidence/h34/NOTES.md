@@ -656,3 +656,30 @@ Prediction wrong/incomplete:
 - Log: 02_green.log.gz.
 
 **Run R2b (green).** Same env and labels as R2, 251 tests. Prediction: Ran 251, OK.
+
+**R2b result:** Ran 251, OK. Matches the prediction. Log: 02b_green.log.gz.
+
+- The run was on the working tree that became product commit 583859a30.
+- The pre-commit hooks then only reformatted users/admin.py (black) and reordered imports in users/admin.py and users/views.py (isort). The plant runs below are on 583859a30 itself.
+
+## Plants (declared together, before the first plant runs)
+
+- One plant per run.
+- Env: as R1, at product commit 583859a30.
+- Labels: `users.tests_admin_sign_in_lock audit.tests_route_coverage.AdminSignInLockRouteTests` (60 tests).
+- Each plant file is copied first, mutated, its sha256 shown changed, run, restored from the copy, and its sha256 checked equal to the committed file.
+- "Killed by" lists the tests predicted to fail; every other test is predicted to pass.
+
+| Plant | File | Mutation | Killed by (predicted) |
+|---|---|---|---|
+| Q-P1 | users/sign_in_lock.py | lock_users drops `token_epoch=F("token_epoch") + 1` | L1 `test_lock_stamps_the_account_and_raises_the_epoch_once`; L1 `test_its_refresh_token_is_refused`; L7 `test_unlock_does_not_revive_sessions_from_before_the_lock`; L11 `test_lock_changes_only_lockable_unlocked_rows_one_event_each`. Survives: L1 `test_an_access_token_from_before_the_lock_is_refused`, because the backstop still refuses it. |
+| Q-P2 | users/serializers.py | the admin-lock block moves from before the 5-try check to after a successful password check | L2 `test_a_wrong_password_gets_the_same_answer_and_is_not_counted`; L2 `test_the_password_is_never_checked`; L2 `test_the_admin_lock_answers_even_during_a_five_try_lock` |
+| Q-P3 | users/views.py | the Google admin-lock block is removed | L3 `test_a_locked_verified_account_gets_the_lock_answer`; L3 `test_a_locked_never_verified_account_is_not_switched_on` |
+| Q-P4 | users/views.py | the reset-password admin-lock block is removed | L4 `test_a_valid_code_from_before_the_lock_sets_no_password` |
+| Q-P5 | users/authentication.py | the backstop block is removed | L6 `test_a_token_minted_after_the_lock_is_refused` |
+| Q-P6 | users/sign_in_lock.py | unlock_users drops `failed_login_attempts=0` | L7 `test_unlock_clears_both_locks_and_the_count`; L8; L11 `test_unlock_counts_only_rows_with_something_to_clear` |
+| Q-P7 | users/sign_in_lock.py | may_lock and _lockable no longer exclude super admins | L9 `test_a_super_admin_cannot_lock_another_super_admin`, `test_a_superuser_flag_alone_makes_a_target_unlockable`, `test_a_super_admin_type_alone_makes_a_target_unlockable`; L11 `test_lock_changes_only_lockable_unlocked_rows_one_event_each`; route `test_refusals_leave_todays_admin_action` (super-admin subtests) |
+| Q-P8 | users/sign_in_lock.py | may_lock and _lockable no longer exclude the actor | L9 `test_a_super_admin_cannot_lock_themselves`; L11 `test_lock_changes_only_lockable_unlocked_rows_one_event_each`; route `test_refusals_leave_todays_admin_action` (self subtests) |
+| Q-P9 | users/sign_in_lock.py | unlock_users also sets `is_active=True` | L7 `test_unlock_never_switches_on_a_pending_account` |
+| R3-i | audit/admin_action.py | the helper no longer drops the tag (two events) | L10 `test_a_lock_leaves_one_account_lock_event_and_no_admin_action`, `test_an_unlock_leaves_one_account_unlock_event_and_no_admin_action`; route `test_a_successful_lock_leaves_one_named_event`, `test_a_successful_unlock_leaves_one_named_event` |
+| R3-ii | audit/admin_action.py | the helper writes no named event but still drops the tag (zero events) | the 4 R3-i tests, plus L8 (`AuditEvent.objects.get(action="ACCOUNT_UNLOCK")` finds none) |
