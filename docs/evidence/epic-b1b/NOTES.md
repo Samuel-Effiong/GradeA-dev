@@ -5082,3 +5082,18 @@ The fragments were rendered from unittest's own messages (no test run). No pre-e
 | E-on | the same four unset; `BILLING_HOLDS_ENABLED=True` from the environment | **Ran 8261, OK (skipped=37)**, 0 FAIL, 0 ERROR |
 
 - They run in that order, E-off first, and each log goes to `step10/`.
+
+**E-off: MISMATCH, recorded unamended; a STOP to the SM.**
+- Run at 5ae6280ac, as declared above. Log: `step10/E-off_5ae6280ac.log.gz`.
+- Declared: Ran 8261, OK (skipped=37). Got: **Ran 8261 tests in 523.685s, FAILED (failures=18, skipped=37)**; exit 1; 0 errors.
+- The 18 failures all come from the staging merge (67851f24e, f90bb9b23, the Fixer's user-list sorting):
+  - `users.tests_user_list_sorting.QueryCountTests.test_a_5_row_and_a_25_row_page_cost_the_same`: `188 != 187`.
+  - `users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed`, 16 subtests. With the unsorted page as the base, which costs 187 queries:
+    - the five `size=25` subtests and `size=5, ordering='activated_at'` give `188 != 187` (6 in all);
+    - `size=5` with `last_login` or `assignments_created` gives `47 != 187` (2);
+    - the other `size=5` subtests give `48 != 187` (8).
+  - `users.tests_user_list_payload_pin.ListPayloadPinTests.test_the_list_payload_is_what_it_was`: the payload differs from `users/test_data/user_list_payload_pin.json` ("Diff is 20531 characters long").
+- At 67851f24e only the merge itself was checked (no conflicts, `makemigrations --check`, `write_routes()` = 164, credits_left against spendable). No test of the merged user-list modules ran on this branch before E-off.
+- A read-only check: since f90bb9b23, B1b changes under `users/` only in `views.py` and `serializers.py`, both for task status (`kept_until`, B1b-8). It does not touch `filters.py`, `list_serializers.py`, `user_list.py`, the list view or either test module.
+- So the cause is not yet known. It is either an interaction in the parallel run (pollution from another module) or a real interaction with B1b code elsewhere (for example billing models the list annotates).
+- E-on has not run. Nothing has been changed.
