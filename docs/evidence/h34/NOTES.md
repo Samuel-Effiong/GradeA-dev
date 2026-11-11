@@ -482,3 +482,18 @@ Rules for both options:
 - The back-office labels.
 
 State: HOLDING. No product edit.
+
+## Owner answers (2026-11-11, relayed by SM grade-automator-plus-d6; recorded unamended)
+
+> SM: owner answers on H-34 (2026-11-11). Record them unamended.
+> - Scope (a): super admin only. The back-office actions plus POST users/{id}/lock/ and /unlock/ (IsSuperAdmin). There is no school-admin route.
+> - Both lock messages APPROVED, verbatim, from team/approved_wording_h34_admin_lock_2026-11-11.md (main checkout):
+>   1 (user with a school): "An administrator has locked your account. Please contact your school administrator to unlock it."
+>   2 (no school): "An administrator has locked your account. Please contact the Grade A Plus team to unlock it."
+>   Students have no school field. In your survey, propose which message a student gets (for example, by whether any enrollment exists) and I will rule. No third text.
+> - Labels "Lock sign-in" / "Unlock sign-in": still pending with the owner. Build with them, but STOP before the product commit if they are not confirmed by then.
+> GO: count-pin survey, then tests-first (L1-L13), red, product, green, plants Q-P1..9, migration safety before and after, near as declared. Checkpoint to grade-automator-plus-d6 at the survey (with the student-message proposal) and at the end. No push. It goes to beta with the owner's go.
+
+Wording file read: the main checkout's team/approved_wording_h34_admin_lock_2026-11-11.md (owner quote there: "Only super admin get the locks" / "I approve").
+
+State: GO for the survey. Labels still pending, so STOP before the product commit unless they are confirmed by then.
