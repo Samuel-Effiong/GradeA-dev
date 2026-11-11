@@ -2988,3 +2988,131 @@ Run on `students.tests_data_erase`.
 - `assignments/tasks.py`: the one helper with the flag-on job path, `launch_batch_item`, and the H-215a waiting and adopt handling.
 - `assignments/views.py`: grade-all through the helper.
 - Checks on the probe: `manage.py check` clean; `makemigrations --check` gives "No changes detected".
+
+### §6.6 The probe's results, and every declaration for the B1b-6 runs (made before any of them)
+
+#### §6.6.1 The probe (probe, not evidence; logs in `step6/probe/`, each headed "PROBE, NOT EVIDENCE")
+
+| Run | Result | What it showed |
+|---|---|---|
+| P-on_p1 (E1 labels, flag on) | Ran 7560, FAILED (failures=18, errors=1, skipped=32) | 3 probe bugs + the pins below |
+| P-off_p1 (E2 labels) | Ran 6496, FAILED (failures=4, skipped=24) | wallet guard (bug), er2/er8 and estimates_band (pins) |
+| P-on/P-off focused p2 (154 tests) | FAILED (on: failures=4, errors=4; off: failures=1) | the outage bug; `tests_beat_locks` (the pin known from §6.4) |
+| P-on/P-off focused p3 (154) | both OK | after the bugs fixed and the trial pin edits |
+| P-on_p4 | Ran 7560, OK (skipped=32) | |
+| P-off_p4 | cut off by a session end; partial log kept as `P-off_p4_interrupted.log` | no result |
+| P-off_p5 | Ran 6535, FAILED (failures=1, errors=1, skipped=24) | 2 failures in my own new module's `AutomaticPathTests`, an earlier draft (bugs in the new test module, not pins) |
+| P-off-newtests_p6 (new module + characterization, flag unset) | Ran 42, OK | the restructured module (file changed 19:51, after p5 at 19:44) |
+| P-unedited-on-final | Ran 143, FAILED (failures=18) | the unedited pin modules on the final probe product: the break-run fragments in §6.6.4 |
+| P-char-on-probe | OK | the characterization test, unchanged, on the probe product (flag off is today's path) |
+| P-newtests-on-probe_2 | Ran 44, OK (skipped=2) | the new tests (the 2 skips: Gate 6 without RUN_LOAD_TESTS) |
+| P-gate6-on-probe | FAILED: `'per_question' != 'teacher_shape'` | my fixture bug: the shaped assignment had images; the fixture's history has none |
+| P-gate6-on-probe_2 | Ran 2, OK (skipped=1) | fixture fixed (`images=0`); the numbers are in §6.6.7 |
+
+**Probe bugs, fixed in the probe (not pins):**
+1. `billing.tests.test_wallet_save_guard`: the claim wrote `reserved_credits` outside `billing/holds.py`. Fixed by moving `claim_batch_rows_locked` into `holds.py`.
+2. `billing.tests.test_licence_rollup_after_commit` (an error): the ledger hook's on-commit callback had no `__qualname__` (a `partial`). Fixed by making it a nested def.
+3. The H-215a outage was swallowed by the after-commit launch. Fixed: at the batch's start `launch_batch_items(..., raise_outage=True)` re-raises after marking the unsent papers FAILURE.
+
+**Pins: 18 tests in 7 modules.** Each is edited before the red, and each has a break run (§6.6.4). The edited copies are the probe's, byte-for-byte.
+
+| Module | Edit | Why it is a pin |
+|---|---|---|
+| `AutoGrader.tests_beat_locks` | `EPIC_ONLY_GUARDED_BEAT_TASKS` += `promote_queued_jobs`, `expire_queued_jobs` | two new guarded beat tasks (§6.4) |
+| `billing.tests.test_estimates_band` | `paper_hold_estimate` added to the plain-values check | a new public function |
+| `billing.tests.test_holds_entry` (er2, er8) | a second held row on the job; er8 expects the other row's hold left | with one row the last-item helper (D6-a) now finishes the job |
+| `students.tests_batch_item_results` (2) | `captureOnCommitCallbacks(execute=True)` | flag on, a batch's messages go after commit (P-3) |
+| `students.tests_h215a_auto_grade_resilience` (9) | `capture_dispatch` captures on-commit callbacks; `AnOutageIsRetriedTest` and `TheTeacherSeesOneLinePerPaperTest` pinned flag off, with a comment | P-3; a TestCase runs on-commit callbacks only at the end of the capture, outside the task's retry, so the flag-on outage is tested in `test_batch_queue` (TransactionTestCase) |
+| `students.tests_h38_tasks_namespace` (2) | `fund_wallet` + capture | flag on, a batch launches only the papers its wallet holds |
+| `students.tests_h38_n3_refusal_audit` (1) | `fund_wallet` + capture | the same |
+
+The new tests (`billing.tests.test_batch_queue`, 41) need no further pin.
+
+#### §6.6.2 The sequence (all on `task/epic-b1b`, all under `flock ~/.machine-fullsuite.lock`, `--noinput`)
+
+1. **This commit:** this §6.6, plus `assignments/tests_grade_all_characterization.py` (Q1; flag off; on today's code).
+2. **R0, the characterization run:** `assignments.tests_grade_all_characterization` → **`Ran 1`, `OK`**.
+3. **Tests-first commit:** `billing/tests/test_batch_queue.py`, `billing/tests/test_batch_gate6.py` and the 7 pin edits.
+4. **R1, the red** (§6.6.3).
+5. **Product commit:** the probe's product, copied unchanged from the probe (the list in §6.5a; 10 files + migration 0084).
+6. **R2, the green; BR-1..7, the break runs; PB6-1..13, the plants; G6, Gate 6.**
+7. Then E1/E2/E3 and `makemigrations --check`, declared with counts from the product sha in §6.6.8 before they run.
+8. Obligation 3 grep, recorded. Probe branch and worktree deleted, and that recorded. Checkpoint to the SM.
+
+Counts are from `cnt.py` (unittest loader on the labels, on the task branch).
+
+#### §6.6.3 R1, the red (declared)
+
+Labels: `billing.tests.test_batch_queue` (41), `billing.tests.test_batch_gate6` (2), and the 7 pin modules as edited: `AutoGrader.tests_beat_locks` (27), `billing.tests.test_estimates_band` (34), `billing.tests.test_holds_entry` (16), `students.tests_batch_item_results` (11), `students.tests_h215a_auto_grade_resilience` (18), `students.tests_h38_tasks_namespace` (13), `students.tests_h38_n3_refusal_audit` (24). Flag env unset (every class pins its own flag). `--parallel 1`.
+
+**Declared: `Ran 186`, `FAILED (failures=2, errors=40, skipped=2)`.**
+- **errors=40:**
+  - the 36 tests of `BatchBase`'s subclasses (BatchStart 6, LastItem 4, EndedBeforeItsUnit 4, Promotion 8, Expiry 5, Backstop 2, AutomaticPath 4, GradeAll 1, Delete 2): `setUp` imports the module first, giving `ModuleNotFoundError: No module named 'billing.batch_queue'`;
+  - `QueueEmailTests` (2): the same `ModuleNotFoundError`;
+  - `BeatTests` (1): `KeyError: 'billing.tasks.promote_queued_jobs'`;
+  - `test_estimates_band...test_every_public_function_returns_plain_values` (edited): `has no attribute 'paper_hold_estimate'`.
+- **failures=2:**
+  - `DeprecatedPlanFieldTests.test_their_help_text_says_they_are_deprecated`: `False is not true`;
+  - `tests_beat_locks...RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it` (edited): `not less than or equal to`. The two new tasks are not scheduled yet.
+- **skipped=2:** `BatchStartGate6` (no RUN_LOAD_TESTS).
+- **Passes:** `test_no_code_names_the_deprecated_fields` (today's offenders are exactly `billing/models.py` and `billing/tests/test_holds_schema.py`). Every other edited pin passes on today's code: the extra held row, the funded wallet and the on-commit capture change nothing there. P-off p3 shows the two flag-off pinned h215a classes green on the flag-off path, which Q1 pins as today's.
+
+#### §6.6.4 R2, the green, and BR-1..7, the break runs (declared)
+
+- **R2:** R1's labels + `assignments.tests_grade_all_characterization`: **`Ran 187`, `OK (skipped=2)`.**
+- **BR (each one module):** the unedited file, taken from `1576369ad`, is written over the edited one on the product sha. The module is run, then the edited file is restored by `git checkout`, and its sha256 is checked against the committed file's.
+
+| BR | Module | Declared | Fragments (from P-unedited-on-final, the test's own lines) |
+|---|---|---|---|
+| BR-1 | `AutoGrader.tests_beat_locks` | Ran 27, failures=1 | `23 != 21` |
+| BR-2 | `billing.tests.test_estimates_band` | Ran 34, failures=1 | `a new public function needs a plain-values check here` |
+| BR-3 | `billing.tests.test_holds_entry` | Ran 16, failures=2 | er2 `'SETTLED' != 'RUNNING'`; er8 `('FAILED', 1) != ('RUNNING', 1)` |
+| BR-4 | `students.tests_batch_item_results` | Ran 11, failures=2 | `0 != 2` (both) |
+| BR-5 | `students.tests_h215a_auto_grade_resilience` | Ran 18, failures=9 | mid-dispatch outage `a broker outage was not retried`; beat start retried and two outages: `'Auto-grading started for 3 submissions.' != 'Auto-grading started for 2 submissions.'`; one line per paper `'0 / 3' != '3 / 3'`; APaperGradedMeanwhile (3) `0 != 1`; TheFlagIsOn (2) `[] != [True, True]` |
+| BR-6 | `students.tests_h38_tasks_namespace` | Ran 13, failures=2 | `0 != 1` (both) |
+| BR-7 | `students.tests_h38_n3_refusal_audit` | Ran 24, failures=1 | `0 != 2 : both runs dispatched` |
+
+#### §6.6.5 PB6-1..13, the plants (declared)
+
+Each plant is applied to one product file on the product sha by an exact one-place replace, then its killer test is run alone. The file is restored by `git checkout`, and its sha256 is checked against the committed file's.
+
+| Plant | Where | Change | Killer | Declared |
+|---|---|---|---|---|
+| PB6-1 (M-B9) | `batch_queue.promote_job` | launch every waiting paper: `ids` from `waiting`, `return len(ids)` | `PromotionTests.test_promotion_holds_only_the_papers_that_now_fit` | failures=1, `the promoter launched beyond k` |
+| PB6-2 (M-B10) | `batch_queue.expire_job` | each waiting row is deleted, not failed | `ExpiryTests.test_expiry_fails_the_waiting_papers_as_retryable` | failures=1, `expiry deleted papers` |
+| PB6-3 (M-B19) | `batch_queue.promote_job` | the QUEUED condition dropped from the move to RESERVED | `test_two_promoters_at_once_launch_each_paper_once`, `test_promotion_and_expiry_at_once_have_one_winner` | **declared a survivor: Ran 2, OK.** Equivalent: a second promoter or a promotion after expiry claims nothing (the per-row claim needs PENDING and hold_state NULL, under the wallet lock), raises `_NothingGranted` and rolls the move back |
+| PB6-4 (M-B20) | `assignments.tasks._dispatch_as_batch_job` | `_launch()` inline, not `on_commit` | `BatchStartTests.test_no_message_is_sent_before_the_batch_commits` | failures=1, `P-3: a message before commit` |
+| PB6-5 (M-B28) | `holds.settle` | `leftover = 0`: the leftover stays held until the job ends | `PromotionTests.test_a_settled_papers_leftover_promotes_a_queued_job_at_once` | failures=1, `0 != 1` |
+| PB6-6 (D6-c hook removed) | `batch_queue.release_unused_item_hold` | returns at once | `EndedBeforeItsUnitTests.test_a_skipped_paper_returns_its_hold_and_the_sweep_leaves_it` | failures=1, `the sweep overwrote a skipped paper` (the sweep window is 3600+1500+900 s, under the test's 1 day) |
+| PB6-7 (D6-c double count) | `holds.fail_item` | `count_it = True` | `EndedBeforeItsUnitTests.test_a_paper_the_hook_released_is_not_counted_twice` | failures=1, `counted once, not twice` |
+| PB6-8 (obligation 4) | `batch_queue.release_unused_item_hold` | after `fail_item`, also returns the stale instance's `hold_credits` | `EndedBeforeItsUnitTests.test_a_paper_the_hook_released_then_deleted_returns_its_hold_once` | failures=1, `a hold returned twice` |
+| PB6-9 (Q14) | `batch_queue.promote_job` | the `clear_batch_credit_stop` loop removed | `PromotionTests.test_a_promoted_paper_gets_past_the_batch_credit_stop` | failures=1, `promotion did not clear the credit stop` |
+| PB6-10 (D6-a) | `batch_queue.decide_after_item` | `completed_items < claimed` (failures not counted) | `LastItemTests.test_a_job_whose_papers_all_failed_ends_failed` | failures=1, `D6-a: failures count toward the last item` |
+| PB6-11 (view bypass) | `assignments/views.py` grade-all | the helper call wrapped in `override_settings(BILLING_HOLDS_ENABLED=False)` | `GradeAllTests.test_a_waiting_paper_is_listed_with_no_task_id` | failures=1, `D6-d: a waiting paper has no task` |
+| PB6-12 (auto bypass) | `assignments.tasks.auto_grade_due_assignment` | the same wrap | `AutomaticPathTests.test_an_automatic_run_that_runs_out_queues_and_resumes` | errors=1, `AIJob matching query does not exist` |
+| PB6-13 (scheduled bypass) | `assignments.tasks.grade_batch_async` | the same wrap | `AutomaticPathTests.test_a_scheduled_batch_is_one_job` | failures=1, `the scheduled batch did not go through the helper` |
+
+#### §6.6.6 Q1, D6-d and the switch-on checklist
+
+- The characterization test is committed and run (R0) before grade-all's loop is replaced. It must be green, unchanged, at R2.
+- **D6-d switch-on checklist item (SM §6.3, recorded):** "frontend must handle task_id null for queued items (confirm with the frontend before switch-on)". No frontend work in B1b.
+
+#### §6.6.7 G6, Gate 6 (Q6; reported, not a STOP threshold)
+
+`RUN_LOAD_TESTS=1 ... test billing.tests.test_batch_gate6` → **declared `Ran 2`, `OK (skipped=1)`**. It prints three `GATE6_B6` lines, with sources `assignment`, `teacher_shape` and `per_question`, and 300 papers sent each.
+
+The probe gave (for orientation only):
+
+| Tier | start_ms | queries | held_per_item |
+|---|---|---|---|
+| assignment | 933.7 | 2122 | 1356 |
+| teacher_shape | 1147.4 | 2122 | 1356 |
+| per_question | 1523.0 | 2122 | 21165 |
+
+The time and query numbers are not declared.
+
+#### §6.6.8 Still to declare (after the product commit, before they run)
+
+- E1/E2/E3 and `makemigrations --check`, each with its count from the product sha.
+- The obligation 3 grep (every job-status write in `batch_queue.py`/`holds.py` conditional on its from-status, under the wallet lock).
+- Obligations 6 and 7, recorded as ruled (§6.3).
