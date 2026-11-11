@@ -17,6 +17,7 @@ import django_filters
 from django.db.models import Exists, OuterRef, Q
 from rest_framework.filters import OrderingFilter
 
+from billing import intent_signals as signal_rules
 from billing.models import BillingInterval, PlanCategory, PlanTier
 from classrooms.models import (
     EnrollmentStatusType,
@@ -86,6 +87,12 @@ class UserEnrollmentFilter(django_filters.FilterSet):
         choices=BillingInterval.choices, method="filter_list_value"
     )
     has_plan = django_filters.BooleanFilter(method="filter_list_value")
+    # Brief 4: the signals (billing.intent_signals), teachers only.
+    signals_min = signal_rules.count_filter("filter_signal_value")
+    at_80_percent = signal_rules.flag_filter("filter_signal_value")
+    frequent_user = signal_rules.flag_filter("filter_signal_value")
+    active_last_week = signal_rules.flag_filter("filter_signal_value")
+    is_power_grader = signal_rules.flag_filter("filter_signal_value")
 
     #: param -> (value, lookup)
     LIST_FILTERS = {
@@ -149,6 +156,16 @@ class UserEnrollmentFilter(django_filters.FilterSet):
             queryset = user_list.ensure(queryset, field)
         return queryset.filter(**{f"{field}__{lookup}": value})
 
+    def filter_signal_value(self, queryset, name, value):
+        """The same super admin gate as filter_list_value."""
+        user = getattr(self.request, "user", None)
+        if not (user and user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN):
+            return queryset
+        queryset = user_list.ensure_signals(
+            queryset, signal_rules.request_now(self.request)
+        )
+        return signal_rules.filter_signals(queryset, name, value)
+
 
 class UserListOrderingFilter(OrderingFilter):
     """DRF's OrderingFilter with the list's computed sort keys: nulls last
@@ -157,5 +174,7 @@ class UserListOrderingFilter(OrderingFilter):
 
     def filter_queryset(self, request, queryset, view):
         return user_list.apply_ordering(
-            queryset, self.get_ordering(request, queryset, view) or []
+            queryset,
+            self.get_ordering(request, queryset, view) or [],
+            now=signal_rules.request_now(request),
         )

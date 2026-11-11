@@ -29,6 +29,7 @@ from django.db.models.functions import Coalesce, Greatest
 from django.utils import timezone
 
 from assignments.models import Assignment
+from billing import intent_signals as signal_rules
 from billing.models import (
     CONVERSION_FACTOR,
     CreditBucket,
@@ -40,6 +41,8 @@ from billing.models import (
     UserSubscription,
 )
 from students.models import StudentSubmission
+
+from .models import UserTypes
 
 #: D3 (SM -16): the plan_tier sort rank.
 TIER_RANK = (
@@ -272,9 +275,24 @@ LISTED = (
 )
 
 
-def list_queryset(queryset):
+#: Brief 4: the signals come from the teacher's BetaProfile, teachers only
+#: (Q-S3), so the list agrees with the Credit Usage page.
+SIGNALS_PREFIX = "beta_profile__"
+SIGNALS_SCOPE = Q(user_type=UserTypes.TEACHER)
+SIGNAL_SORT_KEY = "signals"
+
+
+def ensure_signals(queryset, now, annotate=False):
+    """The four flags, signal_count and signals_score (billing.intent_signals)."""
+    return signal_rules.annotate_signals(
+        queryset, now, SIGNALS_PREFIX, SIGNALS_SCOPE, alias=not annotate
+    )
+
+
+def list_queryset(queryset, now=None):
     """The page query: the listed values, and every relation the existing
-    payload reads, fetched once per page instead of once per row."""
+    payload reads, fetched once per page instead of once per row. `now` is
+    the request's (billing.intent_signals.request_now)."""
     queryset = queryset.select_related("settings", "credit_wallet").prefetch_related(
         "credit_wallet__buckets",
         Prefetch(
@@ -299,7 +317,10 @@ def list_queryset(queryset):
             to_attr=ACTIVE_ALLOCATIONS,
         ),
     )
-    return ensure(queryset, *LISTED, annotate=True)
+    queryset = ensure(queryset, *LISTED, annotate=True)
+    return ensure_signals(
+        queryset, now if now is not None else signal_rules.clock(), annotate=True
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -324,20 +345,26 @@ COLUMN_KEYS = ("first_name", "last_name", "email", "username")
 
 def ordering_values():
     """Every value ?ordering= accepts, for the OpenAPI enum."""
-    keys = (*COLUMN_KEYS, *SORT_KEYS)
+    keys = (*COLUMN_KEYS, *SORT_KEYS, SIGNAL_SORT_KEY)
     return [v for key in keys for v in (key, f"-{key}")]
 
 
-def apply_ordering(queryset, terms):
+def apply_ordering(queryset, terms, now=None):
     """`terms` are already validated (DRF's remove_invalid_fields). Nulls go
-    last both ways (D4); id breaks every tie."""
+    last both ways (D4); id breaks every tie. `signals` expands to the count,
+    then the score, then id (billing.intent_signals.ordering_terms)."""
     if not terms:
         terms = list(queryset.model._meta.ordering)
     order = []
     for term in terms:
         desc = term.startswith("-")
         key = term.lstrip("-")
-        if key in SORT_KEYS:
+        if key == SIGNAL_SORT_KEY:
+            queryset = ensure_signals(
+                queryset, now if now is not None else signal_rules.clock()
+            )
+            order.extend(signal_rules.ordering_terms(desc))
+        elif key in SORT_KEYS:
             target = SORT_KEYS[key]
             if target != "last_login":
                 queryset = ensure(queryset, target)

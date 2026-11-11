@@ -1,0 +1,28 @@
+Using existing test database for alias 'default' ('test_signals_beta')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_no_param_keeps_the_score_order_when_counts_disagree (billing.tests.test_intent_signals.LeadOrderingTests.test_no_param_keeps_the_score_order_when_counts_disagree) ... Free trial plan not found: no trial activated for user 270ff484-ebda-4447-a8ea-90633d9011f4.
+Free trial plan not found: no trial activated for user d1c1421c-ab81-48cb-9ff1-84e9fd6b87fc.
+Free trial plan not found: no trial activated for user 14d1f6d0-1d9d-4f64-b344-4c7a61a9e520.
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-signals-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.725s
+
+OK
+Preserving test database for alias 'default' ('test_signals_beta')...
+Found 1 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.

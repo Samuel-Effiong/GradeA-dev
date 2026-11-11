@@ -1,0 +1,35 @@
+Cannot activate automatic trial for user c8a70c9d-2652-467a-a950-1ec6ce65223f (validation): ValueError
+Cannot activate automatic trial for user b060e0c6-c05e-490b-aa24-ddaac591962a (validation): ValueError
+Cannot activate automatic trial for user 9bff4743-8e84-4131-a669-db81cb274fc8 (validation): ValueError
+Cannot activate automatic trial for user 229ba263-b179-49cd-9f22-9ebe2ece2dc8 (validation): ValueError
+Cannot activate automatic trial for user afbbe05a-9fd9-4293-817c-d591bb2a475b (validation): ValueError
+Cannot activate automatic trial for user 6dfe8655-0e65-4c02-8677-6d5fbb38ec6b (validation): ValueError
+Cannot activate automatic trial for user b77d0ee0-1cca-4ab0-a519-a61d00c1b05d (validation): ValueError
+Cannot activate automatic trial for user 3e41f55a-5841-473e-a382-2248a7ccde7e (validation): ValueError
+Cannot activate automatic trial for user f4b19388-e192-484f-9c76-d970af8d751e (validation): ValueError
+Cannot activate automatic trial for user b347d7ab-d086-49bc-81c2-a6073afd9502 (validation): ValueError
+Cannot activate automatic trial for user 1efe3d75-11b1-4a4b-a950-bd3dba26a7b4 (validation): ValueError
+Cannot activate automatic trial for user 5ff2f3c2-d6ce-4e1d-8aad-e6f7f49af15d (validation): ValueError
+Cannot activate automatic trial for user 640df63f-d1a5-4aa0-bfde-7f2f9d516e60 (validation): ValueError
+Cannot activate automatic trial for user 6dd81e9c-406c-4820-a11b-85ffb388b610 (validation): ValueError
+Cannot activate automatic trial for user 3b0ec5a8-e497-4832-bb02-399c0327982c (validation): ValueError
+Cannot activate automatic trial for user e4f27a4e-e33d-4932-9823-28174e2467b0 (validation): ValueError
+Cannot activate automatic trial for user 4fef7200-f63a-4e80-916c-33be60f16066 (validation): ValueError
+Cannot activate automatic trial for user 2ce7aca3-efa6-46d7-b65e-d2b1838b6dad (validation): ValueError
+Cannot activate automatic trial for user e391f1f4-fd5f-4d58-9d97-a716bc82c999 (validation): ValueError
+Cannot activate automatic trial for user 811eaa17-3f08-4fb7-a61e-7de39747bc5d (validation): ValueError
+Cannot activate automatic trial for user 4f74d64f-661f-4961-8493-beddcf6c2704 (validation): ValueError
+Cannot activate automatic trial for user 18f5dd84-1e01-4257-a3ff-f6402f30bc79 (validation): ValueError
+Cannot activate automatic trial for user 1b55edf9-7013-4411-8bca-1853e39641d0 (validation): ValueError
+Cannot activate automatic trial for user d838ea10-b2ee-4332-910e-42d5f18f6180 (validation): ValueError
+Cannot activate automatic trial for user 6cae0e93-3ccd-4718-9187-7f6675a3db44 (validation): ValueError
+Cannot activate automatic trial for user d27b0240-5142-44de-bb7e-42fba3b0c0ad (validation): ValueError
+Cannot activate automatic trial for user c2c575f2-91ce-471e-b53c-d82af3e74f4d (validation): ValueError
+Cannot activate automatic trial for user 761577bb-d763-4a43-b4eb-35eeeb090248 (validation): ValueError
+Cannot activate automatic trial for user 57f04cd3-b373-42f4-ab05-ce58b8dfefaa (validation): ValueError
+Cannot activate automatic trial for user b1752eb8-5769-4998-af95-aec9972421e3 (validation): ValueError
+Ran 1 test in 1.580s
+OK
+MEASURE size 5 queries 69
+MEASURE size 25 queries 309
+MEASURE status 200 rows 25 queries 309

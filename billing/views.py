@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django_filters.rest_framework import DjangoFilterBackend
+from django_filters.utils import translate_validation
 from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiParameter,
@@ -39,6 +40,7 @@ from dashboard.serializers import (
 from dashboard.throttling import CustomAIPromptThrottle
 from users.models import UserTypes
 
+from . import intent_signals as signal_rules
 from .imports import stripe
 from .job_ref import ai_job_schema, with_ai_job_id
 from .models import (
@@ -1958,9 +1960,11 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         url_name="intent-signal-distribution",
     )
     def intent_signal_distribution(self, request, *args, **kwargs):
-        profiles = self.get_queryset()
-        now = timezone.now()
-        seven_days_ago = now - timedelta(days=7)
+        # The rules live in billing.intent_signals (brief 4); the loop keeps
+        # the user_ids order the chart has always had.
+        profiles = signal_rules.annotate_signals(
+            self.get_queryset(), signal_rules.request_now(request)
+        )
 
         import typing
 
@@ -1973,23 +1977,7 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         }
 
         for profile in profiles:
-            signals = 0
-
-            # 1. High consumption (>= 80%)
-            if profile.has_hit_80_percent:
-                signals += 1
-
-            # 2. High frequency (>= 8 distinct days)
-            if profile.distinct_login_days >= 8:
-                signals += 1
-
-            # 3. Recent activity (last 7 days)
-            if profile.last_active_at and profile.last_active_at >= seven_days_ago:
-                signals += 1
-
-            # 4. Grading-heavy
-            if profile.credits_used_grading > profile.credits_used_creation:
-                signals += 1
+            signals = profile.signal_count
 
             # Increment the corresponding bucket if signals >= 1
             if signals in distribution:
@@ -2195,21 +2183,20 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
     )
     @action(detail=False, methods=["GET"], url_path="beta/summary")
     def summary(self, request, *args, **kwargs):
-        now = timezone.now()
-        seven_days_ago = now - timedelta(days=7)
         standard_allocation = 20_000_000
+        # The four signal rules (billing.intent_signals). The cohort is every
+        # profile, as it always was (DESIGN section 10, backlog).
+        signal = signal_rules.flag_q(signal_rules.request_now(request))
 
         stats = self.get_queryset().aggregate(
             total=Count("id"),
-            active_recent=Count("id", filter=Q(last_active_at__gte=seven_days_ago)),
+            active_recent=Count("id", filter=signal["active_last_week"]),
             avg_usage=Avg("total_credits_used"),
             hit_cap=Count("id", filter=Q(has_hit_cap=True)),
             avg_days_to_action=Avg("days_to_first_action"),
-            high_consumption=Count("id", filter=Q(has_hit_80_percent=True)),
-            habit_formation=Count("id", filter=Q(distinct_login_days__gte=8)),
-            primary_graders=Count(
-                "id", filter=Q(credits_used_grading__gt=F("credits_used_creation"))
-            ),
+            high_consumption=Count("id", filter=signal["at_80_percent"]),
+            habit_formation=Count("id", filter=signal["frequent_user"]),
+            primary_graders=Count("id", filter=signal["is_power_grader"]),
         )
 
         total = stats["total"] or 1
@@ -2335,6 +2322,31 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         "for targeted sales outreach. Supports searching by name or email.",
         parameters=[
             OpenApiParameter(
+                name="ordering",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                enum=[*signal_rules.ORDERING_VALUES],
+                description=signal_rules.ORDERING_DOC,
+            ),
+            OpenApiParameter(
+                name="signals_min",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                enum=[*signal_rules.SIGNAL_COUNTS],
+            ),
+            *(
+                OpenApiParameter(
+                    name=flag,
+                    type=OpenApiTypes.STR,
+                    location=OpenApiParameter.QUERY,
+                    required=False,
+                    enum=["true", "false"],
+                )
+                for flag in signal_rules.FLAGS
+            ),
+            OpenApiParameter(
                 name="search",
                 type=OpenApiTypes.STR,
                 required=False,
@@ -2357,43 +2369,49 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             200: OpenApiResponse(
                 response=ConversionLeadSerializer(many=True),
                 description="Ranked list of high-intent conversion leads with scoring and metrics",
+                # One row per example: drf-spectacular wraps each value as one
+                # item of the paginated results (brief 4, R1c).
                 examples=[
                     OpenApiExample(
                         name="Conversion Leads Example",
-                        value=[
-                            {
-                                "email": "teacher1@school.edu",
-                                "score": 87.5,
-                                "metrics": {
-                                    "usage_percentage": 92.3,
-                                    "login_days": 15,
-                                    "last_active": "2024-01-20",
-                                    "primary_use_case": "Grading",
-                                },
-                                "flags": {
-                                    "at_80_percent": True,
-                                    "active_last_week": True,
-                                    "is_power_grader": True,
-                                },
+                        value={
+                            "email": "teacher1@school.edu",
+                            "score": 87.5,
+                            "metrics": {
+                                "usage_percentage": 92.3,
+                                "login_days": 15,
+                                "last_active": "2024-01-20",
+                                "primary_use_case": "Grading",
                             },
-                            {
-                                "email": "teacher2@school.edu",
-                                "score": 72.1,
-                                "metrics": {
-                                    "usage_percentage": 65.8,
-                                    "login_days": 12,
-                                    "last_active": "2024-01-19",
-                                    "primary_use_case": "Creation",
-                                },
-                                "flags": {
-                                    "at_80_percent": False,
-                                    "active_last_week": True,
-                                    "is_power_grader": False,
-                                },
+                            "flags": {
+                                "at_80_percent": True,
+                                "active_last_week": True,
+                                "is_power_grader": True,
+                                "frequent_user": True,
                             },
-                        ],
+                        },
                         description="Example showing two leads ranked by conversion probability",
-                    )
+                    ),
+                    OpenApiExample(
+                        name="Conversion Leads Example 2",
+                        value={
+                            "email": "teacher2@school.edu",
+                            "score": 72.1,
+                            "metrics": {
+                                "usage_percentage": 65.8,
+                                "login_days": 12,
+                                "last_active": "2024-01-19",
+                                "primary_use_case": "Creation",
+                            },
+                            "flags": {
+                                "at_80_percent": False,
+                                "active_last_week": True,
+                                "is_power_grader": False,
+                                "frequent_user": True,
+                            },
+                        },
+                        description="Example showing two leads ranked by conversion probability",
+                    ),
                 ],
             ),
         },
@@ -2406,7 +2424,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         Used for Sales outreach and conversion planning.
         """
 
-        seven_days_ago = timezone.now() - timedelta(days=7)
+        now = signal_rules.request_now(request)
 
         # The four "power user" rules - at least 80% of the beta credit grant
         # used, logins on 8 or more distinct days, activity in the last 7 days,
@@ -2426,9 +2444,28 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 | Q(user__email__icontains=search_query)
             )
 
-        leads = queryset.select_related("user").order_by(
-            "-conversion_probability", "-total_credits_used"
+        # The signals (billing.intent_signals), their optional filters and
+        # the optional `signals` ordering (brief 4). No param: the order and
+        # payload are what they were.
+        queryset = signal_rules.annotate_signals(queryset, now)
+        signal_filters = signal_rules.SignalFilterSet(
+            request.query_params, queryset=queryset, request=request
         )
+        if not signal_filters.is_valid():
+            raise translate_validation(signal_filters.errors)
+        queryset = signal_filters.qs
+
+        ordering = request.query_params.get("ordering")
+        if ordering in signal_rules.ORDERING_VALUES:
+            leads = queryset.select_related("user").order_by(
+                *signal_rules.ordering_terms(
+                    ordering.startswith("-"), id_field="user_id"
+                )
+            )
+        else:
+            leads = queryset.select_related("user").order_by(
+                "-conversion_probability", "-total_credits_used"
+            )
 
         page = self.paginate_queryset(leads)
         leads = page if page is not None else leads
@@ -2460,21 +2497,14 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                             p.last_active_at.date() if p.last_active_at else None
                         ),
                         "primary_use_case": (
-                            "Grading"
-                            if p.credits_used_grading > p.credits_used_creation
-                            else "Creation"
+                            "Grading" if p.is_power_grader else "Creation"
                         ),
                     },
                     "flags": {
-                        "at_80_percent": p.has_hit_80_percent,
-                        "active_last_week": (
-                            p.last_active_at >= seven_days_ago
-                            if p.last_active_at
-                            else False
-                        ),
-                        "is_power_grader": p.credits_used_grading
-                        > p.credits_used_creation,
-                        "frequent_user": p.distinct_login_days >= 8,
+                        "at_80_percent": p.at_80_percent,
+                        "active_last_week": p.active_last_week,
+                        "is_power_grader": p.is_power_grader,
+                        "frequent_user": p.frequent_user,
                     },
                 }
             )
@@ -2500,8 +2530,12 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         url_name="intent-signal-detail",
     )
     def intent_signal_detail(self, request, user_id=None, *args, **kwargs):
-        profile = get_object_or_404(BetaProfile, user__id=user_id)
-        seven_days_ago = timezone.now() - timedelta(days=7)
+        profile = get_object_or_404(
+            signal_rules.annotate_signals(
+                BetaProfile.objects.all(), signal_rules.request_now(request)
+            ),
+            user__id=user_id,
+        )
 
         # 1. Lead Profile & Metrics
         total_used = profile.total_credits_used or 0
@@ -2520,23 +2554,14 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                     profile.last_active_at.date() if profile.last_active_at else None
                 ),
                 "primary_use_case": (
-                    "Grading"
-                    if profile.credits_used_grading > profile.credits_used_creation
-                    else "Creation"
+                    "Grading" if profile.is_power_grader else "Creation"
                 ),
             },
             "flags": {
-                "at_80_percent": profile.has_hit_80_percent,
-                "active_last_week": (
-                    profile.last_active_at >= seven_days_ago
-                    if profile.last_active_at
-                    else False
-                ),
-                "is_power_grader": profile.credits_used_grading
-                > profile.credits_used_creation,
-                # "grading_heavy": profile.credits_used_grading
-                # > profile.credits_used_creation,
-                "frequent_user": profile.distinct_login_days >= 8,
+                "at_80_percent": profile.at_80_percent,
+                "active_last_week": profile.active_last_week,
+                "is_power_grader": profile.is_power_grader,
+                "frequent_user": profile.frequent_user,
             },
         }
 
