@@ -213,3 +213,16 @@ plants/shas.txt. "Killed" = the named tests fail or error (distinct tests).
 | S4-default-order | billing/views.py | intent-signals always orders by signals (-signals when no param) | 1: LeadOrderingTests.test_no_param_keeps_the_score_order_when_counts_disagree. The pin and test_no_param_keeps_todays_order survive (their score order equals their count order; that was the gap, R3) |
 | S5-gate | users/filters.py | the signal filters apply for a non-super admin too | 1: SignalFilterTests.test_the_signal_filters_do_nothing_off_the_list_for_others |
 | S6-boundary | billing/intent_signals.py | active_last_week uses > (exclusive) | 7: BoundaryTests.test_exactly_seven_days_ago_is_active; SignalValueTests.test_exactly_seven_days_ago_is_active_last_week; IntentSignalsPinTests.test_the_signal_payloads_are_what_they_were; LeadFilterTests test_signals_min, test_the_count_follows_the_filters and test_filters_combine_with_search_and_ordering; LeadOrderingTests.test_ordering_combines_with_search_and_pages |
+
+## Plant results (logs plants/<id>.log, sha lines plants/shas.txt; every restore sha256 OK; no .orig kept)
+
+By distinct test (the failure totals count subTests):
+
+| plant | result |
+|---|---|
+| S1-drop-flag | as declared: the 9 named |
+| S2-tiebreak | as declared: 2 |
+| S3-cache | as declared: 18 (the 14 from brief 2 plus 4 signal tests) |
+| S4-default-order | **Prediction incomplete**: 2 killed. The declared one, plus LeadOrderingTests.test_no_param_keeps_todays_order. Under the plant an ignored value such as "score" or "signal_count" does not start with "-", so the plant sorted by signals ascending, and that test's ignored-value subtests caught it. Its no-param assertion did survive, as traced: the fixture's score order equals its count order |
+| S5-gate | as declared: 1 |
+| S6-boundary | as declared: 7 |
