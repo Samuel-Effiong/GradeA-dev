@@ -5149,3 +5149,37 @@ The fragments were rendered from unittest's own messages (no test run). No pre-e
    - The values: `a.individual` None/1500/15750; `b.licteacher` None/0/8999; `c.schooladmin` None/0/5000; `d.student`, `f.nosettings` and `g.empty` each "out"/0/0.
 
 This confirms the cause recorded above.
+
+**SM ruling: the E-off fix plan is approved (-31, on af5dc858a), (a)–(f) as written. Conditions:**
+1. I may edit `users/list_serializers.py` (only the `ListCreditWalletSerializer` overrides) and the pin JSON; the SM rules this and tells the Fixer. The edit stays minimal, in the existing pattern, with the `super()` fallback when nothing is prefetched. No edits to `users/user_list.py` or the Fixer's test modules.
+2. `status_from` is pure: no database access, no clock read. `balance_status()` keeps its exact behavior, and its existing tests pass unchanged.
+3. Parity also covers the exact low and very_low boundaries, and a wallet with no buckets.
+4. The pin keys are added by script. The checkpoint shows `git diff -U0` of the JSON: only `+` lines, only the three keys under `credit_wallet`, with the values from D2.
+5. QueryCountTests goes back to fixed (5 rows = 25 rows) and to **13** queries. If B1b needs more than 13: STOP with the number and the reason before any test expectation changes.
+6. The new rule is accepted (below).
+- Then: red, product, green, the 4 plants, D1 again, E-off and E-on re-declared, then the gate summary. No push, no trailers.
+
+**Standing rule (from B1b-10, SM accepted): run the merged modules alone right after any merge, declared.** After every merge into this branch, the test modules the merge brings or changes are run alone, serial, flag off, before any other run. The run is declared in NOTES and committed first. A failure is a STOP.
+
+**The new tests: `billing/tests/test_b1b10_list_wallet_parity.py` (17).**
+- `ListWalletParityTests` (15). Each case checks the list row's `credit_wallet.spendable` and `.balance_status` against `holds.spendable_credits` and `low_balance.balance_status` for the same wallet, and against the value the case is built to give. The cases:
+  - healthy;
+  - a hold → low;
+  - a hold above the balance → out;
+  - an expired bucket;
+  - the low boundary (2,501 None, 2,500 low);
+  - the very_low boundary (1,001 low; 1,000 and 1 very_low);
+  - nothing left with a cycle → out;
+  - overage counted in spendable;
+  - overage left out of the allocation (3,000 of 10,000 → None);
+  - overage only → None, and spent overage only → out;
+  - a CARRY_OVER with an expiry as the cycle → low;
+  - a never-expiring MANUAL_GRANT alone, no cycle → None;
+  - a never-expiring MONTHLY, still the cycle → low;
+  - a wallet with no buckets → out.
+- `StatusFromTests` (2, `SimpleTestCase`: the levels at every edge; no allocation or no cycle). A database query is refused by `SimpleTestCase`, and `timezone.now` is patched to raise. `status_from` is looked up by name, so the module imports before it exists.
+- The helpers come from the Fixer's `users.tests_user_list_sorting.Base` (imported, not edited).
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| R10-red | the five and USER_LIST_PIN_WRITE unset; serial; under flock with `--noinput`; at this commit (tests only, no product change) | `billing.tests.test_b1b10_list_wallet_parity users.tests_user_list_sorting users.tests_user_list_payload_pin` (17 + 50 + 3) | **Ran 70, FAILED (failures=18, errors=10)**. The 18 are D1's (`188 != 187`, `48 != 187`, `47 != 187`, the pin). The 10 are `StatusFromTests`' 10 subtests, each with `AttributeError: module 'billing.low_balance' has no attribute 'status_from'`. The 15 parity tests **pass**: until the fix, the list calls the same billing functions, so they pin behavior and are not red. |
