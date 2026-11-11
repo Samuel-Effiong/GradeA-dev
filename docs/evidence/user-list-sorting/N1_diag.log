@@ -1,0 +1,22 @@
+== assignments.tests_schema_extension
+Ran 9 tests in 1.635s
+OK
+== users.tests_user_list_sorting.OpenApi assignments.tests_schema_extension
+ERROR: OpenApi (unittest.loader._FailedTest.OpenApi)
+Ran 10 tests in 1.248s
+FAILED (errors=1)
+== classrooms.tests_teacher_access_sweep
+FAIL: test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping)
+Ran 9 tests in 1.895s
+FAILED (failures=1)
+== users.tests_user_list_sorting.OpenApiTests assignments.tests_schema_extension
+ERROR: test_the_target_serializer_still_exists (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_target_serializer_still_exists)
+FAIL: test_it_targets_the_assignment_list_serializer (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_it_targets_the_assignment_list_serializer)
+Ran 11 tests in 1.958s
+FAILED (failures=1, errors=1)
+== users.tests_user_list_sorting.OrderingTests assignments.tests_schema_extension
+Ran 23 tests in 5.052s
+OK
+== after the test-only restore fix: OpenApiTests then the guard
+Ran 11 tests in 1.340s
+OK

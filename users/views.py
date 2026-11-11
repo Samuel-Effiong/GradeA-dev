@@ -103,7 +103,8 @@ from students.task_tracking import (
 from users.admin_power import holds_admin_power as _holds_admin_power
 from users.auth_audit import account_for_email, sign_in_failed, sign_in_succeeded
 from users.exceptions import EnvelopedAuthenticationFailed, EnvelopedThrottled
-from users.filters import UserEnrollmentFilter
+from users.filters import UserEnrollmentFilter, UserListOrderingFilter
+from users.list_serializers import UserListSerializer
 from users.mixins import UserCacheMixin
 from users.models import (
     BetaWhitelist,
@@ -153,6 +154,7 @@ from users.throttling import (
     verify_lock_until,
 )
 from users.tokens import EpochRefreshToken, revoke_session, session_id_of
+from users.user_list import COLUMN_KEYS, SORT_KEYS, list_queryset, ordering_values
 
 logger = logging.getLogger(__name__)
 
@@ -220,9 +222,24 @@ USER_EXAMPLE = {
                 location=OpenApiParameter.QUERY,
                 description="Number of results per page",
             ),
+            OpenApiParameter(
+                name="ordering",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                many=True,
+                explode=False,
+                enum=ordering_values(),
+                description=(
+                    "Sort keys, comma-separated; '-' sorts descending. Null "
+                    "values sort last in both directions, and id breaks ties. "
+                    "plan_tier sorts by rank: TRIAL, BETA, STANDARD, PRO, "
+                    "POWER, CUSTOM. credits_left and credits_used sort on "
+                    "raw credits. Unknown keys are ignored."
+                ),
+            ),
         ],
         responses={
-            200: CustomUserSerializer(many=True),
+            200: UserListSerializer(many=True),
             500: OpenApiResponse(description="Internal Server Error"),
         },
     ),
@@ -307,9 +324,16 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
     # applies filters too - a yes/no oracle on other tenants' enrollments.
     filterset_class = UserEnrollmentFilter
     search_fields = ["first_name", "last_name", "email"]
-    ordering_fields = ["first_name", "last_name", "email", "username"]
+    ordering_fields = [*COLUMN_KEYS, *SORT_KEYS]
 
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filter_backends = [DjangoFilterBackend, SearchFilter, UserListOrderingFilter]
+
+    def get_serializer_class(self):
+        # The list's nine values are LIST-only (SM D7): every other action
+        # keeps CustomUserSerializer.
+        if self.action == "list":
+            return UserListSerializer
+        return super().get_serializer_class()
 
     def get_permissions(self):
         """
@@ -349,6 +373,10 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # Mirrors classrooms.permissions.IsSuperAdmin, which requires both
         # flags. Checking only is_superuser would let the two disagree.
         if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            # The list page: its values and the existing payload's
+            # relations, at a fixed number of queries (D1).
+            if self.action == "list":
+                return list_queryset(queryset)
             return queryset
 
         if user.user_type == UserTypes.SCHOOL_ADMIN and user.school_id:
