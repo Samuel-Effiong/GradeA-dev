@@ -533,3 +533,22 @@ Checked, expected NOT to move:
 - R1, the student message. Students have no school. Proposal: message 1 (school administrator) if the student has a non-WITHDRAWN enrollment in a course whose teacher has a school (`StudentCourse` with `course__teacher__school__isnull=False`, `enrollment_status != WITHDRAWN`), otherwise message 2 (Grade A Plus team). Reason: "any enrollment" would send a student of an independent teacher, or one who has only been withdrawn, to a school administrator who does not exist. Teachers and school admins: message 1 if school_id is set, else message 2. Super admins cannot be locked.
 - R2, the remediation. To keep to no third text, the spec's remediation is "" (the body carries `remediation: null`, the existing "nothing to do" form). Both approved sentences already say what to do. The two messages are the spec's `message` (1, school) plus `alternative_messages={"no_school": <2>}`. The login and Google doors pick the variant themselves (no new param).
 - R3, one event per request. IsSuperAdmin tags every granted request, and the middleware then ALWAYS writes ADMIN_ACTION (`audit/admin_action.py:92`). If the API view also writes ACCOUNT_LOCK with the admin as actor, a successful lock leaves TWO events naming the requester, which breaks the "exactly one event naming the requester" rule. No existing IsSuperAdmin view writes its own named event, so there is no precedent. Proposal: after a successful lock or unlock, the view writes ACCOUNT_LOCK/ACCOUNT_UNLOCK and removes the request's ADMIN_ACTION tag (a small helper in audit/admin_action.py), so the named event is the one. A refused or failed call (404, self, super-admin target) keeps today's ADMIN_ACTION. In the back office, each locked user gets one ACCOUNT_LOCK naming the admin, and the generic STATE_CHANGE is then skipped by the existing rule, as `deactivate_users` already does with PERMISSION_CHANGE.
+
+## SM rulings on the survey (2026-11-11, grade-automator-plus-d6; recorded unamended)
+
+> SM rulings on the H-34 survey (e01d76cda). Record them unamended. GO for tests-first.
+>
+> R1 APPROVED: message 1 if the user has a school (teachers and school admins), or, for a student, a non-WITHDRAWN enrollment in a course whose teacher has a school; otherwise message 2. Add tests for: a student with only an independent teacher; a student who was only ever withdrawn; a student with both kinds of enrollment (gets message 1).
+>
+> R2 APPROVED: remediation "" giving remediation null; message 2 as the spec's no_school alternative; the doors pick between the two. Pin both texts byte-for-byte against team/approved_wording_h34_admin_lock_2026-11-11.md (record the sha).
+>
+> R3 APPROVED (one named event, the ADMIN_ACTION tag dropped on success), with these conditions:
+> - The drop helper may be called only AFTER the named ACCOUNT_LOCK/ACCOUNT_UNLOCK event is written in the same request. Structure it so the helper itself writes the named event and then drops the tag, never the drop alone.
+> - A guard test: the helper's only callers are the two lock/unlock views (a static scan, like the history guard).
+> - Route-coverage asserts exactly ONE event naming the requester on success, and today's ADMIN_ACTION on 404, self and super-admin targets.
+> - Plants: (i) the tag drop removed, so two events, caught; (ii) the named event removed but the drop kept, so zero events, caught. The second matters most.
+> - Back office: one ACCOUNT_LOCK per user changed, naming the admin. Users already locked or unlocked are not counted (match deactivate's "only rows that change").
+>
+> Then red, product, green, plants Q-P1..9 plus the two R3 plants, migration safety (vs origin/beta and origin/main), near as declared, with every declaration stating its env. Checkpoint to grade-automator-plus-d6. No push.
+
+Wording source: the main checkout's team/approved_wording_h34_admin_lock_2026-11-11.md, sha256 d3d1a12e7b02be9dda85771b3cdd3a505ca2712b5e616c5b983bf9081a64e229 (read 2026-11-11; texts #1-#4). team/ is excluded locally (.git/info/exclude), so it is not in the worktree. The tests pin the texts as literals copied from that file, and the test module names this sha.
