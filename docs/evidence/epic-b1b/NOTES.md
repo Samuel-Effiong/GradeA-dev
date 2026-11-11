@@ -4604,3 +4604,8 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
   - #19's placement;
   - D8-a.
 - **Still open from B1b-7:** (b) the unit wrap, not reachable today.
+
+**Correction to §8.13 (made right after its commit 8a2b8834c):** I wrote "`write_routes()` = 162" there without re-counting, against the standing rule.
+- **Counted now with `audit.tests_route_coverage.write_routes()`: 164.**
+- The 2 new routes are H-34's `('user-lock', 'post')` and `('user-unlock', 'post')`, from the staging merge db1f716e5. **B1b-8 adds no route** (`kept_until` is a field).
+- The route-coverage guard (`audit.tests_route_coverage`, in guards67) passed in N8, so H-34's routes are covered on their side.
