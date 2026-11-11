@@ -1,0 +1,72 @@
+B1b-7 R4b (NOTES §7.25): ENV BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; declared Ran 17, OK
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user b2fc2810-2513-4731-9438-bdab9b3e545b.
+Cannot activate automatic trial for user b2fc2810-2513-4731-9438-bdab9b3e545b (validation): ValueError
+.Free trial plan not found: no trial activated for user 948a5747-28b0-4de8-a11f-87ee41e69f6c.
+Cannot activate automatic trial for user 948a5747-28b0-4de8-a11f-87ee41e69f6c (validation): ValueError
+.Free trial plan not found: no trial activated for user aee835e5-082a-40ca-ba17-3997e20090c7.
+Cannot activate automatic trial for user aee835e5-082a-40ca-ba17-3997e20090c7 (validation): ValueError
+.Free trial plan not found: no trial activated for user 042d01c7-90f8-4f49-8ce5-301b9858fe60.
+Cannot activate automatic trial for user 042d01c7-90f8-4f49-8ce5-301b9858fe60 (validation): ValueError
+.Free trial plan not found: no trial activated for user 4ceb10e5-473b-457b-a728-a82eada83e6b.
+Cannot activate automatic trial for user 4ceb10e5-473b-457b-a728-a82eada83e6b (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user 8835a2ca-5cb3-4533-8274-3158affa89f9.
+Cannot activate automatic trial for user 8835a2ca-5cb3-4533-8274-3158affa89f9 (validation): ValueError
+.Free trial plan not found: no trial activated for user 3be15ab5-bcc1-4228-a93a-17e0d412fc18.
+Cannot activate automatic trial for user 3be15ab5-bcc1-4228-a93a-17e0d412fc18 (validation): ValueError
+.Free trial plan not found: no trial activated for user a883eeea-9e2d-4a46-8d95-33293b2db112.
+Cannot activate automatic trial for user a883eeea-9e2d-4a46-8d95-33293b2db112 (validation): ValueError
+Failed to extract assignment from file bad.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 974, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_ai_job_id.py", line 273, in engine
+    raise ValueError("unreadable")
+ValueError: unreadable
+.Free trial plan not found: no trial activated for user d6f05f16-8387-4b4b-922b-58d52daab707.
+Cannot activate automatic trial for user d6f05f16-8387-4b4b-922b-58d52daab707 (validation): ValueError
+.Free trial plan not found: no trial activated for user b3039d5b-6008-48a3-934a-54d46dcc8baa.
+Cannot activate automatic trial for user b3039d5b-6008-48a3-934a-54d46dcc8baa (validation): ValueError
+.Free trial plan not found: no trial activated for user 70893c86-1c96-4bcd-8179-4b9616c3244c.
+Cannot activate automatic trial for user 70893c86-1c96-4bcd-8179-4b9616c3244c (validation): ValueError
+.Free trial plan not found: no trial activated for user 36fd29b1-9690-4c1d-8f7d-5a0fa35d4ca6.
+Cannot activate automatic trial for user 36fd29b1-9690-4c1d-8f7d-5a0fa35d4ca6 (validation): ValueError
+.Free trial plan not found: no trial activated for user b507d05e-afe6-42b7-bd8a-dac558ef4289.
+Cannot activate automatic trial for user b507d05e-afe6-42b7-bd8a-dac558ef4289 (validation): ValueError
+.Free trial plan not found: no trial activated for user c37fcad7-cf0d-4e87-ae20-c122562fb399.
+Cannot activate automatic trial for user c37fcad7-cf0d-4e87-ae20-c122562fb399 (validation): ValueError
+.Free trial plan not found: no trial activated for user e6db8c0f-3e0a-4e6b-8bc0-df18b495219f.
+Cannot activate automatic trial for user e6db8c0f-3e0a-4e6b-8bc0-df18b495219f (validation): ValueError
+.Free trial plan not found: no trial activated for user 4344d647-9201-4456-a005-79c06530dbe9.
+Cannot activate automatic trial for user 4344d647-9201-4456-a005-79c06530dbe9 (validation): ValueError
+.Free trial plan not found: no trial activated for user e252fe59-d8d0-4772-9f8d-a34b15b0ae98.
+Cannot activate automatic trial for user e252fe59-d8d0-4772-9f8d-a34b15b0ae98 (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 17 tests in 1.443s
+
+OK
+Destroying test database for alias 'default'...
+Found 17 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
