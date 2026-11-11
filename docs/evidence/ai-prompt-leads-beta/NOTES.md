@@ -103,3 +103,18 @@ low-score big spender stays out of the top 10).
 R3 label: that test. Expected: Ran 1, OK on the product.
 
 R3 result (R3_gap_test.log): Ran 1, OK, as predicted.
+
+## Plants (declared before any plant runs)
+
+The harness plant_leads.py is brief 4's harness with plants L1-L5 (copied
+into plants/ after the runs). One plant per run: copy, sha256 equals HEAD,
+plant, run the 4 labels (39 tests), restore, sha256 again, delete the copy.
+Logs go to plants/<id>.log, sha lines to plants/shas.txt. By distinct test:
+
+| plant | change (billing/views.py) | killed (declared) |
+|---|---|---|
+| L1-slice | the block slices the leads list's Response again (narrow except kept) | 6: the KeyError now escapes as a 500, so every test that reads the template fails. That is TemplatePinTests.test_the_rest_of_the_template_is_what_it_was, LeadBlockTests' 4 tests (exactly, equals the list, score not credits, query params) and the DatabaseError test. The 500 test, the cost test and the not-vacuous pin survive |
+| L2-order | top_leads orders by most credits only | 1: test_the_block_follows_the_score_not_the_credits (R3; the fixture alone cannot tell) |
+| L3-email | email dropped from the block | 3: test_the_block_is_exactly_the_top_ten_leads, test_the_block_equals_the_leads_list_first_page, test_the_block_follows_the_score_not_the_credits (KeyError on "email") |
+| L4-bare-except | `except Exception` again | 1: test_a_programming_error_is_a_500 |
+| L5-params | the block honors ?page_size | 1: test_query_params_do_not_change_the_block |
