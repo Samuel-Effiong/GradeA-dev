@@ -3,7 +3,7 @@ import time
 from datetime import timedelta
 
 from django.core.cache import cache
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from django.db.models import Case, F, Q, Sum, Value, When
 from django.db.models.aggregates import Avg, Count
 from django.db.models.functions import ExtractHour, TruncDay, TruncWeek
@@ -129,6 +129,56 @@ def get_teacher_beta_profiles():
     return BetaProfile.objects.select_related("user").filter(
         user__user_type=UserTypes.TEACHER
     )
+
+
+def top_leads(now, limit=None):
+    """The sales-leads list's default rows (beta/intent-signals with no
+    params): teacher profiles with their signals (billing.intent_signals),
+    highest score first, then most credits used."""
+    leads = signal_rules.annotate_signals(get_teacher_beta_profiles(), now).order_by(
+        "-conversion_probability", "-total_credits_used"
+    )
+    return leads[:limit] if limit is not None else leads
+
+
+def lead_rows(leads):
+    """One sales-lead row per profile, as the leads list shows it. `leads`
+    must carry the signal annotations (annotate_signals). The custom AI
+    prompt's lead block uses the same rows (brief 5)."""
+    rows = []
+    for p in leads:
+        rows.append(
+            {
+                "id": str(p.user.id),
+                "name": p.user.get_full_name(),
+                "email": p.user.email,
+                "score": round(p.conversion_probability, 1),
+                "metrics": {
+                    "credit_usage": p.total_credits_used,
+                    # `or 1` matches intent_signal_detail and beta_dashboard.
+                    # This was the one site of the four that divided by the
+                    # raw field: a BetaProfile seeded from a plan whose
+                    # monthly_credits is still the 0 default made the whole
+                    # sales-leads endpoint 500 — not just that row.
+                    "usage_percentage": round(
+                        (p.total_credits_used / (p.initial_beta_credits or 1)) * 100,
+                        1,
+                    ),
+                    "login_days": p.distinct_login_days,
+                    "last_active": (
+                        p.last_active_at.date() if p.last_active_at else None
+                    ),
+                    "primary_use_case": "Grading" if p.is_power_grader else "Creation",
+                },
+                "flags": {
+                    "at_80_percent": p.at_80_percent,
+                    "active_last_week": p.active_last_week,
+                    "is_power_grader": p.is_power_grader,
+                    "frequent_user": p.frequent_user,
+                },
+            }
+        )
+    return rows
 
 
 @extend_schema_view(
@@ -2470,43 +2520,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         leads = page if page is not None else leads
 
         # 2. Structure the response for the Sales Team
-        data = []
-        for p in leads:
-            data.append(
-                {
-                    "id": str(p.user.id),
-                    "name": p.user.get_full_name(),
-                    "email": p.user.email,
-                    "score": round(p.conversion_probability, 1),
-                    "metrics": {
-                        "credit_usage": p.total_credits_used,
-                        # `or 1` matches intent_signal_detail below and
-                        # beta_dashboard above. This was the one site of the
-                        # four that divided by the raw field: a BetaProfile
-                        # seeded from a plan whose monthly_credits is still
-                        # the 0 default made the whole sales-leads endpoint
-                        # 500 — not just that row.
-                        "usage_percentage": round(
-                            (p.total_credits_used / (p.initial_beta_credits or 1))
-                            * 100,
-                            1,
-                        ),
-                        "login_days": p.distinct_login_days,
-                        "last_active": (
-                            p.last_active_at.date() if p.last_active_at else None
-                        ),
-                        "primary_use_case": (
-                            "Grading" if p.is_power_grader else "Creation"
-                        ),
-                    },
-                    "flags": {
-                        "at_80_percent": p.at_80_percent,
-                        "active_last_week": p.active_last_week,
-                        "is_power_grader": p.is_power_grader,
-                        "frequent_user": p.frequent_user,
-                    },
-                }
-            )
+        data = lead_rows(leads)
 
         serializer = ConversionLeadSerializer(data, many=True)
         if page is not None:
@@ -2646,9 +2660,22 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         except Exception:
             credit_usage_data = {}
 
+        # The top 10 of the leads list (billing.views.top_leads/lead_rows),
+        # the same rows the list shows, full rows included (the owner's
+        # decision, 2026-11-11; docs/evidence/ai-prompt-leads-beta). Query
+        # params are ignored. It used to slice the list's paginated Response,
+        # which always raised and was swallowed, so the AI got "[]".
         try:
-            intent_leads = self.intent_signals(request, *args, **kwargs).data[:10]
-        except Exception:
+            intent_leads = ConversionLeadSerializer(
+                lead_rows(top_leads(signal_rules.request_now(request), 10)),
+                many=True,
+            ).data
+        except DatabaseError as exc:
+            # The type only: an error's own text can carry row values.
+            logger.error(
+                "Custom AI prompt: the lead block could not be built (%s).",
+                type(exc).__name__,
+            )
             intent_leads = []
 
         # 3. Get Feature Mix from the Chart ViewSet internally

@@ -1,0 +1,1015 @@
+Using existing test database for alias 'default' ('test_ai_leads_beta')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_the_leads_cost_one_query_whatever_the_cohort (billing.tests.test_custom_ai_prompt_leads.LeadBlockCostTests.test_the_leads_cost_one_query_whatever_the_cohort) ... Free trial plan not found: no trial activated for user 3cc660e2-6e14-4fa9-97c6-c6ea6df8f5fe.
+Cannot activate automatic trial for user 3cc660e2-6e14-4fa9-97c6-c6ea6df8f5fe (validation): ValueError
+Free trial plan not found: no trial activated for user dbb97b05-f707-4980-b4db-5a35bae142f5.
+Cannot activate automatic trial for user dbb97b05-f707-4980-b4db-5a35bae142f5 (validation): ValueError
+Free trial plan not found: no trial activated for user 0fd21efe-f293-451c-b616-8482b7f991de.
+Cannot activate automatic trial for user 0fd21efe-f293-451c-b616-8482b7f991de (validation): ValueError
+Free trial plan not found: no trial activated for user 7189f0e5-e855-4703-81d1-8986b7d6bd95.
+Cannot activate automatic trial for user 7189f0e5-e855-4703-81d1-8986b7d6bd95 (validation): ValueError
+Free trial plan not found: no trial activated for user eec1f9d5-e120-4eae-b033-46cc74e1b07f.
+Cannot activate automatic trial for user eec1f9d5-e120-4eae-b033-46cc74e1b07f (validation): ValueError
+Free trial plan not found: no trial activated for user ec6944a0-dfb9-437b-851c-350ffedc6a72.
+Cannot activate automatic trial for user ec6944a0-dfb9-437b-851c-350ffedc6a72 (validation): ValueError
+Free trial plan not found: no trial activated for user d2b02999-2b8c-4d19-9c3b-7d64ae4867de.
+Cannot activate automatic trial for user d2b02999-2b8c-4d19-9c3b-7d64ae4867de (validation): ValueError
+Free trial plan not found: no trial activated for user 94b7d439-794c-44d3-8d72-7a3e714640c9.
+Cannot activate automatic trial for user 94b7d439-794c-44d3-8d72-7a3e714640c9 (validation): ValueError
+Free trial plan not found: no trial activated for user 4809ab74-42fa-492b-a7a4-2f6011447fef.
+Cannot activate automatic trial for user 4809ab74-42fa-492b-a7a4-2f6011447fef (validation): ValueError
+Free trial plan not found: no trial activated for user 28d134ba-c974-4be4-9e1f-b83fa1db8de1.
+Cannot activate automatic trial for user 28d134ba-c974-4be4-9e1f-b83fa1db8de1 (validation): ValueError
+Free trial plan not found: no trial activated for user 8a05a85a-b907-44a9-b738-83390ad721e1.
+Cannot activate automatic trial for user 8a05a85a-b907-44a9-b738-83390ad721e1 (validation): ValueError
+Free trial plan not found: no trial activated for user cfa0cdb7-a669-449f-ac36-28fae3bc3833.
+Cannot activate automatic trial for user cfa0cdb7-a669-449f-ac36-28fae3bc3833 (validation): ValueError
+Free trial plan not found: no trial activated for user 321e6340-1bd4-46f8-88f1-064c3f40a45b.
+Cannot activate automatic trial for user 321e6340-1bd4-46f8-88f1-064c3f40a45b (validation): ValueError
+Free trial plan not found: no trial activated for user 4d76ea16-f2b6-4fbf-99d1-3e47f07a109b.
+Cannot activate automatic trial for user 4d76ea16-f2b6-4fbf-99d1-3e47f07a109b (validation): ValueError
+Free trial plan not found: no trial activated for user 77c8341e-cf28-4171-a1ec-8c3135064729.
+Cannot activate automatic trial for user 77c8341e-cf28-4171-a1ec-8c3135064729 (validation): ValueError
+Free trial plan not found: no trial activated for user 1792e982-fd85-401b-9214-7206935aa2d5.
+Cannot activate automatic trial for user 1792e982-fd85-401b-9214-7206935aa2d5 (validation): ValueError
+Free trial plan not found: no trial activated for user 862d478d-f2f9-49f7-b616-64f28308a34e.
+Cannot activate automatic trial for user 862d478d-f2f9-49f7-b616-64f28308a34e (validation): ValueError
+Free trial plan not found: no trial activated for user 5217ec21-f7a7-48e2-9c24-7f98b4d7f2de.
+Cannot activate automatic trial for user 5217ec21-f7a7-48e2-9c24-7f98b4d7f2de (validation): ValueError
+Free trial plan not found: no trial activated for user 118c39f0-ea92-40c8-ba14-16d6ff9174e8.
+Cannot activate automatic trial for user 118c39f0-ea92-40c8-ba14-16d6ff9174e8 (validation): ValueError
+Free trial plan not found: no trial activated for user 112fbbe5-c082-499e-b2cd-e578b23eab56.
+Cannot activate automatic trial for user 112fbbe5-c082-499e-b2cd-e578b23eab56 (validation): ValueError
+Free trial plan not found: no trial activated for user beeec425-1892-4ad1-96d3-437031b1616a.
+Cannot activate automatic trial for user beeec425-1892-4ad1-96d3-437031b1616a (validation): ValueError
+ok
+test_a_database_error_is_logged_without_lead_data_and_gives_an_empty_block (billing.tests.test_custom_ai_prompt_leads.LeadBlockFailureTests.test_a_database_error_is_logged_without_lead_data_and_gives_an_empty_block) ... Free trial plan not found: no trial activated for user a7241482-92aa-4e82-ab5d-5a726cf97672.
+Cannot activate automatic trial for user a7241482-92aa-4e82-ab5d-5a726cf97672 (validation): ValueError
+Free trial plan not found: no trial activated for user f870f5dd-7473-4ed4-9716-d9d5c1bde544.
+Cannot activate automatic trial for user f870f5dd-7473-4ed4-9716-d9d5c1bde544 (validation): ValueError
+Free trial plan not found: no trial activated for user b9accb54-278c-4961-aee4-3be67273c507.
+Cannot activate automatic trial for user b9accb54-278c-4961-aee4-3be67273c507 (validation): ValueError
+Free trial plan not found: no trial activated for user 1614ae75-cec6-43cb-a90b-08e108f3cae3.
+Cannot activate automatic trial for user 1614ae75-cec6-43cb-a90b-08e108f3cae3 (validation): ValueError
+Free trial plan not found: no trial activated for user b839b2c1-16d1-4482-9f83-c95335f92e8b.
+Cannot activate automatic trial for user b839b2c1-16d1-4482-9f83-c95335f92e8b (validation): ValueError
+Free trial plan not found: no trial activated for user c69ef05e-7c23-4dd0-948d-a4e05f5b101a.
+Cannot activate automatic trial for user c69ef05e-7c23-4dd0-948d-a4e05f5b101a (validation): ValueError
+Free trial plan not found: no trial activated for user 0506f344-f6a0-4cd4-8b93-1e02a0965683.
+Cannot activate automatic trial for user 0506f344-f6a0-4cd4-8b93-1e02a0965683 (validation): ValueError
+Free trial plan not found: no trial activated for user ed0ac873-ec17-4ec6-80ba-bb5b7c412750.
+Cannot activate automatic trial for user ed0ac873-ec17-4ec6-80ba-bb5b7c412750 (validation): ValueError
+Free trial plan not found: no trial activated for user 480f323c-c04e-4abc-81fd-feaf9f5d7cf7.
+Cannot activate automatic trial for user 480f323c-c04e-4abc-81fd-feaf9f5d7cf7 (validation): ValueError
+Free trial plan not found: no trial activated for user 4ae4da1c-cafc-4cc7-b972-a5bf621782df.
+Cannot activate automatic trial for user 4ae4da1c-cafc-4cc7-b972-a5bf621782df (validation): ValueError
+Free trial plan not found: no trial activated for user 4036962a-caa5-405d-98d2-658f75f18ef9.
+Cannot activate automatic trial for user 4036962a-caa5-405d-98d2-658f75f18ef9 (validation): ValueError
+Free trial plan not found: no trial activated for user 3a67c57c-2bfa-4fd9-b712-9d2e4eb2dde9.
+Cannot activate automatic trial for user 3a67c57c-2bfa-4fd9-b712-9d2e4eb2dde9 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_a_programming_error_is_a_500 (billing.tests.test_custom_ai_prompt_leads.LeadBlockFailureTests.test_a_programming_error_is_a_500) ... Free trial plan not found: no trial activated for user 9cbdaccd-b81d-49d5-ab15-00947409aedd.
+Cannot activate automatic trial for user 9cbdaccd-b81d-49d5-ab15-00947409aedd (validation): ValueError
+Free trial plan not found: no trial activated for user 9c091a25-b27f-415e-90e9-730ad4b13633.
+Cannot activate automatic trial for user 9c091a25-b27f-415e-90e9-730ad4b13633 (validation): ValueError
+Free trial plan not found: no trial activated for user b2685eac-0d97-4828-9105-1d8da7d40323.
+Cannot activate automatic trial for user b2685eac-0d97-4828-9105-1d8da7d40323 (validation): ValueError
+Free trial plan not found: no trial activated for user cc2dbbbd-34f8-4600-93b9-6aa4c1bf144b.
+Cannot activate automatic trial for user cc2dbbbd-34f8-4600-93b9-6aa4c1bf144b (validation): ValueError
+Free trial plan not found: no trial activated for user ec1c8bcd-5d27-4257-8844-0712b2c743ec.
+Cannot activate automatic trial for user ec1c8bcd-5d27-4257-8844-0712b2c743ec (validation): ValueError
+Free trial plan not found: no trial activated for user f01d6f4a-4d7f-4471-82fa-59174e19e52b.
+Cannot activate automatic trial for user f01d6f4a-4d7f-4471-82fa-59174e19e52b (validation): ValueError
+Free trial plan not found: no trial activated for user 47380734-8d8a-4103-a89e-c837a918ef97.
+Cannot activate automatic trial for user 47380734-8d8a-4103-a89e-c837a918ef97 (validation): ValueError
+Free trial plan not found: no trial activated for user 16ee04e6-49bb-4da8-b99b-f6c7e58ad887.
+Cannot activate automatic trial for user 16ee04e6-49bb-4da8-b99b-f6c7e58ad887 (validation): ValueError
+Free trial plan not found: no trial activated for user cc587a01-d833-46d8-bc9f-e4b51c7c97c8.
+Cannot activate automatic trial for user cc587a01-d833-46d8-bc9f-e4b51c7c97c8 (validation): ValueError
+Free trial plan not found: no trial activated for user 8c5b8601-0865-4073-801a-1d7fc92586a8.
+Cannot activate automatic trial for user 8c5b8601-0865-4073-801a-1d7fc92586a8 (validation): ValueError
+Free trial plan not found: no trial activated for user 54d95bb8-a830-4cb9-96c1-f598cfba27da.
+Cannot activate automatic trial for user 54d95bb8-a830-4cb9-96c1-f598cfba27da (validation): ValueError
+Free trial plan not found: no trial activated for user ddb011bf-e279-47d4-b992-20b4478e5a1a.
+Cannot activate automatic trial for user ddb011bf-e279-47d4-b992-20b4478e5a1a (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/views.py", line 523, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/views.py", line 2670, in custom_ai_prompt
+    [{k: v for k, v in row.items() if k != "email"} for row in lead_rows(top_leads(signal_rules.request_now(request), 10))],
+                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+KeyError: 'slice'
+
+
+django.request ERROR 2026-06-15 12:00:00,000 log 830491 134588500010880 [request_id=- client_request_id=-] Internal Server Error: /api/v1/analytics/beta/custom-ai-prompt
+
+
+ok
+test_query_params_do_not_change_the_block (billing.tests.test_custom_ai_prompt_leads.LeadBlockTests.test_query_params_do_not_change_the_block) ... Free trial plan not found: no trial activated for user 5dad238c-f35e-46de-af37-138e09c1dbf0.
+Cannot activate automatic trial for user 5dad238c-f35e-46de-af37-138e09c1dbf0 (validation): ValueError
+Free trial plan not found: no trial activated for user 53050835-0684-48d9-9c97-8c25ef4dbdf1.
+Cannot activate automatic trial for user 53050835-0684-48d9-9c97-8c25ef4dbdf1 (validation): ValueError
+Free trial plan not found: no trial activated for user f15cfac2-2682-4a7d-b6a9-cdcc1edc31db.
+Cannot activate automatic trial for user f15cfac2-2682-4a7d-b6a9-cdcc1edc31db (validation): ValueError
+Free trial plan not found: no trial activated for user b08a107a-2ec4-4087-9680-17ed0d4d06e9.
+Cannot activate automatic trial for user b08a107a-2ec4-4087-9680-17ed0d4d06e9 (validation): ValueError
+Free trial plan not found: no trial activated for user 94e8bf3c-9539-4d08-9a0e-2a3e4f8f3a07.
+Cannot activate automatic trial for user 94e8bf3c-9539-4d08-9a0e-2a3e4f8f3a07 (validation): ValueError
+Free trial plan not found: no trial activated for user 0efdcba2-1b4e-4b8f-b66d-9bdbbdc8afa6.
+Cannot activate automatic trial for user 0efdcba2-1b4e-4b8f-b66d-9bdbbdc8afa6 (validation): ValueError
+Free trial plan not found: no trial activated for user 6a5afd12-5b90-4a34-8210-9ec2630a0c39.
+Cannot activate automatic trial for user 6a5afd12-5b90-4a34-8210-9ec2630a0c39 (validation): ValueError
+Free trial plan not found: no trial activated for user 73321950-3ca6-458c-851d-c63964e38163.
+Cannot activate automatic trial for user 73321950-3ca6-458c-851d-c63964e38163 (validation): ValueError
+Free trial plan not found: no trial activated for user 50dbfe5d-f2fe-4fe1-baac-c07ce5d2f79a.
+Cannot activate automatic trial for user 50dbfe5d-f2fe-4fe1-baac-c07ce5d2f79a (validation): ValueError
+Free trial plan not found: no trial activated for user 25d6c541-2deb-41a5-b7e9-ba9a6c96c59c.
+Cannot activate automatic trial for user 25d6c541-2deb-41a5-b7e9-ba9a6c96c59c (validation): ValueError
+Free trial plan not found: no trial activated for user 22aa059a-f29a-44d0-a5ac-fb4283a72bf6.
+Cannot activate automatic trial for user 22aa059a-f29a-44d0-a5ac-fb4283a72bf6 (validation): ValueError
+Free trial plan not found: no trial activated for user 6871c96a-6fc4-4dd9-8769-f2c45eb3ade6.
+Cannot activate automatic trial for user 6871c96a-6fc4-4dd9-8769-f2c45eb3ade6 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 432, in get_attribute
+    return get_attribute(instance, self.source_attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 97, in get_attribute
+    instance = instance[attr]
+               ~~~~~~~~^^^^^^
+KeyError: 'email'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/views.py", line 523, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/views.py", line 2672, in custom_ai_prompt
+    ).data
+      ^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 818, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 737, in to_representation
+    self.child.to_representation(item) for item in iterable
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 539, in to_representation
+    attribute = field.get_attribute(instance)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 465, in get_attribute
+    raise type(exc)(msg)
+KeyError: "Got KeyError when attempting to get a value for field `email` on serializer `ConversionLeadSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'email'."
+
+
+django.request ERROR 2026-06-15 12:00:00,000 log 830491 134588500010880 [request_id=- client_request_id=-] Internal Server Error: /api/v1/analytics/beta/custom-ai-prompt
+
+
+FAIL
+test_the_block_equals_the_leads_list_first_page (billing.tests.test_custom_ai_prompt_leads.LeadBlockTests.test_the_block_equals_the_leads_list_first_page) ... Free trial plan not found: no trial activated for user 1338e8b3-cc2b-45fe-b77e-7d96f1fb5e45.
+Cannot activate automatic trial for user 1338e8b3-cc2b-45fe-b77e-7d96f1fb5e45 (validation): ValueError
+Free trial plan not found: no trial activated for user c2555369-1114-400f-b4d6-d01569a5840c.
+Cannot activate automatic trial for user c2555369-1114-400f-b4d6-d01569a5840c (validation): ValueError
+Free trial plan not found: no trial activated for user a5481632-4e68-4514-9687-c5b3bda0f3f9.
+Cannot activate automatic trial for user a5481632-4e68-4514-9687-c5b3bda0f3f9 (validation): ValueError
+Free trial plan not found: no trial activated for user fb94406b-0ea3-407e-8dbc-ea8aef148205.
+Cannot activate automatic trial for user fb94406b-0ea3-407e-8dbc-ea8aef148205 (validation): ValueError
+Free trial plan not found: no trial activated for user be400865-a863-459f-a9f8-0e538bede961.
+Cannot activate automatic trial for user be400865-a863-459f-a9f8-0e538bede961 (validation): ValueError
+Free trial plan not found: no trial activated for user cce04027-d080-43c0-a9d0-36f476a42255.
+Cannot activate automatic trial for user cce04027-d080-43c0-a9d0-36f476a42255 (validation): ValueError
+Free trial plan not found: no trial activated for user ba3e8298-9c4a-42a0-aebf-7b7f0e28c1c7.
+Cannot activate automatic trial for user ba3e8298-9c4a-42a0-aebf-7b7f0e28c1c7 (validation): ValueError
+Free trial plan not found: no trial activated for user 018a30cc-b2f8-4ae2-9d2b-a534192742c1.
+Cannot activate automatic trial for user 018a30cc-b2f8-4ae2-9d2b-a534192742c1 (validation): ValueError
+Free trial plan not found: no trial activated for user a19bd663-6656-447a-983f-5955c1d23317.
+Cannot activate automatic trial for user a19bd663-6656-447a-983f-5955c1d23317 (validation): ValueError
+Free trial plan not found: no trial activated for user 4e5bdf90-af68-4e1b-b901-155ef656aa66.
+Cannot activate automatic trial for user 4e5bdf90-af68-4e1b-b901-155ef656aa66 (validation): ValueError
+Free trial plan not found: no trial activated for user 048175a9-c9b5-4066-b8f8-da611819c8ae.
+Cannot activate automatic trial for user 048175a9-c9b5-4066-b8f8-da611819c8ae (validation): ValueError
+Free trial plan not found: no trial activated for user 181e2aca-96f1-4cdc-92c0-d1e1c1a92d54.
+Cannot activate automatic trial for user 181e2aca-96f1-4cdc-92c0-d1e1c1a92d54 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 432, in get_attribute
+    return get_attribute(instance, self.source_attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 97, in get_attribute
+    instance = instance[attr]
+               ~~~~~~~~^^^^^^
+KeyError: 'email'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/views.py", line 523, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/views.py", line 2672, in custom_ai_prompt
+    ).data
+      ^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 818, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 737, in to_representation
+    self.child.to_representation(item) for item in iterable
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 539, in to_representation
+    attribute = field.get_attribute(instance)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 465, in get_attribute
+    raise type(exc)(msg)
+KeyError: "Got KeyError when attempting to get a value for field `email` on serializer `ConversionLeadSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'email'."
+
+
+django.request ERROR 2026-06-15 12:00:00,000 log 830491 134588500010880 [request_id=- client_request_id=-] Internal Server Error: /api/v1/analytics/beta/custom-ai-prompt
+
+
+FAIL
+test_the_block_follows_the_score_not_the_credits (billing.tests.test_custom_ai_prompt_leads.LeadBlockTests.test_the_block_follows_the_score_not_the_credits) ... Free trial plan not found: no trial activated for user e6bb5b6c-6236-4a08-858f-a53a6744c952.
+Cannot activate automatic trial for user e6bb5b6c-6236-4a08-858f-a53a6744c952 (validation): ValueError
+Free trial plan not found: no trial activated for user c6c9250a-9e86-4f65-9c06-fe9e318ae384.
+Cannot activate automatic trial for user c6c9250a-9e86-4f65-9c06-fe9e318ae384 (validation): ValueError
+Free trial plan not found: no trial activated for user 5e8816ee-e2c0-4073-a3f4-2c564fb77883.
+Cannot activate automatic trial for user 5e8816ee-e2c0-4073-a3f4-2c564fb77883 (validation): ValueError
+Free trial plan not found: no trial activated for user 2da28924-d518-4d05-97bf-077562ffb496.
+Cannot activate automatic trial for user 2da28924-d518-4d05-97bf-077562ffb496 (validation): ValueError
+Free trial plan not found: no trial activated for user a73d6f8e-bbe3-436c-8fb5-0cacadb372d9.
+Cannot activate automatic trial for user a73d6f8e-bbe3-436c-8fb5-0cacadb372d9 (validation): ValueError
+Free trial plan not found: no trial activated for user f3da2cdc-e8e3-4eb1-9f2a-f64589857d29.
+Cannot activate automatic trial for user f3da2cdc-e8e3-4eb1-9f2a-f64589857d29 (validation): ValueError
+Free trial plan not found: no trial activated for user 2833d1cf-a67f-4007-9fb1-6a1ac4bea497.
+Cannot activate automatic trial for user 2833d1cf-a67f-4007-9fb1-6a1ac4bea497 (validation): ValueError
+Free trial plan not found: no trial activated for user d5883ab5-f400-456f-bb51-9963a3713fd0.
+Cannot activate automatic trial for user d5883ab5-f400-456f-bb51-9963a3713fd0 (validation): ValueError
+Free trial plan not found: no trial activated for user 4a571559-d65b-4f59-8c21-13e8bcd38c29.
+Cannot activate automatic trial for user 4a571559-d65b-4f59-8c21-13e8bcd38c29 (validation): ValueError
+Free trial plan not found: no trial activated for user bb21d245-33c4-4636-a1ac-8331cc541c68.
+Cannot activate automatic trial for user bb21d245-33c4-4636-a1ac-8331cc541c68 (validation): ValueError
+Free trial plan not found: no trial activated for user 95937f85-687a-46ac-b536-495641fef7a9.
+Cannot activate automatic trial for user 95937f85-687a-46ac-b536-495641fef7a9 (validation): ValueError
+Free trial plan not found: no trial activated for user d9ef64f1-a199-4c8b-8ba4-c348e264ae01.
+Cannot activate automatic trial for user d9ef64f1-a199-4c8b-8ba4-c348e264ae01 (validation): ValueError
+Free trial plan not found: no trial activated for user af30933d-702c-41f3-b928-7b5433a0ae2e.
+Cannot activate automatic trial for user af30933d-702c-41f3-b928-7b5433a0ae2e (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 432, in get_attribute
+    return get_attribute(instance, self.source_attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 97, in get_attribute
+    instance = instance[attr]
+               ~~~~~~~~^^^^^^
+KeyError: 'email'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/views.py", line 523, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/views.py", line 2672, in custom_ai_prompt
+    ).data
+      ^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 818, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 737, in to_representation
+    self.child.to_representation(item) for item in iterable
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 539, in to_representation
+    attribute = field.get_attribute(instance)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 465, in get_attribute
+    raise type(exc)(msg)
+KeyError: "Got KeyError when attempting to get a value for field `email` on serializer `ConversionLeadSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'email'."
+
+
+django.request ERROR 2026-06-15 12:00:00,000 log 830491 134588500010880 [request_id=- client_request_id=-] Internal Server Error: /api/v1/analytics/beta/custom-ai-prompt
+
+
+FAIL
+test_the_block_is_exactly_the_top_ten_leads (billing.tests.test_custom_ai_prompt_leads.LeadBlockTests.test_the_block_is_exactly_the_top_ten_leads) ... Free trial plan not found: no trial activated for user 3aab8615-c586-4614-adc0-de9395274084.
+Cannot activate automatic trial for user 3aab8615-c586-4614-adc0-de9395274084 (validation): ValueError
+Free trial plan not found: no trial activated for user 6a89224e-4305-4439-8b45-bd7057e48cfa.
+Cannot activate automatic trial for user 6a89224e-4305-4439-8b45-bd7057e48cfa (validation): ValueError
+Free trial plan not found: no trial activated for user dbd50b34-1d37-4787-a5b8-b608a761eb92.
+Cannot activate automatic trial for user dbd50b34-1d37-4787-a5b8-b608a761eb92 (validation): ValueError
+Free trial plan not found: no trial activated for user 3dd32c02-5bd4-45a4-8797-d6de2be7c2a4.
+Cannot activate automatic trial for user 3dd32c02-5bd4-45a4-8797-d6de2be7c2a4 (validation): ValueError
+Free trial plan not found: no trial activated for user 56474e80-cb69-4090-88a1-8642cd57a465.
+Cannot activate automatic trial for user 56474e80-cb69-4090-88a1-8642cd57a465 (validation): ValueError
+Free trial plan not found: no trial activated for user a12ba674-f073-4641-9ad7-3c741696e21a.
+Cannot activate automatic trial for user a12ba674-f073-4641-9ad7-3c741696e21a (validation): ValueError
+Free trial plan not found: no trial activated for user 5bd47547-922a-4bb3-8d55-f6a9c468a80e.
+Cannot activate automatic trial for user 5bd47547-922a-4bb3-8d55-f6a9c468a80e (validation): ValueError
+Free trial plan not found: no trial activated for user 14a4f84e-9693-4732-a731-6780ad56e48d.
+Cannot activate automatic trial for user 14a4f84e-9693-4732-a731-6780ad56e48d (validation): ValueError
+Free trial plan not found: no trial activated for user 1aa43e8d-0efb-49d4-81a3-7fe3df81c47c.
+Cannot activate automatic trial for user 1aa43e8d-0efb-49d4-81a3-7fe3df81c47c (validation): ValueError
+Free trial plan not found: no trial activated for user 76710397-999a-4e53-a454-4faab49a4f7f.
+Cannot activate automatic trial for user 76710397-999a-4e53-a454-4faab49a4f7f (validation): ValueError
+Free trial plan not found: no trial activated for user eed067e5-9a0a-40b8-a764-fb2cf9918793.
+Cannot activate automatic trial for user eed067e5-9a0a-40b8-a764-fb2cf9918793 (validation): ValueError
+Free trial plan not found: no trial activated for user 3709da14-9000-4cf0-adb7-95174752896b.
+Cannot activate automatic trial for user 3709da14-9000-4cf0-adb7-95174752896b (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 432, in get_attribute
+    return get_attribute(instance, self.source_attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 97, in get_attribute
+    instance = instance[attr]
+               ~~~~~~~~^^^^^^
+KeyError: 'email'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/views.py", line 523, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/views.py", line 2672, in custom_ai_prompt
+    ).data
+      ^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 818, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 737, in to_representation
+    self.child.to_representation(item) for item in iterable
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 539, in to_representation
+    attribute = field.get_attribute(instance)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 465, in get_attribute
+    raise type(exc)(msg)
+KeyError: "Got KeyError when attempting to get a value for field `email` on serializer `ConversionLeadSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'email'."
+
+
+django.request ERROR 2026-06-15 12:00:00,000 log 830491 134588500010880 [request_id=- client_request_id=-] Internal Server Error: /api/v1/analytics/beta/custom-ai-prompt
+
+
+FAIL
+test_the_pin_is_not_vacuous (billing.tests.test_custom_ai_prompt_leads.TemplatePinTests.test_the_pin_is_not_vacuous) ... ok
+test_the_rest_of_the_template_is_what_it_was (billing.tests.test_custom_ai_prompt_leads.TemplatePinTests.test_the_rest_of_the_template_is_what_it_was) ... Free trial plan not found: no trial activated for user 15864dfe-00fd-4c55-a0f4-5de84766b99c.
+Cannot activate automatic trial for user 15864dfe-00fd-4c55-a0f4-5de84766b99c (validation): ValueError
+Free trial plan not found: no trial activated for user 33423547-77cb-49bd-be4c-6a07ca34f2bd.
+Cannot activate automatic trial for user 33423547-77cb-49bd-be4c-6a07ca34f2bd (validation): ValueError
+Free trial plan not found: no trial activated for user 9a2cf507-f666-4cce-9f5f-ac09f45504b8.
+Cannot activate automatic trial for user 9a2cf507-f666-4cce-9f5f-ac09f45504b8 (validation): ValueError
+Free trial plan not found: no trial activated for user 77a1f088-366b-411a-a1eb-2f8131031ccb.
+Cannot activate automatic trial for user 77a1f088-366b-411a-a1eb-2f8131031ccb (validation): ValueError
+Free trial plan not found: no trial activated for user 8c6e9f19-925e-4a11-9849-45f5b31d688f.
+Cannot activate automatic trial for user 8c6e9f19-925e-4a11-9849-45f5b31d688f (validation): ValueError
+Free trial plan not found: no trial activated for user 8d9f86b1-a937-4755-9928-42326038011c.
+Cannot activate automatic trial for user 8d9f86b1-a937-4755-9928-42326038011c (validation): ValueError
+Free trial plan not found: no trial activated for user 3aae9192-7fc7-4cb3-9b21-29ca74bf18d8.
+Cannot activate automatic trial for user 3aae9192-7fc7-4cb3-9b21-29ca74bf18d8 (validation): ValueError
+Free trial plan not found: no trial activated for user bf07e113-3e9e-4754-bd50-b9bc23dd3cb6.
+Cannot activate automatic trial for user bf07e113-3e9e-4754-bd50-b9bc23dd3cb6 (validation): ValueError
+Free trial plan not found: no trial activated for user aed01a33-e3cf-42d7-b527-a4dfdce13aae.
+Cannot activate automatic trial for user aed01a33-e3cf-42d7-b527-a4dfdce13aae (validation): ValueError
+Free trial plan not found: no trial activated for user 2dda0d7e-4a7c-4f9e-9629-b4177a22d643.
+Cannot activate automatic trial for user 2dda0d7e-4a7c-4f9e-9629-b4177a22d643 (validation): ValueError
+Free trial plan not found: no trial activated for user 359173db-4bf8-4123-b89e-16ed11454f2c.
+Cannot activate automatic trial for user 359173db-4bf8-4123-b89e-16ed11454f2c (validation): ValueError
+Free trial plan not found: no trial activated for user f6cdbad5-eaf2-4c56-874f-c4b68d156a8f.
+Cannot activate automatic trial for user f6cdbad5-eaf2-4c56-874f-c4b68d156a8f (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 432, in get_attribute
+    return get_attribute(instance, self.source_attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 97, in get_attribute
+    instance = instance[attr]
+               ~~~~~~~~^^^^^^
+KeyError: 'email'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/views.py", line 523, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/views.py", line 2672, in custom_ai_prompt
+    ).data
+      ^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 818, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 737, in to_representation
+    self.child.to_representation(item) for item in iterable
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 539, in to_representation
+    attribute = field.get_attribute(instance)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/rest_framework/fields.py", line 465, in get_attribute
+    raise type(exc)(msg)
+KeyError: "Got KeyError when attempting to get a value for field `email` on serializer `ConversionLeadSerializer`.\nThe serializer field might be named incorrectly and not match any attribute or key on the `dict` instance.\nOriginal exception text was: 'email'."
+
+
+django.request ERROR 2026-06-15 12:00:00,000 log 830491 134588500010880 [request_id=- client_request_id=-] Internal Server Error: /api/v1/analytics/beta/custom-ai-prompt
+
+
+FAIL
+test_blank_prompt_rejected (billing.tests.test_custom_ai_prompt_beta.BetaAnalyticsCustomAIPromptViewTest.test_blank_prompt_rejected) ... Free trial plan not found: no trial activated for user 0b2951ec-854c-403d-8094-50153d39fe8d.
+Cannot activate automatic trial for user 0b2951ec-854c-403d-8094-50153d39fe8d (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request refused: ValidationError (400)
+ok
+test_kill_switch_applies_to_beta_endpoint_too (billing.tests.test_custom_ai_prompt_beta.BetaAnalyticsCustomAIPromptViewTest.test_kill_switch_applies_to_beta_endpoint_too) ... Free trial plan not found: no trial activated for user 73d4bfea-e677-4cd5-90e9-26f553dd2e27.
+Cannot activate automatic trial for user 73d4bfea-e677-4cd5-90e9-26f553dd2e27 (validation): ValueError
+Superadmin custom AI prompt refused: AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+ok
+test_non_superadmin_denied (billing.tests.test_custom_ai_prompt_beta.BetaAnalyticsCustomAIPromptViewTest.test_non_superadmin_denied) ... Free trial plan not found: no trial activated for user b5973db7-1efa-4df5-a632-0e227de1e0e8.
+Cannot activate automatic trial for user b5973db7-1efa-4df5-a632-0e227de1e0e8 (validation): ValueError
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+ok
+test_prompt_over_max_length_rejected (billing.tests.test_custom_ai_prompt_beta.BetaAnalyticsCustomAIPromptViewTest.test_prompt_over_max_length_rejected) ... Free trial plan not found: no trial activated for user 87566f64-4d71-4094-9f9a-c97bf2711de5.
+Cannot activate automatic trial for user 87566f64-4d71-4094-9f9a-c97bf2711de5 (validation): ValueError
+API request refused: ValidationError (400)
+ok
+test_rate_limit_applies_to_beta_endpoint (billing.tests.test_custom_ai_prompt_beta.BetaAnalyticsCustomAIPromptViewTest.test_rate_limit_applies_to_beta_endpoint) ... Free trial plan not found: no trial activated for user 9a29cf0b-0000-438b-976a-2d0e6b7b6cea.
+Cannot activate automatic trial for user 9a29cf0b-0000-438b-976a-2d0e6b7b6cea (validation): ValueError
+API request refused: Throttled (429)
+ok
+test_superadmin_allowed_and_forwards_raw_prompt (billing.tests.test_custom_ai_prompt_beta.BetaAnalyticsCustomAIPromptViewTest.test_superadmin_allowed_and_forwards_raw_prompt) ... Free trial plan not found: no trial activated for user 6e9d8609-baa9-4822-876c-fc3fc04594c0.
+Cannot activate automatic trial for user 6e9d8609-baa9-4822-876c-fc3fc04594c0 (validation): ValueError
+ok
+test_leads_detail_user_list_distribution_and_summary_agree (billing.tests.test_intent_signals.AgreementTests.test_leads_detail_user_list_distribution_and_summary_agree) ... Free trial plan not found: no trial activated for user b9fea3c5-f127-4823-a879-493e308fbc80.
+Cannot activate automatic trial for user b9fea3c5-f127-4823-a879-493e308fbc80 (validation): ValueError
+Free trial plan not found: no trial activated for user 013b9d54-dd0e-4945-b2a1-51fba142c431.
+Cannot activate automatic trial for user 013b9d54-dd0e-4945-b2a1-51fba142c431 (validation): ValueError
+Free trial plan not found: no trial activated for user 14199fcd-b875-426d-81ca-4c1550b90059.
+Cannot activate automatic trial for user 14199fcd-b875-426d-81ca-4c1550b90059 (validation): ValueError
+Free trial plan not found: no trial activated for user be06296a-878f-4d18-b2b5-2c2ade3346ea.
+Cannot activate automatic trial for user be06296a-878f-4d18-b2b5-2c2ade3346ea (validation): ValueError
+Free trial plan not found: no trial activated for user 5aaa2929-115b-48ae-90e9-9b2cd8750fda.
+Cannot activate automatic trial for user 5aaa2929-115b-48ae-90e9-9b2cd8750fda (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_exactly_seven_days_ago_is_active (billing.tests.test_intent_signals.BoundaryTests.test_exactly_seven_days_ago_is_active) ... Free trial plan not found: no trial activated for user f8902d54-d27b-4c2b-ba54-aed25696578a.
+Cannot activate automatic trial for user f8902d54-d27b-4c2b-ba54-aed25696578a (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_never_active_is_not_active (billing.tests.test_intent_signals.BoundaryTests.test_never_active_is_not_active) ... Free trial plan not found: no trial activated for user 7a478c12-6704-40c9-bf04-e7a9e2505c10.
+Cannot activate automatic trial for user 7a478c12-6704-40c9-bf04-e7a9e2505c10 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_one_microsecond_earlier_is_not_active (billing.tests.test_intent_signals.BoundaryTests.test_one_microsecond_earlier_is_not_active) ... Free trial plan not found: no trial activated for user dcd32d6e-f4e0-40a7-b3dd-6f453e5263c4.
+Cannot activate automatic trial for user dcd32d6e-f4e0-40a7-b3dd-6f453e5263c4 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_each_surface_reads_the_clock_once_per_request (billing.tests.test_intent_signals.ClockTests.test_each_surface_reads_the_clock_once_per_request) ... Free trial plan not found: no trial activated for user de2ff480-32cb-4dc4-81d0-4ffe3e975021.
+Cannot activate automatic trial for user de2ff480-32cb-4dc4-81d0-4ffe3e975021 (validation): ValueError
+Free trial plan not found: no trial activated for user abb6eee1-104b-4105-b096-2e668edd701a.
+Cannot activate automatic trial for user abb6eee1-104b-4105-b096-2e668edd701a (validation): ValueError
+Free trial plan not found: no trial activated for user 844d8c29-f054-4b92-a76b-c210829a8791.
+Cannot activate automatic trial for user 844d8c29-f054-4b92-a76b-c210829a8791 (validation): ValueError
+Free trial plan not found: no trial activated for user 5966402e-821d-4ff1-b5ba-900a8248c134.
+Cannot activate automatic trial for user 5966402e-821d-4ff1-b5ba-900a8248c134 (validation): ValueError
+Free trial plan not found: no trial activated for user a2c4126e-457e-4c98-ad55-adc4d42433a0.
+Cannot activate automatic trial for user a2c4126e-457e-4c98-ad55-adc4d42433a0 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_the_injected_clock_decides_active_last_week_everywhere (billing.tests.test_intent_signals.ClockTests.test_the_injected_clock_decides_active_last_week_everywhere) ... Free trial plan not found: no trial activated for user 9c8b177d-ebb5-445d-aa8f-98f74f120571.
+Cannot activate automatic trial for user 9c8b177d-ebb5-445d-aa8f-98f74f120571 (validation): ValueError
+Free trial plan not found: no trial activated for user bf21cf81-80ec-4f4f-88f1-2885c6690b97.
+Cannot activate automatic trial for user bf21cf81-80ec-4f4f-88f1-2885c6690b97 (validation): ValueError
+Free trial plan not found: no trial activated for user 7f2a4b84-3793-4511-8dc1-df677df2c5ce.
+Cannot activate automatic trial for user 7f2a4b84-3793-4511-8dc1-df677df2c5ce (validation): ValueError
+Free trial plan not found: no trial activated for user 1f4b1c10-8357-4fec-8446-f42767345940.
+Cannot activate automatic trial for user 1f4b1c10-8357-4fec-8446-f42767345940 (validation): ValueError
+Free trial plan not found: no trial activated for user 29035c16-09bf-497e-a2a2-60fc66eb3227.
+Cannot activate automatic trial for user 29035c16-09bf-497e-a2a2-60fc66eb3227 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_a_bad_value_is_a_400 (billing.tests.test_intent_signals.LeadFilterTests.test_a_bad_value_is_a_400) ... /home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+ok
+test_each_flag_filter_true_and_false (billing.tests.test_intent_signals.LeadFilterTests.test_each_flag_filter_true_and_false) ... Free trial plan not found: no trial activated for user 329f2cca-9c67-4515-8574-e2cde2f166dd.
+Cannot activate automatic trial for user 329f2cca-9c67-4515-8574-e2cde2f166dd (validation): ValueError
+Free trial plan not found: no trial activated for user c95a234c-f734-4b2c-8955-b7d888db8374.
+Cannot activate automatic trial for user c95a234c-f734-4b2c-8955-b7d888db8374 (validation): ValueError
+Free trial plan not found: no trial activated for user 494a0255-2c9f-4454-bf7a-dafa6831aafb.
+Cannot activate automatic trial for user 494a0255-2c9f-4454-bf7a-dafa6831aafb (validation): ValueError
+Free trial plan not found: no trial activated for user f7f8c786-287b-4c46-a29b-c6f42b872b60.
+Cannot activate automatic trial for user f7f8c786-287b-4c46-a29b-c6f42b872b60 (validation): ValueError
+Free trial plan not found: no trial activated for user b3e23e93-5dda-4658-99cf-e71ffa253f54.
+Cannot activate automatic trial for user b3e23e93-5dda-4658-99cf-e71ffa253f54 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_filters_combine_with_search_and_ordering (billing.tests.test_intent_signals.LeadFilterTests.test_filters_combine_with_search_and_ordering) ... Free trial plan not found: no trial activated for user 8360fb52-f866-4d53-ad9d-1829062754d4.
+Cannot activate automatic trial for user 8360fb52-f866-4d53-ad9d-1829062754d4 (validation): ValueError
+Free trial plan not found: no trial activated for user 278aeb7d-aa90-4ed7-9c5e-60225cc26c94.
+Cannot activate automatic trial for user 278aeb7d-aa90-4ed7-9c5e-60225cc26c94 (validation): ValueError
+Free trial plan not found: no trial activated for user 1b543cd9-49d1-432a-a4aa-7888e8d1dbe8.
+Cannot activate automatic trial for user 1b543cd9-49d1-432a-a4aa-7888e8d1dbe8 (validation): ValueError
+Free trial plan not found: no trial activated for user df769ebf-99b9-44bc-b52f-af5efd10ff48.
+Cannot activate automatic trial for user df769ebf-99b9-44bc-b52f-af5efd10ff48 (validation): ValueError
+Free trial plan not found: no trial activated for user 8630d939-c708-406a-bb37-1ee37ba438f9.
+Cannot activate automatic trial for user 8630d939-c708-406a-bb37-1ee37ba438f9 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_signals_min (billing.tests.test_intent_signals.LeadFilterTests.test_signals_min) ... Free trial plan not found: no trial activated for user 00eceecc-0318-4416-85b4-b3c48bfcd5d7.
+Cannot activate automatic trial for user 00eceecc-0318-4416-85b4-b3c48bfcd5d7 (validation): ValueError
+Free trial plan not found: no trial activated for user f5ffc9e8-ac75-4f76-9485-800b4496fcc8.
+Cannot activate automatic trial for user f5ffc9e8-ac75-4f76-9485-800b4496fcc8 (validation): ValueError
+Free trial plan not found: no trial activated for user 94f83cda-6fd6-4375-a09f-6e69c801d335.
+Cannot activate automatic trial for user 94f83cda-6fd6-4375-a09f-6e69c801d335 (validation): ValueError
+Free trial plan not found: no trial activated for user 7955b73b-c147-43d4-a36d-19097ebd3321.
+Cannot activate automatic trial for user 7955b73b-c147-43d4-a36d-19097ebd3321 (validation): ValueError
+Free trial plan not found: no trial activated for user 5f4eaa1e-984a-45bc-8587-53f07fcfa7fa.
+Cannot activate automatic trial for user 5f4eaa1e-984a-45bc-8587-53f07fcfa7fa (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_the_count_follows_the_filters (billing.tests.test_intent_signals.LeadFilterTests.test_the_count_follows_the_filters) ... Free trial plan not found: no trial activated for user dda4f2d2-51ba-47c8-8e06-7a456d623a0f.
+Cannot activate automatic trial for user dda4f2d2-51ba-47c8-8e06-7a456d623a0f (validation): ValueError
+Free trial plan not found: no trial activated for user d294329e-9ddd-4707-9d3f-2ae5cb5b6fe3.
+Cannot activate automatic trial for user d294329e-9ddd-4707-9d3f-2ae5cb5b6fe3 (validation): ValueError
+Free trial plan not found: no trial activated for user 53d9c662-8ca3-4547-a4da-4a0ec30b6ccc.
+Cannot activate automatic trial for user 53d9c662-8ca3-4547-a4da-4a0ec30b6ccc (validation): ValueError
+Free trial plan not found: no trial activated for user b9eeee7d-426e-4340-81f9-8b822a6d130d.
+Cannot activate automatic trial for user b9eeee7d-426e-4340-81f9-8b822a6d130d (validation): ValueError
+Free trial plan not found: no trial activated for user 5af61d4f-17d2-46bd-81d2-ff48dfec4bc9.
+Cannot activate automatic trial for user 5af61d4f-17d2-46bd-81d2-ff48dfec4bc9 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_the_example_shows_all_four_flags (billing.tests.test_intent_signals.LeadOpenApiTests.test_the_example_shows_all_four_flags) ... /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "grant_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:grant_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "user_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:user_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_message_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_latest_message_preview". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/assignments/serializers.py: Warning [AssignmentViewSet > AssignmentDetailSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [AuthViewSet > GoogleAuthResponse > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [AuthViewSet > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/views.py: Error [BetaAnaylicChartViewSet]: exception raised while getting serializer. Hint: Is get_serializer_class() returning None or is get_queryset() not working without a request? Ignoring the view for now. (Exception: 'BetaAnaylicChartViewSet' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method.)
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/classrooms/serializers.py: Warning [CourseViewSet > CourseSerializer]: unable to resolve type hint for function "get_assignment_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [CreditWalletViewSet > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/AutoGrader/health.py: Error [health]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/AutoGrader/health.py: Error [beat_health_check]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/AutoGrader/health.py: Error [client_identity]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'user_type')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/payment_method_views.py: Warning [PaymentMethodViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/payment_method_views.py: Error [PaymentMethodViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/qa_time_travel.py: Error [BillingTimeTravelView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/audit/views.py: Warning [SchoolAdminAuditEventListView]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'school_id')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_label". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_name". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/dashboard/views.py: Warning [SchoolAdminDashboardView]: could not derive type of path parameter "teacher_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:teacher_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/classrooms/serializers.py: Warning [SchoolViewSet > SchoolAdminSummarySerializer]: Encountered 2 components with identical names "SchoolAdminSummary" and different identities <class 'classrooms.serializers.SchoolAdminSummarySerializer'> and <class 'dashboard.serializers.SchoolAdminSummarySerializer'>. This will very likely result in an incorrect schema. Try renaming one.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_no_of_assignment". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_assignment_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_submitted_assignment_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_grade_letter". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_enrolled_courses". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_in_course". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_percentage_of_submission". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_max_points". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_grade_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_formatted_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [SubscriptionPlanViewSet > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "session_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:session_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/users/views.py: Error [TaskViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "task_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:task_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "item_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:item_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/dashboard/views.py: Error [TeacherAdminDashboardView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_remaining_time". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_exact_due_date". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer]: unable to resolve type hint for function "get_average_grading_turnaround". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/users/list_serializers.py: Warning [CustomUserViewSet > UserListSerializer > ListCreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/users/list_serializers.py: Warning [CustomUserViewSet > UserListSerializer > ListCreditWalletSerializer]: unable to resolve type hint for function "get_feature_usage_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "status". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "StatusBbeEnum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: encountered multiple names for the same choice set (CategoryEnum). This may be unwanted even though the generated schema is technically correct. Add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+ok
+test_the_ordering_and_filters_are_documented (billing.tests.test_intent_signals.LeadOpenApiTests.test_the_ordering_and_filters_are_documented) ... /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "grant_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:grant_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "user_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:user_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_message_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_latest_message_preview". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/assignments/serializers.py: Warning [AssignmentViewSet > AssignmentDetailSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [AuthViewSet > GoogleAuthResponse > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [AuthViewSet > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/views.py: Error [BetaAnaylicChartViewSet]: exception raised while getting serializer. Hint: Is get_serializer_class() returning None or is get_queryset() not working without a request? Ignoring the view for now. (Exception: 'BetaAnaylicChartViewSet' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method.)
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/classrooms/serializers.py: Warning [CourseViewSet > CourseSerializer]: unable to resolve type hint for function "get_assignment_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [CreditWalletViewSet > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/AutoGrader/health.py: Error [health]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/AutoGrader/health.py: Error [beat_health_check]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/AutoGrader/health.py: Error [client_identity]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'user_type')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/payment_method_views.py: Warning [PaymentMethodViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/payment_method_views.py: Error [PaymentMethodViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/qa_time_travel.py: Error [BillingTimeTravelView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/audit/views.py: Warning [SchoolAdminAuditEventListView]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'school_id')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_label". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_name". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/dashboard/views.py: Warning [SchoolAdminDashboardView]: could not derive type of path parameter "teacher_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:teacher_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/classrooms/serializers.py: Warning [SchoolViewSet > SchoolAdminSummarySerializer]: Encountered 2 components with identical names "SchoolAdminSummary" and different identities <class 'classrooms.serializers.SchoolAdminSummarySerializer'> and <class 'dashboard.serializers.SchoolAdminSummarySerializer'>. This will very likely result in an incorrect schema. Try renaming one.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_no_of_assignment". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_assignment_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_submitted_assignment_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_grade_letter". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_enrolled_courses". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_in_course". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_percentage_of_submission". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_max_points". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_grade_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_formatted_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [SubscriptionPlanViewSet > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "session_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:session_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/users/views.py: Error [TaskViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "task_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:task_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "item_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:item_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/dashboard/views.py: Error [TeacherAdminDashboardView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_remaining_time". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_exact_due_date". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer]: unable to resolve type hint for function "get_average_grading_turnaround". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/users/list_serializers.py: Warning [CustomUserViewSet > UserListSerializer > ListCreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/users/list_serializers.py: Warning [CustomUserViewSet > UserListSerializer > ListCreditWalletSerializer]: unable to resolve type hint for function "get_feature_usage_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "status". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "StatusBbeEnum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: encountered multiple names for the same choice set (CategoryEnum). This may be unwanted even though the generated schema is technically correct. Add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+ok
+test_a_tie_is_broken_by_score_highest_first_in_both_directions (billing.tests.test_intent_signals.LeadOrderingTests.test_a_tie_is_broken_by_score_highest_first_in_both_directions) ... Free trial plan not found: no trial activated for user b28728ad-bab2-4c77-a291-91c09d191d12.
+Cannot activate automatic trial for user b28728ad-bab2-4c77-a291-91c09d191d12 (validation): ValueError
+Free trial plan not found: no trial activated for user dec3a63a-b2d3-4670-b229-0b813a5bb41f.
+Cannot activate automatic trial for user dec3a63a-b2d3-4670-b229-0b813a5bb41f (validation): ValueError
+Free trial plan not found: no trial activated for user 0a291b67-525f-4599-a2f1-b442e69c04c7.
+Cannot activate automatic trial for user 0a291b67-525f-4599-a2f1-b442e69c04c7 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_id_breaks_a_tie_of_count_and_score_in_both_directions (billing.tests.test_intent_signals.LeadOrderingTests.test_id_breaks_a_tie_of_count_and_score_in_both_directions) ... Free trial plan not found: no trial activated for user 5e643f05-607a-4f72-a500-5c6819665c76.
+Cannot activate automatic trial for user 5e643f05-607a-4f72-a500-5c6819665c76 (validation): ValueError
+Free trial plan not found: no trial activated for user 94b349c6-0f5a-4cc9-ba1e-b000a497c22b.
+Cannot activate automatic trial for user 94b349c6-0f5a-4cc9-ba1e-b000a497c22b (validation): ValueError
+Free trial plan not found: no trial activated for user f7c8463b-31b6-4271-90bb-47603a3b487f.
+Cannot activate automatic trial for user f7c8463b-31b6-4271-90bb-47603a3b487f (validation): ValueError
+Free trial plan not found: no trial activated for user 1d1131bd-86ce-48b7-aec1-013a15104859.
+Cannot activate automatic trial for user 1d1131bd-86ce-48b7-aec1-013a15104859 (validation): ValueError
+Free trial plan not found: no trial activated for user 12d9f767-b79d-4975-b54d-252c95fd5ae5.
+Cannot activate automatic trial for user 12d9f767-b79d-4975-b54d-252c95fd5ae5 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_minus_signals_is_count_descending (billing.tests.test_intent_signals.LeadOrderingTests.test_minus_signals_is_count_descending) ... Free trial plan not found: no trial activated for user f1b3a927-1f75-4ac5-bd4c-ba5f6c8ee8df.
+Cannot activate automatic trial for user f1b3a927-1f75-4ac5-bd4c-ba5f6c8ee8df (validation): ValueError
+Free trial plan not found: no trial activated for user 58ed4ad9-3b2a-48bc-9442-32dbfadb91a7.
+Cannot activate automatic trial for user 58ed4ad9-3b2a-48bc-9442-32dbfadb91a7 (validation): ValueError
+Free trial plan not found: no trial activated for user 4717361b-cc00-47f2-bcf8-8303bf88237f.
+Cannot activate automatic trial for user 4717361b-cc00-47f2-bcf8-8303bf88237f (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_no_param_keeps_the_score_order_when_counts_disagree (billing.tests.test_intent_signals.LeadOrderingTests.test_no_param_keeps_the_score_order_when_counts_disagree) ... Free trial plan not found: no trial activated for user f26e5310-1fcb-4749-b366-871f9143a94f.
+Cannot activate automatic trial for user f26e5310-1fcb-4749-b366-871f9143a94f (validation): ValueError
+Free trial plan not found: no trial activated for user b422a5f6-4145-46ef-bd91-6a2994311668.
+Cannot activate automatic trial for user b422a5f6-4145-46ef-bd91-6a2994311668 (validation): ValueError
+Free trial plan not found: no trial activated for user e8c1e963-355a-4eb8-8f67-6dbd09464e83.
+Cannot activate automatic trial for user e8c1e963-355a-4eb8-8f67-6dbd09464e83 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_no_param_keeps_todays_order (billing.tests.test_intent_signals.LeadOrderingTests.test_no_param_keeps_todays_order) ... Free trial plan not found: no trial activated for user 9004d287-bbec-4e8c-9dcb-71ff8d129dfe.
+Cannot activate automatic trial for user 9004d287-bbec-4e8c-9dcb-71ff8d129dfe (validation): ValueError
+Free trial plan not found: no trial activated for user 36a19481-fa12-4a23-9232-d3ac46ca0603.
+Cannot activate automatic trial for user 36a19481-fa12-4a23-9232-d3ac46ca0603 (validation): ValueError
+Free trial plan not found: no trial activated for user fd8f957c-9ac6-463d-b243-ccb6e0e9d6b6.
+Cannot activate automatic trial for user fd8f957c-9ac6-463d-b243-ccb6e0e9d6b6 (validation): ValueError
+Free trial plan not found: no trial activated for user beb1998b-6ed0-471e-8c33-0caf71204971.
+Cannot activate automatic trial for user beb1998b-6ed0-471e-8c33-0caf71204971 (validation): ValueError
+Free trial plan not found: no trial activated for user a76041fa-4843-4758-ae5b-9ca12e763e6c.
+Cannot activate automatic trial for user a76041fa-4843-4758-ae5b-9ca12e763e6c (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_ordering_combines_with_search_and_pages (billing.tests.test_intent_signals.LeadOrderingTests.test_ordering_combines_with_search_and_pages) ... Free trial plan not found: no trial activated for user ee55ab1d-ebb8-4862-a9f2-ba084033f680.
+Cannot activate automatic trial for user ee55ab1d-ebb8-4862-a9f2-ba084033f680 (validation): ValueError
+Free trial plan not found: no trial activated for user 3d4408cb-956c-45b1-8af8-ac6a7787b7c6.
+Cannot activate automatic trial for user 3d4408cb-956c-45b1-8af8-ac6a7787b7c6 (validation): ValueError
+Free trial plan not found: no trial activated for user 7aa728df-8162-4daa-bcff-55c7bd315d25.
+Cannot activate automatic trial for user 7aa728df-8162-4daa-bcff-55c7bd315d25 (validation): ValueError
+Free trial plan not found: no trial activated for user ed2db16f-bd60-4e43-b740-de91e01d52a9.
+Cannot activate automatic trial for user ed2db16f-bd60-4e43-b740-de91e01d52a9 (validation): ValueError
+Free trial plan not found: no trial activated for user ae9e13df-54c7-4e73-9634-6ee22daa96b0.
+Cannot activate automatic trial for user ae9e13df-54c7-4e73-9634-6ee22daa96b0 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_signals_is_count_ascending (billing.tests.test_intent_signals.LeadOrderingTests.test_signals_is_count_ascending) ... Free trial plan not found: no trial activated for user 8f9ef701-8d19-4764-b14c-ccaf90b7b93f.
+Cannot activate automatic trial for user 8f9ef701-8d19-4764-b14c-ccaf90b7b93f (validation): ValueError
+Free trial plan not found: no trial activated for user 6cf8a321-5880-400b-954e-1ad868dbb628.
+Cannot activate automatic trial for user 6cf8a321-5880-400b-954e-1ad868dbb628 (validation): ValueError
+Free trial plan not found: no trial activated for user 63042769-e9fe-4a4e-a07e-60376faa58c5.
+Cannot activate automatic trial for user 63042769-e9fe-4a4e-a07e-60376faa58c5 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_the_distribution_cost_is_fixed (billing.tests.test_intent_signals.LeadQueryCountTests.test_the_distribution_cost_is_fixed) ... Free trial plan not found: no trial activated for user 53fb09d0-02cb-4120-aa3a-5ca27e9b75b1.
+Cannot activate automatic trial for user 53fb09d0-02cb-4120-aa3a-5ca27e9b75b1 (validation): ValueError
+Free trial plan not found: no trial activated for user 5d2186c6-3ce2-4912-af73-cd866cc2e5c1.
+Cannot activate automatic trial for user 5d2186c6-3ce2-4912-af73-cd866cc2e5c1 (validation): ValueError
+Free trial plan not found: no trial activated for user c7acfbbf-4b01-4c5c-ac70-1e4580f054ac.
+Cannot activate automatic trial for user c7acfbbf-4b01-4c5c-ac70-1e4580f054ac (validation): ValueError
+Free trial plan not found: no trial activated for user 9df3e4db-a50f-4e1d-920e-2c878214d8b7.
+Cannot activate automatic trial for user 9df3e4db-a50f-4e1d-920e-2c878214d8b7 (validation): ValueError
+Free trial plan not found: no trial activated for user 02d67147-8bcd-4169-974c-4ce45bfd143c.
+Cannot activate automatic trial for user 02d67147-8bcd-4169-974c-4ce45bfd143c (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+Free trial plan not found: no trial activated for user b4472942-2f2f-4883-87ce-757310f20f76.
+Cannot activate automatic trial for user b4472942-2f2f-4883-87ce-757310f20f76 (validation): ValueError
+Free trial plan not found: no trial activated for user 0b6f8133-d6c3-4b83-bb68-01a6dd88f76b.
+Cannot activate automatic trial for user 0b6f8133-d6c3-4b83-bb68-01a6dd88f76b (validation): ValueError
+Free trial plan not found: no trial activated for user 03218b30-eae5-47c6-a380-5db482da4536.
+Cannot activate automatic trial for user 03218b30-eae5-47c6-a380-5db482da4536 (validation): ValueError
+Free trial plan not found: no trial activated for user 2ea0ed0b-7dd4-4f58-9a0b-cfffd606cef7.
+Cannot activate automatic trial for user 2ea0ed0b-7dd4-4f58-9a0b-cfffd606cef7 (validation): ValueError
+Free trial plan not found: no trial activated for user c2b6b7a5-9000-4c94-a8ba-5a50f2428011.
+Cannot activate automatic trial for user c2b6b7a5-9000-4c94-a8ba-5a50f2428011 (validation): ValueError
+Free trial plan not found: no trial activated for user 573b05d4-21e2-461d-b81c-079da71e37fe.
+Cannot activate automatic trial for user 573b05d4-21e2-461d-b81c-079da71e37fe (validation): ValueError
+Free trial plan not found: no trial activated for user ac4c59e7-0b7d-4b3f-98d8-483ec6e03921.
+Cannot activate automatic trial for user ac4c59e7-0b7d-4b3f-98d8-483ec6e03921 (validation): ValueError
+Free trial plan not found: no trial activated for user f7091624-0aef-44ca-8dff-25b5faed93f8.
+Cannot activate automatic trial for user f7091624-0aef-44ca-8dff-25b5faed93f8 (validation): ValueError
+Free trial plan not found: no trial activated for user 71a718d9-0481-48b3-bc96-18c98d298472.
+Cannot activate automatic trial for user 71a718d9-0481-48b3-bc96-18c98d298472 (validation): ValueError
+Free trial plan not found: no trial activated for user ccea8d4a-0ee0-4ac6-87bb-52dd08d5799b.
+Cannot activate automatic trial for user ccea8d4a-0ee0-4ac6-87bb-52dd08d5799b (validation): ValueError
+Free trial plan not found: no trial activated for user 4369d8e2-c29e-4da9-ac69-da363b94403c.
+Cannot activate automatic trial for user 4369d8e2-c29e-4da9-ac69-da363b94403c (validation): ValueError
+Free trial plan not found: no trial activated for user 1d2be7f3-8758-47b5-b187-c36139b8e971.
+Cannot activate automatic trial for user 1d2be7f3-8758-47b5-b187-c36139b8e971 (validation): ValueError
+Free trial plan not found: no trial activated for user 0a5fb71b-f455-4eb9-ac3c-2cae77de410a.
+Cannot activate automatic trial for user 0a5fb71b-f455-4eb9-ac3c-2cae77de410a (validation): ValueError
+Free trial plan not found: no trial activated for user 0050a7dd-6911-45d3-b3a4-ad0454caebff.
+Cannot activate automatic trial for user 0050a7dd-6911-45d3-b3a4-ad0454caebff (validation): ValueError
+Free trial plan not found: no trial activated for user a39e9563-6539-4ba8-a912-7a373763dee2.
+Cannot activate automatic trial for user a39e9563-6539-4ba8-a912-7a373763dee2 (validation): ValueError
+Free trial plan not found: no trial activated for user 7fd52df0-3f60-4530-afcc-5a7877a271b4.
+Cannot activate automatic trial for user 7fd52df0-3f60-4530-afcc-5a7877a271b4 (validation): ValueError
+Free trial plan not found: no trial activated for user 90b0592c-ad6e-47a7-b3f3-b376e24bac15.
+Cannot activate automatic trial for user 90b0592c-ad6e-47a7-b3f3-b376e24bac15 (validation): ValueError
+Free trial plan not found: no trial activated for user fda7d8c6-f945-4076-8132-23aabe1b803a.
+Cannot activate automatic trial for user fda7d8c6-f945-4076-8132-23aabe1b803a (validation): ValueError
+Free trial plan not found: no trial activated for user f02158e4-7d0f-447a-972d-dd431ffc1f2f.
+Cannot activate automatic trial for user f02158e4-7d0f-447a-972d-dd431ffc1f2f (validation): ValueError
+Free trial plan not found: no trial activated for user d87f1237-058c-4966-9e94-74d17ea45990.
+Cannot activate automatic trial for user d87f1237-058c-4966-9e94-74d17ea45990 (validation): ValueError
+Free trial plan not found: no trial activated for user 73c5692f-e383-4af5-b301-9b650d837da4.
+Cannot activate automatic trial for user 73c5692f-e383-4af5-b301-9b650d837da4 (validation): ValueError
+Free trial plan not found: no trial activated for user abb94924-ebd1-421d-824c-699168261241.
+Cannot activate automatic trial for user abb94924-ebd1-421d-824c-699168261241 (validation): ValueError
+Free trial plan not found: no trial activated for user ef515882-f8f1-442e-bbaf-8a3abfea10ca.
+Cannot activate automatic trial for user ef515882-f8f1-442e-bbaf-8a3abfea10ca (validation): ValueError
+Free trial plan not found: no trial activated for user a61a2fef-9446-43fd-889a-8c67e4cd057d.
+Cannot activate automatic trial for user a61a2fef-9446-43fd-889a-8c67e4cd057d (validation): ValueError
+Free trial plan not found: no trial activated for user a6ab18ce-018d-4a9f-b257-94df21829162.
+Cannot activate automatic trial for user a6ab18ce-018d-4a9f-b257-94df21829162 (validation): ValueError
+ok
+test_the_lead_list_cost_is_fixed_with_ordering_and_filters (billing.tests.test_intent_signals.LeadQueryCountTests.test_the_lead_list_cost_is_fixed_with_ordering_and_filters) ... Free trial plan not found: no trial activated for user e349d0b8-5fee-4415-ab4f-0e95687a9791.
+Cannot activate automatic trial for user e349d0b8-5fee-4415-ab4f-0e95687a9791 (validation): ValueError
+Free trial plan not found: no trial activated for user 35a37689-7315-49df-91bf-7e9181d28ff4.
+Cannot activate automatic trial for user 35a37689-7315-49df-91bf-7e9181d28ff4 (validation): ValueError
+Free trial plan not found: no trial activated for user c5c29815-c187-4db4-bf1a-b09cd586e6f0.
+Cannot activate automatic trial for user c5c29815-c187-4db4-bf1a-b09cd586e6f0 (validation): ValueError
+Free trial plan not found: no trial activated for user 7ea4b6e6-464d-452d-ac11-2437f1cec4bb.
+Cannot activate automatic trial for user 7ea4b6e6-464d-452d-ac11-2437f1cec4bb (validation): ValueError
+Free trial plan not found: no trial activated for user 4151e008-3d18-4ac3-ac39-f2764b98af02.
+Cannot activate automatic trial for user 4151e008-3d18-4ac3-ac39-f2764b98af02 (validation): ValueError
+Free trial plan not found: no trial activated for user d2a1f30d-6abd-48c4-acc8-e0fada9b8c1e.
+Cannot activate automatic trial for user d2a1f30d-6abd-48c4-acc8-e0fada9b8c1e (validation): ValueError
+Free trial plan not found: no trial activated for user 86dacbed-d4c7-4c7e-a84c-2b985a7531d6.
+Cannot activate automatic trial for user 86dacbed-d4c7-4c7e-a84c-2b985a7531d6 (validation): ValueError
+Free trial plan not found: no trial activated for user 1ca6fdc6-845c-43bd-b5eb-71e6b5bf68d3.
+Cannot activate automatic trial for user 1ca6fdc6-845c-43bd-b5eb-71e6b5bf68d3 (validation): ValueError
+Free trial plan not found: no trial activated for user 3c1a2d59-49ad-4dd1-8558-ff98607e0559.
+Cannot activate automatic trial for user 3c1a2d59-49ad-4dd1-8558-ff98607e0559 (validation): ValueError
+Free trial plan not found: no trial activated for user 7fa3d2f9-337c-4178-bc0d-6129e2e45bb2.
+Cannot activate automatic trial for user 7fa3d2f9-337c-4178-bc0d-6129e2e45bb2 (validation): ValueError
+Free trial plan not found: no trial activated for user bd00a33d-2d25-4210-ad37-219cd5b69f68.
+Cannot activate automatic trial for user bd00a33d-2d25-4210-ad37-219cd5b69f68 (validation): ValueError
+Free trial plan not found: no trial activated for user 883e842e-8f9c-4126-9ad3-eaaeb69f4ab7.
+Cannot activate automatic trial for user 883e842e-8f9c-4126-9ad3-eaaeb69f4ab7 (validation): ValueError
+Free trial plan not found: no trial activated for user 77f20e4d-6e7b-4c2c-be02-21abfc390b39.
+Cannot activate automatic trial for user 77f20e4d-6e7b-4c2c-be02-21abfc390b39 (validation): ValueError
+Free trial plan not found: no trial activated for user e909e65d-87fc-4310-b2a3-57b4080b4a14.
+Cannot activate automatic trial for user e909e65d-87fc-4310-b2a3-57b4080b4a14 (validation): ValueError
+Free trial plan not found: no trial activated for user a106ec9b-1e01-4015-a5ee-e62dbb350d96.
+Cannot activate automatic trial for user a106ec9b-1e01-4015-a5ee-e62dbb350d96 (validation): ValueError
+Free trial plan not found: no trial activated for user 4528fa14-201e-4bcc-8884-84b220eb9442.
+Cannot activate automatic trial for user 4528fa14-201e-4bcc-8884-84b220eb9442 (validation): ValueError
+Free trial plan not found: no trial activated for user 17bc54a3-63a8-4549-bb65-44a4bbe93ca7.
+Cannot activate automatic trial for user 17bc54a3-63a8-4549-bb65-44a4bbe93ca7 (validation): ValueError
+Free trial plan not found: no trial activated for user 3af28c02-ae1c-4327-a1eb-628b7e6a02ff.
+Cannot activate automatic trial for user 3af28c02-ae1c-4327-a1eb-628b7e6a02ff (validation): ValueError
+Free trial plan not found: no trial activated for user 03430873-717c-49e5-a1bd-0a1bd6d88326.
+Cannot activate automatic trial for user 03430873-717c-49e5-a1bd-0a1bd6d88326 (validation): ValueError
+Free trial plan not found: no trial activated for user 414022f5-5b69-41f9-ab4e-452fe0410ab7.
+Cannot activate automatic trial for user 414022f5-5b69-41f9-ab4e-452fe0410ab7 (validation): ValueError
+Free trial plan not found: no trial activated for user 92ce213c-a30a-4869-96c6-587a0496c1f1.
+Cannot activate automatic trial for user 92ce213c-a30a-4869-96c6-587a0496c1f1 (validation): ValueError
+Free trial plan not found: no trial activated for user e6006bd1-399c-4306-b576-82ebdd06fc2c.
+Cannot activate automatic trial for user e6006bd1-399c-4306-b576-82ebdd06fc2c (validation): ValueError
+Free trial plan not found: no trial activated for user 40ba3e89-3f1e-4148-8f60-91cc859434c1.
+Cannot activate automatic trial for user 40ba3e89-3f1e-4148-8f60-91cc859434c1 (validation): ValueError
+Free trial plan not found: no trial activated for user 4a8a0db9-494f-4876-a602-e0a23c4250f6.
+Cannot activate automatic trial for user 4a8a0db9-494f-4876-a602-e0a23c4250f6 (validation): ValueError
+Free trial plan not found: no trial activated for user 54561102-4900-4e21-9132-410fe458c11e.
+Cannot activate automatic trial for user 54561102-4900-4e21-9132-410fe458c11e (validation): ValueError
+Free trial plan not found: no trial activated for user c320930a-269e-40bc-a0a2-b6ca3df17d6f.
+Cannot activate automatic trial for user c320930a-269e-40bc-a0a2-b6ca3df17d6f (validation): ValueError
+Free trial plan not found: no trial activated for user 1320c540-6b7a-4a7a-b621-1f41c86c11ca.
+Cannot activate automatic trial for user 1320c540-6b7a-4a7a-b621-1f41c86c11ca (validation): ValueError
+Free trial plan not found: no trial activated for user 29ccd37e-a8ac-4349-9209-6d0470a962e2.
+Cannot activate automatic trial for user 29ccd37e-a8ac-4349-9209-6d0470a962e2 (validation): ValueError
+Free trial plan not found: no trial activated for user 3c542a48-3e23-4202-b5b4-cee78e5ae8e0.
+Cannot activate automatic trial for user 3c542a48-3e23-4202-b5b4-cee78e5ae8e0 (validation): ValueError
+Free trial plan not found: no trial activated for user ef071b59-8d23-47ba-ae83-b133f6949b6b.
+Cannot activate automatic trial for user ef071b59-8d23-47ba-ae83-b133f6949b6b (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_the_pin_is_not_vacuous (billing.tests.test_intent_signals_pins.IntentSignalsPinTests.test_the_pin_is_not_vacuous) ... ok
+test_the_signal_payloads_are_what_they_were (billing.tests.test_intent_signals_pins.IntentSignalsPinTests.test_the_signal_payloads_are_what_they_were) ... Free trial plan not found: no trial activated for user f1556664-d5c6-48e9-82ae-7f90d3d8418d.
+Cannot activate automatic trial for user f1556664-d5c6-48e9-82ae-7f90d3d8418d (validation): ValueError
+Free trial plan not found: no trial activated for user 1f57a748-3cb2-4962-9da4-0da3cbd73a87.
+Cannot activate automatic trial for user 1f57a748-3cb2-4962-9da4-0da3cbd73a87 (validation): ValueError
+Free trial plan not found: no trial activated for user 232fef7b-2d2d-44fc-abba-b2b8784159e4.
+Cannot activate automatic trial for user 232fef7b-2d2d-44fc-abba-b2b8784159e4 (validation): ValueError
+Free trial plan not found: no trial activated for user 209d5783-124a-4806-a68d-42a8fc0aa5cd.
+Cannot activate automatic trial for user 209d5783-124a-4806-a68d-42a8fc0aa5cd (validation): ValueError
+Free trial plan not found: no trial activated for user 821e9f7f-e817-4ce0-a172-7264268473b8.
+Cannot activate automatic trial for user 821e9f7f-e817-4ce0-a172-7264268473b8 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+
+======================================================================
+FAIL: test_query_params_do_not_change_the_block (billing.tests.test_custom_ai_prompt_leads.LeadBlockTests.test_query_params_do_not_change_the_block)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/tests/test_custom_ai_prompt_leads.py", line 220, in test_query_params_do_not_change_the_block
+    plain = self.lead_block(self.template(people))
+                            ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/tests/test_custom_ai_prompt_leads.py", line 112, in template
+    self.assertEqual(response.status_code, 200, response.content[:300])
+AssertionError: 500 != 200 : b'{"success":false,"message":"An unexpected error occurred. Please try again.","error":{}}'
+
+======================================================================
+FAIL: test_the_block_equals_the_leads_list_first_page (billing.tests.test_custom_ai_prompt_leads.LeadBlockTests.test_the_block_equals_the_leads_list_first_page)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/tests/test_custom_ai_prompt_leads.py", line 189, in test_the_block_equals_the_leads_list_first_page
+    block = ast.literal_eval(self.lead_block(self.template(people)))
+                                             ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/tests/test_custom_ai_prompt_leads.py", line 112, in template
+    self.assertEqual(response.status_code, 200, response.content[:300])
+AssertionError: 500 != 200 : b'{"success":false,"message":"An unexpected error occurred. Please try again.","error":{}}'
+
+======================================================================
+FAIL: test_the_block_follows_the_score_not_the_credits (billing.tests.test_custom_ai_prompt_leads.LeadBlockTests.test_the_block_follows_the_score_not_the_credits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/tests/test_custom_ai_prompt_leads.py", line 210, in test_the_block_follows_the_score_not_the_credits
+    block = ast.literal_eval(self.lead_block(self.template(people)))
+                                             ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/tests/test_custom_ai_prompt_leads.py", line 112, in template
+    self.assertEqual(response.status_code, 200, response.content[:300])
+AssertionError: 500 != 200 : b'{"success":false,"message":"An unexpected error occurred. Please try again.","error":{}}'
+
+======================================================================
+FAIL: test_the_block_is_exactly_the_top_ten_leads (billing.tests.test_custom_ai_prompt_leads.LeadBlockTests.test_the_block_is_exactly_the_top_ten_leads)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/tests/test_custom_ai_prompt_leads.py", line 182, in test_the_block_is_exactly_the_top_ten_leads
+    block = self.lead_block(self.template(self.build()))
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/tests/test_custom_ai_prompt_leads.py", line 112, in template
+    self.assertEqual(response.status_code, 200, response.content[:300])
+AssertionError: 500 != 200 : b'{"success":false,"message":"An unexpected error occurred. Please try again.","error":{}}'
+
+======================================================================
+FAIL: test_the_rest_of_the_template_is_what_it_was (billing.tests.test_custom_ai_prompt_leads.TemplatePinTests.test_the_rest_of_the_template_is_what_it_was)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/tests/test_custom_ai_prompt_leads.py", line 132, in test_the_rest_of_the_template_is_what_it_was
+    rest = self.without_leads(self.template(self.build()))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-ai-leads-beta/billing/tests/test_custom_ai_prompt_leads.py", line 112, in template
+    self.assertEqual(response.status_code, 200, response.content[:300])
+AssertionError: 500 != 200 : b'{"success":false,"message":"An unexpected error occurred. Please try again.","error":{}}'
+
+----------------------------------------------------------------------
+Ran 39 tests in 6.206s
+
+FAILED (failures=5)
+Preserving test database for alias 'default' ('test_ai_leads_beta')...
+Found 39 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
