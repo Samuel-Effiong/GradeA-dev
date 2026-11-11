@@ -5113,3 +5113,22 @@ The fragments were rendered from unittest's own messages (no test run). No pre-e
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | B10-D1 (diagnostic) | BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK and USER_LIST_PIN_WRITE unset; serial (no `--parallel`); under flock with `--noinput`; at this commit | `users.tests_user_list_sorting users.tests_user_list_payload_pin` (50 + 3 tests, by unittest's loader) | **Ran 53.** This run is a diagnostic, so its outcome is the question. If the interaction is real (the leading suspect): **FAILED (failures=18)**, the same 18 as E-off. If it is pollution: **OK**. Anything else is a third finding and goes to the SM. |
+
+**B10-D1 result, as declared (the real-interaction branch).**
+- At 67c15c5ef: **Ran 53 tests in 14.793s, FAILED (failures=18)**, exit 1. Log: `step10/D1_67c15c5ef.log`.
+- These are the same 18 as E-off, with the same messages (6 × `188 != 187`, 2 × `47 != 187`, 9 × `48 != 187`, 1 pin diff). So this is not pollution.
+
+**The read-only cause, from the code.**
+- `users.list_serializers.ListCreditWalletSerializer` subclasses `CreditWalletSerializer` and so inherits B1b-7's three fields (`billing/serializers.py`).
+- `reserved_credits` is a wallet column, so it adds no query.
+- `get_spendable` calls `holds.spendable_credits`, which runs `CreditWallet.objects.get()` plus the bucket aggregate in `total_remaining_credits()`.
+- `get_balance_status` calls `low_balance.balance_status`: `_spendable` (the same get and aggregate again), `allocation` (`plan_used_credits()` + `plan_remaining_credits()`) and `cycle_bucket` (one or two bucket queries). All of these run per row.
+- DESIGN §9 (the Fixer's) predicted exactly this alarm and the shape of the cure.
+
+**B10-D2 (diagnostic, read-only), declared before it runs.**
+- ENV: the five and USER_LIST_PIN_WRITE unset; under flock; at this commit.
+- Script: `step10/d2_diag.py`, run as `python docs/evidence/epic-b1b/step10/d2_diag.py`. It changes no product file. It sets up the test databases with Django's `DiscoverRunner` and runs two methods on subclasses of the Fixer's own fixtures (`QueryCountTests.make_teachers(30)` and `MixedFixture`):
+  1. the list's queries for 5 rows default, 25 rows default and 5 rows `-credits_left`, grouped by normalized SQL;
+  2. the payload against the pin, by row: keys added, removed and changed, top level and in `credit_wallet`.
+- **Declared: Ran 2, OK** (both methods only print; neither asserts against the pin or the counts). The output is the evidence.
+- Expected shape, under the cause above: per-row wallet and bucket queries in the default pages; the pin diff is only `balance_status`, `reserved_credits` and `spendable` added under `credit_wallet`, with every existing key unchanged. Anything else is reported as found.
