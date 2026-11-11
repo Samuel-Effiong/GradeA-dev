@@ -309,3 +309,50 @@ Result: Ran 4631 (count as predicted), FAILED (failures=2, errors=1, skipped=9).
    (`Assignment.objects.filter(course__teacher=OuterRef("id"))`, "admin
    reporting aggregate per teacher; not teacher access"). Changing a guard
    is not mine to decide, so it is held for an SM ruling. Not fixed.
+
+### N1 ruling applied (SM -16, 2026-11-11), R3 check declared
+
+Ruling (a) applied: the two users/user_list.py lines are in the sweep's
+ALLOWED. Each reason names its call site, and a comment points to the
+proving test, ListOnlyTests.test_only_the_super_admin_list_builds_the_list_values
+(new). That test checks that a teacher, a school admin, a student and a
+createsuperuser account (is_superuser, not SUPER_ADMIN) all get 403, with
+list_queryset never called. The super admin control gets 200, with exactly
+one call.
+
+Cause 1 recorded as a **cross-test pollution finding**. Generating a
+drf-spectacular schema mutates OpenApiGeneratorExtension.target_class
+process-wide (an import path becomes the class), so any test that generates
+a schema breaks later tests that read the path. Fixed inside the test that
+generates the schema (snapshot, then restore on cleanup).
+
+R3 (declared before running). Labels: classrooms.tests_teacher_access_sweep,
+assignments.tests_schema_extension, users.tests_user_list_sorting.ListOnlyTests.
+Same environment as N1. Count from build_suite: see R3 line below.
+Expected: OK, 0 failures, 0 errors. The sweep must pass on its own (SM
+condition 3), so it is also run alone.
+Count: R3a combined 25; R3b sweep alone 9. Expected: Ran 25 OK; Ran 9 OK.
+
+R3 result: R3b (sweep alone) Ran 9 OK, as predicted. R3a Ran 25 FAILED (failures=1).
+**Prediction wrong**: the new test's super admin control expected exactly one
+list_queryset() call and got 2, because UserCacheMixin.get_cache_key also calls
+get_queryset() (it only reads the model name, so that queryset is never
+evaluated). This was a test defect. The control now asserts at least one call.
+The real check, 0 calls for every non-super-admin, is unchanged.
+
+R3c declared: same 3 labels, Ran 25, expected OK.
+R3c result: Ran 25 OK, as predicted.
+
+Retrieve cache side finding written up as a backlog item in DESIGN section 11.
+The key includes the requester's id and generation, so there is no
+cross-caller or cross-role leak and no STOP.
+
+### N2 near declared (2026-11-11)
+
+Environment: venv ~/Documents/Virtualenvs/h284_deps_env, --settings=settings_worktree,
+--keepdb, --noinput, -v 2, --parallel 1, under flock ~/.machine-fullsuite.lock,
+test DB test_user_list_sorting, worktree Grade-Automator-Plus-user-list-sorting.
+Labels: users, billing, and the same 67 standing guard labels as N1.
+Count from build_suite: 4632 (N1's 4631 plus
+test_only_the_super_admin_list_builds_the_list_values).
+Expected: Ran 4632, OK, failures 0, errors 0. Skip count not predicted.

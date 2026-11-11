@@ -887,6 +887,41 @@ class ListOnlyTests(Base):
 
         self.assertEqual(response.status_code, 403)
 
+    def test_only_the_super_admin_list_builds_the_list_values(self):
+        """The per-teacher counts (course__teacher, D5) are built by
+        list_queryset() only, and only for a super admin's list. The H-38
+        sweep's ALLOWED entries for users/user_list.py rely on this."""
+        import users.views
+
+        createsuperuser_account = User.objects.create_superuser(
+            email="cs.sort@x.example", password=PW
+        )
+        createsuperuser_account.refresh_from_db()
+        self.assertNotEqual(createsuperuser_account.user_type, UserTypes.SUPER_ADMIN)
+        others = (
+            self.person(),
+            self.person(user_type=UserTypes.SCHOOL_ADMIN),
+            self.person(user_type=UserTypes.STUDENT),
+            createsuperuser_account,
+        )
+        with patch.object(
+            users.views, "list_queryset", wraps=users.views.list_queryset
+        ) as built:
+            for other in others:
+                with self.subTest(other.user_type, superuser=other.is_superuser):
+                    cache.clear()
+                    response = self.get_list(
+                        client=self.as_user(other), ordering="papers_graded"
+                    )
+                    self.assertEqual(response.status_code, 403)
+                    self.assertEqual(built.call_count, 0)
+
+            cache.clear()
+            self.assertEqual(self.get_list().status_code, 200)
+            # Twice: UserCacheMixin.get_cache_key reads get_queryset() for
+            # the model name (never evaluated), then the page itself.
+            self.assertGreater(built.call_count, 0)
+
 
 # ---------------------------------------------------------------------------
 # OpenAPI

@@ -284,3 +284,34 @@ them at 0 extra queries:
 | plan_tier | 14.2 ms (it was 235.8 before the rank moved into the plan lookup) |
 
 No index or migration was needed. The plans are in explain_*.txt.
+
+## 11. Backlog: the user retrieve cache ignores query params (SM -16: write up, do not fix here)
+
+**What.** UserCacheMixin.get_cache_key("retrieve") builds
+`<model>s:user_id__<requester>:instance_id__<pk>` plus the requester's cache
+generation. The list key hashes the query params; the retrieve key does not.
+filter_queryset still runs in get_object(), so a retrieve's params can change
+the answer (a 404 when the filter excludes the row). Once a 200 for that pk is
+cached, the same request with any params gets that 200 for up to CACHE_TTL
+(300 s) or until the requester's generation is bumped. Only successful data
+is cached, so a cached 404 never hides a row.
+
+**Who can reach it.** Every authenticated user on GET /api/v1/users/<pk>/, for
+the rows their own get_queryset allows: themselves; a teacher, their reachable
+students (H-38); a school admin, their school; a super admin, everyone. The
+filters involved are UserEnrollmentFilter (every role) and the new list
+filters, which are no-ops unless the requester is a super admin.
+
+**Can it return something a filter would hide?** Yes, but only to the same
+caller, and only a row that caller can already fetch without the filter. The
+requester's id is in the key and the requester's generation is in the
+version, so no entry is shared across callers or across roles. A cached hit
+therefore never shows a caller a row or field that their own unfiltered
+retrieve would not show them. The effect is a wrong 200 where a 404 was
+expected. That makes the filter-as-oracle weaker, not stronger. **No
+cross-caller or cross-role leak, so no STOP.**
+
+**Backlog fix (separate job).** Either hash the query params into the
+retrieve key as the list key does, or have retrieve ignore filter params
+entirely (filter_queryset is meant for lists). Add a test that runs the same
+pk with and without a filter that excludes it, for each role.
