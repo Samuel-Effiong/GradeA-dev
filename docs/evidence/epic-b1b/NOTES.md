@@ -4319,3 +4319,25 @@ So text 2's "deleted after {days} days" is true only for the lifetime purge.
 - The teacher still sees a refusal when they try to grade, which tells them to ask their school administrator for more credits.
 - **Question:** Is that acceptable, or should these teachers get an email too? If they should, we need one new short text approved, for example "Your school's credits have run out. Ask your school administrator for more credits to continue."
 - **Our recommendation:** accept it for B1b (no email). Revisit if school admins ask for it.
+
+### §8.0b Addendum: the (a) check done, and a defect the switch would expose (Q8-6)
+
+**Checked (read-only), replacing §8.1 (a)'s "[To verify]":**
+- `cancel_session` (`users/views.py:2771`) cancels each unfinished paper through `cancel_processing_task` (`students/task_tracking.py:505`). That calls `_release_unused_hold`, which acts **only on a HELD row** (`:279-292`, `billing/batch_queue.py:260`).
+- A paper waiting in a `QUEUED_PENDING_CREDITS` job is PENDING and **never held** (`_waiting`, `billing/batch_queue.py:106-112`). So cancelling it does not touch the job, and **the job stays QUEUED**.
+- **Then:**
+  - **Every promotion** (`promote_job`, `:296`) moves it to RESERVED, finds no waiting paper, claims nothing, and rolls back (`_NothingGranted`). That is harmless, but repeated at each top-up and sweep.
+  - **The 48 h warning** (`:383`) and **the expiry** (`expire_job`, `:396-424`) still fire. `notify(..., "expired", left=0)`.
+  - **With `QUEUE_EMAIL_APPROVED` False (today) nothing is sent.** After B1b-8 switches it on, a teacher who cancelled a waiting batch would get "Your waiting papers expire in 2 days: 0 papers from {assignment} are still waiting…", and then "0 papers … have stopped waiting".
+- `_send` (`:518`) is `# pragma: no cover` today: **the queue emails' sending path has never run under a test.**
+
+**Q8-6, proposed fix in B1b-8, before the switch:**
+- (1) When a cancel leaves a `QUEUED_PENDING_CREDITS` job with no waiting paper, the job is finished CANCELLED (`finish_job`, its conditional move), with no email.
+- (2) As a backstop, the warning and expiry `notify` send nothing when the job has 0 waiting papers.
+- (3) Tests for `_send` itself, now that it will run: each of the four kinds, both closings, and the 0-left skip.
+- **Alternative:** (2) only. Not recommended: the job would stay QUEUED for 30 days and be "promoted" repeatedly.
+- **Plain words for owner question (a), corrected:**
+  - Today a teacher can stop a whole batch (upload or grading) with the batch's "cancel".
+  - Papers being graded are stopped, and their held credits are returned.
+  - A batch that is waiting for credits is also stopped, but it is not yet marked as closed. We will fix that in this step, so the teacher never gets a "your papers expire" email for a batch they cancelled.
+  - **Question unchanged:** is the batch "cancel" enough for now, or do you want a separate "cancel this job" action?
