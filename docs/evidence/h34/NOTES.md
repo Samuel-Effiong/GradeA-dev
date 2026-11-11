@@ -777,3 +777,14 @@ No failure and no error.
 **N2** (06_near_n2.log.gz, serial, 240 s): **Ran 1026, OK (skipped=1)**. As predicted; the one skip is ai_processor.tests_ssrf_guard (CI_REQUIRE_NETWORK).
 
 Trailers: 0 Co-Authored-By in origin/beta..HEAD (checked before the checkpoint). Nothing pushed.
+
+## SM acceptance (2026-11-11, grade-automator-plus-16; recorded unamended)
+
+> H-34 end checkpoint ACCEPTED at 4ac5d62c5 (SM -16). Verified: 20 commits over origin/beta bcc50d83c, beta is an ancestor, 0 trailers; 0042 depends on 0041 and no other 0042 exists on beta, staging or task/epic-b1b; the new strings in views.py are existing texts ("Invalid email or token.", the activation-link sentence), and "Locking a locked account changes nothing." is API description only.
+> Q-P8 ruling: ACCEPT the survivor as explained. Under scope (a) the self rule can't be reached. Add one line to NOTES: "if scope (b) is ever approved, a direct may_lock/lock_users test with a non-super-admin actor becomes required, and Q-P8 must be re-run and killed." Commit that NOTES-only change and send me the sha.
+> Also accepted: no success message in the back office (no new wording) and the ACCOUNT_LOCKED_BY_ADMIN audit reason at the generic doors. The reset-password save() window stays a known limit under F2, recorded in NOTES; I'm telling the owner.
+> Hold after the NOTES commit. I'm asking the owner for the beta go; I'll push, and merge beta into staging myself.
+
+Q-P8: if scope (b) is ever approved, a direct may_lock/lock_users test with a non-super-admin actor becomes required, and Q-P8 must be re-run and killed.
+
+State: HOLDING. The SM asks the owner for the beta go, then pushes and merges beta into staging.
