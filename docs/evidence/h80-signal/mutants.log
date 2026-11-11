@@ -1,0 +1,15 @@
+ billing/services.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== M1: the elif comes back (100% no longer sets 80%)
+FAIL: test_a_first_use_of_exactly_100_percent_sets_both_flags (billing.tests.test_h80_hit_80_percent.ReachingTheCapAlsoSetsEightyPercentTests.test_a_first_use_of_exactly_100_percent_sets_both_flags)
+FAIL: test_a_jump_from_70_to_110_percent_sets_both_flags (billing.tests.test_h80_hit_80_percent.ReachingTheCapAlsoSetsEightyPercentTests.test_a_jump_from_70_to_110_percent_sets_both_flags)
+Ran 8 tests in 0.422s
+FAILED (failures=2)
+restored, sha256 OK
+ billing/migrations/0074_h80_backfill_has_hit_80_percent.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== M2: the backfill drops its has_hit_cap filter (sets every row)
+FAIL: test_the_backfill_sets_80_percent_on_cap_only_rows_and_nothing_else (billing.tests.test_h80_hit_80_percent.BackfillTests.test_the_backfill_sets_80_percent_on_cap_only_rows_and_nothing_else)
+Ran 8 tests in 0.312s
+FAILED (failures=1)
+restored, sha256 OK
