@@ -5432,3 +5432,5 @@ PR #124 PG16 run 43070726856 PASSED: Ran 10135, OK (skipped=86), as declared in 
 The flag default on the merged tree: `AutoGrader/settings.py:699` `BILLING_HOLDS_ENABLED = env.bool("BILLING_HOLDS_ENABLED", default=False)`.
 
 **M12 result** (`step12_M12.log.gz`): **Ran 2337 tests in 149.183s, OK (skipped=7)**, 0 FAIL, 0 ERROR, exactly as declared. The skips are the 1 static skip plus 6 runtime skips from unset flags. Merge accepted locally; nothing pushed.
+
+Correction to the line above: the log is at verbosity 1, so the 6 runtime skips are not itemized; "from unset flags" is unverified and is withdrawn.
