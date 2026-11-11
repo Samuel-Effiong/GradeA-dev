@@ -707,3 +707,17 @@ Q-P8 survivor explained:
 - Under scope (a) the self rule cannot be reached. Every requester is a super admin (IsSuperAdmin on the routes; the back office is super-admin only), and every super-admin target is already refused by `is_super_admin_account`. So "self" is always refused by the super-admin rule first, and removing the self check changes no behavior.
 - The self check stays as defense in depth (and for a scope (b) later).
 - Option for the SM: a direct unit test of `may_lock` and `lock_users` with a non-super-admin actor would kill Q-P8. It is not added without a ruling, because it tests a case the routes cannot produce today.
+
+## Migration safety, before and after (declared before running)
+
+- Env: the env block of .github/workflows/migration-safety.yml, sourced; venv h284_deps_env; `python scripts/check_migration_safety.py --base <ref>`.
+- Refs fetched: origin/beta bcc50d83c (an ancestor of this branch); origin/main 5ae963930.
+- "Before" is 4affdea36, the last commit before the product, checked out detached in this worktree. "After" is the branch head.
+
+Predictions:
+
+- M1, before, `--base origin/beta`: exit 0, "no new migrations" (the branch adds no migration before the product).
+- M2, after, `--base origin/beta`: exit 0, with one line `OK users/migrations/0042_customuser_admin_locked_at.py` (nullable AddField; additive) and no FAIL.
+- M3, before, `--base origin/main`: exit 0 (whatever beta already carries over main passes today; CI is green on beta).
+- M4, after, `--base origin/main`: exit 0. Its output is M3's plus exactly one added line for users/migrations/0042 (OK), with no other line changed.
+- Also: `makemigrations --check --dry-run` gives "No changes detected" before and after, and `sqlmigrate users 0042` is a single nullable ADD COLUMN.
