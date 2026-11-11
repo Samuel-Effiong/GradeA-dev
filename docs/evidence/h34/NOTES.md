@@ -683,3 +683,27 @@ Prediction wrong/incomplete:
 | Q-P9 | users/sign_in_lock.py | unlock_users also sets `is_active=True` | L7 `test_unlock_never_switches_on_a_pending_account` |
 | R3-i | audit/admin_action.py | the helper no longer drops the tag (two events) | L10 `test_a_lock_leaves_one_account_lock_event_and_no_admin_action`, `test_an_unlock_leaves_one_account_unlock_event_and_no_admin_action`; route `test_a_successful_lock_leaves_one_named_event`, `test_a_successful_unlock_leaves_one_named_event` |
 | R3-ii | audit/admin_action.py | the helper writes no named event but still drops the tag (zero events) | the 4 R3-i tests, plus L8 (`AuditEvent.objects.get(action="ACCOUNT_UNLOCK")` finds none) |
+
+### Plant results (at 583859a30; harness and logs in 03_plants.tar.gz)
+
+Every file was restored, with its sha256 equal to HEAD after each run (the harness asserts this). `git status` was clean afterwards.
+
+| Plant | Result | Failed | Matches? |
+|---|---|---|---|
+| Q-P1 | FAILED (failures=4) | the 4 predicted; L1 access test survived, as predicted | yes |
+| Q-P2 | FAILED (failures=4) | the 3 predicted + L2 `test_one_denied_sign_in_event_names_the_account_as_target` | **Prediction wrong/incomplete**: the plant's moved block writes no AUTH_LOGIN event, so the audit test also fails. Killed. |
+| Q-P3 | FAILED (failures=2) | the 2 predicted | yes |
+| Q-P4 | FAILED (failures=1) | the 1 predicted | yes |
+| Q-P5 | FAILED (failures=1) | the 1 predicted | yes |
+| Q-P6 | FAILED (failures=3) | the 3 predicted | yes |
+| Q-P7 | FAILED (failures=6) | the 4 predicted + 2 route super-admin subtests (lock and unlock) | yes |
+| Q-P8 | **OK, survived** | none | **Prediction wrong.** See below. |
+| Q-P9 | FAILED (failures=1) | the 1 predicted | yes |
+| R3-i | FAILED (failures=4) | the 4 predicted | yes |
+| R3-ii | FAILED (failures=4, errors=1) | the 4 predicted + L8 (error: DoesNotExist), as predicted | yes |
+
+Q-P8 survivor explained:
+
+- Under scope (a) the self rule cannot be reached. Every requester is a super admin (IsSuperAdmin on the routes; the back office is super-admin only), and every super-admin target is already refused by `is_super_admin_account`. So "self" is always refused by the super-admin rule first, and removing the self check changes no behavior.
+- The self check stays as defense in depth (and for a scope (b) later).
+- Option for the SM: a direct unit test of `may_lock` and `lock_users` with a non-super-admin actor would kill Q-P8. It is not added without a ruling, because it tests a case the routes cannot produce today.
