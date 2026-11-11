@@ -4685,7 +4685,7 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
   - It is your call; the B option departs from 08b's "exactly".
 - **Q9-3, the emergency mode and unstarted items.** The sweep never touches an unstarted held item (by design). The emergency must return those too. Proposed:
   - `sweep_stale_holds(now, force=True)` returns every HELD item, started or not, through `_sweep_item` with no window;
-  - every job without rows past nothing;
+  - jobs with no task row are returned too, without waiting for `single_sweep_window()`;
   - then every open job is finished FAILED.
   - `force` is used only by the emergency command.
 - **Q9-4, emails while draining.** 08b: "No expiry emails are sent during a drain." Proposed: `batch_queue.notify` sends nothing while draining (all four kinds; new work makes no queued jobs anyway). Low-balance and drift emails are unaffected.
