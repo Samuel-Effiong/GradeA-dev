@@ -412,13 +412,11 @@ def approve_request(
     except Exception as exc:
         _move(row.pk, [APPROVED], status=PENDING, note=str(exc)[:500])
         raise
-    link = {}
+    linked = CreditRequest.objects.filter(pk=row.pk)
     if result.get("action") == "checkout" and result.get("intent_id"):
-        link["purchase_intent_id"] = result["intent_id"]
+        linked.update(purchase_intent_id=result["intent_id"])
     elif result.get("action") == "offline_request_pending" and result.get("request_id"):
-        link["offline_request_id"] = result["request_id"]
-    if link:
-        CreditRequest.objects.filter(pk=row.pk).update(**link)
+        linked.update(offline_request_id=result["request_id"])
     return result
 
 

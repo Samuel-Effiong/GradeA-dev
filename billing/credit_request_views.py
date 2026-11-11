@@ -100,9 +100,11 @@ class CreditRequestViewSet(viewsets.ViewSet):
     lookup_value_regex = "[0-9a-fA-F-]{36}"
 
     def initial(self, request, *args, **kwargs):
+        # Sign-in is checked first, so an anonymous caller gets 401 as on
+        # every other route; a signed-in one gets 404 while the flag is off.
+        super().initial(request, *args, **kwargs)
         if not credit_requests.enabled():
             raise Http404
-        super().initial(request, *args, **kwargs)
 
     def list(self, request):
         rows = credit_requests.visible_to(request.user)

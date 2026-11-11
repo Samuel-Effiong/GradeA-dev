@@ -172,6 +172,9 @@ STUDENT_DATA_MAP = {
         "Teacher's AI assignment generation"
     ),
     ("billing.BetaProfile", "user"): _staff("Teacher beta sign-up"),
+    # Epic B1c: a teacher's credit request, and who answered it.
+    ("billing.CreditRequest", "teacher"): _staff("Teacher credit request"),
+    ("billing.CreditRequest", "decided_by"): _staff("License admin or super admin"),
     ("billing.LicenseBillingRecord", "performed_by"): _staff("License admin"),
     ("billing.LicenseOverageOfflineRequest", "requested_by"): _staff("License admin"),
     ("billing.LicenseOverageOfflineRequest", "reviewed_by"): _staff("Super admin"),
