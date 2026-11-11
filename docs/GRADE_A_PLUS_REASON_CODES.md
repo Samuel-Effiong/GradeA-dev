@@ -407,11 +407,11 @@ HTTP 401 · USER · Retryable
 
 | Field | Detail |
 |----|----|
-| Message | Too many failed login attempts. Please try again later. |
+| Message | Too many failed sign-in attempts. Please try again later. |
 | What to do | Wait a few minutes and try again, or reset your password. |
 | Params | none |
 | Returned by | `POST auth/login` |
-| Notes | Five wrong passwords lock the account for 15 minutes. The body also has `detail` and the older key `code: "account_locked"` (lower case). |
+| Notes | Five wrong passwords lock the account for 15 minutes, counted per account whatever address they come from. While the lock lasts, every attempt gets this answer, even with the correct password: the password is not checked, the attempt is not counted, and the lock is not extended. Only a successful password sign-in clears the count. The lock running out, a password reset or a Google sign-in leave it in place, so after a lock runs out the next wrong password locks the account again for 15 minutes. The body also has `detail` and the older key `code: "account_locked"` (lower case). |
 
 #### `RESET_LOCKED`
 
@@ -809,7 +809,7 @@ HTTP 429   Retry-After: 1740
 
 | Code | Route | Status | Extra fields | How long to wait |
 |----|----|----|----|----|
-| `ACCOUNT_LOCKED` | `POST auth/login` | 401 | `detail`, `code: "account_locked"` | 15 minutes. No `Retry-After` header. |
+| `ACCOUNT_LOCKED` | `POST auth/login` | 401 | `detail`, `code: "account_locked"` | 15 minutes from the fifth wrong password; attempts during the lock do not extend it. No `Retry-After` header. |
 | `RESET_LOCKED` | `POST auth/reset-password` | 429 | `code`, `message`, `locked_until`, `retry_after_seconds` | `retry_after_seconds`, also in the `Retry-After` header. |
 | `VERIFY_LOCKED` | `POST auth/verify`, `POST auth/register/school-admin` | 429 | `detail`, `code` | The `Retry-After` header. |
 | `REGISTRATION_PAUSED` | `POST auth/register/student` | 429 | `detail`, `code` | The `Retry-After` header. |
@@ -874,7 +874,7 @@ Filters: `reason_code` (exact), `outcome`, `action`, `actor_id`, `actor_role`, `
 | Image size after compression | 4 MB | `FILE_TOO_LARGE`, `dimension: "bytes"` |
 | Class list file | 2 MB | `FILE_TOO_LARGE`, `dimension: "bytes"` |
 | Rows in one class list | 2,000 | `ROSTER_TOO_MANY_ROWS` |
-| Wrong passwords before a lock | 5, then 15 minutes | `ACCOUNT_LOCKED` |
+| Wrong passwords before a lock | 5, then 15 minutes. The count stays until a successful password sign-in, so each wrong password after a lock runs out locks again. | `ACCOUNT_LOCKED` |
 | Wrong reset codes before a lock | 5, then 30 minutes | `RESET_LOCKED` |
 | Wrong verification codes or school-admin invitation tokens before a lock (one count per address, shared by both screens) | 5, then 30 minutes | `VERIFY_LOCKED` |
 
