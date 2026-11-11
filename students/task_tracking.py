@@ -276,6 +276,22 @@ def _discard_kept_file(processing_task):
     discard(processing_task)
 
 
+def _release_unused_hold(processing_task):
+    """Epic B1b-6 (D6-c, NOTES §6.3): a held batch paper that ends before its
+    metered unit returns its hold once. No query unless the row is HELD."""
+    from billing.models import HoldState
+
+    if (
+        processing_task is None
+        or processing_task.job_id is None
+        or processing_task.hold_state != HoldState.HELD
+    ):
+        return
+    from billing.batch_queue import release_unused_item_hold
+
+    release_unused_item_hold(processing_task)
+
+
 def mark_processing_task_success(processing_task_id, meta=None):
     processing_task = update_processing_task(
         processing_task_id,
@@ -285,6 +301,7 @@ def mark_processing_task_success(processing_task_id, meta=None):
         error="",
     )
     _discard_kept_file(processing_task)
+    _release_unused_hold(processing_task)
     return processing_task
 
 
@@ -321,6 +338,7 @@ def mark_processing_task_failure(
         reason_code=failure_reason_code(error),
     )
     _discard_refused_kept_file(processing_task)
+    _release_unused_hold(processing_task)
     return processing_task
 
 
@@ -369,6 +387,7 @@ def mark_processing_task_cancelled(processing_task_id, meta=None):
         finished=True,
     )
     _discard_kept_file(processing_task)
+    _release_unused_hold(processing_task)
     return processing_task
 
 
@@ -504,6 +523,7 @@ def cancel_processing_task(processing_task):
 
         processing_task.save(update_fields=update_fields)
         cleanup_cancelled_task_artifacts(processing_task)
+        _release_unused_hold(processing_task)
 
     if processing_task.celery_task_id:
         # The revoke is an accelerator, not the cancellation itself: the

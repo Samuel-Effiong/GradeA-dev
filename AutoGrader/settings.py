@@ -945,6 +945,16 @@ CELERY_BEAT_SCHEDULE = {
         "task": "billing.tasks.sweep_stale_credit_holds",
         "schedule": 300.0,
     },
+    # Epic B1b-6 (plan 08 §3.7): promote queued batch jobs, and warn and
+    # expire them. Do nothing while BILLING_HOLDS_ENABLED is off.
+    "promote-queued-batch-jobs": {
+        "task": "billing.tasks.promote_queued_jobs",
+        "schedule": 300.0,
+    },
+    "expire-queued-batch-jobs": {
+        "task": "billing.tasks.expire_queued_jobs",
+        "schedule": 300.0,
+    },
     # Epic B1a: wallet and per-item hold invariants. Reports only.
     "check-credit-hold-invariants-daily": {
         "task": "billing.tasks.check_credit_hold_invariants",

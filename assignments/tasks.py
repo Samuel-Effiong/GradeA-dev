@@ -6,6 +6,7 @@ from celery import shared_task, states
 from django.conf import settings
 from django.db import InterfaceError
 from django.db import OperationalError as DatabaseOperationalError
+from django.db import transaction
 from django.db.models import F, Max
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -27,6 +28,7 @@ from AutoGrader.reason_codes import REASON_CODES, CodedError, reason_of
 from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.tasks import send_email_task
 from billing.errors import InsufficientCreditsError
+from billing.holds import holds_enabled
 from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal
 from classrooms.models import (
     EnrollmentStatusType,
@@ -1589,7 +1591,16 @@ def grade_batch_async(
 
 
 def _dispatch_tracked_grading(
-    teacher, assignment, submissions, session, only_if_ungraded=False, first_index=1
+    teacher,
+    assignment,
+    submissions,
+    session,
+    only_if_ungraded=False,
+    first_index=1,
+    *,
+    request=None,
+    batch_id=None,
+    adopt=(),
 ):
     """Grade each submission as a tracked batch item, as grade-all does
     (FR-A-07 S7a): the session then answers in session-results' per-item
@@ -1599,7 +1610,35 @@ def _dispatch_tracked_grading(
 
     H-215a: the automatic paths pass only_if_ungraded=True, so a paper
     graded after it was queued is skipped when its run starts. It is sent
-    only when set, so the other callers' messages are unchanged."""
+    only when set, so the other callers' messages are unchanged.
+
+    Epic B1b-6 (08b §1.4, NOTES §6.2): the one dispatch path. grade-all's
+    view passes its `request` (for the audit row) and its own `batch_id`
+    (the session's id as the view always sent it). Returns one
+    (processing_task, async result or None) pair per paper, in order.
+
+    With BILLING_HOLDS_ENABLED on and a wallet to bill, the papers form one
+    BATCH_GRADING job: the papers that fit are held and launched after
+    commit, the rest wait (None). `adopt` are an H-215a retry's reset
+    items, joined to the new job ahead of the new papers. With the flag off
+    (or no wallet) every paper is launched as before."""
+    if holds_enabled():
+        from billing import batch_queue
+
+        wallet = batch_queue.wallet_of(teacher)
+        if wallet is not None:
+            return _dispatch_as_batch_job(
+                wallet,
+                teacher,
+                assignment,
+                submissions,
+                session,
+                only_if_ungraded,
+                first_index,
+                request,
+                adopt,
+            )
+    pairs = []
     for item_index, submission in enumerate(submissions, start=first_index):
         processing_task = create_processing_task(
             requested_by=teacher,
@@ -1611,28 +1650,171 @@ def _dispatch_tracked_grading(
             meta={"step": "Queued for batch grading"},
             item_index=item_index,
         )
-        _launch_tracked_grading(
-            teacher, assignment, submission, session, processing_task, only_if_ungraded
+        task = _launch_tracked_grading(
+            teacher,
+            assignment,
+            submission,
+            session,
+            processing_task,
+            only_if_ungraded,
+            request=request,
+            batch_id=batch_id,
         )
+        pairs.append((processing_task, task))
+    return pairs
+
+
+def _dispatch_as_batch_job(
+    wallet,
+    teacher,
+    assignment,
+    submissions,
+    session,
+    only_if_ungraded,
+    first_index,
+    request,
+    adopt,
+):
+    """The flag-on batch (plan 08 §3.7): one job, k papers held and launched
+    on commit, the rest waiting."""
+    from billing import batch_queue
+
+    papers = list(submissions)
+    launched = {}
+    with transaction.atomic():
+        rows = list(adopt)
+        for item_index, submission in enumerate(papers, start=first_index):
+            rows.append(
+                create_processing_task(
+                    requested_by=teacher,
+                    task_type=BackgroundTaskType.BATCH_SUBMISSION_GRADING,
+                    batch_session=session,
+                    assignment=assignment,
+                    submission=submission,
+                    file_name=f"Submission for {submission.student.get_full_name()}",
+                    meta={"step": "Queued for batch grading"},
+                    item_index=item_index,
+                )
+            )
+        if not rows:
+            return []
+        representative = rows[0].submission
+        job = batch_queue.open_batch_job(
+            wallet=wallet,
+            teacher=teacher,
+            assignment=assignment,
+            n=len(rows),
+            representative=representative,
+            meta={"only_if_ungraded": bool(only_if_ungraded)},
+        )
+        BackgroundProcessingTask.objects.filter(pk__in=[r.pk for r in rows]).update(
+            job=job
+        )
+        for row in rows:
+            _audit_grading_requested(teacher, assignment, row, request)
+        claimed = batch_queue.start_batch(job, rows)
+        claimed_ids = [row.pk for row in claimed]
+
+        def _launch():
+            launched.update(launch_batch_items(claimed_ids, raise_outage=True))
+
+        transaction.on_commit(_launch)
+    return [(row, launched.get(row.pk)) for row in rows]
+
+
+def launch_batch_items(item_ids, *, raise_outage=False):
+    """Send held batch papers' messages, in order, after commit (at the
+    batch's start and at promotion). Returns {item id: async result}.
+
+    As the flag-off loop, the first launch that fails stops the rest: the
+    launcher marks that paper FAILURE, and the papers not yet sent are marked
+    FAILURE with the same error, so each returns its hold (D6-c) and an
+    H-215a retry reuses them. raise_outage (the batch's start) re-raises the
+    error, as the flag-off loop does, so auto-grade retries the outage."""
+    rows = BackgroundProcessingTask.objects.filter(pk__in=item_ids).select_related(
+        "job", "submission", "batch_session"
+    )
+    by_pk = {row.pk: row for row in rows}
+    results = {}
+    for position, item_id in enumerate(item_ids):
+        row = by_pk.get(item_id)
+        if row is None:
+            continue
+        try:
+            results[item_id] = _launch_batch_item(row)
+        except Exception as exc:  # the launcher marked this paper FAILURE
+            for rest in item_ids[position + 1 :]:
+                mark_processing_task_failure(rest, exc)
+            logger.error(
+                "Batch paper %s was not launched: %s",
+                row.pk,
+                describe_error_for_log(exc),
+            )
+            if raise_outage:
+                raise
+            break
+    return results
+
+
+def _launch_batch_item(row):
+    job = row.job
+    only_if_ungraded = bool((job.meta or {}).get("only_if_ungraded")) if job else False
+    flag = {"only_if_ungraded": True} if only_if_ungraded else {}
+    return launch_processing_task(
+        grade_engine_async,
+        row,
+        str(row.requested_by_id),
+        str(row.submission_id),
+        batch_id=str(row.batch_session_id) if row.batch_session_id else None,
+        **flag,
+    )
+
+
+def _audit_grading_requested(teacher, assignment, processing_task, request=None):
+    emit(
+        AuditAction.GRADING_REQUESTED,
+        actor=teacher,
+        **({"request": request} if request is not None else {}),
+        target_type="StudentSubmission",
+        target_id=processing_task.submission_id,
+        outcome=AuditOutcome.SUCCESS,
+        metadata={
+            "assignment_id": str(assignment.id),
+            "submission_id": str(processing_task.submission_id),
+            "task_id": str(processing_task.id),
+            "task_type": BackgroundTaskType.BATCH_SUBMISSION_GRADING,
+        },
+    )
 
 
 def _launch_tracked_grading(
-    teacher, assignment, submission, session, processing_task, only_if_ungraded
+    teacher,
+    assignment,
+    submission,
+    session,
+    processing_task,
+    only_if_ungraded,
+    *,
+    request=None,
+    batch_id=None,
 ):
     """Launch one tracked item's grading and audit the request. A broker
     outage leaves the item FAILURE with no celery id (the launcher)."""
     flag = {"only_if_ungraded": True} if only_if_ungraded else {}
-    launch_processing_task(
+    if batch_id is None:
+        batch_id = str(session.id) if session else None
+    task = launch_processing_task(
         grade_engine_async,
         processing_task,
         str(teacher.id),
         str(submission.id),
-        batch_id=str(session.id) if session else None,
+        batch_id=batch_id,
         **flag,
     )
     emit(
         AuditAction.GRADING_REQUESTED,
         actor=teacher,
+        **({"request": request} if request is not None else {}),
         target_type="StudentSubmission",
         target_id=submission.id,
         outcome=AuditOutcome.SUCCESS,
@@ -1644,6 +1826,7 @@ def _launch_tracked_grading(
         },
     )
     logger.info("Grading queued: submission=%s", submission.id)
+    return task
 
 
 #: H-215a: the outages auto_grade_due_assignment retries: the database,
@@ -1676,10 +1859,19 @@ def _papers_not_yet_sent(ungraded_submissions, session):
         .exclude(celery_task_id="")
         .values("submission_id")
     )
-    return ungraded_submissions.exclude(id__in=reached)
+    # B1b-6: a paper waiting in a queued batch job was dispatched too (it
+    # has no message until its job is promoted). Only flag-on rows wait.
+    waiting = BackgroundProcessingTask.objects.filter(
+        batch_session=session,
+        submission_id__isnull=False,
+        job__isnull=False,
+        status=BackgroundTaskStatus.PENDING,
+        hold_state__isnull=True,
+    ).values("submission_id")
+    return ungraded_submissions.exclude(id__in=reached).exclude(id__in=waiting)
 
 
-def _relaunch_failed_dispatches(teacher, assignment, papers, session):
+def _relaunch_failed_dispatches(teacher, assignment, papers, session, collect=None):
     """H-215a, on a retry: a paper whose dispatch failed gets its own item
     back, reset in place and launched again, so the row keeps one item per
     paper (the teacher reads "3 / 3", with no failure line for a paper
@@ -1724,6 +1916,13 @@ def _relaunch_failed_dispatches(teacher, assignment, papers, session):
         if not reset:
             continue
         item.refresh_from_db()
+        if collect is not None:
+            # B1b-6 (Q10): flag on, the item joins this retry's new batch
+            # job; its old job keeps its numbers (billing.holds.detach_item).
+            from billing.holds import detach_item
+
+            collect.append(detach_item(item))
+            continue
         _launch_tracked_grading(
             teacher, assignment, submission, session, item, only_if_ungraded=True
         )
@@ -1785,9 +1984,14 @@ def auto_grade_due_assignment(self, assignment_id, session_id=None):
         if session_id:
             to_send = _papers_not_yet_sent(ungraded_submissions, session)
         count = to_send.count()
+        adopt = None
         if session_id:
+            from billing.batch_queue import wallet_of
+
+            if holds_enabled() and wallet_of(assignment.course.teacher) is not None:
+                adopt = []
             to_send = _relaunch_failed_dispatches(
-                assignment.course.teacher, assignment, to_send, session
+                assignment.course.teacher, assignment, to_send, session, collect=adopt
             )
             last = session.processing_tasks.aggregate(last=Max("item_index"))["last"]
             first_index = (last or 0) + 1
@@ -1798,6 +2002,7 @@ def auto_grade_due_assignment(self, assignment_id, session_id=None):
             session,
             only_if_ungraded=True,
             first_index=first_index,
+            adopt=adopt or (),
         )
 
         return f"Auto-grading started for {count} submissions."

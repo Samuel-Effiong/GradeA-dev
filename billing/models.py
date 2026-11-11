@@ -424,12 +424,18 @@ class SubscriptionPlan(models.Model):
     queue_expiry_days = models.PositiveSmallIntegerField(
         default=14,
         db_default=14,
-        help_text="Days a queued job waits before expiring.",
+        help_text=(
+            "Deprecated (owner 2026-11-08): unused; the queue lifetime is "
+            "QUEUE_LIFETIME_DAYS."
+        ),
     )
     queue_expiry_warning_hours = models.PositiveSmallIntegerField(
         default=48,
         db_default=48,
-        help_text="Hours before expiry to send the warning email.",
+        help_text=(
+            "Deprecated (owner 2026-11-08): unused; the queue lifetime is "
+            "QUEUE_LIFETIME_DAYS."
+        ),
     )
 
     # --- Display ---
@@ -1348,6 +1354,50 @@ def _credit_transaction_action(ledger_type):
     return AuditAction.CREDIT_TRANSACTION
 
 
+#: Epic B1b-6 (plan §3.7): ledger entries that add spendable credits.
+PROMOTING_LEDGER_TYPES = frozenset({"GRANT", "PURCHASE", "REFUND", "PLAN_CHANGE"})
+
+
+def _adds_credits(row):
+    return (
+        row.user_id is not None
+        and row.ledger_type in PROMOTING_LEDGER_TYPES
+        and (row.amount or 0) > 0
+    )
+
+
+def _promote_after_credit(row):
+    if _adds_credits(row):
+        _queue_promotion(row.user_id)
+
+
+def _queue_promotion(user_id):
+    """Epic B1b-6 (plan §3.7, review r1 m3, r2 m-a): a credit entry enqueues
+    the promotion of that user's queued batch jobs after commit; never inline
+    (a promoter error cannot fail the grant), and no query here. Nothing
+    while the flag is off."""
+    if not getattr(settings, "BILLING_HOLDS_ENABLED", False):
+        return
+    from django.db import transaction
+
+    def promote_queued_jobs_after_commit():
+        _enqueue_promotion(user_id)
+
+    transaction.on_commit(promote_queued_jobs_after_commit)
+
+
+def _enqueue_promotion(user_id):
+    from .tasks import promote_queued_jobs_for_wallet
+
+    wallet_id = (
+        CreditWallet.objects.filter(user_id=user_id)
+        .values_list("pk", flat=True)
+        .first()
+    )
+    if wallet_id is not None:
+        promote_queued_jobs_for_wallet.delay(str(wallet_id))
+
+
 def _emit_credit_transaction(row, owner):
     """One `CREDIT_TRANSACTION` audit event for one written `CreditLedger`
     row. Called from both `record()` (the ~18 `billing/services.py` sites)
@@ -1598,6 +1648,7 @@ class CreditLedger(AppendOnlyModel):
         row = cls.build(user=user, **kwargs)
         row.save()
         _emit_credit_transaction(row, user)
+        _promote_after_credit(row)
         return row
 
     @classmethod
@@ -1616,6 +1667,8 @@ class CreditLedger(AppendOnlyModel):
         users_by_id = get_user_model().objects.in_bulk(user_ids) if user_ids else {}
         for row in objs:
             _emit_credit_transaction(row, users_by_id.get(row.user_id))
+        for user_id in {row.user_id for row in objs if _adds_credits(row)}:
+            _queue_promotion(user_id)
 
 
 class CreditUsageLog(AppendOnlyModel):

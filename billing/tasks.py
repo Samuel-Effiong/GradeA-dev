@@ -1851,3 +1851,46 @@ def refund_departed_teacher_share(self, intent_id, share_cents):
                 DEPARTED_SHARE_REFUND_MAX_RETRIES + 1,
                 exc,
             )
+
+
+# --------------------------------------------------------------------------
+# Epic B1b-6 (plan 08 §3.7): the batch queue
+# --------------------------------------------------------------------------
+
+QUEUE_SWEEP_MAX_HOLD = timedelta(minutes=3)
+QUEUE_SWEEP_LOCK_TTL = timedelta(minutes=1)
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=QUEUE_SWEEP_MAX_HOLD, ttl=QUEUE_SWEEP_LOCK_TTL)
+def promote_queued_jobs(self):
+    """Promote queued batch jobs whose wallet can now hold papers (the
+    documented 5-minute bound). Does nothing while the flag is off."""
+    if not getattr(settings, "BILLING_HOLDS_ENABLED", False):
+        return "credit holds disabled"
+    from .batch_queue import promote_all
+
+    return f"Queued batch jobs promoted: papers={promote_all()}"
+
+
+@shared_task(max_retries=0)
+def promote_queued_jobs_for_wallet(wallet_id):
+    """The credit-entry hook's task (plan §3.7): one wallet, on commit."""
+    if not getattr(settings, "BILLING_HOLDS_ENABLED", False):
+        return "credit holds disabled"
+    from .batch_queue import promote_wallet
+
+    return f"Queued batch jobs promoted: papers={promote_wallet(wallet_id)}"
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=QUEUE_SWEEP_MAX_HOLD, ttl=QUEUE_SWEEP_LOCK_TTL)
+def expire_queued_jobs(self):
+    """The 48-hour warning and the expiry of queued batch jobs. Does
+    nothing while the flag is off."""
+    if not getattr(settings, "BILLING_HOLDS_ENABLED", False):
+        return "credit holds disabled"
+    from .batch_queue import expire_due
+
+    result = expire_due()
+    return f"Queued batch jobs: warned={result['warned']} expired={result['expired']}"

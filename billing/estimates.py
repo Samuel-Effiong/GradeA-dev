@@ -296,8 +296,9 @@ def _rough_paper_cost(assignment, representative):
     )
 
 
-def _rough(per_paper, n):
-    factor = BillingSettings.load().cold_start_cost_factor
+def _rough(per_paper, n, factor=None):
+    if factor is None:
+        factor = BillingSettings.load().cold_start_cost_factor
     p50 = math.ceil(n * per_paper * factor)
     return {
         "p50": int(p50),
@@ -354,7 +355,32 @@ def estimate(assignment, n, *, teacher, representative=None, now=None):
     )
 
 
+def paper_hold_estimate(assignment, n, *, teacher, representative=None, now=None):
+    """Epic B1b-6 (Q6): estimate() for n papers, plus the per-paper p90 that
+    a batch holds for each paper it launches (at least 1)."""
+    history = paper_costs(now=now, until=now)
+    result, p90_paper = _estimate_and_paper(
+        history,
+        assignment,
+        n,
+        teacher_id=str(teacher.pk),
+        rough_per_paper=lambda: _rough_paper_cost(assignment, representative),
+    )
+    return result, max(int(p90_paper), 1)
+
+
 def _estimate_from(history, assignment, n, *, teacher_id, rough_per_paper):
+    result, _ = _estimate_and_paper(
+        history,
+        assignment,
+        n,
+        teacher_id=teacher_id,
+        rough_per_paper=rough_per_paper,
+    )
+    return result
+
+
+def _estimate_and_paper(history, assignment, n, *, teacher_id, rough_per_paper):
     target_bucket, target_images = shape_of(assignment)
     chosen = _from_history(
         history,
@@ -366,7 +392,11 @@ def _estimate_from(history, assignment, n, *, teacher_id, rough_per_paper):
         n,
     )
     if chosen is None:
-        return _rough(rough_per_paper(), n)
+        per_paper = rough_per_paper()
+        factor = BillingSettings.load().cold_start_cost_factor
+        return _rough(per_paper, n, factor), math.ceil(
+            per_paper * factor * ROUGH_P90_FACTOR
+        )
     source, costs = chosen
     result = band(costs, n)
     return {
@@ -375,7 +405,7 @@ def _estimate_from(history, assignment, n, *, teacher_id, rough_per_paper):
         "source": source,
         "shape_basis": SHAPE_BASIS,
         "sample_size": len(costs),
-    }
+    }, result["p90_paper"]
 
 
 def spendable_of(user):

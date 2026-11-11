@@ -110,9 +110,10 @@ from .services import (
     ai_assignment_content_only,
     number_questions_in_order,
 )
+from .tasks import grade_engine_async  # noqa: F401 (tests patch it here)
 from .tasks import (  # grade_all_submissions,
+    _dispatch_tracked_grading,
     extract_assignment_background_task,
-    grade_engine_async,
     update_assignment_background_task,
     upload_assignment_async,
 )
@@ -1811,46 +1812,23 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             task_type=BatchUploadType.GRADE,
             total_files=ungraded_submissions.count(),
         )
-        tasks_data = []
-
-        for item_index, submission in enumerate(ungraded_submissions, start=1):
-            processing_task = create_processing_task(
-                requested_by=request.user,
-                task_type=BackgroundTaskType.BATCH_SUBMISSION_GRADING,
-                batch_session=session,
-                assignment=assignment,
-                submission=submission,
-                file_name=f"Submission for {submission.student.get_full_name()}",
-                meta={"step": "Queued for batch grading"},
-                item_index=item_index,
-            )
-            task = launch_processing_task(
-                grade_engine_async,
-                processing_task,
-                str(request.user.id),
-                str(submission.id),
-                batch_id=session.id,
-            )
-            emit(
-                AuditAction.GRADING_REQUESTED,
-                actor=request.user,
-                request=request,
-                target_type="StudentSubmission",
-                target_id=submission.id,
-                outcome=AuditOutcome.SUCCESS,
-                metadata={
-                    "assignment_id": str(assignment.id),
-                    "submission_id": str(submission.id),
-                    "task_id": str(processing_task.id),
-                    "task_type": BackgroundTaskType.BATCH_SUBMISSION_GRADING,
-                },
-            )
-            tasks_data.append(
-                {
-                    "file_name": f"Submission for {submission.student.get_full_name()}",
-                    "task_id": task.id,
-                }
-            )
+        # Epic B1b-6 (08b §1.4): the one dispatch path. With the flag on, a
+        # paper waiting for credits has no message yet: task_id null (D6-d).
+        pairs = _dispatch_tracked_grading(
+            request.user,
+            assignment,
+            ungraded_submissions,
+            session,
+            request=request,
+            batch_id=session.id,
+        )
+        tasks_data = [
+            {
+                "file_name": processing_task.file_name,
+                "task_id": task.id if task is not None else None,
+            }
+            for processing_task, task in pairs
+        ]
 
         data = {
             "session_id": session.id,

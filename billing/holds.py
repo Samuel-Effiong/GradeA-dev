@@ -241,6 +241,37 @@ def _reserve_locked(locked_wallet, amount, job, item, status=None):
     return True
 
 
+def claim_batch_rows_locked(locked_wallet, job_row, rows):
+    """B1b-6 (plan §3.7, D6-b): hold and claim as many of `rows` (in order)
+    as the spendable balance fits whole, held_per_item each; each claim is a
+    conditional UPDATE hold_state NULL -> HELD on a PENDING row. The wallet
+    is locked. Returns the claimed rows."""
+    per = job_row.held_per_item
+    fit = _free(locked_wallet) // per if per > 0 else len(rows)
+    k = min(len(rows), fit)
+    if k <= 0:
+        return []
+    if not _reserve_locked(locked_wallet, k * per, job_row, None):
+        return []
+    claimed = []
+    for row in rows[:k]:
+        took = BackgroundProcessingTask.objects.filter(
+            pk=row.pk,
+            job_id=job_row.pk,
+            status=BackgroundTaskStatus.PENDING,
+            hold_state__isnull=True,
+        ).update(hold_state=HoldState.HELD, hold_credits=per)
+        if took:
+            claimed.append(row)
+    unused = (k - len(claimed)) * per
+    if unused:
+        _move_wallet(locked_wallet.pk, -unused)
+        AIJob.objects.filter(pk=job_row.pk).update(
+            reserved_credits=F("reserved_credits") - unused
+        )
+    return claimed
+
+
 def reserve(wallet, amount, job, item=None, status=None):
     """Hold `amount` for `job` (and on `item`, when given). True if granted.
     One short transaction, no network I/O."""
@@ -383,6 +414,8 @@ def settle(
             credits_released=leftover,
         )
 
+    if item_row is not None and not already_counted:
+        _after_batch_item(job_row)
     tags = {"job_type": job_row.job_type}
     if overrun_charged:
         audit_metrics.count("credit_overrun_charged", overrun_charged, tags=tags)
@@ -421,20 +454,34 @@ def fail_item(job, *, item=None):
                 credits=amount,
                 reason_label="failed",
             )
-        return amount
+    if item_row is not None and count_it:
+        _after_batch_item(job_row)
+    return amount
 
 
-def finish_job(job, to_status):
+def _after_batch_item(job_row):
+    """B1b-6: the last-item helper, for a BATCH_GRADING job only (no query
+    for any other job type)."""
+    if job_row.job_type == AIJobType.BATCH_GRADING:
+        from .batch_queue import decide_after_item
+
+        decide_after_item(job_row.pk)
+
+
+def finish_job(job, to_status, from_statuses=OPEN_STATUSES):
     """Move an open job to a terminal status and return what is left of its
     hold (plan §3.2 release). Idempotent through the conditional status
-    UPDATE: returns None if the job was not open."""
+    UPDATE: returns None if the job was not open.
+
+    from_statuses (B1b-6): the statuses the move is conditional on; expiry
+    passes QUEUED_PENDING_CREDITS only, so it never ends a promoted job."""
     if to_status not in TERMINAL_STATUSES:
         raise ValueError(f"{to_status} is not a terminal status")
     with transaction.atomic():
         locked = _lock_wallet_of(job)
         if locked is None:
             return None
-        moved = AIJob.objects.filter(pk=job.pk, status__in=OPEN_STATUSES).update(
+        moved = AIJob.objects.filter(pk=job.pk, status__in=from_statuses).update(
             status=to_status
         )
         if not moved:
@@ -470,6 +517,37 @@ def finish_job(job, to_status):
 # --------------------------------------------------------------------------
 # Starting, late messages
 # --------------------------------------------------------------------------
+
+
+def detach_item(item):
+    """B1b-6 (Q10): take a finished, unheld row out of its job so a new batch
+    job can adopt it (the H-215a retry). The old job keeps the row's numbers
+    in deleted_items_*, as for a deleted row, so its invariant still adds
+    up; the row's hold columns start again at zero. Returns the row."""
+    with transaction.atomic():
+        if item.job_id is not None:
+            job = AIJob.objects.filter(pk=item.job_id).first()
+            if job is not None and _lock_wallet_of(job) is not None:
+                fresh = BackgroundProcessingTask.objects.select_for_update().get(
+                    pk=item.pk
+                )
+                if fresh.hold_state == HoldState.HELD:
+                    raise ValueError("a held row cannot leave its job")
+                AIJob.objects.filter(pk=job.pk).update(
+                    deleted_items_held=F("deleted_items_held") + fresh.hold_credits,
+                    deleted_items_drawn=F("deleted_items_drawn") + fresh.hold_drawn,
+                    deleted_items_released=F("deleted_items_released")
+                    + fresh.released_credits,
+                )
+        BackgroundProcessingTask.objects.filter(pk=item.pk).update(
+            job=None,
+            hold_state=None,
+            hold_credits=0,
+            hold_drawn=0,
+            released_credits=0,
+        )
+    item.refresh_from_db()
+    return item
 
 
 def claim_item_start(item):
@@ -606,7 +684,8 @@ def _sweep_item(item_pk, job_pk, cutoff):
             credits=amount,
             reason_label="stale",
         )
-        return amount
+    _after_batch_item(job_row)
+    return amount
 
 
 def sweep_stale_holds(now=None):
@@ -654,10 +733,17 @@ def sweep_stale_holds(now=None):
             jobs_released += 1
             credits_returned += returned
 
+    # B1b-6 (plan §3.2, review r4 m-4): jobs none of whose papers started
+    # or settled for unstarted_backstop_hours.
+    from .batch_queue import backstop_unstarted
+
+    backstopped = backstop_unstarted(now)
+
     return {
         "items_swept": items_swept,
         "credits_returned": credits_returned,
         "jobs_released": jobs_released,
+        "items_backstopped": backstopped,
     }
 
 
@@ -791,6 +877,10 @@ class Unit:
                 self.job, self.item = row.job, BackgroundProcessingTask.objects.get(
                     pk=row.pk
                 )
+                if row.job is not None and row.job.job_type == AIJobType.BATCH_GRADING:
+                    from .batch_queue import mark_running
+
+                    mark_running(row.job)
                 return
             row = BackgroundProcessingTask.objects.select_related("job").get(pk=row.pk)
         old_job = row.job
@@ -1231,6 +1321,13 @@ def finish_job_left_empty_on_item_delete(sender, instance, **kwargs):
             return
         job = AIJob.objects.filter(pk=instance.job_id).first()
         if job is None or job.status not in OPEN_STATUSES:
+            return
+        if job.job_type == AIJobType.BATCH_GRADING:
+            # B1b-6 (obligation 1): the last-item helper decides a batch
+            # job, after the rows are gone (here, in post_delete).
+            from .batch_queue import decide_after_item
+
+            decide_after_item(job.pk)
             return
         if _job_has_rows_to_run(job.pk):
             return
