@@ -6,8 +6,8 @@ Flag on, at the three upload-async routes:
   * each queued file's door estimate is reserved on its task row under one
     UPLOAD job per request, inside the request's transaction; a refused hold
     rolls the row back and nothing is launched;
-  * the task's unit then claims the row and settles on it; the shared door
-    job stays open (its terminal transition is step 5).
+  * the task's unit then claims the row and settles on it; the door job
+    closes at its last item (door-close fix, test_holds_door_close).
 A late door file that cannot be held gets an email, but the texts are
 PENDING OWNER APPROVAL and nothing is sent until they are approved.
 """
@@ -128,7 +128,8 @@ class StudentDoorTests(APITestCase):
         row, job = fresh(row), fresh(job)
         self.assertEqual(row.hold_state, "RETURNED")
         self.assertEqual(job.consumed_credits, 300)
-        self.assertNotIn(job.status, ("SETTLED", "FAILED"))
+        # Door-close fix (2026-11-12): its one file ended, so the job settles.
+        self.assertEqual(job.status, "SETTLED")
         self.assertEqual(wallet_of(teacher).reserved_credits, 0)
 
     @override_settings(BILLING_HOLDS_ENABLED=False)
