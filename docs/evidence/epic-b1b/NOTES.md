@@ -4232,3 +4232,90 @@ Each plant is one edit to the product at e0fc5ffb7 (`billing/low_balance.py`, `b
   - (a) AIJob cancel;
   - (c) a teacher on a spent license budget gets no low-balance email;
   - (b) the unit wrap: not reachable today, still listed.
+
+## §8 B1b-8: approved texts and the switches. Survey and design, before any code (SM GO 2026-11-11, after B1b-7 FINAL at 22e8b9bde)
+
+### §8.0 The survey (read-only)
+
+**Sources:**
+- 08b §8 row: `| B1b-8 | **Approved texts and the switch** (§4): the three texts from the setting; LATE_DOOR_EMAIL_APPROVED = True; the §7 texts the owner approved | Verbatim pins at the default and an override | 0.5 |`.
+- 08b §4 (texts 1–3 take `{days}`; SM ruling 2026-11-08: text 1 built once from the setting when the catalogue loads, with the `"{" not in remediation` pin left as it is).
+- `team/approved_wording_2026-11-08.md` (texts 1–4; sha256 `82b18999…f715`).
+- `team/approved_wording_b1b_2026-11-09.md` (#1–#23 + H-1 + L1; sha256 `9714cdfd…b48c`, unchanged since §6.7.4).
+- The B1b-8 list in §5.19 and §5.20.
+- **origin/staging** is 22 commits ahead of HEAD (head `1b842050f`, H-34). It is merged at the start of the build, per doctrine, not before the GO.
+
+**Every approved text, where it lives, and its state today:**
+
+| # | Text | Where | State today | B1b-8 work |
+|---|---|---|---|---|
+| 08-11 #1 | `INSUFFICIENT_CREDITS_MID_BATCH` remediation, with `{days}` | `AutoGrader/reason_codes.py:254-256` | **old text** ("Unfinished uploads need their files uploaded again") | Built from `QUEUE_LIFETIME_DAYS` when the catalogue loads (SM 2026-11-08). The `"{" not in` pin (`AutoGrader/tests_reason_codes.py:258`) stays. New pins: the default (30) and an override (a builder called with another value). |
+| 08-11 #2 | REUPLOAD, "deleted after {days} days" | `students/item_retry.py:55` (`REUPLOAD`, one constant) | **old text** ("its file isn't kept") | **Q8-1** (one constant can't be true for every case; below) |
+| 08-11 #3 | Late-door email, with `{days}` | `billing/holds.py:1263-1276` (`LATE_DOOR_EMAIL_TEXTS`) | **old draft** ("upload the file again"); `LATE_DOOR_EMAIL_APPROVED = False` | New texts verbatim, `{days}` added, flag True. **Q8-3** (the student single-upload "retry") |
+| #1–#4 | Estimate verdict texts | the app (B1b-4 Q5: the endpoint returns codes only) | n/a server-side | none server-side; for the app hand-off |
+| #5, #8–#10, #6/#7 | Queue emails and closings | `billing/batch_queue.py:61-91` | verbatim, pinned (`test_batch_queue.py:827`); `QUEUE_EMAIL_APPROVED = False` | flag True |
+| #11–#13 | Low-balance emails | `billing/low_balance.py:34-58` | verbatim; `LOW_BALANCE_EMAIL_APPROVED = False` | flag True |
+| #14, #15 | Credits-screen labels, job state on screen | the app (`balance_status` codes, the job API) | n/a server-side | none server-side; app hand-off |
+| #16a | Retry hint: "kept until {kept_until}" | the app | **no API exposes `kept_until`** (task status `users/views.py:2629-2671`, the item retry routes `:2817`, `:2848`; no serializer has it) | **Q8-2** |
+| #16b | "its file wasn't saved" | the retry refusal's `why` | not built | part of Q8-1 |
+| #17 | Drift email | `billing/estimates.py:74-91` | verbatim; `DRIFT_EMAIL_APPROVED = False` | flag True |
+| #18 | Export name `kept_file` | `students/data_export.py:191-192` | outside `EXPORT_NAMES`; `KEPT_FILE_EXPORT_NAME_APPROVED = False` | into `EXPORT_NAMES` + the test's `APPROVED_NAMES`; flag True |
+| #19–#23 | Privacy document | `docs/GRADE_A_PLUS_BACKEND_DATA_PRIVACY_SECURITY_COMPLIANCE.md` + PDF | not applied ("at switch-on, before F4 runs in production") | **Q8-4** (in B1b-8, or at switch-on) |
+| L1 | `kept-uploads.json` + README line | the export | not built | "after B1b reaches staging": not B1b-8 |
+| H-1 | Estimate list limit | `billing/estimate_views.py` | done (B1b-6b) | none |
+
+**The pre-existing tests that pin a switch Off** (each edit gets a break run):
+- `billing/tests/test_batch_queue.py:820` (`QUEUE_EMAIL_APPROVED` False);
+- `billing/tests/test_holds_door.py:271` (`LATE_DOOR_EMAIL_APPROVED` False);
+- `billing/tests/test_estimate_backtest.py:210` (`DRIFT_EMAIL_APPROVED` False);
+- `students/tests_kept_uploads.py:761` (`KEPT_FILE_EXPORT_NAME_APPROVED` False);
+- `students/tests_data_export.py:92`/`:396` (`APPROVED_NAMES` without `kept_file`).
+- **Old-text pins:** `students/tests_item_retry.py:12-13`, `:260` (`"upload the file again"` in the refusal).
+- `LOW_BALANCE_EMAIL_APPROVED` has no Off pin; its tests patch it.
+- **The §7.25 lesson applied:** any body these texts change gets the key-pin sweep before the tests are declared.
+
+**Q8-1, the REUPLOAD case split** (text 2 vs #16b). `purged_at` is set on **every** way a kept file goes:
+- success or cancel (`discard`, `students/kept_uploads.py:106-121`);
+- refusal (`_discard_refused_kept_file`, `students/task_tracking.py:345`);
+- a missing or corrupt asset (`_lost`, `:137-142`);
+- the lifetime purge (`purge_due`, `:182`).
+
+So text 2's "deleted after {days} days" is true only for the lifetime purge.
+- **Proposed rule** for a non-retryable upload item's `why`:
+  - **no `KeptUpload` row** → #16b "This upload can't be retried because its file wasn't saved. Upload the file again." (the §5 D-meaning: storage down, or an item from before F4);
+  - **row purged by the lifetime purge** → text 2 with `{days}`. That is told apart by `purged_at >= kept_until`; any earlier purge is the other kinds;
+  - **anything else** (purged early by refusal, a missing asset, success or cancel, or a code a kept file can't retry) → the catalogue's existing default `why`, "This item can't be retried as it is." (already approved; no new wording). `resolution: replace_file` is kept for every upload item, as today.
+- **Alternative:** ask the owner for one more text for the "lost early" case. Not recommended: the default is true and already approved.
+
+**Q8-2, #16a needs a field.** The app can't show "kept until {kept_until}" because no response carries it.
+- **Proposed:** add read-only `kept_until` (ISO datetime, or null) to the task-status response (`TaskStatusSerializer`) for an upload item that has an unpurged kept file. It is not shown to a student (the §7.25 rule: the route is teacher-scoped, `get_processing_task(..., requested_by=request.user)`; I'll confirm with a test that a student caller gets null or no key).
+- That is a new API field, and the text stays in the app.
+- **Alternative:** defer #16a to the app/API work after B1b. Then nothing changes server-side for #16a in B1b-8.
+
+**Q8-3, text 3's "retry" for a student's single upload.** The late door covers `ANSWER_EXTRACTION` (`KEEPABLE_TYPES`, `students/kept_uploads.py:40-46`). That is a student's single upload with no batch session, and `item_retry` retries only `BATCH_ANSWER_UPLOAD`/`BATCH_ASSIGNMENT_UPLOAD` (`UPLOAD_ITEM_TYPES`, `:46-48`). So text 3 tells the teacher to "retry" a file with no retry route. This is §5.19's open gap, still unresolved. **Options:**
+- (i) the owner gives a variant of text 3 for a student's single upload;
+- (ii) switch the late-door email on only for batch rows, and log the single-upload case as today;
+- (iii) build a retry route for `ANSWER_EXTRACTION`: new scope, not recommended for B1b-8.
+- **Recommended: (ii) now, and (i) to the owner.**
+
+**Q8-4, the privacy document (#19–#23).** The wording file says these are "applied at switch-on (before F4 runs in production), with the PDF regenerated".
+- Does the edit belong in B1b-8 (B1b ends with the flag still off in production, 08b §6.1), or in the switch-on step?
+- **Recommended:** B1b-8, so B1b reaches staging with the document already true for staging. The PDF regeneration is part of it.
+
+**Q8-5, size.** 08b gives 0.5 days. With Q8-1, Q8-2 and the 7 pin edits with break runs, it is about 1–1.5 days. Recorded.
+
+### §8.1 Owner-facing questions (plain words, for the SM to send)
+
+**(a) Cancelling an AI job.**
+- The plan listed a "cancel this AI job" action for teachers (their own job, while it is still running or waiting). We have not built a separate button or route for it.
+- What exists today: a teacher can already stop a whole batch, for an upload batch or a grading batch, from the batch's "cancel" action. Each paper that hasn't finished is stopped, and the credits held for it are returned.
+- [To verify before this goes out: that a grading batch waiting for credits also closes its waiting status when every paper is cancelled.]
+- **Question:** Is the batch "cancel" enough for now, or do you want a separate "cancel this job" action (for example, for one long AI request)?
+- **Our recommendation:** the batch cancel is enough for B1b; add a separate one later only if teachers ask.
+
+**(c) A school license that has used up its credits.**
+- When a school license's shared credits run out, its teachers get an empty month: their own monthly credits are 0.
+- Our low-balance emails ("You have 25% left", "10% left", "You're out of credits") measure against that month's credits. With 0 to measure against, no percentage is true, so we send **none**: the teacher gets no "you're out of credits" email in this case.
+- The teacher still sees a refusal when they try to grade, which tells them to ask their school administrator for more credits.
+- **Question:** Is that acceptable, or should these teachers get an email too? If they should, we need one new short text approved, for example "Your school's credits have run out. Ask your school administrator for more credits to continue."
+- **Our recommendation:** accept it for B1b (no email). Revisit if school admins ask for it.
