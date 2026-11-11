@@ -47,8 +47,9 @@ that the admin's prompt is passed through, never the context's contents.
   {id, name, email, score, metrics, flags}. The template's header says "(For
   specific outreach)", so the original intent was clearly to identify
   people. But fixing the bug as written would **start sending ten teachers'
-  names and email addresses to the AI gateway** (OpenRouter, zero data
-  retention per docs/GRADE_A_PLUS_BACKEND_DATA_PRIVACY_SECURITY_COMPLIANCE.md).
+  names and email addresses to the AI gateway** (OpenRouter; zero data
+  retention is NOT on by default, see section 9. The original line here
+  said "zero data retention", which was wrong, corrected 2026-11-11).
   Today the prompt carries no names or emails. It already carries user
   UUIDs (the distribution and quintile blocks, M0).
   - (a) Send the full row, as intended. Most useful for "who should we
@@ -125,3 +126,58 @@ so I expect a clean merge.
 
 3-4 h after the rulings: tests and pins 1.5 h, product 45 min, plants 30
 min, near 15 min, evidence and checkpoint 30 min.
+
+## 8. Rulings (SM -cf on ae8c9c11a): GO
+
+- **Q-L1: the OWNER chose (a), the full row including name and email
+  (asked directly by the SM, 2026-11-11).** This is the owner's decision.
+  Plant 3 becomes "name or email dropped from the block", which the
+  exact-string pin must kill. The privacy page is not edited here; the SM
+  will raise it with the owner.
+- **Q-L2 accepted.** Narrow the except to django.db.DatabaseError and log
+  with logger.exception, the message only, so no lead data (names, emails)
+  reaches the logs; a test asserts that. Fall back to `[]`. A programming
+  error is a 500 (tested).
+- **Q-L3 accepted.** Query params are ignored. Plant 5 as proposed.
+- **Q-L4 accepted.** The exact lead-block string comes from a frozen fixture;
+  the rest of the template is pinned byte-identical to the base. The M0 slip
+  stays recorded as it is, not amended.
+- The other bare excepts and the HIGH INTENT wording go to backlog (section
+  5), untouched.
+
+## 9. ZDR check (asked by the SM): CORRECTION to section 3
+
+Section 3 called the gateway "OpenRouter, zero data retention". The code
+says otherwise by default:
+- custom_ai_prompt → ai_processor.custom_ai_prompt_retry → custom_ai_prompt
+  → execute_graded_task → __ai_model, the single provider call, which sends
+  `"provider": _provider_block()` (ai_processor/services.py:1235).
+- `_provider_block` (services.py:878-912) always sends `data_collection:
+  "deny"` (by its own docstring this "by itself excludes nobody"). It sends
+  `zdr: True` only while `AI_PROVIDER_ZDR_ENABLED` is on.
+  AutoGrader/settings.py:694 defaults that to False, "OFF by default (the
+  owner, 24 October 2026)", and "without it several of our suppliers retain
+  prompts".
+- The production value is not visible from here. The setting is unchanged
+  by this job.
+
+So unless production sets the variable, the lead block's names and emails
+would go to suppliers that may retain prompts. That was reported to the SM
+(2026-11-11) with a request that the owner confirm Q-L1 (a) knowing this.
+All lead-row code and tests are held until then. Only the base pin (P0),
+which does not depend on Q-L1, goes ahead.
+
+## 10. Q-L1 reconfirmed by the owner, knowing the ZDR facts (2026-11-11)
+
+The SM asked the owner again and gave them the section 9 facts:
+- `data_collection: "deny"` is always sent;
+- `zdr: True` is sent only while AI_PROVIDER_ZDR_ENABLED is on;
+- that setting defaults to False (OFF since 24 October 2026, the owner's
+  decision);
+- without it several suppliers may retain prompts.
+
+**The owner chose (a), the full row including names and emails,
+"regardless", knowing these facts.** The build proceeds with (a). The ZDR
+setting and the privacy page are untouched by this job. The SM is raising
+the privacy page's "zero data retention" sentence with the owner
+separately.
