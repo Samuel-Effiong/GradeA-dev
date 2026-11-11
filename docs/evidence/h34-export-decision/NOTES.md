@@ -35,3 +35,18 @@ R2 green (with the fix): students.tests_data_export: Ran 46, OK.
 
 N1 near (with the fix): students + users + guards67: Ran 2981, OK,
 failures=0, errors=0. Skip count not predicted; recorded as seen.
+
+## Results
+
+R1 red: as predicted. Ran 46, FAILED (failures=1); the only failure is
+test_every_field_is_decided_exactly_once (label='users.CustomUser'),
+"Items in the second set but not the first: 'admin_locked_at'". Log 01_red.log.
+
+R2 green (fix da51ec7e6): as predicted. students.tests_data_export: Ran 46, OK. Log 02_green.log.
+
+N1 near (fix da51ec7e6): students + users + the 67 standing guard labels,
+venv h284_deps_env, settings_worktree, --keepdb, --parallel 1, under flock.
+Ran 2981, OK (skipped=6). Matches the declared count, failures 0, errors 0;
+I did not predict a skip count. Log 03_near_n1.log.gz.
+
+No migration: the change is one dict entry in students/data_export.py.
