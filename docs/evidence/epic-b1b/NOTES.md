@@ -5401,3 +5401,10 @@ The flag-off stop path and the whole-batch door are on hold until the SM comes b
 - R11-green: OK.
 - N11: the near (`billing students assignments dashboard users` + `guards67.txt`, flag off, `--parallel 4`). The count is declared from `build_suite` before it runs. Declared: OK.
 - B11-on: `billing` alone with `BILLING_HOLDS_ENABLED=1`. The count is declared before it runs. Declared: OK.
+
+### §11.2 SM amendment to §11.1 (SM -cf, 2026-11-11), recorded unamended in substance
+
+- **Text 1 and text 3 are untouched**, and LATE_DOOR_EMAIL_APPROVED stays True. The owner objected earlier to switching the email off. The branch is not deployed, so nothing untrue ships while the SM asks the owner for replacements.
+  - Both are **awaiting owner wording**. Until then, text 1 still says "Your files are kept for {days} days, so you won't need to upload them again." and text 3 still says "Your file is kept for {days} days. ... You won't need to upload it again.", and neither is true after B1b-11. The approved strings will replace them when the SM sends them.
+- §11.1's K-7 is dropped. `billing/tests/test_b1b8_texts.py` keeps its text 1 and text 3 cases unchanged.
+- Everything else in §11.1 stands: #16's kept variant and text 2 go with the kept file, privacy #19-#21 and #23, #22, the PDF, and `kept_until`.
