@@ -4883,3 +4883,63 @@ The fragments were rendered from unittest's own messages (no test run). No pre-e
   - The tests job is OK, with the exact Ran and skip counts declared in §10.1 before the push. Any failure is recorded unamended and is a STOP; the B1a run's live-server flake is named in advance as the one known flaky test.
   - `migration-safety` is expected to FAIL on its base, as in B1a: `dev` dates from May 2026, so every later migration counts as new. Every B1b migration should report additive.
 - **Order:** the local battery and both nears first, reviewed by the SM; then the owner's go; then the push and the PR.
+
+### §10.1 SM ruling on §10.0 (grade-automator-plus-16, 2026-11-11), recorded unamended in substance; the battery, E-off and E-on declared (before any runs)
+
+**The ruling:**
+- GO for the local plan, 3(a)–(c).
+- **Q10-1 YES:** re-anchor moved B1a anchors to the same logic, each listed (old anchor → new anchor and file:line) before any plant runs. Where the logic no longer exists, RETIRED, with the reason and the removing commit; no invented replacement.
+- **Q10-2 FULL battery**, serial, each plant with its own killer label only. The match-count table is committed before the first plant. **Any survivor is a STOP**, reported before continuing.
+- The nears as planned; the PG16 plan accepted (draft PR into dev, DO NOT MERGE, closed unmerged, no workflow change). The exact Ran and skip counts go in NOTES before the push.
+
+**The battery: 129 plants** (`step10/battery.json`; runner `step10/run_battery.py`; the match-count table `step10/battery_table.md`; the check output `step10/battery_check_f886de96b.txt`):
+- **By group:** B1a 21 (the §21c mutants, with TP-1); B1b steps 1–3: 24 (PFB-1..4, 6..9, 9b; PB1-1, PB2-1, PB3-1..3, PB4-1..2; PP1, PP1b, PP2, PP3, PP3b, PP4, PP5, PPL); step 4: 26 (PE-1..24, PE-3b, PE-24b); step 5: 20 (PK-1..16, PK-5b, and step 6's PK-6a-1..3); steps 6–9: 38 (PB6-1..14, PB6b-1..2, PB7-1..3, 5, 6, e1..e3, other; P8-1..5; P9-1..7 with 4b).
+- **Anchors:** every edit's text matches **exactly once** at f886de96b (product = 67851f24e). Each planted file compiles. All 224 killer tests resolve to a class and method today.
+- **121 same, 8 re-anchored, 0 retired.**
+- **How they were rebuilt:**
+  - B1a's script (`plant21.py`) and B1b's step 1–5 scripts are not kept, so those plants were rebuilt from their NOTES wording. "Same" means the targeted text exists today unchanged, not that the replacement is byte-identical to the lost original.
+  - Steps 6–9 are replayed exactly: step 6 from the committed `step6/plants_b6.py`; PB6b-1/2 from their log headers; PB7, P8 and P9 from the diffs in their own logs.
+- **Labels:** the declared kill tests only (allowed failures and declared survivors left out). For steps 7–9, the tests that failed in each plant's own log.
+- **Fragments:** the declared or observed fragment of each original run. Where NOTES recorded none (PFB-8, PFB-9, PFB-9b, PB2-1), the declared tests must fail with the declared counts.
+
+**The re-anchored plants** (old anchor → new anchor, file:line, and why):
+- **M-B7** (B1a): finish_job (:380): AIJob.objects.filter(pk=job.pk, status__in=OPEN_STATUSES).update( → `billing/holds.py:572`. 8e8acc617 (B1b-6) made finish_job's conditional status set a parameter, from_statuses (default OPEN_STATUSES); the same conditional move, its condition removed
+- **M-B11** (B1a): sweep_stale_holds candidates started_at__isnull=False + started_at__lt=cutoff -> job__updated_at__lt=cutoff; _sweep_item started_at__lt=cutoff -> job__updated_at__lt=cutoff → `billing/holds.py:805, billing/holds.py:756`. 05ddbd2c1 (B1b-9) split the sweep's started/cutoff filters behind `if not force:` (candidates in sweep_stale_holds, the conditional claim in _sweep_item); the logic is unchanged for force=False
+- **M-B26** (B1a): candidates started_at filters removed; _sweep_item `, started_at__lt=cutoff` removed → `billing/holds.py:805, billing/holds.py:756`. 05ddbd2c1 (B1b-9) split the sweep's started/cutoff filters behind `if not force:` (candidates in sweep_stale_holds, the conditional claim in _sweep_item); the logic is unchanged for force=False; removing the `if not force:` filter blocks removes exactly those filters
+- **M-B31s** (B1a): _sweep_item only: `, started_at__lt=cutoff` removed → `billing/holds.py:756`. 05ddbd2c1 (B1b-9) split the sweep's started/cutoff filters behind `if not force:` (candidates in sweep_stale_holds, the conditional claim in _sweep_item); the logic is unchanged for force=False
+- **PB3-1** (B1b-1..3): the 7-line locked.consume_credits(...) call in settle, c36534db7:billing/holds.py:320 → `billing/holds.py:412`. the consume call gained `_wallet_locked=True` in B1b-3 P3 (1a258c0d8); same call duplicated/followed as at c36534db7
+- **PB3-2** (B1b-1..3): the 7-line locked.consume_credits(...) call in settle, c36534db7:billing/holds.py:320 → `billing/holds.py:412`. the consume call gained `_wallet_locked=True` in B1b-3 P3 (1a258c0d8); same call duplicated/followed as at c36534db7
+- **PP1b** (B1b-1..3): close = (close_status if close_status is not None and job_row.status in OPEN_STATUSES else F("status"))  [the condition inside settle's close expression, 0539ccbb9] → `billing/holds.py:428`. e0fc5ffb7 (B1b-7 D7) split the condition into `closing = ...` (it also gates emit_estimate_gap); the same condition dropped
+- **PE-9** (B1b-4): _rough (at 481c2e3a): `factor = BillingSettings.load().cold_start_cost_factor` -> `factor = 3.0` → `billing/estimates.py:301 (_rough fallback) and :396 (_estimate_and_paper, the load the estimate path now uses)`. B1b-6 8e8acc617 moved the settings read for the estimate path into _estimate_and_paper and made _rough take factor=None; planting only _rough's line would no longer reach the killer. Both reads of the same factor are hard-coded, the same logic as the original
+
+**Declared outcomes needing a word:**
+- **PB6-3 (M-B19)** is a **declared survivor** accepted at §6.6.10 (equivalent: the per-row claim needs PENDING and a null hold_state, under the wallet lock). It is declared again as **Ran 2, OK**. That result is not a new survivor. Any other pass is.
+- **M-B31s** is non-deterministic (B1a §21c, §21j: killed in 1 claim-first round of 10). It is declared killed, Ran 1, FAILED (failures=1). A pass is reported as a STOP.
+- **M-B27** keeps the fragment ruled at B1a: `Expected '_AIProcessor__ai_model' to not have been called`.
+- **PB2-1** runs with `BILLING_HOLDS_ENABLED=True` from the environment, as at step 2: 25 tests, failures=22, errors=3. Every other plant runs with the five env vars unset; the killer classes pin the flag themselves.
+- **PE-22:** one killer with subTests, Ran 1, FAILED (failures=5, errors=3), as §4.9.
+- **PK-13:** Ran 1, FAILED (errors=1), `KeyError: ('students.KeptUpload', 'processing_task')`. At step 5 it ran with three more modules; here only the killer.
+- **PK-4, PK-5, PK-7, PK-9 and PK-5b** use the observed fragments, as ruled at §5.14, §5.15 and §5.17.
+- **PE-20's killer** patches `DRIFT_EMAIL_APPROVED` False since B1b-8; it still reaches the planted code.
+
+**The rules for the run:**
+- Each plant is applied, its killer label runs alone, serial, under flock, with `--noinput`.
+- Each file is restored by `git checkout` and its sha256 checked against HEAD.
+- The runner stops at the first result not as declared: a survivor, a different count, a missing fragment, or a restore mismatch. That is a STOP to the SM before anything continues.
+- Logs: `step10/battery/<plant>_<sha>.log`. The summary: `step10/battery/battery_summary_<sha>.jsonl`.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| B10 (battery) | BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset (PB2-1: BILLING_HOLDS_ENABLED=True); serial; under flock; at this commit | each plant's killer label (`step10/battery_table.md`) | each plant as its row: 128 killed with the declared counts and fragments; PB6-3 Ran 2, OK (the declared survivor) |
+
+**The two nears**, after the battery, at the same commit:
+- **Labels:** `billing ai_processor assignments students users dashboard audit.tests_h273_query_filters audit.tests_route_coverage` + `guards67.txt`.
+- **Count** (`bsk.py`): **8261 tests, 31 static skips**, the same with the flag on or off.
+- **Runtime skips, worked out: 6.** They are users' 4 plus the 2 `--parallel` fork tests (§6.7.3), and no flag-dependent skip exists (grep: no `skip` on `BILLING_HOLDS_*`).
+- **The check:** step 6's E1 labels at their own commit 4611e9825 build 7606 tests with 28 static skips (counted in a throwaway worktree of mine, since removed). E1 ran skipped=34 = 28 + 6. Today the same labels have 29 static skips, and `dashboard` adds 2, so 31.
+- **So skipped = 31 + 6 = 37.**
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| E-off | the five unset; `--parallel 4`; under flock with `--noinput`; at this commit | the labels above + `guards67.txt` | **Ran 8261, OK (skipped=37)**, 0 FAIL, 0 ERROR |
+| E-on | the same, with `BILLING_HOLDS_ENABLED=True` from the environment | the same | **Ran 8261, OK (skipped=37)**, 0 FAIL, 0 ERROR |

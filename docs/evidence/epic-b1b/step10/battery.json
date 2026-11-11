@@ -1,0 +1,3043 @@
+[
+ {
+  "name": "M-B1",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        pk=locked_wallet.pk, reserved_credits__lte=total - amount\n",
+    "new": "        pk=locked_wallet.pk\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_concurrency.ReserveRaceTests.test_concurrent_reserves_grant_exactly_what_fits",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "32 != 7"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:266",
+  "old_anchor": "_reserve_locked (:192): reserved_credits__lte=total - amount removed",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B2",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        locked = lock_wallet_first(wallet)\n",
+    "new": "        locked = CreditWallet.objects.get(pk=wallet.pk)\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_gate.EpqReserveRaceTests.test_r4b_the_production_reserve_is_refused_after_the_consume",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "True is not false"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:322",
+  "old_anchor": "reserve (:217): locked = lock_wallet_first(wallet)",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B3",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        chargeable = min(actual, left + _free(locked))\n",
+    "new": "        chargeable = min(actual, locked.total_remaining_credits())\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_overrun.OverrunTests.test_an_overrun_never_takes_another_jobs_hold",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "(200, 0) != (100, 100)"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:397",
+  "old_anchor": "settle (:296) chargeable",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B6",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "                    item_id=key[0],\n",
+    "new": "                    item_id=uuid.uuid4(),\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_settlement.SettlementKeyTests.test_a_redelivered_settlement_settles_once",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "True is not false"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:404",
+  "old_anchor": "settle (:282) item_id=key[0]",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B7",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        moved = AIJob.objects.filter(pk=job.pk, status__in=from_statuses).update(\n",
+    "new": "        moved = AIJob.objects.filter(pk=job.pk).update(\n"
+   }
+  ],
+  "label": "billing.tests.test_holds.SettleAndFailTests.test_finish_job_releases_the_remainder_exactly_once",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "0 is not None"
+  ],
+  "env": {},
+  "status": "reanchored",
+  "new_location": "billing/holds.py:572",
+  "old_anchor": "finish_job (:380): AIJob.objects.filter(pk=job.pk, status__in=OPEN_STATUSES).update(",
+  "reason": "8e8acc617 (B1b-6) made finish_job's conditional status set a parameter, from_statuses (default OPEN_STATUSES); the same conditional move, its condition removed",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B11",
+  "group": "B1a",
+  "edits": [
+   {
+    "old": "    if not force:\n        held = held.filter(started_at__isnull=False, started_at__lt=cutoff)\n",
+    "new": "    if not force:\n        held = held.filter(job__updated_at__lt=cutoff)\n",
+    "file": "billing/holds.py"
+   },
+   {
+    "old": "        if not force:\n            held = held.filter(started_at__lt=cutoff)\n",
+    "new": "        if not force:\n            held = held.filter(job__updated_at__lt=cutoff)\n",
+    "file": "billing/holds.py"
+   }
+  ],
+  "label": "billing.tests.test_holds_sweep.ItemSweepTests.test_an_unstarted_item_keeps_its_hold_however_old",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "1 != 0"
+  ],
+  "env": {},
+  "status": "reanchored",
+  "new_location": "billing/holds.py:805, billing/holds.py:756",
+  "old_anchor": "sweep_stale_holds candidates started_at__isnull=False + started_at__lt=cutoff -> job__updated_at__lt=cutoff; _sweep_item started_at__lt=cutoff -> job__updated_at__lt=cutoff",
+  "reason": "05ddbd2c1 (B1b-9) split the sweep's started/cutoff filters behind `if not force:` (candidates in sweep_stale_holds, the conditional claim in _sweep_item); the logic is unchanged for force=False",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B13",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "    assert_not_zero_credit(CREDIT_RESERVE)\n    if amount <= 0:\n",
+    "new": "    if amount <= 0:\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_zero_credit.ZeroCreditHoldTests.test_reserve_is_refused_inside_a_zero_credit_scope",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "ZeroCreditViolation not raised"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:318",
+  "old_anchor": "reserve (:213) assert_not_zero_credit before if amount <= 0",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B14",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        chargeable = min(actual, left + _free(locked))\n",
+    "new": "        chargeable = actual\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_overrun.OverrunTests.test_beyond_hold_and_free_balance_the_excess_is_absorbed",
+  "expected": "Ran 1, FAILED (errors=1)",
+  "fragments": [
+   "InsufficientCreditsError"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:397",
+  "old_anchor": "settle chargeable -> actual",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B15",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "            returned = max(_left(job_row, None), 0)\n",
+    "new": "            returned = max(job_row.reserved_credits - job_row.consumed_credits, 0)\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_unit.UnitTests.test_two_calls_in_a_unit_settle_once",
+  "expected": "Ran 1, FAILED (errors=1)",
+  "fragments": [
+   "creditwallet_reserved_credits_nonneg"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:594",
+  "old_anchor": "finish_job (:400) returned",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B16",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "                root.item = BackgroundProcessingTask.objects.get(pk=root.attach_item.pk)\n        elif root.job.wallet_id != wallet.pk:\n",
+    "new": "                root.item = BackgroundProcessingTask.objects.get(pk=root.attach_item.pk)\n            return\n        elif root.job.wallet_id != wallet.pk:\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_unit.UnitTests.test_a_call_the_unit_cannot_hold_is_refused_before_the_provider",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "InsufficientCreditsError not raised"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:1047",
+  "old_anchor": "Unit.before_call: return as last line of `if root.job is None:`",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B18",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        ensure_call_fits(root.job, estimate, item=root.item, tally=self.open_tally())\n",
+    "new": "        pass\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_unit.UnitTests.test_a_call_the_unit_cannot_hold_is_refused_before_the_provider",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "InsufficientCreditsError not raised"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:1052",
+  "old_anchor": "Unit.before_call ensure_call_fits line -> pass",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B21",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        assert_not_zero_credit(CREDIT_RESERVE)\n        if not _reserve_locked(locked, shortfall, job_row, item_row):\n            raise _refusal(locked)\n        return shortfall\n",
+    "new": "        if shortfall > _free(locked):\n            raise _refusal(locked)\n        return 0\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_gate.TwoUnitsOneBalanceTests.test_u2_two_units_on_one_free_balance_one_is_refused",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "0 != 1"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:340",
+  "old_anchor": "ensure_call_fits reserve -> check only",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B22",
+  "group": "B1a",
+  "edits": [
+   {
+    "old": "            released_credits=F(\"released_credits\") + amount,\n            status=BackgroundTaskStatus.FAILURE,\n",
+    "new": "            released_credits=F(\"released_credits\") + amount,\n",
+    "file": "billing/holds.py"
+   },
+   {
+    "old": "            released_credits=F(\"released_credits\") + amount,\n            failed_items=F(\"failed_items\") + 1,\n",
+    "new": "            released_credits=F(\"released_credits\") + amount,\n",
+    "file": "billing/holds.py"
+   }
+  ],
+  "label": "billing.tests.test_holds_sweep.ItemSweepTests.test_a_started_item_past_the_window_is_failed_counted_and_released",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'PENDING' != 'FAILURE'"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:765, billing/holds.py:772",
+  "old_anchor": "_sweep_item: status=FAILURE and failed_items+1 removed",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B23",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "            key = (\n                (item_row.id, item_row.retry_count)\n                if item_row is not None\n                else (job_row.id, 0)\n            )\n",
+    "new": "            key = (job_row.id, 0)\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_settlement.SettlementKeyTests.test_a_single_paper_settles_on_its_task_row_not_its_job",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "Tuples differ"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:387",
+  "old_anchor": "settle key block -> (job_row.id, 0)",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B25",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "            released_credits=F(\"released_credits\") + amount,\n            status=BackgroundTaskStatus.FAILURE,\n",
+    "new": "            status=BackgroundTaskStatus.FAILURE,\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_sweep.ItemSweepTests.test_a_started_item_past_the_window_is_failed_counted_and_released",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "0 != 80"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:765",
+  "old_anchor": "_sweep_item task-row released_credits line removed",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B26",
+  "group": "B1a",
+  "edits": [
+   {
+    "old": "    if not force:\n        held = held.filter(started_at__isnull=False, started_at__lt=cutoff)\n",
+    "new": "",
+    "file": "billing/holds.py"
+   },
+   {
+    "old": "        if not force:\n            held = held.filter(started_at__lt=cutoff)\n",
+    "new": "",
+    "file": "billing/holds.py"
+   }
+  ],
+  "label": "billing.tests.test_holds_sweep.ItemSweepTests.test_an_unstarted_item_keeps_its_hold_however_old",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "1 != 0"
+  ],
+  "env": {},
+  "status": "reanchored",
+  "new_location": "billing/holds.py:805, billing/holds.py:756",
+  "old_anchor": "candidates started_at filters removed; _sweep_item `, started_at__lt=cutoff` removed",
+  "reason": "05ddbd2c1 (B1b-9) split the sweep's started/cutoff filters behind `if not force:` (candidates in sweep_stale_holds, the conditional claim in _sweep_item); the logic is unchanged for force=False; removing the `if not force:` filter blocks removes exactly those filters",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B27",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "            raise _late(f\"task {row.pk}: its credit hold was returned\")\n",
+    "new": "            self._run_as_successor(open_retry_job(old_job, row, 0), row)\n            return\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_entry.EntryRuleTests.test_er3_a_late_grading_message_exits_before_any_call",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "Expected '_AIProcessor__ai_model' to not have been called"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:1000",
+  "old_anchor": "Unit.enter raise _late(...returned) -> retry successor + return",
+  "reason": "",
+  "note": "B1a's ruling fragment (B1b NOTES \u00a73.4 item 4), not \u00a721c's 'CreditHoldReturnedError not raised'; enter() now returns True/False, the planted bare `return` (None) is ignored by metered_unit when not draining, as the killer runs",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B28",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        leftover = left - drawn\n",
+    "new": "        leftover = 0\n"
+   }
+  ],
+  "label": "billing.tests.test_holds.SettleAndFailTests.test_settle_charges_from_the_hold_and_returns_the_leftover",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "(60, 60, 0) != (60, 60, 40)"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:423",
+  "old_anchor": "settle (:306) leftover",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B30",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        available = _left(job_row, item_row) - tally\n",
+    "new": "        available = _left(job_row, item_row)\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_unit.UnitTests.test_a_call_the_unit_cannot_hold_is_refused_before_the_provider",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "InsufficientCreditsError not raised"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:336",
+  "old_anchor": "ensure_call_fits (:229) available",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "M-B31s",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        if not force:\n            held = held.filter(started_at__lt=cutoff)\n",
+    "new": ""
+   }
+  ],
+  "label": "billing.tests.test_holds_concurrency.StartClaimSweepRaceTests.test_a_start_claim_and_the_sweep_have_exactly_one_winner",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "True == True"
+  ],
+  "env": {},
+  "status": "reanchored",
+  "new_location": "billing/holds.py:756",
+  "old_anchor": "_sweep_item only: `, started_at__lt=cutoff` removed",
+  "reason": "05ddbd2c1 (B1b-9) split the sweep's started/cutoff filters behind `if not force:` (candidates in sweep_stale_holds, the conditional claim in _sweep_item); the logic is unchanged for force=False",
+  "note": "non-deterministic (B1a \u00a721c, \u00a721j: killed in 1 claim-first round of 10); a pass is reported as a STOP (Q10-2)",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "TP-1",
+  "group": "B1a",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        count_it = item_row is None or item_row.hold_state == HoldState.HELD\n        amount = max(_left(job_row, item_row), 0)\n",
+    "new": "        count_it = item_row is None or item_row.hold_state == HoldState.HELD\n        amount = max(_left(job_row, None), 0)\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_gate.ProviderTimeoutTests.test_t1_a_provider_timeout_charges_nothing_and_the_next_item_runs_on_its_hold",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "0 != 20003"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:480",
+  "old_anchor": "fail_item amount = max(_left(job_row, item_row), 0)",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1a/NOTES.md:2161 (\u00a721c); fragments as killed at B1b \u00a73.5 (docs/evidence/epic-b1b/NOTES.md:1461)"
+ },
+ {
+  "name": "PFB-1",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/apps.py",
+    "old": "        pre_delete.connect(\n            return_hold_on_item_delete,\n            sender=BackgroundProcessingTask,\n            dispatch_uid=\"billing.holds.return_hold_on_item_delete\",\n        )\n",
+    "new": ""
+   }
+  ],
+  "label": "billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t1_instance_delete billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t2_queryset_delete billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t3_full_erasure billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t4_course_scoped_erasure billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t6_batch_session_cascade billing.tests.test_holds_deleted_items.PreExistingFalseAlarmTests.test_t9_a_settled_row_deleted_from_a_job_with_rows_left billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t10_wallet_receiver_first_then_the_row_delete billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t11_row_delete_first_then_the_wallet_receiver billing.tests.test_holds_deleted_items.FlagOffTests.test_t13_a_row_held_while_the_flag_was_on_is_returned_with_it_off billing.tests.test_holds_deleted_items.MidRunDeletionTests.test_t14_a_unit_whose_row_is_deleted_mid_run billing.tests.test_holds_deleted_items.StaleInstanceTests.test_t17_a_stale_returned_instance_whose_row_was_held_again billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t19_an_assignment_cascade_with_a_held_and_a_returned_row billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t20_an_assignment_cascade_with_a_never_held_pending_row",
+  "expected": "Ran 14, FAILED (failures=14)",
+  "fragments": [
+   "600 != 300 : reserved",
+   "item_sum job="
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/apps.py:29",
+  "old_anchor": "",
+  "reason": "",
+  "note": "kill set per \u00a71.22 (allowed T-7/T-8/T-8b/T-12 and survivors T-15/T-18 left out of the label)",
+  "source": "NOTES \u00a71.22 (decl), \u00a71.23 (results at 8f00a1447), \u00a73.5 item 5 (re-run at 0b2c40668)"
+ },
+ {
+  "name": "PFB-2",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        finish_job(job, AIJobStatus.SETTLED if has_settlement else AIJobStatus.FAILED)\n",
+    "new": "        pass  # PFB-2\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t6_batch_session_cascade billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t7_upload_with_a_settled_sibling_ends_settled billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t8_upload_with_every_row_deleted_and_none_settled_ends_failed billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t8b_single_item_deleted_while_held_ends_failed billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t19_an_assignment_cascade_with_a_held_and_a_returned_row billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t20_an_assignment_cascade_with_a_never_held_pending_row",
+  "expected": "Ran 7, FAILED (failures=7)",
+  "fragments": [
+   "'RESERVED' != AIJobStatus.SETTLED"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:1464",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a71.22 (decl), \u00a71.23 (results at 8f00a1447), \u00a73.5 item 5 (re-run at 0b2c40668)"
+ },
+ {
+  "name": "PFB-3",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "            released_credits=F(\"released_credits\") + returned,\n            failed_items=F(\"failed_items\") + 1,\n            deleted_items_held=F(\"deleted_items_held\") + item_row.hold_credits,\n            deleted_items_drawn=F(\"deleted_items_drawn\") + item_row.hold_drawn,\n            deleted_items_released=F(\"deleted_items_released\")\n            + item_row.released_credits\n            + returned,\n        )\n",
+    "new": "            released_credits=F(\"released_credits\") + returned,\n            failed_items=F(\"failed_items\") + 1,\n        )\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t1_instance_delete billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t2_queryset_delete billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t3_full_erasure billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t4_course_scoped_erasure billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t6_batch_session_cascade billing.tests.test_holds_deleted_items.FlagOffTests.test_t13_a_row_held_while_the_flag_was_on_is_returned_with_it_off billing.tests.test_holds_deleted_items.MidRunDeletionTests.test_t14_a_unit_whose_row_is_deleted_mid_run billing.tests.test_holds_deleted_items.StaleInstanceTests.test_t17_a_stale_returned_instance_whose_row_was_held_again billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t19_an_assignment_cascade_with_a_held_and_a_returned_row billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t20_an_assignment_cascade_with_a_never_held_pending_row",
+  "expected": "Ran 11, FAILED (failures=11)",
+  "fragments": [
+   "item_sum job="
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:1531",
+  "old_anchor": "",
+  "reason": "",
+  "note": "allowed T-7, T-11, T-12 left out",
+  "source": "NOTES \u00a71.22 (decl), \u00a71.23 (results at 8f00a1447), \u00a73.5 item 5 (re-run at 0b2c40668)"
+ },
+ {
+  "name": "PFB-4",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "            _audit(\n                AuditAction.CREDIT_HOLD_RELEASED,\n                job_row,\n                item=item_row,\n                credits=returned,\n                reason_label=\"failed\",\n            )",
+    "new": "            _audit(\n                AuditAction.CREDIT_HOLD_RELEASED,\n                job_row,\n                item=None,\n                credits=returned,\n                reason_label=\"failed\",\n            )"
+   }
+  ],
+  "label": "billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t1_instance_delete billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t2_queryset_delete billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t3_full_erasure billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t4_course_scoped_erasure billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t11_row_delete_first_then_the_wallet_receiver",
+  "expected": "Ran 6, FAILED (failures=2, errors=4)",
+  "fragments": [
+   "KeyError: 'item_id'"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:1541",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a71.22 (decl), \u00a71.23 (results at 8f00a1447), \u00a73.5 item 5 (re-run at 0b2c40668)"
+ },
+ {
+  "name": "PFB-6",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "            # Nothing to return: carry the row's numbers to its job.\n            AIJob.objects.filter(pk=instance.job_id).update(",
+    "new": "            # Nothing to return: carry the row's numbers to its job.\n            _move_wallet(locked.pk, -(fresh[\"hold_credits\"] - fresh[\"hold_drawn\"]))\n            AIJob.objects.filter(pk=instance.job_id).update("
+   }
+  ],
+  "label": "billing.tests.test_holds_deleted_items.PreExistingFalseAlarmTests.test_t9_a_settled_row_deleted_from_a_job_with_rows_left billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade",
+  "expected": "Ran 2, FAILED (failures=1, errors=1)",
+  "fragments": [
+   "120 != 300",
+   "creditwallet_reserved_credits_nonneg"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:1512",
+  "old_anchor": "",
+  "reason": "",
+  "note": "\u00a71.23: T-5 errored on the reserved>=0 check (declared allowed as ERROR); T-10, T-19 allowed, left out",
+  "source": "NOTES \u00a71.22 (decl), \u00a71.23 (results at 8f00a1447), \u00a73.5 item 5 (re-run at 0b2c40668)"
+ },
+ {
+  "name": "PFB-7",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "            # Nothing to return: carry the row's numbers to its job.\n            AIJob.objects.filter(pk=instance.job_id).update(\n                deleted_items_held=F(\"deleted_items_held\") + fresh[\"hold_credits\"],\n                deleted_items_drawn=F(\"deleted_items_drawn\") + fresh[\"hold_drawn\"],\n                deleted_items_released=F(\"deleted_items_released\")\n                + fresh[\"released_credits\"],\n            )\n            return",
+    "new": "            # Nothing to return: carry the row's numbers to its job.\n            return"
+   }
+  ],
+  "label": "billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade billing.tests.test_holds_deleted_items.PreExistingFalseAlarmTests.test_t9_a_settled_row_deleted_from_a_job_with_rows_left billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t10_wallet_receiver_first_then_the_row_delete billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t19_an_assignment_cascade_with_a_held_and_a_returned_row",
+  "expected": "Ran 4, FAILED (failures=4)",
+  "fragments": [
+   "item_sum job="
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:1512",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a71.22 (decl), \u00a71.23 (results at 8f00a1447), \u00a73.5 item 5 (re-run at 0b2c40668)"
+ },
+ {
+  "name": "PFB-8",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        if fresh[\"hold_state\"] != HoldState.HELD:\n",
+    "new": "        if fresh[\"hold_state\"] != HoldState.HELD or instance.hold_state == HoldState.RETURNED:\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_deleted_items.StaleInstanceTests.test_t17_a_stale_returned_instance_whose_row_was_held_again",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:1511",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a71.22 (decl), \u00a71.23 (results at 8f00a1447), \u00a73.5 item 5 (re-run at 0b2c40668)"
+ },
+ {
+  "name": "PFB-9",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "    one query. An open status is read again under the wallet lock.\"\"\"\n    if instance.job_id is None:\n        return\n",
+    "new": "    one query. An open status is read again under the wallet lock.\"\"\"\n    return  # PFB-9\n    if instance.job_id is None:\n        return\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t6_batch_session_cascade billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t7_upload_with_a_settled_sibling_ends_settled billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t8_upload_with_every_row_deleted_and_none_settled_ends_failed billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t8b_single_item_deleted_while_held_ends_failed billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t19_an_assignment_cascade_with_a_held_and_a_returned_row billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t20_an_assignment_cascade_with_a_never_held_pending_row",
+  "expected": "Ran 7, FAILED (failures=7)",
+  "fragments": [],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:1432",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a71.22 (decl), \u00a71.23 (results at 8f00a1447), \u00a73.5 item 5 (re-run at 0b2c40668)"
+ },
+ {
+  "name": "PFB-9b",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/apps.py",
+    "old": "        post_delete.connect(\n            finish_job_left_empty_on_item_delete,",
+    "new": "        pre_delete.connect(\n            finish_job_left_empty_on_item_delete,"
+   }
+  ],
+  "label": "billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t20_an_assignment_cascade_with_a_never_held_pending_row",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/apps.py:36",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a71.22 (decl), \u00a71.23 (results at 8f00a1447), \u00a73.5 item 5 (re-run at 0b2c40668)"
+ },
+ {
+  "name": "PB1-1",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "AutoGrader/settings.py",
+    "old": "BILLING_HOLDS_ENABLED = env.bool(\"BILLING_HOLDS_ENABLED\", default=False)\n",
+    "new": "BILLING_HOLDS_ENABLED = env.bool(\"BILLING_HOLDS_ENABLED\", default=True)\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_schema.PlanAndSettingsTests.test_holds_flag_defaults_off",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'True' != 'False'"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "AutoGrader/settings.py:699",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a72.x :901 (decl), :910 (result at edfb9b8f5)"
+ },
+ {
+  "name": "PB2-1",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "assignments/upload_door.py",
+    "old": "        **kwargs,\n    )\n    if connection.in_atomic_block:",
+    "new": "        **kwargs,\n    )\n    return celery_task_id  # PB2-1\n    if connection.in_atomic_block:"
+   }
+  ],
+  "label": "students.tests_batch_item_results.TheSessionResultsShape.test_an_overwrite_is_lifted_into_the_item_result students.tests_batch_item_results.TheSessionResultsShape.test_an_unclassified_failure_is_visible_as_system_with_no_code students.tests_batch_item_results.TheSessionResultsShape.test_each_item_answers_for_itself_and_the_old_keys_stay assignments.tests_h274_empty_upload_doors.TheAsyncTeacherUploadIsNeverHalfQueued.test_one_empty_file_fails_as_its_item_and_the_rest_are_queued billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherCourseGuardRouteTests.test_batch_upload_answers_succeeds_for_active_teacher students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_batch_upload_runs_the_rest_of_the_batch students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_upload_async_is_never_half_queued students.tests_batch_item_results.ThirtyFilesTwelveFailures.test_every_failure_is_listed_with_its_own_code students.tests_credits_mid_batch.AnUploadBatchThatRunsOutOfCredits.test_the_rest_stops_uncharged_and_resumes_by_retry students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t1_a_dear_file_in_the_middle_is_parked_and_the_others_run students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t2_the_balance_runs_down_as_files_are_queued students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t3_a_cheap_file_after_a_dear_one_still_runs students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t5_the_door_does_not_stamp_the_session students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t1_a_dear_file_in_the_middle_is_parked_and_the_others_run students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t2_the_balance_runs_down_as_files_are_queued students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t3_a_cheap_file_after_a_dear_one_still_runs students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t5_the_door_does_not_stamp_the_session students.tests_h274_empty_student_answer_doors.AnEmptyFileInABatchFailsAsItsItem.test_an_empty_unsupported_file_is_the_type_first_and_the_rest_run students.tests_h274_empty_student_answer_doors.AnEmptyFileInABatchFailsAsItsItem.test_a_zero_byte_answer_is_submission_empty_and_the_rest_run students.tests_h274_empty_student_answer_doors.TheAsyncStudentUploadKeepsS6.test_an_empty_file_of_an_unsupported_type_is_the_type_first students.tests_h274_empty_student_answer_doors.TheAsyncStudentUploadKeepsS6.test_a_zero_byte_answer_is_submission_empty students.tests_upload_credit_door.AssignmentUploadDoorTest.test_a_funded_teacher_is_queued_as_before students.tests_upload_credit_door.StudentUploadDoorTest.test_a_file_the_door_cannot_read_is_left_to_the_task students.tests_upload_credit_door.StudentUploadDoorTest.test_a_teacher_without_a_wallet_is_left_to_the_permission students.tests_upload_credit_door.TeacherBatchDoorTest.test_a_funded_teacher_is_queued_as_before",
+  "expected": "Ran 25, FAILED (failures=22, errors=3)",
+  "fragments": [],
+  "env": {
+   "BILLING_HOLDS_ENABLED": "True"
+  },
+  "status": "same",
+  "new_location": "assignments/upload_door.py:203",
+  "old_anchor": "",
+  "reason": "",
+  "note": "label = the 25 wrapped tests that failed in step2/b2_PB2-1_58b3a163.log (22 FAIL, 3 ERROR); one renamed since: ...test_the_rest_stops_uncharged_and_resumes_by_re_upload -> ...resumes_by_retry (B1b-5 4b380b8a0; its captureOnCommitCallbacks wrap is still there). Which 3 of the 25 ERROR is taken from that log, unchanged",
+  "source": "NOTES :1031 (decl), :1055 (result at 58b3a163a)"
+ },
+ {
+  "name": "PB3-1",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        if chargeable > 0:\n            locked.consume_credits(\n                chargeable,\n                feature=feature,\n                task_type=task_type,\n                task_id=str(record.id),\n                course=course,\n                school=school,\n                _wallet_locked=True,  # B1b-3 P3: locked and read above\n            )\n",
+    "new": "        if chargeable > 0:\n            locked.consume_credits(\n                chargeable,\n                feature=feature,\n                task_type=task_type,\n                task_id=str(record.id),\n                course=course,\n                school=school,\n                _wallet_locked=True,  # B1b-3 P3: locked and read above\n            )\n        if chargeable > 0:  # PB3-1 (twice)\n            locked.consume_credits(\n                chargeable,\n                feature=feature,\n                task_type=task_type,\n                task_id=str(record.id),\n                course=course,\n                school=school,\n                _wallet_locked=True,  # B1b-3 P3: locked and read above\n            )\n"
+   }
+  ],
+  "label": "ai_processor.tests_grading_pipeline.GradingRunWithHoldsTest.test_a_successful_run_is_charged_once_at_settle ai_processor.tests_grading_pipeline.GradingRunWithHoldsTest.test_a_failed_attempt_is_never_charged_the_successful_one_is assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_an_unusable_provider_response_charges_nothing_for_that_file assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_a_failed_save_charges_nothing_and_it_can_be_retried",
+  "expected": "Ran 4, FAILED (failures=4)",
+  "fragments": [
+   "2 != 1 : the number of settle charges"
+  ],
+  "env": {},
+  "status": "reanchored",
+  "new_location": "billing/holds.py:412",
+  "old_anchor": "the 7-line locked.consume_credits(...) call in settle, c36534db7:billing/holds.py:320",
+  "reason": "the consume call gained `_wallet_locked=True` in B1b-3 P3 (1a258c0d8); same call duplicated/followed as at c36534db7",
+  "note": "",
+  "source": "NOTES :1118 (decl), :1135 (result at c36534db7)"
+ },
+ {
+  "name": "PB3-2",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        if chargeable > 0:\n            locked.consume_credits(\n                chargeable,\n                feature=feature,\n                task_type=task_type,\n                task_id=str(record.id),\n                course=course,\n                school=school,\n                _wallet_locked=True,  # B1b-3 P3: locked and read above\n            )\n",
+    "new": "        if chargeable > 0:\n            locked.consume_credits(\n                chargeable,\n                feature=feature,\n                task_type=task_type,\n                task_id=str(record.id),\n                course=course,\n                school=school,\n                _wallet_locked=True,  # B1b-3 P3: locked and read above\n            )\n            from .services import SubscriptionService  # PB3-2\n\n            SubscriptionService.refund_credits(record.id)\n"
+   }
+  ],
+  "label": "ai_processor.tests_grading_pipeline.GradingRunWithHoldsTest.test_a_successful_run_is_charged_once_at_settle ai_processor.tests_grading_pipeline.GradingRunWithHoldsTest.test_a_failed_attempt_is_never_charged_the_successful_one_is assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_an_unusable_provider_response_charges_nothing_for_that_file assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_a_failed_save_charges_nothing_and_it_can_be_retried",
+  "expected": "Ran 4, FAILED (failures=4)",
+  "fragments": [
+   "[300] != []"
+  ],
+  "env": {},
+  "status": "reanchored",
+  "new_location": "billing/holds.py:412",
+  "old_anchor": "the 7-line locked.consume_credits(...) call in settle, c36534db7:billing/holds.py:320",
+  "reason": "the consume call gained `_wallet_locked=True` in B1b-3 P3 (1a258c0d8); same call duplicated/followed as at c36534db7",
+  "note": "",
+  "source": "NOTES :1119 (decl), :1136 (result at c36534db7)"
+ },
+ {
+  "name": "PB3-3",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        amount = max(_left(job_row, item_row), 0)\n        _move_wallet(locked.pk, -amount)\n        AIJob.objects.filter(pk=job_row.pk).update(\n            released_credits=F(\"released_credits\") + amount,\n            failed_items=F(\"failed_items\") + (1 if count_it else 0),",
+    "new": "        amount = max(_left(job_row, item_row), 0)\n        AIJob.objects.filter(pk=job_row.pk).update(\n            released_credits=F(\"released_credits\") + amount,\n            failed_items=F(\"failed_items\") + (1 if count_it else 0),"
+   }
+  ],
+  "label": "billing.tests.test_grading_refund_scope.GradingRefundScopeWithHoldsTest.test_failure_during_persistence_charges_nothing_and_returns_the_hold billing.tests.test_grading_refund_scope.GradingRefundScopeWithHoldsTest.test_malformed_summary_charges_nothing_and_returns_the_hold students.tests_answers_unreadable.TheEditsRefusalWithHolds.test_the_edits_refusal_charges_nothing_and_returns_the_hold students.tests_async_edit_path.ExtractionWithHoldsTest.test_failure_after_the_call_charges_nothing_and_returns_the_hold students.tests_s6d_extraction_refund.ExtractionWithHoldsTests.test_a_mid_chunk_failure_charges_nothing_and_returns_the_holds ai_processor.tests_grading_pipeline.GradingRunWithHoldsTest.test_a_failed_attempt_is_never_charged_the_successful_one_is ai_processor.tests_h256_provider_timeout.TimedOutRunWithHoldsTest.test_a_run_that_times_out_charges_nothing_and_returns_the_hold assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_an_unusable_provider_response_charges_nothing_for_that_file assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_a_failed_save_charges_nothing_and_it_can_be_retried assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_a_claim_taken_over_mid_extraction_charges_nothing assignments.tests_upload_task_retry_policy.AssignmentUploadTaskWithHoldsTest.test_an_unusable_response_charges_nothing_and_the_file_is_released",
+  "expected": "Ran 11, FAILED (failures=11)",
+  "fragments": [
+   "!= 0 : a hold was left reserved"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:481",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES :1120 (decl), :1137 (result at c36534db7)"
+ },
+ {
+  "name": "PB4-1",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "    if not holds_enabled():\n        return None\n    unit = current_unit()\n    if unit is not None:\n        unit.before_call(",
+    "new": "    if not holds_enabled() or is_individual_teacher(target_teacher):  # PB4-1\n        return None\n    unit = current_unit()\n    if unit is not None:\n        unit.before_call("
+   }
+  ],
+  "label": "billing.tests_h281_individual_credit_wording.TheHoldRefusalIsTaggedToo.test_r8_flag_on_hold_for_call_refuses_individual",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "reached the provider"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:1268",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES :935 (decl), :946 (result at a00c4e86f)"
+ },
+ {
+  "name": "PB4-2",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        REFUSAL_MESSAGE, individual=is_individual_teacher(wallet.user)\n",
+    "new": "        REFUSAL_MESSAGE, individual=False  # PB4-2\n"
+   }
+  ],
+  "label": "billing.tests_h281_individual_credit_wording.TheHoldRefusalIsTaggedToo.test_r8_flag_on_hold_for_call_refuses_individual",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "False is not True"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:184",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES :936 (decl), :947 (result at a00c4e86f)"
+ },
+ {
+  "name": "PP1",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "    if not outcome.settled:\n        # Not settled (a deleted wallet, a duplicate key): settle returned\n        # before its job UPDATE, so close the job as before (NOTES \u00a73.3a).\n        finish_job(job, AIJobStatus.SETTLED)\n",
+    "new": "    finish_job(job, AIJobStatus.SETTLED)  # PP1\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_b1b3_pins.PerCallPinTests.test_one_billed_single_call_makes_exactly_the_pinned_number_of_queries",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "39 != 37"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:1195",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a73.4 :1395-1404 (decl), :1433-1442 (results at 1a258c0d8); PP3 ruling :1451; PP1b/PP5 re-run at 0539ccbb9"
+ },
+ {
+  "name": "PP1b",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        closing = close_status is not None and job_row.status in OPEN_STATUSES\n",
+    "new": "        closing = False  # PP1b\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_single_call.FlagOnSingleCallTests.test_a_call_holds_settles_and_returns_the_rest",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'RUNNING' != 'SETTLED'"
+  ],
+  "env": {},
+  "status": "reanchored",
+  "new_location": "billing/holds.py:428",
+  "old_anchor": "close = (close_status if close_status is not None and job_row.status in OPEN_STATUSES else F(\"status\"))  [the condition inside settle's close expression, 0539ccbb9]",
+  "reason": "e0fc5ffb7 (B1b-7 D7) split the condition into `closing = ...` (it also gates emit_estimate_gap); the same condition dropped",
+  "note": "",
+  "source": "NOTES \u00a73.4 :1395-1404 (decl), :1433-1442 (results at 1a258c0d8); PP3 ruling :1451; PP1b/PP5 re-run at 0539ccbb9"
+ },
+ {
+  "name": "PP2",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "    if job.wallet_id is not None:\n        locked = (\n            CreditWallet.objects.select_for_update(of=(\"self\",))\n            .select_related(\"user\")\n            .filter(pk=job.wallet_id)\n            .first()\n        )\n        if locked is not None:\n            return locked\n",
+    "new": "    try:  # PP2\n        if job.wallet_id is not None:\n            return lock_wallet_first(job.wallet)\n    except CreditWallet.DoesNotExist:\n        pass\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_b1b3_pins.PerCallPinTests.test_one_billed_single_call_makes_exactly_the_pinned_number_of_queries",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "39 != 37"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:206",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a73.4 :1395-1404 (decl), :1433-1442 (results at 1a258c0d8); PP3 ruling :1451; PP1b/PP5 re-run at 0539ccbb9"
+ },
+ {
+  "name": "PP3",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "                _wallet_locked=True,  # B1b-3 P3: locked and read above\n",
+    "new": "                _wallet_locked=False,  # PP3\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_b1b3_pins.PerCallPinTests.test_one_billed_single_call_makes_exactly_the_pinned_number_of_queries",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "38 != 37"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:420",
+  "old_anchor": "",
+  "reason": "",
+  "note": "fragment per the SM's PP3 ruling (prediction incomplete: 38, not 39)",
+  "source": "NOTES \u00a73.4 :1395-1404 (decl), :1433-1442 (results at 1a258c0d8); PP3 ruling :1451; PP1b/PP5 re-run at 0539ccbb9"
+ },
+ {
+  "name": "PP3b",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/models.py",
+    "old": "        if locked.is_consumption_blocked:\n",
+    "new": "        if locked.is_consumption_blocked and not _wallet_locked:  # PP3b\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_b1b3_pins.PerCallPinTests.test_a_wallet_blocked_during_the_call_is_refused_at_settle",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "InsufficientCreditsError not raised"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/models.py:1025",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a73.4 :1395-1404 (decl), :1433-1442 (results at 1a258c0d8); PP3 ruling :1451; PP1b/PP5 re-run at 0539ccbb9"
+ },
+ {
+  "name": "PP4",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        except IntegrityError:\n            return NOT_SETTLED\n\n        if chargeable > 0:\n            locked.consume_credits(",
+    "new": "        except IntegrityError:\n            return NOT_SETTLED\n        SettlementRecord.objects.filter(pk=record.pk).update(  # PP4\n            credits_charged=chargeable\n        )\n\n        if chargeable > 0:\n            locked.consume_credits("
+   }
+  ],
+  "label": "billing.tests.test_holds_b1b3_pins.PerCallPinTests.test_one_billed_single_call_makes_exactly_the_pinned_number_of_queries",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "38 != 37"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:409",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a73.4 :1395-1404 (decl), :1433-1442 (results at 1a258c0d8); PP3 ruling :1451; PP1b/PP5 re-run at 0539ccbb9"
+ },
+ {
+  "name": "PP5",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "            raise _refusal(CreditWallet.objects.get(pk=wallet.pk))\n    else:\n        AIJob.objects.filter(pk=job.pk).update(status=AIJobStatus.RUNNING)\n",
+    "new": "            raise _refusal(CreditWallet.objects.get(pk=wallet.pk))\n    AIJob.objects.filter(pk=job.pk).update(status=AIJobStatus.RUNNING)  # PP5\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_b1b3_pins.PerCallPinTests.test_one_billed_single_call_makes_exactly_the_pinned_number_of_queries",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "38 != 37"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:1174",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a73.4 :1395-1404 (decl), :1433-1442 (results at 1a258c0d8); PP3 ruling :1451; PP1b/PP5 re-run at 0539ccbb9"
+ },
+ {
+  "name": "PPL",
+  "group": "B1b-1..3",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "    with transaction.atomic():\n        locked = _lock_wallet_of(job)\n        if locked is None:\n            return NOT_SETTLED\n        job_row, item_row = _lock_rows(job, item)\n",
+    "new": "    with transaction.atomic():\n        AIJob.objects.filter(pk=job.pk).update(  # PPL\n            reservation_claimed_at=F(\"reservation_claimed_at\")\n        )\n        locked = _lock_wallet_of(job)\n        if locked is None:\n            return NOT_SETTLED\n        job_row, item_row = _lock_rows(job, item)\n"
+   }
+  ],
+  "label": "billing.tests.test_holds_b1b3_pins.PerCallPinTests.test_after_the_provider_call_the_wallet_is_locked_before_any_billing_write billing.tests.test_holds_b1b3_pins.PerCallPinTests.test_one_billed_single_call_makes_exactly_the_pinned_number_of_queries",
+  "expected": "Ran 2, FAILED (failures=2)",
+  "fragments": [
+   "a billing write came before the wallet lock",
+   "38 != 37"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "billing/holds.py:381",
+  "old_anchor": "",
+  "reason": "",
+  "note": "\u00a73.4 result was failures=2 (the lock-order test plus the count pin as declared collateral); both in the label",
+  "source": "NOTES \u00a73.4 :1395-1404 (decl), :1433-1442 (results at 1a258c0d8); PP3 ruling :1451; PP1b/PP5 re-run at 0539ccbb9"
+ },
+ {
+  "name": "PE-1",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "    if spendable >= p90:\n        return SUFFICIENT",
+    "new": "    if spendable >= p50:\n        return SUFFICIENT"
+   }
+  ],
+  "label": "billing.tests.test_estimates_band.VerdictTests.test_one_below_p90_is_marginal",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'SUFFICIENT' != 'MARGINAL'"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-1_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-2",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "    if len(own) >= ASSIGNMENT_MIN:\n        return SOURCE_ASSIGNMENT, own\n\n    def same_shape(p):",
+    "new": "\n    def same_shape(p):"
+   },
+   {
+    "file": "billing/estimates.py",
+    "old": "    if len(teachers) >= SHAPE_MIN:\n        return SOURCE_TEACHER_SHAPE, teachers\n",
+    "new": "    if len(teachers) >= SHAPE_MIN:\n        return SOURCE_TEACHER_SHAPE, teachers\n    if len(own) >= ASSIGNMENT_MIN:\n        return SOURCE_ASSIGNMENT, own\n"
+   }
+  ],
+  "label": "billing.tests.test_estimates_band.TierTests.test_ten_papers_of_this_assignment_win",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'teacher_shape' != 'assignment'"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-2_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-3",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "ASSIGNMENT_MIN = 10\n",
+    "new": "ASSIGNMENT_MIN = 11\n"
+   }
+  ],
+  "label": "billing.tests.test_estimates_band.TierTests.test_ten_papers_of_this_assignment_win",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'teacher_shape' != 'assignment'"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-3_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-3b",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "ASSIGNMENT_MIN = 10\n",
+    "new": "ASSIGNMENT_MIN = 9\n"
+   }
+  ],
+  "label": "billing.tests.test_estimates_band.TierTests.test_nine_papers_of_this_assignment_fall_through_to_the_teachers_shape",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'assignment' != 'teacher_shape'"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-3b_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-4",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "SHAPE_MIN = 30\n",
+    "new": "SHAPE_MIN = 29\n"
+   }
+  ],
+  "label": "billing.tests.test_estimates_band.TierTests.test_twenty_nine_of_the_teachers_shape_fall_through_to_all_papers",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'teacher_shape' != 'shape'"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "SHAPE_MIN also gates tier 3b; the table says 'the shape tiers need 29'",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-4_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-5",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "Z90 * sigma * math.sqrt(n))",
+    "new": "Z90 * sigma * n)"
+   }
+  ],
+  "label": "billing.tests.test_estimates_band.BandTests.test_one_hundred_papers_use_root_n_not_n",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "32800 != 21280"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-5_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-6",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "    if n >= 10:\n        p90 = math.ceil(",
+    "new": "    if True:\n        p90 = math.ceil("
+   }
+  ],
+  "label": "billing.tests.test_estimates_band.BandTests.test_below_ten_papers_p90_is_n_times_the_p90_paper",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "!= 810"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "step-4 log line: '606 != 810'",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-6_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-7",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "        p[\"cost\"] / p[\"questions\"] * max(target_q, 1)\n",
+    "new": "        p[\"cost\"]\n"
+   }
+  ],
+  "label": "billing.tests.test_estimates_band.TierTests.test_tier_3b_scales_any_shape_per_question",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "3000 != 750"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-7_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-8",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "        \"p90\": int(math.ceil(p50 * ROUGH_P90_FACTOR)),",
+    "new": "        \"p90\": int(math.ceil(p50)),"
+   }
+  ],
+  "label": "billing.tests.test_estimates_band.ColdStartTests.test_the_rough_estimate_uses_the_settings_factor_and_p90_times_1_5",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "8000 != 12000"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "_rough's p90 x 1.5 is unchanged; B1b-6 (8e8acc617) added a second x1.5 for the per-paper hold in _estimate_and_paper, which the killer does not read and the plant leaves alone",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-8_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-9",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "    if factor is None:\n        factor = BillingSettings.load().cold_start_cost_factor\n",
+    "new": "    if factor is None:\n        factor = 3.0\n"
+   },
+   {
+    "file": "billing/estimates.py",
+    "old": "        per_paper = rough_per_paper()\n        factor = BillingSettings.load().cold_start_cost_factor\n",
+    "new": "        per_paper = rough_per_paper()\n        factor = 3.0\n"
+   }
+  ],
+  "label": "billing.tests.test_estimates_band.ColdStartTests.test_the_rough_estimate_uses_the_settings_factor_and_p90_times_1_5",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "12000 != 8000"
+  ],
+  "env": {},
+  "status": "reanchored",
+  "new_location": "billing/estimates.py:301 (_rough fallback) and :396 (_estimate_and_paper, the load the estimate path now uses)",
+  "old_anchor": "_rough (at 481c2e3a): `factor = BillingSettings.load().cold_start_cost_factor` -> `factor = 3.0`",
+  "reason": "B1b-6 8e8acc617 moved the settings read for the estimate path into _estimate_and_paper and made _rough take factor=None; planting only _rough's line would no longer reach the killer. Both reads of the same factor are hard-coded, the same logic as the original",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-9_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-10",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "    )\n    return [\n        {\n            \"processing_task_id\": str(row[\"processing_task_id\"]),",
+    "new": "    )\n    return rows\n    return [\n        {\n            \"processing_task_id\": str(row[\"processing_task_id\"]),"
+   }
+  ],
+  "label": "billing.tests.test_estimates_band.PaperCostTests.test_the_reads_return_plain_values_never_rows_or_querysets",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "is not an instance of <class 'list'>"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "collateral expected: KeyError 'has_images' errors in callers (11 at step 4)",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-10_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-11",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimate_views.py",
+    "old": "        return Response(\n            estimates.advise(",
+    "new": "        import uuid\n\n        from billing.models import AIJob, CreditWallet\n\n        AIJob.objects.create(\n            job_type=\"SINGLE_CALL\",\n            wallet=CreditWallet.objects.get(user=request.user),\n            requested_by=request.user,\n            trace_id=uuid.uuid4(),\n            total_items=1,\n        )\n        return Response(\n            estimates.advise("
+   }
+  ],
+  "label": "billing.tests.test_estimate_endpoint.EstimateEndpointTests.test_it_writes_no_job_and_holds_nothing",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "1 != 0"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "declared '!= ' (job count +1); step-4 log: '1 != 0'",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-11_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-12",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "        outcome=CHARGED,\n",
+    "new": ""
+   }
+  ],
+  "label": "billing.tests.test_estimates_band.PaperCostTests.test_a_failed_call_is_left_out_of_the_paper_cost",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "[1199] != [200]"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-12_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-13",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "        calls.exclude(Exists(refunded))\n        .filter(Exists(succeeded))\n",
+    "new": "        calls.filter(Exists(succeeded))\n"
+   }
+  ],
+  "label": "billing.tests.test_estimates_band.PaperCostTests.test_a_refunded_call_is_left_out_of_the_paper_cost",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "[700] != [200]"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-13_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-14",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "        calls.exclude(Exists(refunded))\n        .filter(Exists(succeeded))\n",
+    "new": "        calls.exclude(Exists(refunded))\n"
+   }
+  ],
+  "label": "billing.tests.test_estimates_band.PaperCostTests.test_a_paper_whose_task_row_did_not_succeed_is_left_out",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "!= [100]"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "step-4 log: 'Lists differ: [100, 700, 700, 700, 700] != [100]'; collateral test_a_failed_paper_is_left_out_of_its_batch",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-14_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-15",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimate_views.py",
+    "old": "            Assignment.objects.filter(\n                teacher_course_access_q(request.user, prefix=\"course__\")\n            ),",
+    "new": "            Assignment.objects.all(),"
+   }
+  ],
+  "label": "billing.tests.test_estimate_endpoint.EstimateEndpointTests.test_another_teachers_assignment_is_refused_as_grade_all_refuses_it",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "200 != 404"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "flake8 may flag the now-unused import; the plant is not linted",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-15_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-16",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "coverage < DRIFT_OVERALL:",
+    "new": "coverage <= DRIFT_OVERALL:"
+   }
+  ],
+  "label": "billing.tests.test_estimate_backtest.DriftDecisionTests.test_eighty_five_percent_overall_is_not_drift",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "!= []"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "step-4 log: \"Lists differ: ['overall coverage 0.85'] != []\"",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-16_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-17",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "cell[\"coverage\"] < DRIFT_CELL:\n            reasons.append(",
+    "new": "cell[\"coverage\"] <= DRIFT_CELL:\n            reasons.append("
+   }
+  ],
+  "label": "billing.tests.test_estimate_backtest.DriftDecisionTests.test_a_cell_at_eighty_percent_is_not_drift",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "!= []"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "drift_reasons only; _drift_email's matching filter left alone",
+  "note": "step-4 log: \"Lists differ: ['cell 1-5/False/1 coverage 0.8'] != []\"",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-17_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-18",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "        if cell[\"batches\"] >= DRIFT_CELL_MIN and cell[\"coverage\"] < DRIFT_CELL:\n            reasons.append(",
+    "new": "        if cell[\"batches\"] >= DRIFT_CELL_MIN - 1 and cell[\"coverage\"] < DRIFT_CELL:\n            reasons.append("
+   }
+  ],
+  "label": "billing.tests.test_estimate_backtest.DriftDecisionTests.test_a_cell_below_eighty_percent_with_twenty_nine_batches_is_not",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "!= []"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "drift_reasons only (not the DRIFT_CELL_MIN constant, which the email also reads)",
+  "note": "step-4 log: \"Lists differ: ['cell 1-5/False/1 coverage 0.1'] != []\"",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-18_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-19",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/tasks.py",
+    "old": "@shared_task(bind=True, max_retries=0)\n@single_instance(max_hold=beat_locks.DAILY)\ndef check_credit_estimate_drift(self):",
+    "new": "@shared_task(bind=True, max_retries=0)\ndef check_credit_estimate_drift(self):"
+   }
+  ],
+  "label": "billing.tests.test_estimate_backtest.DriftTaskTests.test_the_task_runs_one_at_a_time",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "unexpectedly None"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-19_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-20",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "        if DRIFT_EMAIL_APPROVED:\n            _send_drift_email(",
+    "new": "        if True:\n            _send_drift_email("
+   }
+  ],
+  "label": "billing.tests.test_estimate_backtest.DriftTaskTests.test_drift_sends_no_email_while_the_text_is_not_approved",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "Expected 'delay' to not have been called"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "since B1b-8 (7e9e3e7f7) DRIFT_EMAIL_APPROVED is True and the killer patches it False on the real module (importlib), so removing the gate still reaches it",
+  "note": "step-4 log: \"Expected 'delay' to not have been called. Called 1 times.\"",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-20_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-21",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/management/commands/billing_settings.py",
+    "old": "                emit(\n                    AuditAction.STATE_CHANGE,",
+    "new": "                (lambda *args, **kwargs: None)(\n                    AuditAction.STATE_CHANGE,"
+   }
+  ],
+  "label": "billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_set_changes_one_field_and_writes_one_audit_row",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "0 != 1"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "collateral at step 4: test_two_sets_are_two_rows ('0 != 2')",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-21_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-22",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/management/commands/billing_settings.py",
+    "old": "            field.run_validators(value)\n",
+    "new": ""
+   },
+   {
+    "file": "billing/management/commands/billing_settings.py",
+    "old": "            raise CommandError(f\"invalid value for {name}: {raw}\") from None\n",
+    "new": "            raise CommandError(f\"invalid value for {name}: {raw}\") from None\n        return name, value\n"
+   }
+  ],
+  "label": "billing.tests.test_billing_settings_command.BillingSettingsCommandTests.test_out_of_bounds_and_wrong_type_values_are_refused",
+  "expected": "Ran 1, FAILED (failures=5, errors=3)",
+  "fragments": [
+   "CommandError not raised"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "rebuilt so to_python still refuses abc and 1.5 while every later check (validators, finite > 0, >= 0) is skipped, matching \u00a74.9's declared subTest outcome",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-22_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-23",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/estimates.py",
+    "old": "        \"suggested_factor\": rough_replay_ratio(days=days, now=now),",
+    "new": "        \"suggested_factor\": provider_gap_ratio(days=days, now=now),"
+   }
+  ],
+  "label": "billing.tests.test_estimate_backtest.BacktestTests.test_the_suggested_factor_closes_the_rough_tiers_own_gap",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "2.0 != 3.0"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-23_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-24",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/tasks.py",
+    "old": "@shared_task(bind=True, max_retries=0)\n@single_instance(max_hold=beat_locks.DAILY)\ndef check_credit_estimate_drift(self):",
+    "new": "@shared_task(bind=True, max_retries=0)\ndef check_credit_estimate_drift(self):"
+   }
+  ],
+  "label": "AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "not less than or equal to"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "same change as PE-19, on AutoGrader.tests_beat_locks; EPIC_ONLY_GUARDED_BEAT_TASKS has grown by 3 since (B1b-5/6), which does not change the check",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-24_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PE-24b",
+  "group": "B1b-4",
+  "edits": [
+   {
+    "file": "billing/tasks.py",
+    "old": "@shared_task(bind=True, max_retries=0)\n@single_instance(max_hold=beat_locks.DAILY)\ndef check_credit_estimate_drift(self):",
+    "new": "def _pe24b(fn):\n    fn.single_instance = beat_locks.SingleInstance(\n        \"billing.tasks.check_credit_estimate_drift\", 60, 86400\n    )\n    return fn\n\n\n@shared_task(bind=True, max_retries=0)\n@_pe24b\ndef check_credit_estimate_drift(self):"
+   }
+  ],
+  "label": "AutoGrader.tests_beat_locks.RealTaskSkipTests.test_every_guarded_beat_task_skips_while_another_run_holds_it",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "no logs of level WARNING or higher triggered on AutoGrader.beat_locks"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": null,
+  "old_anchor": null,
+  "reason": "the lock is declared on the task but the body is unguarded, as \u00a74.13 describes",
+  "note": "",
+  "source": "NOTES \u00a74.6/\u00a74.8/\u00a74.13 table; result \u00a74.14; log step4/P_PE-24b_481c2e3a.log; plant_b4.py not kept, rebuilt from the table wording"
+ },
+ {
+  "name": "PK-1",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/kept_uploads.py",
+    "old": ".objects.filter(purged_at__isnull=True, kept_until__lte=now)",
+    "new": ".objects.filter(purged_at__isnull=True, kept_until__lt=now - timedelta(hours=1))"
+   }
+  ],
+  "label": "students.tests_kept_uploads.PurgeTests.test_a_row_past_kept_until_is_deleted_and_marked",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "unexpectedly None"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/kept_uploads.py:191"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "",
+  "source": "NOTES \u00a75.7 table; \u00a75.14 observed"
+ },
+ {
+  "name": "PK-2",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/item_retry.py",
+    "old": "        processing_task_id=item.pk, purged_at__isnull=True\n    ).first()",
+    "new": "        processing_task_id=item.pk\n    ).first()"
+   }
+  ],
+  "label": "students.tests_kept_upload_retry.KeptUploadRetryTests.test_a_purged_file_is_refused_upload_it_again",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "202 != 409"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/item_retry.py:124"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "",
+  "source": "NOTES \u00a75.7; \u00a75.14"
+ },
+ {
+  "name": "PK-3",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/signals.py",
+    "old": "\n\n_connect_kept_upload_delete()\n",
+    "new": "\n\n# PK-3: _connect_kept_upload_delete() not called\n"
+   }
+  ],
+  "label": "students.tests_kept_uploads.ErasureTests.test_a_full_erasure_deletes_the_row_and_the_file",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "True is not false"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/signals.py:102"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "",
+  "source": "NOTES \u00a75.7; \u00a75.14"
+ },
+ {
+  "name": "PK-4",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/kept_uploads.py",
+    "old": "        except kept_files.KeptFileError:\n            logger.warning(\"Kept upload: storage unavailable; sending inline.\")",
+    "new": "        except kept_files.KeptFileError:\n            raise\n            logger.warning(\"Kept upload: storage unavailable; sending inline.\")"
+   }
+  ],
+  "label": "students.tests_kept_uploads.StudentRouteKeepsTheFileTests.test_storage_down_falls_back_to_the_inline_file",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "500 != 200"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/kept_uploads.py:73"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "declared ERROR KeptFileUnavailable at step 5 was wrong (SM \u00a75.15); the observed FAIL '500 != 200' is used",
+  "source": "NOTES \u00a75.7; \u00a75.14 observed, \u00a75.15 ruled 'fragment wrong; killed'"
+ },
+ {
+  "name": "PK-5",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/kept_uploads.py",
+    "old": "    if hashlib.sha256(content).hexdigest() != row.sha256:",
+    "new": "    if False:  # PK-5: the sha256 check skipped"
+   }
+  ],
+  "label": "students.tests_kept_uploads.AnswerWorkerTests.test_a_corrupt_file_fails_the_item_once_with_the_old_text",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'FILE_UNREADABLE' != ''"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/kept_uploads.py:143"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "declared 'SUCCESS' != 'FAILURE' at step 5 was wrong; observed 'FILE_UNREADABLE' != '' used",
+  "source": "NOTES \u00a75.7; \u00a75.14 observed"
+ },
+ {
+  "name": "PK-5b",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/kept_uploads.py",
+    "old": "    if hashlib.sha256(content).hexdigest() != row.sha256:",
+    "new": "    if False:  # PK-5b: the sha256 check skipped"
+   }
+  ],
+  "label": "students.tests_kept_uploads.AnswerWorkerTests.test_a_readable_but_different_file_fails_the_item_once",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'SUCCESS' != "
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/kept_uploads.py:143"
+  ],
+  "old_anchor": "as at 99f2bb689",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 99f2bb689",
+  "note": "observed 'SUCCESS' != BackgroundTaskStatus.FAILURE; SM \u00a75.17 practice: declare the side you control ('SUCCESS' != )",
+  "source": "NOTES \u00a75.15; \u00a75.16 observed; \u00a75.17 SM"
+ },
+ {
+  "name": "PK-6",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/task_tracking.py",
+    "old": "        error=\"\",\n    )\n    _discard_kept_file(processing_task)\n",
+    "new": "        error=\"\",\n    )\n"
+   }
+  ],
+  "label": "students.tests_kept_uploads.AnswerWorkerTests.test_a_kept_file_is_loaded_and_deleted_when_the_item_succeeds",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "unexpectedly None"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/task_tracking.py:312"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "",
+  "source": "NOTES \u00a75.7; \u00a75.14"
+ },
+ {
+  "name": "PK-7",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/kept_uploads.py",
+    "old": "kept_until=now + timedelta(days=settings.QUEUE_LIFETIME_DAYS),",
+    "new": "kept_until=now + timedelta(days=30),"
+   }
+  ],
+  "label": "students.tests_kept_uploads.StudentRouteKeepsTheFileTests.test_kept_until_is_the_upload_time_plus_the_setting",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "datetime.timedelta(days=30) != datetime.timedelta(days=3)"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/kept_uploads.py:91"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "step-5 declared the str form; observed repr used",
+  "source": "NOTES \u00a75.7; \u00a75.14 observed; \u00a75.15 ruled"
+ },
+ {
+  "name": "PK-8",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/kept_uploads.py",
+    "old": "def _delete_then_mark(row_id, storage_key):\n    try:\n        kept_files.delete(storage_key)\n    except kept_files.KeptFileError:\n        logger.warning(\"Kept upload %s: delete failed; the purge retries.\", row_id)\n        return False\n    _model().objects.filter(pk=row_id, purged_at__isnull=True).update(\n        purged_at=timezone.now()\n    )\n    return True",
+    "new": "def _delete_then_mark(row_id, storage_key):\n    _model().objects.filter(pk=row_id, purged_at__isnull=True).update(\n        purged_at=timezone.now()\n    )\n    try:\n        kept_files.delete(storage_key)\n    except kept_files.KeptFileError:\n        logger.warning(\"Kept upload %s: delete failed; the purge retries.\", row_id)\n        return False\n    return True"
+   }
+  ],
+  "label": "students.tests_kept_uploads.PurgeTests.test_a_failed_delete_leaves_the_row_unpurged_for_the_next_run",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "is not None"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/kept_uploads.py:151"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "",
+  "source": "NOTES \u00a75.7; \u00a75.14"
+ },
+ {
+  "name": "PK-9",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/item_retry.py",
+    "old": "    payload = {\"kept_upload_id\": str(kept.id)}",
+    "new": "    payload = {\"kept_upload_id\": None}"
+   }
+  ],
+  "label": "students.tests_kept_upload_retry.KeptUploadRetryTests.test_a_kept_answer_upload_stopped_for_credits_is_retried_in_place",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "First differing element 0:"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/item_retry.py:251"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "step-5 diff-line fragment was suppressed by maxDiff; observed element line 'First differing element 0:' used",
+  "source": "NOTES \u00a75.7; \u00a75.14 observed; \u00a75.15 ruled"
+ },
+ {
+  "name": "PK-10",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/data_export.py",
+    "old": "    \"students.KeptUpload\": (\"original_name\", \"size_bytes\", \"kept_until\", \"purged_at\"),",
+    "new": "    \"students.KeptUpload\": (\n        \"original_name\",\n        \"size_bytes\",\n        \"kept_until\",\n        \"purged_at\",\n        \"storage_key\",\n    ),"
+   }
+  ],
+  "label": "students.tests_kept_uploads.ExportContentTests.test_once_approved_a_kept_row_has_exactly_the_four_keys",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "First extra element 4:"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/data_export.py:167"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "test edited at B1b-8 (switch pinned True); assertion unchanged, fragment kept",
+  "source": "NOTES \u00a75.7; \u00a75.14"
+ },
+ {
+  "name": "PK-11",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "AutoGrader/settings.py",
+    "old": "        and _QUEUE_LIFETIME_MIN_DAYS <= int(text) <= _QUEUE_LIFETIME_MAX_DAYS",
+    "new": "        and 0 <= int(text) <= _QUEUE_LIFETIME_MAX_DAYS"
+   }
+  ],
+  "label": "students.tests_kept_uploads.QueueLifetimeSettingTests.test_anything_else_stops_start_up_with_a_clear_message",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "ImproperlyConfigured not raised"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "AutoGrader/settings.py:1669"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor verbatim from NOTES \u00a75.13",
+  "note": "",
+  "source": "NOTES \u00a75.13 (anchor stated verbatim); \u00a75.14"
+ },
+ {
+  "name": "PK-12",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/tasks.py",
+    "old": "@single_instance(max_hold=beat_locks.HOURLY)\n",
+    "new": ""
+   }
+  ],
+  "label": "students.tests_kept_uploads.PurgeTests.test_the_task_runs_one_at_a_time",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "unexpectedly None"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/tasks.py:10"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "",
+  "source": "NOTES \u00a75.7; \u00a75.14"
+ },
+ {
+  "name": "PK-13",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/student_data_map.py",
+    "old": "    (\"students.KeptUpload\", \"processing_task\"): Entry(\n        Role.DELETE,\n        \"Kept copies of files the student uploaded (deleted after \"\n        \"QUEUE_LIFETIME_DAYS days, or when the item succeeds)\",\n        export=True,\n        course_scoped=True,\n        match=Match.PROCESSING_TASK,\n    ),\n",
+    "new": ""
+   }
+  ],
+  "label": "students.tests_kept_uploads.StudentDataMapTests.test_a_kept_upload_is_deleted_with_the_student_through_its_task",
+  "expected": "Ran 1, FAILED (errors=1)",
+  "fragments": [
+   "KeyError: ('students.KeptUpload', 'processing_task')"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/student_data_map.py:100"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "",
+  "source": "NOTES \u00a75.10; \u00a75.14"
+ },
+ {
+  "name": "PK-14",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "assignments/upload_prompts.py",
+    "old": "educational assignment and return a JSON\n",
+    "new": "educational assignment and return a JSON.\n"
+   }
+  ],
+  "label": "students.tests_kept_uploads.SharedPromptTests.test_the_shared_prompt_is_the_old_route_string_byte_for_byte",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "return a JSON."
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "assignments/upload_prompts.py:10"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "declared: a diff line starting '- ' containing 'return a JSON.'",
+  "source": "NOTES \u00a75.10; \u00a75.14"
+ },
+ {
+  "name": "PK-15",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/item_retry.py",
+    "old": "        or not _retryable_as_it_is(item.reason_code)\n        or not item.submission_id",
+    "new": "        or not upload_code_retryable(item.reason_code)\n        or not item.submission_id"
+   }
+  ],
+  "label": "students.tests_kept_upload_retry.KeptUploadRetryTests.test_a_grading_item_refused_for_credits_is_still_refused",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "202 != 409"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/item_retry.py:154"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "",
+  "source": "NOTES \u00a75.7; \u00a75.14"
+ },
+ {
+  "name": "PK-16",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/tests_data_erase.py",
+    "old": "        # Epic B1b-5 (SM \u00a75.10): the kept files, through their task.\n        return set(\n            model.objects.filter(\n                **{f\"{field_name}__requested_by\": user.pk}\n            ).values_list(\"pk\", flat=True)\n        )",
+    "new": "        # Epic B1b-5 (SM \u00a75.10): the kept files, through their task.\n        return set()"
+   }
+  ],
+  "label": "students.tests_data_erase.FullErasureTests.test_every_delete_table_loses_only_the_targets_rows",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "set() is not true"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/tests_data_erase.py:116"
+  ],
+  "old_anchor": "as at 60cbf915c",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at 60cbf915c",
+  "note": "a plant on test code (the helper), as at step 5",
+  "source": "NOTES \u00a75.10; \u00a75.14"
+ },
+ {
+  "name": "PK-6a-1",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/task_tracking.py",
+    "old": "    )\n    _discard_refused_kept_file(processing_task)\n",
+    "new": "    )\n"
+   }
+  ],
+  "label": "students.tests_kept_uploads.RefusalDeletesTheFileTests.test_a_refused_answer_upload_loses_its_file",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "a refused item's file must go"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/task_tracking.py:350"
+  ],
+  "old_anchor": "as at c3504af0e",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at c3504af0e",
+  "note": "",
+  "source": "NOTES \u00a75.15 decl; \u00a76.1 results"
+ },
+ {
+  "name": "PK-6a-2",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/task_tracking.py",
+    "old": "        or processing_task.task_type not in KEEPABLE_TYPES\n        or not processing_task.reason_code\n    ):",
+    "new": "        or processing_task.task_type not in KEEPABLE_TYPES\n    ):"
+   }
+  ],
+  "label": "students.tests_kept_uploads.RefusalDeletesTheFileTests.test_an_unclassified_failure_keeps_its_file",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "an unclassified failure keeps its file"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/task_tracking.py:364"
+  ],
+  "old_anchor": "as at c3504af0e",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at c3504af0e",
+  "note": "",
+  "source": "NOTES \u00a75.15; \u00a76.1"
+ },
+ {
+  "name": "PK-6a-3",
+  "group": "B1b-5",
+  "edits": [
+   {
+    "file": "students/task_tracking.py",
+    "old": "    from .item_retry import upload_code_retryable\n\n    if not upload_code_retryable(processing_task.reason_code):",
+    "new": "    from .item_retry import _retryable_as_it_is\n\n    if not _retryable_as_it_is(processing_task.reason_code):"
+   }
+  ],
+  "label": "students.tests_kept_uploads.RefusalDeletesTheFileTests.test_a_late_door_credit_refusal_keeps_its_file",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "an upload credit refusal is retryable"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": [
+   "students/task_tracking.py:368"
+  ],
+  "old_anchor": "as at c3504af0e",
+  "reason": "anchor text rebuilt from the NOTES change description (plant_b5.py not kept); the same anchor also occurs exactly once at c3504af0e",
+  "note": "",
+  "source": "NOTES \u00a75.15; \u00a76.1"
+ },
+ {
+  "name": "PB6-1",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "billing/batch_queue.py",
+    "old": "            ids = [row.pk for row in claimed]\n",
+    "new": "            ids = [row.pk for row in waiting]\n            claimed = waiting\n"
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.PromotionTests.test_promotion_holds_only_the_papers_that_now_fit",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "4 != 2 : the promoter launched beyond k"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-1_4cbd823a4.log"
+ },
+ {
+  "name": "PB6-2",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "billing/batch_queue.py",
+    "old": "        for row in waiting:\n            error = _mid_batch_error(",
+    "new": "        for row in waiting:\n            row.delete()\n            continue\n            error = _mid_batch_error("
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.ExpiryTests.test_expiry_fails_the_waiting_papers_as_retryable",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "0 != 3 : expiry deleted papers"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-2_4cbd823a4.log"
+ },
+ {
+  "name": "PB6-3",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "billing/batch_queue.py",
+    "old": "            moved = AIJob.objects.filter(\n                pk=job.pk, status=AIJobStatus.QUEUED_PENDING_CREDITS\n            ).update(status=AIJobStatus.RESERVED)\n",
+    "new": "            moved = AIJob.objects.filter(\n                pk=job.pk\n            ).update(status=AIJobStatus.RESERVED)\n"
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.PromotionTests.test_two_promoters_at_once_launch_each_paper_once billing.tests.test_batch_queue.ExpiryTests.test_promotion_and_expiry_at_once_have_one_winner",
+  "expected": "Ran 2, OK (declared survivor, SM ruling \u00a76.6.10)",
+  "fragments": [],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-3_4cbd823a4.log"
+ },
+ {
+  "name": "PB6-4",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "assignments/tasks.py",
+    "old": "        transaction.on_commit(_launch)\n",
+    "new": "        _launch()\n"
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.BatchStartTests.test_no_message_is_sent_before_the_batch_commits",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "Lists differ: ['"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-4_4cbd823a4.log"
+ },
+ {
+  "name": "PB6-5",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        leftover = left - drawn\n",
+    "new": "        leftover = 0\n"
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.PromotionTests.test_a_settled_papers_leftover_promotes_a_queued_job_at_once",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "0 != 1"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-5_4cbd823a4.log"
+ },
+ {
+  "name": "PB6-6",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "billing/batch_queue.py",
+    "old": "        return\n    holds.fail_item(job, item=task)\n",
+    "new": "        return\n    return\n"
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.EndedBeforeItsUnitTests.test_a_skipped_paper_returns_its_hold_and_the_sweep_leaves_it",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'FAILURE' != BackgroundTaskStatus.SUCCESS : the sweep overwrote a skipped paper"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-6_4cbd823a4.log"
+ },
+ {
+  "name": "PB6-7",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        count_it = item_row is None or item_row.hold_state == HoldState.HELD\n",
+    "new": "        count_it = True\n"
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.EndedBeforeItsUnitTests.test_a_paper_the_hook_released_is_not_counted_twice",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "2 != 1 : counted once, not twice"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-7_4cbd823a4.log"
+ },
+ {
+  "name": "PB6-8",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "billing/batch_queue.py",
+    "old": "        return\n    holds.fail_item(job, item=task)\n",
+    "new": "        return\n    holds.fail_item(job, item=task)\n    holds._move_wallet(job.wallet_id, -task.hold_credits)\n"
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.EndedBeforeItsUnitTests.test_a_paper_the_hook_released_then_deleted_returns_its_hold_once",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "0 != 100 : a hold returned twice"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-8_4cbd823a4.log"
+ },
+ {
+  "name": "PB6-9",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "billing/batch_queue.py",
+    "old": "            for session_id in {row.batch_session_id for row in claimed}:\n                if session_id:\n                    clear_batch_credit_stop(session_id)\n",
+    "new": ""
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.PromotionTests.test_a_promoted_paper_gets_past_the_batch_credit_stop",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   " is not None : promotion did not clear the credit stop"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-9_4cbd823a4.log"
+ },
+ {
+  "name": "PB6-10",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "billing/batch_queue.py",
+    "old": "        if job_row.completed_items + job_row.failed_items < claimed:\n",
+    "new": "        if job_row.completed_items < claimed:\n"
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.LastItemTests.test_a_job_whose_papers_all_failed_ends_failed",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'RESERVED' != AIJobStatus.FAILED : D6-a: failures count toward the last item"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-10_4cbd823a4.log"
+ },
+ {
+  "name": "PB6-11",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "assignments/views.py",
+    "old": "        pairs = _dispatch_tracked_grading(\n            request.user,\n            assignment,\n            ungraded_submissions,\n            session,\n            request=request,\n            batch_id=session.id,\n        )\n",
+    "new": "        from django.test import override_settings as _off\n\n        with _off(BILLING_HOLDS_ENABLED=False):\n            pairs = _dispatch_tracked_grading(\n                request.user,\n                assignment,\n                ungraded_submissions,\n                session,\n                request=request,\n                batch_id=session.id,\n            )\n"
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.GradeAllTests.test_a_waiting_paper_is_listed_with_no_task_id",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'celery-a144b1e3' is not None : D6-d: a waiting paper has no task"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-11_4cbd823a4.log"
+ },
+ {
+  "name": "PB6-12",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "assignments/tasks.py",
+    "old": "        _dispatch_tracked_grading(\n            assignment.course.teacher,\n            assignment,\n            to_send,\n            session,\n            only_if_ungraded=True,\n            first_index=first_index,\n            adopt=adopt or (),\n        )\n",
+    "new": "        from django.test import override_settings as _off\n\n        with _off(BILLING_HOLDS_ENABLED=False):\n            _dispatch_tracked_grading(\n                assignment.course.teacher,\n                assignment,\n                to_send,\n                session,\n                only_if_ungraded=True,\n                first_index=first_index,\n                adopt=adopt or (),\n            )\n"
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.AutomaticPathTests.test_an_automatic_run_that_runs_out_queues_and_resumes",
+  "expected": "Ran 1, FAILED (errors=1)",
+  "fragments": [
+   "AIJob matching query does not exist."
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-12_4cbd823a4.log"
+ },
+ {
+  "name": "PB6-13",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "assignments/tasks.py",
+    "old": "        _dispatch_tracked_grading(\n            CustomUser.objects.get(id=user_id),\n            Assignment.objects.get(id=assignment_id),\n            submissions,\n            (\n                BatchUploadSession.objects.filter(id=batch_id).first()\n                if batch_id\n                else None\n            ),\n            only_if_ungraded=True,\n        )\n",
+    "new": "        from django.test import override_settings as _off\n\n        with _off(BILLING_HOLDS_ENABLED=False):\n            _dispatch_tracked_grading(\n                CustomUser.objects.get(id=user_id),\n                Assignment.objects.get(id=assignment_id),\n                submissions,\n                (\n                    BatchUploadSession.objects.filter(id=batch_id).first()\n                    if batch_id\n                    else None\n                ),\n                only_if_ungraded=True,\n            )\n"
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.AutomaticPathTests.test_a_scheduled_batch_is_one_job",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "0 != 1 : the scheduled batch did not go through the helper"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-13_4cbd823a4.log"
+ },
+ {
+  "name": "PB6-14",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "assignments/tasks.py",
+    "old": "            collect.append(detach_item(item))\n",
+    "new": "            detach_item(item)\n"
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.AutomaticPathTests.test_after_an_outage_and_retry_the_teacher_sees_one_line_per_paper",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'1 / 3' != '3 / 3'"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-14_4cbd823a4.log"
+ },
+ {
+  "name": "PB6b-1",
+  "group": "B1b-6b",
+  "edits": [
+   {
+    "file": "billing/estimate_views.py",
+    "old": "        if isinstance(data, list) and len(data) > LIST_LIMIT:\n",
+    "new": "        if False:  # PB6b-1: the limit removed\n"
+   }
+  ],
+  "label": "billing.tests.test_estimate_endpoint.EstimateListLimitTests.test_501_listed_ids_are_refused_with_the_drf_message",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "200 != 400 : 501 ids were accepted"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6b/PB6b-1_5ba99b1bf+fix.log (header)"
+ },
+ {
+  "name": "PB6b-2",
+  "group": "B1b-6b",
+  "edits": [
+   {
+    "file": "billing/estimate_views.py",
+    "old": "        return {\"code\": \"max_items\", \"message\": OVER_LIMIT_MESSAGE, **errors}\n",
+    "new": "        return errors  # PB6b-2: the structured refusal removed\n"
+   }
+  ],
+  "label": "billing.tests.test_estimate_endpoint.EstimateListLimitTests.test_501_listed_ids_are_refused_with_the_drf_message",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'Submission ids: Ensure this field has no [19 chars]nts.' != 'You can get a cost estimate for up to 500[64 chars]ers.'"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6b/PB6b-2_6128868f0.log (header)"
+ },
+ {
+  "name": "PB7-1",
+  "group": "B1b-7",
+  "edits": [
+   {
+    "file": "billing/low_balance.py",
+    "old": "        )\n        .update(low_balance_warned_level=level, low_balance_warned_cycle_start=key)\n    )\n    if not claimed:\n        return None\n    notify(wallet, level, spendable, cycle)\n    return level\n\n",
+    "new": "        )\n        .update(low_balance_warned_level=level, low_balance_warned_cycle_start=key)\n    )\n    notify(wallet, level, spendable, cycle)\n    return level\n\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b7_low_balance.WarningTests.test_the_same_level_again_in_the_cycle_sends_nothing billing.tests.test_b1b7_low_balance.ConcurrentSettlementTests.test_two_settlements_crossing_25_percent_send_once",
+  "expected": "Ran 2, FAILED (failures=2)",
+  "fragments": [
+   "Lists differ: ['You have 25% of your credits left', 'You have 25% of your credits left'] != ['You have 25% of your credits left']",
+   "2 != 1 : two racing checks sent twice"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step7/PB7-1_4e29ce47c.log"
+ },
+ {
+  "name": "PB7-2",
+  "group": "B1b-7",
+  "edits": [
+   {
+    "file": "billing/low_balance.py",
+    "old": "    key = cycle.created_at.date()\n    claimed = (\n        CreditWallet.objects.filter(pk=wallet.pk)\n        .filter(\n            ~Q(low_balance_warned_cycle_start=key)\n            | Q(low_balance_warned_cycle_start__isnull=True)\n            | Q(low_balance_warned_level__isnull=True)\n            | Q(low_balance_warned_level__gt=level)\n        )\n        .update(low_balance_warned_level=level, low_balance_warned_cycle_start=key)\n    )\n    if not claimed:\n",
+    "new": "    key = cycle.created_at.date()\n    claimed = (\n        CreditWallet.objects.filter(pk=wallet.pk)\n        .update(low_balance_warned_level=level, low_balance_warned_cycle_start=key)\n    )\n    if not claimed:\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b7_low_balance.WarningTests.test_the_same_level_again_in_the_cycle_sends_nothing billing.tests.test_b1b7_low_balance.ConcurrentSettlementTests.test_two_settlements_crossing_25_percent_send_once",
+  "expected": "Ran 2, FAILED (failures=2)",
+  "fragments": [
+   "Lists differ: ['You have 25% of your credits left', 'You have 25% of your credits left'] != ['You have 25% of your credits left']",
+   "2 != 1 : two racing checks sent twice"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step7/PB7-2_4e29ce47c.log"
+ },
+ {
+  "name": "PB7-3",
+  "group": "B1b-7",
+  "edits": [
+   {
+    "file": "billing/low_balance.py",
+    "old": "    claimed = (\n        CreditWallet.objects.filter(pk=wallet.pk)\n        .filter(\n            ~Q(low_balance_warned_cycle_start=key)\n            | Q(low_balance_warned_cycle_start__isnull=True)\n            | Q(low_balance_warned_level__isnull=True)\n            | Q(low_balance_warned_level__gt=level)\n        )\n",
+    "new": "    claimed = (\n        CreditWallet.objects.filter(pk=wallet.pk)\n        .filter(\n            Q(low_balance_warned_cycle_start__isnull=True)\n            | Q(low_balance_warned_level__isnull=True)\n            | Q(low_balance_warned_level__gt=level)\n        )\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b7_low_balance.WarningTests.test_a_new_cycle_starts_over",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "Lists differ: ['You have 25% of your credits left'] != ['You have 25% of your credits left', 'You have 25% of your credits left']"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step7/PB7-3_4e29ce47c.log"
+ },
+ {
+  "name": "PB7-5",
+  "group": "B1b-7",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "        )\n        if not moved:\n            return None\n        if to_status == AIJobStatus.SETTLED:\n            # B1b-7 (plan \u00a73.10): this caller won the move, so the gap metric\n            # is emitted once per settled job.\n            transaction.on_commit(partial(emit_estimate_gap, job.pk))\n",
+    "new": "        )\n        if not moved:\n            return None\n        if to_status in (AIJobStatus.SETTLED, AIJobStatus.FAILED):\n            # B1b-7 (plan \u00a73.10): this caller won the move, so the gap metric\n            # is emitted once per settled job.\n            transaction.on_commit(partial(emit_estimate_gap, job.pk))\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b7_gap_metric.GapMetricTests.test_a_failed_or_expired_job_emits_nothing",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "Lists differ: [('credit_estimate_gap', {'bucket': '1.2-2[47 chars]e'})] != []"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step7/PB7-5_4e29ce47c.log"
+ },
+ {
+  "name": "PB7-6",
+  "group": "B1b-7",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "    audit_metrics.count(\n        \"credit_estimate_gap\", tags={\"bucket\": gap_bucket(actual, job_row.estimate_p50)}\n    )\n    hit = job_row.estimate_p90 is not None and actual <= job_row.estimate_p90\n    audit_metrics.count(\n        \"credit_estimate_band_hit\", tags={\"hit\": \"true\" if hit else \"false\"}\n    )\n",
+    "new": "    audit_metrics.count(\n        \"credit_estimate_gap\", tags={\"bucket\": gap_bucket(actual, job_row.estimate_p50)}\n    )\n    hit = job_row.estimate_p90 is not None and actual < job_row.estimate_p90\n    audit_metrics.count(\n        \"credit_estimate_band_hit\", tags={\"hit\": \"true\" if hit else \"false\"}\n    )\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b7_gap_metric.GapMetricTests.test_the_band_edge_is_a_hit",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "('credit_estimate_band_hit', {'hit': 'true'}) not found in [('credit_estimate_gap', {'bucket': '1.2-2'}), ('credit_estimate_band_hit', {'hit': 'false'})]"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step7/PB7-6_4e29ce47c.log"
+ },
+ {
+  "name": "PB7-e1",
+  "group": "B1b-7",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "    \"\"\"The call failed or was cancelled: nothing charged, hold returned.\"\"\"\n    fail_item(job)\n    finish_job(job, AIJobStatus.FAILED)\n\n\n# --------------------------------------------------------------------------\n",
+    "new": "    \"\"\"The call failed or was cancelled: nothing charged, hold returned.\"\"\"\n    fail_item(job)\n    finish_job(job, AIJobStatus.FAILED)\n    _note_settled(job.pk)\n\n\n# --------------------------------------------------------------------------\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b7_ai_job_id.RuleTests.test_a_retry_then_success_names_the_settled_job",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "None != '"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step7/PB7-e1_3a85ba0a1.log"
+ },
+ {
+  "name": "PB7-e2",
+  "group": "B1b-7",
+  "edits": [
+   {
+    "file": "students/views.py",
+    "old": "        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],\n        url_path=\"grade\",\n    )\n    @with_ai_job_id\n    def grade(self, request, pk=None):\n        # get_object() runs get_queryset() (which scopes teachers to their\n        # own courses) plus check_object_permissions \u2014 using the manager\n",
+    "new": "        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],\n        url_path=\"grade\",\n    )\n    def grade(self, request, pk=None):\n        # get_object() runs get_queryset() (which scopes teachers to their\n        # own courses) plus check_object_permissions \u2014 using the manager\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b7_ai_job_id.ViewTests.test_students_grade",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'absent' != '"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step7/PB7-e2_3a85ba0a1.log"
+ },
+ {
+  "name": "PB7-e3",
+  "group": "B1b-7",
+  "edits": [
+   {
+    "file": "students/views.py",
+    "old": "\n        return Response(serializer.data, status=HTTP_200_OK)\n\n    @with_ai_job_id(staff_only=True)\n    def partial_update(self, request, *args, **kwargs):\n        \"\"\"\n        Synchronous raw-text edit: re-extracts answers inside the request.\n",
+    "new": "\n        return Response(serializer.data, status=HTTP_200_OK)\n\n    @with_ai_job_id\n    def partial_update(self, request, *args, **kwargs):\n        \"\"\"\n        Synchronous raw-text edit: re-extracts answers inside the request.\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b7_ai_job_id.ViewTests.test_students_partial_update_by_the_student_has_no_job_id",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'ai_job_id' unexpectedly found in {'id': '"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step7/PB7-e3_18a92810a.log"
+ },
+ {
+  "name": "PB7-other",
+  "group": "B1b-7",
+  "edits": [
+   {
+    "file": "billing/job_views.py",
+    "old": "    if user.user_type == UserTypes.SCHOOL_ADMIN and user.school_id is not None:\n        scope |= Q(\n            wallet__user__school_credit_allocations__is_active=True,\n            wallet__user__school_credit_allocations__license_subscription__school_id=(\n                user.school_id\n            ),\n        )\n    return jobs.filter(scope).distinct()\n\n",
+    "new": "    if user.user_type == UserTypes.SCHOOL_ADMIN and user.school_id is not None:\n        scope |= Q(\n            wallet__user__school_credit_allocations__is_active=True,\n        )\n    return jobs.filter(scope).distinct()\n\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b7_job_api.JobApiTests.test_a_school_admin_of_another_license_gets_404",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "200 != 404"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step7/PB7-other_4e29ce47c.log"
+ },
+ {
+  "name": "P8-1",
+  "group": "B1b-8",
+  "edits": [
+   {
+    "file": "billing/low_balance.py",
+    "old": "        return None\n    total = allocation(wallet)\n    cycle = cycle_bucket(wallet)\n    if total <= 0 or cycle is None or cycle.expires_at is None:\n        # D8-a (SM, \u00a78.5): no expires_at gives no {cycle_end}, so no text\n        # would be true: nothing is claimed or sent.\n        return None\n",
+    "new": "        return None\n    total = allocation(wallet)\n    cycle = cycle_bucket(wallet)\n    if total <= 0 or cycle is None:\n        # D8-a (SM, \u00a78.5): no expires_at gives no {cycle_end}, so no text\n        # would be true: nothing is claimed or sent.\n        return None\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b8_texts.LowBalanceNoExpiryTests.test_a_cycle_bucket_with_no_expiry_sends_no_warning",
+  "expected": "Ran 1, FAILED (errors=1)",
+  "fragments": [
+   "'NoneType' object has no attribute 'date'"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step8/P8-1_6611cf4a4.log"
+ },
+ {
+  "name": "P8-2",
+  "group": "B1b-8",
+  "edits": [
+   {
+    "file": "users/views.py",
+    "old": "        },\n    )\n    @action(detail=False, methods=[\"get\"], url_path=\"status/(?P<task_id>[^/.]+)\")\n    @staff_only_keys(\"kept_until\")\n    def task_status(self, request, task_id=None):\n        \"\"\"\n        Retrieve the status of a background task by its ID, enriched with context.\n",
+    "new": "        },\n    )\n    @action(detail=False, methods=[\"get\"], url_path=\"status/(?P<task_id>[^/.]+)\")\n    def task_status(self, request, task_id=None):\n        \"\"\"\n        Retrieve the status of a background task by its ID, enriched with context.\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b8_texts.KeptUntilStatusTests.test_a_student_never_reads_it",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'kept_until' unexpectedly found in {'task_id': '"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step8/P8-2_6611cf4a4.log"
+ },
+ {
+  "name": "P8-3",
+  "group": "B1b-8",
+  "edits": [
+   {
+    "file": "students/task_tracking.py",
+    "old": "        processing_task.save(update_fields=update_fields)\n        cleanup_cancelled_task_artifacts(processing_task)\n        _release_unused_hold(processing_task)\n        _close_cancelled_queue(processing_task)\n\n    if processing_task.celery_task_id:\n        # The revoke is an accelerator, not the cancellation itself: the\n",
+    "new": "        processing_task.save(update_fields=update_fields)\n        cleanup_cancelled_task_artifacts(processing_task)\n        _release_unused_hold(processing_task)\n\n    if processing_task.celery_task_id:\n        # The revoke is an accelerator, not the cancellation itself: the\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b8_texts.CancelledQueueTests.test_cancelling_every_waiting_paper_closes_the_job_with_no_email",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "'QUEUED_PENDING_CREDITS' != AIJobStatus.CANCELLED"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step8/P8-3_6611cf4a4.log"
+ },
+ {
+  "name": "P8-4",
+  "group": "B1b-8",
+  "edits": [
+   {
+    "file": "billing/batch_queue.py",
+    "old": "        \"days\": settings.QUEUE_LIFETIME_DAYS,\n        \"expires_on\": job.expires_at.date().isoformat() if job.expires_at else \"\",\n    }\n    if kind in (\"expiry_warning\", \"expired\") and values[\"left\"] == 0:\n        # Q8-6 (2): nothing waits (a cancelled batch), so nothing is said.\n        return\n    closing = (\n        QUEUE_EMAIL_CLOSING_INDIVIDUAL\n        if is_individual_teacher(teacher)\n",
+    "new": "        \"days\": settings.QUEUE_LIFETIME_DAYS,\n        \"expires_on\": job.expires_at.date().isoformat() if job.expires_at else \"\",\n    }\n    closing = (\n        QUEUE_EMAIL_CLOSING_INDIVIDUAL\n        if is_individual_teacher(teacher)\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b8_texts.QueueSendTests.test_no_expiry_email_when_nothing_waited billing.tests.test_b1b8_texts.QueueSendTests.test_no_warning_when_nothing_waits",
+  "expected": "Ran 2, FAILED (failures=2)",
+  "fragments": [
+   "Expected 'delay' to not have been called. Called 1 times.",
+   "Expected 'delay' to not have been called. Called 1 times."
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step8/P8-4_6611cf4a4.log"
+ },
+ {
+  "name": "P8-5",
+  "group": "B1b-8",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "\n    teacher = job.wallet.user\n    name = row.file_name or \"your file\"\n    if not LATE_DOOR_EMAIL_APPROVED or row.task_type not in UPLOAD_ITEM_TYPES:\n        logger.warning(\n            \"Late door file refused (task %s); the notice texts await owner \"\n            \"approval, so no email was sent.\",\n",
+    "new": "\n    teacher = job.wallet.user\n    name = row.file_name or \"your file\"\n    if not LATE_DOOR_EMAIL_APPROVED:\n        logger.warning(\n            \"Late door file refused (task %s); the notice texts await owner \"\n            \"approval, so no email was sent.\",\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b8_texts.LateDoorEmailTests.test_a_single_upload_is_logged_and_the_teacher_is_not_emailed",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "no logs of level WARNING or higher triggered on billing.holds"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step8/P8-5_6611cf4a4.log"
+ },
+ {
+  "name": "P9-1",
+  "group": "B1b-9",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "            wallet=wallet, target_teacher=target_teacher, estimate=estimate\n        )\n        return _UnitCallHold(unit)\n    if not holds_for_new_work():\n        return None\n    job = begin_single_call(\n        wallet=wallet, target_teacher=target_teacher, estimate=estimate\n    )\n",
+    "new": "            wallet=wallet, target_teacher=target_teacher, estimate=estimate\n        )\n        return _UnitCallHold(unit)\n    job = begin_single_call(\n        wallet=wallet, target_teacher=target_teacher, estimate=estimate\n    )\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b9_drain.DrainingCallTests.test_a_single_call_takes_no_hold",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "1 != 0"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step9/P9-1_75e162585.log"
+ },
+ {
+  "name": "P9-2",
+  "group": "B1b-9",
+  "edits": [
+   {
+    "file": "billing/management/commands/billing_holds_drain.py",
+    "old": "\n\ndef is_drained(state):\n    return not any(state.values())\n\n\ndef describe(state):\n",
+    "new": "\n\ndef is_drained(state):\n    return True\n\n\ndef describe(state):\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b9_drain.DrainCommandTests.test_an_open_hold_exits_1_naming_its_wallet_and_job",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "not found in 'DRAINED\\n'"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step9/P9-2_75e162585.log"
+ },
+ {
+  "name": "P9-3",
+  "group": "B1b-9",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "    held = BackgroundProcessingTask.objects.filter(\n        hold_state=HoldState.HELD, job__isnull=False\n    )\n    if not force:\n        held = held.filter(started_at__isnull=False, started_at__lt=cutoff)\n    candidates = list(held.exclude(Exists(settled)).values_list(\"pk\", \"job_id\"))\n    items_swept = credits_returned = 0\n    for item_pk, job_pk in candidates:\n",
+    "new": "    held = BackgroundProcessingTask.objects.filter(\n        hold_state=HoldState.HELD, job__isnull=False\n    )\n    held = held.filter(started_at__isnull=False)\n    if not force:\n        held = held.filter(started_at__lt=cutoff)\n    candidates = list(held.exclude(Exists(settled)).values_list(\"pk\", \"job_id\"))\n    items_swept = credits_returned = 0\n    for item_pk, job_pk in candidates:\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b9_drain.ForceLimitTests.test_force_returns_unstarted_holds_and_a_fresh_job_with_no_row billing.tests.test_b1b9_drain.DrainCommandTests.test_the_emergency_returns_every_hold_at_once_and_prints_drained",
+  "expected": "Ran 2, FAILED (failures=2)",
+  "fragments": [
+   "Tuples differ: (0, 1) != (1, 1)",
+   "Tuples differ: ('PENDING', '') != ('FAILURE', 'PROVIDER_FAILURE')"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step9/P9-3_75e162585.log"
+ },
+ {
+  "name": "P9-4",
+  "group": "B1b-9",
+  "edits": [
+   {
+    "file": "billing/models.py",
+    "old": "    the promotion of that user's queued batch jobs after commit; never inline\n    (a promoter error cannot fail the grant), and no query here. Nothing\n    while the flag is off, nor while draining (B1b-9: promotion stops).\"\"\"\n    from .holds import holds_for_new_work\n\n    if not holds_for_new_work():\n        return\n",
+    "new": "    the promotion of that user's queued batch jobs after commit; never inline\n    (a promoter error cannot fail the grant), and no query here. Nothing\n    while the flag is off, nor while draining (B1b-9: promotion stops).\"\"\"\n    from .holds import holds_enabled as holds_for_new_work\n\n    if not holds_for_new_work():\n        return\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b9_drain.DrainingPromotionTests.test_a_credit_entry_enqueues_no_promotion",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "Expected 'delay' to not have been called. Called 1 times."
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step9/P9-4_75e162585.log"
+ },
+ {
+  "name": "P9-4b",
+  "group": "B1b-9",
+  "edits": [
+   {
+    "file": "billing/tasks.py",
+    "old": "def _draining():\n    from .holds import holds_draining\n\n    return holds_draining()\n\n\n@shared_task(bind=True, max_retries=0)\n",
+    "new": "def _draining():\n    from .holds import holds_draining\n\n    return False\n\n\n@shared_task(bind=True, max_retries=0)\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b9_drain.DrainingPromotionTests.test_the_promotion_tasks_promote_nothing",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "Expected 'promote_all' to not have been called. Called 1 times."
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step9/P9-4b_75e162585.log"
+ },
+ {
+  "name": "P9-5",
+  "group": "B1b-9",
+  "edits": [
+   {
+    "file": "billing/batch_queue.py",
+    "old": "    approved. Until then nothing is sent (the late-door precedent). Nothing\n    is sent while draining either (B1b-9 Q9-4; 08b \u00a76.3: no expiry emails\n    during a drain).\"\"\"\n    if holds.holds_draining():\n        logger.info(\n            \"Batch job %s is %s; credit holds are draining, so no email was sent.\",\n            job_pk,\n",
+    "new": "    approved. Until then nothing is sent (the late-door precedent). Nothing\n    is sent while draining either (B1b-9 Q9-4; 08b \u00a76.3: no expiry emails\n    during a drain).\"\"\"\n    if False:\n        logger.info(\n            \"Batch job %s is %s; credit holds are draining, so no email was sent.\",\n            job_pk,\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_expired_is_silent billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_expiry_warning_is_silent billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_queued_is_silent billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_restarted_is_silent billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_the_beat_expiry_still_expires_and_sends_nothing",
+  "expected": "Ran 5, FAILED (failures=5)",
+  "fragments": [
+   "Expected 'delay' to not have been called. Called 1 times.",
+   "Expected 'delay' to not have been called. Called 1 times.",
+   "Expected 'delay' to not have been called. Called 1 times.",
+   "Expected 'delay' to not have been called. Called 1 times.",
+   "Expected 'delay' to not have been called. Called 1 times."
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step9/P9-5_75e162585.log"
+ },
+ {
+  "name": "P9-6",
+  "group": "B1b-9",
+  "edits": [
+   {
+    "file": "billing/holds.py",
+    "old": "    \"\"\"What the flag-off balance check compares with. B1b-9 Q9-2 (SM ruling,\n    a departure from 08b's \"exactly as flag off\"): while draining with the\n    flag on, holds are still open, so spendable; otherwise the total.\"\"\"\n    if holds_enabled():\n        return spendable_credits(wallet)\n    return wallet.total_remaining_credits()\n\n\n",
+    "new": "    \"\"\"What the flag-off balance check compares with. B1b-9 Q9-2 (SM ruling,\n    a departure from 08b's \"exactly as flag off\"): while draining with the\n    flag on, holds are still open, so spendable; otherwise the total.\"\"\"\n    return wallet.total_remaining_credits()\n\n\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b9_drain.DrainingCallTests.test_q92_a_call_the_total_covers_but_spendable_does_not_is_refused",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "InsufficientCreditsError not raised"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step9/P9-6_75e162585.log"
+ },
+ {
+  "name": "P9-7",
+  "group": "B1b-9",
+  "edits": [
+   {
+    "file": "billing/management/commands/billing_holds_drain.py",
+    "old": "            \"Flag-off emergency: record who ordered it, when and why in NOTES.\"\n        )\n        expired = expire_queued_jobs()\n        swept = holds.sweep_stale_holds(force=True)\n        finished = 0\n        for job in list(AIJob.objects.filter(status__in=holds.OPEN_STATUSES)):\n            if job.status == AIJobStatus.QUEUED_PENDING_CREDITS:\n",
+    "new": "            \"Flag-off emergency: record who ordered it, when and why in NOTES.\"\n        )\n        expired = expire_queued_jobs()\n        swept = holds.sweep_stale_holds()\n        finished = 0\n        for job in list(AIJob.objects.filter(status__in=holds.OPEN_STATUSES)):\n            if job.status == AIJobStatus.QUEUED_PENDING_CREDITS:\n"
+   }
+  ],
+  "label": "billing.tests.test_b1b9_drain.ForceLimitTests.test_only_the_emergency_command_passes_force billing.tests.test_b1b9_drain.DrainCommandTests.test_the_emergency_returns_every_hold_at_once_and_prints_drained",
+  "expected": "Ran 2, FAILED (failures=2)",
+  "fragments": [
+   "Items in the second set but not the first:",
+   "Tuples differ: ('PENDING', '') != ('FAILURE', 'PROVIDER_FAILURE')"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step9/P9-7_75e162585.log"
+ }
+]
