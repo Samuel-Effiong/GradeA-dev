@@ -4150,3 +4150,22 @@ Each plant is one edit to the product at e0fc5ffb7 (`billing/low_balance.py`, `b
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | N4 (extra near, §7.23 (d)) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; `--parallel 4`; under flock with `--noinput`; at this commit | `students assignments dashboard users` + `guards67.txt` | **Ran 4237, OK (skipped=23)**, 0 FAIL, 0 ERROR |
+
+### §7.24 N4 MISMATCH, recorded unamended: a STOP to the SM
+
+| Run | Declared | Got | Log |
+|---|---|---|---|
+| N4 at fa7fab906 | Ran 4237, OK (skipped=23) | **Ran 4237, FAILED (failures=3, skipped=23)**, exit 1 | `step7/N4_near_fa7fab906.log.gz` |
+
+- **The Ran and skip counts match.** The 3 failures are all in `students.tests_student_upload_answer`:
+  - `AFirstUploadTest.test_the_keys_are_the_thirty_the_route_always_answered_with` (`:191`);
+  - `OnlyTheAnswerProtectsTest.test_a_graded_paper_answers_with_every_staff_field_the_constant` (`:397`);
+  - `OnlyTheAnswerProtectsTest.test_a_student_upload_over_a_held_result_says_nothing_of_it` (`:418`, H-279).
+- **Each fails the same way:** `Lists differ: [... 'pending_graded_at', 'ai_job_id'] != [... 'pending_graded_at']`, `First extra element 34: 'ai_job_id'`.
+- **The cause:** these tests pin the exact key list (`KEYS`, `:63`) of the **student's** upload-answers response, as a student-privacy guard (H-127/H-279). D7-e's `@with_ai_job_id` on students `upload_answers` adds a 35th key.
+- **My miss:** I grepped only for `set(response.data)`, `.keys()` and whole-body `assertEqual(response.data, {`, not for `list(response)` key pins. And the students suite was outside the ruled near until (d).
+- **A wider point than the pin:** two of the 11 views are **student** routes (students `upload_answers` and students `partial_update`). The job is billed to the teacher's wallet, and the job API answers a student 404 (D7-c). So the id is of no use to a student, and it shows a student that a billing job exists for their upload.
+- **Options:**
+  - **(A) Recommended:** no `ai_job_id` on the two student routes. Drop `@with_ai_job_id` from students `upload_answers` and `partial_update`, and their `ai_job_schema`. `ViewTests` loses 2 tests, or they become "absent for a student" pins. The pre-existing key pins stay untouched. The view list becomes 9.
+  - **(B)** Keep it, and edit `KEYS` to 35. That is an edit of a pre-existing privacy pin (break run needed), and it puts a billing id in a student body.
+- **Awaiting the SM's ruling.** B1b-7 is not final. Nothing is changed or re-run until then. The B1b-8 survey has started read-only; nothing of it is committed.
