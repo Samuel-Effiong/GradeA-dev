@@ -70,3 +70,26 @@ passes.
   - LeadBlockCostTests (error: no lead_rows/top_leads).
 - The existing test_custom_ai_prompt_beta and brief 4's
   test_intent_signals/pins all pass.
+
+R1 result (R1_red.log): Ran 38, FAILED (failures=3, errors=3): **the 6 declared, each for its declared reason** ('[]' != the rows; [] != 10 rows; the non-empty guard; AttributeError, no top_leads/lead_rows). The other 32 pass, as predicted.
+
+## Build (product)
+
+billing/views.py only:
+- `top_leads(now, limit)` (teacher profiles + annotate_signals, the list's
+  default order) and `lead_rows(leads)` (the row builder, moved out of
+  intent_signals unchanged);
+- intent_signals now calls lead_rows;
+- custom_ai_prompt builds its block from
+  `lead_rows(top_leads(request_now(request), 10))` through
+  ConversionLeadSerializer, inside `except DatabaseError` only.
+The log line is a fixed message plus the exception's type name, NOT
+logger.exception: a traceback carries the error's own text, which can hold
+row values (the test raises one that contains an email). The template text
+is not touched.
+
+### R2 green (declared)
+
+The same 4 labels, Ran 38. Expected: OK.
+
+R2 result (R2_green.log): Ran 38, OK, as predicted.
