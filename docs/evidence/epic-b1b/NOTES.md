@@ -4810,3 +4810,24 @@ The fragments were rendered from unittest's own messages (no test run). No pre-e
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | N9 (near) | BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; `--parallel 4`; under flock with `--noinput`; at this commit | `billing students assignments dashboard users` + `guards67.txt` | **Ran 6993, OK (skipped=32)**, 0 FAIL, 0 ERROR |
+
+**N9 result (at b0703394f):** **Ran 6993, OK (skipped=32)**, 0 FAIL, 0 ERROR, exit 0. **As declared.** Log: `step9/N9_near_b0703394f.log.gz`.
+
+### §9.8 B1b-9 at the end checkpoint
+
+- **Commits:** tests first e20a1f61d; R9 red d23fffff5; product 05ddbd2c1; test assertion + G9/plant declaration 75e162585; plant evidence + N9 declaration b0703394f.
+- **Runs:**
+  - R9: Ran 35, failures=28, errors=10, as declared.
+  - G9: Ran 35, OK.
+  - P9-1..P9-7 (8 plants with P9-4b): all killed as declared; all restored by sha256.
+  - N9: Ran 6993, OK (skipped=32).
+  - No mismatch.
+- **For the SM:**
+  - **The undeclared trial run (§9.6):** one run of the new module before the product commit (Ran 35, OK). It was not declared first. Nothing changed because of it.
+  - **The assertion added after R9 (§9.6):** the emergency test could not tell the forced sweep from `finish_job`, so it now also checks each row's status, so that P9-7 is caught as ruled.
+  - **The design choices within the rulings (§9.4):**
+    - With the flag off (the emergency), the flag-off check keeps the total, per 08b §6.3's own emergency sentence.
+    - A late message on a returned grading row still exits.
+    - The drain expires queued jobs in every round.
+- `write_routes()` = 164, unchanged. No migration. No user-facing wording: the runbook, logs and command output are engineering text.
+- **Not done:** the staging drain run (08b: once on staging at the end of the soak). That is an owner go, per the runbook.
