@@ -112,6 +112,10 @@ class AuditAction(models.TextChoices):
     # H-278: a session marked as, or cleared from being, THE active session
     # of its school or teacher (the previous one is in the metadata).
     SESSION_ACTIVE_CHANGE = "SESSION_ACTIVE_CHANGE", "Active session changed"
+    # H-34: a super admin locked or unlocked a user's sign-in (actor the
+    # admin, target the user). Unlock also clears the 5-try login lock.
+    ACCOUNT_LOCK = "ACCOUNT_LOCK", "Sign-in locked"
+    ACCOUNT_UNLOCK = "ACCOUNT_UNLOCK", "Sign-in unlocked"
 
 
 # Actions that always touch a student's record, so they are kept 3 years.
@@ -249,6 +253,8 @@ class ReasonCode(models.TextChoices):
     # Sign-in and session outcomes (audit-only; FR-A-01, Epic A S1).
     ACCOUNT_LOCKED = "ACCOUNT_LOCKED", "Account locked"
     ACCOUNT_DEACTIVATED = "ACCOUNT_DEACTIVATED", "Account deactivated"
+    # H-34: a sign-in refused because a super admin locked the account.
+    ACCOUNT_LOCKED_BY_ADMIN = "ACCOUNT_LOCKED_BY_ADMIN", "Account locked by an admin"
     WRONG_PASSWORD = "WRONG_PASSWORD", "Wrong password"  # pragma: allowlist secret
     INVALID_CREDENTIALS = "INVALID_CREDENTIALS", "Invalid credentials"
     INVALID_CODE = "INVALID_CODE", "Invalid code"

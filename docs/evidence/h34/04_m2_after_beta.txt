@@ -1,0 +1,1 @@
+OK   users/migrations/0042_customuser_admin_locked_at.py: additive only

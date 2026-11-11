@@ -145,6 +145,10 @@ class CustomUser(AbstractUser):
 
     failed_login_attempts = models.PositiveSmallIntegerField(default=0, db_default=0)
     locked_until = models.DateTimeField(null=True, blank=True)
+    # H-34: set when a super admin locks this account's sign-in; null means
+    # not locked. Separate from is_active, which the mailbox roads switch on
+    # (verify, Google) and which rosters show. users.sign_in_lock writes it.
+    admin_locked_at = models.DateTimeField(null=True, blank=True)
 
     # Session epoch (AUTHZ-T1/T2). Every issued token carries the epoch it was
     # minted under (users.tokens.EPOCH_CLAIM) and users.authentication rejects
@@ -296,6 +300,11 @@ class CustomUser(AbstractUser):
 
     def is_account_locked(self):
         return bool(self.locked_until and timezone.now() < self.locked_until)
+
+    @property
+    def is_admin_locked(self):
+        """H-34: a super admin locked this account's sign-in."""
+        return self.admin_locked_at is not None
 
     # ---- session epoch -------------------------------------------------
     # The bump is an F() expression, so concurrent credential changes cannot

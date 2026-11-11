@@ -399,7 +399,7 @@ HTTP 400 · USER · Not retryable
 
 ### Sign-in locks
 
-Too many wrong attempts. The user has to wait. These four have a slightly different body, described in section 6.
+Too many wrong attempts, so the user has to wait; or a super admin locked the account (`ACCOUNT_LOCKED_BY_ADMIN`), so the user has to ask for it to be unlocked. These five have a slightly different body, described in section 6.
 
 #### `ACCOUNT_LOCKED`
 
@@ -407,11 +407,23 @@ HTTP 401 · USER · Retryable
 
 | Field | Detail |
 |----|----|
-| Message | Too many failed login attempts. Please try again later. |
+| Message | Too many failed sign-in attempts. Please try again later. |
 | What to do | Wait a few minutes and try again, or reset your password. |
 | Params | none |
 | Returned by | `POST auth/login` |
-| Notes | Five wrong passwords lock the account for 15 minutes. The body also has `detail` and the older key `code: "account_locked"` (lower case). |
+| Notes | Five wrong passwords lock the account for 15 minutes, counted per account whatever address they come from. While the lock lasts, every attempt gets this answer, even with the correct password: the password is not checked, the attempt is not counted, and the lock is not extended. Only a successful password sign-in clears the count. The lock running out, a password reset or a Google sign-in leave it in place, so after a lock runs out the next wrong password locks the account again for 15 minutes. The body also has `detail` and the older key `code: "account_locked"` (lower case). |
+
+#### `ACCOUNT_LOCKED_BY_ADMIN`
+
+HTTP 401 · USER · Not retryable
+
+| Field | Detail |
+|----|----|
+| Message | A user with a school: "An administrator has locked your account. Please contact your school administrator to unlock it." A user with no school: "An administrator has locked your account. Please contact the Grade A Plus team to unlock it." |
+| What to do | none (`remediation` is null); the message says what to do |
+| Params | none |
+| Returned by | `POST auth/login`, Google sign-in |
+| Notes | H-34. A super admin locked the account (`POST users/{id}/lock/` or the back-office action "Lock sign-in"). The lock ends every session at once and lasts until a super admin unlocks it (`POST users/{id}/unlock/` or "Unlock sign-in"), which also clears the 5-try lock. It is checked before the password, so the password is not checked and nothing is counted. "Has a school" means the account has a school, or, for a student, an enrollment that is not withdrawn in a course whose teacher has a school. The other doors do not show this message: verify, invited-admin activation and reset-password give their usual refusal, and a code request gets the usual neutral answer with no code sent. The body also has `detail` and `code: "ACCOUNT_LOCKED_BY_ADMIN"`. |
 
 #### `RESET_LOCKED`
 
@@ -809,7 +821,8 @@ HTTP 429   Retry-After: 1740
 
 | Code | Route | Status | Extra fields | How long to wait |
 |----|----|----|----|----|
-| `ACCOUNT_LOCKED` | `POST auth/login` | 401 | `detail`, `code: "account_locked"` | 15 minutes. No `Retry-After` header. |
+| `ACCOUNT_LOCKED` | `POST auth/login` | 401 | `detail`, `code: "account_locked"` | 15 minutes from the fifth wrong password; attempts during the lock do not extend it. No `Retry-After` header. |
+| `ACCOUNT_LOCKED_BY_ADMIN` | `POST auth/login`, Google sign-in | 401 | `detail`, `code: "ACCOUNT_LOCKED_BY_ADMIN"` | Not a wait: until a super admin unlocks the account. No `Retry-After` header. |
 | `RESET_LOCKED` | `POST auth/reset-password` | 429 | `code`, `message`, `locked_until`, `retry_after_seconds` | `retry_after_seconds`, also in the `Retry-After` header. |
 | `VERIFY_LOCKED` | `POST auth/verify`, `POST auth/register/school-admin` | 429 | `detail`, `code` | The `Retry-After` header. |
 | `REGISTRATION_PAUSED` | `POST auth/register/student` | 429 | `detail`, `code` | The `Retry-After` header. |
@@ -874,7 +887,7 @@ Filters: `reason_code` (exact), `outcome`, `action`, `actor_id`, `actor_role`, `
 | Image size after compression | 4 MB | `FILE_TOO_LARGE`, `dimension: "bytes"` |
 | Class list file | 2 MB | `FILE_TOO_LARGE`, `dimension: "bytes"` |
 | Rows in one class list | 2,000 | `ROSTER_TOO_MANY_ROWS` |
-| Wrong passwords before a lock | 5, then 15 minutes | `ACCOUNT_LOCKED` |
+| Wrong passwords before a lock | 5, then 15 minutes. The count stays until a successful password sign-in, so each wrong password after a lock runs out locks again. | `ACCOUNT_LOCKED` |
 | Wrong reset codes before a lock | 5, then 30 minutes | `RESET_LOCKED` |
 | Wrong verification codes or school-admin invitation tokens before a lock (one count per address, shared by both screens) | 5, then 30 minutes | `VERIFY_LOCKED` |
 
@@ -909,6 +922,7 @@ Filters: `reason_code` (exact), `outcome`, `action`, `actor_id`, `actor_role`, `
 | `SUBMISSION_NOT_GRADED` | Grading, credits and plan | 400 | No |
 | `OVERAGE_CAP_EXCEEDED` | Grading, credits and plan | 400 | No |
 | `ACCOUNT_LOCKED` | Sign-in locks | 401 | Yes |
+| `ACCOUNT_LOCKED_BY_ADMIN` | Sign-in locks | 401 | No |
 | `RESET_LOCKED` | Sign-in locks | 429 | Yes |
 | `VERIFY_LOCKED` | Sign-in locks | 429 | Yes |
 | `REGISTRATION_PAUSED` | Sign-in locks | 429 | Yes |
