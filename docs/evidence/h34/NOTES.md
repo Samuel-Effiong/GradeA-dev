@@ -761,3 +761,19 @@ Prediction: **Ran 1064, OK (skipped=3)**. The 3 skips are in users, as on beta i
 **N2 guard sweep:** the 56 labels of h34_sweep.txt (the same list as H-287's N2), 1026 tests: 1023 on beta + the 3 new tests in audit.tests_route_coverage.
 
 Prediction: **Ran 1026, OK (skipped=1)** (ssrf, CI_REQUIRE_NETWORK).
+
+### Near results
+
+**N1** (05_near_n1.log.gz, serial, 73 s): **Ran 1064, OK (skipped=4)**.
+
+Prediction wrong: I declared skipped=3. The 4th skip is `users.tests_google_auth.LiveContractSkipGuardTests.test_network_is_required_when_ci_says_so` ("CI_REQUIRE_NETWORK not set"). It is the same skip H-287 found and explained (h287 NOTES, N1v); I repeated that undercount. All 4 skips, read from the -v 2 log, are env opt-ins:
+
+- that guard;
+- the 2 live Google contract tests (CI_REQUIRE_NETWORK);
+- `users.tests_activity_middleware_load.RedisAvailabilityTests` (CI_REQUIRE_REDIS).
+
+No failure and no error.
+
+**N2** (06_near_n2.log.gz, serial, 240 s): **Ran 1026, OK (skipped=1)**. As predicted; the one skip is ai_processor.tests_ssrf_guard (CI_REQUIRE_NETWORK).
+
+Trailers: 0 Co-Authored-By in origin/beta..HEAD (checked before the checkpoint). Nothing pushed.
