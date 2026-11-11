@@ -3987,3 +3987,18 @@ The plant is reverted afterwards and the file checked by sha256 against 9be23397
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | R2b (green) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial | the three B1b-7 modules (32 tests: 17 + 7 + 8) | **Ran 32, OK** |
+
+**R2b result:** Ran 32, OK. **As declared.** The §7.15 cause is proven: with only the fresh user changed, the test passes. Log: `step7/R2b_green_7c76045b6.log`.
+
+### §7.17 The D7-a..d plants, declared (before they run)
+
+Each plant is one edit to the product at e0fc5ffb7 (`billing/low_balance.py`, `billing/holds.py`, `billing/job_views.py` are unchanged since). Each is reverted after its run, and the file is checked by sha256 against its e0fc5ffb7 blob. All runs: BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial; at this NOTES commit. Logs: `step7/PB7-<n>_<sha>.log`. Fragments are unittest's own text: the test's msg, or the list-diff tail line.
+
+| Plant | The edit | Label | Declared |
+|---|---|---|---|
+| PB7-1 (08b's once-per-cycle plant) | `low_balance.check_low_balance`: the line `if not claimed: return None` removed, so a level reached always sends | `billing.tests.test_b1b7_low_balance` | **Ran 17, FAILED (failures=2)**: `test_the_same_level_again_in_the_cycle_sends_nothing` (`a level was sent twice`) and `test_two_settlements_crossing_25_percent_send_once` (`2 != 1 : two racing checks sent twice`) |
+| PB7-2 | `check_low_balance`: the claim's `.filter(~Q(...) \| ...)` removed, so the UPDATE is unconditional | `billing.tests.test_b1b7_low_balance` | **Ran 17, FAILED (failures=2)**: the same two tests and fragments as PB7-1 |
+| PB7-3 | `check_low_balance`: `~Q(low_balance_warned_cycle_start=key) \|` removed from the claim | `billing.tests.test_b1b7_low_balance` | **Ran 17, FAILED (failures=1)**: only `test_a_new_cycle_starts_over` (`Second list contains 1 additional elements.`) |
+| PB7-other (§7.13) | `job_views.visible_jobs`: the `license_subscription__school_id=user.school_id` condition removed (the active-allocation condition stays) | `billing.tests.test_b1b7_job_api.JobApiTests.test_a_school_admin_of_another_license_gets_404` | **Ran 1, FAILED (failures=1)**, fragment `200 != 404` |
+| PB7-5 | `holds.finish_job`: `if to_status == AIJobStatus.SETTLED:` becomes `if to_status in (AIJobStatus.SETTLED, AIJobStatus.FAILED):` | `billing.tests.test_b1b7_gap_metric` | **Ran 8, FAILED (failures=1)**: only `test_a_failed_or_expired_job_emits_nothing` (`First list contains 2 additional elements.`) |
+| PB7-6 | `holds.emit_estimate_gap`: `actual <= job_row.estimate_p90` becomes `actual < job_row.estimate_p90` | `billing.tests.test_b1b7_gap_metric` | **Ran 8, FAILED (failures=1)**: only `test_the_band_edge_is_a_hit` (`not found in`) |
