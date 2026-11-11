@@ -4034,3 +4034,40 @@ Each plant is one edit to the product at e0fc5ffb7 (`billing/low_balance.py`, `b
 - **(C)** Leave `ai_job_id` out whenever a request settled more than one job.
 
 **Asked of the SM:** A, B or C (or other), and whether (A)'s unit wrap is in B1b-7 scope. D7-e tests wait for the ruling. The near run waits too, because it must include D7-e.
+
+### §7.19 SM ruling on the §7.18 checkpoint (grade-automator-plus-16, 2026-11-11), recorded unamended in substance; D7-e tests first and R3 red declared (before it runs)
+
+**The ruling:** C for several charged jobs, A's rule for retries, and no wrap.
+- **(1)** A request-scoped contextvar in `billing/job_ref.py` is approved.
+- **(2) The rule:** `ai_job_id` is the id of the **one** job this request SETTLED. FAILED or released jobs with no charge don't count, so a retry that ends in one successful settlement (case ii) names that settled job. If the request settled more than one job (case i, chunked), `ai_job_id` is **null**. If nothing settled, it is also null. The key stays present and is declared nullable in OpenAPI.
+- **(3)** No `metered_unit` wrap around assignments `create`/`partial_update` extraction. Changing refund behavior on a mid-chunk failure is a billing change outside B1b-7. The SM records it as an open plan gap for the owner, next to AIJob cancel.
+- **(4)** B is rejected: the job API would show a partial cost as if it were the whole.
+- **(5)** First confirm with a test that a FAILED attempt's job carries no charge (hold released, nothing settled). Then the D7-e tests: one per view, plus chunked → null, retry-then-success → the settled job, all-failed → null. One plant: count FAILED jobs as settled; the retry test must go red. Declare counts before running. Each subTest is its own result and does not add to Ran.
+- **(6)** Then the near run (billing + users + guards67, environment declared), including D7-e, and the end checkpoint. No push, no trailers.
+
+**Two corrections to my own earlier text (found while building; recorded, not a run mismatch):**
+- **The view count is 11, not 12.** §7.8's table lists 11 rows: students `grade`, `upload_answers`, `partial_update`; assignments `partial_update`, `create`, `generate_assignment_from_prompt`, `upload_assignment`; billing `custom_ai_prompt`; dashboard ×3. That is 08b's 4 plus **7** new, not 8. The SM accepted the list itself, which is unchanged. Re-counted from the code (`grep` of the view methods).
+- **§7.18 (i) was overstated for these views.** Assignments `create` and `partial_update` send **text only** (`content = [{"type": "text", ...}]`, `assignments/views.py:468`, `:640`), and the chunked path starts only above 3 page images (`ai_processor/services.py:1793`). So neither view can settle several jobs today. The chunked → null rule is pinned at the `job_ref` level (two settled single calls in one scope).
+
+**Design (product to follow red):**
+- `billing/job_ref.py`:
+  - `tracking()`, a context manager that sets a contextvar to a fresh list and yields it;
+  - `note_settled(job_pk)`, which adds the pk to the open list, if any;
+  - `settled_job_id(jobs)`, which gives `str(pk)` when the list holds exactly one, else None;
+  - `with_ai_job_id`, a view decorator that runs the view inside `tracking()` and sets `data["ai_job_id"]` on a 2xx dict body;
+  - `ai_job_schema(serializer)`, the same serializer plus a nullable read-only `ai_job_id`, for OpenAPI.
+- **Recorded at:**
+  - `Unit.settle_root` (a root unit's job, after its settlement);
+  - `_SingleCallHold.finish` (after the single call's settlement commits).
+  - Not at `fail_root`, `abandon` or `abandon_single_call`.
+- **The 10 JSON-object views** get the decorator. Dashboard's three share `run_dashboard_ai_chat`, which gets it once.
+- **`upload_assignment`:** each file runs inside its own `tracking()`, and the `successful[]` item gets `ai_job_id`.
+- **The view tests** stand in for each view's AI engine with a real billed call through `execute_graded_task` (the provider mocked; inside `metered_unit` for the unit engines). The super-admin chat routes are unmetered in production (H-19), so there the stand-in bill is a wiring check only.
+
+**The new module** `billing/tests/test_b1b7_ai_job_id.py`, counted by build_suite: **16 tests, 0 static skips, no subTests.**
+- `ViewTests`: 12 tests. One per view (11), plus the upload 207 case. The 201 test pins two files → two different ids.
+- `RuleTests`: 4 tests. `test_a_failed_attempt_carries_no_charge` (§7.19 (5)), `test_a_retry_then_success_names_the_settled_job`, `test_all_attempts_failed_is_null`, `test_two_settled_jobs_chunked_is_null`.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| R3 (red) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset (the classes set BILLING_HOLDS_ENABLED=True themselves); under flock with `--noinput`; serial | `billing.tests.test_b1b7_ai_job_id` (16 tests) | **Ran 16, FAILED (failures=12, errors=3)**. The 12 failures are `ViewTests`: 11 with `'absent' != '` (the key is missing), and `test_assignments_upload_two_files_give_two_ids` with `Lists differ: ['absent', 'absent']`. The 3 errors are the three `job_ref` rule tests (`No module named 'billing.job_ref'`). `test_a_failed_attempt_carries_no_charge` passes. |
