@@ -4214,3 +4214,21 @@ Each plant is one edit to the product at e0fc5ffb7 (`billing/low_balance.py`, `b
 | PB7-e3 | as R4b; reverted and sha256-checked against this commit's `students/views.py` | `billing.tests.test_b1b7_ai_job_id` | `@with_ai_job_id(staff_only=True)` on `partial_update` becomes `@with_ai_job_id`. **Ran 17, FAILED (failures=1)**: only `test_students_partial_update_by_the_student_has_no_job_id`, fragment `'ai_job_id' unexpectedly found in` |
 | N3b (near) | as N3: all four unset; `--parallel 4`; under flock with `--noinput` | `billing users` + `guards67.txt` | **Ran 4719, OK (skipped=16)** (N3's 4718 + 1) |
 | N4b | as N4 | `students assignments dashboard users` + `guards67.txt` | **Ran 4237, OK (skipped=23)** (no count change: the new test is in billing) |
+
+**§7.25 results: all AS DECLARED.**
+
+| Run | Got | Log |
+|---|---|---|
+| R4b at 18a92810a | Ran 17, OK | `step7/R4b_green_18a92810a.log` |
+| PB7-e3 at 18a92810a | Ran 17, FAILED (failures=1): only `test_students_partial_update_by_the_student_has_no_job_id`, `'ai_job_id' unexpectedly found in {...}`. Restored; `students/views.py` sha256 `208e1719…d9b3` MATCHES 18a92810a | `step7/PB7-e3_18a92810a.log` |
+| N3b at f81f546a3 | Ran 4719, OK (skipped=16), exit 0 | `step7/N3b_near_f81f546a3.log.gz` |
+| N4b at f81f546a3 | Ran 4237, OK (skipped=23), exit 0 | `step7/N4b_near_f81f546a3.log.gz` |
+
+**B1b-7 is FINAL** (§7.23 condition (d) met, per the SM's §7.25 (6)).
+- **D7-a..d product:** e0fc5ffb7.
+- **D7-e product:** 198abed6e.
+- **Student rule:** 18a92810a.
+- **Open items carried to the B1b-8 owner review:**
+  - (a) AIJob cancel;
+  - (c) a teacher on a spent license budget gets no low-balance email;
+  - (b) the unit wrap: not reachable today, still listed.
