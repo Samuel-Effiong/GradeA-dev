@@ -123,3 +123,83 @@ KeyError on "/api/v1/users/". The schema path has no trailing slash
 R1b (log R1b_openapi_red.log) gives Ran 2, FAILED (failures=2), now for the
 right reasons: "'last_login_after' not found in {...}" and "'last_login' not
 found in set()" (the ordering parameter has no enum today).
+
+## Build (product code, after R1)
+
+New files:
+- users/user_list.py: the SQL values, ensure(), list_queryset() and
+  apply_ordering().
+- users/list_serializers.py: ListCreditWalletSerializer and
+  UserListSerializer.
+
+Changed:
+- users/filters.py: the 8 filters, plus UserListOrderingFilter.
+- users/views.py:
+  - get_serializer_class (list only);
+  - list_queryset for the super admin list;
+  - ordering_fields;
+  - the OpenAPI ordering enum.
+- **billing/serializers.py: not changed.** CreditWalletSerializer is
+  untouched.
+
+Added after R1: ListOnlyTests.test_the_list_filters_do_nothing_off_the_list_for_others,
+making 52 tests. filter_queryset runs under get_object(), so for a teacher
+or school admin the new filters would be a 200-vs-404 oracle on another
+account's plan or dates. They are no-ops for anyone but a super admin. Its
+red comes from plant Q-P-gate below.
+
+**Process slip, recorded:** I ran two green attempts without writing
+expectations first.
+- R2a (log not kept; overwritten by R2b): Ran 52, FAILED (failures=2,
+  errors=2). Both were test defects, fixed in the tests only:
+  1. license() reused the School name "School N" because the counter never
+     moved on: IntegrityError in two PlanValueTests.
+  2. QueryCountTests' filter combination (last_login_before + has_plan)
+     matched no rows. An empty page skips its prefetches: 8 != 13. Changed to
+     filters that keep every row (plan_tier=PRO, has_plan, plan_category).
+- R2b (log R2b_green_undeclared.log): Ran 52, OK.
+
+## R2c green, declared before running
+
+users.tests_user_list_sorting + users.tests_user_list_payload_pin: Ran 52,
+OK. That includes the payload pin unchanged against the P0 snapshot, and 5
+rows == 25 rows on query count.
+
+## M1 measurement, declared
+
+The same scratch test as M0, on the build (30 teachers with wallets, a
+25-row page, cold cache). Expected: a fixed count well under 20, with no
+table appearing about 25 times.
+
+R2c result: as declared. Ran 52, OK. Log R2c_green.log.
+
+M1 result: as declared. **13 queries** for the 25-row page (it was 309):
+users, the count, wallet, bucket, subscription, license and allocation
+prefetches, and audit/activity writes. No table appears per row.
+
+Product commit 6ff7fba6f: hooks reformatted the code (black, isort) and two
+mypy fixes went in:
+- functools.partial in place of a default-arg lambda;
+- a type-ignore on the SerializerMethodField override.
+
+R2d green on 6ff7fba6f, declared: Ran 52, OK.
+
+R2d result: as declared. Ran 52, OK. Log R2d_green.log.
+
+## Plants, declared before any plant runs
+
+Harness: plant_uls.py (scratch, copied into the evidence after the runs).
+One plant per run. Each run saves a copy, checks that the file's sha256
+matches HEAD, plants, runs the 2 labels (52 tests), then restores and checks
+the sha256 again. "Killed" means named tests fail or error.
+
+| plant | file | change | killed (declared) |
+|---|---|---|---|
+| Q-dates | users/user_list.py | activated_at reads date_joined | 5: DateValueTests both; OrderingTests.test_activated_at; FilterTests.test_activated_after_and_before; OrderingTests.test_id_breaks_every_tie_in_both_directions (activated_at subtests: date_joined differs, so the id order loses) |
+| Q-plan | users/user_list.py | the individual subscription first in the precedence | 1: PlanValueTests.test_a_license_teacher_allocation_wins_over_an_individual_one |
+| Q-counts | users/user_list.py | papers_graded drops ai_graded_at not null | 1: CountValueTests.test_papers_graded_counts_ai_graded_submissions_only |
+| Q-credits | users/user_list.py | credits_left drops the holds | 2: CreditsLeftParityTests both. Possibly a 3rd: OrderingTests.test_credits_left, where held and rich tie at 9000 and the id order decides (about 1 in 2) |
+| Q-cache | users/mixins.py | the list key ignores the query params | 14: CacheKeyTests 2; OrderingTests' 9 assert_order tests (asc then desc); FilterTests last_login, activated and plan_filters (3) |
+| Q-listonly | users/views.py | UserListSerializer for every action | 3: ListOnlyTests super_admin_non_list and teacher_non_list (last_login appears; the annotated keys are skipped); SingleRetrieveParityTests (retrieve gains last_login) |
+| Q-prefetch | users/user_list.py | drop the credit_wallet__buckets prefetch | 2: QueryCountTests both. The payload pin still passes, through the fallbacks |
+| Q-gate | users/filters.py | the new filters also apply for non-super admins | 1: ListOnlyTests.test_the_list_filters_do_nothing_off_the_list_for_others |
