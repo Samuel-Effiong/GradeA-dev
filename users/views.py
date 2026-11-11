@@ -64,6 +64,7 @@ from rest_framework_simplejwt.views import (
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
 from audit import history
+from audit.admin_action import emit_named_admin_event
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ErrorClass
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
@@ -99,7 +100,7 @@ from students.task_tracking import (
 )
 from users.admin_power import holds_admin_power as _holds_admin_power
 from users.auth_audit import account_for_email, sign_in_failed, sign_in_succeeded
-from users.exceptions import EnvelopedThrottled
+from users.exceptions import EnvelopedAuthenticationFailed, EnvelopedThrottled
 from users.filters import UserEnrollmentFilter
 from users.mixins import UserCacheMixin
 from users.models import (
@@ -133,6 +134,7 @@ from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskC
     WaitlistSerializer,
 )
 from users.services import send_user_activation_email, stamp_last_login
+from users.sign_in_lock import lock_message, lock_users, may_lock, unlock_users
 from users.tasks import sync_user_to_mailerlite
 from users.throttling import (
     GoogleAuthThrottle,
@@ -312,7 +314,7 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
         Allow unauthenticated access only for POST endpoints (public actions).
         All other requests require authentication.
         """
-        if self.action in ["list", "create", "destroy"]:
+        if self.action in ["list", "create", "destroy", "lock", "unlock"]:
             permission_classes = [IsAuthenticated, IsSuperAdmin]
         else:
             permission_classes = [IsAuthenticated]
@@ -380,6 +382,73 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
             raise PermissionDenied("You can only modify your own account.")
 
         return super().partial_update(request, *args, **kwargs)
+
+    def _lock_target(self, request):
+        """H-34: the target of a lock or unlock. Nobody acts on themselves or
+        on a super admin: the generic PermissionDenied (SM Q5, no new text)."""
+        target = self.get_object()
+        if not may_lock(request.user, target):
+            raise PermissionDenied()
+        return target
+
+    def _lock_answer(self, target):
+        target.refresh_from_db()
+        return Response(self.get_serializer(target).data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["Users"],
+        summary="Lock a user's sign-in (super admin)",
+        request=None,
+        responses={200: CustomUserSerializer},
+        description=(
+            "H-34. Ends every session and refuses every sign-in door until "
+            "unlocked. 403 for the requester's own account or a super admin. "
+            "Locking a locked account changes nothing."
+        ),
+    )
+    @action(detail=True, methods=["post"], url_path="lock", url_name="lock")
+    def lock(self, request, pk=None):
+        target = self._lock_target(request)
+        if lock_users(CustomUser.objects.filter(pk=target.pk), actor=request.user):
+            # SM R3: the named event is the request's one event; the helper
+            # drops the ADMIN_ACTION tag only after writing it.
+            emit_named_admin_event(
+                request,
+                AuditAction.ACCOUNT_LOCK,
+                target_type="CustomUser",
+                target_id=target.pk,
+                school_id=target.school_id,
+                outcome=AuditOutcome.SUCCESS,
+            )
+        return self._lock_answer(target)
+
+    @extend_schema(
+        tags=["Users"],
+        summary="Unlock a user's sign-in (super admin)",
+        request=None,
+        responses={200: CustomUserSerializer},
+        description=(
+            "H-34. Clears the admin lock and the 5-try login lock. Never "
+            "switches an account on. 403 for the requester's own account or "
+            "a super admin."
+        ),
+    )
+    @action(detail=True, methods=["post"], url_path="unlock", url_name="unlock")
+    def unlock(self, request, pk=None):
+        target = self._lock_target(request)
+        for _user, metadata in unlock_users(
+            CustomUser.objects.filter(pk=target.pk), actor=request.user
+        ):
+            emit_named_admin_event(
+                request,
+                AuditAction.ACCOUNT_UNLOCK,
+                target_type="CustomUser",
+                target_id=target.pk,
+                school_id=target.school_id,
+                outcome=AuditOutcome.SUCCESS,
+                metadata=metadata,
+            )
+        return self._lock_answer(target)
 
     @extend_schema(
         tags=["Users"],
@@ -1086,6 +1155,11 @@ address with no account is locked and answered exactly the same way.
         if user.email_verified_at and not user.is_active:
             refuse("Invalid email or token.", user, "INVALID_CODE")
 
+        # H-34: an account a super admin locked is not verified, switched on
+        # or signed in by a code: the same refusal, nothing written.
+        if user.is_admin_locked:
+            refuse("Invalid email or token.", user, "ACCOUNT_LOCKED_BY_ADMIN")
+
         if user.activation_expires and timezone.now() > user.activation_expires:
             refuse("Activation link has expired.", user, "CODE_EXPIRED")
 
@@ -1219,6 +1293,13 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
         try:
             user = CustomUser.objects.get(email=email)
         except CustomUser.DoesNotExist:
+            return Response(
+                {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
+            )
+
+        # H-34: an account a super admin locked is mailed no code of either
+        # kind: the neutral reply of an unknown address, nothing made.
+        if user.is_admin_locked:
             return Response(
                 {"detail": OTP_SENT_DETAIL}, status=status.HTTP_202_ACCEPTED
             )
@@ -1488,6 +1569,17 @@ the plain rate limit (10 requests/hour per IP) does not.
                 otp_obj.register_failure()
             sign_in_failed(
                 request, user, "password_reset", "ACCOUNT_DEACTIVATED", denied=True
+            )
+            raise ParseError(RESET_FAILED_MESSAGE)
+
+        # H-34: an account a super admin locked sets no password and is not
+        # signed in: the generic refusal, the attempt spent like a wrong
+        # guess (unless already locked), as for a switched-off account.
+        if user.is_admin_locked:
+            if not otp_obj.is_locked():
+                otp_obj.register_failure()
+            sign_in_failed(
+                request, user, "password_reset", "ACCOUNT_LOCKED_BY_ADMIN", denied=True
             )
             raise ParseError(RESET_FAILED_MESSAGE)
 
@@ -2079,6 +2171,15 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         "This activation link is invalid or has expired. Request a new one."
                     )
 
+                # H-34: an invitation a super admin locked is not activated or
+                # signed in: the answer for a wrong token, the attempt spent.
+                if user.is_admin_locked:
+                    audit_failure = (user, "ACCOUNT_LOCKED_BY_ADMIN")
+                    audit_options = {"denied": True, **spent()}
+                    raise ParseError(
+                        "This activation link is invalid or has expired. Request a new one."
+                    )
+
                 if user.activation_expires and timezone.now() > user.activation_expires:
                     audit_failure = (user, "CODE_EXPIRED")
                     audit_options = spent()
@@ -2207,7 +2308,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 self._audit_account,
                 "google",
                 reason,
-                denied=reason == "ACCOUNT_DEACTIVATED",
+                denied=reason in ("ACCOUNT_DEACTIVATED", "ACCOUNT_LOCKED_BY_ADMIN"),
                 error_class=(
                     ErrorClass.PROVIDER
                     if reason == "GOOGLE_EXCHANGE_FAILED"
@@ -2367,6 +2468,20 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     # should be reversed, so this must NOT reverse it -
                     # activating there would turn Google sign-in into a way
                     # round a deactivation.
+                    # H-34: a super admin locked this account. The same
+                    # answer as password sign-in, before anything is written
+                    # (a never-verified account is not completed or switched
+                    # on here).
+                    if user.is_admin_locked:
+                        self._audit_reason = "ACCOUNT_LOCKED_BY_ADMIN"
+                        self._audit_account = user
+                        raise EnvelopedAuthenticationFailed(
+                            lock_message(user),
+                            "ACCOUNT_LOCKED_BY_ADMIN",
+                            reason_code="ACCOUNT_LOCKED_BY_ADMIN",
+                            code_value="ACCOUNT_LOCKED_BY_ADMIN",
+                        )
+
                     if not user.is_active and user.email_verified_at is not None:
                         self._audit_reason = "ACCOUNT_DEACTIVATED"
                         self._audit_account = user
@@ -2517,7 +2632,10 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 "failed attempts. The lock's body has `error.field_errors.code` "
                 '"account_locked" and `reason_code` "ACCOUNT_LOCKED", plus '
                 "`error_class`, `remediation`, `retryable`, `params` and "
-                "`reference`; show `message` either way."
+                "`reference`; show `message` either way. An account a super "
+                "admin locked (H-34) gets `reason_code` and `code` "
+                '"ACCOUNT_LOCKED_BY_ADMIN", `retryable` false and `remediation` '
+                "null; show `message`, and do not offer to try again later."
             )
         ),
     },

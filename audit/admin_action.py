@@ -105,3 +105,21 @@ def emit_for_response(request, view, response):
         reason_code=stashed_reason_code(response),
         metadata=metadata,
     )
+
+
+def emit_named_admin_event(request, action, **fields):
+    """H-34 (SM R3): write a super-admin route's own named event, and only
+    then drop the request's ADMIN_ACTION tag, so the request still ends with
+    exactly one event naming the requester ("its named one, or this").
+
+    The drop never happens alone: if the event was not stored (`emit` returns
+    None), the tag stays and the middleware writes today's ADMIN_ACTION. The
+    callers are pinned to the two sign-in lock views
+    (users.tests_admin_sign_in_lock.R3HelperCallersGuardTests).
+    """
+    event = emit(action, actor=request.user, request=request, **fields)
+    if event is not None:
+        raw = raw_request(request)
+        if hasattr(raw, REQUEST_ATTR):
+            delattr(raw, REQUEST_ATTR)
+    return event

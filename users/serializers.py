@@ -30,6 +30,7 @@ from users.models import (
     Waitlist,
 )
 from users.services import send_user_activation_email, stamp_last_login
+from users.sign_in_lock import lock_message
 from users.tokens import EpochRefreshToken, assert_epoch_current, assert_session_live
 
 logger = logging.getLogger(__name__)
@@ -69,6 +70,13 @@ class CustomUserSerializer(serializers.ModelSerializer):
     settings = SettingsSerializer(read_only=True)
     credit_wallet = CreditWalletSerializer(read_only=True)
     is_system_generated_email = serializers.SerializerMethodField()
+    # H-34 (SM Q3): read-only, and shown to a super admin only (removed in
+    # __init__ for everyone else, and absent where there is no request).
+    sign_in_locked = serializers.BooleanField(source="is_admin_locked", read_only=True)
+    login_locked_until = serializers.DateTimeField(
+        source="locked_until", read_only=True
+    )
+    SUPER_ADMIN_ONLY_FIELDS = ("sign_in_locked", "login_locked_until")
 
     # Fields that decide what a user is allowed to do. They must never be
     # settable by the account holder: this serializer backs PATCH
@@ -107,6 +115,10 @@ class CustomUserSerializer(serializers.ModelSerializer):
             if field_name in self.fields:
                 self.fields[field_name].read_only = not is_super_admin
 
+        if not is_super_admin:
+            for field_name in self.SUPER_ADMIN_ONLY_FIELDS:
+                self.fields.pop(field_name, None)
+
     class Meta:
         model = CustomUser
         fields = [
@@ -127,6 +139,8 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "settings",
             "credit_wallet",
             "is_system_generated_email",
+            "sign_in_locked",
+            "login_locked_until",
         ]
         read_only_fields = ["id", "user_type", "school", "date_joined"]
 
@@ -507,6 +521,27 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # doesn't get penalized as a brute-force guess.
         user = CustomUser.objects.filter(email=email).first() if email else None
         request = self.context.get("request")
+
+        # H-34: a super admin locked this account. Answered before the
+        # password is checked (as the 5-try lock is), and nothing is counted.
+        if user and user.is_admin_locked:
+            emit(
+                AuditAction.AUTH_LOGIN,
+                actor=failure_actor(request),
+                request=request,
+                target_type="CustomUser",
+                target_id=user.id,
+                school_id=user.school_id,
+                outcome=AuditOutcome.DENIED,
+                error_class=ErrorClass.USER,
+                reason_code="ACCOUNT_LOCKED_BY_ADMIN",
+            )
+            raise EnvelopedAuthenticationFailed(
+                lock_message(user),
+                "ACCOUNT_LOCKED_BY_ADMIN",
+                reason_code="ACCOUNT_LOCKED_BY_ADMIN",
+                code_value="ACCOUNT_LOCKED_BY_ADMIN",
+            )
 
         if user and user.is_account_locked():
             emit(
