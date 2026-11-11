@@ -1,0 +1,55 @@
+PROBE, NOT EVIDENCE: the 300-paper Gate 6 on the probe product
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user b9915b1a-5cf5-43e4-a2ad-1c17bb37bc04.
+Cannot activate automatic trial for user b9915b1a-5cf5-43e4-a2ad-1c17bb37bc04 (validation): ValueError
+Free trial plan not found: no trial activated for user 87a1bb42-c563-48bc-9956-11b49d26f283.
+Cannot activate automatic trial for user 87a1bb42-c563-48bc-9956-11b49d26f283 (validation): ValueError
+Free trial plan not found: no trial activated for user 523e553d-4b7d-4916-9f13-27890f4d594e.
+Cannot activate automatic trial for user 523e553d-4b7d-4916-9f13-27890f4d594e (validation): ValueError
+Free trial plan not found: no trial activated for user 82d673f8-8f09-4a39-a385-71a92ac0e758.
+Cannot activate automatic trial for user 82d673f8-8f09-4a39-a385-71a92ac0e758 (validation): ValueError
+Free trial plan not found: no trial activated for user 9a1c0141-6906-45a1-ad26-b7db38973ae6.
+Cannot activate automatic trial for user 9a1c0141-6906-45a1-ad26-b7db38973ae6 (validation): ValueError
+Free trial plan not found: no trial activated for user ab47cb46-c224-4f7e-889f-dd09c4283c03.
+Cannot activate automatic trial for user ab47cb46-c224-4f7e-889f-dd09c4283c03 (validation): ValueError
+Free trial plan not found: no trial activated for user 6c0415b5-13c6-4c0a-b0ba-21b14c603c3f.
+Cannot activate automatic trial for user 6c0415b5-13c6-4c0a-b0ba-21b14c603c3f (validation): ValueError
+Free trial plan not found: no trial activated for user be5a2e35-0eb6-4118-99c9-4e1d3f7e5f9a.
+Cannot activate automatic trial for user be5a2e35-0eb6-4118-99c9-4e1d3f7e5f9a (validation): ValueError
+Free trial plan not found: no trial activated for user ca7b8e37-66e8-49f0-a4de-e1d1ea34a9b5.
+Cannot activate automatic trial for user ca7b8e37-66e8-49f0-a4de-e1d1ea34a9b5 (validation): ValueError
+Free trial plan not found: no trial activated for user dcd42e1d-fadf-4864-8aa7-163f9d2bbc4e.
+Cannot activate automatic trial for user dcd42e1d-fadf-4864-8aa7-163f9d2bbc4e (validation): ValueError
+Free trial plan not found: no trial activated for user 0c14dd66-6622-469f-9f52-53b4bb8ecf0c.
+Cannot activate automatic trial for user 0c14dd66-6622-469f-9f52-53b4bb8ecf0c (validation): ValueError
+Fs
+======================================================================
+FAIL: test_a_300_paper_batch_start_per_tier (billing.tests.test_batch_gate6.BatchStartGate6.test_a_300_paper_batch_start_per_tier) (tier='teacher_shape')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1b6-probe/billing/tests/test_batch_gate6.py", line 140, in test_a_300_paper_batch_start_per_tier
+    self.assertEqual(job.estimate_source, tier)
+AssertionError: 'per_question' != 'teacher_shape'
+- per_question
++ teacher_shape
+
+
+----------------------------------------------------------------------
+Ran 2 tests in 26.552s
+
+FAILED (failures=1, skipped=1)
+Destroying test database for alias 'default'...
+Found 2 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+GATE6_B6 tier=assignment papers=300 source=assignment start_ms=923.8 queries=2122 held_per_item=1356
+GATE6_B6 tier=teacher_shape papers=300 source=per_question start_ms=1156.7 queries=2122 held_per_item=2822
+GATE6_B6 tier=per_question papers=300 source=per_question start_ms=1170.0 queries=2122 held_per_item=21165
