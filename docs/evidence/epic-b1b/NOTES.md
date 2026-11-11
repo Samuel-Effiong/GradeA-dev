@@ -3562,3 +3562,155 @@ After R2b, the fix is committed, and N2 runs at that commit as declared in §6.7
 The plant is reverted afterwards and the file checked by sha256 against 9be233973's blob. The log goes to `step6b/PB6b-2_<sha>.log`.
 
 **PB6b-2 result:** Ran 13, FAILED (failures=1), only `test_501_listed_ids_are_refused_with_the_drf_message`. The line is `AssertionError: 'Submission ids: Ensure this field has no [19 chars]nts.' != 'You can get a cost estimate for up to 500[64 chars]ers.'`. **As declared.** The plant was restored, and the file's sha256 `b006f544…90e9` MATCHES the 9be233973 blob. Log: `step6b/PB6b-2_6128868f0.log`.
+
+---
+
+## §7 B1b-7: warnings, actual cost and the gap metric. The survey and design, before any product code (SM GO 2026-11-11, after B1b-6b was ACCEPTED at cbc4cb5eb)
+
+### §7.0 The scope, quoted word for word (SM correction 2026-11-11: take it from the approved plan, not from a label)
+
+- **08b §5 table, the step list:** `| B1b-7 | **Warnings, actual cost, gap metric** (plan step 6) | Red/green, the once-per-cycle plant | 1 |`
+- **Plan 08 §2, the step table, step 6:** `| 6 | Threshold warnings, actual cost in the job API, the gap metric (§3.9–3.10) | 1 |`
+- **08b §1.5, "Step 6: warnings, actual cost and the gap metric (plan §3.9, §3.10)":**
+  - thresholds as the plan says (25 / 10 / 0% of the cycle allocation, at settlement, one email per level per cycle; the two wallet fields already exist);
+  - `balance_status`, `reserved_credits` and spendable added to `CreditWalletSerializer`;
+  - **`GET /api/v1/billing/jobs/{id}` "as the plan says"**, reading `estimate_p50` and `estimate_p90`;
+  - `ai_job_id` on synchronous AI responses (survey count, §1.6).
+- **The owner's tracker:** Step 7 is "low-balance warnings, actual cost".
+
+**Is the job API part of B1b-7? Yes, and the sources agree.**
+- 08b's B1b-7 row points to plan step 6, and plan step 6 says "actual cost **in the job API**".
+- 08b §1.5 lists the job API under that step.
+- No earlier step (plan steps 1–5, B1b-1..6) builds `GET billing/jobs/{id}`; grep finds no `billing/jobs` route.
+- The tracker's "actual cost" is the same item: the job API is how the actual cost is shown.
+- The tracker leaves out the gap metric, but the plan and 08b both include it.
+- **So there is no conflict and no STOP.** My §6.4 line ("the job API is B1b-7") agrees with the plan.
+
+**Out of scope (recorded):**
+- **`AIJob (cancel)`.** The §7 item 6 role matrix has a cancel row ("Own, non-terminal"), and §3.1 has a `CANCELLED` transition. No step in plan 08 §2 or 08b §5 builds a cancel route. It is not in B1b-7, and I'm raising it as **Q7-1**.
+- **The low-balance and job-state texts going live.** Texts #11–#13 (emails) and #14 and #15 (screen labels) are approved. Per 08b's B1b-8 row ("the §7 texts the owner approved"), they switch on in B1b-8. B1b-7 builds them behind an off switch.
+
+### §7.1 What the repo has today (read at f928fe5d7)
+
+**Already in place (B1a / B1b-4):**
+- `CreditWallet.low_balance_warned_level` and `low_balance_warned_cycle_start` (`billing/models.py:730`, `:735`);
+- `reserved_credits`;
+- `total_remaining_credits()` (`:768`) and `plan_remaining_credits()` (`:788`, which leaves out OVERAGE);
+- `AIJob.consumed_credits` (`:1909`), `unbilled_credits` (`:1912`), `estimate_p50`/`p90`/`source`, `sufficiency_verdict` (`:1903`), `stopped_at_item` (`:1925`), `queued_at` and `expires_at` (`:1928-1929`).
+- **So B1b-7 needs no migration.** If that holds, the near runs are billing + users + guards67, without the rollback-defaults label.
+
+**The serializer:** `CreditWalletSerializer` (`billing/serializers.py:873`, behind `GET credits/wallet`, `billing/views.py:1463`) already has `monthly_credit_total`, `monthly_credit_remaining` and `credit_percentage_remaining`. B1b-7 adds three read-only fields: `balance_status`, `reserved_credits` and `spendable`. The app sees new fields only.
+
+**Settlement sites, where the warning check goes:**
+- `holds.settle` (`billing/holds.py:311`), which every metered unit, batch item and door item goes through;
+- `holds.finish_single_call` (`:1061`), which calls `settle(close_status=…)`.
+- One hook in `settle`, after its transaction commits (`on_commit`), covers both.
+
+**Routes and the guards:**
+- `audit/tests_route_coverage.write_routes()` counts **write** methods only (`_write_methods`: the view's `WRITE_METHODS`).
+- A GET-only `RetrieveAPIView` for `billing/jobs/<uuid:pk>` adds no write route, so **`write_routes()` stays 162**, and no audit-coverage row is needed. If Q7-1 adds cancel, the count becomes 163 with one audit row.
+- Plan §7 item 1 adds no audit action for a read. The job API writes nothing.
+
+**Permissions** (the plan's §7 item 6 role matrix):
+- student: 404;
+- teacher: own jobs;
+- school admin: jobs of teachers on their license, "counts and states, no student fields";
+- super admin: all.
+- The existing pieces: `billing/license_views.IsSchoolAdminOrSuperAdmin` (`:103`) and the license membership through `license_service`.
+- 404 (not 403) for another teacher's or another license's job, as for the estimate endpoint (Gate 9: cross-license and cross-teacher 404s).
+
+**`ai_job_id` (08b §1.6, plan §9 item 9):**
+- 08b's first pass found 7 credit-gated synchronous AI views, all returning a JSON object on AI success (`students/views.py` `grade`, `update_grade`, `teacher_feedback`, `upload_answers`, `partial_update`; `classrooms/views.py` `student_summary`; `assignments/views.py` `partial_update`), and 0 non-JSON-object AI-success bodies.
+- The B1b survey must re-derive the list from every `execute_graded_task` caller. These are the 17 methods in `ai_processor/services.py` that call it: `extract_assignment`, `extract_assignment_image`, `_extract_prosemirror_chunked`, `_extract_assignment_chunked`, `_extract_answers_chunked`, `extract_answer_image`, `_verify_blank_answers`, `_second_reading`, `_grade_question_batch`, `_build_overall_grading_summary`, `_grade_student_submission_impl`, `generate_assignment_from_prompt`, `formatted_grade`, `custom_ai_prompt`, `generate_student_summary`, `generate_weekly_course_summary_narrative` and `generate_weekly_school_admin_summary_narrative`.
+- **Not done yet:** tracing each of these to its synchronous view. It is the first item of the design phase, recorded before any `ai_job_id` code, and it can only add views to the 7. **Flagged.**
+
+### §7.2 Design (proposed; no code until the SM's go)
+
+**D7-a. The threshold warning (FR-B-05, plan §3.9):**
+- **Where:** after each settlement commits, `billing/warnings.py:check_low_balance(wallet_id)` runs.
+- **Computing the level:** it reads the cycle allocation, the "100%" (Q7-2), and spendable. It picks the lowest level crossed: 25, 10 or 0 (0 = nothing spendable).
+- **Once per level per cycle:** one conditional UPDATE on the wallet: `filter(pk, …)` where `low_balance_warned_cycle_start` ≠ this cycle, **or** `low_balance_warned_level` is null or above the new level. It sets both fields, and only the caller whose UPDATE moved a row sends.
+- So concurrent settlements send at most one email per level. A lower level later in the cycle still sends; a level already sent, or a higher one, does not. A new cycle starts over.
+- **The email** is texts #11 / #12 / #13 plus closing line #6 or #7 (`is_individual_teacher`). The "Batches that run out will wait for {days} days" in #13 uses `QUEUE_LIFETIME_DAYS`.
+- **Behind `LOW_BALANCE_EMAIL_APPROVED = False`**, the same pattern as `QUEUE_EMAIL_APPROVED`, switched on in B1b-8. While it is off, the wallet fields still update and nothing is sent.
+- **Flag off:** no settlement runs through `holds`, so there are no warnings. Q7-3 confirms that this is intended.
+
+**D7-b. `balance_status` on `CreditWalletSerializer`:**
+- It is a code, not wording: `null` (above 25%), `"low"` (≤ 25%), `"very_low"` (≤ 10%) or `"out"` (0).
+- The app maps the codes to approved text #14 ("Running low" / "Very low" / "Out of credits"). The server returns no label text.
+- Its fellow fields: `reserved_credits` (the wallet field) and `spendable` (`holds.spendable_credits`).
+- The code names are new API vocabulary, not user wording. They go to the SM (Q7-4).
+
+**D7-c. `GET /api/v1/billing/jobs/<uuid:pk>`** (name `billing-job-detail`, a `RetrieveAPIView`, `IsAuthenticated`), with the permissions above. The body, for the owner and the super admin:
+- `id`, `job_type`, `state` (the `AIJob.status` code);
+- `estimate` {`p50`, `p90`, `source`}, `verdict` (`sufficiency_verdict`);
+- `actual` {`consumed_credits`, `unbilled_credits`};
+- `items` {`total`, `completed`, `failed`, `left`}, `stopped_at_item`;
+- `queued_at`, `expires_at`, `created_at`.
+- **The school admin's body** is "counts and states, no student fields". The job holds no student fields (`requested_by` is the teacher for grading), so the body is the same minus `requested_by`. That is checked by a test asserting the exact key set.
+- **The app shows** text #15 from `state` and the counts. That text is not in the API.
+
+**D7-d. The gap metric (plan §3.10, NFR-OBS-03):**
+- **When:** a job moves to SETTLED with `estimate_p50` set. That happens in `finish_job`'s success branch, on commit.
+- **What is emitted:** through `audit_metrics.count`:
+  - `credit_estimate_gap` with tag `bucket` = actual/p50 bucketed;
+  - `credit_estimate_band_hit` with tag `hit` = `actual ≤ p90`.
+- **Once per settled job:** the conditional status move already makes this so (only the winner emits).
+- **The buckets:** plan §3.10 says "Their thresholds are in §7", but **§7 holds no metric thresholds** (read in full). The bucket edges are Q7-5. Proposed: `<0.5`, `0.5–0.8`, `0.8–1.2`, `1.2–2`, `>2`, with no alert in B1b (alerting is the B1b-4 drift task's job).
+
+**D7-e. `ai_job_id`:** a shared helper, `billing/job_ref.attach_ai_job_id(data, job)`, adds `ai_job_id` to each JSON-object AI-success body in the views from §7.1, once that list is complete. Nothing is added where there is no job (the flag is off, or the call had no hold).
+
+### §7.3 Tests first (planned, red before code; counted by build_suite at declaration)
+
+1. **The warning:**
+   - 25 / 10 / 0 each sends once;
+   - the same level again in the same cycle sends nothing (the 08b once-per-cycle check);
+   - a lower level later in the cycle sends;
+   - a new cycle starts over;
+   - two concurrent settlements crossing 25% send once (`TransactionTestCase`, real threads);
+   - with `LOW_BALANCE_EMAIL_APPROVED` False, the fields update and nothing is sent;
+   - licensed and individual teachers each get their own closing line.
+2. **`balance_status`:**
+   - null, low, very_low and out at the edges (25% exactly, 10% exactly, 0);
+   - `reserved_credits` and `spendable` are present and correct;
+   - the existing wallet-serializer tests stay green unchanged.
+3. **The job API:**
+   - the owner gets 200 with the exact key set;
+   - another teacher gets 404, a student 404, anonymous 401;
+   - a school admin of the same license gets 200 with no student fields; a school admin of another license gets 404;
+   - the super admin gets 200;
+   - after settlement, `actual` equals `consumed_credits`;
+   - a queued job shows `expires_at` and the counts;
+   - `write_routes()` stays 162 (the existing guard).
+4. **The gap metric:**
+   - one `credit_estimate_gap` and one `credit_estimate_band_hit` per settled job, with the bucket and hit right;
+   - nothing for a job with no estimate, or one that ends FAILED or EXPIRED;
+   - nothing twice when two finishers race.
+5. **`ai_job_id`:** on each listed view, when a hold ran; absent with the flag off.
+
+**Plants (one killer each):**
+- the once-per-cycle check removed (always send): **the 08b-named plant**;
+- the conditional UPDATE made unconditional (the race test kills it);
+- the cycle compare dropped;
+- the school admin given another license's job;
+- the metric emitted on FAILED;
+- the band-hit compare flipped to `<`.
+
+**Runs:**
+- red, then green on the new modules;
+- the plants;
+- the near run on `billing users` + guards67 (`--parallel 4`, with +2 skips and gate6 counted as 3), plus `AutoGrader.tests_migration_rollback_defaults` only if a migration turns up;
+- every declaration states its env.
+
+### §7.4 Questions for the SM before code
+
+- **Q7-1 (cancel):** the role matrix lists `AIJob (cancel)`, but no B1b step builds it. Leave it out of B1b-7 (proposed), or add it? Adding it makes `write_routes()` 163 with an audit row, and it may need wording.
+- **Q7-2 (the "100%" and the cycle):** plan §3.9 says "compare spendable with the cycle allocation from `plan_remaining_credits`".
+  - **Proposed:** the allocation is the serializer's existing `monthly_credit_total` (the plan's monthly credits). Spendable is `holds.spendable_credits` (which includes overage). The cycle start is the current MONTHLY bucket's start.
+  - This needs the SM's check, including for license teachers, whose credits come from license allocations.
+- **Q7-3 (flag off):** warnings only fire through `holds.settle`, so with `BILLING_HOLDS_ENABLED` off none are sent. Is that intended (proposed: yes; the flag is off in production until switch-on)?
+- **Q7-4 (codes):** are `balance_status` codes `low` / `very_low` / `out` (null above 25%) acceptable? They are API vocabulary, not wording.
+- **Q7-5 (gap buckets):** plan §3.10's "thresholds in §7" are missing. Accept the proposed buckets with no alert, or get them from the owner?
+- **Size:** 08b gives 1 day. The job API with its role rows, plus the `ai_job_id` trace, likely make it about 1.5 days. Recorded.
+
+**No product code until the SM's go.**
