@@ -2440,9 +2440,12 @@ class AnalyticsService:
         if allocation > 0:
             usage_ratio = profile.total_credits_used / allocation
 
+            # H-80: reaching 100% has also reached 80%. A single use that
+            # jumps from below 80% straight past 100% must set both, or the
+            # at_80_percent signal misses the most engaged teachers.
             if usage_ratio >= 1.0:
                 profile.has_hit_cap = True
-            elif usage_ratio >= 0.8:
+            if usage_ratio >= 0.8:
                 profile.has_hit_80_percent = True
         else:
             logger.warning(
