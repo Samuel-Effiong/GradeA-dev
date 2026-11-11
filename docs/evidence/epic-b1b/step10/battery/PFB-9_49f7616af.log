@@ -1,0 +1,109 @@
+B1b-10 battery PFB-9 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 49f7616af
+label: billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t6_batch_session_cascade billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t7_upload_with_a_settled_sibling_ends_settled billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t8_upload_with_every_row_deleted_and_none_settled_ends_failed billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t8b_single_item_deleted_while_held_ends_failed billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t19_an_assignment_cascade_with_a_held_and_a_returned_row billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t20_an_assignment_cascade_with_a_never_held_pending_row
+env set: none
+declared: Ran 7, FAILED (failures=7)
+diff --git a/billing/holds.py b/billing/holds.py
+index 6e9194e3c..2441ec619 100644
+--- a/billing/holds.py
++++ b/billing/holds.py
+@@ -1430,6 +1430,7 @@ def finish_job_left_empty_on_item_delete(sender, instance, **kwargs):
+     never reverts (§1.21 (a)), so a terminal status can be trusted, and in
+     a cascade every row after the first one that finishes the job costs
+     one query. An open status is read again under the wallet lock."""
++    return  # PFB-9
+     if instance.job_id is None:
+         return
+     status = (
+Found 7 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user ff738070-ff28-47cf-abc7-1a8d88ba6913.
+Cannot activate automatic trial for user ff738070-ff28-47cf-abc7-1a8d88ba6913 (validation): ValueError
+FFree trial plan not found: no trial activated for user 2213dc0d-3b30-4a95-b80d-0a548679ce1f.
+Cannot activate automatic trial for user 2213dc0d-3b30-4a95-b80d-0a548679ce1f (validation): ValueError
+FFree trial plan not found: no trial activated for user 1fb4b764-7375-4b6b-87ea-d9a9f2df88ab.
+Cannot activate automatic trial for user 1fb4b764-7375-4b6b-87ea-d9a9f2df88ab (validation): ValueError
+FFree trial plan not found: no trial activated for user 20c11373-f5d1-43d4-87c7-d57c6e66600f.
+Cannot activate automatic trial for user 20c11373-f5d1-43d4-87c7-d57c6e66600f (validation): ValueError
+FFree trial plan not found: no trial activated for user 13dbcc48-bad9-4022-b943-f764748e92d6.
+Cannot activate automatic trial for user 13dbcc48-bad9-4022-b943-f764748e92d6 (validation): ValueError
+FFree trial plan not found: no trial activated for user ea0115aa-e20f-4e03-b840-409700b7b38d.
+Cannot activate automatic trial for user ea0115aa-e20f-4e03-b840-409700b7b38d (validation): ValueError
+FFree trial plan not found: no trial activated for user e22dbb71-93b3-4f24-a901-df0862352ca8.
+Cannot activate automatic trial for user e22dbb71-93b3-4f24-a901-df0862352ca8 (validation): ValueError
+F
+======================================================================
+FAIL: test_t5_assignment_cascade (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade)
+Every row of the job goes: the job finishes SETTLED (C4), because
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 208, in test_t5_assignment_cascade
+    self.assertEqual(fresh(job).status, AIJobStatus.SETTLED)
+AssertionError: 'RESERVED' != AIJobStatus.SETTLED
+
+======================================================================
+FAIL: test_t6_batch_session_cascade (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t6_batch_session_cascade)
+Every row of the job goes and none settled: FAILED (C4).
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 236, in test_t6_batch_session_cascade
+    self.assertEqual(row.status, AIJobStatus.FAILED)
+AssertionError: 'RESERVED' != AIJobStatus.FAILED
+
+======================================================================
+FAIL: test_t7_upload_with_a_settled_sibling_ends_settled (billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t7_upload_with_a_settled_sibling_ends_settled)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 255, in test_t7_upload_with_a_settled_sibling_ends_settled
+    self.assertEqual(fresh(job).status, AIJobStatus.SETTLED)
+AssertionError: 'RESERVED' != AIJobStatus.SETTLED
+
+======================================================================
+FAIL: test_t8_upload_with_every_row_deleted_and_none_settled_ends_failed (billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t8_upload_with_every_row_deleted_and_none_settled_ends_failed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 266, in test_t8_upload_with_every_row_deleted_and_none_settled_ends_failed
+    self.assertEqual(fresh(job).status, AIJobStatus.FAILED)
+AssertionError: 'RESERVED' != AIJobStatus.FAILED
+
+======================================================================
+FAIL: test_t8b_single_item_deleted_while_held_ends_failed (billing.tests.test_holds_deleted_items.TerminalRuleTests.test_t8b_single_item_deleted_while_held_ends_failed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 277, in test_t8b_single_item_deleted_while_held_ends_failed
+    self.assertEqual(row.status, AIJobStatus.FAILED)
+AssertionError: 'RESERVED' != AIJobStatus.FAILED
+
+======================================================================
+FAIL: test_t19_an_assignment_cascade_with_a_held_and_a_returned_row (billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t19_an_assignment_cascade_with_a_held_and_a_returned_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 476, in test_t19_an_assignment_cascade_with_a_held_and_a_returned_row
+    self.assertEqual(fresh(job).status, AIJobStatus.FAILED)
+AssertionError: 'RESERVED' != AIJobStatus.FAILED
+
+======================================================================
+FAIL: test_t20_an_assignment_cascade_with_a_never_held_pending_row (billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t20_an_assignment_cascade_with_a_never_held_pending_row)
+A row with a job but no hold that has not run (B1b-6's queued
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 497, in test_t20_an_assignment_cascade_with_a_never_held_pending_row
+    self.assertEqual(fresh(job).status, AIJobStatus.FAILED)
+AssertionError: 'RESERVED' != AIJobStatus.FAILED
+
+----------------------------------------------------------------------
+Ran 7 tests in 3.492s
+
+FAILED (failures=7)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/holds.py

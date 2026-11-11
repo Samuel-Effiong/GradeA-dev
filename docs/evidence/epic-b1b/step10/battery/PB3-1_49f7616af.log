@@ -1,0 +1,263 @@
+B1b-10 battery PB3-1 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 49f7616af
+label: ai_processor.tests_grading_pipeline.GradingRunWithHoldsTest.test_a_successful_run_is_charged_once_at_settle ai_processor.tests_grading_pipeline.GradingRunWithHoldsTest.test_a_failed_attempt_is_never_charged_the_successful_one_is assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_an_unusable_provider_response_charges_nothing_for_that_file assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_a_failed_save_charges_nothing_and_it_can_be_retried
+env set: none
+declared: Ran 4, FAILED (failures=4)
+diff --git a/billing/holds.py b/billing/holds.py
+index 6e9194e3c..12c0d0e8b 100644
+--- a/billing/holds.py
++++ b/billing/holds.py
+@@ -419,6 +419,16 @@ def settle(
+                 school=school,
+                 _wallet_locked=True,  # B1b-3 P3: locked and read above
+             )
++        if chargeable > 0:  # PB3-1 (twice)
++            locked.consume_credits(
++                chargeable,
++                feature=feature,
++                task_type=task_type,
++                task_id=str(record.id),
++                course=course,
++                school=school,
++                _wallet_locked=True,  # B1b-3 P3: locked and read above
++            )
+         drawn = min(left, chargeable)
+         leftover = left - drawn
+         overrun_charged = chargeable - drawn
+Found 4 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 101c1fd7-fbfc-4b67-83dc-53bc29092e35.
+Cannot activate automatic trial for user 101c1fd7-fbfc-4b67-83dc-53bc29092e35 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-11 13:09:57,845 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] Partition: 12 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 12 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:09:57,845 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] 12 questions for the AI (0 already graded deterministically) — switching to batched grading (10 questions/batch).
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:09:57,846 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] 12 questions → 2 batches of up to 10.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:09:57,846 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] Grading batch 1/2 (Q1–Q10)...
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:09:58,051 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] Batch 1/2 complete — 10 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:09:58,051 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] Grading batch 2/2 (Q11–Q12)...
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:09:58,073 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] Batch 2/2 complete — 2 question(s) graded.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:09:58,074 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] All 2 batches complete. 12 question evaluations collected. Building overall summary...
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:09:58,096 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] Complete. Score: 48/60 (80.0%)
+
+
+FFree trial plan not found: no trial activated for user 25330b23-840d-47ca-8acb-ba38ed1a5951.
+Cannot activate automatic trial for user 25330b23-840d-47ca-8acb-ba38ed1a5951 (validation): ValueError
+
+
+ai_processor.services INFO 2026-11-11 13:09:58,512 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:09:58,512 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services ERROR 2026-11-11 13:09:58,568 services 525903 128580831999872 [request_id=- client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:09:58,586 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:09:58,586 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:09:58,586 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:09:58,586 services 525903 128580831999872 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+FFree trial plan not found: no trial activated for user 6fca4967-24fa-4ef3-9bad-d8882009a739.
+Cannot activate automatic trial for user 6fca4967-24fa-4ef3-9bad-d8882009a739 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+
+
+ai_processor.services ERROR 2026-11-11 13:09:59,417 services 525903 128580831999872 [request_id=96eda18c-70c9-4300-bba0-4b5706e3860e client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:09:59,417 services 525903 128580831999872 [request_id=96eda18c-70c9-4300-bba0-4b5706e3860e client_request_id=-] Attempt 1 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:09:59,417 services 525903 128580831999872 [request_id=96eda18c-70c9-4300-bba0-4b5706e3860e client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-11-11 13:09:59,465 services 525903 128580831999872 [request_id=96eda18c-70c9-4300-bba0-4b5706e3860e client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:09:59,465 services 525903 128580831999872 [request_id=96eda18c-70c9-4300-bba0-4b5706e3860e client_request_id=-] Attempt 2 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services INFO 2026-11-11 13:09:59,465 services 525903 128580831999872 [request_id=96eda18c-70c9-4300-bba0-4b5706e3860e client_request_id=-] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-11-11 13:09:59,512 services 525903 128580831999872 [request_id=96eda18c-70c9-4300-bba0-4b5706e3860e client_request_id=-] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-11-11 13:09:59,512 services 525903 128580831999872 [request_id=96eda18c-70c9-4300-bba0-4b5706e3860e client_request_id=-] Attempt 3 failed: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+Failed to extract assignment from file c.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 974, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 136, in upload_assignment_file
+    assignment_questions = AssignmentProcessingService.extract_assignment_data(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/services.py", line 1055, in extract_assignment_data
+    ai_processor.extract_assignment_with_retry(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/services.py", line 1862, in extract_assignment_with_retry
+    raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+Exception: All 3 attempts failed. Last error: Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+FFree trial plan not found: no trial activated for user 5ea75434-7892-4e76-a1ed-9cd0d6479f54.
+Cannot activate automatic trial for user 5ea75434-7892-4e76-a1ed-9cd0d6479f54 (validation): ValueError
+Failed to extract assignment from file c.png
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/views.py", line 974, in upload_assignment
+    outcome = upload_assignment_file(
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/file_uploads.py", line 155, in upload_assignment_file
+    assignment = serializer.save()
+                 ^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in save
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_upload_batch_billing.py", line 641, in second_save_fails
+    raise DatabaseError("simulated write failure")
+django.db.utils.DatabaseError: simulated write failure
+F
+======================================================================
+FAIL: test_a_successful_run_is_charged_once_at_settle (ai_processor.tests_grading_pipeline.GradingRunWithHoldsTest.test_a_successful_run_is_charged_once_at_settle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/tests_grading_pipeline.py", line 429, in test_a_successful_run_is_charged_once_at_settle
+    assert_hold_ledger(self, teacher, kept_count=1)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 216, in assert_hold_ledger
+    test.assertEqual(len(charged), kept_count, "the number of settle charges")
+AssertionError: 2 != 1 : the number of settle charges
+
+======================================================================
+FAIL: test_a_failed_attempt_is_never_charged_the_successful_one_is (ai_processor.tests_grading_pipeline.GradingRunWithHoldsTest.test_a_failed_attempt_is_never_charged_the_successful_one_is)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/ai_processor/tests_grading_pipeline.py", line 470, in test_a_failed_attempt_is_never_charged_the_successful_one_is
+    assert_hold_ledger(self, teacher, kept_count=1)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 216, in assert_hold_ledger
+    test.assertEqual(len(charged), kept_count, "the number of settle charges")
+AssertionError: 2 != 1 : the number of settle charges
+
+======================================================================
+FAIL: test_an_unusable_provider_response_charges_nothing_for_that_file (assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_an_unusable_provider_response_charges_nothing_for_that_file)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_upload_batch_billing.py", line 630, in test_an_unusable_provider_response_charges_nothing_for_that_file
+    assert_hold_ledger(self, self.teacher, kept=[1100])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 214, in assert_hold_ledger
+    test.assertEqual(charged, sorted(kept), "the charges settle made")
+AssertionError: Lists differ: [1100, 1100] != [1100]
+
+First list contains 1 additional elements.
+First extra element 1:
+1100
+
+- [1100, 1100]
++ [1100] : the charges settle made
+
+======================================================================
+FAIL: test_a_failed_save_charges_nothing_and_it_can_be_retried (assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_a_failed_save_charges_nothing_and_it_can_be_retried)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_upload_batch_billing.py", line 651, in test_a_failed_save_charges_nothing_and_it_can_be_retried
+    assert_hold_ledger(self, self.teacher, kept=[1100])
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/testing/holds.py", line 214, in assert_hold_ledger
+    test.assertEqual(charged, sorted(kept), "the charges settle made")
+AssertionError: Lists differ: [1100, 1100] != [1100]
+
+First list contains 1 additional elements.
+First extra element 1:
+1100
+
+- [1100, 1100]
++ [1100] : the charges settle made
+
+----------------------------------------------------------------------
+Ran 4 tests in 2.841s
+
+FAILED (failures=4)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/holds.py

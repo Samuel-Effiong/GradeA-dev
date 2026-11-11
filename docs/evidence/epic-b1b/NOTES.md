@@ -4943,3 +4943,29 @@ The fragments were rendered from unittest's own messages (no test run). No pre-e
 |---|---|---|---|
 | E-off | the five unset; `--parallel 4`; under flock with `--noinput`; at this commit | the labels above + `guards67.txt` | **Ran 8261, OK (skipped=37)**, 0 FAIL, 0 ERROR |
 | E-on | the same, with `BILLING_HOLDS_ENABLED=True` from the environment | the same | **Ran 8261, OK (skipped=37)**, 0 FAIL, 0 ERROR |
+
+### §10.2 B10 battery: 33 as declared, then a MISMATCH at PB3-2, recorded unamended: a STOP to the SM
+
+**The run** (at 49f7616af, `step10/battery/`; summary `battery_summary_49f7616af.jsonl`): the runner stopped at plant 34 of 129, as ruled.
+- **As declared (33):**
+  - all 21 B1a mutants (M-B1 … M-B31s, TP-1), with M-B31s killed this time;
+  - PFB-1, 2, 3, 4, 6, 7, 8, 9, 9b;
+  - PB1-1, PB2-1 (flag on from the environment), PB3-1.
+- Each was killed with its declared counts and fragments, and each file was restored with its sha256 matching HEAD.
+- **PB3-2: MISMATCH.**
+  - Declared: Ran 4, FAILED (failures=4), with `[300] != []` among the fragments.
+  - Got: **Ran 4, FAILED (errors=4)**. All four killers errored with `TypeError: Object of type UUID is not JSON serializable` (two also show `KeyError: 'data'`, two show the test's own simulated failure first). The declared fragment is missing.
+  - Restored: sha256 MATCHES HEAD for `billing/holds.py`.
+  - Log: `step10/battery/PB3-2_49f7616af.log`.
+
+**The cause, read from the log:**
+- The fault is in my **rebuilt plant**, not the product. PB3-2's original text was lost with its script, and the §10.1 rebuild was taken from §3's wording, "`SubscriptionService.refund_credits(record.id)`". It passes the settlement's UUID.
+- But `settle` charges under `task_id=str(record.id)` (`billing/holds.py:417`), and every production caller passes `refund_credits` a string task id (`billing/refunds.py:108`).
+- So the rebuilt plant raises inside `refund_credits`, where it should refund the charge.
+- The killers still fail (errors=4), but by an exception, not the declared assertion, so the plant does not test what B1b-3's PB3-2 tested.
+
+**Proposed** (not done; nothing re-run):
+- Correct PB3-2 to `SubscriptionService.refund_credits(str(record.id))`, the refund of the very charge `settle` just made, which is §3's "settle refunds its own charge".
+- Re-run PB3-2 alone with its §3.x declaration (Ran 4, FAILED (failures=4); T7 `[300] != []`; T9, T10 `[1100] != []`; T6 `500000 not less than 500000`).
+- Then continue the battery from PB3-3 (`--from PB3-3`).
+- The 33 done stand.

@@ -1,0 +1,58 @@
+B1b-10 battery M-B3 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 49f7616af
+label: billing.tests.test_holds_overrun.OverrunTests.test_an_overrun_never_takes_another_jobs_hold
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/billing/holds.py b/billing/holds.py
+index 6e9194e3c..c37be3dd2 100644
+--- a/billing/holds.py
++++ b/billing/holds.py
+@@ -394,7 +394,7 @@ def settle(
+             item_row is not None and item_row.hold_state == HoldState.RETURNED
+         )
+         left = max(_left(job_row, item_row), 0)
+-        chargeable = min(actual, left + _free(locked))
++        chargeable = min(actual, locked.total_remaining_credits())
+         # B1b-3 P4: the record is written with what it charges; it is still
+         # the fence, and nothing is consumed before it exists.
+         try:
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user ec87dcd8-df02-49f4-9c30-784077ddbdf1.
+Cannot activate automatic trial for user ec87dcd8-df02-49f4-9c30-784077ddbdf1 (validation): ValueError
+F
+======================================================================
+FAIL: test_an_overrun_never_takes_another_jobs_hold (billing.tests.test_holds_overrun.OverrunTests.test_an_overrun_never_takes_another_jobs_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_overrun.py", line 71, in test_an_overrun_never_takes_another_jobs_hold
+    self.assertEqual((outcome.chargeable, outcome.unbilled), (100, 100))
+AssertionError: Tuples differ: (200, 0) != (100, 100)
+
+First differing element 0:
+200
+100
+
+- (200, 0)
+?  ^
+
++ (100, 100)
+?  ^    ++
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.088s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/holds.py

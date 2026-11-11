@@ -1,0 +1,124 @@
+B1b-10 battery PFB-4 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 49f7616af
+label: billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t1_instance_delete billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t2_queryset_delete billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t3_full_erasure billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t4_course_scoped_erasure billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t11_row_delete_first_then_the_wallet_receiver
+env set: none
+declared: Ran 6, FAILED (failures=2, errors=4)
+diff --git a/billing/holds.py b/billing/holds.py
+index 6e9194e3c..82ad7be21 100644
+--- a/billing/holds.py
++++ b/billing/holds.py
+@@ -1541,7 +1541,7 @@ def return_hold_on_item_delete(sender, instance, **kwargs):
+             _audit(
+                 AuditAction.CREDIT_HOLD_RELEASED,
+                 job_row,
+-                item=item_row,
++                item=None,
+                 credits=returned,
+                 reason_label="failed",
+             )
+Found 6 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 90aaa50e-50e1-426c-bb48-b221ce1af216.
+Cannot activate automatic trial for user 90aaa50e-50e1-426c-bb48-b221ce1af216 (validation): ValueError
+EFree trial plan not found: no trial activated for user 0dffb95d-7960-4406-ba28-1e8e06a81d9b.
+Cannot activate automatic trial for user 0dffb95d-7960-4406-ba28-1e8e06a81d9b (validation): ValueError
+EFree trial plan not found: no trial activated for user de954e7b-7fe5-4ee3-929a-7bafdf2d5956.
+Cannot activate automatic trial for user de954e7b-7fe5-4ee3-929a-7bafdf2d5956 (validation): ValueError
+EFree trial plan not found: no trial activated for user bce92c10-f11a-44a9-9850-456ec85c8648.
+Cannot activate automatic trial for user bce92c10-f11a-44a9-9850-456ec85c8648 (validation): ValueError
+EFree trial plan not found: no trial activated for user b7da7bc4-c6ee-4b70-8bb8-0dbe3df0c89e.
+Cannot activate automatic trial for user b7da7bc4-c6ee-4b70-8bb8-0dbe3df0c89e (validation): ValueError
+FFree trial plan not found: no trial activated for user 44cc1aa4-7bf2-4df2-9bfc-23f840e065e4.
+Cannot activate automatic trial for user 44cc1aa4-7bf2-4df2-9bfc-23f840e065e4 (validation): ValueError
+F
+======================================================================
+ERROR: test_t1_instance_delete (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t1_instance_delete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 155, in test_t1_instance_delete
+    self.assert_road(job, start, doomed_pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 148, in assert_road
+    self.assertEqual(rows[0].metadata["item_id"], str(doomed_pk))
+                     ~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'item_id'
+
+======================================================================
+ERROR: test_t2_queryset_delete (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t2_queryset_delete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 160, in test_t2_queryset_delete
+    self.assert_road(job, start, doomed.pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 148, in assert_road
+    self.assertEqual(rows[0].metadata["item_id"], str(doomed_pk))
+                     ~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'item_id'
+
+======================================================================
+ERROR: test_t3_full_erasure (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t3_full_erasure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 178, in test_t3_full_erasure
+    self.assert_road(job, start, doomed.pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 148, in assert_road
+    self.assertEqual(rows[0].metadata["item_id"], str(doomed_pk))
+                     ~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'item_id'
+
+======================================================================
+ERROR: test_t4_course_scoped_erasure (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t4_course_scoped_erasure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 190, in test_t4_course_scoped_erasure
+    self.assert_road(job, start, doomed.pk)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 148, in assert_road
+    self.assertEqual(rows[0].metadata["item_id"], str(doomed_pk))
+                     ~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'item_id'
+
+======================================================================
+FAIL: test_t5_assignment_cascade (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade)
+Every row of the job goes: the job finishes SETTLED (C4), because
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 211, in test_t5_assignment_cascade
+    self.assertEqual(release_rows_summary(job), [(str(doomed.pk), HELD)])
+AssertionError: Lists differ: [(None, 300)] != [('4329745b-d144-4649-a8f3-e5cd66f23906', 300)]
+
+First differing element 0:
+(None, 300)
+('4329745b-d144-4649-a8f3-e5cd66f23906', 300)
+
+- [(None, 300)]
++ [('4329745b-d144-4649-a8f3-e5cd66f23906', 300)]
+
+======================================================================
+FAIL: test_t11_row_delete_first_then_the_wallet_receiver (billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t11_row_delete_first_then_the_wallet_receiver)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 340, in test_t11_row_delete_first_then_the_wallet_receiver
+    self.assertEqual([row.metadata["credits"] for row in item_rows], [HELD])
+AssertionError: Lists differ: [] != [300]
+
+Second list contains 1 additional elements.
+First extra element 0:
+300
+
+- []
++ [300]
+
+----------------------------------------------------------------------
+Ran 6 tests in 3.591s
+
+FAILED (failures=2, errors=4)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/holds.py

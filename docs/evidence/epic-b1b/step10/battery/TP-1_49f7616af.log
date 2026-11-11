@@ -1,0 +1,47 @@
+B1b-10 battery TP-1 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 49f7616af
+label: billing.tests.test_holds_gate.ProviderTimeoutTests.test_t1_a_provider_timeout_charges_nothing_and_the_next_item_runs_on_its_hold
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/billing/holds.py b/billing/holds.py
+index 6e9194e3c..6c106cdab 100644
+--- a/billing/holds.py
++++ b/billing/holds.py
+@@ -478,7 +478,7 @@ def fail_item(job, *, item=None):
+             return 0
+         job_row, item_row = _lock_rows(job, item)
+         count_it = item_row is None or item_row.hold_state == HoldState.HELD
+-        amount = max(_left(job_row, item_row), 0)
++        amount = max(_left(job_row, None), 0)
+         _move_wallet(locked.pk, -amount)
+         AIJob.objects.filter(pk=job_row.pk).update(
+             released_credits=F("released_credits") + amount,
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user ea773bce-4d9b-4632-9427-5cade10864ce.
+Cannot activate automatic trial for user ea773bce-4d9b-4632-9427-5cade10864ce (validation): ValueError
+F
+======================================================================
+FAIL: test_t1_a_provider_timeout_charges_nothing_and_the_next_item_runs_on_its_hold (billing.tests.test_holds_gate.ProviderTimeoutTests.test_t1_a_provider_timeout_charges_nothing_and_the_next_item_runs_on_its_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_gate.py", line 195, in test_t1_a_provider_timeout_charges_nothing_and_the_next_item_runs_on_its_hold
+    self.assertEqual(fresh(wallet).reserved_credits, estimate)
+AssertionError: 0 != 20003
+
+----------------------------------------------------------------------
+Ran 1 test in 0.481s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/holds.py

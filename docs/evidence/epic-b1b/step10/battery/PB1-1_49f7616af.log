@@ -1,0 +1,49 @@
+B1b-10 battery PB1-1 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 49f7616af
+label: billing.tests.test_holds_schema.PlanAndSettingsTests.test_holds_flag_defaults_off
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/AutoGrader/settings.py b/AutoGrader/settings.py
+index a2f786cd7..b9ca3c206 100644
+--- a/AutoGrader/settings.py
++++ b/AutoGrader/settings.py
+@@ -696,7 +696,7 @@ AI_CALL_RECORD_ENABLED = env.bool("AI_CALL_RECORD_ENABLED", default=True)
+ AI_PROVIDER_ZDR_ENABLED = env.bool("AI_PROVIDER_ZDR_ENABLED", default=False)
+
+ # Epic B1: credit holds, metered units, batch jobs and queue.
+-BILLING_HOLDS_ENABLED = env.bool("BILLING_HOLDS_ENABLED", default=False)
++BILLING_HOLDS_ENABLED = env.bool("BILLING_HOLDS_ENABLED", default=True)
+ # B1b-9 (08b §6.3): the drain before the flag is turned off. While on, new
+ # work makes no hold, job or queue entry (it runs the flag-off path) and what
+ # is already held runs to its end; run `billing_holds_drain`. Set it the same
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+F
+======================================================================
+FAIL: test_holds_flag_defaults_off (billing.tests.test_holds_schema.PlanAndSettingsTests.test_holds_flag_defaults_off)
+The shipped default, not the running value (B1b-2, SM Q1): the
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_schema.py", line 404, in test_holds_flag_defaults_off
+    self.assertEqual(result.stdout.strip().splitlines()[-1], "False")
+AssertionError: 'True' != 'False'
+- True
++ False
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.218s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for AutoGrader/settings.py

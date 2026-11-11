@@ -1,0 +1,504 @@
+B1b-10 battery PB2-1 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 49f7616af
+label: students.tests_batch_item_results.TheSessionResultsShape.test_an_overwrite_is_lifted_into_the_item_result students.tests_batch_item_results.TheSessionResultsShape.test_an_unclassified_failure_is_visible_as_system_with_no_code students.tests_batch_item_results.TheSessionResultsShape.test_each_item_answers_for_itself_and_the_old_keys_stay assignments.tests_h274_empty_upload_doors.TheAsyncTeacherUploadIsNeverHalfQueued.test_one_empty_file_fails_as_its_item_and_the_rest_are_queued billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherCourseGuardRouteTests.test_batch_upload_answers_succeeds_for_active_teacher students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_batch_upload_runs_the_rest_of_the_batch students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_upload_async_is_never_half_queued students.tests_batch_item_results.ThirtyFilesTwelveFailures.test_every_failure_is_listed_with_its_own_code students.tests_credits_mid_batch.AnUploadBatchThatRunsOutOfCredits.test_the_rest_stops_uncharged_and_resumes_by_retry students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t1_a_dear_file_in_the_middle_is_parked_and_the_others_run students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t2_the_balance_runs_down_as_files_are_queued students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t3_a_cheap_file_after_a_dear_one_still_runs students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t5_the_door_does_not_stamp_the_session students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t1_a_dear_file_in_the_middle_is_parked_and_the_others_run students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t2_the_balance_runs_down_as_files_are_queued students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t3_a_cheap_file_after_a_dear_one_still_runs students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t5_the_door_does_not_stamp_the_session students.tests_h274_empty_student_answer_doors.AnEmptyFileInABatchFailsAsItsItem.test_an_empty_unsupported_file_is_the_type_first_and_the_rest_run students.tests_h274_empty_student_answer_doors.AnEmptyFileInABatchFailsAsItsItem.test_a_zero_byte_answer_is_submission_empty_and_the_rest_run students.tests_h274_empty_student_answer_doors.TheAsyncStudentUploadKeepsS6.test_an_empty_file_of_an_unsupported_type_is_the_type_first students.tests_h274_empty_student_answer_doors.TheAsyncStudentUploadKeepsS6.test_a_zero_byte_answer_is_submission_empty students.tests_upload_credit_door.AssignmentUploadDoorTest.test_a_funded_teacher_is_queued_as_before students.tests_upload_credit_door.StudentUploadDoorTest.test_a_file_the_door_cannot_read_is_left_to_the_task students.tests_upload_credit_door.StudentUploadDoorTest.test_a_teacher_without_a_wallet_is_left_to_the_permission students.tests_upload_credit_door.TeacherBatchDoorTest.test_a_funded_teacher_is_queued_as_before
+env set: {'BILLING_HOLDS_ENABLED': 'True'}
+declared: Ran 25, FAILED (failures=22, errors=3)
+diff --git a/assignments/upload_door.py b/assignments/upload_door.py
+index 8277ccfdc..80e4b1b05 100644
+--- a/assignments/upload_door.py
++++ b/assignments/upload_door.py
+@@ -202,6 +202,7 @@ def launch_at_door(launch, task_callable, processing_task, *args, **kwargs):
+         _celery_task_id=celery_task_id,
+         **kwargs,
+     )
++    return celery_task_id  # PB2-1
+     if connection.in_atomic_block:
+         # Under an outer transaction the message goes at its commit, where an
+         # error would stop the later files' callbacks (NOTES §15g addendum).
+Found 25 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+H38P2 students/views.py:158 batch-upload (positive control - active teacher) WRITE status=202 changed=True
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user f110770c-2c2c-4e6b-a6f0-234f0ae9a33a.
+Cannot activate automatic trial for user f110770c-2c2c-4e6b-a6f0-234f0ae9a33a (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+EFree trial plan not found: no trial activated for user fba4d997-0ac0-4972-82c0-154d6549669c.
+Cannot activate automatic trial for user fba4d997-0ac0-4972-82c0-154d6549669c (validation): ValueError
+EFree trial plan not found: no trial activated for user d1610aef-c6e5-4aaf-b03b-532a90fb85b7.
+Cannot activate automatic trial for user d1610aef-c6e5-4aaf-b03b-532a90fb85b7 (validation): ValueError
+Upload door could not estimate b.png: FileUnreadableError
+EFree trial plan not found: no trial activated for user ec0f3d65-3d1f-4b8b-8e0b-b7d0f67b79c6.
+Cannot activate automatic trial for user ec0f3d65-3d1f-4b8b-8e0b-b7d0f67b79c6 (validation): ValueError
+Upload door could not estimate blank.pdf: PayloadEmpty
+
+
+students.task_tracking ERROR 2026-11-11 13:09:36,139 task_tracking 525618 136439946651520 [request_id=6d15d31e-b8db-46d2-b1e6-500f5e174ce2 client_request_id=-] Background task c25298b2-72a0-4874-b16f-3f97898d7223 failed: error=PayloadEmpty frames=views.py:1162:upload_assignment_async <- uploads.py:70:validate_upload_size
+
+
+FFree trial plan not found: no trial activated for user 38fcd926-02f3-46dc-b331-d858add0b0aa.
+Cannot activate automatic trial for user 38fcd926-02f3-46dc-b331-d858add0b0aa (validation): ValueError
+Upload door could not estimate answers.pdf: FileUnreadableError
+FFree trial plan not found: no trial activated for user f46cc1ee-5960-4b9e-87ac-3f4e5b9c5406.
+Cannot activate automatic trial for user f46cc1ee-5960-4b9e-87ac-3f4e5b9c5406 (validation): ValueError
+Upload door could not estimate big.pdf: PayloadTooLarge
+
+
+students.task_tracking ERROR 2026-11-11 13:09:36,746 task_tracking 525618 136439946651520 [request_id=e5b94e39-98b9-44d5-a144-c091b2e5e4cd client_request_id=-] Background task 4fcd1b14-1760-4bdb-9f06-bacd78a49034 failed: error=PayloadTooLarge frames=views.py:1536:batch_upload <- uploads.py:74:validate_upload_size
+
+
+FFree trial plan not found: no trial activated for user 82e62123-bf06-4b1c-9920-f7610be327c0.
+Cannot activate automatic trial for user 82e62123-bf06-4b1c-9920-f7610be327c0 (validation): ValueError
+Upload door could not estimate big.pdf: PayloadTooLarge
+
+
+students.task_tracking ERROR 2026-11-11 13:09:37,005 task_tracking 525618 136439946651520 [request_id=ccabf8b9-3c65-46b6-8add-a1c622282ef1 client_request_id=-] Background task 49aada7a-542b-40aa-81f8-cca78dfc384e failed: error=PayloadTooLarge frames=views.py:1162:upload_assignment_async <- uploads.py:74:validate_upload_size
+
+
+FFree trial plan not found: no trial activated for user 187820ef-64af-4a0e-b27e-6ff5f6b7bc36.
+Cannot activate automatic trial for user 187820ef-64af-4a0e-b27e-6ff5f6b7bc36 (validation): ValueError
+Upload door could not estimate big1.pdf: PayloadTooLarge
+Upload door could not estimate big2.pdf: PayloadTooLarge
+Upload door could not estimate junk1.png: FileUnreadableError
+Upload door could not estimate junk2.png: FileUnreadableError
+Upload door could not estimate notes1.txt: FileTypeUnsupportedError
+Upload door could not estimate notes2.txt: FileTypeUnsupportedError
+Upload door could not estimate blank1.pdf: SubmissionEmptyError
+Upload door could not estimate blank2.pdf: SubmissionEmptyError
+
+
+students.task_tracking ERROR 2026-11-11 13:09:37,710 task_tracking 525618 136439946651520 [request_id=628e849d-93ee-4466-9027-54728b130dc0 client_request_id=-] Background task 097f795b-74c7-4ea8-a070-719436381874 failed: error=PayloadTooLarge frames=views.py:1536:batch_upload <- uploads.py:74:validate_upload_size
+
+
+
+
+students.task_tracking ERROR 2026-11-11 13:09:37,722 task_tracking 525618 136439946651520 [request_id=628e849d-93ee-4466-9027-54728b130dc0 client_request_id=-] Background task 62c1e821-b2b5-4e07-83d3-fe64ce96711c failed: error=PayloadTooLarge frames=views.py:1536:batch_upload <- uploads.py:74:validate_upload_size
+
+
+FFree trial plan not found: no trial activated for user 8b042ac6-d4ab-46a7-915d-6ef52537af00.
+Cannot activate automatic trial for user 8b042ac6-d4ab-46a7-915d-6ef52537af00 (validation): ValueError
+FFree trial plan not found: no trial activated for user a7a02ff2-57de-45da-8d71-1f8b18f8d1b1.
+Cannot activate automatic trial for user a7a02ff2-57de-45da-8d71-1f8b18f8d1b1 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-11 13:09:38,517 refusals 525618 136439946651520 [request_id=3726f47d-d159-4319-ab14-5a90fb7ba95f client_request_id=-] Background task a95a5286-c0d2-4be1-bc03-8a494c1c8b95 refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+FFree trial plan not found: no trial activated for user 3322096e-633d-4c2a-8aca-b823ca58ff18.
+Cannot activate automatic trial for user 3322096e-633d-4c2a-8aca-b823ca58ff18 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~30000 credits, 20000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-11 13:09:38,615 refusals 525618 136439946651520 [request_id=2beb4055-588a-485f-bdf7-7bf695cc8bd2 client_request_id=-] Background task 8285b50d-f355-45cc-bc8e-383f29abec45 refused: InsufficientCreditsError: Upload needs ~30000 credits, 20000 left in the batch
+
+
+FFree trial plan not found: no trial activated for user 4e2fa209-e6fd-448b-9940-dc81cfb525df.
+Cannot activate automatic trial for user 4e2fa209-e6fd-448b-9940-dc81cfb525df (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 50000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-11 13:09:38,721 refusals 525618 136439946651520 [request_id=f7bc5b64-1ab0-4007-9785-a33e44d1a9b4 client_request_id=-] Background task 338d5edd-c90a-4c38-aca7-893151834b59 refused: InsufficientCreditsError: Upload needs ~60000 credits, 50000 left in the batch
+
+
+FFree trial plan not found: no trial activated for user cc093eb4-bffb-467f-8830-cab0e9193556.
+Cannot activate automatic trial for user cc093eb4-bffb-467f-8830-cab0e9193556 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-11 13:09:38,798 refusals 525618 136439946651520 [request_id=ce766ff9-0ba3-4aae-9170-b16fa66544ec client_request_id=-] Background task 1d419aaf-70b6-4b38-a042-ce48d3e40e78 refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+FFree trial plan not found: no trial activated for user f0eb6fdf-40d8-415c-98dd-0c75f28f0d15.
+Cannot activate automatic trial for user f0eb6fdf-40d8-415c-98dd-0c75f28f0d15 (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-11 13:09:38,880 refusals 525618 136439946651520 [request_id=b8a44f7f-0857-4cdc-bf52-1226672a0669 client_request_id=-] Background task f08812a4-6f0e-46cb-964b-53829fc970ed refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+FFree trial plan not found: no trial activated for user e8bddc1a-d170-48d8-aed7-e87032cddcda.
+Cannot activate automatic trial for user e8bddc1a-d170-48d8-aed7-e87032cddcda (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~30000 credits, 20000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-11 13:09:38,952 refusals 525618 136439946651520 [request_id=bff4fbfe-c471-4149-80d7-8213c6b54af8 client_request_id=-] Background task f3680dd6-e254-4d20-a460-214014eae80f refused: InsufficientCreditsError: Upload needs ~30000 credits, 20000 left in the batch
+
+
+FFree trial plan not found: no trial activated for user f873b3ae-1ac4-4aa1-9dcb-f27644c8917d.
+Cannot activate automatic trial for user f873b3ae-1ac4-4aa1-9dcb-f27644c8917d (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 50000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-11 13:09:39,014 refusals 525618 136439946651520 [request_id=aecddadf-8304-4ad4-a875-63b8967d4770 client_request_id=-] Background task c84260bf-5258-4681-aa37-681c1365f3a2 refused: InsufficientCreditsError: Upload needs ~60000 credits, 50000 left in the batch
+
+
+FFree trial plan not found: no trial activated for user ef6298af-131e-4935-a859-6a4a5f0d57df.
+Cannot activate automatic trial for user ef6298af-131e-4935-a859-6a4a5f0d57df (validation): ValueError
+Upload door (parked) refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+students.task_tracking WARNING 2026-11-11 13:09:39,079 refusals 525618 136439946651520 [request_id=8f43390c-14b0-460b-bf2b-a9f283e76ae5 client_request_id=-] Background task c5dc7162-8b3f-4548-b48f-8401e7d0da10 refused: InsufficientCreditsError: Upload needs ~60000 credits, 30000 left in the batch
+
+
+FFree trial plan not found: no trial activated for user 6154b73d-5a39-4b49-b2e1-fd42d2f8754c.
+Cannot activate automatic trial for user 6154b73d-5a39-4b49-b2e1-fd42d2f8754c (validation): ValueError
+Upload door could not estimate blank.txt: PayloadEmpty
+FFree trial plan not found: no trial activated for user 29f460ef-d434-42b5-a1f7-6857877962b0.
+Cannot activate automatic trial for user 29f460ef-d434-42b5-a1f7-6857877962b0 (validation): ValueError
+Upload door could not estimate blank.png: PayloadEmpty
+FFree trial plan not found: no trial activated for user fa0e8b7c-73dc-45b9-a57c-7e7600174466.
+Cannot activate automatic trial for user fa0e8b7c-73dc-45b9-a57c-7e7600174466 (validation): ValueError
+Upload door could not estimate blank.txt: PayloadEmpty
+FFree trial plan not found: no trial activated for user f48a0996-5b03-435c-8835-ad722e0dd099.
+Cannot activate automatic trial for user f48a0996-5b03-435c-8835-ad722e0dd099 (validation): ValueError
+Upload door could not estimate blank.png: PayloadEmpty
+FFree trial plan not found: no trial activated for user f7adf2ec-d498-403e-8c37-b755b7302f3d.
+Cannot activate automatic trial for user f7adf2ec-d498-403e-8c37-b755b7302f3d (validation): ValueError
+FFree trial plan not found: no trial activated for user 1cbd46ab-f58f-4441-be2f-41e4671a5317.
+Cannot activate automatic trial for user 1cbd46ab-f58f-4441-be2f-41e4671a5317 (validation): ValueError
+Upload door could not estimate a.png: FileUnreadableError
+FFree trial plan not found: no trial activated for user 815e6530-f351-490f-801b-8ba77b95f3ae.
+Cannot activate automatic trial for user 815e6530-f351-490f-801b-8ba77b95f3ae (validation): ValueError
+FFree trial plan not found: no trial activated for user e8ed574c-9e23-4448-bd8b-e0d4d284ccc1.
+Cannot activate automatic trial for user e8ed574c-9e23-4448-bd8b-e0d4d284ccc1 (validation): ValueError
+F
+======================================================================
+ERROR: test_an_overwrite_is_lifted_into_the_item_result (students.tests_batch_item_results.TheSessionResultsShape.test_an_overwrite_is_lifted_into_the_item_result)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_batch_item_results.py", line 321, in test_an_overwrite_is_lifted_into_the_item_result
+    [ok] = data["success_list"]
+    ^^^^
+ValueError: not enough values to unpack (expected 1, got 0)
+
+======================================================================
+ERROR: test_an_unclassified_failure_is_visible_as_system_with_no_code (students.tests_batch_item_results.TheSessionResultsShape.test_an_unclassified_failure_is_visible_as_system_with_no_code)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_batch_item_results.py", line 300, in test_an_unclassified_failure_is_visible_as_system_with_no_code
+    [bad] = data["failure_list"]
+    ^^^^^
+ValueError: not enough values to unpack (expected 1, got 0)
+
+======================================================================
+ERROR: test_each_item_answers_for_itself_and_the_old_keys_stay (students.tests_batch_item_results.TheSessionResultsShape.test_each_item_answers_for_itself_and_the_old_keys_stay)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_batch_item_results.py", line 254, in test_each_item_answers_for_itself_and_the_old_keys_stay
+    [ok] = data["success_list"]
+    ^^^^
+ValueError: not enough values to unpack (expected 1, got 0)
+
+======================================================================
+FAIL: test_one_empty_file_fails_as_its_item_and_the_rest_are_queued (assignments.tests_h274_empty_upload_doors.TheAsyncTeacherUploadIsNeverHalfQueued.test_one_empty_file_fails_as_its_item_and_the_rest_are_queued)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/assignments/tests_h274_empty_upload_doors.py", line 143, in test_one_empty_file_fails_as_its_item_and_the_rest_are_queued
+    self.assertEqual(self.dispatched, ["a.png", "c.png"])
+AssertionError: Lists differ: [] != ['a.png', 'c.png']
+
+Second list contains 2 additional elements.
+First extra element 0:
+'a.png'
+
+- []
++ ['a.png', 'c.png']
+
+======================================================================
+FAIL: test_batch_upload_answers_succeeds_for_active_teacher (billing.tests.test_h38_part2_removed_teacher_routes.ActiveTeacherCourseGuardRouteTests.test_batch_upload_answers_succeeds_for_active_teacher)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_h38_part2_removed_teacher_routes.py", line 833, in test_batch_upload_answers_succeeds_for_active_teacher
+    self.assertEqual(launch.call_count, 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_batch_upload_runs_the_rest_of_the_batch (students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_batch_upload_runs_the_rest_of_the_batch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_batch_item_results.py", line 391, in test_batch_upload_runs_the_rest_of_the_batch
+    self.assertEqual((data["success_count"], data["failure_count"]), (2, 1))
+AssertionError: Tuples differ: (0, 1) != (2, 1)
+
+First differing element 0:
+0
+2
+
+- (0, 1)
+?  ^
+
++ (2, 1)
+?  ^
+
+
+======================================================================
+FAIL: test_upload_async_is_never_half_queued (students.tests_batch_item_results.ATooLargeFileFailsAsItsItem.test_upload_async_is_never_half_queued)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_batch_item_results.py", line 423, in test_upload_async_is_never_half_queued
+    self.assertEqual(dispatched, ["a.png", "c.png"])
+AssertionError: Lists differ: [] != ['a.png', 'c.png']
+
+Second list contains 2 additional elements.
+First extra element 0:
+'a.png'
+
+- []
++ ['a.png', 'c.png']
+
+======================================================================
+FAIL: test_every_failure_is_listed_with_its_own_code (students.tests_batch_item_results.ThirtyFilesTwelveFailures.test_every_failure_is_listed_with_its_own_code)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_batch_item_results.py", line 587, in test_every_failure_is_listed_with_its_own_code
+    self.assertEqual(data["failure_count"], 12)
+AssertionError: 2 != 12
+
+======================================================================
+FAIL: test_the_rest_stops_uncharged_and_resumes_by_retry (students.tests_credits_mid_batch.AnUploadBatchThatRunsOutOfCredits.test_the_rest_stops_uncharged_and_resumes_by_retry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_credits_mid_batch.py", line 454, in test_the_rest_stops_uncharged_and_resumes_by_retry
+    self.assertEqual(len(calls), 2)
+AssertionError: 0 != 2
+
+======================================================================
+FAIL: test_t1_a_dear_file_in_the_middle_is_parked_and_the_others_run (students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t1_a_dear_file_in_the_middle_is_parked_and_the_others_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h223_batch_runs_what_fits.py", line 209, in test_t1_a_dear_file_in_the_middle_is_parked_and_the_others_run
+    self.assertEqual(self.queued, ["s0.png", "s2.png"])
+AssertionError: Lists differ: [] != ['s0.png', 's2.png']
+
+Second list contains 2 additional elements.
+First extra element 0:
+'s0.png'
+
+- []
++ ['s0.png', 's2.png']
+
+======================================================================
+FAIL: test_t2_the_balance_runs_down_as_files_are_queued (students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t2_the_balance_runs_down_as_files_are_queued)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h223_batch_runs_what_fits.py", line 228, in test_t2_the_balance_runs_down_as_files_are_queued
+    self.assertEqual(self.queued, ["s0.png"])
+AssertionError: Lists differ: [] != ['s0.png']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'s0.png'
+
+- []
++ ['s0.png']
+
+======================================================================
+FAIL: test_t3_a_cheap_file_after_a_dear_one_still_runs (students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t3_a_cheap_file_after_a_dear_one_still_runs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h223_batch_runs_what_fits.py", line 240, in test_t3_a_cheap_file_after_a_dear_one_still_runs
+    self.assertEqual(self.queued, ["s1.png"])
+AssertionError: Lists differ: [] != ['s1.png']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'s1.png'
+
+- []
++ ['s1.png']
+
+======================================================================
+FAIL: test_t5_the_door_does_not_stamp_the_session (students.tests_h223_batch_runs_what_fits.TheAnswerBatchRunsWhatFits.test_t5_the_door_does_not_stamp_the_session)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h223_batch_runs_what_fits.py", line 261, in test_t5_the_door_does_not_stamp_the_session
+    self.assertEqual(self.queued, ["s0.png"])
+AssertionError: Lists differ: [] != ['s0.png']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'s0.png'
+
+- []
++ ['s0.png']
+
+======================================================================
+FAIL: test_t1_a_dear_file_in_the_middle_is_parked_and_the_others_run (students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t1_a_dear_file_in_the_middle_is_parked_and_the_others_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h223_batch_runs_what_fits.py", line 209, in test_t1_a_dear_file_in_the_middle_is_parked_and_the_others_run
+    self.assertEqual(self.queued, ["s0.png", "s2.png"])
+AssertionError: Lists differ: [] != ['s0.png', 's2.png']
+
+Second list contains 2 additional elements.
+First extra element 0:
+'s0.png'
+
+- []
++ ['s0.png', 's2.png']
+
+======================================================================
+FAIL: test_t2_the_balance_runs_down_as_files_are_queued (students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t2_the_balance_runs_down_as_files_are_queued)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h223_batch_runs_what_fits.py", line 228, in test_t2_the_balance_runs_down_as_files_are_queued
+    self.assertEqual(self.queued, ["s0.png"])
+AssertionError: Lists differ: [] != ['s0.png']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'s0.png'
+
+- []
++ ['s0.png']
+
+======================================================================
+FAIL: test_t3_a_cheap_file_after_a_dear_one_still_runs (students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t3_a_cheap_file_after_a_dear_one_still_runs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h223_batch_runs_what_fits.py", line 240, in test_t3_a_cheap_file_after_a_dear_one_still_runs
+    self.assertEqual(self.queued, ["s1.png"])
+AssertionError: Lists differ: [] != ['s1.png']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'s1.png'
+
+- []
++ ['s1.png']
+
+======================================================================
+FAIL: test_t5_the_door_does_not_stamp_the_session (students.tests_h223_batch_runs_what_fits.TheAssignmentUploadRunsWhatFits.test_t5_the_door_does_not_stamp_the_session)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h223_batch_runs_what_fits.py", line 261, in test_t5_the_door_does_not_stamp_the_session
+    self.assertEqual(self.queued, ["s0.png"])
+AssertionError: Lists differ: [] != ['s0.png']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'s0.png'
+
+- []
++ ['s0.png']
+
+======================================================================
+FAIL: test_an_empty_unsupported_file_is_the_type_first_and_the_rest_run (students.tests_h274_empty_student_answer_doors.AnEmptyFileInABatchFailsAsItsItem.test_an_empty_unsupported_file_is_the_type_first_and_the_rest_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h274_empty_student_answer_doors.py", line 88, in test_an_empty_unsupported_file_is_the_type_first_and_the_rest_run
+    self.run_batch(_empty("blank.txt", "text/plain"), "FILE_TYPE_UNSUPPORTED")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h274_empty_student_answer_doors.py", line 78, in run_batch
+    self.assertEqual((data["success_count"], data["failure_count"]), (2, 1))
+AssertionError: Tuples differ: (0, 0) != (2, 1)
+
+First differing element 0:
+0
+2
+
+- (0, 0)
++ (2, 1)
+
+======================================================================
+FAIL: test_a_zero_byte_answer_is_submission_empty_and_the_rest_run (students.tests_h274_empty_student_answer_doors.AnEmptyFileInABatchFailsAsItsItem.test_a_zero_byte_answer_is_submission_empty_and_the_rest_run)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h274_empty_student_answer_doors.py", line 85, in test_a_zero_byte_answer_is_submission_empty_and_the_rest_run
+    self.run_batch(_empty("blank.png", "image/png"), "SUBMISSION_EMPTY")
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h274_empty_student_answer_doors.py", line 78, in run_batch
+    self.assertEqual((data["success_count"], data["failure_count"]), (2, 1))
+AssertionError: Tuples differ: (0, 0) != (2, 1)
+
+First differing element 0:
+0
+2
+
+- (0, 0)
++ (2, 1)
+
+======================================================================
+FAIL: test_an_empty_file_of_an_unsupported_type_is_the_type_first (students.tests_h274_empty_student_answer_doors.TheAsyncStudentUploadKeepsS6.test_an_empty_file_of_an_unsupported_type_is_the_type_first)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h274_empty_student_answer_doors.py", line 51, in test_an_empty_file_of_an_unsupported_type_is_the_type_first
+    self.assertTaskFailedWith(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h274_empty_student_answer_doors.py", line 42, in assertTaskFailedWith
+    self.assertEqual(task.status, BackgroundTaskStatus.FAILURE)
+AssertionError: 'PENDING' != BackgroundTaskStatus.FAILURE
+
+======================================================================
+FAIL: test_a_zero_byte_answer_is_submission_empty (students.tests_h274_empty_student_answer_doors.TheAsyncStudentUploadKeepsS6.test_a_zero_byte_answer_is_submission_empty)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h274_empty_student_answer_doors.py", line 46, in test_a_zero_byte_answer_is_submission_empty
+    self.assertTaskFailedWith(
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_h274_empty_student_answer_doors.py", line 42, in assertTaskFailedWith
+    self.assertEqual(task.status, BackgroundTaskStatus.FAILURE)
+AssertionError: 'PENDING' != BackgroundTaskStatus.FAILURE
+
+======================================================================
+FAIL: test_a_funded_teacher_is_queued_as_before (students.tests_upload_credit_door.AssignmentUploadDoorTest.test_a_funded_teacher_is_queued_as_before)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_upload_credit_door.py", line 392, in test_a_funded_teacher_is_queued_as_before
+    launch.assert_called_once()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 928, in assert_called_once
+    raise AssertionError(msg)
+AssertionError: Expected 'launch_processing_task' to have been called once. Called 0 times.
+
+======================================================================
+FAIL: test_a_file_the_door_cannot_read_is_left_to_the_task (students.tests_upload_credit_door.StudentUploadDoorTest.test_a_file_the_door_cannot_read_is_left_to_the_task)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_upload_credit_door.py", line 286, in test_a_file_the_door_cannot_read_is_left_to_the_task
+    launch.assert_called_once()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 928, in assert_called_once
+    raise AssertionError(msg)
+AssertionError: Expected 'launch_processing_task' to have been called once. Called 0 times.
+
+======================================================================
+FAIL: test_a_teacher_without_a_wallet_is_left_to_the_permission (students.tests_upload_credit_door.StudentUploadDoorTest.test_a_teacher_without_a_wallet_is_left_to_the_permission)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_upload_credit_door.py", line 310, in test_a_teacher_without_a_wallet_is_left_to_the_permission
+    launch.assert_called_once()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 928, in assert_called_once
+    raise AssertionError(msg)
+AssertionError: Expected 'launch_processing_task' to have been called once. Called 0 times.
+
+======================================================================
+FAIL: test_a_funded_teacher_is_queued_as_before (students.tests_upload_credit_door.TeacherBatchDoorTest.test_a_funded_teacher_is_queued_as_before)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/students/tests_upload_credit_door.py", line 350, in test_a_funded_teacher_is_queued_as_before
+    self.assertEqual(launch.call_count, 2)
+AssertionError: 0 != 2
+
+----------------------------------------------------------------------
+Ran 25 tests in 5.451s
+
+FAILED (failures=22, errors=3)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for assignments/upload_door.py

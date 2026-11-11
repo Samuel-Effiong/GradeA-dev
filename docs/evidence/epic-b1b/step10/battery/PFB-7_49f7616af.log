@@ -1,0 +1,119 @@
+B1b-10 battery PFB-7 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 49f7616af
+label: billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade billing.tests.test_holds_deleted_items.PreExistingFalseAlarmTests.test_t9_a_settled_row_deleted_from_a_job_with_rows_left billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t10_wallet_receiver_first_then_the_row_delete billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t19_an_assignment_cascade_with_a_held_and_a_returned_row
+env set: none
+declared: Ran 4, FAILED (failures=4)
+diff --git a/billing/holds.py b/billing/holds.py
+index 6e9194e3c..5b840cdea 100644
+--- a/billing/holds.py
++++ b/billing/holds.py
+@@ -1510,12 +1510,6 @@ def return_hold_on_item_delete(sender, instance, **kwargs):
+             return
+         if fresh["hold_state"] != HoldState.HELD:
+             # Nothing to return: carry the row's numbers to its job.
+-            AIJob.objects.filter(pk=instance.job_id).update(
+-                deleted_items_held=F("deleted_items_held") + fresh["hold_credits"],
+-                deleted_items_drawn=F("deleted_items_drawn") + fresh["hold_drawn"],
+-                deleted_items_released=F("deleted_items_released")
+-                + fresh["released_credits"],
+-            )
+             return
+         job_row = AIJob.objects.select_for_update().get(pk=instance.job_id)
+         item_row = BackgroundProcessingTask.objects.select_for_update().get(
+Found 4 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 4253f111-819b-4aee-a7d7-ab3a64bc97a8.
+Cannot activate automatic trial for user 4253f111-819b-4aee-a7d7-ab3a64bc97a8 (validation): ValueError
+FFree trial plan not found: no trial activated for user 2f01c1c2-2aa7-4e9b-a995-1b1fa48b104f.
+Cannot activate automatic trial for user 2f01c1c2-2aa7-4e9b-a995-1b1fa48b104f (validation): ValueError
+FFree trial plan not found: no trial activated for user 118859e0-0f34-41b1-9ed0-fe4e96855b61.
+Cannot activate automatic trial for user 118859e0-0f34-41b1-9ed0-fe4e96855b61 (validation): ValueError
+FFree trial plan not found: no trial activated for user a422f4b5-0566-4d4f-8322-13064a186526.
+Cannot activate automatic trial for user a422f4b5-0566-4d4f-8322-13064a186526 (validation): ValueError
+F
+======================================================================
+FAIL: test_t5_assignment_cascade (billing.tests.test_holds_deleted_items.DeleteRoadTests.test_t5_assignment_cascade)
+Every row of the job goes: the job finishes SETTLED (C4), because
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 209, in test_t5_assignment_cascade
+    self.assertEqual(deleted_items(job), (2 * HELD, ACTUAL, (HELD - ACTUAL) + HELD))
+AssertionError: Tuples differ: (300, 0, 300) != (600, 120, 480)
+
+First differing element 0:
+300
+600
+
+- (300, 0, 300)
++ (600, 120, 480)
+
+======================================================================
+FAIL: test_t9_a_settled_row_deleted_from_a_job_with_rows_left (billing.tests.test_holds_deleted_items.PreExistingFalseAlarmTests.test_t9_a_settled_row_deleted_from_a_job_with_rows_left)
+Before B1b this reported item_sum with the flag on, without any
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 293, in test_t9_a_settled_row_deleted_from_a_job_with_rows_left
+    self.assert_books_agree()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 120, in assert_books_agree
+    self.assertEqual(holds().check_invariants(self.wallet), [])
+AssertionError: Lists differ: ['item_sum job=74caa9f6-a35d-45d3-b1da-13086cac0741'] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+'item_sum job=74caa9f6-a35d-45d3-b1da-13086cac0741'
+
+- ['item_sum job=74caa9f6-a35d-45d3-b1da-13086cac0741']
++ []
+
+======================================================================
+FAIL: test_t10_wallet_receiver_first_then_the_row_delete (billing.tests.test_holds_deleted_items.TwoReceiversTests.test_t10_wallet_receiver_first_then_the_row_delete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 315, in test_t10_wallet_receiver_first_then_the_row_delete
+    self.assertEqual(deleted_items(job), (HELD, 0, HELD))
+AssertionError: Tuples differ: (0, 0, 0) != (300, 0, 300)
+
+First differing element 0:
+0
+300
+
+- (0, 0, 0)
++ (300, 0, 300)
+?  ++      ++
+
+
+======================================================================
+FAIL: test_t19_an_assignment_cascade_with_a_held_and_a_returned_row (billing.tests.test_holds_deleted_items.CascadeTerminalTests.test_t19_an_assignment_cascade_with_a_held_and_a_returned_row)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_deleted_items.py", line 477, in test_t19_an_assignment_cascade_with_a_held_and_a_returned_row
+    self.assertEqual(deleted_items(job), (2 * HELD, 0, 2 * HELD))
+AssertionError: Tuples differ: (300, 0, 300) != (600, 0, 600)
+
+First differing element 0:
+300
+600
+
+- (300, 0, 300)
+?  ^       ^
+
++ (600, 0, 600)
+?  ^       ^
+
+
+----------------------------------------------------------------------
+Ran 4 tests in 2.069s
+
+FAILED (failures=4)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/holds.py

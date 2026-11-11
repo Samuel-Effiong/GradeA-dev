@@ -1,0 +1,51 @@
+B1b-10 battery M-B21 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 49f7616af
+label: billing.tests.test_holds_gate.TwoUnitsOneBalanceTests.test_u2_two_units_on_one_free_balance_one_is_refused
+env set: none
+declared: Ran 1, FAILED (failures=1)
+diff --git a/billing/holds.py b/billing/holds.py
+index 6e9194e3c..4ea126811 100644
+--- a/billing/holds.py
++++ b/billing/holds.py
+@@ -337,10 +337,9 @@ def ensure_call_fits(job, estimate, *, item=None, tally=0):
+         if estimate <= available:
+             return 0
+         shortfall = estimate - max(available, 0)
+-        assert_not_zero_credit(CREDIT_RESERVE)
+-        if not _reserve_locked(locked, shortfall, job_row, item_row):
++        if shortfall > _free(locked):
+             raise _refusal(locked)
+-        return shortfall
++        return 0
+
+
+ # --------------------------------------------------------------------------
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user d82c81c2-c90d-4b2f-802a-5dc8637b61d5.
+Cannot activate automatic trial for user d82c81c2-c90d-4b2f-802a-5dc8637b61d5 (validation): ValueError
+F
+======================================================================
+FAIL: test_u2_two_units_on_one_free_balance_one_is_refused (billing.tests.test_holds_gate.TwoUnitsOneBalanceTests.test_u2_two_units_on_one_free_balance_one_is_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_holds_gate.py", line 159, in test_u2_two_units_on_one_free_balance_one_is_refused
+    self.assertEqual(len(refused), 1, results)
+AssertionError: 0 != 1 : {1: 'settled', 0: 'settled'}
+
+----------------------------------------------------------------------
+Ran 1 test in 0.805s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for billing/holds.py
