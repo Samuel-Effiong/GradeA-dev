@@ -5,6 +5,7 @@ exactly where grade-all refuses: another teacher's assignment gets grade-all's
 status code. A teacher with no credits is not refused; they get the verdict
 INSUFFICIENT (FR-B-04's 0 boundary)."""
 
+import uuid
 from unittest.mock import patch
 
 from django.core.cache import cache
@@ -34,7 +35,9 @@ def student(tag):
     )
 
 
-class EstimateEndpointTests(TestCase):
+class EndpointFixture(TestCase):
+    """The endpoint's fixture, shared with B1b-6b's limit tests. No tests."""
+
     def setUp(self):
         cache.clear()
         self.teacher = ai_ready_teacher("est.ep.t@example.com", 10_000)
@@ -60,6 +63,9 @@ class EstimateEndpointTests(TestCase):
 
     def post(self, body, client=None):
         return (client or self.client).post(self.url, body, format="json")
+
+
+class EstimateEndpointTests(EndpointFixture):
 
     def test_all_ungraded_counts_only_the_ungraded_papers(self):
         response = self.post(
@@ -199,3 +205,46 @@ class EstimateEndpointTests(TestCase):
         self.assertEqual(row.metadata.get("route"), "billing-estimate")
         self.assertEqual(row.action, AuditAction.STATE_CHANGE)
         self.assertEqual(row.actor_id, self.teacher.pk)
+
+
+# B1b-6b (H-1; owner 2026-11-11, SM ruling option (a), NOTES §6.7.1): a
+# listed body holds at most 500 ids; "all_ungraded" has no limit.
+LIMIT = 500
+LIMIT_TEXT = "Ensure this field has no more than 500 elements."
+
+
+class EstimateListLimitTests(EndpointFixture):
+    """The three H-1 tests."""
+
+    def listed(self, count):
+        ids = [str(paper.pk) for paper in self.ungraded]
+        ids += [str(uuid.uuid4()) for _ in range(count - len(ids))]
+        return self.post(
+            {"assignment_id": str(self.assignment.pk), "submission_ids": ids}
+        )
+
+    def test_500_listed_ids_are_accepted(self):
+        response = self.listed(LIMIT)
+        self.assertEqual(response.status_code, 200, response.content[:400])
+        self.assertEqual(response.json()["data"]["n"], 3)
+
+    def test_501_listed_ids_are_refused_with_the_drf_message(self):
+        response = self.listed(LIMIT + 1)
+        self.assertEqual(response.status_code, 400, "501 ids were accepted")
+        body = response.json()
+        self.assertEqual(body["error"]["field_errors"]["submission_ids"], [LIMIT_TEXT])
+        # PENDING-OWNER (NOTES §6.7.1): the top-level message.
+        self.assertEqual(body["message"], f"Submission ids: {LIMIT_TEXT}")
+
+    def test_all_ungraded_has_no_limit(self):
+        for index in range(LIMIT + 1 - len(self.ungraded)):
+            StudentSubmission.objects.create(
+                assignment=self.assignment,
+                student=student(f"many{index}"),
+                answers=[{"question_number": 1, "answer_html": "x"}],
+            )
+        response = self.post(
+            {"assignment_id": str(self.assignment.pk), "submission_ids": "all_ungraded"}
+        )
+        self.assertEqual(response.status_code, 200, response.content[:400])
+        self.assertEqual(response.json()["data"]["n"], LIMIT + 1)

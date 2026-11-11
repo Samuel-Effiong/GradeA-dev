@@ -3422,3 +3422,41 @@ The log goes to `step6/G6b_<sha>.log`, with the ENV in its header. Any other res
 **Counts for the later declarations:** `billing.tests.test_estimate_endpoint` is 10 now and will be 13 with the three tests. `users.tests_h296_message_rewording` is 38.
 
 **No edits have been made.** Waiting for the SM's go and the choice of (a), (b) or (c).
+
+### §6.7.1 SM ruling on the §6.7 survey (grade-automator-plus-16, the SM after the restart; 2026-11-11), recorded unamended in substance, and every B1b-6b declaration (before any run)
+
+**The ruling:**
+- G6b is ACCEPTED at ecb3a7f51/6ce342ed1. The count note is accepted: from now on `test_batch_gate6` is declared as 3 tests.
+- **H-1: option (a), endpoint-local.** `_SubmissionIds` checks the length itself. It raises DRF's own text, `ListField.default_error_messages["max_length"]` formatted with 500, under code `"max_items"`. `users/renderers.py` stays untouched.
+- `field_errors` = "Ensure this field has no more than 500 elements." This is the approved text.
+- **The top-level `message` is new user-facing wording and needs the owner.** The SM is asking. Until the owner answers, it is pinned as "Submission ids: Ensure this field has no more than 500 elements.", and **that one assertion is PENDING-OWNER.**
+- GO for tests-first (10 → 13), red, fix, green, the plant (limit removed) and its killer, and the near run on billing + users + guards67. Every declaration states its env.
+- **The product change is not committed until the SM relays the owner's answer on the message.** If the owner chooses different wording, only that one assertion and the message change, and then the declared near is re-run.
+
+**The tests** (`billing/tests/test_estimate_endpoint.py`, 10 → 13 by build_suite):
+- **A structural change only:** the existing `setUp` and `post` move into a base class, `EndpointFixture(TestCase)`, which has no tests. `EstimateEndpointTests(EndpointFixture)` keeps its 10 tests unchanged. The move lets the new class share the fixture without running those 10 again (mypy refused a borrowed `setUp`).
+- `EstimateListLimitTests(EndpointFixture)`:
+  - `test_500_listed_ids_are_accepted`: the 3 real ungraded ids plus 497 random UUIDs give 200, with `n` = 3.
+  - `test_501_listed_ids_are_refused_with_the_drf_message`: 501 ids give 400, msg `501 ids were accepted`. `error.field_errors.submission_ids` is `["Ensure this field has no more than 500 elements."]`. `message` is `"Submission ids: Ensure this field has no more than 500 elements."` (**PENDING-OWNER**).
+  - `test_all_ungraded_has_no_limit`: 498 more ungraded papers (501 in all), then `"all_ungraded"`, gives 200 with `n` = 501.
+
+**The fix (planned; uncommitted until the owner answers):** in `_SubmissionIds.to_internal_value`, after the `"all_ungraded"` return: if the body is a list longer than `LIST_LIMIT = 500`, raise `serializers.ValidationError(ListField.default_error_messages["max_length"].format(max_length=500), code="max_items")`. Nothing else changes.
+
+**Counts** (`build_suite`, plus static and runtime skips):
+- The near labels (`billing users` + `guards67.txt`) build 4670 tests, with 10 static skips (class or method `__unittest_skip__`).
+- **Runtime skips, 4, all in `users`:** `test_redis_is_required_when_ci_says_so` (CI_REQUIRE_REDIS unset), the 2 tests of `LiveGoogleEndpointContractTests` (CI_REQUIRE_NETWORK unset) and `test_network_is_required_when_ci_says_so`.
+- **The method is checked against two known runs:**
+  - The E3 labels give 1148 with 1 static skip, which matches E3's 1148/1 (no runtime skips in the guards).
+  - The E2 labels give 6546 with 23 static skips (6542 + 1 G6b + 3 H-1). The 4 runtime skips above make 27, which is E2's 26 plus G6b's 1.
+- `billing.tests.test_batch_gate6` is declared as 3 tests, all skipped without RUN_LOAD_TESTS.
+
+**The declarations.** All runs are under flock with `--noinput`. ENV: `BILLING_HOLDS_ENABLED`, `RUN_LOAD_TESTS`, `CI_REQUIRE_REDIS` and `CI_REQUIRE_NETWORK` all unset (checked: the shell sets none, and `.env` names none of them).
+
+| Run | State | Label | Declared |
+|---|---|---|---|
+| R1 (red) | the tests-first commit, product unchanged | `billing.tests.test_estimate_endpoint` | **Ran 13, FAILED (failures=1)**: `test_501_listed_ids_are_refused_with_the_drf_message`, fragment `501 ids were accepted` |
+| R2 (green) | the same commit plus the uncommitted fix (`billing/estimate_views.py`, sha256 recorded in the log header) | the same | **Ran 13, OK** |
+| PB6b-1 | the fix, with the length check removed (restored afterwards and the sha256 checked) | `billing.tests.test_estimate_endpoint.EstimateListLimitTests.test_501_listed_ids_are_refused_with_the_drf_message` | **Ran 1, FAILED (failures=1)**, fragment `501 ids were accepted` |
+| N1 (near) | as R2; `--parallel 4` | `billing users` + the 67 guards (`guards67.txt`) | **Ran 4670, OK (skipped=14)** |
+
+The logs go to `step6b/`. Any mismatch is recorded unamended and is a STOP.
