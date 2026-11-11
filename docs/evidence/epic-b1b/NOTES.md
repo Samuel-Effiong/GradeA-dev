@@ -4517,3 +4517,15 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | G8 | all four unset; under flock with `--noinput`; serial; at this commit | the 6 modules of BR8 (181) | **Ran 181, FAILED (failures=1)**: only the known `students.tests_data_export.FieldListGuardTests.test_every_field_is_decided_exactly_once` subTest `label='users.CustomUser'`, `Items in the second set but not the first:` / `'admin_locked_at' : users.CustomUser` (§8.7/§8.8) |
+
+### §8.9 G8 MISMATCH (an error in my own edit), recorded unamended: a STOP to the SM
+
+| Run | Declared | Got | Log |
+|---|---|---|---|
+| G8 at 4fc274cbb | Ran 181, FAILED (failures=1): the known H-34 guard subTest | **Ran 181, FAILED (failures=1, errors=1)** | `step8/G8_green_4fc274cbb.log` |
+
+- **The failure is the known one** (`'admin_locked_at' : users.CustomUser`), as declared.
+- **The extra error:** `billing.tests.test_batch_queue.QueueEmailTests.test_no_queue_email_is_sent_before_the_texts_are_approved` → `billing.models.AIJob.DoesNotExist: AIJob matching query does not exist.` (from `_send`, `billing/batch_queue.py:541`).
+- **Cause, in my edit (§8.8 item 2):** in that module, `batch_queue` is a lazy proxy (`_BatchQueue`, `billing/tests/test_batch_queue.py:61-69`), not the module. So `patch.object(batch_queue, "QUEUE_EMAIL_APPROVED", False)` set the attribute on the proxy. The real switch stayed True, and `notify` went on to `_send` for a random job id.
+- **The other 8 edits behaved as intended.** The `test_estimate_backtest` edit patches the real `estimates` module and passed.
+- **Proposed fix (test-only, the same test):** patch by path, `patch("billing.batch_queue.QUEUE_EMAIL_APPROVED", False)`. Then re-run G8 as declared (Ran 181, FAILED (failures=1), the known one).
