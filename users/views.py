@@ -209,6 +209,56 @@ USER_EXAMPLE = {
 }
 
 
+#: The `ordering` text on Swagger (brief 6: the owner asked for plain words,
+#: "highest first", not "descending"; "empty", not "null"). Docs only; the
+#: rules are users.user_list.apply_ordering and
+#: billing.intent_signals.ordering_terms.
+ORDERING_HELP = """Sorts the list. Give one or more keys, separated by commas.
+The first key sorts the list. Each next key only sorts users who are equal
+on the keys before it.
+
+A key on its own sorts lowest first: A to Z, oldest first, smallest first.
+Put `-` in front of a key to sort highest first: Z to A, newest first,
+largest first.
+
+Example: `-signals,email` puts the users with the most signals first, and
+sorts users with the same number by email address.
+
+For every key from `last_login` down, users with an empty value come last,
+whichever way you sort. Users who are still equal at the end are sorted by
+their ID, so the pages never shuffle. A key that is not on this list is
+ignored.
+
+Keys:
+- `first_name`: first name.
+- `last_name`: last name.
+- `email`: email address.
+- `last_login`: when the user last signed in.
+- `activated_at`: when the user confirmed their email address.
+- `plan_tier`: the tier of their current plan, from lowest to highest: Trial,
+  Beta, Standard, Pro, Power, Custom.
+- `plan_category`: the kind of their current plan, Individual or License, in
+  A to Z order.
+- `plan_interval`: how often their current plan bills, Annual, Monthly or
+  None, in A to Z order.
+- `assignments_created`: how many assignments they have made in their
+  courses.
+- `papers_graded`: how many student papers in their courses have been graded
+  by AI.
+- `credits_left`: the credits they have left. The list shows credits in
+  thousands (1,000 credits show as 1), but sorting uses the exact amount, so
+  two users who both show 5 can still be in a set order. Users with no credit
+  wallet have an empty value.
+- `credits_used`: all the credits they have ever used, not counting
+  refunds. Shown and sorted like `credits_left`.
+- `signals`: how many of the 4 signals they meet, from 0 to 4
+  (at_80_percent, frequent_user, active_last_week, is_power_grader). Only
+  teachers have signals; everyone else counts as 0. Users with the same
+  number are sorted by conversion score, highest first, with users who have
+  no score last, and then by ID. That order for equal numbers stays the same
+  with `-signals`."""
+
+
 @extend_schema_view(
     list=extend_schema(
         tags=["Users"],
@@ -234,14 +284,7 @@ USER_EXAMPLE = {
                 many=True,
                 explode=False,
                 enum=ordering_values(),
-                description=(
-                    "Sort keys, comma-separated; '-' sorts descending. Null "
-                    "values sort last in both directions, and id breaks ties. "
-                    "plan_tier sorts by rank: TRIAL, BETA, STANDARD, PRO, "
-                    "POWER, CUSTOM. credits_left and credits_used sort on "
-                    "raw credits. Unknown keys are ignored. "
-                    + signal_rules.ORDERING_DOC
-                ),
+                description=ORDERING_HELP,
             ),
         ],
         responses={

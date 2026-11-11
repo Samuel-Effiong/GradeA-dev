@@ -14,6 +14,7 @@ The query parameter names are unchanged.
 """
 
 import django_filters
+from django.core.validators import EMPTY_VALUES
 from django.db.models import Exists, OuterRef, Q
 from rest_framework.filters import OrderingFilter
 
@@ -27,12 +28,6 @@ from classrooms.models import (
 
 from . import user_list
 from .models import CustomUser, UserTypes
-
-
-class EnrollmentStatusInFilter(
-    django_filters.BaseInFilter, django_filters.ChoiceFilter
-):
-    """`?enrollments__enrollment_status__in=A,B`, validated against choices."""
 
 
 def visible_enrollments(user):
@@ -57,17 +52,24 @@ def visible_enrollments(user):
     return Q(student=user)
 
 
+#: param -> the enrollment lookup it adds. Given together, they must match
+#: ONE enrollment (owner, brief 6, 2026-11-11): "course A + WITHDRAWN" keeps
+#: a student withdrawn from A, not one withdrawn only from course B.
+ENROLLMENT_LOOKUPS = {
+    "enrollments__course": "course_id",
+    "enrollments__course__session": "course__session_id",
+    "enrollments__enrollment_status": "enrollment_status",
+}
+
+
 class UserEnrollmentFilter(django_filters.FilterSet):
-    enrollments__course = django_filters.UUIDFilter(method="filter_course")
+    enrollments__course = django_filters.UUIDFilter(method="filter_enrollment")
     enrollments__course__isnull = django_filters.BooleanFilter(
         method="filter_course_isnull"
     )
-    enrollments__course__session = django_filters.UUIDFilter(method="filter_session")
+    enrollments__course__session = django_filters.UUIDFilter(method="filter_enrollment")
     enrollments__enrollment_status = django_filters.ChoiceFilter(
-        choices=EnrollmentStatusType.choices, method="filter_status"
-    )
-    enrollments__enrollment_status__in = EnrollmentStatusInFilter(
-        choices=EnrollmentStatusType.choices, method="filter_status_in"
+        choices=EnrollmentStatusType.choices, method="filter_enrollment"
     )
 
     # User list sorting (owner 2026-11-11). Date bounds are inclusive; a
@@ -120,25 +122,34 @@ class UserEnrollmentFilter(django_filters.FilterSet):
             )
         )
 
-    def filter_course(self, queryset, name, value):
-        return queryset.filter(self._has_visible_enrollment(course_id=value))
+    def filter_queryset(self, queryset):
+        """django-filter's loop, except that the ENROLLMENT_LOOKUPS filters
+        go into one Exists, so they match the same visible enrollment."""
+        data = self.form.cleaned_data
+        lookup = {
+            ENROLLMENT_LOOKUPS[name]: value
+            for name, value in data.items()
+            if name in ENROLLMENT_LOOKUPS and value not in EMPTY_VALUES
+        }
+        if lookup:
+            queryset = queryset.filter(self._has_visible_enrollment(**lookup))
+        for name, value in data.items():
+            if name not in ENROLLMENT_LOOKUPS:
+                queryset = self.filters[name].filter(queryset, value)
+        return queryset
+
+    def filter_enrollment(self, queryset, name, value):
+        """One enrollment filter on its own. filter_queryset does not call
+        this (it merges them); kept for any direct Filter.filter() call."""
+        return queryset.filter(
+            self._has_visible_enrollment(**{ENROLLMENT_LOOKUPS[name]: value})
+        )
 
     def filter_course_isnull(self, queryset, name, value):
         # StudentCourse.course is required, so "course is null" can only
         # mean "no enrollment at all" - of the ones this requester can see.
         has_one = self._has_visible_enrollment()
         return queryset.filter(~has_one if value else has_one)
-
-    def filter_session(self, queryset, name, value):
-        return queryset.filter(self._has_visible_enrollment(course__session_id=value))
-
-    def filter_status(self, queryset, name, value):
-        return queryset.filter(self._has_visible_enrollment(enrollment_status=value))
-
-    def filter_status_in(self, queryset, name, value):
-        return queryset.filter(
-            self._has_visible_enrollment(enrollment_status__in=value)
-        )
 
     def filter_list_value(self, queryset, name, value):
         """Super admin only. filter_queryset also runs under get_object(),
@@ -165,6 +176,129 @@ class UserEnrollmentFilter(django_filters.FilterSet):
             queryset, signal_rules.request_now(self.request)
         )
         return signal_rules.filter_signals(queryset, name, value)
+
+
+#: Swagger text for every filter above (brief 6, owner 2026-11-11: plain
+#: words). Docs only: help_text reaches drf-spectacular and changes no
+#: filtering. Each rule is the code's own (users.user_list,
+#: billing.intent_signals).
+_SUPER_ADMIN_ONLY = "Works for super admins only; for anyone else it is ignored."
+_YOUR_ENROLLMENTS = "Only enrollments you are allowed to see count."
+_TOGETHER = (
+    "If you give two or three of enrollments__course, "
+    "enrollments__course__session and enrollments__enrollment_status, they "
+    "must all match the same enrollment. For example, a course and WITHDRAWN keeps students who "
+    "withdrew from that course, not students who withdrew from another one."
+)
+_DATE_ONLY = (
+    "A date with no time means the very start of that day (midnight UTC), so "
+    "{example} leaves out that day itself."
+)
+_EMPTY = "Left empty, it does nothing."
+_START_OF_DAY = (
+    "A date with no time means the very start of that day (midnight UTC), so "
+    "that whole day is included."
+)
+_TEACHERS_ONLY = "Only teachers can have signals; every other user counts as false."
+FILTER_HELP = {
+    "user_type": "Keeps only users of this type.",
+    "school__name": (
+        "Keeps only users whose school has exactly this name, with the same "
+        "capital letters."
+    ),
+    "enrollments__course": (
+        "A course ID. Keeps users who are enrolled in this course. "
+        f"{_YOUR_ENROLLMENTS} {_TOGETHER}"
+    ),
+    "enrollments__course__isnull": (
+        "true: keeps users who have no enrollment you can see. false: keeps "
+        f"users who have at least one. {_EMPTY}"
+    ),
+    "enrollments__course__session": (
+        "A session ID. Keeps users enrolled in any course of this session. "
+        f"{_YOUR_ENROLLMENTS} {_TOGETHER}"
+    ),
+    "enrollments__enrollment_status": (
+        "Keeps users who have an enrollment with this status. "
+        f"{_YOUR_ENROLLMENTS} {_TOGETHER}"
+    ),
+    "last_login_after": (
+        "Keeps users who last signed in at or after this date and time; the "
+        "time you give is included. "
+        f"{_START_OF_DAY} Users who never signed in are left out. "
+        f"{_SUPER_ADMIN_ONLY}"
+    ),
+    "last_login_before": (
+        "Keeps users who last signed in at or before this date and time; the "
+        "time you give is included. "
+        + _DATE_ONLY.format(example="`last_login_before=2026-11-01`")
+        + f" Users who never signed in are left out. {_SUPER_ADMIN_ONLY}"
+    ),
+    "activated_after": (
+        "Keeps users who confirmed their email address at or after this date "
+        "and time; the time you give is included. "
+        f"{_START_OF_DAY} Users who have not confirmed are left out. "
+        f"{_SUPER_ADMIN_ONLY}"
+    ),
+    "activated_before": (
+        "Keeps users who confirmed their email address at or before this "
+        "date and time; the time you give is included. "
+        + _DATE_ONLY.format(example="`activated_before=2026-11-01`")
+        + f" Users who have not confirmed are left out. {_SUPER_ADMIN_ONLY}"
+    ),
+    "plan_tier": (
+        "Keeps users whose current plan has this tier. The current plan is, "
+        "in this order: a school license seat as a teacher, a school license "
+        "they run as its admin, or their own active subscription. Users with "
+        f"no plan are left out. {_SUPER_ADMIN_ONLY}"
+    ),
+    "plan_category": (
+        "Keeps users whose current plan is of this kind: Individual (their "
+        "own subscription) or License (a school license). Users with no plan "
+        f"are left out. {_SUPER_ADMIN_ONLY}"
+    ),
+    "plan_interval": (
+        "Keeps users whose current plan bills this often. Users with no plan "
+        f"are left out. {_SUPER_ADMIN_ONLY}"
+    ),
+    "has_plan": (
+        "true: keeps users who have a current plan (a school license seat, a "
+        "school license they run, or their own active subscription). false: "
+        f"keeps users who have none. {_EMPTY} {_SUPER_ADMIN_ONLY}"
+    ),
+    "signals_min": (
+        "Keeps users who meet at least this many of the 4 signals "
+        "(at_80_percent, frequent_user, active_last_week, is_power_grader), "
+        "from 0 to 4. Only teachers can have signals, so 1 or more keeps "
+        f"teachers only, and 0 keeps everyone. {_EMPTY} {_SUPER_ADMIN_ONLY}"
+    ),
+    "at_80_percent": (
+        "true: keeps teachers who have been marked as reaching 80% of their "
+        "beta credits. Once marked, it stays marked. false: keeps everyone "
+        f"else. {_TEACHERS_ONLY} {_EMPTY} {_SUPER_ADMIN_ONLY}"
+    ),
+    "frequent_user": (
+        "true: keeps teachers who have been active on 8 or more different "
+        f"days. false: keeps everyone else. {_TEACHERS_ONLY} {_EMPTY} "
+        f"{_SUPER_ADMIN_ONLY}"
+    ),
+    "active_last_week": (
+        "true: keeps teachers who were last active in the past 7 days, "
+        "counting back from the moment you ask, to the second; exactly 7 "
+        "days ago still counts. A teacher who was never active counts as "
+        f"false. false: keeps everyone else. {_TEACHERS_ONLY} {_EMPTY} "
+        f"{_SUPER_ADMIN_ONLY}"
+    ),
+    "is_power_grader": (
+        "true: keeps teachers who have spent more credits on grading than on "
+        "creating assignments (reading them in and generating them). Equal "
+        "amounts count as false, and credits spent on feedback are not "
+        f"counted. false: keeps everyone else. {_TEACHERS_ONLY} {_EMPTY} "
+        f"{_SUPER_ADMIN_ONLY}"
+    ),
+}
+for _name, _text in FILTER_HELP.items():
+    UserEnrollmentFilter.base_filters[_name].extra["help_text"] = _text
 
 
 class UserListOrderingFilter(OrderingFilter):
