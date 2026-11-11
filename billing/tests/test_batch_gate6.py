@@ -7,6 +7,9 @@ with no filter, B1b-4's "all_papers" read) and picks its tier from it, so
 each tier's start includes the all-papers read; the tiers differ in which
 papers they keep.
 
+G6b (NOTES §6.6.15) times promote_job on the same fixture: 300 papers queued
+on a drained wallet, a top-up, then one promotion per tier.
+
 It reports the batch-start time (create 300 items, estimate, hold, claim and
 send after commit, with the sends mocked) and its query count per tier. The
 numbers are reported, not a STOP threshold: the SM judges them at the
@@ -136,3 +139,73 @@ class BatchStartGate6(b1b4_gate6.EstimateGate6):
                 )
                 self.assertEqual(job.estimate_source, tier)
                 self.assertEqual(len(sent), PAPERS)
+
+    # G6b (SM ruling on the B1b-6 checkpoint, NOTES §6.6.15): the promotion.
+
+    def drain(self, teacher):
+        """Spend every bucket, so nothing fits and the whole batch queues."""
+        from django.db.models import F
+
+        CreditBucket.objects.filter(wallet__user=teacher).update(
+            used_credits=F("total_credits")
+        )
+
+    def promote(self, job):
+        from billing import batch_queue
+
+        sent = []
+
+        def delay(*args, **kwargs):
+            sent.append(kwargs["processing_task_id"])
+            return SimpleNamespace(id=str(uuid.uuid4()))
+
+        with patch(
+            "assignments.tasks.grade_engine_async.delay", side_effect=delay
+        ), CaptureQueriesContext(connection) as queries:
+            started = time.perf_counter()
+            with self.captureOnCommitCallbacks(execute=True):
+                promoted = batch_queue.promote_job(job)
+            elapsed = time.perf_counter() - started
+        return elapsed, queries.captured_queries, promoted, sent
+
+    def test_a_300_paper_promotion_per_tier(self):
+        from ai_processor.models import AICallRecord
+        from billing.models import AIJobStatus
+
+        history = AICallRecord._meta.db_table
+        own = self.assignments[7]
+        owner = own.course.teacher
+        shaped = make_assignment(
+            owner, "G6B6b shape", questions=len(own.questions or []), images=0
+        )
+        stranger = ai_ready_teacher("g6b6b.stranger@example.com", 10_000)
+        odd = make_assignment(stranger, "G6B6b odd", questions=60, images=1)
+        cases = (
+            ("assignment", owner, own),
+            ("teacher_shape", owner, shaped),
+            ("per_question", stranger, odd),
+        )
+        for tier, teacher, assignment in cases:
+            with self.subTest(tier=tier):
+                self.papers(assignment, f"b{tier}")
+                self.drain(teacher)
+                _, _, job, sent = self.start(teacher, assignment)
+                self.assertEqual(job.estimate_source, tier)
+                self.assertEqual(job.status, AIJobStatus.QUEUED_PENDING_CREDITS)
+                self.assertEqual(sent, [], "a paper was sent before the top-up")
+                self.fund(teacher)  # a bucket row: no ledger hook, no promotion
+                elapsed, queries, promoted, sent = self.promote(job)
+                print(
+                    f"GATE6B_B6 tier={tier} papers={PAPERS} "
+                    f"promote_ms={ms(elapsed)} queries={len(queries)} "
+                    f"promoted={promoted} held_per_item={job.held_per_item}"
+                )
+                self.assertEqual(promoted, PAPERS, "not every paper was promoted")
+                self.assertEqual(len(sent), PAPERS)
+                # The promotion reads no call history, so its queries cannot
+                # grow with it.
+                self.assertEqual(
+                    [q["sql"] for q in queries if history in q["sql"]],
+                    [],
+                    "the promotion read the call history",
+                )

@@ -3312,3 +3312,43 @@ The plan's figures (08b §5.4 and §6.2 item 2):
 - B1b-6b (H-1, `max_length=500`) is next after acceptance.
 - The privacy re-copy of #19-#21 is at B1b-8.
 - The switch-on item `QUEUE_EMAIL_APPROVED=False`: the queue emails stay gated until the owner approves.
+
+#### §6.6.15 SM: B1b-6 ACCEPTED at 42b256086 (grade-automator-plus-d6, 2026-11-11); G6b declared (before it runs)
+
+**The SM's message, recorded unamended in substance:**
+- B1b-6 ACCEPTED at 42b256086 (product 8e8acc617). Every log was checked against §6.6.13 and all match.
+- The obligation 3 record is accepted. D6-d and `QUEUE_EMAIL_APPROVED=False` are accepted on the switch-on list. The probe deletion is noted.
+- **Ruling on the G6 gap: GO for G6b.**
+  - It is opt-in under `RUN_LOAD_TESTS=1`, with the class pinning `BILLING_HOLDS_ENABLED=True`.
+  - Same 100,000-row fixture. Queue 300 papers on too little credit, top up, then time `promote_job` in all three tiers.
+  - Print `GATE6B_B6` lines with promote_ms, queries and the promoted count. The count must be 300, and the queries must not grow with history.
+  - Declare the expected Ran/OK and the env in the log header.
+  - No pass threshold: the numbers go to the SM and the owner.
+  - Tests only, no product change. If `promote_job` needs a product change to be timed, STOP.
+- Then the B1b-6b pin survey (max_length=500), with no edits before the SM's go. Checkpoint after both.
+
+**Staging merge at the start of the step:** `origin/staging` (8eade3529) is already an ancestor of HEAD, so there was nothing to merge.
+
+**No product change is needed.** `promote_job(job)` (`billing/batch_queue.py:296`) is a public function, and the test calls it directly. Two facts make the setup possible without touching the product:
+- `_dispatch_as_batch_job` has no zero-credit refusal. When nothing fits, `start_batch` queues the job (`:162-163`).
+- A `CreditBucket` row created directly writes no `CreditLedger` entry, so the credit-entry hook (`billing/models.py:1383-1398`) doesn't promote on its own. In any case, a `TestCase` doesn't run on-commit callbacks outside `captureOnCommitCallbacks`.
+
+**The test:** `billing.tests.test_batch_gate6.BatchStartGate6.test_a_300_paper_promotion_per_tier`, a test-only addition (+73 lines). It runs these steps for each tier (the same three cases as G6):
+1. Create 300 papers.
+2. Drain the teacher's buckets (`used_credits = total_credits`).
+3. Start the batch. Assert the tier is the intended one, the job is QUEUED_PENDING_CREDITS, and nothing was sent.
+4. Top up with a 10,000,000-credit bucket.
+5. Time `promote_job(job)` under `CaptureQueriesContext` and `captureOnCommitCallbacks(execute=True)`, with `grade_engine_async.delay` mocked. The timing covers the lock, the move to RESERVED, the hold, the claim of all 300, clearing the credit stop, and the launch after commit.
+6. Print the GATE6B_B6 line.
+7. Assert the promoted count is 300 and that 300 papers were sent.
+8. Assert that no captured query names the call-history table (`AICallRecord._meta.db_table`). That is the test of "the queries must not grow with history": the promotion reads none of it.
+
+**The declaration:**
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| G6b | `RUN_LOAD_TESTS=1`; BILLING_HOLDS_ENABLED unset (the class pins True); serial; under flock with `--noinput` | `billing.tests.test_batch_gate6.BatchStartGate6.test_a_300_paper_promotion_per_tier` (build_suite: 1) | **Ran 1, OK**; three `GATE6B_B6` lines (tier assignment, teacher_shape and per_question), each `promoted=300` |
+
+The log goes to `step6/G6b_<sha>.log`, with the ENV in its header. Any other result is a STOP.
+
+**Count note for later declarations:** `billing.tests.test_batch_gate6` now holds 3 tests (build_suite: 3). Without `RUN_LOAD_TESTS` all three skip, so any later run that includes the `billing` label counts **+1 test and +1 skip** against §6.6.13 (for example, E1 would become 7607 with skipped=35).
