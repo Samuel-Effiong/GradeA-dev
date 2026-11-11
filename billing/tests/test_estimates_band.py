@@ -142,6 +142,9 @@ class OnlyPlainValuesTests(TestCase):
                 ),
                 "band": estimates.band([1, 2, 3], 3),
                 "estimate": estimates.estimate(assignment, 3, teacher=user),
+                "paper_hold_estimate": estimates.paper_hold_estimate(
+                    assignment, 3, teacher=user
+                ),
                 "verdict": estimates.verdict(1, 2, 3),
                 "advise": estimates.advise(user, assignment, 3),
                 "past_batches": estimates.past_batches(days=90),

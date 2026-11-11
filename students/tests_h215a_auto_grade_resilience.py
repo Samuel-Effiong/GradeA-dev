@@ -28,6 +28,7 @@ Run with:
 """
 
 import json
+from contextlib import ExitStack
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -173,9 +174,18 @@ class Classroom(ExecuteGradedTaskTestBase):
                 sent.append((tuple(args or ()), dict(kwargs or {})))
             return SimpleNamespace(id=f"celery-{uuid4().hex[:8]}")
 
-        return sent, patch(
-            "celery.app.task.Task.apply_async", autospec=True, side_effect=apply_async
+        # B1b-6: with the flag on, a batch's messages go after commit (P-3),
+        # so the on-commit callbacks run inside the capture.
+        stack = ExitStack()
+        stack.enter_context(
+            patch(
+                "celery.app.task.Task.apply_async",
+                autospec=True,
+                side_effect=apply_async,
+            )
         )
+        stack.enter_context(self.captureOnCommitCallbacks(execute=True))
+        return sent, stack
 
 
 @override_settings(
@@ -313,6 +323,11 @@ def _assignment_that_raises(error):
     return stand_in
 
 
+# B1b-6: H-215a's outage retry is the same with the flag on, but there the
+# batch's messages go after commit, which a TestCase only runs at the end of
+# the capture, outside the task's retry; flag on it is tested in
+# billing.tests.test_batch_queue (TransactionTestCase).
+@override_settings(BILLING_HOLDS_ENABLED=False)
 class AnOutageIsRetriedTest(Classroom):
     def run_with_retry_caught(self, **call):
         retry = patch.object(
@@ -441,6 +456,11 @@ class AnOutageIsRetriedTest(Classroom):
     GRADING_SECOND_OPINION_ENABLED=False,
     GRADING_ANSWER_CACHE_ENABLED=False,
 )
+# B1b-6: H-215a's outage retry is the same with the flag on, but there the
+# batch's messages go after commit, which a TestCase only runs at the end of
+# the capture, outside the task's retry; flag on it is tested in
+# billing.tests.test_batch_queue (TransactionTestCase).
+@override_settings(BILLING_HOLDS_ENABLED=False)
 class TheTeacherSeesOneLinePerPaperTest(Classroom):
     def test_after_a_retry_the_batch_reads_complete_with_no_failure(self):
         provider = patch.object(

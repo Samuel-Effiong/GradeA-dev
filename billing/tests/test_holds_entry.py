@@ -163,6 +163,8 @@ class EntryRuleTests(TestCase):
         job = make_job(self.wallet, "BATCH_GRADING", total_items=2, status="RUNNING")
         row = make_item(job)
         holds().reserve(self.wallet, estimate_for(), job, item=row)
+        # B1b-6: the job's other paper is still held, so the job stays open.
+        holds().reserve(self.wallet, estimate_for(), job, item=make_item(job))
         self.run_unit(row, calls=1)
         row, job = fresh(row), fresh(job)
         self.assertIsNotNone(row.started_at)
@@ -224,6 +226,9 @@ class EntryRuleTests(TestCase):
         job = make_job(self.wallet, "BATCH_GRADING", total_items=2, status="RUNNING")
         row = make_item(job)
         holds().reserve(self.wallet, estimate_for(), job, item=row)
+        # B1b-6: the job's other paper is still held, so the job stays open.
+        other = make_item(job)
+        holds().reserve(self.wallet, estimate_for(), job, item=other)
         with patch.object(AIProcessor, PROVIDER, return_value=ai_response(100)):
             with self.assertRaises(ValueError):
                 with holds().metered_unit(processing_task_id=row.id, reason="t"):
@@ -232,7 +237,8 @@ class EntryRuleTests(TestCase):
         job = fresh(job)
         self.assertEqual((job.status, job.failed_items), ("RUNNING", 1))
         self.assertFalse(CreditUsageLog.objects.exists())
-        self.assertEqual(wallet_of(self.teacher).reserved_credits, 0)
+        # Only the other paper's hold is left.
+        self.assertEqual(wallet_of(self.teacher).reserved_credits, estimate_for())
 
 
 @override_settings(BILLING_HOLDS_ENABLED=True)

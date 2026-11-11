@@ -55,6 +55,9 @@ EPIC_ONLY_GUARDED_BEAT_TASKS = {
     "billing.tasks.check_credit_estimate_drift",
     # Epic B1b-5 (08b §3.2): the hourly purge of kept upload files.
     "students.tasks.purge_kept_uploads",
+    # Epic B1b-6 (plan 08 §3.7): the batch queue's promotion and expiry.
+    "billing.tasks.promote_queued_jobs",
+    "billing.tasks.expire_queued_jobs",
 }
 
 

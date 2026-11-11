@@ -23,6 +23,7 @@ from assignments.models import Assignment, AssignmentStatus
 from billing.models import CreditLedger
 from billing.tests.test_h38_part2_removed_teacher_routes import (
     TeacherRemovalBase,
+    fund_wallet,
     jwt_client,
     make_user,
 )
@@ -213,7 +214,12 @@ class TasksAfterRemovalTests(TasksFixture):
         """Control: a member's due assignment is still auto-graded."""
         from assignments.tasks import auto_grade_due_assignment
 
-        with patch("assignments.tasks.grade_engine_async.delay") as delay:
+        # B1b-6: flag on, a batch launches only the papers its wallet holds.
+        fund_wallet(self.teacher)
+
+        with patch(
+            "assignments.tasks.grade_engine_async.delay"
+        ) as delay, self.captureOnCommitCallbacks(execute=True):
             auto_grade_due_assignment(str(self.assignment.id))
         self.assertEqual(delay.call_count, 1)
 
@@ -287,7 +293,12 @@ class ReassignedCourseTests(TasksFixture):
         """Control: the course isn't blocked, only the ex-owner is."""
         from assignments.tasks import auto_grade_due_assignment
 
-        with patch("assignments.tasks.grade_engine_async.delay") as delay:
+        # B1b-6: flag on, a batch launches only the papers its wallet holds.
+        fund_wallet(self.colleague)
+
+        with patch(
+            "assignments.tasks.grade_engine_async.delay"
+        ) as delay, self.captureOnCommitCallbacks(execute=True):
             auto_grade_due_assignment(str(self.assignment.id))
         self.assertEqual(delay.call_count, 1)
         self.assertEqual(delay.call_args.args[0], str(self.colleague.id))

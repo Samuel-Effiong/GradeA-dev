@@ -458,7 +458,9 @@ class TheLegacyGradingPathsAreTracked(BatchFixture, TestCase):
         )
 
     def test_a_scheduled_batch_creates_tracked_items(self):
-        with patch("assignments.tasks.launch_processing_task") as launch:
+        with patch(
+            "assignments.tasks.launch_processing_task"
+        ) as launch, self.captureOnCommitCallbacks(execute=True):
             launch.return_value = SimpleNamespace(id=str(uuid.uuid4()))
             assignment_tasks.grade_batch_async.apply(
                 args=(str(self.teacher.id), str(self.assignment.id))
@@ -471,7 +473,9 @@ class TheLegacyGradingPathsAreTracked(BatchFixture, TestCase):
         Assignment.objects.filter(pk=self.assignment.pk).update(
             auto_grade_on_due_date=True
         )
-        with patch("assignments.tasks.launch_processing_task") as launch:
+        with patch(
+            "assignments.tasks.launch_processing_task"
+        ) as launch, self.captureOnCommitCallbacks(execute=True):
             launch.return_value = SimpleNamespace(id=str(uuid.uuid4()))
             assignment_tasks.auto_grade_due_assignment.apply(
                 args=(str(self.assignment.id),)

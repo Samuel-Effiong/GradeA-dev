@@ -46,7 +46,11 @@ from AutoGrader.reason_codes import (
     CodedError,
     reason_of,
 )
-from billing.tests.test_h38_part2_removed_teacher_routes import jwt_client, make_user
+from billing.tests.test_h38_part2_removed_teacher_routes import (
+    fund_wallet,
+    jwt_client,
+    make_user,
+)
 from classrooms.models import Course, School, Session, SessionOwnerType
 from students.exceptions import CourseNotReachableError
 from students.models import (
@@ -500,9 +504,11 @@ class NoEventWithoutARefusalTests(RefusalAuditFixture):
 
     def test_a_members_runs_record_no_failure(self):
         self.grade().assert_called_once()
+        # B1b-6: flag on, a batch launches only the papers its wallet holds.
+        fund_wallet(self.teacher)
         with patch(
             "assignments.tasks.grade_engine_async.delay", side_effect=queued
-        ) as delay:
+        ) as delay, self.captureOnCommitCallbacks(execute=True):
             grade_batch_async.apply(
                 args=(str(self.teacher.id), str(self.assignment.id))
             )
