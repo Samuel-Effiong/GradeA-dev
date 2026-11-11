@@ -1,0 +1,60 @@
+PROBE, NOT EVIDENCE: PB6-14 trial (the retry detaches reset items but does not adopt them)
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 91f70fa5-b994-4925-9897-5945d7b31600.
+Cannot activate automatic trial for user 91f70fa5-b994-4925-9897-5945d7b31600 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 08:00:18,708 task_tracking 70456 126322047694720 [request_id=- client_request_id=-] Background task d4f08cf0-a7a0-472e-90f5-d2b306fa78e7 failed: error=ConnectionError
+
+
+
+
+students.task_tracking ERROR 2026-11-11 08:00:18,744 task_tracking 70456 126322047694720 [request_id=- client_request_id=-] Background task 97fe1361-437c-4d11-bbf0-a46eccc61d9f failed: error=ConnectionError
+
+
+Batch paper d4f08cf0-a7a0-472e-90f5-d2b306fa78e7 was not launched: error=ConnectionError
+
+
+ai_processor.services INFO 2026-11-11 08:00:18,925 services 70456 126322047694720 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 08:00:18,925 services 70456 126322047694720 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1b6-probe/staticfiles/
+  mw_instance = middleware(adapted_handler)
+F
+======================================================================
+FAIL: test_after_an_outage_and_retry_the_teacher_sees_one_line_per_paper (billing.tests.test_batch_queue.AutomaticPathTests.test_after_an_outage_and_retry_the_teacher_sees_one_line_per_paper)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/test/utils.py", line 456, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1b6-probe/billing/tests/test_batch_queue.py", line 741, in test_after_an_outage_and_retry_the_teacher_sees_one_line_per_paper
+    self.assertEqual(response.data["progress"], "3 / 3")
+AssertionError: '1 / 3' != '3 / 3'
+- 1 / 3
+? ^
++ 3 / 3
+? ^
+
+
+----------------------------------------------------------------------
+Ran 1 test in 1.887s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -3116,3 +3116,60 @@ The time and query numbers are not declared.
 - E1/E2/E3 and `makemigrations --check`, each with its count from the product sha.
 - The obligation 3 grep (every job-status write in `batch_queue.py`/`holds.py` conditional on its from-status, under the wallet lock).
 - Obligations 6 and 7, recorded as ruled (§6.3).
+
+#### §6.6.9 SM ruling on the probe report (grade-automator-plus-d6, 2026-11-11, recorded unamended)
+
+GO for tests-first, with two additions declared before R1.
+
+1. Probe bugs 1-3: fixes accepted into the product as in the probe (claim_batch_rows_locked in holds.py, nested-def on-commit callback, launch_batch_items(raise_outage=True) at batch start).
+2. Pins: all 18 in 7 modules approved as listed, er2/er8 included. A single-row job finished by the D6-a helper must be covered by a new test. Name it in §6.6.9 (LastItemTests if it is already there).
+3. h215a, AnOutageIsRetriedTest and TheTeacherSeesOneLinePerPaperTest pinned flag off: approved, on two conditions in test_batch_queue (flag on, TransactionTestCase):
+   (a) test_a_broker_outage_at_the_start_is_retried_without_duplicates also asserts the FIRST job's end state: not left RUNNING or QUEUED, and none of its held rows are left reserved. The retry makes a new job, so the first one must not be stranded.
+   (b) A flag-on equivalent of TheTeacherSeesOneLinePerPaperTest: after the outage plus retry, the teacher's progress shows one line per paper, as the old test checks (its '3 / 3' assertion, or the same view or field it reads). New test or extra assertions, your choice. Re-declare the R1/R2 counts, failures and errors to match, plus a plant for (b) if it is a new behavior check.
+4. PB6-3 (M-B19): survivor accepted on your equivalence argument (the per-row claim needs PENDING and hold_state NULL under the wallet lock; _NothingGranted rolls the move back). Record it as a declared survivor.
+5. black/mypy: apply both BEFORE the tests-first commit, so the committed files are what run. Then re-check every BR fragment and every plant's exact one-place replace string against the formatted files, and record "formatting only, no assertion changed", with the diff stat. The "byte-for-byte the probe's" claim becomes "the probe's, then black".
+6. G6: reported only, as declared. At the checkpoint, put the 300-paper start_ms and the 2,122 queries next to the plan 08b Gate 6 figures, so I can judge them.
+7. Sequence as §6.6.2. Merge staging at the start (still 8eade3529; nothing new). Delete the probe branch and worktree at the end and record it. No push. Checkpoint to me at grade-automator-plus-d6.
+
+#### §6.6.10 Carrying out §6.6.9 (in the probe, as probe; then the declarations amended, before R1)
+
+- **Staging:** origin/staging is still `8eade3529`, already merged (checked at the start of this step).
+- **(2) The single-row test:** none was there; added as `LastItemTests.test_a_one_paper_batch_settles_when_its_paper_settles`. One paper, held and settled, gives SETTLED, completed 1, reserved 0, and the books agree. Its msg is `a one-paper job did not finish`. No plant of its own: PB6-10 and the C4-receiver plants already cover the helper.
+- **(3a)** `test_a_broker_outage_at_the_start_is_retried_without_duplicates` now asserts the first job's end state.
+  - Right after the retry, the first job still holds exactly its one sent paper. That paper's message really went out before the outage, so the job is correctly RESERVED and not stranded.
+  - The test then settles that paper and asserts:
+    - the first job is SETTLED (msg `the first job was stranded`), so it is neither RUNNING nor QUEUED;
+    - no held row is left on it (msg `a held row left on the first job`);
+    - the books agree. The detached rows are counted in `deleted_items_*`.
+  - **For the SM:** "not RUNNING or QUEUED" holds once the sent paper settles. Between the retry and that settle, RESERVED is the right state.
+- **(3b)** New test, `AutomaticPathTests.test_after_an_outage_and_retry_the_teacher_sees_one_line_per_paper`. It is flag on, with the outage at paper 2 and then the retry. Every sent message really runs (`grade_engine_async.apply`, provider patched with H-215a's `_reply`). Then `task-session-results` reads `progress` "3 / 3", `is_complete` True, `failure_count` 0 and `success_count` 3, which are the old test's four assertions. It also checks that no batch job is left open, reserved is 0, and the books agree.
+  - The papers really run, so this test uses an AI-ready teacher: a new `ai_ready=` option on the module's `classroom()` uses `billing.testing.holds.ai_ready_teacher`. The first probe of it failed with `AI access denied: User account is inactive` (my fixture), and was green after the fix.
+- **New plant for (3b), PB6-14:** in `_relaunch_failed_dispatches`, `collect.append(detach_item(item))` becomes `detach_item(item)`. The retry then detaches the reset items but never adopts them. Killer: that test alone. **Declared failures=1, `'1 / 3' != '3 / 3'`.** This fragment was seen once on the probe (`P-plant14_p9.log`; file restored, sha256 checked).
+- **Probe bugs 4-6,** found by mypy when the hooks ran over every probe file (class (ii) in §6.5, so fixed in the probe):
+  4. `holds.Unit.enter`: `row.job.job_type` on a job that can be None. Fix: guarded with `row.job is not None`.
+  5. `batch_queue._send` imported `is_individual_teacher` from `billing.refusals`, where it does not exist. It lives in `billing.errors`. This path is gated until B1b-8, which is why no test met it.
+  6. `batch_queue._send`: `send_email_task.delay` lacked `from_email`. Fix: `from_email=settings.DEFAULT_FROM_EMAIL`, as every other caller passes it.
+  - After the fixes: `manage.py check` clean, `makemigrations --check` "No changes detected".
+- **(5) Formatting:** the hooks were run over all 20 probe files before anything is carried over.
+  - **The 7 pin files:** unchanged by the hooks. Each one's sha256 equals the scratchpad edited copy, so the pins are still byte-for-byte the probe's.
+  - **black reformatted** `billing/tests/test_batch_queue.py`, `billing/tests/test_batch_gate6.py`, `billing/batch_queue.py`, `billing/tasks.py` and `billing/models.py`. black 25.1.0 runs in its default safe mode (no `--fast`), which refuses to write unless the AST is unchanged. So: **formatting only, no assertion changed.**
+  - **isort** reordered imports in `assignments/tasks.py` and `assignments/views.py`. The views' `grade_engine_async  # noqa: F401` is now its own import line.
+  - The probe's copy of the characterization test was replaced by the committed one.
+  - **Diff stat:** the new modules' additions under (2)/(3) were made before black ran, so a formatting-only diff stat cannot be separated for them. Black's AST check stands in for it. For the product, the stat is that of the product commit.
+  - So the new tests and the product are "the probe's, then black".
+  - **The mypy fix in the new module:** `get_field(name).help_text` became `getattr(field, "help_text", "")`. The assertion is the same.
+- **BR fragments re-checked:** the break runs use the unedited files from `1576369ad`, which formatting does not touch.
+- **Plant strings re-checked:** every PB6 plant's exact old string is in `step6/plants_b6.py`, committed here. `plants_b6.py check` on the formatted probe gives **occurrences=1 for all 14**.
+  - Two plants are worded exactly here. **PB6-1** also sets `claimed = waiting`, so the count it returns is the papers it launched. **PB6-6** replaces the hook's `fail_item` call with `return`, so for a batch row it returns before doing anything.
+  - Every plant's message fragment occurs in the formatted module. (`a hold returned twice` occurs twice, both in PB6-8's killer.)
+- **The final probe:** `P-ruling-final_p10.log` gave Ran 189, OK (skipped=2) on the new module, Gate 6, the characterization and the 7 pins.
+
+**Amended declarations (they replace the matching lines in §6.6.3-§6.6.5):**
+- `billing.tests.test_batch_queue` now has **43** tests (cnt.py): BatchStart 6, LastItem 5, EndedBeforeItsUnit 4, Promotion 8, Expiry 5, Backstop 2, AutomaticPath 5, GradeAll 1, Delete 2, QueueEmail 2, Beat 1, DeprecatedPlanField 2.
+- **R1: `Ran 188`, `FAILED (failures=2, errors=42, skipped=2)`.**
+  - errors are the 38 `BatchBase` tests, QueueEmail 2 and Beat 1, as before, plus estimates_band 1.
+  - failures, skips and the one pass are unchanged.
+- **R2: `Ran 189`, `OK (skipped=2)`.**
+- **PB6-3:** a declared survivor, as ruled. Declared Ran 2, OK.
+- **PB6-14:** as above.
+- **The product commit** is the probe's product, then black and isort, plus bugs 4-6. It is the same 10 files + migration 0084.

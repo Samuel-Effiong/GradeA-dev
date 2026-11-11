@@ -1,0 +1,83 @@
+PROBE, NOT EVIDENCE: 3b with an AI-ready teacher
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 1904cf39-dab9-42a4-a33e-d84f19104a11.
+Cannot activate automatic trial for user 1904cf39-dab9-42a4-a33e-d84f19104a11 (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 07:59:22,330 task_tracking 69924 138115013449600 [request_id=- client_request_id=-] Background task 0c057849-72d4-4376-ac93-d4fda1bbb21f failed: error=ConnectionError
+
+
+
+
+students.task_tracking ERROR 2026-11-11 07:59:22,358 task_tracking 69924 138115013449600 [request_id=- client_request_id=-] Background task 8a285911-7e9f-4a70-9fa1-4fa9d974260a failed: error=ConnectionError
+
+
+Batch paper 0c057849-72d4-4376-ac93-d4fda1bbb21f was not launched: error=ConnectionError
+.Free trial plan not found: no trial activated for user e398ea76-7251-464c-9118-9bc454872c7a.
+Cannot activate automatic trial for user e398ea76-7251-464c-9118-9bc454872c7a (validation): ValueError
+.Free trial plan not found: no trial activated for user 57e504aa-96d1-4403-9b6a-a32df6b5d4bd.
+Cannot activate automatic trial for user 57e504aa-96d1-4403-9b6a-a32df6b5d4bd (validation): ValueError
+
+
+students.task_tracking ERROR 2026-11-11 07:59:24,040 task_tracking 69924 138115013449600 [request_id=- client_request_id=-] Background task 7286491c-148e-4017-8252-89f70af70180 failed: error=ConnectionError
+
+
+
+
+students.task_tracking ERROR 2026-11-11 07:59:24,068 task_tracking 69924 138115013449600 [request_id=- client_request_id=-] Background task c85266cb-288a-4c67-bebe-437da8999ec8 failed: error=ConnectionError
+
+
+Batch paper 7286491c-148e-4017-8252-89f70af70180 was not launched: error=ConnectionError
+
+
+ai_processor.services INFO 2026-11-11 07:59:24,261 services 69924 138115013449600 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 07:59:24,261 services 69924 138115013449600 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services INFO 2026-11-11 07:59:24,831 services 69924 138115013449600 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 07:59:24,831 services 69924 138115013449600 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services INFO 2026-11-11 07:59:25,074 services 69924 138115013449600 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-11-11 07:59:25,074 services 69924 138115013449600 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-b1b6-probe/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user 249b4e6b-4118-4086-a2ee-743dc3a6f919.
+Cannot activate automatic trial for user 249b4e6b-4118-4086-a2ee-743dc3a6f919 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6ad82c73-23f1-488e-bdf4-8b8f4ef42c7e.
+Cannot activate automatic trial for user 6ad82c73-23f1-488e-bdf4-8b8f4ef42c7e (validation): ValueError
+.
+----------------------------------------------------------------------
+Ran 5 tests in 7.407s
+
+OK
+Destroying test database for alias 'default'...
+Found 5 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
