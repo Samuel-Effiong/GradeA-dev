@@ -356,3 +356,9 @@ Labels: users, billing, and the same 67 standing guard labels as N1.
 Count from build_suite: 4632 (N1's 4631 plus
 test_only_the_super_admin_list_builds_the_list_values).
 Expected: Ran 4632, OK, failures 0, errors 0. Skip count not predicted.
+
+### N2 near: result (2026-11-11)
+
+Ran 4632 tests in 461.679s, OK (skipped=9). Matches the prediction (Ran
+4632, OK). The skip count was not predicted; it is the same 9 as N1.
+Log: N2_near.log.gz.
