@@ -44,40 +44,65 @@ def settled_job_id(jobs):
     return str(jobs[0]) if len(jobs) == 1 else None
 
 
-def with_ai_job_id(view):
-    """A view (or view helper) whose 2xx JSON-object body gains `ai_job_id`."""
+def _is_student(args):
+    """Whether the request among a view's arguments is a student's."""
+    from users.models import UserTypes
 
-    @functools.wraps(view)
-    def wrapped(*args, **kwargs):
-        with tracking() as jobs:
-            response = view(*args, **kwargs)
-        data = getattr(response, "data", None)
-        if 200 <= response.status_code < 300 and isinstance(data, dict):
-            data["ai_job_id"] = settled_job_id(jobs)
-        return response
+    for arg in args:
+        user = getattr(arg, "user", None)
+        if user is not None and hasattr(arg, "method"):
+            return getattr(user, "user_type", None) == UserTypes.STUDENT
+    return False
 
-    return wrapped
+
+def with_ai_job_id(view=None, *, staff_only=False):
+    """A view (or view helper) whose 2xx JSON-object body gains `ai_job_id`.
+
+    staff_only (§7.25): a student never sees a billing job's id, so on a
+    route open to a student and to staff the key is left out of a
+    student's body (the job is billed to the teacher; the job API answers
+    a student 404). Used bare or as @with_ai_job_id(staff_only=True)."""
+
+    def decorate(view):
+        @functools.wraps(view)
+        def wrapped(*args, **kwargs):
+            with tracking() as jobs:
+                response = view(*args, **kwargs)
+            data = getattr(response, "data", None)
+            if (
+                200 <= response.status_code < 300
+                and isinstance(data, dict)
+                and not (staff_only and _is_student(args))
+            ):
+                data["ai_job_id"] = settled_job_id(jobs)
+            return response
+
+        return wrapped
+
+    return decorate if view is None else decorate(view)
 
 
 _schemas: dict = {}
 
 
-def ai_job_schema(serializer_class):
+def ai_job_schema(serializer_class, *, staff_only=False):
     """`serializer_class` plus a nullable `ai_job_id`, for OpenAPI only."""
-    if serializer_class not in _schemas:
+    key = (serializer_class, staff_only)
+    if key not in _schemas:
+        help_text = "The AI job this request settled (null if none, or more than one)."
+        if staff_only:
+            help_text += " Left out when a student makes the request."
         attrs: dict[str, object] = {
             "ai_job_id": serializers.UUIDField(
-                read_only=True,
-                allow_null=True,
-                help_text="The AI job this request settled (null if none, or "
-                "more than one).",
+                read_only=True, allow_null=True, help_text=help_text
             )
         }
         meta = getattr(serializer_class, "Meta", None)
         fields = getattr(meta, "fields", None)
         if meta is not None and isinstance(fields, (list, tuple)):
             attrs["Meta"] = type("Meta", (meta,), {"fields": [*fields, "ai_job_id"]})
-        _schemas[serializer_class] = type(
-            f"{serializer_class.__name__}WithAIJob", (serializer_class,), attrs
+        suffix = "WithStaffAIJob" if staff_only else "WithAIJob"
+        _schemas[key] = type(
+            f"{serializer_class.__name__}{suffix}", (serializer_class,), attrs
         )
-    return _schemas[serializer_class]
+    return _schemas[key]

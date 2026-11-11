@@ -5,7 +5,9 @@ The rule (§7.19): `ai_job_id` is the id of the ONE job this request
 settled. FAILED attempts (their hold returned, nothing charged) do not
 count, so a retry that ends in one settlement names that job. More than one
 settled job (chunked extraction), or none, gives null. The key is always
-present on a success body. `upload_assignment` puts it on each
+present on a success body, except a student's (§7.25: students upload
+answers has none; students partial_update leaves it out for a student
+caller). `upload_assignment` puts it on each
 `successful[]` item, one job per file; failed items carry none.
 
 The view tests stand in for each view's AI engine with a real billed call
@@ -132,6 +134,11 @@ class ViewTests(APITestCase):
         self.assertEqual(len(ids), 1, "fixture: one job settled")
         self.assertEqual(response.data.get("ai_job_id", ABSENT), ids[0])
 
+    def assertNoJobIdForAStudent(self, response):
+        self.assertLess(response.status_code, 300, response.content[:400])
+        self.assertEqual(len(settled_ids(self.teacher)), 1, "fixture: one job settled")
+        self.assertNotIn("ai_job_id", response.data)
+
     # --- students ---------------------------------------------------------
 
     def test_students_grade(self):
@@ -175,9 +182,9 @@ class ViewTests(APITestCase):
                 {"answer": answer},
                 fmt="multipart",
             )
-        self.assertNamesTheSettledJob(response)
+        self.assertNoJobIdForAStudent(response)
 
-    def test_students_partial_update(self):
+    def edit(self, who):
         submission = self.submission()
 
         def engine(_user, sub, _raw):
@@ -187,13 +194,19 @@ class ViewTests(APITestCase):
         with patch(
             "students.views.update_submission_from_raw_text", side_effect=engine
         ):
-            response = self.call(
-                self.student,
+            return self.call(
+                who,
                 "patch",
                 reverse("student-submission-detail", args=[str(submission.id)]),
                 {"raw_input": "4"},
             )
-        self.assertNamesTheSettledJob(response)
+
+    def test_students_partial_update_by_the_teacher(self):
+        self.assertNamesTheSettledJob(self.edit(self.teacher))
+
+    def test_students_partial_update_by_the_student_has_no_job_id(self):
+        # §7.25: a student never sees a billing job's id.
+        self.assertNoJobIdForAStudent(self.edit(self.student))
 
     # --- assignments ------------------------------------------------------
 

@@ -4169,3 +4169,48 @@ Each plant is one edit to the product at e0fc5ffb7 (`billing/low_balance.py`, `b
   - **(A) Recommended:** no `ai_job_id` on the two student routes. Drop `@with_ai_job_id` from students `upload_answers` and `partial_update`, and their `ai_job_schema`. `ViewTests` loses 2 tests, or they become "absent for a student" pins. The pre-existing key pins stay untouched. The view list becomes 9.
   - **(B)** Keep it, and edit `KEYS` to 35. That is an edit of a pre-existing privacy pin (break run needed), and it puts a billing id in a student body.
 - **Awaiting the SM's ruling.** B1b-7 is not final. Nothing is changed or re-run until then. The B1b-8 survey has started read-only; nothing of it is committed.
+
+### §7.25 SM ruling on the §7.24 STOP (grade-automator-plus-16, 2026-11-11), recorded unamended in substance; the fix; R4b, PB7-e3, N3b and N4b declared (before they run)
+
+**The ruling: A, refined.** Students never see `ai_job_id`; teachers still do.
+- **(1)** Students `upload_answers` (IsStudent only): no `@with_ai_job_id` and no `ai_job_schema`. Its ViewTest becomes an "absent for a student" pin.
+- **(2)** Students `partial_update` is open to the submission's student AND the course's teacher (`students/views.py:505-511`). Keep `ai_job_id` for a teacher caller, and leave it out for a student caller. This is done inside the decorator by an opt-in, `@with_ai_job_id(staff_only=True)`, not ad hoc in the view. The OpenAPI field stays nullable, with help text saying it is left out for students. Tests: teacher → the settled id; student → key absent.
+- **(3)** Don't touch the pre-existing privacy pins (H-127/H-279 `KEYS`). B is rejected: a billing id must not appear in a student body.
+- **(4)** New plant PB7-e3: drop `staff_only` on `partial_update`. The student test must go red, and nothing else.
+- **(5)** Before running, sweep all suites for whole-key pins on the 11 views, and name any others here. Record the lesson.
+- **(6)** Declare, then run R4 (new count), PB7-e3, N3 and N4. Any mismatch is a STOP. If all match, B1b-7 is final; then the B1b-8 survey. No push, no trailers.
+
+**The lesson (§7.24's miss):** before adding a key to an existing response body, sweep every suite for whole-key pins on that route, in every form: `list(response…)`, `sorted(…keys())`, `set(…)`, `assertEqual` against a `KEYS`-style constant, and whole-body `assertEqual(response.data, {...})`. Also run the suites of every app whose views the change touches, not only the ruled near. A student-facing body gets nothing new without a privacy check.
+
+**The sweep (5):**
+- **Method:** every test file in all suites that calls one of the 11 views, by URL name (`student-submission-grade`, `-upload-answers`, `-detail`, `assignment-detail`, `-list`, `-generate`, `-upload`, the four `*custom-ai-prompt` names), by literal path (`/grade/`, `/upload/`, `/generate/`, `custom-ai-prompt`), or by `run_dashboard_ai_chat`. That is **71 files.**
+- **Grepped in those 71 files:** `assert(Equal|CountEqual|ListEqual|SetEqual)((list|sorted|set)(`, `.keys()`, `KEYS`, `_KEYS`, `== set(`, and whole-body `assertEqual(response.data, {`.
+- **Hits on a decorated 2xx body:** only `students/tests_student_upload_answer.py` `:191`, `:397`, `:418` (the 3 N4 failures, all on the student upload route). With (1) they pass untouched.
+- **Other hits, not on a decorated success body:**
+  - `tests_student_upload_answer.py:433` (the serializer called directly) and `:480` (GET retrieve; not decorated);
+  - `students/tests_answers_unreadable.py:385` (an error body, 4xx; the decorator adds only to 2xx);
+  - `assignments/tests_student_submissions_list_order.py:164` (a list of names);
+  - `assignments/tests_upload_batch_billing.py:549` (provider calls);
+  - `audit/tests_history.py:245`, `:347`, `:670` (audit rows).
+- **No teacher-side whole-key pin** on any of the 11 views was found.
+
+**The fix (this commit):**
+- `billing/job_ref.py`:
+  - `with_ai_job_id(view=None, *, staff_only=False)`, used bare or with `staff_only=True`. A student request (found among the view's arguments) gets no key.
+  - `ai_job_schema(serializer, *, staff_only=False)`. The staff-only variant is a separate component (`…WithStaffAIJob`), whose help text adds "Left out when a student makes the request."
+- `students/views.py`:
+  - `upload_answers`: the decorator and schema are removed.
+  - `partial_update`: `@with_ai_job_id(staff_only=True)`, with the schema `ai_job_schema(StudentSubmissionListSerializer, staff_only=True)`.
+- **The views carrying `ai_job_id` are now 10:** 9 for every caller, plus students `partial_update` for staff only.
+- **Tests** (`billing/tests/test_b1b7_ai_job_id.py`):
+  - `test_students_upload_answers` now pins the key absent;
+  - `test_students_partial_update` is split into `…_by_the_teacher` (the settled id) and `…_by_the_student_has_no_job_id` (key absent);
+  - build_suite: **17 tests**, 0 static skips.
+- **Checks:** `manage.py spectacular` builds 5 components (`StudentUploadAnswerSerializerWithAIJob` gone; `StudentSubmissionListSerializerWithStaffAIJob` new), with 46 errors (11 unique) as before, none from these views. `write_routes()` = 162. pre-commit clean.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| R4b (green) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial; at this commit | `billing.tests.test_b1b7_ai_job_id` | **Ran 17, OK** |
+| PB7-e3 | as R4b; reverted and sha256-checked against this commit's `students/views.py` | `billing.tests.test_b1b7_ai_job_id` | `@with_ai_job_id(staff_only=True)` on `partial_update` becomes `@with_ai_job_id`. **Ran 17, FAILED (failures=1)**: only `test_students_partial_update_by_the_student_has_no_job_id`, fragment `'ai_job_id' unexpectedly found in` |
+| N3b (near) | as N3: all four unset; `--parallel 4`; under flock with `--noinput` | `billing users` + `guards67.txt` | **Ran 4719, OK (skipped=16)** (N3's 4718 + 1) |
+| N4b | as N4 | `students assignments dashboard users` + `guards67.txt` | **Ran 4237, OK (skipped=23)** (no count change: the new test is in billing) |

@@ -266,7 +266,7 @@ def _assignment_taught_by(assignment_id, teacher):
         description="Update a student submission.",
         request=StudentSubmissionUpdateSerializer,
         responses={
-            200: ai_job_schema(StudentSubmissionListSerializer),
+            200: ai_job_schema(StudentSubmissionListSerializer, staff_only=True),
             400: OpenApiResponse(description="Invalid input"),
             404: OpenApiResponse(description="Student submission not found"),
         },
@@ -544,7 +544,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         },
         responses={
             201: OpenApiResponse(
-                response=ai_job_schema(StudentUploadAnswerSerializer),
+                response=StudentUploadAnswerSerializer,
                 description="Answer processed successfully",
             ),
             400: OpenApiResponse(
@@ -589,7 +589,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         url_name="upload-answers",
         permission_classes=[IsAuthenticated, IsStudent, HasCreditBalance],
     )
-    @with_ai_job_id
     def upload_answers(self, request, assignment_id=None, *args, **kwargs):
         assignment = _assignment_open_to_student(assignment_id, request.user)
 
@@ -814,7 +813,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         return Response(serializer.data, status=HTTP_200_OK)
 
-    @with_ai_job_id
+    @with_ai_job_id(staff_only=True)
     def partial_update(self, request, *args, **kwargs):
         """
         Synchronous raw-text edit: re-extracts answers inside the request.
