@@ -15,13 +15,16 @@ The query parameter names are unchanged.
 
 import django_filters
 from django.db.models import Exists, OuterRef, Q
+from rest_framework.filters import OrderingFilter
 
+from billing.models import BillingInterval, PlanCategory, PlanTier
 from classrooms.models import (
     EnrollmentStatusType,
     StudentCourse,
     teacher_course_access_q,
 )
 
+from . import user_list
 from .models import CustomUser, UserTypes
 
 
@@ -66,6 +69,35 @@ class UserEnrollmentFilter(django_filters.FilterSet):
         choices=EnrollmentStatusType.choices, method="filter_status_in"
     )
 
+    # User list sorting (owner 2026-11-11). Date bounds are inclusive; a
+    # null date matches neither bound. Plan filters read the current plan
+    # as billing resolves it (users.user_list).
+    last_login_after = django_filters.IsoDateTimeFilter(method="filter_list_value")
+    last_login_before = django_filters.IsoDateTimeFilter(method="filter_list_value")
+    activated_after = django_filters.IsoDateTimeFilter(method="filter_list_value")
+    activated_before = django_filters.IsoDateTimeFilter(method="filter_list_value")
+    plan_tier = django_filters.ChoiceFilter(
+        choices=PlanTier.choices, method="filter_list_value"
+    )
+    plan_category = django_filters.ChoiceFilter(
+        choices=PlanCategory.choices, method="filter_list_value"
+    )
+    plan_interval = django_filters.ChoiceFilter(
+        choices=BillingInterval.choices, method="filter_list_value"
+    )
+    has_plan = django_filters.BooleanFilter(method="filter_list_value")
+
+    #: param -> (value, lookup)
+    LIST_FILTERS = {
+        "last_login_after": ("last_login", "gte"),
+        "last_login_before": ("last_login", "lte"),
+        "activated_after": ("activated_at", "gte"),
+        "activated_before": ("activated_at", "lte"),
+        "plan_tier": ("plan_tier", "exact"),
+        "plan_category": ("plan_category", "exact"),
+        "plan_interval": ("plan_interval", "exact"),
+    }
+
     class Meta:
         model = CustomUser
         # Single-valued forward lookups on the account itself: no fan-out
@@ -99,4 +131,31 @@ class UserEnrollmentFilter(django_filters.FilterSet):
     def filter_status_in(self, queryset, name, value):
         return queryset.filter(
             self._has_visible_enrollment(enrollment_status__in=value)
+        )
+
+    def filter_list_value(self, queryset, name, value):
+        """Super admin only. filter_queryset also runs under get_object(),
+        and a teacher or school admin can retrieve some accounts: a filter on
+        another account's plan or sign-in dates would be a 200-vs-404
+        yes/no oracle there. For anyone else these filters do nothing."""
+        user = getattr(self.request, "user", None)
+        if not (user and user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN):
+            return queryset
+        if name == "has_plan":
+            queryset = user_list.ensure(queryset, "current_plan_id")
+            return queryset.filter(current_plan_id__isnull=not value)
+        field, lookup = self.LIST_FILTERS[name]
+        if field != "last_login":
+            queryset = user_list.ensure(queryset, field)
+        return queryset.filter(**{f"{field}__{lookup}": value})
+
+
+class UserListOrderingFilter(OrderingFilter):
+    """DRF's OrderingFilter with the list's computed sort keys: nulls last
+    both ways and id as the tiebreaker (users.user_list.apply_ordering).
+    Unknown keys are still dropped by remove_invalid_fields."""
+
+    def filter_queryset(self, request, queryset, view):
+        return user_list.apply_ordering(
+            queryset, self.get_ordering(request, queryset, view) or []
         )

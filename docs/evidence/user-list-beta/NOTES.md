@@ -83,3 +83,19 @@ declared.** Both caveat tests failed, as predicted. Each failure is for the
 declared reason: KeyError on the new keys; AttributeError (no
 users.views.list_queryset); OpenApi "'last_login_after' not found" and
 "'last_login' not found in set()".
+
+## Build (product)
+
+Staging's final users/user_list.py, list_serializers.py, filters.py and
+views.py, plus the sweep's 2 ALLOWED entries. Beta's copies of those files
+were byte-identical to the staging base, so this equals applying the diff.
+One beta change: credits_left_raw is the unclamped live sum with no
+reserved_credits, and credits_left is Cast(Floor(Decimal(raw) / 1000)),
+matching display_balance (Q-B1). billing/serializers.py is not changed.
+
+### R2 green (declared)
+
+Labels: users.tests_user_list_sorting users.tests_user_list_payload_pin classrooms.tests_teacher_access_sweep assignments.tests_schema_extension.
+Count from build_suite: 72. Expected: Ran 72, OK.
+
+R2 result (R2_green.log): Ran 72, OK, as predicted.

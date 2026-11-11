@@ -66,6 +66,20 @@ ALLOWED = {
         "classrooms/views.py",
         'StudentCourse.objects.filter(course__teacher=OuterRef("id"))',
     ): "admin reporting aggregate per teacher; not teacher access",
+    # The super admin user list's per-teacher counts (D5, SM -16
+    # 2026-11-11). Built only on the super admin list path:
+    # users.tests_user_list_sorting.ListOnlyTests
+    # .test_only_the_super_admin_list_builds_the_list_values.
+    (
+        "users/user_list.py",
+        'Assignment.objects.filter(course__teacher=OuterRef("pk")),',
+    ): "super admin user list count assignments_created (D5); admin reporting "
+    "aggregate per teacher; not teacher access",
+    (
+        "users/user_list.py",
+        'assignment__course__teacher=OuterRef("pk"),',
+    ): "super admin user list count papers_graded (D5); admin reporting "
+    "aggregate per teacher; not teacher access",
     (
         "classrooms/serializers.py",
         "if user.is_under_license() or value.teacher_id != user.id:",
