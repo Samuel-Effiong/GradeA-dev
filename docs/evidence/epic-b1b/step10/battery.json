@@ -2402,7 +2402,7 @@
   "label": "billing.tests.test_batch_queue.GradeAllTests.test_a_waiting_paper_is_listed_with_no_task_id",
   "expected": "Ran 1, FAILED (failures=1)",
   "fragments": [
-   "'celery-a144b1e3' is not None : D6-d: a waiting paper has no task"
+   "is not None : D6-d: a waiting paper has no task"
   ],
   "env": {},
   "status": "same",

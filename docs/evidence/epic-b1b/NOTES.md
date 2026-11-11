@@ -5031,3 +5031,30 @@ The fragments were rendered from unittest's own messages (no test run). No pre-e
 - Restored: sha256 matches HEAD for `assignments/views.py`. The runner stopped (exit 3); plants 104–129 have not run.
 - A scan of every fragment in the manifest for run-specific values (task ids, UUIDs, long hex strings, addresses, primary keys) finds only PB6-11.
 - This is a STOP to the SM; nothing is changed until the ruling.
+
+**SM ruling on PB6-11 (-31, 2026-11-11).**
+- This is a manifest fragment defect: neither a product survivor nor a plant defect, so the earlier STOP rule is not breached.
+- Fix: the fragment becomes `is not None : D6-d: a waiting paper has no task`.
+- Re-run PB6-11 alone, then continue `--from PB6-12`. PB6-7 to PB6-10 stand.
+- A product survivor is still a STOP with no fix.
+
+**The fix as made.**
+- The only change to `step10/battery.json` is PB6-11's fragment: `'celery-a144b1e3' is not None : D6-d: a waiting paper has no task` becomes `is not None : D6-d: a waiting paper has no task`.
+- `step10/battery_pb6-11.json` is that one plant, for the re-run alone.
+- `step10/battery_table.md` stays as committed before the first plant; for PB6-11's fragment, the manifest now supersedes row 102.
+- The edit and the declared count are unchanged, and the anchor still matches once (`run_battery.py check`).
+
+**The fragment scan, before this fix.**
+- Every fragment of all 129 plants was matched against one regular expression made of these alternatives:
+  - celery task ids: `celery-[0-9a-f]{6,}`;
+  - the head of a UUID: `[0-9a-f]{8}-[0-9a-f]{4}-`;
+  - hex runs of 12 or more characters: `\b[0-9a-f]{12,}\b`;
+  - memory addresses: `0x[0-9a-f]+`;
+  - primary keys: `\bpk=\d+`;
+  - numbered ids: `\bid \d{2,}`.
+- Result: 1 hit, PB6-11 only.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| B10-PB6-11 (re-run, alone) | as B10; serial; under flock; at this commit | PB6-11's killer (`step10/battery_pb6-11.json`) | **Ran 1, FAILED (failures=1)**, with `is not None : D6-d: a waiting paper has no task` |
+| B10 (continued) | as B10 | `--from PB6-12`, plants 104–129 | each as its row in `step10/battery_table.md` |
