@@ -511,3 +511,74 @@ class CrashedDoorTests(TestCase):
         self.assertEqual(event.error_class, ErrorClass.SYSTEM)
         self.assertEqual(event.actor_role, ActorRole.ANONYMOUS)
         self.assertNotIn("x@example.com", str(event.metadata))
+
+
+@override_settings(CACHES=LOCMEM_CACHE)
+class AdminSignInLockRouteTests(TestCase):
+    """H-34 R3 (SM ruling): the lock and unlock routes leave exactly ONE event
+    naming the requester. On success it is the named ACCOUNT_LOCK /
+    ACCOUNT_UNLOCK (the ADMIN_ACTION tag is dropped by the helper that wrote
+    it); on a 404, a self target or a super-admin target it is today's
+    ADMIN_ACTION."""
+
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.admin = User.objects.create_superuser(
+            email="lock.route.admin@example.com",
+            password="Lock-route-pw-1",  # pragma: allowlist secret
+        )
+        User.objects.filter(pk=self.admin.pk).update(user_type=UserTypes.SUPER_ADMIN)
+        self.admin.refresh_from_db()
+        self.client = APIClient(raise_request_exception=False)
+        self.client.force_authenticate(user=self.admin)
+
+    def target(self, email="lock.route.target@example.com", **extra):
+        return User.objects.create_user(
+            email=email,
+            password="Lock-route-pw-2",  # pragma: allowlist secret
+            user_type=extra.pop("user_type", UserTypes.TEACHER),
+            **extra,
+        )
+
+    def actions_after(self, name, pk):
+        before = set(AuditEvent.objects.values_list("pk", flat=True))
+        response = self.client.post(reverse(name, kwargs={"pk": pk}), {}, format="json")
+        actions = list(
+            AuditEvent.objects.exclude(pk__in=before)
+            .filter(actor_id=self.admin.pk)
+            .values_list("action", flat=True)
+        )
+        return response.status_code, actions
+
+    def test_a_successful_lock_leaves_one_named_event(self):
+        self.assertEqual(
+            self.actions_after("user-lock", self.target().pk),
+            (200, ["ACCOUNT_LOCK"]),
+        )
+
+    def test_a_successful_unlock_leaves_one_named_event(self):
+        target = self.target()
+        User.objects.filter(pk=target.pk).update(admin_locked_at=timezone.now())
+        self.assertEqual(
+            self.actions_after("user-unlock", target.pk),
+            (200, ["ACCOUNT_UNLOCK"]),
+        )
+
+    def test_refusals_leave_todays_admin_action(self):
+        other_admin = self.target(
+            "lock.route.other@example.com",
+            user_type=UserTypes.SUPER_ADMIN,
+            is_superuser=True,
+        )
+        for name in ("user-lock", "user-unlock"):
+            for label, pk, code in (
+                ("unknown", uuid.uuid4(), 404),
+                ("self", self.admin.pk, 403),
+                ("super admin", other_admin.pk, 403),
+            ):
+                with self.subTest(route=name, target=label):
+                    self.assertEqual(
+                        self.actions_after(name, pk),
+                        (code, [AuditAction.ADMIN_ACTION]),
+                    )

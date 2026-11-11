@@ -1,0 +1,6 @@
+BEGIN;
+--
+-- Add field admin_locked_at to customuser
+--
+ALTER TABLE "users_customuser" ADD COLUMN "admin_locked_at" timestamp with time zone NULL;
+COMMIT;

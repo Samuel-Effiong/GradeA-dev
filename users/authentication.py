@@ -62,4 +62,10 @@ class MustChangePasswordJWTAuthentication(JWTAuthentication):
         # H-276: this one browser/device was signed out.
         if is_session_revoked(token):
             raise AuthenticationFailed(REVOKED_MESSAGE, code="token_revoked")
+        # H-34: the backstop for a super admin's sign-in lock. The lock already
+        # ended every session (epoch +1); this refuses a token minted for a
+        # locked account by any road, including one added later. No query:
+        # the row is already loaded.
+        if cast("CustomUser", user).is_admin_locked:
+            raise AuthenticationFailed(REVOKED_MESSAGE, code="token_revoked")
         return result

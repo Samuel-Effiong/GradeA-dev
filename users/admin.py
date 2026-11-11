@@ -5,6 +5,8 @@ from django.db.models import Case, F, IntegerField, When
 from django.utils.translation import gettext_lazy as _
 
 from audit import history
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome
 from AutoGrader.image_formats import ProfileImageFormField, validate_image_format
 
 from .models import (
@@ -14,6 +16,7 @@ from .models import (
     PasswordResetOTP,
     Waitlist,
 )
+from .sign_in_lock import lock_users, unlock_users
 from .signals import invalidate_user_caches
 
 
@@ -103,10 +106,38 @@ class CustomUserAdmin(UserAdmin):
     def get_readonly_fields(self, request, obj=None):
         # Make the UUID id field read-only when editing existing users
         if obj:
-            return ["id", "date_joined", "last_login"]
+            # H-34: the two locks are shown, never edited here; the actions
+            # below are the only way to change them.
+            return [
+                "id",
+                "date_joined",
+                "last_login",
+                "admin_locked_at",
+                "locked_until",
+            ]
         return []
 
-    actions = ["activate_users", "deactivate_users"]
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = super().get_fieldsets(request, obj)
+        if obj is None:
+            return fieldsets
+        # H-34: shown read-only beside the other account-state fields.
+        return tuple(
+            (
+                (
+                    name,
+                    {
+                        **opts,
+                        "fields": (*opts["fields"], "admin_locked_at", "locked_until"),
+                    },
+                )
+                if name == _("Account verification")
+                else (name, opts)
+            )
+            for name, opts in fieldsets
+        )
+
+    actions = ["activate_users", "deactivate_users", "lock_sign_in", "unlock_sign_in"]
 
     # `QuerySet.update()` fires no post_save, so neither cache mechanism ever
     # saw these bulk changes, and `is_active` is shown on other users' views
@@ -144,6 +175,36 @@ class CustomUserAdmin(UserAdmin):
         )
         invalidate_user_caches(users)
         self.message_user(request, f"{updated} users were successfully deactivated.")
+
+    # H-34: labels approved by the owner (texts #3 and #4). No message after
+    # the action: its text would be new wording. One event per user changed,
+    # naming the admin; the request's generic event is then not written.
+    @admin.action(description="Lock sign-in")
+    def lock_sign_in(self, request, queryset):
+        for user in lock_users(queryset, actor=request.user):
+            emit(
+                AuditAction.ACCOUNT_LOCK,
+                actor=request.user,
+                request=request,
+                target_type="CustomUser",
+                target_id=user.pk,
+                school_id=user.school_id,
+                outcome=AuditOutcome.SUCCESS,
+            )
+
+    @admin.action(description="Unlock sign-in")
+    def unlock_sign_in(self, request, queryset):
+        for user, metadata in unlock_users(queryset, actor=request.user):
+            emit(
+                AuditAction.ACCOUNT_UNLOCK,
+                actor=request.user,
+                request=request,
+                target_type="CustomUser",
+                target_id=user.pk,
+                school_id=user.school_id,
+                outcome=AuditOutcome.SUCCESS,
+                metadata=metadata,
+            )
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)

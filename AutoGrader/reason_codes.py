@@ -372,6 +372,22 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "Wait a few minutes and try again, or reset your password.",
         retryable=True,
     ),
+    # H-34: the owner's two approved sentences, verbatim (team/
+    # approved_wording_h34_admin_lock_2026-11-11.md #1 and #2). The sign-in
+    # doors pick "no_school" for a user with no school (users.sign_in_lock).
+    # No remediation: each sentence already says what to do (SM R2).
+    ReasonCode.ACCOUNT_LOCKED_BY_ADMIN: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_401_UNAUTHORIZED,
+        "An administrator has locked your account. "
+        "Please contact your school administrator to unlock it.",
+        "",
+        retryable=False,
+        alternative_messages={
+            "no_school": "An administrator has locked your account. "
+            "Please contact the Grade A Plus team to unlock it."
+        },
+    ),
     ReasonCode.INVALID_CREDENTIALS: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_401_UNAUTHORIZED,

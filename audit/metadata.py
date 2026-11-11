@@ -152,6 +152,10 @@ ALLOWED_KEYS = frozenset(
         "fields",
         # H-273: true when the fields list was truncated at 20 entries
         "fields_truncated",
+        # H-34: what an unlock cleared (two flags and a count)
+        "had_admin_lock",
+        "had_login_lock",
+        "cleared_failed_attempts",
     }
 )
 
@@ -374,6 +378,12 @@ METADATA_ALLOWLIST = {
         {"file_count", "file_size_bytes", "item_count", "scope"}
     ),
     AuditAction.PERMISSION_CHANGE: frozenset({"changed_fields", "source"}),
+    # H-34: who and whom are the actor and target; a lock carries nothing
+    # more, an unlock says what it cleared.
+    AuditAction.ACCOUNT_LOCK: frozenset(),
+    AuditAction.ACCOUNT_UNLOCK: frozenset(
+        {"had_admin_lock", "had_login_lock", "cleared_failed_attempts"}
+    ),
     # Plus S1b's summary keys: a capped anonymous crash (SERVER_ERROR) is
     # summarised under its own action.
     AuditAction.STATE_CHANGE: frozenset(
