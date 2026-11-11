@@ -704,6 +704,11 @@ BILLING_HOLDS_ENABLED = env.bool("BILLING_HOLDS_ENABLED", default=False)
 # (`billing_holds_drain --flag-off-emergency`); it logs a warning at start-up.
 BILLING_HOLDS_DRAINING = env.bool("BILLING_HOLDS_DRAINING", default=False)
 
+# Epic B1c (plan 08 §3.8, §5): the credit-request API and its Beat sweep.
+# The purchase hooks (GRANTED, SUPERSEDED refusal, close on loss of access)
+# act only on rows the API made, so they run whatever this says.
+CREDIT_REQUESTS_ENABLED = env.bool("CREDIT_REQUESTS_ENABLED", default=False)
+
 # H-256: how long one request to the AI provider may wait for each read before
 # it is given up (the connect wait is fixed at 10 s in ai_processor/services.py).
 # The SDK tries a request three times (max_retries=2), so a provider that
@@ -959,6 +964,13 @@ CELERY_BEAT_SCHEDULE = {
     },
     "expire-queued-batch-jobs": {
         "task": "billing.tasks.expire_queued_jobs",
+        "schedule": 300.0,
+    },
+    # Epic B1c (plan 08 §3.8): credit requests back to waiting (expired or
+    # unlinked checkout) and closed on loss of access. Does nothing while
+    # CREDIT_REQUESTS_ENABLED is off.
+    "sweep-credit-requests": {
+        "task": "billing.tasks.sweep_credit_requests",
         "schedule": 300.0,
     },
     # Epic B1a: wallet and per-item hold invariants. Reports only.

@@ -2355,6 +2355,11 @@ class LicenseOveragePurchaseStatus(models.TextChoices):
     PENDING = "PENDING", _("Pending")
     COMPLETED = "COMPLETED", _("Completed")
     FAILED = "FAILED", _("Failed")
+    # Epic B1c (plan 08 r4 m3-a): a credit request's checkout that another
+    # purchase for the same request completed first, or that was abandoned.
+    # The completed handler grants nothing on it and refunds a payment that
+    # went through anyway. FAILED keeps its meaning.
+    SUPERSEDED = "SUPERSEDED", _("Superseded")
 
 
 class LicenseOveragePurchaseIntent(models.Model):
@@ -2420,6 +2425,11 @@ class LicenseOveragePurchaseIntent(models.Model):
     )
     failure_reason = models.TextField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    # Epic B1c (plan 08 §3.8): when Stripe closes the checkout page, read
+    # from the created session (the stale-APPROVED sweep's clock), and the
+    # credit request this purchase answers, written before Session.create.
+    session_expires_at = models.DateTimeField(null=True, blank=True)
+    credit_request_id = models.UUIDField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -2673,6 +2683,8 @@ class LicenseOverageOfflineRequest(models.Model):
         on_delete=models.SET_NULL,
         related_name="overage_offline_requests",
     )
+    # Epic B1c (plan 08 §3.8): the credit request this answers, if any.
+    credit_request_id = models.UUIDField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -2683,6 +2695,99 @@ class LicenseOverageOfflineRequest(models.Model):
             models.Index(fields=["status", "-created_at"]),
             models.Index(fields=["license_subscription", "status"]),
         ]
+
+
+class CreditRequestStatus(models.TextChoices):
+    """Epic B1c (plan 08 §3.8). Names approved by the owner (W10,
+    2026-11-11)."""
+
+    PENDING = "PENDING", _("Waiting")
+    APPROVED = "APPROVED", _("Approved")
+    GRANTED = "GRANTED", _("Credits added")
+    DECLINED = "DECLINED", _("Declined")
+    WITHDRAWN = "WITHDRAWN", _("Withdrawn")
+    CLOSED = "CLOSED", _("Closed")
+
+
+CREDIT_REQUEST_OPEN_STATUSES = (
+    CreditRequestStatus.PENDING,
+    CreditRequestStatus.APPROVED,
+)
+
+
+class CreditRequest(models.Model):
+    """Epic B1c (plan 08 §3.8, FR-B-11): a licensed teacher asks their
+    license's admin for more credits. Approval runs the normal overage
+    purchase for that teacher (billing.credit_requests)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    teacher = models.ForeignKey(
+        "users.CustomUser", on_delete=models.CASCADE, related_name="credit_requests"
+    )
+    license_subscription = models.ForeignKey(
+        LicenseSubscription, on_delete=models.CASCADE, related_name="credit_requests"
+    )
+    requested_blocks = models.PositiveIntegerField()
+    message = models.CharField(max_length=500, blank=True, default="")
+    status = models.CharField(
+        max_length=20,
+        choices=CreditRequestStatus.choices,
+        default=CreditRequestStatus.PENDING,
+    )
+    ai_job = models.ForeignKey(
+        "billing.AIJob",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="credit_requests",
+    )
+    purchase_intent = models.ForeignKey(
+        LicenseOveragePurchaseIntent,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="credit_requests",
+    )
+    offline_request = models.ForeignKey(
+        LicenseOverageOfflineRequest,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="credit_requests",
+    )
+    # The last system note (W11-W13) or a purchase error, shown to admins.
+    note = models.TextField(blank=True, default="")
+    decided_by = models.ForeignKey(
+        "users.CustomUser",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="credit_requests_decided",
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    decline_reason = models.CharField(max_length=500, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["license_subscription", "status", "-created_at"],
+                name="billing_creditreq_inbox_ix",
+            ),
+        ]
+        constraints = [
+            # One open request per teacher (plan 08 review r1 B3).
+            models.UniqueConstraint(
+                fields=["teacher"],
+                condition=models.Q(status__in=["PENDING", "APPROVED"]),
+                name="billing_creditreq_one_open_per_teacher",
+            ),
+        ]
+
+    def __str__(self):
+        return f"CreditRequest {self.id} ({self.status})"
 
 
 class SchoolCreditAllocation(models.Model):

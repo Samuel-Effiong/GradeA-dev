@@ -796,16 +796,16 @@ class ApiTests(Fixture):
                 BASE, {"requested_blocks": 2, "message": "Exams"}, format="json"
             )
         self.assertEqual(response.status_code, 201, response.content)
-        request_id = response.json()["id"]
+        request_id = response.data["id"]
         again = client.post(BASE, {"requested_blocks": 1}, format="json")
         self.assertEqual(again.status_code, 409)
-        self.assertEqual(again.json()["detail"], APPROVED_TEXTS["error_open"])
-        listed = client.get(BASE).json()
+        self.assertEqual(again.data["detail"], APPROVED_TEXTS["error_open"])
+        listed = client.get(BASE).data
         self.assertEqual([row["id"] for row in listed], [request_id])
         self.assertEqual(listed[0]["status_label"], "Waiting")
         withdrawn = client.post(f"{BASE}/{request_id}/withdraw")
         self.assertEqual(withdrawn.status_code, 200)
-        self.assertEqual(withdrawn.json()["status"], "WITHDRAWN")
+        self.assertEqual(withdrawn.data["status"], "WITHDRAWN")
 
     @ON
     def test_a_teacher_without_a_license_gets_400(self):
@@ -818,7 +818,7 @@ class ApiTests(Fixture):
             BASE, {"requested_blocks": 1}, format="json"
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()["detail"], APPROVED_TEXTS["error_no_license"])
+        self.assertEqual(response.data["detail"], APPROVED_TEXTS["error_no_license"])
 
     @ON
     def test_admins_see_their_own_license_and_counts_super_admin_sees_all(self):
@@ -831,20 +831,18 @@ class ApiTests(Fixture):
             user_type=UserTypes.SCHOOL_ADMIN,
             school=School.objects.create(name="Else 2"),
         )
-        self.assertEqual(self.as_user(stranger).get(BASE).json(), [])
-        admin_ids = {row["id"] for row in self.as_user(self.admin).get(BASE).json()}
+        self.assertEqual(self.as_user(stranger).get(BASE).data, [])
+        admin_ids = {row["id"] for row in self.as_user(self.admin).get(BASE).data}
         self.assertEqual(admin_ids, {str(mine.pk), str(theirs.pk)})
-        pending = self.as_user(self.admin).get(BASE, {"status": "PENDING"}).json()
+        pending = self.as_user(self.admin).get(BASE, {"status": "PENDING"}).data
         self.assertEqual([row["id"] for row in pending], [str(mine.pk)])
-        counts = self.as_user(self.admin).get(f"{BASE}/counts").json()
+        counts = self.as_user(self.admin).get(f"{BASE}/counts").data
         self.assertEqual(
             counts, {"pending": 1, "answered": 1, "granted": 0, "declined": 1}
         )
-        root_ids = {
-            row["id"] for row in self.as_user(self.super_admin).get(BASE).json()
-        }
+        root_ids = {row["id"] for row in self.as_user(self.super_admin).get(BASE).data}
         self.assertEqual(root_ids, {str(mine.pk), str(theirs.pk)})
-        teacher_ids = {row["id"] for row in self.as_user(self.other).get(BASE).json()}
+        teacher_ids = {row["id"] for row in self.as_user(self.other).get(BASE).data}
         self.assertEqual(teacher_ids, {str(theirs.pk)})
 
     @ON
@@ -867,9 +865,9 @@ class ApiTests(Fixture):
                 format="json",
             )
         self.assertEqual(approved.status_code, 200, approved.content)
-        self.assertEqual(approved.json()["purchase"]["action"], "checkout")
+        self.assertEqual(approved.data["purchase"]["action"], "checkout")
         late = self.as_user(self.admin).post(
             f"{BASE}/{request.pk}/decline", {"reason": "x"}, format="json"
         )
         self.assertEqual(late.status_code, 409)
-        self.assertEqual(late.json()["detail"], APPROVED_TEXTS["error_answered"])
+        self.assertEqual(late.data["detail"], APPROVED_TEXTS["error_answered"])

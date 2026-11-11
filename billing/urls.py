@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .billing_transaction_views import BillingTransactionViewSet
+from .credit_request_views import CreditRequestViewSet
 from .estimate_views import BillingEstimateView
 from .job_views import AIJobDetailView
 from .license_overage_offline_views import LicenseOverageOfflineRequestViewSet
@@ -65,6 +66,10 @@ router.register(r"payment-methods", PaymentMethodViewSet, basename="payment-meth
 
 router.register(
     r"admin/credits", AdminCreditManagementViewSet, basename="admin-credits"
+)
+# Epic B1c (plan 08 §3.8); dark until CREDIT_REQUESTS_ENABLED.
+router.register(
+    r"billing/credit-requests", CreditRequestViewSet, basename="credit-request"
 )
 router.register(
     r"license-overage-offline-requests",

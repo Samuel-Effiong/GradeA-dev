@@ -349,6 +349,10 @@ METADATA_ALLOWLIST = {
     AuditAction.CREDIT_HOLD_SWEPT: frozenset(
         {"credits", "job_type", "item_id", "reason_label"}
     ),
+    AuditAction.CREDIT_REQUEST_CREATE: frozenset({"blocks", "license_id"}),
+    AuditAction.CREDIT_REQUEST_DECIDE: frozenset(
+        {"blocks", "license_id", "decision", "reason_label"}
+    ),
     AuditAction.DEPARTMENT_CREATE: frozenset(),
     AuditAction.DEPARTMENT_UPDATE: frozenset(),
     AuditAction.DEPARTMENT_DELETE: frozenset(),

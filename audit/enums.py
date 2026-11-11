@@ -78,6 +78,10 @@ class AuditAction(models.TextChoices):
     CREDIT_HOLD_SETTLED = "CREDIT_HOLD_SETTLED", "Credit hold settled"
     CREDIT_HOLD_RELEASED = "CREDIT_HOLD_RELEASED", "Credit hold released"
     CREDIT_HOLD_SWEPT = "CREDIT_HOLD_SWEPT", "Stale credit hold cleared"
+    # Epic B1c credit requests (plan 08 §7 item 1). Labels approved by the
+    # owner (SM 2026-11-11).
+    CREDIT_REQUEST_CREATE = "CREDIT_REQUEST_CREATE", "Credit request made"
+    CREDIT_REQUEST_DECIDE = "CREDIT_REQUEST_DECIDE", "Credit request answered"
     DEPARTMENT_CREATE = "DEPARTMENT_CREATE", "Department created"
     DEPARTMENT_UPDATE = "DEPARTMENT_UPDATE", "Department updated"
     DEPARTMENT_DELETE = "DEPARTMENT_DELETE", "Department deleted"
@@ -144,6 +148,8 @@ FINANCIAL_ACTIONS = frozenset(
         AuditAction.CREDIT_HOLD_SETTLED,
         AuditAction.CREDIT_HOLD_RELEASED,
         AuditAction.CREDIT_HOLD_SWEPT,
+        AuditAction.CREDIT_REQUEST_CREATE,
+        AuditAction.CREDIT_REQUEST_DECIDE,
     }
 )
 

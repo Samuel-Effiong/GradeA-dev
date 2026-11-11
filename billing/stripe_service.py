@@ -53,6 +53,7 @@ from .billing_transaction_service import BillingTransactionService
 from .imports import stripe
 from .license_service import (
     LicenseSubscriptionService,
+    _close_credit_requests,
     sync_teachers_under_license_to_mailerlite,
 )
 from .models import (
@@ -3042,6 +3043,17 @@ class StripeWebhookHandler:
 
     @staticmethod
     @transaction.atomic
+    def handle_checkout_expired(session):
+        """Epic B1c (plan 08 §3.8, review r1 B3): a credit request's
+        abandoned checkout. Every other flow is left as today. Not in
+        event_replay's AUTO_REPLAYABLE (STEP0_PLAN D3): the stale-APPROVED
+        sweep is the backstop."""
+        from . import credit_requests
+
+        credit_requests.on_checkout_expired(session)
+
+    @staticmethod
+    @transaction.atomic
     def handle_checkout_completed(session):
         metadata = session.get("metadata", {}) or {}
         flow = metadata.get("flow")
@@ -3409,6 +3421,15 @@ class StripeWebhookHandler:
                 session.get("id"),
             )
             return
+        # Epic B1c (r4 m-3, m3-a): a credit request's checkout that another
+        # purchase already answered, paid anyway: grant nothing and refund.
+        # Only SUPERSEDED with no grants (checked just above); FAILED keeps
+        # today's handling.
+        if intent.status == LicenseOveragePurchaseStatus.SUPERSEDED:
+            from . import credit_requests
+
+            credit_requests.refuse_superseded_payment(intent, session)
+            return
 
         payment_status = session.get("payment_status")
         if payment_status != "paid":
@@ -3457,6 +3478,15 @@ class StripeWebhookHandler:
             intent.status = LicenseOveragePurchaseStatus.FAILED
             intent.stripe_payment_intent_id = session.get("payment_intent")
             intent.failure_reason = "License no longer active at fulfillment time."
+            # Epic B1c: the license ended, so its credit request closes.
+            from . import credit_requests
+
+            credit_requests.on_purchase_fulfilled(
+                intent.credit_request_id or metadata.get("credit_request_id"),
+                granted_teacher_ids=[],
+                intent=intent,
+                close_reason=credit_requests.LICENSE_ENDED,
+            )
             intent.save(
                 update_fields=[
                     "status",
@@ -3598,7 +3628,15 @@ class StripeWebhookHandler:
             ),
         )
         schedule_receipt_url_fill(billing_transaction)
+        # Epic B1c (plan 08 §3.8): the credit request this purchase answers,
+        # matched by its id, not only by the link (review r2 M-e).
+        from . import credit_requests
 
+        credit_requests.on_purchase_fulfilled(
+            intent.credit_request_id or metadata.get("credit_request_id"),
+            granted_teacher_ids=[d["teacher_id"] for d in fulfilled],
+            intent=intent,
+        )
         if refund_share:
             StripeWebhookHandler._refund_departed_share_on_commit(
                 intent, license_sub, len(skipped), share
@@ -4696,6 +4734,7 @@ class StripeWebhookHandler:
 
             if deactivate:
                 sync_teachers_under_license_to_mailerlite(license_sub)
+                _close_credit_requests(license_sub)
 
     # ------------------------------------------------------------------
     # customer.subscription.deleted
@@ -4752,6 +4791,7 @@ class StripeWebhookHandler:
             license_sub.stripe_status = StripeSubscriptionStatus.CANCELED
             license_sub.save(update_fields=["is_active", "stripe_status", "updated_at"])
             sync_teachers_under_license_to_mailerlite(license_sub)
+            _close_credit_requests(license_sub)
 
     @staticmethod
     @transaction.atomic

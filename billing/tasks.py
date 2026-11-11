@@ -212,6 +212,10 @@ def process_license_renewals(self):
                 license_sub.is_active = False
                 license_sub.save(update_fields=["is_active", "updated_at"])
                 sync_teachers_under_license_to_mailerlite(license_sub)
+                # Epic B1c (A4): the license ended; its requests close.
+                from .credit_requests import LICENSE_ENDED, close_open_requests
+
+                close_open_requests(license_sub, reason=LICENSE_ENDED)
                 deactivated_count += 1
                 logger.info(
                     "License %s deactivated (auto_renew=False).",
@@ -1865,6 +1869,19 @@ def _draining():
     from .holds import holds_draining
 
     return holds_draining()
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=QUEUE_SWEEP_MAX_HOLD, ttl=QUEUE_SWEEP_LOCK_TTL)
+def sweep_credit_requests(self):
+    """Epic B1c (plan 08 §3.8): credit requests back to waiting (expired or
+    unlinked checkout) and closed on loss of access. Nothing while
+    CREDIT_REQUESTS_ENABLED is off."""
+    from .credit_requests import enabled, sweep
+
+    if not enabled():
+        return "credit requests disabled"
+    return f"Credit requests swept: {sweep()}"
 
 
 @shared_task(bind=True, max_retries=0)
