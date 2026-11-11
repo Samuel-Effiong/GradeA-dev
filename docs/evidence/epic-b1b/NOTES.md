@@ -3972,3 +3972,18 @@ The plant is reverted afterwards and the file checked by sha256 against 9be23397
   - In a real request, authentication loads a fresh user, so the wallet is read fresh. So this is a test-fixture fault, not a product fault.
 - **Proposed fix (test-only; not applied):** authenticate with a fresh user, `CustomUser.objects.get(pk=self.user.pk)`, in that one test. No product change. Then re-run R2 as declared (Ran 32, OK).
 - **Awaiting the SM's ruling.** No plants, D7-e work or near run until then.
+
+### §7.16 SM ruling on the §7.15 STOP (grade-automator-plus-16, 2026-11-11), recorded unamended in substance; R2 re-declared (before it runs)
+
+**The ruling:**
+- **GO for the test-only fix as proposed.** The SM checked that `wallet()` (`billing/views.py:1466`) reads `request.user.credit_wallet`, and that `reserved_credits` is a plain field read from that cached object while `balance_status` and `spendable` re-read the row. "very_low" next to `reserved_credits=0` fits a stale related-object cache in the test, not a product fault: real requests load the user fresh.
+- **(1)** In that one test only, authenticate with `CustomUser.objects.get(pk=self.user.pk)`, with a one-line comment saying why. No product change, and the other 31 tests are unchanged.
+- **(2)** Re-run R2 under the same label: Ran 32, OK. That run is what proves the cause. Anything other than exactly Ran 32, OK is a STOP again.
+- **(3)** If it matches, go on to the plants (PB7-other included), D7-e and the near run (billing + users + guards67, its environment declared) without another checkpoint. Then the end checkpoint.
+- No push, no trailers.
+
+**The fix (this commit):** `BalanceStatusTests.test_the_wallet_endpoint_shows_the_three_new_fields` authenticates with a freshly loaded user. Nothing else changed.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| R2b (green) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial | the three B1b-7 modules (32 tests: 17 + 7 + 8) | **Ran 32, OK** |

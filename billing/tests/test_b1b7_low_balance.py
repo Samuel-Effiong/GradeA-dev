@@ -293,7 +293,9 @@ class BalanceStatusTests(Base):
         job = make_job(self.wallet)
         holds().reserve(self.wallet, 5_000, job)  # spendable 8,000: 8%
         client = APIClient()
-        client.force_authenticate(user=self.user)
+        # A fresh user, as a real request loads: self.user caches its wallet
+        # from before reserve() wrote reserved_credits (NOTES §7.15-§7.16).
+        client.force_authenticate(user=CustomUser.objects.get(pk=self.user.pk))
         response = client.get(reverse("subscription-credit-wallet"))
         self.assertEqual(response.status_code, 200, response.content[:300])
         data = response.json()["data"]
