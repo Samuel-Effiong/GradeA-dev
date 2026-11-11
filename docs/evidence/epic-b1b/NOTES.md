@@ -5202,3 +5202,20 @@ This confirms the cause recorded above.
 | R10-green | the five and USER_LIST_PIN_WRITE unset; serial; under flock with `--noinput`; at this commit | R10-red's three modules + `billing.tests.test_b1b7_low_balance` (70 + 17) | **Ran 87, OK** |
 | D2b | as D2; at this commit | `step10/d2_diag.py` | **Ran 2, OK**. The three pages cost **13** queries each (SM condition 5); the pin section shows all 7 rows `identical`. Any count other than 13 goes to the SM before anything else. |
 | PL-1..PL-4 | as B10; serial; restored and checked by sha256 | `step10/battery_b10fix.json` | PL-1 (both overrides removed) `QueryCountTests`: **Ran 2, FAILED (failures=17)**, `!= 187`. PL-2 (hold dropped from spendable) `ListWalletParityTests`: **Ran 15, FAILED (failures=2)**, `10000 != 2000 : listed spendable` and `5000 != 0 : listed spendable`. PL-3 (OVERAGE in the allocation): **Ran 15, FAILED (failures=1)**, `'low' != None : listed balance_status`. PL-4 (cycle test inverted): **Ran 15, FAILED (failures=9)**, `None != 'low' : listed balance_status`. |
+
+**Results at 15379808e, all as declared.**
+- **R10-green:** Ran 87 tests in 15.863s, **OK**. `billing.tests.test_b1b7_low_balance` (17) passed unchanged (SM condition 2). Log: `step10/R10-green_15379808e.log`.
+- **D2b:** Ran 2, **OK**. 5 rows default = **13**, 25 rows default = **13**, 5 rows `-credits_left` = **13** (SM condition 5). The pin section shows all 7 rows `identical`. Log: `step10/D2b_15379808e.log`.
+- **PL-1..PL-4:** each killed as declared: PL-1 Ran 2, FAILED (failures=17); PL-2 Ran 15, FAILED (failures=2); PL-3 Ran 15, FAILED (failures=1); PL-4 Ran 15, FAILED (failures=9). Every fragment was present and every restore's sha256 matched HEAD. Results: `step10/battery/battery_summary_15379808e.jsonl`.
+
+**The remaining runs, declared before any of them runs.**
+- The count: E-off/E-on's labels gain `billing.tests.test_b1b10_list_wallet_parity` (17, inside `billing`, by unittest's loader), so 8261 + 17 = **8278**. The module has no `skipTest` and no skip decorator, so skipped stays **37**.
+- Labels for E-off and E-on are unchanged from §10.1.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| D1b (D1 again) | as D1; at this commit | `users.tests_user_list_sorting users.tests_user_list_payload_pin billing.tests.test_b1b10_list_wallet_parity` | **Ran 70, OK** |
+| E-off (2nd) | BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK all unset; `--parallel 4 --noinput`; under flock; at this commit | the §10.1 labels + `guards67.txt` | **Ran 8278, OK (skipped=37)**, 0 FAIL, 0 ERROR |
+| E-on (2nd) | the same four unset; `BILLING_HOLDS_ENABLED=True` from the environment | the same | **Ran 8278, OK (skipped=37)**, 0 FAIL, 0 ERROR |
+
+- They run in that order; a mismatch is a STOP.

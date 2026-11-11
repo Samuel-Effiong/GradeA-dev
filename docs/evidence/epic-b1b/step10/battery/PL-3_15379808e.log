@@ -1,0 +1,117 @@
+B1b-10 battery PL-3 (NOTES §10.1): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; at 15379808e
+label: billing.tests.test_b1b10_list_wallet_parity.ListWalletParityTests
+env set: none
+declared: Ran 15, FAILED (failures=1)
+diff --git a/users/list_serializers.py b/users/list_serializers.py
+index 262e6fb56..e3aa9fb46 100644
+--- a/users/list_serializers.py
++++ b/users/list_serializers.py
+@@ -153,9 +153,7 @@ class ListCreditWalletSerializer(CreditWalletSerializer):
+             for b in buckets
+             if _is_live(b, self._now) and b.bucket_type != CreditBucketType.OVERAGE
+         ]
+-        total = sum(b.used_credits for b in plan) + sum(
+-            b.total_credits - b.used_credits for b in plan
+-        )
++        total = sum(b.total_credits for b in buckets if _is_live(b, self._now))
+         has_cycle = total > 0 and any(
+             b.bucket_type == CreditBucketType.MONTHLY or b.expires_at is not None
+             for b in plan
+Found 15 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 19adeefd-2358-49f3-ad09-1e88a58ad3ec.
+Cannot activate automatic trial for user 19adeefd-2358-49f3-ad09-1e88a58ad3ec (validation): ValueError
+Free trial plan not found: no trial activated for user ce5aa613-5c7c-49b1-a9e1-e93c4c52864e.
+Cannot activate automatic trial for user ce5aa613-5c7c-49b1-a9e1-e93c4c52864e (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+.Free trial plan not found: no trial activated for user 4ba10737-0b12-4aa8-acad-bf85dcb10e7a.
+Cannot activate automatic trial for user 4ba10737-0b12-4aa8-acad-bf85dcb10e7a (validation): ValueError
+Free trial plan not found: no trial activated for user 2e82f853-9be5-4bec-a186-1354c864c530.
+Cannot activate automatic trial for user 2e82f853-9be5-4bec-a186-1354c864c530 (validation): ValueError
+.Free trial plan not found: no trial activated for user c1b22125-6be9-4c95-b3d8-18361a9cf637.
+Cannot activate automatic trial for user c1b22125-6be9-4c95-b3d8-18361a9cf637 (validation): ValueError
+Free trial plan not found: no trial activated for user 4a62cb52-7cb7-4b46-9ca3-02e1a249b68b.
+Cannot activate automatic trial for user 4a62cb52-7cb7-4b46-9ca3-02e1a249b68b (validation): ValueError
+.Free trial plan not found: no trial activated for user a9932fa1-bf8c-42c5-917f-91c4a71353d7.
+Cannot activate automatic trial for user a9932fa1-bf8c-42c5-917f-91c4a71353d7 (validation): ValueError
+Free trial plan not found: no trial activated for user a7f25bc0-abfd-4b29-b3cc-1cf6537bc83e.
+Cannot activate automatic trial for user a7f25bc0-abfd-4b29-b3cc-1cf6537bc83e (validation): ValueError
+.Free trial plan not found: no trial activated for user 555cceb6-e672-4717-9dd4-477772aac1c4.
+Cannot activate automatic trial for user 555cceb6-e672-4717-9dd4-477772aac1c4 (validation): ValueError
+Free trial plan not found: no trial activated for user 7d3d90f0-66d6-423f-a457-137558f4da79.
+Cannot activate automatic trial for user 7d3d90f0-66d6-423f-a457-137558f4da79 (validation): ValueError
+.Free trial plan not found: no trial activated for user 6ed074d9-e82e-4d0b-822e-fd4b2a109add.
+Cannot activate automatic trial for user 6ed074d9-e82e-4d0b-822e-fd4b2a109add (validation): ValueError
+Free trial plan not found: no trial activated for user 5df742ec-1c74-4dda-b658-083d9f1b63d1.
+Cannot activate automatic trial for user 5df742ec-1c74-4dda-b658-083d9f1b63d1 (validation): ValueError
+.Free trial plan not found: no trial activated for user 603f6a29-28cb-4220-ae99-efca27bd9d23.
+Cannot activate automatic trial for user 603f6a29-28cb-4220-ae99-efca27bd9d23 (validation): ValueError
+Free trial plan not found: no trial activated for user 6189a76d-527c-4b1e-bcf8-c20923373687.
+Cannot activate automatic trial for user 6189a76d-527c-4b1e-bcf8-c20923373687 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7af9cfd2-1c7d-4672-813d-9942dd372014.
+Cannot activate automatic trial for user 7af9cfd2-1c7d-4672-813d-9942dd372014 (validation): ValueError
+Free trial plan not found: no trial activated for user d43ef671-5fd9-4858-838f-2dc3884d748b.
+Cannot activate automatic trial for user d43ef671-5fd9-4858-838f-2dc3884d748b (validation): ValueError
+.Free trial plan not found: no trial activated for user d342a240-9d1b-4acd-9005-c565be4e811b.
+Cannot activate automatic trial for user d342a240-9d1b-4acd-9005-c565be4e811b (validation): ValueError
+Free trial plan not found: no trial activated for user db17576b-da56-4c67-84c1-eb30f3a65cef.
+Cannot activate automatic trial for user db17576b-da56-4c67-84c1-eb30f3a65cef (validation): ValueError
+.Free trial plan not found: no trial activated for user f11fc0cf-618d-46aa-af68-02a798cbb798.
+Cannot activate automatic trial for user f11fc0cf-618d-46aa-af68-02a798cbb798 (validation): ValueError
+Free trial plan not found: no trial activated for user 91b91939-df2e-4948-946a-62b1147b65ed.
+Cannot activate automatic trial for user 91b91939-df2e-4948-946a-62b1147b65ed (validation): ValueError
+.Free trial plan not found: no trial activated for user 40e2c6e3-d70a-49d4-a16b-4efc2a9d86ac.
+Cannot activate automatic trial for user 40e2c6e3-d70a-49d4-a16b-4efc2a9d86ac (validation): ValueError
+Free trial plan not found: no trial activated for user 94673806-195e-4550-9a4f-6d6e73c3759c.
+Cannot activate automatic trial for user 94673806-195e-4550-9a4f-6d6e73c3759c (validation): ValueError
+FFree trial plan not found: no trial activated for user 3481b5a8-6092-4041-8a43-5808dc5dda6e.
+Cannot activate automatic trial for user 3481b5a8-6092-4041-8a43-5808dc5dda6e (validation): ValueError
+Free trial plan not found: no trial activated for user 8d8c1c4e-f8d6-44e7-a964-a379617efef7.
+Cannot activate automatic trial for user 8d8c1c4e-f8d6-44e7-a964-a379617efef7 (validation): ValueError
+.Free trial plan not found: no trial activated for user d0fc5154-e1e7-4385-9c60-45181828e02a.
+Cannot activate automatic trial for user d0fc5154-e1e7-4385-9c60-45181828e02a (validation): ValueError
+Free trial plan not found: no trial activated for user fd7d750d-1585-40f8-b8a0-2661279a5093.
+Cannot activate automatic trial for user fd7d750d-1585-40f8-b8a0-2661279a5093 (validation): ValueError
+.Free trial plan not found: no trial activated for user ddfb37ca-03f8-4b87-a6ad-449723b17794.
+Cannot activate automatic trial for user ddfb37ca-03f8-4b87-a6ad-449723b17794 (validation): ValueError
+Free trial plan not found: no trial activated for user 46869571-6b08-496e-bbd6-69c08b537425.
+Cannot activate automatic trial for user 46869571-6b08-496e-bbd6-69c08b537425 (validation): ValueError
+Free trial plan not found: no trial activated for user 6ef6b075-caaa-4114-a89c-a7a62b81b50e.
+Cannot activate automatic trial for user 6ef6b075-caaa-4114-a89c-a7a62b81b50e (validation): ValueError
+.Free trial plan not found: no trial activated for user e7e9094a-fb7f-4b70-94a4-1aa6a5b3be1e.
+Cannot activate automatic trial for user e7e9094a-fb7f-4b70-94a4-1aa6a5b3be1e (validation): ValueError
+Free trial plan not found: no trial activated for user 484084ae-0c92-4456-9635-cd9b5448e717.
+Cannot activate automatic trial for user 484084ae-0c92-4456-9635-cd9b5448e717 (validation): ValueError
+Free trial plan not found: no trial activated for user 13787def-2f62-4d96-9ffc-2d13be6fda71.
+Cannot activate automatic trial for user 13787def-2f62-4d96-9ffc-2d13be6fda71 (validation): ValueError
+Free trial plan not found: no trial activated for user 3f83f9f5-1fbf-4c86-bee2-1406167d1327.
+Cannot activate automatic trial for user 3f83f9f5-1fbf-4c86-bee2-1406167d1327 (validation): ValueError
+.
+======================================================================
+FAIL: test_overage_lifts_a_wallet_above_the_low_level (billing.tests.test_b1b10_list_wallet_parity.ListWalletParityTests.test_overage_lifts_a_wallet_above_the_low_level)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b10_list_wallet_parity.py", line 100, in test_overage_lifts_a_wallet_above_the_low_level
+    self.assert_parity(user, wallet, 3_000, None)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b10_list_wallet_parity.py", line 37, in assert_parity
+    self.assertEqual(listed["balance_status"], status, "listed balance_status")
+AssertionError: 'low' != None : listed balance_status
+
+----------------------------------------------------------------------
+Ran 15 tests in 2.861s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+
+restored: sha256 MATCHES HEAD for users/list_serializers.py
