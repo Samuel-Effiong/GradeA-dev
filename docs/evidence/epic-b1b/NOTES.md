@@ -3460,3 +3460,21 @@ The log goes to `step6/G6b_<sha>.log`, with the ENV in its header. Any other res
 | N1 (near) | as R2; `--parallel 4` | `billing users` + the 67 guards (`guards67.txt`) | **Ran 4670, OK (skipped=14)** |
 
 The logs go to `step6b/`. Any mismatch is recorded unamended and is a STOP.
+
+### §6.7.2 B1b-6b results: R1, R2 and PB6b-1 as declared. **N1 MISMATCH (skips): STOP**, recorded unamended
+
+| Run | Declared | Result | Log (`step6b/`) |
+|---|---|---|---|
+| R1 (red), at 5ba99b1bf | Ran 13, FAILED (failures=1), `501 ids were accepted` | Ran 13, FAILED (failures=1): `test_501_listed_ids_are_refused_with_the_drf_message`, `AssertionError: 200 != 400 : 501 ids were accepted`. **As declared** | `R1_red_5ba99b1bf.log` |
+| R2 (green), 5ba99b1bf + the uncommitted fix (`billing/estimate_views.py` sha256 `b4868d46…8dd9`) | Ran 13, OK | Ran 13, OK. **As declared** | `R2_green_5ba99b1bf+fix.log` |
+| PB6b-1 (the check replaced by `if False:`) | Ran 1, FAILED (failures=1), `501 ids were accepted` | Ran 1, FAILED (failures=1), `200 != 400 : 501 ids were accepted`. Restored: sha256 MATCH. **As declared** | `PB6b-1_5ba99b1bf+fix.log` |
+| N1 (near), as R2; `--parallel 4` | **Ran 4670, OK (skipped=14)** | **Ran 4670, OK (skipped=16)**: 0 FAIL, 0 ERROR. **MISMATCH in the skip count** | `N1_near_5ba99b1bf+fix.log.gz` |
+
+**The cause, found by reading the code (nothing re-run, nothing re-labelled):**
+- The guard `AutoGrader.tests_redis_test_isolation` (`guards67.txt` line 30) has two tests that fork child processes: `test_a_forked_workers_cache_clear_cannot_reach_a_sibling` and `test_a_forked_workers_queue_purge_cannot_reach_a_sibling`.
+- Their `setUp` (`:540-554`) calls `skipTest` when `multiprocessing.current_process().daemon` is true, that is, inside a `--parallel` worker.
+- **My skip method in §6.7.1 was checked against E3, which runs serial.** There those two tests run, which is why E3 shows only 1 skip. In a `--parallel` run they skip. So N1's predicted skips should have been 14 + 2 = 16.
+- The Ran count, 4670, and the OK match the declaration. Only the predicted skip count was wrong.
+- The fix stays uncommitted (sha256 `b4868d46b6aacbc781af4e9ac64d1b4aae1c77b5f654744f8e85082c99cb8dd9`). It will be committed only after the SM relays the owner's answer on the message.
+
+**STOP to the SM.** The question: is the mismatch a prediction error with the run accepted, or should N1 be re-declared (skipped=16) and re-run? Nothing is re-run until the SM rules. For later declarations: a run with the 67 guards under `--parallel` gets +2 runtime skips from this module, which a serial run does not.
