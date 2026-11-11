@@ -4341,3 +4341,30 @@ So text 2's "deleted after {days} days" is true only for the lifetime purge.
   - Papers being graded are stopped, and their held credits are returned.
   - A batch that is waiting for credits is also stopped, but it is not yet marked as closed. We will fix that in this step, so the teacher never gets a "your papers expire" email for a batch they cancelled.
   - **Question unchanged:** is the batch "cancel" enough for now, or do you want a separate "cancel this job" action?
+
+### §8.2 SM ruling on the §8.0 checkpoint (grade-automator-plus-16, 2026-11-11), recorded unamended in substance
+
+- **GO for the build, minus the owner items.** Merging origin/staging at the start is fine (task branch only).
+- **Q8-1 APPROVED as proposed:**
+  - no row → #16b;
+  - `purged_at >= kept_until` → text 2;
+  - anything else → the existing default "This item can't be retried as it is.";
+  - `replace_file` on all of them. No new wording.
+- **Q8-2 APPROVED:** `kept_until` (or null) is read-only on the task-status response, for teachers only. A student gets the key absent, through the same `staff_only` pattern as `job_ref`, not ad hoc.
+  - Tests: teacher → the value; student → key absent.
+  - Plant: drop the student guard.
+  - The §7.25 key-pin sweep on that response comes before declaring.
+- **Q8-3 APPROVED:** the late-door email goes on for batch rows only. The single student upload stays logged as today. The SM asks the owner about a variant wording; none is written here.
+- **Q8-4 APPROVED, in B1b-8:** #19–#23 and the PDF (already-approved texts).
+- **Q8-5:** noted, 1–1.5 days.
+- **Q8-6 APPROVED, tests first:**
+  - (1) cancel → CANCELLED, with no email;
+  - (2) the 0-waiting backstop;
+  - (3) real `_send` tests: the 4 kinds, both closings, and the 0-left skip. Remove `# pragma: no cover` once it is tested.
+  - Plants: one for (1) and one for (2).
+- **(a) and (c)** go to the owner now. Build as if both recommendations stand: the batch cancel is enough, and there is no email on a spent license. If the owner says otherwise, that becomes a follow-up step; it does not block this one.
+- **Doctrine for this step:**
+  - every edit of a pre-existing pin gets a break run;
+  - all counts are declared first; subTests don't add to Ran;
+  - near: billing + students + assignments + dashboard + users + guards67, with the environment stated;
+  - an end checkpoint after. No push, no trailers.
