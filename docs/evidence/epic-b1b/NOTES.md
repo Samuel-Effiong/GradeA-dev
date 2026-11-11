@@ -4130,3 +4130,23 @@ Each plant is one edit to the product at e0fc5ffb7 (`billing/low_balance.py`, `b
   - (b) The `metered_unit` wrap around assignments `create`/`partial_update` extraction (§7.19 (3)).
   - (c) For the B1b-8 review: a teacher on a spent license budget gets no low-balance email (allocation 0).
   - (d) D7-e changed `students`, `assignments` and `dashboard` views, but those app suites are not in the ruled near. Should I run them as an extra declared run?
+
+### §7.23 SM review of the end checkpoint (grade-automator-plus-16, 2026-11-11), recorded unamended in substance; N4 declared (before it runs)
+
+- **ACCEPTED, conditional on (d).** The SM verified commits 7c76045b6 through 5710a5895 (0 co-author trailers in the last 15, clean tree). `job_ref.py` follows §7.19. Both corrections in §7.19 are accepted.
+- **(d) YES:** run `students assignments dashboard` + users + guards67, with the same flags as N3 (`--parallel 4`, all four env unset). Ran is counted from the code first. A match makes B1b-7 final with no further checkpoint; a mismatch is a STOP.
+- **(a) and (c)** go to the owner at the B1b-8 review.
+- **(b) The unit-wrap gap is not reachable today.** Assignments `create` and `partial_update` send text only (§7.19 correction 2), so neither takes the chunked path. It stays listed as an open gap, in case they ever send page images.
+- After (d): the B1b-8 survey/design, then a checkpoint before any code, as for step 7. No push, no trailers.
+
+**N4's count** (`bsk.py` at this commit): `students assignments dashboard users` + the 67 guards = **4237 tests, 17 static skips**.
+- **Runtime skips:**
+  - users' 4 (as in N2/N3);
+  - +2 `--parallel` fork skips (§6.7.3);
+  - `students` and `dashboard` have no `skipTest` (grep);
+  - the 2 `skipTest` calls in `assignments/tests_load.py` (`:681`, `:718`) sit inside classes already skipped statically (`skipUnless(LOAD_TESTS_ENABLED)`, `:133`, `:580`), so they are inside the 17.
+- **Skipped = 17 + 4 + 2 = 23.**
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| N4 (extra near, §7.23 (d)) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; `--parallel 4`; under flock with `--noinput`; at this commit | `students assignments dashboard users` + `guards67.txt` | **Ran 4237, OK (skipped=23)**, 0 FAIL, 0 ERROR |
