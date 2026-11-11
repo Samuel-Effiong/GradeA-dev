@@ -362,3 +362,23 @@ Expected: Ran 4632, OK, failures 0, errors 0. Skip count not predicted.
 Ran 4632 tests in 461.679s, OK (skipped=9). Matches the prediction (Ran
 4632, OK). The skip count was not predicted; it is the same 9 as N1.
 Log: N2_near.log.gz.
+
+### Plant restore shas, recorded (2026-11-11, with the removal of the .orig copies)
+
+plant_uls.py printed its sha lines to stdout, not into plants/<id>.log, so
+until now the repo held only the claim "every restore sha256 OK". The
+restored lines below were recovered from this session's transcript. Each
+equals `git show <commit>:<file> | sha256sum` at the plant-run commits
+b1fe55093 and 62873e9b3 (the same blob at both):
+
+    Q-dates    users/user_list.py restored 95399152756a9f15b61fedea80ab17b5e6b082cc0c87d4d646a455db1b99529a OK
+    Q-plan     users/user_list.py restored 95399152756a9f15b61fedea80ab17b5e6b082cc0c87d4d646a455db1b99529a OK
+    Q-counts   users/user_list.py restored 95399152756a9f15b61fedea80ab17b5e6b082cc0c87d4d646a455db1b99529a OK
+    Q-credits  users/user_list.py restored 95399152756a9f15b61fedea80ab17b5e6b082cc0c87d4d646a455db1b99529a OK
+    Q-prefetch users/user_list.py restored 95399152756a9f15b61fedea80ab17b5e6b082cc0c87d4d646a455db1b99529a OK
+    Q-cache    users/mixins.py    restored aa23ea8d8e4edda60db1de6c82ee2df7611921543028c8793efe7e3c8221912b OK
+    Q-listonly users/views.py     restored c884c8b453a0a8851f6ce5d0d918952fd33ff67f7fd6d5cf29a77bbaabe23bba OK
+    Q-gate and Q-gate-2 (both run as plant id Q-gate)
+               users/filters.py   restored 41e6bff554dc3b3a43d2e15c998f56f8ebee816918ad1962c322877025bf14be OK
+
+plant_uls.py now deletes its saved copy once the restore sha matches.
