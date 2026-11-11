@@ -4618,3 +4618,78 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
   - **It does not depend on `BILLING_HOLDS_ENABLED`.** `drift_check` (`billing/estimates.py:646`) and its task (`billing/tasks.py:1808`) never read the flag. The history comes from `AICallRecord` (`_paper_queryset`, `:144`), which every AI call writes whatever the flag. So it can run, and email, with holds off.
   - **With no batches** in the 90-day window, coverage is None and no cell reaches 30, so there is no reason and no email.
   - Reported only; nothing changed.
+
+## §9 B1b-9: the drain (safe switch-off). Survey and design, before any code (SM GO 2026-11-11, after B1b-8 ACCEPTED at f5af3cc42)
+
+### §9.0 The survey (read-only)
+
+**Sources:**
+- 08b §8 row: `| B1b-9 | **The drain** (§6.3): BILLING_HOLDS_DRAINING, billing_holds_drain and its emergency mode | Red/green; staging drain | 1 |`.
+- 08b §6.3 in full: the draining rules, the three-step procedure, the emergency case, and the four `TransactionTestCase` tests.
+- **Nothing of it exists yet:** no `DRAINING` setting, no `billing_holds_drain` command (`billing/management/commands/` lists 13 others).
+
+**Every flag check outside tests, sorted by what draining must do** (08b §6.3: "no new hold, job or queue entry… new work runs the flag-off path; what is already held keeps running: settle, fail, the sweep, the invariant check; promotion stops"):
+
+| Site | What it gates | Under draining |
+|---|---|---|
+| `billing/holds.py:1203` `hold_for_call` | a single call's SINGLE_CALL job + hold, or a unit's call | **new** → None (flag-off), unless inside a unit that is running an already-held row (Q9-1) |
+| `billing/holds.py:1059` `metered_unit` | the unit (job at first call; retry and late-door jobs in `Unit.enter`) | **new** → `billing_refund_scope` (flag-off), unless its task row is already HELD (Q9-1) |
+| `ai_processor/services.py:5647` | today's balance check, flag off | runs whenever the call runs flag-off (Q9-2) |
+| `assignments/upload_door.py:73`, `:191`, `:269` | the door's balance, its on-commit launch, the door job | **new** → flag-off |
+| `assignments/tasks.py:1625`, `:1991` | the BATCH_GRADING job and its queue (dispatch, H-215a adopt) | **new** → flag-off |
+| `billing/models.py:1379` `_queue_promotion` | the promotion a credit entry enqueues | **stops** |
+| `billing/tasks.py:1869`, `:1879` promote tasks | promotion | **stop** |
+| `billing/tasks.py:1891` `expire_queued_jobs` | the 48 h warning and expiry | runs; **no emails while draining** (Q9-4) |
+| `billing/tasks.py:1779` the sweep | returns stale holds | **runs** |
+| `check_credit_hold_invariants` (daily) | reports | **runs** |
+
+- **The sweep's reach:** only STARTED items past `item_sweep_window()` = visibility_timeout (3600 s) + the grading time limit + the margin (`billing/holds.py:690-696`). "Launched-but-unstarted items are never swept" (`:744-750`). So a normal drain can take more than an hour, and an emergency drain needs its own way to return **unstarted** held items (Q9-3).
+
+### §9.1 The design (proposed)
+
+- **Setting:** `BILLING_HOLDS_DRAINING = env.bool("BILLING_HOLDS_DRAINING", default=False)`, set identically on web, worker and beat (08b §6.2's checklist gains it).
+- **One rule in one place:** `billing.holds.holds_for_new_work()` = `holds_enabled() and not draining`. Every "new" site above uses it in place of `holds_enabled()`. The "already held" sites keep `holds_enabled()`. Promotion checks `holds_for_new_work()`.
+- **`billing_holds_drain`** (`billing/management/commands/billing_holds_drain.py`):
+  - It refuses (exit 2, a message) unless `BILLING_HOLDS_ENABLED` and `BILLING_HOLDS_DRAINING` are both on in the running settings.
+  - It expires every `QUEUED_PENDING_CREDITS` job now through `expire_job`, with **no email**. The items become FAILED `INSUFFICIENT_CREDITS_MID_BATCH`, retryable.
+  - It waits, polling (`--interval`, default 30 s; `--timeout`, default `item_sweep_window()` + 10 min), and prints the open jobs, HELD items and wallets with `reserved_credits > 0` each round.
+  - It ends with **DRAINED** (exit 0) when every wallet's `reserved_credits` is 0, no job is open, and `check_invariants()` is empty. Otherwise it exits 1 and names the wallets and jobs still open.
+- **`--flag-off-emergency`:**
+  - It runs only with the flag **off**; otherwise it refuses.
+  - It returns every remaining hold through the sweep's per-item code with no window (Q9-3), finishes every open job FAILED (its hold returned), then verifies and prints DRAINED or exits 1.
+  - Its use is recorded in NOTES by the person who ordered it (08b).
+- **A runbook:** `docs/ops/billing_holds_drain.md`: the three steps, the emergency case, and the settings checklist. It is engineering text, not app wording.
+- **Tests first** (`TransactionTestCase`, all Stripe/Cloudinary mocked):
+  - draining makes no hold at each new site (single call, unit, door, batch dispatch);
+  - a HELD row keeps running and settles under draining;
+  - promotion does nothing while draining;
+  - the beat expiry sends no email while draining;
+  - the command refuses without both settings;
+  - a normal drain prints DRAINED;
+  - an open hold makes it exit 1, naming it;
+  - queued jobs are expired with no email;
+  - the emergency mode returns started and unstarted holds and prints DRAINED.
+- **Plants:**
+  - `hold_for_call` ignores draining;
+  - DRAINED is printed with a wallet still reserved;
+  - the emergency skips unstarted items;
+  - promotion ignores draining;
+  - the expiry emails while draining.
+
+### §9.2 Questions for the SM
+
+- **Q9-1, "already held" for a unit.** Proposed: a metered unit keeps the holds path only when its task row is **HELD** (the claim path in `Unit.enter`: a batch paper or door item held before the drain). A unit with no row, a SINGLE_ITEM attach, a retry (`open_retry_job`) and a late door (`open_late_door_job`) all open **new** jobs, so they run flag-off. Nested units follow their root.
+- **Q9-2, the flag-off balance check while draining.** 08b says new work runs "exactly as it does with the flag off", and that check compares the **total** (`ai_processor/services.py:5649`), ignoring `reserved_credits`. While draining, holds are still open, so a new flag-off call could spend credits a running held paper will settle against.
+  - **Option (A), the plan's words:** the total.
+  - **Option (B), recommended:** while draining, the flag-off check compares `spendable_credits` (total less reserved), and the door's `_balance` too. Teachers are never blocked by holds that are about to settle, but those holds are protected.
+  - It is your call; the B option departs from 08b's "exactly".
+- **Q9-3, the emergency mode and unstarted items.** The sweep never touches an unstarted held item (by design). The emergency must return those too. Proposed:
+  - `sweep_stale_holds(now, force=True)` returns every HELD item, started or not, through `_sweep_item` with no window;
+  - every job without rows past nothing;
+  - then every open job is finished FAILED.
+  - `force` is used only by the emergency command.
+- **Q9-4, emails while draining.** 08b: "No expiry emails are sent during a drain." Proposed: `batch_queue.notify` sends nothing while draining (all four kinds; new work makes no queued jobs anyway). Low-balance and drift emails are unaffected.
+- **Q9-5, the wait.** The default `--timeout` is `item_sweep_window()` + 10 min (over an hour with the defaults). Exit 1 on timeout. Accept?
+- **Q9-6, start-up.** `DRAINING=true` with `ENABLED=false` is the emergency path's state, so it is allowed, with one WARNING log at start-up. Accept, or refuse to start?
+- **Q9-7, size:** 08b gives 1 day; I estimate 1.5–2 days, with Q9-1's unit rule and Q9-3's forced sweep.
+- **Staging:** origin/staging was merged at 991ba0fd0; I re-check and merge at the start of the build, after the GO.
