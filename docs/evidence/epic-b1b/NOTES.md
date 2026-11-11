@@ -5414,3 +5414,19 @@ The flag-off stop path and the whole-batch door are on hold until the SM comes b
 B1b-11 cancelled by the owner 2026-11-11 ('Don't remove anything'; 'go ahead as built'); product identical to 519216d15; the PG16 declaration in §10.4 (Ran 10135, OK, skipped=86) stands.
 
 The draft test module (students/tests_b1b11_no_kept_uploads.py) was never committed and has been deleted, along with the R11-red log from the run that was stopped part-way; no R11-red result is recorded.
+
+## §12 Staging landing: merge of origin/staging 76858332e (SM, owner go: staging, holds off)
+
+PR #124 PG16 run 43070726856 PASSED: Ran 10135, OK (skipped=86), as declared in §10.4 (SM). The PR was closed unmerged.
+
+**The merge** (`70dc5eec0`, parents deff49e69 and 76858332e): `origin/staging` at **76858332e** (AI prompt gets the sales leads, beta 4a20bea4b). **No conflicts.** Git auto-merged `billing/views.py` (new `top_leads`/`lead_rows`, used by the leads list and the custom AI prompt; B1b's own change there is `@with_ai_job_id` + `ai_job_schema` on `custom_ai_prompt`, the same view). Added: `billing/tests/test_custom_ai_prompt_leads.py`, `billing/tests/data/custom_ai_prompt_template_pin.json`, and evidence under `docs/evidence/ai-prompt-leads-beta/`. No model, migration or `urls.py` change.
+
+**Environment.** `h284_deps_env` was deleted by the SM's venv cleanup (SM confirmed). Per the SM, a new task env **`~/Documents/Virtualenvs/epic_b1b_env`** was built from this branch's `requirements.txt` + `requirements-dev.txt` (`pip check`: no broken requirements). It is deleted when B1b is on staging and the SM confirms.
+
+**The run, declared before it runs** (merged-modules rule):
+
+| Run | ENV | Labels | Declared |
+|---|---|---|---|
+| M12 | BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK, USER_LIST_PIN_WRITE, INTENT_SIGNALS_PIN_WRITE all unset; `epic_b1b_env`; under flock with `--noinput --parallel 4`; at 70dc5eec0's tree | `billing.tests.test_custom_ai_prompt_leads` (9), and the B1b modules that test billing/views.py: `billing.tests.test_custom_ai_prompt_beta` (6), `billing.tests.test_b1b7_ai_job_id` (17), `billing.tests.test_b1b7_job_api` (7), `billing.tests.test_estimate_endpoint` (13), `billing.tests.test_h38_part2_removed_teacher_routes` (64); plus `users` (1118) and `guards67.txt` (67 labels, 1151 tests) | **Ran 2337, OK**, 0 FAIL, 0 ERROR (`build_suite` count after de-duplication; 1 static skip; any runtime skips are reported as seen) |
+
+The flag default on the merged tree: `AutoGrader/settings.py:699` `BILLING_HOLDS_ENABLED = env.bool("BILLING_HOLDS_ENABLED", default=False)`.
