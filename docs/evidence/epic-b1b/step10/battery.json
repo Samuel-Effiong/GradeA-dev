@@ -776,20 +776,22 @@
    {
     "file": "billing/holds.py",
     "old": "        if chargeable > 0:\n            locked.consume_credits(\n                chargeable,\n                feature=feature,\n                task_type=task_type,\n                task_id=str(record.id),\n                course=course,\n                school=school,\n                _wallet_locked=True,  # B1b-3 P3: locked and read above\n            )\n",
-    "new": "        if chargeable > 0:\n            locked.consume_credits(\n                chargeable,\n                feature=feature,\n                task_type=task_type,\n                task_id=str(record.id),\n                course=course,\n                school=school,\n                _wallet_locked=True,  # B1b-3 P3: locked and read above\n            )\n            from .services import SubscriptionService  # PB3-2\n\n            SubscriptionService.refund_credits(record.id)\n"
+    "new": "        if chargeable > 0:\n            locked.consume_credits(\n                chargeable,\n                feature=feature,\n                task_type=task_type,\n                task_id=str(record.id),\n                course=course,\n                school=school,\n                _wallet_locked=True,  # B1b-3 P3: locked and read above\n            )\n            from .services import SubscriptionService  # PB3-2\n\n            SubscriptionService.refund_credits(str(record.id))\n"
    }
   ],
   "label": "ai_processor.tests_grading_pipeline.GradingRunWithHoldsTest.test_a_successful_run_is_charged_once_at_settle ai_processor.tests_grading_pipeline.GradingRunWithHoldsTest.test_a_failed_attempt_is_never_charged_the_successful_one_is assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_an_unusable_provider_response_charges_nothing_for_that_file assignments.tests_upload_batch_billing.UploadBillingWithHoldsTest.test_a_failed_save_charges_nothing_and_it_can_be_retried",
   "expected": "Ran 4, FAILED (failures=4)",
   "fragments": [
-   "[300] != []"
+   "[300] != []",
+   "[1100] != []",
+   "500000 not less than 500000"
   ],
   "env": {},
   "status": "reanchored",
   "new_location": "billing/holds.py:412",
   "old_anchor": "the 7-line locked.consume_credits(...) call in settle, c36534db7:billing/holds.py:320",
   "reason": "the consume call gained `_wallet_locked=True` in B1b-3 P3 (1a258c0d8); same call duplicated/followed as at c36534db7",
-  "note": "",
+  "note": "\u00a710.2 SM ruling: rebuilt-plant defect UUID vs str task_id corrected to str(record.id)",
   "source": "NOTES :1119 (decl), :1136 (result at c36534db7)"
  },
  {

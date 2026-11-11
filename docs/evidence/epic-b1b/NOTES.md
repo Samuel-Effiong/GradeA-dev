@@ -4969,3 +4969,44 @@ The fragments were rendered from unittest's own messages (no test run). No pre-e
 - Re-run PB3-2 alone with its §3.x declaration (Ran 4, FAILED (failures=4); T7 `[300] != []`; T9, T10 `[1100] != []`; T6 `500000 not less than 500000`).
 - Then continue the battery from PB3-3 (`--from PB3-3`).
 - The 33 done stand.
+
+**SM ruling on the PB3-2 STOP (grade-automator-plus-16, 2026-11-11), recorded unamended in substance:**
+- The proposal is accepted: a defect in the rebuilt plant, not the product.
+- Correct it to `refund_credits(str(record.id))`.
+- Before re-running, check every plant rebuilt from wording, with one line each on why its arguments and types match the real call sites, and fix any similar defect now, declared.
+- Then re-run PB3-2 alone against its §3 declaration; if it is as declared, continue `--from PB3-3`. The 33 stand.
+- A second plant defect is a STOP; a product-side survivor is a STOP with no fix attempt.
+
+**PB3-2 rebuilt-plant defect: UUID vs str task_id.**
+- The plant's call is now `SubscriptionService.refund_credits(str(record.id))`. That is the task id `settle` charges under (`billing/holds.py:417`) and the type `billing/refunds.py:108` passes.
+- In `step10/battery.json`, plus `step10/battery_pb3-2.json` for the lone re-run.
+- Its fragments are §3.x's: T7 `[300] != []`, T9 and T10 `[1100] != []`, T6 `500000 not less than 500000`.
+- The errored run above stays as recorded.
+
+**The review of every rebuilt plant still to run** (57: PB3-3, PB4-1/2, the 8 PP, the 26 PE, the 20 PK; steps 6–9 are replayed verbatim and are not in this list). Each line says why its names and types match the real code:
+- **Only removing, moving or replacing existing code**, so no new call or type is introduced:
+  - PB3-3 (removes `_move_wallet`);
+  - PP1b (`closing = False`), PP3 (`_wallet_locked=False`), PP3b (adds `and not _wallet_locked`, the parameter of `consume_credits` itself), PP5 (the existing UPDATE moved out of `else`);
+  - PE-1..PE-10, PE-12..PE-14, PE-16..PE-20 (constants, comparisons, filters and decorators removed or swapped for literals of the same type);
+  - PE-22 (`run_validators` removed; `return name, value` is the function's own return shape);
+  - PK-2..PK-9, PK-11..PK-14, PK-16, PK-6a-1, PK-6a-2 (filters, calls or lines removed; `False` or `None` for a bool or `str` slot; PK-8 moves the existing UPDATE above the delete).
+- **New names or arguments, each checked against its definition:**
+  - PB4-1: `is_individual_teacher(target_teacher)`. It is `def is_individual_teacher(user)` (`billing/errors.py:58`), imported in `holds.py:43`, and `target_teacher` is the user `hold_for_call` receives.
+  - PB4-2: `individual=False`, the bool the same keyword already takes.
+  - PP2: `lock_wallet_first(job.wallet)`. It is `def lock_wallet_first(wallet)` (`billing/locks.py:25`), already imported in `holds.py`. `job.wallet` is the lazy FK load P2 removed. `CreditWallet.DoesNotExist` is the model's own exception.
+  - PP4: `SettlementRecord.objects.filter(pk=record.pk).update(credits_charged=chargeable)`. The field is `credits_charged` (`billing/models.py:1997`); `record` and `chargeable` are bound before it (`holds.py:397-409`).
+  - PPL: `AIJob…update(reservation_claimed_at=F("reservation_claimed_at"))`. The field exists (`billing/models.py:1910`), and `F` is imported in `holds.py`.
+  - PE-11: `AIJob.objects.create(job_type="SINGLE_CALL", wallet=CreditWallet.objects.get(user=request.user), requested_by=request.user, trace_id=uuid4(), total_items=1)`. These are the same fields `billing/testing/holds.make_job` uses. `request` is the `post` argument (`estimate_views.py:74`).
+  - PE-15: `Assignment.objects.all()`. `Assignment` is imported (`estimate_views.py:20`).
+  - PE-21: a no-op lambda in `emit`'s place, taking `*args, **kwargs`.
+  - PE-23: `provider_gap_ratio(days=days, now=now)`. It is `def provider_gap_ratio(*, days=HISTORY_DAYS, now=None)` (`estimates.py:588`), the same signature as the replaced `rough_replay_ratio` (`:576`).
+  - PE-24b: `beat_locks.SingleInstance("billing.tasks.check_credit_estimate_drift", 60, 86400)`. It is `__init__(self, name, ttl_seconds, max_hold_seconds)` (`AutoGrader/beat_locks.py:154`).
+  - PK-1: `timedelta(hours=1)`. `timedelta` is imported in `students/kept_uploads.py:25`.
+  - PK-10: one more `str` in a tuple of field names (`storage_key` is a `KeptUpload` field).
+  - PK-15: `upload_code_retryable(code)`, and PK-6a-3: `_retryable_as_it_is(code)`. Both are `(code)` functions in `students/item_retry.py:111`, `:128`.
+- **Result: no other defect of PB3-2's kind found; nothing else changed.** Every anchor still matches once after the edit (`run_battery.py check`).
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| B10-PB3-2 (re-run, alone) | as B10; serial; under flock; at this commit | PB3-2's 4 killers (`step10/battery_pb3-2.json`) | **Ran 4, FAILED (failures=4)**, with `[300] != []`, `[1100] != []` and `500000 not less than 500000` |
+| B10 (continued) | as B10 | `--from PB3-3`, plants 35–129 | each as its row in `step10/battery_table.md`; PB6-3 Ran 2, OK (declared survivor) |
