@@ -196,6 +196,24 @@ class LeadBlockTests(PromptFixture):
 
         self.assertEqual(block, json.loads(text))
 
+    def test_the_block_follows_the_score_not_the_credits(self):
+        # The fixture's scores and credits rise together, so it cannot tell
+        # the list's order from "most credits first" (found declaring plant
+        # 2): a big spender with a low score must stay out of the top 10.
+        people = self.build()
+        spender = self.person(77)
+        profile, _ = BetaProfile.objects.get_or_create(user=spender)
+        BetaProfile.objects.filter(pk=profile.pk).update(
+            conversion_probability=1.0, total_credits_used=10_000_000
+        )
+        people[spender.email] = spender
+        block = ast.literal_eval(self.lead_block(self.template(people)))
+
+        self.assertEqual(
+            [row["email"] for row in block],
+            [f"lead{n:02d}.prompt@x.example" for n in range(11, 1, -1)],
+        )
+
     def test_query_params_do_not_change_the_block(self):
         # Q-L3: a POST's query string never reaches the leads.
         people = self.build()

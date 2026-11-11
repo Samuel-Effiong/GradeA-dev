@@ -93,3 +93,13 @@ is not touched.
 The same 4 labels, Ran 38. Expected: OK.
 
 R2 result (R2_green.log): Ran 38, OK, as predicted.
+
+### Before the plants: a gap found while declaring plant 2 (R3, declared)
+
+Plant 2 ("the block ignores the shared order", most credits first) would
+SURVIVE: the fixture's scores and credits rise together. Added
+LeadBlockTests.test_the_block_follows_the_score_not_the_credits (a
+low-score big spender stays out of the top 10).
+R3 label: that test. Expected: Ran 1, OK on the product.
+
+R3 result (R3_gap_test.log): Ran 1, OK, as predicted.
