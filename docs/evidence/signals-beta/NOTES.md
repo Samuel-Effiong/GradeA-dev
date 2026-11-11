@@ -196,3 +196,20 @@ ignored values must keep the score order).
 R3 label: that test. Expected: Ran 1, OK on the product.
 
 R3 result (R3_gap_test.log): Ran 1, OK, as predicted.
+
+## Plants (declared before any plant runs)
+
+The harness plant_sig.py is the brief 3 harness with plants S1-S6 (copied
+into plants/ after the runs). One plant per run: copy, sha256 equals HEAD,
+plant, run the 5 brief 4 labels (104 tests) under the flock, restore,
+sha256 again, then delete the copy. Logs go to plants/<id>.log, sha lines to
+plants/shas.txt. "Killed" = the named tests fail or error (distinct tests).
+
+| plant | file | change | killed (declared) |
+|---|---|---|---|
+| S1-drop-flag | billing/intent_signals.py | signal_count skips is_power_grader | 9: IntentSignalsPinTests.test_the_signal_payloads_are_what_they_were (the distribution); AgreementTests; LeadFilterTests.test_signals_min and test_filters_combine_with_search_and_ordering; LeadOrderingTests.test_ordering_combines_with_search_and_pages; SignalValueTests.test_each_flag_follows_its_rule and test_signal_count_is_the_number_of_true_flags; SignalFilterTests.test_signals_min; SignalCacheKeyTests.test_each_filter_from_one_generation |
+| S2-tiebreak | billing/intent_signals.py | score tie-break ascending | 2: LeadOrderingTests.test_a_tie_is_broken_by_score_highest_first_in_both_directions; SignalOrderingTests.test_a_tie_is_broken_by_score_highest_first_in_both_directions |
+| S3-cache | users/mixins.py | the list cache key ignores the params | 18: SignalCacheKeyTests 2; SignalFilterTests test_signals_min and test_each_flag_filter_true_and_false; brief 2's 14 (CacheKeyTests 2, OrderingTests' 9 assert_order tests, FilterTests last_login, activated and plan_filters) |
+| S4-default-order | billing/views.py | intent-signals always orders by signals (-signals when no param) | 1: LeadOrderingTests.test_no_param_keeps_the_score_order_when_counts_disagree. The pin and test_no_param_keeps_todays_order survive (their score order equals their count order; that was the gap, R3) |
+| S5-gate | users/filters.py | the signal filters apply for a non-super admin too | 1: SignalFilterTests.test_the_signal_filters_do_nothing_off_the_list_for_others |
+| S6-boundary | billing/intent_signals.py | active_last_week uses > (exclusive) | 7: BoundaryTests.test_exactly_seven_days_ago_is_active; SignalValueTests.test_exactly_seven_days_ago_is_active_last_week; IntentSignalsPinTests.test_the_signal_payloads_are_what_they_were; LeadFilterTests test_signals_min, test_the_count_follows_the_filters and test_filters_combine_with_search_and_ordering; LeadOrderingTests.test_ordering_combines_with_search_and_pages |
