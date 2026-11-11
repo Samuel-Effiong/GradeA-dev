@@ -5132,3 +5132,20 @@ The fragments were rendered from unittest's own messages (no test run). No pre-e
   2. the payload against the pin, by row: keys added, removed and changed, top level and in `credit_wallet`.
 - **Declared: Ran 2, OK** (both methods only print; neither asserts against the pin or the counts). The output is the evidence.
 - Expected shape, under the cause above: per-row wallet and bucket queries in the default pages; the pin diff is only `balance_status`, `reserved_credits` and `spendable` added under `credit_wallet`, with every existing key unchanged. Anything else is reported as found.
+
+**B10-D2 result, as declared: Ran 2 tests in 7.981s, OK.** Log: `step10/D2_cac63b958.log`.
+
+1. **Queries:** 5 rows default = **47**; 25 rows default = **187**; 5 rows `-credits_left` = **48**.
+   - That is **7 extra per row**: (187 − 47) / 20.
+   - Grouped, for the 25-row page:
+     - 75 × `SUM(total_credits − used_credits)` over live buckets: 3 per row, from `total_remaining_credits()` called by `spendable_credits` twice and by `plan_remaining_credits()` once;
+     - 51 × wallet `SELECT`: 2 per row from `spendable_credits`' `CreditWallet.objects.get()`, plus 1;
+     - 25 × bucket row `SELECT`: `cycle_bucket`'s MONTHLY `.first()`;
+     - 25 × `SUM(used_credits)`: `plan_used_credits()`.
+   - The remaining 11 run once per page: the user list, count, prefetches, audit and activity.
+2. **Pin:** 7 rows pinned, 7 listed.
+   - 6 rows each add exactly `balance_status`, `reserved_credits` and `spendable` under `credit_wallet`. Nothing is removed and **no existing key changed**.
+   - `e.nowallet` is identical.
+   - The values: `a.individual` None/1500/15750; `b.licteacher` None/0/8999; `c.schooladmin` None/0/5000; `d.student`, `f.nosettings` and `g.empty` each "out"/0/0.
+
+This confirms the cause recorded above.
