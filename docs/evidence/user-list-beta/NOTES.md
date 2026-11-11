@@ -99,3 +99,22 @@ Labels: users.tests_user_list_sorting users.tests_user_list_payload_pin classroo
 Count from build_suite: 72. Expected: Ran 72, OK.
 
 R2 result (R2_green.log): Ran 72, OK, as predicted.
+
+## Plants (declared before any plant runs)
+
+The harness plant_ulb.py is staging's plant_uls.py with Q-credits changed
+(it is copied into plants/ after the runs). One plant per run: copy, sha256
+equals HEAD, plant, run the 2 labels (54 tests) under the flock, restore,
+sha256 again, then delete the copy. Logs go to plants/<id>.log, restore
+sha lines to plants/shas.txt.
+
+| plant | file | change | killed (declared) |
+|---|---|---|---|
+| Q-dates | users/user_list.py | activated_at reads date_joined | 5: DateValueTests both; OrderingTests.test_activated_at; FilterTests.test_activated_after_and_before; OrderingTests.test_id_breaks_every_tie_in_both_directions |
+| Q-plan | users/user_list.py | the individual subscription first in the precedence | 1: PlanValueTests.test_a_license_teacher_allocation_wins_over_an_individual_one |
+| Q-counts | users/user_list.py | papers_graded drops ai_graded_at not null | 1: CountValueTests.test_papers_graded_counts_ai_graded_submissions_only |
+| Q-credits (beta) | users/user_list.py | the live-bucket sum drops its expiry filter | 1: CreditsLeftParityTests.test_each_fixture_matches_display_balance (subtests "expired bucket", "live, expired and used"). The pin and retrieve parity survive: they drop the nine keys, and the wallet serializer has its own expiry check |
+| Q-cache | users/mixins.py | the list key ignores the query params | 14: CacheKeyTests 2; OrderingTests' 9 assert_order tests; FilterTests last_login, activated and plan_filters (3) |
+| Q-listonly | users/views.py | UserListSerializer for every action | 3: ListOnlyTests super_admin_non_list and teacher_non_list; SingleRetrieveParityTests |
+| Q-prefetch | users/user_list.py | drop the credit_wallet__buckets prefetch | 2: QueryCountTests both |
+| Q-gate | users/filters.py | the new filters also apply for non-super admins | 1: ListOnlyTests.test_the_list_filters_do_nothing_off_the_list_for_others |
