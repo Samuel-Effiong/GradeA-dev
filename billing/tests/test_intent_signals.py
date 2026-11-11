@@ -344,6 +344,9 @@ class AgreementTests(LeadsBase):
 
 class LeadQueryCountTests(LeadsBase):
     def count(self, name, **params):
+        # The first request of a test pays one-time queries (R1, NOTES):
+        # warm up, then measure.
+        self.client.get(reverse(name), params)
         with CaptureQueriesContext(connection) as ctx:
             response = self.client.get(reverse(name), params)
         self.assertEqual(response.status_code, 200, response.content[:300])
@@ -406,7 +409,9 @@ class LeadOpenApiTests(LeadsBase):
 
         self.addCleanup(restore)
         schema = SchemaGenerator().get_schema(request=None, public=True)
-        paths = [p for p in schema["paths"] if p.endswith("beta/intent-signals/")]
+        paths = [
+            p for p in schema["paths"] if p.rstrip("/").endswith("beta/intent-signals")
+        ]
         self.assertEqual(len(paths), 1, paths)
         return schema["paths"][paths[0]]["get"]
 
@@ -426,7 +431,13 @@ class LeadOpenApiTests(LeadsBase):
         examples = self.operation()["responses"]["200"]["content"]["application/json"][
             "examples"
         ]
-        for example in examples.values():
-            for row in example["value"]:
-                with self.subTest(row["email"]):
+        for name, example in examples.items():
+            # drf-spectacular wraps each example value as ONE item of a
+            # paginated list's results (R1b/R1c, NOTES): an example given as
+            # a list of rows rendered as a list inside the list.
+            value = example["value"]
+            rows = value["results"] if isinstance(value, dict) else value
+            for row in rows:
+                with self.subTest(name):
+                    self.assertIsInstance(row, dict)
                     self.assertEqual(set(row["flags"]), set(FLAGS))

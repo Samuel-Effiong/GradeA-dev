@@ -85,3 +85,57 @@ The 2 signal pins and the 54 user-list tests pass.
 Possible wrong-reason failures to watch: the OpenAPI example's structure (a
 paginated wrapper) could make test_the_example_shows_all_four_flags fail on
 a KeyError rather than on the 3 keys.
+
+R1 result (R1_red.log): Ran 103, FAILED (failures=65, errors=29; the totals
+count subTests). By distinct test, 40 fail and 63 pass.
+**Prediction wrong**: declared 38 and 65.
+- LeadQueryCountTests, both tests, failed (declared to pass): "7 != 9" and
+  "6 != 8". This was a test defect. The first request of a test pays 2
+  one-time queries, and the base count was taken on that first request.
+  Fixed in the test only: count() now makes one warm-up request first.
+- LeadOpenApiTests, both tests, failed as declared but **for the wrong
+  reason**: the path lookup matched nothing ([]). The schema path has no
+  trailing slash, the same trap as brief 2's R1. Fixed in the test only
+  (match with rstrip("/")).
+Every other failure was in the declared set, for the declared reason.
+
+### R1b (declared): the 4 corrected tests on the base
+
+Labels: billing.tests.test_intent_signals.LeadQueryCountTests and
+billing.tests.test_intent_signals.LeadOpenApiTests (4 tests).
+Expected:
+- LeadQueryCountTests 2 pass;
+- LeadOpenApiTests 2 fail for the right reasons: "'ordering' not in params"
+  (KeyError) and the example's 3-key flags (a set mismatch, no
+  frequent_user).
+
+R1b result (R1b_red.log): Ran 4, FAILED (errors=2).
+- LeadQueryCountTests: 2 pass, as declared.
+- test_the_ordering_and_filters_are_documented: KeyError 'ordering', as
+  declared.
+- **Prediction wrong** for test_the_example_shows_all_four_flags: TypeError.
+  drf-spectacular wraps a paginated list's example in {count, next,
+  previous, results}, so the test iterated the dict's keys. This was the
+  risk named in the R1 declaration. Test defect, fixed in the test only
+  (read "results").
+
+### R1c (declared)
+
+Label: billing.tests.test_intent_signals.LeadOpenApiTests.test_the_example_shows_all_four_flags.
+Expected: Ran 1, FAILED (failures=1, 2 subTests), a set mismatch: the 3
+example flags without frequent_user.
+
+R1c result (R1c_red.log): Ran 1, FAILED (errors=1), TypeError again.
+**Prediction wrong.** Each example value is wrapped as ONE item of results,
+so the decorator's list of two rows renders as `results: [[row, row]]`, a
+list inside the list. That is a real docs defect beside the 3-key flags.
+The test now asserts each documented row is an object with the 4 flags.
+The product fix (the SM's "fix the example", docs only) writes each example
+as a single row, so it renders as `results: [row]`.
+
+### R1d (declared)
+
+The same single test. Expected: Ran 1, FAILED (failures=1): AssertionError,
+the row is a list, not a dict (the nesting).
+
+R1d result (R1d_red.log): Ran 1, FAILED (failures=1), AssertionError: the row is a list (the nesting), as declared. Red is now right for all 103 tests: 40 fail, each for its declared reason (after the R1 corrections above).
