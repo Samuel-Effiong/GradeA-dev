@@ -226,3 +226,28 @@ By distinct test (the failure totals count subTests):
 | S4-default-order | **Prediction incomplete**: 2 killed. The declared one, plus LeadOrderingTests.test_no_param_keeps_todays_order. Under the plant an ignored value such as "score" or "signal_count" does not start with "-", so the plant sorted by signals ascending, and that test's ignored-value subtests caught it. Its no-param assertion did survive, as traced: the fixture's score order equals its count order |
 | S5-gate | as declared: 1 |
 | S6-boundary | as declared: 7 |
+
+### M1 (declared): the query counts on the head
+
+The M0 scratch test, with the signals params added (copied in, run, deleted,
+never committed). Expected, unchanged from M0:
+- intent-signals 9 at page_size 5 and 25, with no params and with
+  ordering=-signals&signals_min=1;
+- distribution 8 at 5 and 30 profiles;
+- user list 13 at 5 and 25, with no params and with
+  ordering=-signals&at_80_percent=false.
+
+M1 result (M1_after_count.log): intent-signals 9 = 9 (with and without the
+signals params), distribution 8 = 8, user list 13 = 13 (with and without the
+params), as predicted. The scratch test was deleted.
+
+### N1 near (declared)
+
+Environment: venv ~/Documents/Virtualenvs/h284_deps_env, --settings=settings_worktree,
+--keepdb, --noinput, -v 2, --parallel 1, under flock ~/.machine-fullsuite.lock,
+test DB test_signals_beta, worktree Grade-Automator-Plus-signals-beta.
+Labels: users, billing, and the 60 beta guard labels (guards60.txt, the same
+list as brief 3).
+Count from build_suite at HEAD: 4406 (brief 3's 4356 + the 50 tests brief 4
+adds).
+Expected: Ran 4406, OK, failures 0, errors 0. Skip count not predicted.
