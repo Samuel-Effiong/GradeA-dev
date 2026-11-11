@@ -74,6 +74,7 @@ from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.reason_codes import add_coded_envelope
 from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.tasks import send_email_task
+from billing import intent_signals as signal_rules
 from billing.services import AnalyticsService
 from classrooms.models import (
     EnrollmentStatusType,
@@ -152,7 +153,13 @@ from users.throttling import (
     verify_lock_until,
 )
 from users.tokens import EpochRefreshToken, revoke_session, session_id_of
-from users.user_list import COLUMN_KEYS, SORT_KEYS, list_queryset, ordering_values
+from users.user_list import (
+    COLUMN_KEYS,
+    SIGNAL_SORT_KEY,
+    SORT_KEYS,
+    list_queryset,
+    ordering_values,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -232,7 +239,8 @@ USER_EXAMPLE = {
                     "values sort last in both directions, and id breaks ties. "
                     "plan_tier sorts by rank: TRIAL, BETA, STANDARD, PRO, "
                     "POWER, CUSTOM. credits_left and credits_used sort on "
-                    "raw credits. Unknown keys are ignored."
+                    "raw credits. Unknown keys are ignored. "
+                    + signal_rules.ORDERING_DOC
                 ),
             ),
         ],
@@ -322,7 +330,7 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
     # applies filters too - a yes/no oracle on other tenants' enrollments.
     filterset_class = UserEnrollmentFilter
     search_fields = ["first_name", "last_name", "email"]
-    ordering_fields = [*COLUMN_KEYS, *SORT_KEYS]
+    ordering_fields = [*COLUMN_KEYS, *SORT_KEYS, SIGNAL_SORT_KEY]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, UserListOrderingFilter]
 
@@ -374,7 +382,9 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
             # The list page: its values and the existing payload's
             # relations, at a fixed number of queries (D1).
             if self.action == "list":
-                return list_queryset(queryset)
+                return list_queryset(
+                    queryset, now=signal_rules.request_now(self.request)
+                )
             return queryset
 
         if user.user_type == UserTypes.SCHOOL_ADMIN and user.school_id:

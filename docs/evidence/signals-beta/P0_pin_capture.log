@@ -1,0 +1,61 @@
+Using existing test database for alias 'default' ('test_signals_beta')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_the_signal_payloads_are_what_they_were (billing.tests.test_intent_signals_pins.IntentSignalsPinTests.test_the_signal_payloads_are_what_they_were) ... Free trial plan not found: no trial activated for user 24572eff-f1ce-4c47-9e93-95bcfec4ad9a.
+Free trial plan not found: no trial activated for user 8b626223-9f28-4dbc-942c-166bfb2c65c7.
+Free trial plan not found: no trial activated for user 962e4689-19b8-4742-9b92-c357b40b0c47.
+Free trial plan not found: no trial activated for user cc71142d-ef9a-4621-9c81-c62dd94dd59c.
+Free trial plan not found: no trial activated for user db138f14-60e0-47dc-b122-a57c51dad348.
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-signals-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+skipped 'pin written to /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-signals-beta/billing/tests/data/intent_signals_pins.json'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.322s
+
+OK (skipped=1)
+Preserving test database for alias 'default' ('test_signals_beta')...
+Found 1 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_signals_beta')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_the_pin_is_not_vacuous (billing.tests.test_intent_signals_pins.IntentSignalsPinTests.test_the_pin_is_not_vacuous) ... ok
+test_the_signal_payloads_are_what_they_were (billing.tests.test_intent_signals_pins.IntentSignalsPinTests.test_the_signal_payloads_are_what_they_were) ... Free trial plan not found: no trial activated for user 3bc759c5-c769-4e44-b88e-179b649cb0d1.
+Free trial plan not found: no trial activated for user 4a3dc6b7-e541-4191-afd9-9b95d5943248.
+Free trial plan not found: no trial activated for user 58048223-a0b2-40cf-b16a-96ea628561b9.
+Free trial plan not found: no trial activated for user 3c683d06-4f95-49ab-9e4c-3c0684e5503e.
+Free trial plan not found: no trial activated for user f492e2ef-6eae-493c-bbb1-96d38019f1a9.
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-signals-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.766s
+
+OK
+Preserving test database for alias 'default' ('test_signals_beta')...
+Found 2 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.
