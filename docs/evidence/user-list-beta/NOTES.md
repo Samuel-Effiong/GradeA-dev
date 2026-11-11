@@ -133,3 +133,14 @@ committed). Expected: 5 rows = 13 queries and 25 rows = 13, the same fixed
 count as staging.
 
 M1 result: 5 rows = 13, 25 rows = 13, as predicted (69/309 -> 13). Log M1_fixed_count.log.
+
+### N1 near (declared)
+
+Environment: venv ~/Documents/Virtualenvs/h284_deps_env, --settings=settings_worktree,
+--keepdb, --noinput, -v 2, --parallel 1, under flock ~/.machine-fullsuite.lock,
+test DB test_user_list_beta, worktree Grade-Automator-Plus-user-list-beta,
+HEAD = this commit's parent tree, plus this declaration.
+Labels: users, billing, and the 60 standing guard labels that exist on beta
+(guards60.txt: the 67 minus the 7 named in DESIGN section 5).
+Count from build_suite at HEAD: 4356 (base 4302 + the 54 new tests).
+Expected: Ran 4356, OK, failures 0, errors 0. Skip count not predicted.
