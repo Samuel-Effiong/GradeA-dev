@@ -139,3 +139,5 @@ The same single test. Expected: Ran 1, FAILED (failures=1): AssertionError,
 the row is a list, not a dict (the nesting).
 
 R1d result (R1d_red.log): Ran 1, FAILED (failures=1), AssertionError: the row is a list (the nesting), as declared. Red is now right for all 103 tests: 40 fail, each for its declared reason (after the R1 corrections above).
+
+Correction to the line above: after the R1 test fixes the 2 LeadQueryCountTests pass on the base (R1b), so red stands at **38 fail and 65 pass**, the originally declared sets. R1's 40 is the uncorrected run.
