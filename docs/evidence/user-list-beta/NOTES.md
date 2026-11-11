@@ -118,3 +118,18 @@ sha lines to plants/shas.txt.
 | Q-listonly | users/views.py | UserListSerializer for every action | 3: ListOnlyTests super_admin_non_list and teacher_non_list; SingleRetrieveParityTests |
 | Q-prefetch | users/user_list.py | drop the credit_wallet__buckets prefetch | 2: QueryCountTests both |
 | Q-gate | users/filters.py | the new filters also apply for non-super admins | 1: ListOnlyTests.test_the_list_filters_do_nothing_off_the_list_for_others |
+
+## Plant results (logs plants/<id>.log, sha lines plants/shas.txt; every restore sha256 OK)
+
+**All 8 as declared**, by distinct test (the failure totals count subTests):
+Q-dates 5, Q-plan 1, Q-counts 1, Q-credits 1 (2 subTests), Q-cache 14,
+Q-listonly 3, Q-prefetch 2, Q-gate 1. No .orig copy is kept; the harness
+deletes it after a matching restore.
+
+### M1 (declared): the fixed query count on beta's head
+
+The scratch measure test, the same one as M0 (copied in, run, deleted, never
+committed). Expected: 5 rows = 13 queries and 25 rows = 13, the same fixed
+count as staging.
+
+M1 result: 5 rows = 13, 25 rows = 13, as predicted (69/309 -> 13). Log M1_fixed_count.log.
