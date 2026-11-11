@@ -118,3 +118,41 @@ Logs go to plants/<id>.log, sha lines to plants/shas.txt. By distinct test:
 | L3-email | email dropped from the block | 3: test_the_block_is_exactly_the_top_ten_leads, test_the_block_equals_the_leads_list_first_page, test_the_block_follows_the_score_not_the_credits (KeyError on "email") |
 | L4-bare-except | `except Exception` again | 1: test_a_programming_error_is_a_500 |
 | L5-params | the block honors ?page_size | 1: test_query_params_do_not_change_the_block |
+
+## Plant results, first pass (logs plants/<id>.log; every restore sha256 OK; no .orig kept)
+
+| plant | result |
+|---|---|
+| L1-slice | **Prediction incomplete**: 9 killed. The 6 declared, plus the 3 existing BetaAnalyticsCustomAIPromptViewTest tests (forwards the raw prompt, rate limit, kill switch). They POST the prompt too and now get the 500. I left that module out when tracing |
+| L2-order | as declared: 1 |
+| L3-email | **Prediction wrong**: 5 killed, but every one by a 500. ConversionLeadSerializer requires `email`, so dropping it before serialization crashed the request. The plant never produced a block without email, so it did not test what the SM asked for ("killed by the exact-string pin") |
+| L4-bare-except | as declared: 1 |
+| L5-params | as declared: 1 |
+
+### L3b (declared): email dropped AFTER serialization
+
+The same intent as L3: the request survives and the block simply lacks
+email. Edit: after `.data`, rebuild intent_leads without the "email" key.
+Expected kills, 3:
+- test_the_block_is_exactly_the_top_ten_leads (string mismatch: the
+  exact-string pin);
+- test_the_block_equals_the_leads_list_first_page (row mismatch);
+- test_the_block_follows_the_score_not_the_credits (KeyError "email" in the
+  test).
+Every other test passes (the request is 200).
+
+L3b result (plants/L3b-email-after.log): as declared. FAILED (failures=2,
+errors=1): the 3 named. test_the_block_is_exactly_the_top_ten_leads fails on
+the string itself (the "email" key is missing), so the exact-string pin
+kills it. Restore sha256 OK.
+
+### N1 near (declared)
+
+Environment: venv ~/Documents/Virtualenvs/h284_deps_env, --settings=settings_worktree,
+--keepdb, --noinput, -v 2, --parallel 1, under flock ~/.machine-fullsuite.lock,
+test DB test_ai_leads_beta, worktree Grade-Automator-Plus-ai-leads-beta.
+Labels: users, billing, and the 60 beta guard labels (guards60.txt, the same
+list as briefs 3 and 4).
+Count from build_suite at HEAD: 4415 (brief 4's 4406 + the 9 tests brief 5
+adds).
+Expected: Ran 4415, OK, failures 0, errors 0. Skip count not predicted.
