@@ -1,0 +1,98 @@
+B1b-9 P9-5 (NOTES §9.6): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial
+diff --git a/billing/batch_queue.py b/billing/batch_queue.py
+index 59b1f21a2..9809c3f2f 100644
+--- a/billing/batch_queue.py
++++ b/billing/batch_queue.py
+@@ -524,7 +524,7 @@ def notify(job_pk, kind, **counts):
+     approved. Until then nothing is sent (the late-door precedent). Nothing
+     is sent while draining either (B1b-9 Q9-4; 08b §6.3: no expiry emails
+     during a drain)."""
+-    if holds.holds_draining():
++    if False:
+         logger.info(
+             "Batch job %s is %s; credit holds are draining, so no email was sent.",
+             job_pk,
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 572afa1c-793d-4170-ae1c-d3f2bddaccbb.
+Cannot activate automatic trial for user 572afa1c-793d-4170-ae1c-d3f2bddaccbb (validation): ValueError
+FFree trial plan not found: no trial activated for user 7872aa9e-c38a-44ec-b845-e13e55b7a70f.
+Cannot activate automatic trial for user 7872aa9e-c38a-44ec-b845-e13e55b7a70f (validation): ValueError
+FFree trial plan not found: no trial activated for user e18fa611-c962-4497-8594-1f90f9d8c330.
+Cannot activate automatic trial for user e18fa611-c962-4497-8594-1f90f9d8c330 (validation): ValueError
+FFree trial plan not found: no trial activated for user a7acbcb8-084b-43cb-b41a-7e0c731ba5f7.
+Cannot activate automatic trial for user a7acbcb8-084b-43cb-b41a-7e0c731ba5f7 (validation): ValueError
+FFree trial plan not found: no trial activated for user 80bf9436-1633-4baa-9b71-e2fdba2bb4d1.
+Cannot activate automatic trial for user 80bf9436-1633-4baa-9b71-e2fdba2bb4d1 (validation): ValueError
+F
+======================================================================
+FAIL: test_expired_is_silent (billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_expired_is_silent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 327, in test_expired_is_silent
+    self.send("expired", left=3).assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to not have been called. Called 1 times.
+Calls: [call(subject='Your waiting papers have stopped waiting', message='3 papers from Fractions waited 30 days for credits and have stopped waiting. Nothing was charged for them. You can grade them at any time by retrying them after you add credits.', from_email='Grade A+ <support@gradeautomator.com>', recipient_list=['b1b8.q.2e1bd0@example.com'])].
+
+======================================================================
+FAIL: test_expiry_warning_is_silent (billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_expiry_warning_is_silent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 321, in test_expiry_warning_is_silent
+    self.send("expiry_warning").assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to not have been called. Called 1 times.
+Calls: [call(subject='Your waiting papers expire in 2 days', message="3 papers from Fractions are still waiting for credits. If you don't add credits by 2026-12-11, they will stop waiting. You can still grade them later by retrying them.", from_email='Grade A+ <support@gradeautomator.com>', recipient_list=['b1b8.q.5726df@example.com'])].
+
+======================================================================
+FAIL: test_queued_is_silent (billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_queued_is_silent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 317, in test_queued_is_silent
+    self.send("queued").assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to not have been called. Called 1 times.
+Calls: [call(subject='Your grading batch is waiting for credits', message='Your credits ran out while grading Fractions. 2 of 5 papers were graded and saved. The other 3 papers will start again on their own when you add credits. They will wait for 30 days, until 2026-12-11.\n\nTop up your credits to continue.', from_email='Grade A+ <support@gradeautomator.com>', recipient_list=['b1b8.q.862f9a@example.com'])].
+
+======================================================================
+FAIL: test_restarted_is_silent (billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_restarted_is_silent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 324, in test_restarted_is_silent
+    self.send("restarted", started=2, left=3).assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to not have been called. Called 1 times.
+Calls: [call(subject='Your grading batch has started again', message='Credits arrived, so grading Fractions has started again for 2 of the 3 waiting papers.', from_email='Grade A+ <support@gradeautomator.com>', recipient_list=['b1b8.q.9b1780@example.com'])].
+
+======================================================================
+FAIL: test_the_beat_expiry_still_expires_and_sends_nothing (billing.tests.test_b1b9_drain.DrainingQueueEmailTests.test_the_beat_expiry_still_expires_and_sends_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 338, in test_the_beat_expiry_still_expires_and_sends_nothing
+    send.assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to not have been called. Called 1 times.
+Calls: [call(subject='Your waiting papers have stopped waiting', message='2 papers from Fractions waited 30 days for credits and have stopped waiting. Nothing was charged for them. You can grade them at any time by retrying them after you add credits.', from_email='Grade A+ <support@gradeautomator.com>', recipient_list=['b1b8.q.ffdc81@example.com'])].
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.161s
+
+FAILED (failures=5)
+Destroying test database for alias 'default'...
+Found 5 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+restored, sha256 d098456c30c705e748c1697bdfc3cb367e47c9a6ed69022f37ec0eb1cde9ea91 MATCHES 75e162585

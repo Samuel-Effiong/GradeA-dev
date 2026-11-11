@@ -1,0 +1,46 @@
+B1b-9 P9-4 (NOTES §9.6): ENV BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial
+diff --git a/billing/models.py b/billing/models.py
+index 43cce9140..a9705f646 100644
+--- a/billing/models.py
++++ b/billing/models.py
+@@ -1376,7 +1376,7 @@ def _queue_promotion(user_id):
+     the promotion of that user's queued batch jobs after commit; never inline
+     (a promoter error cannot fail the grant), and no query here. Nothing
+     while the flag is off, nor while draining (B1b-9: promotion stops)."""
+-    from .holds import holds_for_new_work
++    from .holds import holds_enabled as holds_for_new_work
+
+     if not holds_for_new_work():
+         return
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user 6248cbc7-f962-4c11-a510-628358d7f291.
+Cannot activate automatic trial for user 6248cbc7-f962-4c11-a510-628358d7f291 (validation): ValueError
+F
+======================================================================
+FAIL: test_a_credit_entry_enqueues_no_promotion (billing.tests.test_b1b9_drain.DrainingPromotionTests.test_a_credit_entry_enqueues_no_promotion)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b9_drain.py", line 296, in test_a_credit_entry_enqueues_no_promotion
+    promote.assert_not_called()
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'delay' to not have been called. Called 1 times.
+Calls: [call('d365aec9-99b6-4975-803d-84cec9541f21')].
+
+----------------------------------------------------------------------
+Ran 1 test in 0.039s
+
+FAILED (failures=1)
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+restored, sha256 22959c37739dd1fcc399a807c7365df7b50474b09f3951a218cee39957445f4b MATCHES 75e162585

@@ -4783,3 +4783,30 @@ R9 at e20a1f61d (`step9/R9_red_e20a1f61d.log`): **Ran 35 tests, FAILED (failures
 | P9-7 (Q9-3) | the command: `sweep_stale_holds()` without `force=True` | `ForceLimitTests.test_only_the_emergency_command_passes_force`, `DrainCommandTests.test_the_emergency_returns_every_hold_at_once_and_prints_drained` | Ran 2, FAILED (failures=2): `Items in the second set but not the first:`; `Tuples differ: ('PENDING', '') != ('FAILURE', 'PROVIDER_FAILURE')` |
 
 The fragments were rendered from unittest's own messages (no test run). No pre-existing test was edited in B1b-9, so there is no break run. The near run is declared after the plants.
+
+### §9.7 G9 and the plants: as declared; the B1b-9 near run declared (before it runs)
+
+**G9 at 75e162585** (`step9/G9_green_75e162585.log`): **Ran 35 tests, OK**, exit 0. As declared.
+
+**Plants at 75e162585**, each restored, sha256 MATCHES 75e162585 (logs `step9/P9-*_75e162585.log`):
+
+| Plant | Result |
+|---|---|
+| P9-1 | Ran 1, FAILED (failures=1): `1 != 0`. Killed, as declared |
+| P9-2 | Ran 1, FAILED (failures=1): `'137cd113-…' not found in 'DRAINED\n'`. Killed, as declared |
+| P9-3 | Ran 2, FAILED (failures=2): `Tuples differ: (0, 1) != (1, 1)`; `Tuples differ: ('PENDING', '') != ('FAILURE', 'PROVIDER_FAILURE')`. Killed, as declared |
+| P9-4 | Ran 1, FAILED (failures=1): `Expected 'delay' to not have been called. Called 1 times.` Killed, as declared |
+| P9-4b | Ran 1, FAILED (failures=1): `Expected 'promote_all' to not have been called. Called 1 times.` Killed, as declared |
+| P9-5 | Ran 5, FAILED (failures=5), each `Expected 'delay' to not have been called. Called 1 times.` Killed, as declared |
+| P9-6 | Ran 1, FAILED (failures=1): `InsufficientCreditsError not raised`. Killed, as declared |
+| P9-7 | Ran 2, FAILED (failures=2): `Items in the second set but not the first:`; `Tuples differ: ('PENDING', '') != ('FAILURE', 'PROVIDER_FAILURE')`. Killed, as declared |
+
+**The near run:**
+- **Label:** `billing students assignments dashboard users` + the 67 guards (`guards67.txt`).
+- **Count** (`bsk.py`) at this commit: **6993 tests** (N8's 6958 + B1b-9's 35), **26 static skips**.
+- **Runtime skips:** users' 4, plus the 2 `--parallel` fork skips; `test_b1b9_drain` has none. **Skipped = 26 + 4 + 2 = 32.**
+- `origin/staging` was unchanged since 991ba0fd0 at §9.4; `makemigrations --check`: "No changes detected". B1b-9 has no migration.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| N9 (near) | BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; `--parallel 4`; under flock with `--noinput`; at this commit | `billing students assignments dashboard users` + `guards67.txt` | **Ran 6993, OK (skipped=32)**, 0 FAIL, 0 ERROR |
