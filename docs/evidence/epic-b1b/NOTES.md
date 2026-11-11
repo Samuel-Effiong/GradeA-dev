@@ -4746,3 +4746,40 @@ The fragments were rendered from unittest's own assertion messages, and the erro
 ### §9.5 R9 result: as declared
 
 R9 at e20a1f61d (`step9/R9_red_e20a1f61d.log`): **Ran 35 tests, FAILED (failures=28, errors=10)**, exit 1. Each failure and error is the declared test with the declared fragment. The 3 declared passes pass: `…held_row_keeps_running…`, `…nested_unit_follows_a_held_root`, `…q92_the_door_reads_spendable`. No mismatch.
+
+### §9.6 The B1b-9 product; an undeclared trial run, recorded unamended; one test assertion added; G9 green and plants P9-1..P9-7 declared (before they run)
+
+**The product** at 05ddbd2c1:
+- `AutoGrader/settings.py`: `BILLING_HOLDS_DRAINING` (env.bool, default False).
+- `billing/holds.py`: `holds_draining()`, `holds_for_new_work()`, `call_runs_without_hold()`, `flag_off_balance()` (Q9-2), `warn_if_draining_with_holds_off()` (Q9-6). `Unit.enter(…, new_jobs=False)` returns False where it would open a new job. `metered_unit` under draining: a root keeps holds only when `enter` claims a HELD row; a root inside an open refund scope stays flag-off. `hold_for_call`: no single-call job while draining. `sweep_stale_holds(now=None, *, force=False)` and `_sweep_item(…, force=False)` (Q9-3).
+- `billing/refunds.py`: `refund_scope_open()`.
+- `ai_processor/services.py`: the flag-off check runs when `call_runs_without_hold()`, against `flag_off_balance(wallet)`.
+- `assignments/upload_door.py`: the on-commit launch and `DoorHold.active` use `holds_for_new_work()`; `_balance` unchanged (already spendable with the flag on).
+- `assignments/tasks.py:1625`, `:1991`: `holds_for_new_work()`.
+- `billing/models.py` `_queue_promotion`, `billing/tasks.py` `promote_queued_jobs` and `promote_queued_jobs_for_wallet`: nothing while draining (the tasks return "credit holds draining").
+- `billing/batch_queue.py` `notify`: nothing sent while draining (an info log, ids only).
+- `billing/apps.py`: `ready()` calls `holds.warn_if_draining_with_holds_off()`.
+- `billing/management/commands/billing_holds_drain.py` and `docs/ops/billing_holds_drain.md` (the runbook: the owner-go line, no Beat or cron entry, the settings checklist, both modes, no queue email for drained queued jobs, low-balance and drift unaffected).
+
+**An undeclared run, recorded unamended.** Before committing the product, I ran `billing.tests.test_b1b9_drain` once on the uncommitted working tree, under flock, with the §9.4 env: **Ran 35 tests, OK**. It was not declared in NOTES first, which breaks the doctrine. No file was changed because of it. It is reported to the SM at the end checkpoint. The declared green run is G9 below.
+
+**One assertion added to a B1b-9 test after R9** (not a pre-existing test). While designing P9-7, I found that `DrainCommandTests.test_the_emergency_returns_every_hold_at_once_and_prints_drained` could not tell the forced sweep from `finish_job`: `finish_job(FAILED)` also returns every HELD item's hold, so dropping `force` would leave the test green. The SM ruled the unstarted-hold test must catch that plant. The test now also asserts both held rows end `("FAILURE", "PROVIDER_FAILURE")`: the sweep sets that, and `finish_job` leaves a row's status. Its red is shown by P9-3 and P9-7 below. The suite count is unchanged: 35.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| G9 (green) | BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial; at this commit | `billing.tests.test_b1b9_drain` | **Ran 35 tests, OK** |
+
+**Plants**, each run by `plant.sh` (same env as G9, serial), each restored by `git checkout` and checked by sha256 against this commit:
+
+| Plant | File: change | Label | Declared |
+|---|---|---|---|
+| P9-1 | `billing/holds.py`: `hold_for_call` loses its `if not holds_for_new_work(): return None` | `DrainingCallTests.test_a_single_call_takes_no_hold` | Ran 1, FAILED (failures=1): `1 != 0` |
+| P9-2 | the command: `is_drained` returns True | `DrainCommandTests.test_an_open_hold_exits_1_naming_its_wallet_and_job` | Ran 1, FAILED (failures=1): `not found in 'DRAINED\n'` |
+| P9-3 | `billing/holds.py`: the forced sweep keeps only started items (`started_at__isnull=False` always) | `ForceLimitTests.test_force_returns_unstarted_holds_and_a_fresh_job_with_no_row`, `DrainCommandTests.test_the_emergency_returns_every_hold_at_once_and_prints_drained` | Ran 2, FAILED (failures=2): `Tuples differ: (0, 1) != (1, 1)`; `Tuples differ: ('PENDING', '') != ('FAILURE', 'PROVIDER_FAILURE')` |
+| P9-4 | `billing/models.py`: `_queue_promotion` checks `holds_enabled` (draining ignored) | `DrainingPromotionTests.test_a_credit_entry_enqueues_no_promotion` | Ran 1, FAILED (failures=1): `Expected 'delay' to not have been called. Called 1 times.` |
+| P9-4b | `billing/tasks.py`: `_draining()` returns False | `DrainingPromotionTests.test_the_promotion_tasks_promote_nothing` | Ran 1, FAILED (failures=1): `Expected 'promote_all' to not have been called. Called 1 times.` |
+| P9-5 | `billing/batch_queue.py`: `notify`'s draining guard is `if False:` | `DrainingQueueEmailTests` | Ran 5, FAILED (failures=5), each `Expected 'delay' to not have been called. Called 1 times.` |
+| P9-6 (Q9-2) | `billing/holds.py`: `flag_off_balance` always returns the total | `DrainingCallTests.test_q92_a_call_the_total_covers_but_spendable_does_not_is_refused` | Ran 1, FAILED (failures=1): `InsufficientCreditsError not raised` |
+| P9-7 (Q9-3) | the command: `sweep_stale_holds()` without `force=True` | `ForceLimitTests.test_only_the_emergency_command_passes_force`, `DrainCommandTests.test_the_emergency_returns_every_hold_at_once_and_prints_drained` | Ran 2, FAILED (failures=2): `Items in the second set but not the first:`; `Tuples differ: ('PENDING', '') != ('FAILURE', 'PROVIDER_FAILURE')` |
+
+The fragments were rendered from unittest's own messages (no test run). No pre-existing test was edited in B1b-9, so there is no break run. The near run is declared after the plants.

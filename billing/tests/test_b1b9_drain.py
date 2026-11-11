@@ -527,6 +527,13 @@ class DrainCommandTests(TransactionTestCase):
             code, text = drain("--flag-off-emergency")
         self.assertEqual(fresh(started).hold_state, "RETURNED")
         self.assertEqual(fresh(unstarted).hold_state, "RETURNED")
+        # Through the sweep (Q9-3), not only finish_job: the sweep fails the
+        # row as retryable, finish_job leaves its status.
+        for row in (started, unstarted):
+            self.assertEqual(
+                (fresh(row).status, fresh(row).reason_code),
+                ("FAILURE", "PROVIDER_FAILURE"),
+            )
         self.assertEqual(fresh(single).status, AIJobStatus.FAILED)
         self.assertEqual(fresh(queued).status, AIJobStatus.EXPIRED)
         self.assertFalse(
