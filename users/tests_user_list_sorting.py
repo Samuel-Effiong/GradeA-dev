@@ -84,7 +84,9 @@ SIGNAL_KEYS = (
     "active_last_week",
     "is_power_grader",
 )
-OLD_ORDERING_KEYS = ("first_name", "last_name", "email", "username")
+#: "username" was removed (brief 6, owner 2026-11-11): CustomUser has no
+#: username field, so it was a 500.
+OLD_ORDERING_KEYS = ("first_name", "last_name", "email")
 FILTER_PARAMS = (
     "last_login_after",
     "last_login_before",
@@ -976,6 +978,8 @@ class OpenApiTests(Base):
         for key in (*NEW_KEYS, *OLD_ORDERING_KEYS):
             for value in (key, f"-{key}"):
                 self.assertIn(value, allowed)
+        self.assertNotIn("username", allowed)
+        self.assertNotIn("-username", allowed)
 
     def test_every_new_filter_is_documented(self):
         params = self.list_parameters()

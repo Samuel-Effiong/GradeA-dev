@@ -340,7 +340,10 @@ SORT_KEYS = {
     "credits_used": "credits_used_raw",
 }
 #: Keys that are model columns; last_login is one but sorts nulls last too.
-COLUMN_KEYS = ("first_name", "last_name", "email", "username")
+#: No "username": CustomUser has none (`username = None`), so ordering by it
+#: was a 500; the owner removed it (brief 6, 2026-11-11), and it is now
+#: ignored like any unknown key.
+COLUMN_KEYS = ("first_name", "last_name", "email")
 
 
 def ordering_values():

@@ -37,11 +37,13 @@ from users.models import UserTypes
 from .tests_user_list_sorting import SIGNAL_KEYS, Base
 
 FLAGS = ("at_80_percent", "frequent_user", "active_last_week", "is_power_grader")
-#: The ordering parameter's description must say exactly this (Q-S2).
+#: The ordering parameter's description must say this about `signals`
+#: (Q-S2's rule; brief 6 put it in plain words at the owner's request, SM -cf
+#: ruling 2, 2026-11-11). Compared with the line breaks folded to spaces.
 SIGNALS_ORDERING_DOC = (
-    "signals: signal count ascending; -signals: signal count descending. "
-    "Ties: conversion_probability descending, nulls last, then id ascending, "
-    "in both directions."
+    "Users with the same number are sorted by conversion score, highest "
+    "first, with users who have no score last, and then by ID. That order for "
+    "equal numbers stays the same with `-signals`."
 )
 ALL4 = {
     "has_hit_80_percent": True,
@@ -426,7 +428,8 @@ class SignalOpenApiTests(SignalBase):
         )
 
         self.assertLessEqual({"signals", "-signals"}, allowed)
-        self.assertIn(SIGNALS_ORDERING_DOC, ordering.get("description", ""))
+        description = " ".join(ordering.get("description", "").split())
+        self.assertIn(SIGNALS_ORDERING_DOC, description)
 
     def test_every_signal_filter_is_documented(self):
         params = self.list_parameters()
