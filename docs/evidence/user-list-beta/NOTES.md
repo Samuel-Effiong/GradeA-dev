@@ -144,3 +144,7 @@ Labels: users, billing, and the 60 standing guard labels that exist on beta
 (guards60.txt: the 67 minus the 7 named in DESIGN section 5).
 Count from build_suite at HEAD: 4356 (base 4302 + the 54 new tests).
 Expected: Ran 4356, OK, failures 0, errors 0. Skip count not predicted.
+
+N1 result: Ran 4356 tests in 704.041s, OK (skipped=5). Matches the
+prediction (Ran 4356, OK). The skip count was not predicted. Log
+N1_near.log.gz.
