@@ -1861,13 +1861,22 @@ QUEUE_SWEEP_MAX_HOLD = timedelta(minutes=3)
 QUEUE_SWEEP_LOCK_TTL = timedelta(minutes=1)
 
 
+def _draining():
+    from .holds import holds_draining
+
+    return holds_draining()
+
+
 @shared_task(bind=True, max_retries=0)
 @single_instance(max_hold=QUEUE_SWEEP_MAX_HOLD, ttl=QUEUE_SWEEP_LOCK_TTL)
 def promote_queued_jobs(self):
     """Promote queued batch jobs whose wallet can now hold papers (the
-    documented 5-minute bound). Does nothing while the flag is off."""
+    documented 5-minute bound). Does nothing while the flag is off, nor while
+    draining (B1b-9: promotion stops)."""
     if not getattr(settings, "BILLING_HOLDS_ENABLED", False):
         return "credit holds disabled"
+    if _draining():
+        return "credit holds draining"
     from .batch_queue import promote_all
 
     return f"Queued batch jobs promoted: papers={promote_all()}"
@@ -1875,9 +1884,12 @@ def promote_queued_jobs(self):
 
 @shared_task(max_retries=0)
 def promote_queued_jobs_for_wallet(wallet_id):
-    """The credit-entry hook's task (plan §3.7): one wallet, on commit."""
+    """The credit-entry hook's task (plan §3.7): one wallet, on commit. Not
+    while draining (B1b-9)."""
     if not getattr(settings, "BILLING_HOLDS_ENABLED", False):
         return "credit holds disabled"
+    if _draining():
+        return "credit holds draining"
     from .batch_queue import promote_wallet
 
     return f"Queued batch jobs promoted: papers={promote_wallet(wallet_id)}"

@@ -1375,8 +1375,10 @@ def _queue_promotion(user_id):
     """Epic B1b-6 (plan §3.7, review r1 m3, r2 m-a): a credit entry enqueues
     the promotion of that user's queued batch jobs after commit; never inline
     (a promoter error cannot fail the grant), and no query here. Nothing
-    while the flag is off."""
-    if not getattr(settings, "BILLING_HOLDS_ENABLED", False):
+    while the flag is off, nor while draining (B1b-9: promotion stops)."""
+    from .holds import holds_for_new_work
+
+    if not holds_for_new_work():
         return
     from django.db import transaction
 

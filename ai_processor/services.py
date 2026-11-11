@@ -5644,8 +5644,10 @@ Now, respond to the following teacher's instruction using the rules above
         )
         call_record.note_estimate(estimated_cost)
 
-        if not credit_holds.holds_enabled():
-            balance = wallet.total_remaining_credits()
+        # B1b-9: the flag-off check also runs while draining (no held unit
+        # open); it then reads spendable (Q9-2, SM ruling).
+        if credit_holds.call_runs_without_hold():
+            balance = credit_holds.flag_off_balance(wallet)
 
             if balance < estimated_cost:
                 raise InsufficientCreditsError(

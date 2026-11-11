@@ -521,7 +521,16 @@ def _backstop_item(job, row_pk, reason_code):
 
 def notify(job_pk, kind, **counts):
     """The teacher's email for a job state change, once the texts are
-    approved. Until then nothing is sent (the late-door precedent)."""
+    approved. Until then nothing is sent (the late-door precedent). Nothing
+    is sent while draining either (B1b-9 Q9-4; 08b §6.3: no expiry emails
+    during a drain)."""
+    if holds.holds_draining():
+        logger.info(
+            "Batch job %s is %s; credit holds are draining, so no email was sent.",
+            job_pk,
+            kind,
+        )
+        return
     if not QUEUE_EMAIL_APPROVED:
         logger.warning(
             "Batch job %s is %s; the queue email texts await owner approval, "

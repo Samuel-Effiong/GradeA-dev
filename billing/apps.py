@@ -10,6 +10,7 @@ class BillingConfig(AppConfig):
 
         import billing.checks  # noqa
         import billing.signals  # noqa
+        from billing import holds
         from billing.holds import (
             finish_job_left_empty_on_item_delete,
             release_open_holds_on_delete,
@@ -37,3 +38,5 @@ class BillingConfig(AppConfig):
             sender=BackgroundProcessingTask,
             dispatch_uid="billing.holds.finish_job_left_empty_on_item_delete",
         )
+        # B1b-9 Q9-6: the emergency state is said once at start-up.
+        holds.warn_if_draining_with_holds_off()

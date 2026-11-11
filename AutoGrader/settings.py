@@ -697,6 +697,12 @@ AI_PROVIDER_ZDR_ENABLED = env.bool("AI_PROVIDER_ZDR_ENABLED", default=False)
 
 # Epic B1: credit holds, metered units, batch jobs and queue.
 BILLING_HOLDS_ENABLED = env.bool("BILLING_HOLDS_ENABLED", default=False)
+# B1b-9 (08b §6.3): the drain before the flag is turned off. While on, new
+# work makes no hold, job or queue entry (it runs the flag-off path) and what
+# is already held runs to its end; run `billing_holds_drain`. Set it the same
+# on web, worker and Beat. On with the flag off is the emergency state only
+# (`billing_holds_drain --flag-off-emergency`); it logs a warning at start-up.
+BILLING_HOLDS_DRAINING = env.bool("BILLING_HOLDS_DRAINING", default=False)
 
 # H-256: how long one request to the AI provider may wait for each read before
 # it is given up (the connect wait is fixed at 10 s in ai_processor/services.py).

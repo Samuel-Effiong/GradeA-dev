@@ -83,6 +83,45 @@ def holds_enabled():
     return bool(getattr(settings, "BILLING_HOLDS_ENABLED", False))
 
 
+def holds_draining():
+    """B1b-9 (08b §6.3): BILLING_HOLDS_DRAINING, whatever the flag."""
+    return bool(getattr(settings, "BILLING_HOLDS_DRAINING", False))
+
+
+def holds_for_new_work():
+    """Whether NEW work takes holds: the flag on and not draining. What is
+    already held keeps the holds path while draining (holds_enabled)."""
+    return holds_enabled() and not holds_draining()
+
+
+def call_runs_without_hold():
+    """Whether a provider call outside or inside a unit runs the flag-off
+    path: the flag off, or draining with no held unit open (B1b-9 Q9-1)."""
+    if not holds_enabled():
+        return True
+    return holds_draining() and current_unit() is None
+
+
+def flag_off_balance(wallet):
+    """What the flag-off balance check compares with. B1b-9 Q9-2 (SM ruling,
+    a departure from 08b's "exactly as flag off"): while draining with the
+    flag on, holds are still open, so spendable; otherwise the total."""
+    if holds_enabled():
+        return spendable_credits(wallet)
+    return wallet.total_remaining_credits()
+
+
+def warn_if_draining_with_holds_off():
+    """B1b-9 Q9-6: DRAINING with the flag off is the emergency state only;
+    said once at start-up (BillingConfig.ready)."""
+    if holds_draining() and not holds_enabled():
+        logger.warning(
+            "BILLING_HOLDS_DRAINING is on with BILLING_HOLDS_ENABLED off: the "
+            "flag-off emergency state. Run billing_holds_drain "
+            "--flag-off-emergency, then unset BILLING_HOLDS_DRAINING."
+        )
+
+
 def _audit(action, job, *, item=None, **metadata):
     """One FINANCIAL audit row about `job` (SM ruling 2026-11-06). Ids and
     amounts only; never raises into the caller (emit's own contract)."""
@@ -702,7 +741,7 @@ def single_sweep_window():
     return timedelta(seconds=_time_limit_seconds()) + _sweep_margin()
 
 
-def _sweep_item(item_pk, job_pk, cutoff):
+def _sweep_item(item_pk, job_pk, cutoff, force=False):
     job = AIJob.objects.get(pk=job_pk)
     with transaction.atomic():
         locked = _lock_wallet_of(job)
@@ -711,9 +750,12 @@ def _sweep_item(item_pk, job_pk, cutoff):
         job_row = AIJob.objects.select_for_update().get(pk=job_pk)
         # Conditional: a run that re-claimed the item since it was read is
         # not swept (review r4 R4-1).
-        claimed = BackgroundProcessingTask.objects.filter(
-            pk=item_pk, hold_state=HoldState.HELD, started_at__lt=cutoff
-        ).update(hold_state=HoldState.RETURNED)
+        held = BackgroundProcessingTask.objects.filter(
+            pk=item_pk, hold_state=HoldState.HELD
+        )
+        if not force:
+            held = held.filter(started_at__lt=cutoff)
+        claimed = held.update(hold_state=HoldState.RETURNED)
         if not claimed:
             return None
         item_row = BackgroundProcessingTask.objects.select_for_update().get(pk=item_pk)
@@ -741,45 +783,45 @@ def _sweep_item(item_pk, job_pk, cutoff):
     return amount
 
 
-def sweep_stale_holds(now=None):
+def sweep_stale_holds(now=None, *, force=False):
     """Return holds whose run can no longer be in progress.
 
     Items: only STARTED items past item_sweep_window() with no settlement;
     launched-but-unstarted items are never swept (a broker backlog is
     normal). Jobs with no task row: past single_sweep_window() from creation
-    with no settlement, finished FAILED."""
+    with no settlement, finished FAILED.
+
+    force (B1b-9 Q9-3): every HELD item, started or not, and every such job,
+    with no window. Passed ONLY by billing_holds_drain --flag-off-emergency
+    (a test guards that)."""
     now = now or timezone.now()
     cutoff = now - item_sweep_window()
     settled = SettlementRecord.objects.filter(
         item_id=OuterRef("pk"), retry_count=OuterRef("retry_count")
     )
-    candidates = list(
-        BackgroundProcessingTask.objects.filter(
-            hold_state=HoldState.HELD,
-            started_at__isnull=False,
-            started_at__lt=cutoff,
-            job__isnull=False,
-        )
-        .exclude(Exists(settled))
-        .values_list("pk", "job_id")
+    held = BackgroundProcessingTask.objects.filter(
+        hold_state=HoldState.HELD, job__isnull=False
     )
+    if not force:
+        held = held.filter(started_at__isnull=False, started_at__lt=cutoff)
+    candidates = list(held.exclude(Exists(settled)).values_list("pk", "job_id"))
     items_swept = credits_returned = 0
     for item_pk, job_pk in candidates:
-        amount = _sweep_item(item_pk, job_pk, cutoff)
+        amount = _sweep_item(item_pk, job_pk, cutoff, force=force)
         if amount is not None:
             items_swept += 1
             credits_returned += amount
 
     jobs_released = 0
-    stale_jobs = (
-        AIJob.objects.filter(
-            status__in=(AIJobStatus.RESERVED, AIJobStatus.RUNNING),
-            job_type__in=JOB_LEVEL_TYPES,
-            created_at__lt=now - single_sweep_window(),
-        )
-        .exclude(Exists(BackgroundProcessingTask.objects.filter(job=OuterRef("pk"))))
-        .exclude(Exists(SettlementRecord.objects.filter(job=OuterRef("pk"))))
+    open_jobs = AIJob.objects.filter(
+        status__in=(AIJobStatus.RESERVED, AIJobStatus.RUNNING),
+        job_type__in=JOB_LEVEL_TYPES,
     )
+    if not force:
+        open_jobs = open_jobs.filter(created_at__lt=now - single_sweep_window())
+    stale_jobs = open_jobs.exclude(
+        Exists(BackgroundProcessingTask.objects.filter(job=OuterRef("pk")))
+    ).exclude(Exists(SettlementRecord.objects.filter(job=OuterRef("pk"))))
     for job in list(stale_jobs):
         returned = finish_job(job, AIJobStatus.FAILED)
         if returned is not None:
@@ -907,22 +949,28 @@ class Unit:
         self.settle_kwargs = None
         self.billed = None
 
-    def enter(self, processing_task_id):
+    def enter(self, processing_task_id, *, new_jobs=True):
         """The entry rule through the task row (plan §3.4; SM rulings
-        2026-11-06). Raises the late-message error before any call."""
+        2026-11-06). Raises the late-message error before any call.
+
+        new_jobs=False while draining (B1b-9 Q9-1): returns False wherever
+        the unit would open a NEW job (no row, a row with no job, a late
+        door, a retry); the caller then runs it flag-off. True otherwise."""
         if not processing_task_id:
-            return
+            return new_jobs
         row = (
             BackgroundProcessingTask.objects.select_related("job")
             .filter(pk=processing_task_id)
             .first()
         )
         if row is None:
-            return
+            return new_jobs
         if row.job_id is None:
+            if not new_jobs:
+                return False
             # E-1 style: the first call opens a SINGLE_ITEM job for this row.
             self.attach_item = row
-            return
+            return True
         if already_settled(row):
             raise _late(f"task {row.pk} already settled for retry {row.retry_count}")
         if row.hold_state == HoldState.HELD:
@@ -934,20 +982,27 @@ class Unit:
                     from .batch_queue import mark_running
 
                     mark_running(row.job)
-                return
+                return True
             row = BackgroundProcessingTask.objects.select_related("job").get(pk=row.pk)
         old_job = row.job
         if old_job is None:  # its job was deleted since the row was read
+            if not new_jobs:
+                return False
             self.attach_item = row
-            return
+            return True
         if row.status in FINISHED_TASK_STATUSES:
             if old_job.job_type == AIJobType.UPLOAD:
+                if not new_jobs:
+                    return False
                 self._run_as_successor(open_late_door_job(old_job, row, 0), row)
                 self.late_door_row = row
-                return
+                return True
             raise _late(f"task {row.pk}: its credit hold was returned")
+        if not new_jobs:
+            return False
         # A retry of the row (E-2): a new SINGLE_ITEM job keyed on the row.
         self._run_as_successor(open_retry_job(old_job, row, 0), row)
+        return True
 
     def _run_as_successor(self, job, row):
         self.job = job
@@ -1055,18 +1110,28 @@ def metered_unit(*, processing_task_id=None, reason="task failed"):
     charged). With the flag off it is billing_refund_scope, unchanged.
 
     A root unit opened with a processing_task_id runs the entry rule
-    (Unit.enter) before its body; a nested unit joins its parent."""
-    if not holds_enabled():
-        from .refunds import billing_refund_scope
+    (Unit.enter) before its body; a nested unit joins its parent.
 
+    While draining (B1b-9 Q9-1) a root keeps the holds path only for a HELD
+    task row; any other root runs flag-off, and a unit nested in a flag-off
+    root stays flag-off."""
+    from .refunds import billing_refund_scope, refund_scope_open
+
+    parent = _active_unit.get()
+    unit = Unit(parent)
+    flag_off = not holds_enabled()
+    if not flag_off and parent is None:
+        if holds_draining():
+            flag_off = refund_scope_open() or not unit.enter(
+                processing_task_id, new_jobs=False
+            )
+        else:
+            unit.enter(processing_task_id)
+    if flag_off:
         with billing_refund_scope(reason=reason) as ids:
             yield ids
         return
 
-    parent = _active_unit.get()
-    unit = Unit(parent)
-    if parent is None:
-        unit.enter(processing_task_id)
     token = _active_unit.set(unit)
     try:
         yield unit
@@ -1199,7 +1264,7 @@ class _SingleCallHold:
 def hold_for_call(*, wallet, target_teacher, estimate):
     """Hold one provider call's estimate before the call, or raise
     InsufficientCreditsError. None with the flag off (today's balance check
-    applies)."""
+    applies). While draining, None too unless a held unit is open (B1b-9)."""
     if not holds_enabled():
         return None
     unit = current_unit()
@@ -1208,6 +1273,8 @@ def hold_for_call(*, wallet, target_teacher, estimate):
             wallet=wallet, target_teacher=target_teacher, estimate=estimate
         )
         return _UnitCallHold(unit)
+    if not holds_for_new_work():
+        return None
     job = begin_single_call(
         wallet=wallet, target_teacher=target_teacher, estimate=estimate
     )

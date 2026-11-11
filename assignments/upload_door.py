@@ -69,7 +69,8 @@ def _billed_user(request_user, assignment):
 
 def _balance(wallet):
     """What the door compares with: spendable credit (total less what other
-    jobs hold) when credit holds are on (plan 08 §3.2), the total otherwise."""
+    jobs hold) when credit holds are on (plan 08 §3.2), the total otherwise.
+    While draining the flag is on, so spendable too (B1b-9 Q9-2)."""
     if credit_holds.holds_enabled():
         return credit_holds.spendable_credits(wallet)
     return wallet.total_remaining_credits()
@@ -187,8 +188,9 @@ def launch_at_door(launch, task_callable, processing_task, *args, **kwargs):
     Celery id is chosen now and written on the row, and the message goes out
     only when the transaction commits, so no worker starts before the hold
     exists. `launch` is the caller's own launch_processing_task, so tests
-    that patch it by name still apply; partial binds this file's arguments."""
-    if not credit_holds.holds_enabled():
+    that patch it by name still apply; partial binds this file's arguments.
+    While draining (B1b-9) the door holds nothing, so it launches as flag off."""
+    if not credit_holds.holds_for_new_work():
         return launch(task_callable, processing_task, *args, **kwargs).id
     celery_task_id = str(uuid.uuid4())
     attach_celery_task(processing_task.id, celery_task_id)
@@ -266,7 +268,8 @@ class DoorHold:
         self.total_items = max(total_items, 1)
         self.job = None
         self.billed = None
-        self.active = credit_holds.holds_enabled() and not (
+        # B1b-9: no new door job while draining.
+        self.active = credit_holds.holds_for_new_work() and not (
             request_user.is_real_super_admin()
         )
         if self.active:

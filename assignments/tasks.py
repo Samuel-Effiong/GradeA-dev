@@ -28,7 +28,7 @@ from AutoGrader.reason_codes import REASON_CODES, CodedError, reason_of
 from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.tasks import send_email_task
 from billing.errors import InsufficientCreditsError
-from billing.holds import holds_enabled
+from billing.holds import holds_for_new_work
 from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal
 from classrooms.models import (
     EnrollmentStatusType,
@@ -1622,7 +1622,8 @@ def _dispatch_tracked_grading(
     commit, the rest wait (None). `adopt` are an H-215a retry's reset
     items, joined to the new job ahead of the new papers. With the flag off
     (or no wallet) every paper is launched as before."""
-    if holds_enabled():
+    # B1b-9: not while draining (new work runs flag-off).
+    if holds_for_new_work():
         from billing import batch_queue
 
         wallet = batch_queue.wallet_of(teacher)
@@ -1988,7 +1989,10 @@ def auto_grade_due_assignment(self, assignment_id, session_id=None):
         if session_id:
             from billing.batch_queue import wallet_of
 
-            if holds_enabled() and wallet_of(assignment.course.teacher) is not None:
+            if (
+                holds_for_new_work()
+                and wallet_of(assignment.course.teacher) is not None
+            ):
                 adopt = []
             to_send = _relaunch_failed_dispatches(
                 assignment.course.teacher, assignment, to_send, session, collect=adopt
