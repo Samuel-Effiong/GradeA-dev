@@ -211,6 +211,11 @@ class EstimateEndpointTests(EndpointFixture):
 # listed body holds at most 500 ids; "all_ungraded" has no limit.
 LIMIT = 500
 LIMIT_TEXT = "Ensure this field has no more than 500 elements."
+# team/approved_wording_b1b_2026-11-09.md, H-1, amended 2026-11-11.
+OVER_LIMIT_MESSAGE = (
+    "You can get a cost estimate for up to 500 papers at a time. "
+    "Pick fewer papers, or choose all ungraded papers."
+)
 
 
 class EstimateListLimitTests(EndpointFixture):
@@ -233,8 +238,8 @@ class EstimateListLimitTests(EndpointFixture):
         self.assertEqual(response.status_code, 400, "501 ids were accepted")
         body = response.json()
         self.assertEqual(body["error"]["field_errors"]["submission_ids"], [LIMIT_TEXT])
-        # PENDING-OWNER (NOTES §6.7.1): the top-level message.
-        self.assertEqual(body["message"], f"Submission ids: {LIMIT_TEXT}")
+        # The owner-approved message (NOTES §6.7.4), byte for byte.
+        self.assertEqual(body["message"], OVER_LIMIT_MESSAGE)
 
     def test_all_ungraded_has_no_limit(self):
         for index in range(LIMIT + 1 - len(self.ungraded)):

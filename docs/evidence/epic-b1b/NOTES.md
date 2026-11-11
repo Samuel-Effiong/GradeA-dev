@@ -3493,3 +3493,33 @@ The logs go to `step6b/`. Any mismatch is recorded unamended and is a STOP.
   - guards67 under `--parallel` carries +2 runtime skips (the two fork tests);
   - `billing.tests.test_batch_gate6` counts 3.
 - The owner's answer on the top-level message is still pending. **The fix stays uncommitted** (`billing/estimate_views.py`, sha256 `b4868d46b6aacbc781af4e9ac64d1b4aae1c77b5f654744f8e85082c99cb8dd9`) until the SM relays it.
+
+### §6.7.4 The owner's message (relayed by the SM, grade-automator-plus-16, 2026-11-11), recorded unamended in substance; R2b declared (before it runs)
+
+**The ruling:**
+- The owner APPROVED the over-500 message. The top-level message the teacher sees must be exactly: "You can get a cost estimate for up to 500 papers at a time. Pick fewer papers, or choose all ungraded papers."
+- It is recorded in `team/approved_wording_b1b_2026-11-09.md`, H-1 section, amended 2026-11-11. That file is in the main checkout, at sha256 `cae152f803055baf422be6bf0145a566b19c11747ee7b7aa6ea1712a9d945cbf`; the sentence is line 66.
+- field_errors may carry either text. The message must have no "Submission ids:" prefix.
+- Get there endpoint-locally. STOP if only a `users/renderers.py` change can drop the prefix.
+- Then: change the assertion and the message, re-run R2 (declared), commit the fix, and run N2 at Ran 4670, OK (skipped=16), with the env stated.
+
+**The way, endpoint-local, with the renderer untouched:**
+- The renderer's `flatten_errors` (`users/renderers.py`) already shows a "structured refusal", a dict with a string `code` and a string `message`, as exactly its `message`, with no field prefix.
+- So the view replaces `body.is_valid(raise_exception=True)` with `if not body.is_valid(): raise serializers.ValidationError(_shown_errors(body.errors))`.
+- `_shown_errors` returns the errors unchanged, unless `submission_ids` carries the `max_items` error. In that case it returns `{"code": "max_items", "message": OVER_LIMIT_MESSAGE, **errors}`.
+- **The raise is the same one DRF makes,** so `users.exceptions.custom_exception_handler` still logs the refusal and records the audit fields (now `code`, `message`, `submission_ids`).
+- **What the teacher sees:**
+  - `message` is the approved sentence;
+  - `error.field_errors.submission_ids` is still `["Ensure this field has no more than 500 elements."]`, as the wording file records;
+  - `field_errors` also carries `code` "max_items" and `message`, the shape the structured refusals already use.
+- **Checked in memory** (no DB): `flatten_errors` of that dict equals the approved sentence.
+- **The text is pinned byte for byte:** `OVER_LIMIT_MESSAGE` in both `billing/estimate_views.py` and the test equals line 66 of the wording file, without its quotes (checked by script: True for both).
+- **Edge case, recorded:** if `assignment_id` is also invalid in an over-500 body, the message is the approved sentence alone. The `assignment_id` error stays in `field_errors`.
+
+**The test change:** `test_501_listed_ids_are_refused_with_the_drf_message` now asserts `body["message"] == OVER_LIMIT_MESSAGE`. That replaces the PENDING-OWNER prefixed form, which is now resolved. No other assertion changed, and the count stays 13.
+
+| Run | ENV | State | Label | Declared |
+|---|---|---|---|---|
+| R2b (green) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput` | this NOTES and test commit, plus the uncommitted fix (`billing/estimate_views.py` sha256 `b006f54451222783b3e7dda3089cb04f023d50c044cddba9808dd025af6090e9`) | `billing.tests.test_estimate_endpoint` | **Ran 13, OK** |
+
+After R2b, the fix is committed, and N2 runs at that commit as declared in §6.7.3: Ran 4670, OK (skipped=16). The test count is unchanged.
