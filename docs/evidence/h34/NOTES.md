@@ -593,3 +593,8 @@ Test-only fix, before any product edit:
 - the success-path reads use `response.data` (3 places);
 - the 4 `assertNotIn("access", ...)` checks read `response.data`;
 - the two read-only-field tests now also assert `email` is present, so they cannot pass on an empty body.
+
+**Run R1b (red, after the test fix f2d8c85f6).**
+
+- Env and labels: the same as R1, 60 tests.
+- Prediction, by test: 4 pass (L6 control; ReadOnlyFields `test_nobody_else_sees_them` and `test_the_sign_in_payload_does_not_carry_them`; L12). The other 56 fail or error, for the same causes as R1.
