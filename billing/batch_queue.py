@@ -314,11 +314,15 @@ def release_unused_item_hold(task):
     the skip of a paper graded meanwhile, a cancel, the S7c stop, a launch
     failure) returns its hold once and counts as finished, so the sweep
     never overwrites its status and its job can finish. A paper whose unit
-    already returned it (RETURNED) is left alone."""
+    already returned it (RETURNED) is left alone.
+
+    Cancel-hold fix (2026-11-12): an UPLOAD door item too (cancelled before
+    it started, or failed or finished without a metered unit); its door job
+    then closes under the last-item rule."""
     if task is None or task.job_id is None or task.hold_state != HoldState.HELD:
         return
     job = AIJob.objects.filter(pk=task.job_id).first()
-    if job is None or job.job_type != AIJobType.BATCH_GRADING:
+    if job is None or job.job_type not in LAST_ITEM_JOB_TYPES:
         return
     holds.fail_item(job, item=task)
 
