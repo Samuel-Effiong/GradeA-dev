@@ -3957,3 +3957,18 @@ The plant is reverted afterwards and the file checked by sha256 against 9be23397
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | R2 (green) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial | the three B1b-7 modules (32 tests: 17 + 7 + 8; the 8 bucket-edge subTests do not add to Ran) | **Ran 32, OK** |
+
+### §7.15 R2 MISMATCH, recorded unamended: a STOP to the SM
+
+| Run | Declared | Got | Log |
+|---|---|---|---|
+| R2 (green) at d9893f9b6 | Ran 32, OK | **Ran 32, FAILED (failures=1)** | `step7/R2_green_d9893f9b6.log` |
+
+- **The failure:** `BalanceStatusTests.test_the_wallet_endpoint_shows_the_three_new_fields`, line 301: `AssertionError: 0 != 5000` on `reserved_credits`. The two assertions before it passed (200, `balance_status` "very_low").
+- **The cause (read from the code; not yet proven by a run):**
+  - the wallet view (`billing/views.py:1466`) serializes `request.user.credit_wallet`;
+  - the test calls `force_authenticate(user=self.user)` with the same in-memory user, so the view gets that user's cached `credit_wallet`, loaded before `holds.reserve()` wrote 5,000 to the row with an UPDATE;
+  - `balance_status` and `spendable` read the row through `spendable_credits`, so "very_low" (which needs the 5,000) passed. Only the cached `reserved_credits` field is stale.
+  - In a real request, authentication loads a fresh user, so the wallet is read fresh. So this is a test-fixture fault, not a product fault.
+- **Proposed fix (test-only; not applied):** authenticate with a fresh user, `CustomUser.objects.get(pk=self.user.pk)`, in that one test. No product change. Then re-run R2 as declared (Ran 32, OK).
+- **Awaiting the SM's ruling.** No plants, D7-e work or near run until then.
