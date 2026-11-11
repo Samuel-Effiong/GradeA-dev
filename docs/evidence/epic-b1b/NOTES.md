@@ -3759,3 +3759,53 @@ The plant is reverted afterwards and the file checked by sha256 against 9be23397
   - With none at all, case (i) applies: no warning.
   - The once-per-cycle key `low_balance_warned_cycle_start` is that bucket's `created_at` date.
 - **Everything else** (`balance_status` for a positive allocation, the job API, the gap metric) does not depend on this branch. I'm continuing the read-only `ai_job_id` trace while the SM rules. No tests are written for this branch yet.
+
+### §7.7 SM ruling on the §7.6 STOP (grade-automator-plus-16, 2026-11-11), recorded unamended in substance
+
+- **(i) If the pair is ≤ 0: no warning email at any level, and no wallet write.** The 0% text says "You've used all of this cycle's credits", which isn't true for a teacher handed an empty month.
+  - `balance_status` = `"out"` if spendable == 0, otherwise null (overage is still spendable).
+  - Pin both with tests, plus "no crash" for the no-bucket case.
+- **(ii) ACCEPTED, with one change:** the fallback considers only live non-OVERAGE buckets **with a non-null `expires_at`**. A never-expiring MANUAL_GRANT or TRIAL can't supply `{cycle_end}`.
+  - If none qualifies: no email (as in (i)), and `balance_status` follows the spendable rule above.
+  - The once-per-cycle key is the chosen bucket's `created_at`, stored as-is in `low_balance_warned_cycle_start`.
+  - Pin: two live buckets (MONTHLY + CARRY_OVER) give the MONTHLY cycle; MONTHLY missing plus a MANUAL_GRANT with null expiry gives no email.
+- **Open item for the B1b-8 switch-on review** (not an owner question now): "a teacher on a spent license budget gets no low-balance email (allocation 0)".
+- Tests first for everything, including this branch. Red is declared in NOTES first, with the env.
+- **A note of mine:** `low_balance_warned_cycle_start` is a `DateField` (`billing/models.py:735`), so the key stores the bucket's `created_at` **date**. Storing the full timestamp would need a migration, which B1b-7 avoids. Two MONTHLY buckets created on the same date would share a key; the monthly refresh makes one per month. Raised at the checkpoint.
+
+### §7.8 The `ai_job_id` trace: every `execute_graded_task` caller, followed to its entry point (read-only)
+
+**Method:**
+- The 17 `AIProcessor` methods that call `execute_graded_task` (§7.1) are reached through 15 public methods.
+- Their callers outside `ai_processor`, excluding tests, docs, benchmarks and mutation scripts, were each followed to a view (in-request) or a task (async).
+
+**In-request (synchronous) AI, reached from a view:**
+
+| View | Chain | AI-success body |
+|---|---|---|
+| `students/views.py` `grade` (`:951`) | `grade_engine` → `_run_grading_pipeline` → `extract_grade_with_retry` | `Response(serializer.data)`, an object (in 08b's 7) |
+| `students/views.py` `upload_answers` (`:634`) | `upload_answers_engine` → `extract_answer_with_retry` | object (in 08b's 7) |
+| `students/views.py` `partial_update` (`:836`) | `update_submission_from_raw_text` → `extract_answer_with_retry` | object (in 08b's 7) |
+| `assignments/views.py` `partial_update` (`:642`) | `update_assignment_from_extraction` → `extract_assignment_data` → `extract_assignment_with_retry` | object (in 08b's 7) |
+| `assignments/views.py` `create` (`:470`) | the same chain | `Response(serializer.data, 202)`, an object. **NEW** |
+| `assignments/views.py` `generate_assignment_from_prompt` (`:1494`) | `generate_assignment_from_prompt_with_retry` | `Response(data, 201)`, an object. **NEW** |
+| `billing/views.py` `custom_ai_prompt` (`:2732`) | `custom_ai_prompt_retry` | `Response(serializer.data)`, an object. **NEW** |
+| `dashboard/views.py`: three `custom_ai_prompt` actions (`:1204`, `:2984`, `:4093`) | `run_dashboard_ai_chat` (`:193`) → `custom_ai_prompt_retry` | `Response(CustomAIReply({...}).data)`, an object. **NEW** (3) |
+| **`assignments/views.py` `upload_assignment` (`:890`)** | `upload_assignment_file` (`file_uploads.py:136`) → `extract_assignment_data` → `extract_assignment_with_retry`, **once per uploaded file** | **All files succeed: `Response(successful, 201)`, a JSON LIST.** Some fail: a 207 object `{successful, failed, summary}`. **NEW, and NOT a JSON object on full success** |
+
+**Async only (no `ai_job_id` in a response):**
+- `formatted_grade` (`assignments/tasks.py:960`, `:1230`);
+- `generate_student_summary` (`classrooms/tasks.py:64`; the `student_summary` view enqueues the task);
+- the weekly narratives (`dashboard/tasks.py:80`, `:251`);
+- the async twins of the upload, answers and grading paths (`assignments/tasks.py`).
+
+**08b's 7, corrected:**
+- `students/views.py` `update_grade` and `teacher_feedback`, and `classrooms/views.py` `student_summary`, make **no** in-request AI call: the first two do no AI call in their bodies, and `student_summary` enqueues a task. They are credit-gated, not AI.
+- **So the in-request list is 12 views: 4 of 08b's 7, plus 8 new.**
+
+**FINDING, the checkpoint the SM's ruling asked for:**
+- `upload_assignment` returns a **JSON list** on full success, and one request runs one AI call per file, so one job per file.
+- A single `ai_job_id` doesn't fit, and adding a key to a list is impossible without changing the body's shape.
+- **Proposed:** each `successful[]` entry gets `ai_job_id` (one object per file). That keeps the list shape the app already reads, as a field added to each item. The 207 object gets the same through its `successful` list.
+- **This needs the SM's ruling** before any `ai_job_id` code. No new wording is needed.
+- Everything else in B1b-7 goes ahead with tests first.
