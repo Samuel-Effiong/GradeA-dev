@@ -5183,3 +5183,22 @@ This confirms the cause recorded above.
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | R10-red | the five and USER_LIST_PIN_WRITE unset; serial; under flock with `--noinput`; at this commit (tests only, no product change) | `billing.tests.test_b1b10_list_wallet_parity users.tests_user_list_sorting users.tests_user_list_payload_pin` (17 + 50 + 3) | **Ran 70, FAILED (failures=18, errors=10)**. The 18 are D1's (`188 != 187`, `48 != 187`, `47 != 187`, the pin). The 10 are `StatusFromTests`' 10 subtests, each with `AttributeError: module 'billing.low_balance' has no attribute 'status_from'`. The 15 parity tests **pass**: until the fix, the list calls the same billing functions, so they pin behavior and are not red. |
+
+**R10-red result, as declared: Ran 70 tests in 21.358s, FAILED (failures=18, errors=10).** Log: `step10/R10-red_269397796.log`.
+- The 18 are D1's, with the same messages.
+- The 10 are `StatusFromTests`' subtests (6 + 4), each `AttributeError: module 'billing.low_balance' has no attribute 'status_from'`.
+- The 15 parity tests passed.
+
+**The product (this commit).**
+- `billing/low_balance.py`: `status_from(spendable, total, has_cycle)` is the old level branch, moved out unchanged. It is pure: no database, no clock. `balance_status()` computes `has_cycle = total > 0 and cycle_bucket(wallet) is not None`, keeping the old short-circuit, so `cycle_bucket` is still read only when the allocation is positive. Its return values and queries are unchanged.
+- `users/list_serializers.py` (SM condition 1: only the `ListCreditWalletSerializer` overrides, plus the `low_balance` import). Each override falls back to `super()` when the buckets are not prefetched:
+  - `get_spendable` = `max(0, _live_remaining(obj, buckets) − obj.reserved_credits)`, which is `holds._free` over the page's buckets.
+  - `get_balance_status`, computed over the live non-OVERAGE prefetched buckets with the row clock `self._now`: `total` = used + remaining; `has_cycle = total > 0 and any(MONTHLY or expires_at set)`, the same test `cycle_bucket` makes. Then `low_balance.status_from(...)`.
+- `users/test_data/user_list_payload_pin.json`: the three keys are added by `step10/pin_add_keys.py`, with D2's values. The script first asserts the file is in the pin writer's own form, so it rewrites it byte for byte. `git diff -U0` (`step10/pin_diff_U0.txt`): **0 `-` lines, 18 `+` lines**, three per wallet row in 6 rows, all at the `credit_wallet` indent; `e.nowallet` unchanged.
+- No change to `users/user_list.py` or to any of the Fixer's test modules.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| R10-green | the five and USER_LIST_PIN_WRITE unset; serial; under flock with `--noinput`; at this commit | R10-red's three modules + `billing.tests.test_b1b7_low_balance` (70 + 17) | **Ran 87, OK** |
+| D2b | as D2; at this commit | `step10/d2_diag.py` | **Ran 2, OK**. The three pages cost **13** queries each (SM condition 5); the pin section shows all 7 rows `identical`. Any count other than 13 goes to the SM before anything else. |
+| PL-1..PL-4 | as B10; serial; restored and checked by sha256 | `step10/battery_b10fix.json` | PL-1 (both overrides removed) `QueryCountTests`: **Ran 2, FAILED (failures=17)**, `!= 187`. PL-2 (hold dropped from spendable) `ListWalletParityTests`: **Ran 15, FAILED (failures=2)**, `10000 != 2000 : listed spendable` and `5000 != 0 : listed spendable`. PL-3 (OVERAGE in the allocation): **Ran 15, FAILED (failures=1)**, `'low' != None : listed balance_status`. PL-4 (cycle test inverted): **Ran 15, FAILED (failures=9)**, `None != 'low' : listed balance_status`. |

@@ -1,0 +1,55 @@
+[
+ {
+  "name": "PL-1",
+  "group": "B1b-10 fix",
+  "file": "users/list_serializers.py",
+  "old": "    # -- B1b-7 holds (B1b-10, SM -31: DESIGN \u00a79) --------------------------\n\n    def get_spendable(self, obj) -> int:\n        buckets = _prefetched_buckets(obj)\n        if buckets is None:\n            return super().get_spendable(obj)\n        # billing.holds._free over the page's buckets; reserved_credits is a\n        # wallet column, loaded with the row.\n        return max(0, self._live_remaining(obj, buckets) - obj.reserved_credits)\n\n    def get_balance_status(self, obj) -> str | None:\n        buckets = _prefetched_buckets(obj)\n        if buckets is None:\n            return super().get_balance_status(obj)\n        # billing.low_balance.balance_status's inputs: the allocation is\n        # used + remaining over the live non-OVERAGE buckets; a cycle exists\n        # when cycle_bucket would find one (a live MONTHLY, else a live\n        # non-OVERAGE bucket with an expiry).\n        plan = [\n            b\n            for b in buckets\n            if _is_live(b, self._now) and b.bucket_type != CreditBucketType.OVERAGE\n        ]\n        total = sum(b.used_credits for b in plan) + sum(\n            b.total_credits - b.used_credits for b in plan\n        )\n        has_cycle = total > 0 and any(\n            b.bucket_type == CreditBucketType.MONTHLY or b.expires_at is not None\n            for b in plan\n        )\n        return low_balance.status_from(self.get_spendable(obj), total, has_cycle)\n\n",
+  "new": "",
+  "label": "users.tests_user_list_sorting.QueryCountTests",
+  "expected": "Ran 2, FAILED (failures=17)",
+  "fragments": [
+   "!= 187"
+  ],
+  "note": "both overrides removed: the parent's per-row queries return"
+ },
+ {
+  "name": "PL-2",
+  "group": "B1b-10 fix",
+  "file": "users/list_serializers.py",
+  "old": "        return max(0, self._live_remaining(obj, buckets) - obj.reserved_credits)\n",
+  "new": "        return max(0, self._live_remaining(obj, buckets))\n",
+  "label": "billing.tests.test_b1b10_list_wallet_parity.ListWalletParityTests",
+  "expected": "Ran 15, FAILED (failures=2)",
+  "fragments": [
+   "10000 != 2000 : listed spendable",
+   "5000 != 0 : listed spendable"
+  ],
+  "note": "the hold is dropped from spendable"
+ },
+ {
+  "name": "PL-3",
+  "group": "B1b-10 fix",
+  "file": "users/list_serializers.py",
+  "old": "        total = sum(b.used_credits for b in plan) + sum(\n            b.total_credits - b.used_credits for b in plan\n        )\n",
+  "new": "        total = sum(b.total_credits for b in buckets if _is_live(b, self._now))\n",
+  "label": "billing.tests.test_b1b10_list_wallet_parity.ListWalletParityTests",
+  "expected": "Ran 15, FAILED (failures=1)",
+  "fragments": [
+   "'low' != None : listed balance_status"
+  ],
+  "note": "OVERAGE counted in the allocation"
+ },
+ {
+  "name": "PL-4",
+  "group": "B1b-10 fix",
+  "file": "users/list_serializers.py",
+  "old": "        has_cycle = total > 0 and any(\n",
+  "new": "        has_cycle = total > 0 and not any(\n",
+  "label": "billing.tests.test_b1b10_list_wallet_parity.ListWalletParityTests",
+  "expected": "Ran 15, FAILED (failures=9)",
+  "fragments": [
+   "None != 'low' : listed balance_status"
+  ],
+  "note": "the cycle test inverted"
+ }
+]

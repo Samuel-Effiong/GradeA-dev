@@ -3,6 +3,7 @@
     "bio": null,
     "credit_wallet": {
       "active_buckets_count": 4,
+      "balance_status": null,
       "bucket_breakdown": {
         "CARRY_OVER": 4,
         "MONTHLY": 8,
@@ -22,6 +23,8 @@
       "monthly_credit_remaining": 8,
       "monthly_credit_total": 10,
       "overage_blocks_used": 0,
+      "reserved_credits": 1500,
+      "spendable": 15750,
       "total_remaining_credits": 17250,
       "updated_at": "<datetime>",
       "user": "<uuid>"
@@ -58,6 +61,7 @@
     "bio": null,
     "credit_wallet": {
       "active_buckets_count": 1,
+      "balance_status": null,
       "bucket_breakdown": {
         "CARRY_OVER": 0,
         "MONTHLY": 8,
@@ -72,6 +76,8 @@
       "monthly_credit_remaining": 8,
       "monthly_credit_total": 15,
       "overage_blocks_used": 0,
+      "reserved_credits": 0,
+      "spendable": 8999,
       "total_remaining_credits": 8999,
       "updated_at": "<datetime>",
       "user": "<uuid>"
@@ -108,6 +114,7 @@
     "bio": null,
     "credit_wallet": {
       "active_buckets_count": 1,
+      "balance_status": null,
       "bucket_breakdown": {
         "CARRY_OVER": 0,
         "MONTHLY": 5,
@@ -122,6 +129,8 @@
       "monthly_credit_remaining": 5,
       "monthly_credit_total": 20,
       "overage_blocks_used": 0,
+      "reserved_credits": 0,
+      "spendable": 5000,
       "total_remaining_credits": 5000,
       "updated_at": "<datetime>",
       "user": "<uuid>"
@@ -158,6 +167,7 @@
     "bio": null,
     "credit_wallet": {
       "active_buckets_count": 0,
+      "balance_status": "out",
       "bucket_breakdown": {
         "CARRY_OVER": 0,
         "MONTHLY": 0,
@@ -172,6 +182,8 @@
       "monthly_credit_remaining": 0,
       "monthly_credit_total": 0,
       "overage_blocks_used": 0,
+      "reserved_credits": 0,
+      "spendable": 0,
       "total_remaining_credits": 0,
       "updated_at": "<datetime>",
       "user": "<uuid>"
@@ -239,6 +251,7 @@
     "bio": null,
     "credit_wallet": {
       "active_buckets_count": 0,
+      "balance_status": "out",
       "bucket_breakdown": {
         "CARRY_OVER": 0,
         "MONTHLY": 0,
@@ -253,6 +266,8 @@
       "monthly_credit_remaining": 0,
       "monthly_credit_total": 0,
       "overage_blocks_used": 0,
+      "reserved_credits": 0,
+      "spendable": 0,
       "total_remaining_credits": 0,
       "updated_at": "<datetime>",
       "user": "<uuid>"
@@ -278,6 +293,7 @@
     "bio": null,
     "credit_wallet": {
       "active_buckets_count": 0,
+      "balance_status": "out",
       "bucket_breakdown": {
         "CARRY_OVER": 0,
         "MONTHLY": 0,
@@ -292,6 +308,8 @@
       "monthly_credit_remaining": 0,
       "monthly_credit_total": 0,
       "overage_blocks_used": 0,
+      "reserved_credits": 0,
+      "spendable": 0,
       "total_remaining_credits": 0,
       "updated_at": "<datetime>",
       "user": "<uuid>"

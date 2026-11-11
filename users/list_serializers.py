@@ -11,6 +11,7 @@ users.tests_user_list_payload_pin pins the payload to the base commit's.
 
 from rest_framework import serializers
 
+from billing import low_balance
 from billing.models import CONVERSION_FACTOR, CreditBucketType
 from billing.serializers import CreditWalletSerializer
 
@@ -128,6 +129,38 @@ class ListCreditWalletSerializer(CreditWalletSerializer):
             )
             breakdown[target] += total // CONVERSION_FACTOR
         return breakdown
+
+    # -- B1b-7 holds (B1b-10, SM -31: DESIGN §9) --------------------------
+
+    def get_spendable(self, obj) -> int:
+        buckets = _prefetched_buckets(obj)
+        if buckets is None:
+            return super().get_spendable(obj)
+        # billing.holds._free over the page's buckets; reserved_credits is a
+        # wallet column, loaded with the row.
+        return max(0, self._live_remaining(obj, buckets) - obj.reserved_credits)
+
+    def get_balance_status(self, obj) -> str | None:
+        buckets = _prefetched_buckets(obj)
+        if buckets is None:
+            return super().get_balance_status(obj)
+        # billing.low_balance.balance_status's inputs: the allocation is
+        # used + remaining over the live non-OVERAGE buckets; a cycle exists
+        # when cycle_bucket would find one (a live MONTHLY, else a live
+        # non-OVERAGE bucket with an expiry).
+        plan = [
+            b
+            for b in buckets
+            if _is_live(b, self._now) and b.bucket_type != CreditBucketType.OVERAGE
+        ]
+        total = sum(b.used_credits for b in plan) + sum(
+            b.total_credits - b.used_credits for b in plan
+        )
+        has_cycle = total > 0 and any(
+            b.bucket_type == CreditBucketType.MONTHLY or b.expires_at is not None
+            for b in plan
+        )
+        return low_balance.status_from(self.get_spendable(obj), total, has_cycle)
 
     # -- plan -------------------------------------------------------------
 

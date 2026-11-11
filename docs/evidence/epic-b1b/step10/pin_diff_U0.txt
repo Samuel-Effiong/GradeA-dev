@@ -1,0 +1,34 @@
+diff --git a/users/test_data/user_list_payload_pin.json b/users/test_data/user_list_payload_pin.json
+index 9d8191d06..822c127a3 100644
+--- a/users/test_data/user_list_payload_pin.json
++++ b/users/test_data/user_list_payload_pin.json
+@@ -5,0 +6 @@
++      "balance_status": null,
+@@ -24,0 +26,2 @@
++      "reserved_credits": 1500,
++      "spendable": 15750,
+@@ -60,0 +64 @@
++      "balance_status": null,
+@@ -74,0 +79,2 @@
++      "reserved_credits": 0,
++      "spendable": 8999,
+@@ -110,0 +117 @@
++      "balance_status": null,
+@@ -124,0 +132,2 @@
++      "reserved_credits": 0,
++      "spendable": 5000,
+@@ -160,0 +170 @@
++      "balance_status": "out",
+@@ -174,0 +185,2 @@
++      "reserved_credits": 0,
++      "spendable": 0,
+@@ -241,0 +254 @@
++      "balance_status": "out",
+@@ -255,0 +269,2 @@
++      "reserved_credits": 0,
++      "spendable": 0,
+@@ -280,0 +296 @@
++      "balance_status": "out",
+@@ -294,0 +311,2 @@
++      "reserved_credits": 0,
++      "spendable": 0,

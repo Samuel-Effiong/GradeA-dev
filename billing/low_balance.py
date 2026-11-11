@@ -109,7 +109,16 @@ def balance_status(wallet):
     """null / "low" / "very_low" / "out" (ruling §7.5 Q7-4, §7.7 (i))."""
     spendable = _spendable(wallet)
     total = allocation(wallet)
-    if total <= 0 or cycle_bucket(wallet) is None:
+    # cycle_bucket is read only when the allocation is positive, as before.
+    has_cycle = total > 0 and cycle_bucket(wallet) is not None
+    return status_from(spendable, total, has_cycle)
+
+
+def status_from(spendable, total, has_cycle):
+    """balance_status from its three inputs: pure, no database and no clock
+    (B1b-10, SM -31). The user list reads the inputs from its prefetched
+    buckets (users.list_serializers)."""
+    if total <= 0 or not has_cycle:
         return "out" if spendable <= 0 else None
     return STATUS_OF_LEVEL.get(level_of(spendable, total))
 
