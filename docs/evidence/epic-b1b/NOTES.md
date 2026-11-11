@@ -3956,4 +3956,4 @@ The plant is reverted afterwards and the file checked by sha256 against 9be23397
 
 | Run | ENV | Label | Declared |
 |---|---|---|---|
-| R2 (green) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial | the three B1b-7 modules (32 results: 24 tests + 8 subTests) | **Ran 32, OK** |
+| R2 (green) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial | the three B1b-7 modules (32 tests: 17 + 7 + 8; the 8 bucket-edge subTests do not add to Ran) | **Ran 32, OK** |
