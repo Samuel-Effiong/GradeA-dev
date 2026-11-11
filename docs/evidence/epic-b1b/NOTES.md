@@ -4831,3 +4831,55 @@ The fragments were rendered from unittest's own messages (no test run). No pre-e
     - The drain expires queued jobs in every round.
 - `write_routes()` = 164, unchanged. No migration. No user-facing wording: the runbook, logs and command output are engineering text.
 - **Not done:** the staging drain run (08b: once on staging at the end of the soak). That is an owner go, per the runbook.
+
+### §9.9 SM review: B1b-9 ACCEPTED at 58e10d3cc (grade-automator-plus-16, 2026-11-11), recorded unamended in substance
+
+- The slip (§9.6) is accepted as recorded; G9 is the green of record.
+- The assertion added after R9 is accepted (a new test, proven by the plants).
+- The §9.4 choices stand: the emergency (flag off) keeps the total, per 08b §6.3; queued jobs expire in every round.
+- (d) and (e) are accepted. The staging drain stays an owner go, at the end of the soak.
+- Next: B1b-10, GO for the local parts. Merge staging first and check `credits_left` against spendable (STOP if they differ); declare a survey and plan in §10.0; checkpoint before running. The GitHub run waits for the owner's go.
+
+## B1b-10: the B1b gate
+
+### §10.0 The merge, the credits_left check, the survey and the plan (proposed; nothing run)
+
+**The merge:** `origin/staging` at **f90bb9b23** (the Fixer's user-list sorting, 13 commits) was merged at **67851f24e**. No conflicts. Outside `docs/`, it touches `classrooms/tests_teacher_access_sweep.py` and seven `users/` files: `filters.py`, `list_serializers.py`, `user_list.py`, `views.py`, `tests_user_list_sorting.py`, `tests_user_list_payload_pin.py`, and `test_data/user_list_payload_pin.json`. It brings no migration (`makemigrations --check`: "No changes detected"). **`write_routes()` = 164**, unchanged.
+
+**credits_left against spendable: they match, so no STOP.**
+- `users/user_list.py:186-212` annotates `credits_left_raw` = `Greatest(0, Σ(total_credits − used_credits) over live buckets − credit_wallet.reserved_credits)`, or null with no wallet. Live means `expires_at` is null or after now (`:120`). `credits_left` = `credits_left_raw / CONVERSION_FACTOR`, integer division of non-negative integers.
+- `billing.holds.spendable_credits` = `max(0, total_remaining_credits() − reserved_credits)`. `CreditWallet.total_remaining_credits()` (`billing/models.py:768-786`) sums the same expression over the same live filter.
+- So they are the same formula, holds included.
+- The Fixer's `users/tests_user_list_sorting.py` `CreditsLeftParityTests` pins it against `spendable_credits(wallet) // CONVERSION_FACTOR`, including "a hold" and "a hold above the balance".
+- B1b-9 did not change `spendable_credits` or `reserved_credits`. The drain only changes who reserves, not how spendable is computed.
+
+**The survey: 08b's B1b-10 row and §6.2:** "full battery, the flag-on and flag-off nears with all 66 guards, the PG 16 CI (full suite: the owner's go first), NOTES summary". The guard list has been 67 since the lockout fix joined it (`guards67.txt`).
+
+**The plan (local; each run declared in §10.1 and committed before it runs):**
+
+1. **The battery, at one fixed commit.**
+   - **(A) B1a's 21 mutants**, rebuilt from the §21c table (`plant21.py` is not kept; B1a rebuilt it once before, as `plant21b`). Each anchor is checked to match exactly once at the commit. An anchor that no longer matches, because a later B1b step moved the code, is re-anchored to the same logic and listed in §10.1 for the SM **before** any plant runs. Each plant runs its §21c killer label; the declared fragment is from §21c, or re-rendered by unittest where the test changed since.
+   - **(B) B1b's step plants**, steps 1–9 (PFB, PE, PK, PP, PB3/4/6/6b/7, P1–P5, P8, P9), re-applied the same way, each with its own killer label and fragment.
+   - Serial, under flock, restored by `git checkout` and checked by sha256 after every plant.
+   - The exact list, with each anchor's match count, goes in §10.1.
+2. **The flag-off near (E-off) and the flag-on near (E-on)**, with the same labels: `billing ai_processor assignments students users dashboard audit.tests_h273_query_filters audit.tests_route_coverage` + `guards67.txt`. This is step 6's E1 labels plus `dashboard` (B1b-7 changed it).
+   - `--parallel 4`, under flock.
+   - E-off: BILLING_HOLDS_ENABLED, BILLING_HOLDS_DRAINING, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset.
+   - E-on: the same, with `BILLING_HOLDS_ENABLED=True` from the environment.
+   - **Count** (`bsk.py`, at 67851f24e): **8261 tests, 31 static skips**, both ways. The runtime skips are worked out per run in §10.1, from the users, fork and flag-dependent `skipTest`s, before either runs.
+   - No draining near: draining from the environment would turn every flag-on class into a drain test, which is not what they test. The drain has its own module (§9).
+3. **The gate summary** in NOTES (§10.x): every B1b kill target with its evidence, every deviation and STOP with its ruling, the owner items still open, and what is deferred to staging (the §6.2 staging proof, the 7-day soak, the staging drain).
+
+**The one GitHub Postgres 16 run (needs the owner's go; the SM pushes):**
+- **Why a PR:** `tests.yml` runs only on a push or pull request to `main`, `beta` or `dev`, and has no manual trigger. B1a's precedent (§21t in B1a's NOTES): the SM pushes the branch and opens a **draft PR into `dev` titled DO NOT MERGE**, which is closed unmerged after the run. This needs no workflow change. Adding a manual trigger would change CI config, which is not mine to do.
+- **What the PR triggers:**
+  - `tests.yml`: `makemigrations --check`, then the **whole suite** on `postgres:16` + `redis:7` with `--parallel 4` (build_suite count at 67851f24e: **10068 tests, 33 static skips**), then coverage and the whole-repo mypy. The flag is unset in CI; the flag-on classes pin it themselves.
+  - It also triggers `pre-commit.yml`, `audit.yml` and `migration-safety.yml`.
+- **What it proves that local runs cannot:** the barrier and `TransactionTestCase` concurrency tests on PG 16, not the local 18.6:
+  - B1a's: `test_holds_concurrency` (concurrent reserves, start claim against the sweep, overlapping sweeps) and `test_holds_gate` (R-4a's over-reserve characterization, R-4b, U-2);
+  - B1b's: `test_batch_queue` (two promoters, promotion against expiry, two papers finishing at once), `test_b1b7_low_balance` (two settlements crossing 25% send once), `students.tests_item_retry` (exactly one wins);
+  - and every B1b migration applied on PG 16.
+- **Expected:**
+  - The tests job is OK, with the exact Ran and skip counts declared in §10.1 before the push. Any failure is recorded unamended and is a STOP; the B1a run's live-server flake is named in advance as the one known flaky test.
+  - `migration-safety` is expected to FAIL on its base, as in B1a: `dev` dates from May 2026, so every later migration counts as new. Every B1b migration should report additive.
+- **Order:** the local battery and both nears first, reviewed by the SM; then the owner's go; then the push and the PR.
