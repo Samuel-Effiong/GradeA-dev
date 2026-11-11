@@ -209,6 +209,15 @@ USER_EXAMPLE = {
 }
 
 
+#: The `search` text on Swagger (brief 6, SM -98). DRF's SearchFilter on
+#: search_fields first_name, last_name, email: icontains per field, and each
+#: word of the search must be found in one of them.
+SEARCH_HELP = (
+    "Finds users whose first name, last name or email address contains this "
+    "text. Capital letters don't matter. If you give several words, each word "
+    "must be found in one of them."
+)
+
 #: The `ordering` text on Swagger (brief 6: the owner asked for plain words,
 #: "highest first", not "descending"; "empty", not "null"). Docs only; the
 #: rules are users.user_list.apply_ordering and
@@ -276,6 +285,12 @@ Keys:
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
                 description="Number of results per page",
+            ),
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description=SEARCH_HELP,
             ),
             OpenApiParameter(
                 name="ordering",

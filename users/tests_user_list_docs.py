@@ -133,3 +133,12 @@ class OrderingDocsTests(APITestCase):
         for word in JARGON:
             with self.subTest(word):
                 self.assertNotIn(word, text)
+
+
+class SearchDocsTests(APITestCase):
+    def test_search_says_what_it_matches(self):
+        text = list_parameters(self)["search"].get("description", "")
+
+        self.assertNotEqual(text, "A search term.")
+        self.assertIn("first name, last name or email address", text)
+        self.assertIn("Capital letters don't matter", text)

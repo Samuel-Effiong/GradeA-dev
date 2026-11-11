@@ -196,3 +196,4 @@ R4 result: Ran 136, OK, as declared.
 - Note: users.tests_user_enrollment_filter_oracle still passes enrollments__enrollment_status__in in two tests. It is now ignored, so those rows still pass (nothing leaks), but they no longer test a filter. Left as they are.
 - N2 near on 1c7d52730 (users + guards60, serial, users_docs_env: Python 3.12.10, Django 5.2.17, DRF 3.18.2, drf-spectacular 0.28.0, --settings=settings_worktree --keepdb, flock): expected Ran 2176.
   N2 result: Ran 2176, OK (skipped=5), as expected.
+- SM review (brief 6 accepted): the oracle's 2 status__in rows switched to the single status filter (own-status now has a 404 control), and search gets plain text (DRF SearchFilter: icontains on first_name, last_name, email; each word must match one of them, so that sentence was added to the SM's wording). R7: oracle + users docs, expected 28, Ran 28, OK.

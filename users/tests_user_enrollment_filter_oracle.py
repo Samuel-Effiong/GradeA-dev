@@ -183,15 +183,18 @@ class TeacherCannotProbeAnotherTeachersEnrollments(UserEnrollmentFilterOracleBas
 
     def test_withdrawn_status_elsewhere_is_invisible(self):
         self.withdraw_as_owner(self.student, self.course_b)
-        # COMPLETED matches nothing anywhere: the control.
-        for param, foreign, blank in (
-            ("enrollments__enrollment_status", "WITHDRAWN", "COMPLETED"),
-            ("enrollments__enrollment_status__in", "WITHDRAWN", "COMPLETED"),
-        ):
-            for method in ("get", "patch"):
-                self.assert_indistinguishable(
-                    self.teacher_a, method, self.student, param, foreign, blank
-                )
+        # COMPLETED matches nothing anywhere: the control. (The __in form was
+        # removed in brief 6, owner 2026-11-11; the single filter is the one
+        # left to probe with.)
+        for method in ("get", "patch"):
+            self.assert_indistinguishable(
+                self.teacher_a,
+                method,
+                self.student,
+                "enrollments__enrollment_status",
+                "WITHDRAWN",
+                "COMPLETED",
+            )
 
     def test_same_school_colleague_course_is_invisible(self):
         self.assert_indistinguishable(
@@ -231,14 +234,14 @@ class TeacherOwnFiltersStillWork(UserEnrollmentFilterOracleBase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_own_status_filter_finds_the_student(self):
-        for param in (
-            "enrollments__enrollment_status",
-            "enrollments__enrollment_status__in",
-        ):
-            response = self.call(
-                self.teacher_a, "get", self.student, {param: "ENROLLED"}
-            )
-            self.assertEqual(response.status_code, status.HTTP_200_OK, param)
+        # The single filter (brief 6 removed the __in form). The control:
+        # a status the student has with nobody answers 404, so the 200
+        # comes from the filter matching, not from it being ignored.
+        param = "enrollments__enrollment_status"
+        response = self.call(self.teacher_a, "get", self.student, {param: "ENROLLED"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        control = self.call(self.teacher_a, "get", self.student, {param: "COMPLETED"})
+        self.assertEqual(control.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_own_withdrawal_is_visible_to_its_teacher(self):
         self.withdraw_as_owner(self.student, self.course_b)
