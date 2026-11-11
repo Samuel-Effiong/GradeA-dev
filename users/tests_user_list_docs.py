@@ -60,7 +60,7 @@ class FilterDocsTests(APITestCase):
     def test_every_filter_has_its_own_description(self):
         params = list_parameters(self)
         names = sorted(UserEnrollmentFilter.base_filters)
-        self.assertGreaterEqual(len(names), 20)  # else the loop proves little
+        self.assertGreaterEqual(len(names), 19)  # else the loop proves little
 
         for name in names:
             with self.subTest(name):

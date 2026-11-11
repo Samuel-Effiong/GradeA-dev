@@ -5,10 +5,12 @@ Brief 6, owner rulings (2026-11-11, via SM -cf), beyond the docs:
    (`username = None`). The key is removed, so it is ignored like any
    unknown key and leaves the Swagger enum.
 2. The enrollment filters are checked TOGETHER: enrollments__course,
-   enrollments__course__session, enrollments__enrollment_status and
-   enrollments__enrollment_status__in, when two or more are given, must
+   enrollments__course__session and enrollments__enrollment_status, when
+   two or more are given, must
    match the SAME enrollment (still only enrollments the requester may
    see). Each one used alone behaves as before.
+3. enrollments__enrollment_status__in is removed (owner): it is ignored
+   like any unknown parameter.
 """
 
 from django.core.cache import cache
@@ -101,14 +103,35 @@ class EnrollmentFiltersMatchTogetherTests(EnrollmentMatchBase):
             ["left.a.match@x.example"],
         )
 
-    def test_status_in_and_course_match_the_same_enrollment(self):
+    def test_course_and_session_match_the_same_enrollment(self):
+        # SM -98: course A sits in session A, so "course A + session B" on
+        # one enrollment matches nobody; checked separately it listed both
+        # and done_b (in A, and in some course of session B).
         self.assertEqual(
             self.emails(
                 enrollments__course=self.course_a.pk,
-                enrollments__enrollment_status__in=f"{WITHDRAWN},{COMPLETED}",
+                enrollments__course__session=self.course_b.session_id,
             ),
-            ["left.a.match@x.example"],
+            [],
         )
+
+
+class StatusInRemovedTests(EnrollmentMatchBase):
+    """Owner, 2026-11-11: enrollments__enrollment_status__in is removed. It
+    is ignored like any unknown parameter."""
+
+    def test_the_schema_no_longer_lists_it(self):
+        from .tests_user_list_docs import list_parameters
+
+        self.assertNotIn("enrollments__enrollment_status__in", list_parameters(self))
+
+    def test_passing_it_neither_errors_nor_filters(self):
+        everyone = self.emails()
+        for value in (WITHDRAWN, f"{WITHDRAWN},{COMPLETED}", "NOT_A_STATUS"):
+            with self.subTest(value):
+                self.assertEqual(
+                    self.emails(enrollments__enrollment_status__in=value), everyone
+                )
 
 
 class EnrollmentFiltersAloneTests(EnrollmentMatchBase):
@@ -134,16 +157,6 @@ class EnrollmentFiltersAloneTests(EnrollmentMatchBase):
         self.assertEqual(
             self.emails(enrollments__enrollment_status=WITHDRAWN),
             ["both.match@x.example", "left.a.match@x.example"],
-        )
-
-    def test_status_in_alone(self):
-        self.assertEqual(
-            self.emails(enrollments__enrollment_status__in=f"{WITHDRAWN},{COMPLETED}"),
-            [
-                "both.match@x.example",
-                "done.b.match@x.example",
-                "left.a.match@x.example",
-            ],
         )
 
 
