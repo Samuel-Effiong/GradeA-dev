@@ -267,3 +267,19 @@ R2f result: as declared. Ran 52, OK. Log R2f_green.log.
 EXPLAIN re-run: as declared. plan_tier 14.2 ms (it was 235.8). The other
 sorts: default 6.3, -credits_left 20.2, -papers_graded 10.4 ms. The
 explain_*.txt files hold the re-run plans.
+
+## N1 near, declared
+
+The build at bb093291d. Labels: users, billing, and the 67 standing guard
+labels (guards67.txt).
+
+Environment:
+- venv h284_deps_env;
+- settings_worktree (test_user_list_sorting);
+- --keepdb --noinput -v 2 --parallel 1;
+- under flock.
+
+Count from build_suite: 4631 (users 1091, billing 2619, plus the guards).
+
+Expected: Ran 4631, OK, failures 0, errors 0. Skip count not predicted. The
+opt-in network, Redis and real-AI guards skip, as in earlier runs.
