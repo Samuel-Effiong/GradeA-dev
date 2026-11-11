@@ -721,3 +721,19 @@ Predictions:
 - M3, before, `--base origin/main`: exit 0 (whatever beta already carries over main passes today; CI is green on beta).
 - M4, after, `--base origin/main`: exit 0. Its output is M3's plus exactly one added line for users/migrations/0042 (OK), with no other line changed.
 - Also: `makemigrations --check --dry-run` gives "No changes detected" before and after, and `sqlmigrate users 0042` is a single nullable ADD COLUMN.
+
+### Migration safety results (outputs in 04_*.txt)
+
+All four match the predictions:
+
+- M1: exit 0, "No new migration files in this diff."
+- M2: exit 0, `OK   users/migrations/0042_customuser_admin_locked_at.py: additive only`.
+- M3: exit 0.
+- M4: exit 0. `diff M3 M4` is exactly one added line, `OK   users/migrations/0042_customuser_admin_locked_at.py: additive only`.
+
+`makemigrations --check --dry-run`: "No changes detected" before and after, both run under the CI env, with the expected no-database warning.
+
+`sqlmigrate users 0042`: a single `ALTER TABLE "users_customuser" ADD COLUMN "admin_locked_at" timestamp with time zone NULL;`.
+
+- Run error: I first ran sqlmigrate under the CI env, which has no reachable database (password authentication failed). It was rerun with `--settings=settings_worktree`.
+- This was not a declared run with a predicted outcome; it was my env mistake, recorded here.
