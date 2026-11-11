@@ -3203,3 +3203,47 @@ Every BR file was restored by `git checkout`, and each sha256 matched the commit
 **Proposed (for the SM's ruling; not done):**
 - Re-declare BR-4..7 with `BILLING_HOLDS_ENABLED=True` in the environment, with the fragments unchanged as in §6.6.4, and run them as BR-4b..7b.
 - Add an R2b run of the four edited modules with the env flag on: declared Ran 66, OK.
+
+#### §6.6.12 SM ruling on the §6.6.11 STOP (grade-automator-plus-d6, 2026-11-11, recorded unamended)
+
+SM ruling on the B1b-6 STOP (f7a477e27, NOTES §6.6.11). Record it unamended as §6.6.12. I checked: tests_batch_item_results, tests_h38_tasks_namespace and tests_h38_n3_refusal_audit have no BILLING_HOLDS_ENABLED; h215a only pins its two flag-off classes; settings.py:699 env.bool default False. Your reading stands. BR-4..7 stay recorded as "Prediction wrong/incomplete (environment omitted)" and are not re-labelled.
+
+GO:
+(1) BR-4b..7b: the same four break runs with BILLING_HOLDS_ENABLED=True in the environment. Fragments unchanged from §6.6.4, restore and sha256 as before.
+(2) R2b: the four edited modules with the env flag on. Declared Ran 66, OK.
+(3) Add, before the plants: confirm in NOTES that every PB6-1..14 killer's class pins the flag itself (override_settings or equivalent), or declare the env for that plant run. The same trap must not repeat in the plants.
+(4) New standing practice: every run declaration states its environment explicitly (BILLING_HOLDS_ENABLED and any other env that changes the path), even when unset.
+Then the plants, G6 and the E-runs as declared (E1 flag on, E2 flag off, each stated). No push. Checkpoint to grade-automator-plus-d6.
+
+#### §6.6.13 The remaining runs, each with its environment (declared before any of them)
+
+**The environment, checked:** the shell sets none of `BILLING_*`, `RUN_LOAD_TESTS`, `QUEUE_LIFETIME_DAYS` or `GRADING_*`, and `.env` names none of them. So "unset" below means each takes its settings default: `BILLING_HOLDS_ENABLED` False, `QUEUE_LIFETIME_DAYS` 30, and the load tests skipped.
+
+Every run is under `flock ~/.machine-fullsuite.lock` with `--noinput`, at the product sha `8e8acc617` (NOTES-only commits on top). The `ENV` column states the environment of each run.
+
+| Run | ENV | Labels | Declared |
+|---|---|---|---|
+| BR-4b | `BILLING_HOLDS_ENABLED=True`; RUN_LOAD_TESTS unset | unedited `students.tests_batch_item_results` (from 1576369ad) | Ran 11, FAILED (failures=2); `0 != 2` both |
+| BR-5b | the same | unedited `students.tests_h215a_auto_grade_resilience` | Ran 18, FAILED (failures=9); fragments as §6.6.4 BR-5 |
+| BR-6b | the same | unedited `students.tests_h38_tasks_namespace` | Ran 13, FAILED (failures=2); `0 != 1` both |
+| BR-7b | the same | unedited `students.tests_h38_n3_refusal_audit` | Ran 24, FAILED (failures=1); `0 != 2 : both runs dispatched` |
+| R2b | `BILLING_HOLDS_ENABLED=True`; RUN_LOAD_TESTS unset | the four edited modules (11+18+13+24) | Ran 66, OK |
+| PB6-1..14 | BILLING_HOLDS_ENABLED unset; RUN_LOAD_TESTS unset | each plant's killer(s), alone (`step6/plants_b6.py`) | as §6.6.5 / §6.6.10. PB6-3: Ran 2, OK (declared survivor) |
+| G6 | `RUN_LOAD_TESTS=1`; BILLING_HOLDS_ENABLED unset (the class pins True) | `billing.tests.test_batch_gate6` | Ran 2, OK (skipped=1); three `GATE6_B6` lines, sources assignment / teacher_shape / per_question |
+| E1 | `BILLING_HOLDS_ENABLED=True`; RUN_LOAD_TESTS unset; `--parallel 4` | billing ai_processor assignments students users `audit.tests_h273_query_filters` `audit.tests_route_coverage` + the 67 guards (`guards67.txt`) | **Ran 7606, OK (skipped=34)** |
+| E2 | BILLING_HOLDS_ENABLED unset; RUN_LOAD_TESTS unset; `--parallel 4` | billing students classrooms assignments users `AutoGrader.tests_migration_rollback_defaults` | **Ran 6542, OK (skipped=26)** |
+| E3 | BILLING_HOLDS_ENABLED unset; RUN_LOAD_TESTS unset; serial | the 67 guards | **Ran 1148, OK (skipped=1)** |
+| makemigrations | unset | `makemigrations --check --dry-run` | `No changes detected` |
+| safety vs origin/staging | unset | `scripts/check_migration_safety.py --base origin/staging` | exit 0, 7 OK, 0 ACK, 0 FAIL (the B1b-5 six + 0084; an AlterField of help_text only is additive) |
+| safety vs origin/main | unset | `--base origin/main` | exit 0, 36 OK, 1 ACK, 0 FAIL (37 new files: B1b-5's 35 OK + 1 ACK, + 0084) |
+
+**(3) The plant killers pin the flag:** every killer of PB6-1..14 is in one of BatchStartTests, LastItemTests, EndedBeforeItsUnitTests, PromotionTests, ExpiryTests, AutomaticPathTests or GradeAllTests. All seven subclass `BatchBase`, which carries `@override_settings(BILLING_HOLDS_ENABLED=True)` (`test_batch_queue.py:103-104`). The module's only two flag-off overrides are on `test_with_the_flag_off_every_paper_is_sent_and_no_job_is_made` and `test_with_the_flag_off_a_credit_entry_enqueues_nothing`, and neither is a killer. So the env cannot change any plant's path, and the plants run with it unset, as stated above. The 3b killer (PB6-14) also pins `GRADING_SECOND_OPINION_ENABLED=False` and `GRADING_ANSWER_CACHE_ENABLED=False` on the method.
+
+**Counts:**
+- `build_suite` (`AutoGrader.redis_test_runner.RedisHygieneRunner`) on the labels, at `8e8acc617`.
+- E1: 7560 (the probe's P-on_p4, before the new tests) + 43 + 2 + 1 = 7606.
+- E2: 6496 + 46 = 6542.
+- Skips: E1 32 → 34 and E2 24 → 26, from the 2 Gate 6 tests (no RUN_LOAD_TESTS).
+- **The guard list is 67** (`guards67.txt`). E3 has used it since B1b-4 (§4, 1146 + 2 = 1148). The "66 guards" in §5.18's E3 row was my naming slip: that run's count, 1148, is the 67-label list. `test_holds_entry` is a guard, but its count is unchanged.
+
+**(4) Standing practice, from here on:** every run declaration states its environment, `BILLING_HOLDS_ENABLED` and any other env that changes the path, even when unset.
