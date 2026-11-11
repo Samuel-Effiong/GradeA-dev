@@ -459,3 +459,26 @@ Rules for both options:
 - Tests: about 350-400 lines.
 - About 1.5-2 working days including the plants and both nears.
 - (b) adds about 1 day.
+
+## SM rulings on the admin LOCK/UNLOCK design (2026-11-11, grade-automator-plus-d6; recorded unamended)
+
+> H-34 admin lock/unlock design accepted in shape (a4ca07996; docs fix 17f608a4c stays on this branch, approved under W3). Keep HOLDING: the owner still has to answer who gets the buttons, the message, and the back-office labels.
+>
+> SM rulings (technical):
+> - Design: NEW state admin_locked_at (nullable, expand-safe), not is_active. Approved for your reasons a-d.
+> - Q1: the lock answer comes BEFORE the password check, consistent with ACCOUNT_LOCKED today. No count is kept during the lock.
+> - Q2: reason code ACCOUNT_LOCKED_BY_ADMIN. The message text is the owner's (pending).
+> - Q3: yes. Read-only sign_in_locked and login_locked_until for super admins (back office and the user detail API). Field names are not user wording.
+> - Q5: no new wording. Self and super-admin targets get the existing generic PermissionDenied answer.
+> - Q7: reset stays generic. Google sign-in for a locked account gets the same lock answer as password login (consistent with account_deactivated there).
+> - Audit: new ACCOUNT_LOCK and ACCOUNT_UNLOCK actions, as proposed.
+> - Plan, plants Q-P1..9, guards and near as proposed. Count-pin survey before tests-first.
+> Waiting on the owner for: (a) super admin only vs (b) also school admins (and, if b, the multi-school and seat rules), the two lock messages, and the labels "Lock sign-in" / "Unlock sign-in". I'll relay. No product edit until then.
+
+### Still open (owner)
+
+- Scope (a) or (b). If (b), the rule for multi-school students and for license seats.
+- The lock message and remediation text.
+- The back-office labels.
+
+State: HOLDING. No product edit.
