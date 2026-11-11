@@ -4552,3 +4552,13 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
 | P8-5 (Q8-3) | Ran 24, FAILED (failures=1): only `test_a_single_upload_is_logged…`, `no logs of level WARNING or higher triggered on billing.holds`; `holds.py` `bdd1d717…9fda` | `step8/P8-5_6611cf4a4.log` |
 
 (6611cf4a4 is the G8b-log commit; the product files there are identical to 806122ffe.)
+
+### §8.11 The H-34 export decision merged; DX8 declared (before it runs)
+
+- **SM (2026-11-11):** the `admin_locked_at` export decision is on origin/staging at `aeb8b157e` (`da51ec7e6`: `"admin_locked_at": _SECURITY`). Merge it at a clean point, run `makemigrations --check`, and re-run `students.tests_data_export` declared with 0 failures. **From then on, runs no longer declare the known H-34 guard failure.**
+- **Merged** at `991ba0fd0` (3 commits; no conflicts). `makemigrations --check`: "No changes detected". `students/data_export.py:228` now has `"admin_locked_at": _SECURITY`. The merge changes `students/data_export.py` by that one line, and `students/tests_data_export.py` not at all.
+- `students.tests_data_export`: **47 tests** by build_suite, 0 static skips.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| DX8 | all four unset; under flock with `--noinput`; serial; at this commit | `students.tests_data_export` | **Ran 47, OK** |
