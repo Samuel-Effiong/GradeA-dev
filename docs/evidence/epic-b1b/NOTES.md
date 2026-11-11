@@ -5408,3 +5408,9 @@ The flag-off stop path and the whole-batch door are on hold until the SM comes b
   - Both are **awaiting owner wording**. Until then, text 1 still says "Your files are kept for {days} days, so you won't need to upload them again." and text 3 still says "Your file is kept for {days} days. ... You won't need to upload it again.", and neither is true after B1b-11. The approved strings will replace them when the SM sends them.
 - §11.1's K-7 is dropped. `billing/tests/test_b1b8_texts.py` keeps its text 1 and text 3 cases unchanged.
 - Everything else in §11.1 stands: #16's kept variant and text 2 go with the kept file, privacy #19-#21 and #23, #22, the PDF, and `kept_until`.
+
+### §11.3 B1b-11 cancelled
+
+B1b-11 cancelled by the owner 2026-11-11 ('Don't remove anything'; 'go ahead as built'); product identical to 519216d15; the PG16 declaration in §10.4 (Ran 10135, OK, skipped=86) stands.
+
+The draft test module (students/tests_b1b11_no_kept_uploads.py) was never committed and has been deleted, along with the R11-red log from the run that was stopped part-way; no R11-red result is recorded.
