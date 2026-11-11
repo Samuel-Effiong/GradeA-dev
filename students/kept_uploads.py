@@ -28,6 +28,7 @@ from functools import partial
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
+from django.db.models import Case, CharField, F, Value, When
 from django.utils import timezone
 
 from audit import metrics as audit_metrics
@@ -154,15 +155,23 @@ def _delete_then_mark(row_id, storage_key):
     except kept_files.KeptFileError:
         logger.warning("Kept upload %s: delete failed; the purge retries.", row_id)
         return False
-    _model().objects.filter(pk=row_id, purged_at__isnull=True).update(
-        purged_at=timezone.now()
+    # One save: purged_at and, unless discard() already said why, "lifetime".
+    model = _model()
+    model.objects.filter(pk=row_id, purged_at__isnull=True).update(
+        purged_at=timezone.now(),
+        purge_reason=Case(
+            When(purge_reason="", then=Value(model.PurgeReason.LIFETIME)),
+            default=F("purge_reason"),
+            output_field=CharField(),
+        ),
     )
     return True
 
 
 def discard(processing_task):
-    """The item succeeded or was cancelled: its file is no longer needed.
-    Due at once, deleted after commit; a failed delete is the purge's."""
+    """The item succeeded, was cancelled or was refused: its file is no longer
+    needed. Due at once and marked "discarded", deleted after commit; a failed
+    delete is the purge's, and stays a discard."""
     if processing_task is None or processing_task.task_type not in KEEPABLE_TYPES:
         return
     rows = list(
@@ -173,7 +182,7 @@ def discard(processing_task):
     if not rows:
         return
     _model().objects.filter(pk__in=[pk for pk, _ in rows]).update(
-        kept_until=timezone.now()
+        kept_until=timezone.now(), purge_reason=_model().PurgeReason.DISCARDED
     )
     for row_id, storage_key in rows:
         transaction.on_commit(partial(_delete_then_mark, row_id, storage_key))

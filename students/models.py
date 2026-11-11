@@ -728,6 +728,20 @@ class KeptUpload(models.Model):
     kept_until = models.DateTimeField()
     #: Set only once the asset's delete succeeded.
     purged_at = models.DateTimeField(null=True, blank=True)
+
+    class PurgeReason(models.TextChoices):
+        LIFETIME = "lifetime", "Reached the end of its lifetime"
+        DISCARDED = "discarded", "Discarded: the item ended"
+
+    #: Why the file went. "discarded" is written when discard() makes the row
+    #: due (cancel, refusal, success), so a failed delete the hourly purge
+    #: retries later is still a discard; "lifetime" when the purge deletes a
+    #: row nobody discarded. Blank: lost or corrupt file, or an older row.
+    #: Only "lifetime" lets a refused retry say the file was deleted after N
+    #: days (students.item_retry).
+    purge_reason = models.CharField(
+        max_length=16, choices=PurgeReason.choices, blank=True, default=""
+    )
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:

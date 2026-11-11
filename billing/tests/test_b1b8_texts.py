@@ -137,7 +137,7 @@ def under_license(teacher, tag):
     assert teacher.is_under_license(), "fixture: not under license"
 
 
-def kept(item, *, until=None, purged_at=None):
+def kept(item, *, until=None, purged_at=None, reason=""):
     return KeptUpload.objects.create(
         processing_task=item,
         storage_key=f"b1b8/{uuid.uuid4()}",
@@ -147,6 +147,7 @@ def kept(item, *, until=None, purged_at=None):
         sha256="0" * 64,
         kept_until=until or timezone.now() + timedelta(days=30),
         purged_at=purged_at,
+        purge_reason=reason,
     )
 
 
@@ -193,14 +194,19 @@ class ReuploadWhyTests(TestCase):
     def test_a_file_purged_at_the_end_of_its_lifetime_says_deleted_after_days(self):
         item = self.item()
         until = timezone.now() - timedelta(hours=2)
-        kept(item, until=until, purged_at=until + timedelta(hours=1))
+        kept(
+            item,
+            until=until,
+            purged_at=until + timedelta(hours=1),
+            reason="lifetime",
+        )
         self.assertEqual(self.refusal(item), TEXT_2.format(days=30))
 
     @override_settings(QUEUE_LIFETIME_DAYS=7)
     def test_another_lifetime_fills_text_2s_days(self):
         item = self.item()
         until = timezone.now() - timedelta(hours=2)
-        kept(item, until=until, purged_at=until)
+        kept(item, until=until, purged_at=until, reason="lifetime")
         self.assertEqual(self.refusal(item), TEXT_2.format(days=7))
 
     def test_a_file_gone_early_gets_the_default(self):

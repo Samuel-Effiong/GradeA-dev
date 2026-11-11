@@ -71,14 +71,18 @@ def deleted_after_days(days=None):
 
 
 def _upload_display(item):
-    """Q8-1: no row -> #16b; purged by the lifetime purge (purged_at at or
-    after kept_until) -> text 2; anything else -> the default `why`."""
+    """Q8-1: no row -> #16b; purged by the lifetime purge (purge_reason
+    "lifetime") -> text 2; anything else (a discard after cancel, refusal or
+    success; a lost file) -> the default `why`."""
     from .models import KeptUpload
 
     row = KeptUpload.objects.filter(processing_task_id=item.pk).first()
     if row is None:
         return {"why": NOT_SAVED}
-    if row.purged_at is not None and row.purged_at >= row.kept_until:
+    if (
+        row.purged_at is not None
+        and row.purge_reason == KeptUpload.PurgeReason.LIFETIME
+    ):
         return {"why": deleted_after_days()}
     return {}
 
