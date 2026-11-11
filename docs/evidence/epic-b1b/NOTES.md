@@ -3921,3 +3921,25 @@ The plant is reverted afterwards and the file checked by sha256 against 9be23397
 - **(1):** none; it's a counting error only. From now on, every subTest is counted as its own result.
 - **(2):** fix the fixture. The second license reuses the first license's plan: a new `School`, a new `SCHOOL_ADMIN` and a `LicenseSubscription.objects.create(..., plan=self.licence.plan, ...)`, without a second `make_plan`. Then re-declare R1 as R1b.
 - **R1b's prediction:** Ran 32, FAILED (failures=8, errors=25): 17 low_balance + 8 bucket subTests. The fixed test passes in red, because the route is missing and the answer is 404.
+
+### §7.13 SM ruling on the §7.12 STOP (grade-automator-plus-16, 2026-11-11), recorded unamended in substance; R1b and PB7-other declared (before they run)
+
+**The ruling:**
+- **(1)** A prediction error, accepted as run: 26 = 17 + 8 subTests + 1 fixture. **From now on every subTest is counted as its own result.**
+- **(2) GO for the fixture fix as proposed:** the second license reuses `self.licence.plan`, with no second `make_plan`. Test-only, committed before R1b.
+- **The condition:** the fixed other-license test passes in red only because the route doesn't exist yet, so red proves nothing for it. A plant is added now: **the job API skips the same-license check for school admins.** It is predicted to kill this test in green. It must be killed, or that's a STOP.
+- Then run R1b as declared. If it matches, go on to the build without another checkpoint.
+
+**The fix (test-only, in this commit):**
+- `test_a_school_admin_of_another_license_gets_404` builds its second license directly: a new `School`, a `SCHOOL_ADMIN` and `LicenseSubscription.objects.create(plan=self.licence.plan, …)`.
+- No other test changed.
+
+**PB7-other, declared now and run after green:**
+- **The plant:** the job API's school-admin branch allows any `SCHOOL_ADMIN`, with the license-school check removed.
+- **The killer:** `billing.tests.test_b1b7_job_api.JobApiTests.test_a_school_admin_of_another_license_gets_404`.
+- **Predicted:** Ran 1, FAILED (failures=1), fragment `200 != 404`.
+- It joins the §7.3 plant list.
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| R1b (red) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial | the three B1b-7 modules (32 tests) | **Ran 32, FAILED (failures=8, errors=25)**: 17 low_balance (`No module named 'billing.low_balance'`) + 8 `test_the_bucket_edges` subTests (`has no attribute 'gap_bucket'`); the 8 failures as in §7.11; the fixed other-license test passes |

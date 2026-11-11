@@ -15,9 +15,16 @@ from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from billing.models import AIJobStatus, CreditWallet, SchoolCreditAllocation
+from billing.models import (
+    AIJobStatus,
+    CreditWallet,
+    LicenseBillingMethod,
+    LicenseSubscription,
+    SchoolCreditAllocation,
+)
 from billing.testing.holds import make_job
 from billing.tests.test_beat_lock_catch_up import make_school_licence
+from classrooms.models import School
 from users.models import CustomUser, UserTypes
 
 KEYS = {
@@ -131,12 +138,21 @@ class JobApiTests(TestCase):
         self.assertEqual(set(response.json()["data"]), KEYS)
 
     def test_a_school_admin_of_another_license_gets_404(self):
-        _, other = make_school_licence(
-            "b1b7job2",
+        # A second license on the same plan (a second make_plan would break
+        # the plan-name unique key; NOTES §7.12-§7.13).
+        school = School.objects.create(name="B1b-7 other school")
+        admin = user("otheradmin", UserTypes.SCHOOL_ADMIN, school=school)
+        LicenseSubscription.objects.create(
+            school=school,
+            admin_user=admin,
+            plan=self.licence.plan,
+            is_active=True,
+            auto_renew=True,
             billing_cycle_start=timezone.now() - timedelta(days=5),
             billing_cycle_end=timezone.now() + timedelta(days=25),
+            billing_method=LicenseBillingMethod.STRIPE,
         )
-        self.assertEqual(self.get(other.admin_user).status_code, 404)
+        self.assertEqual(self.get(admin).status_code, 404)
 
     def test_the_super_admin_gets_it(self):
         admin = user("super", UserTypes.SUPER_ADMIN, is_superuser=True)
