@@ -5359,3 +5359,45 @@ The SM ACCEPTED the gate summary (§10.3, f015c6f92) and asked that the branch f
 - N11: the near (`billing students assignments dashboard users` + `guards67.txt`, `--parallel 4`, flag off). The count is declared from `build_suite` before it runs. Declared: OK, 0 FAIL, 0 ERROR.
 - B11-on: `billing` alone with `BILLING_HOLDS_ENABLED=1`, `--parallel 4`. The count is declared before it runs. Declared: OK.
 - No battery and no E-on of the whole set (SM).
+
+### §11.1 SM STOP on the queue removal (SM -cf, 2026-11-11), recorded unamended in substance; B1b-11 narrowed to kept uploads
+
+The owner says: do NOT remove the 30-day queue. When the STOP came, nothing but §11.0 (7680c992d, docs only) had been committed, and the tree was clean.
+
+**§11.0 is superseded, except for its kept-uploads part.** Everything below stays as at 519216d15:
+- the queue: batch_queue, the promote/expire tasks and their beat entries, `_queue_promotion`, `QUEUE_LIFETIME_DAYS` (now used by the queue only), texts #5-#10 and the drain's `expire_queued_jobs`;
+- the mid-batch stop and its resume (S7c), with INSUFFICIENT_CREDITS_MID_BATCH still retryable for grade items;
+- H-223's per-file parking and grade-all without a door.
+
+The flag-off stop path and the whole-batch door are on hold until the SM comes back.
+
+**B1b-11 now carries out the B1b-10b plan the SM ruled GO**: the kept-uploads removal and its interim texts.
+- Deleted: `students/kept_files.py`, `students/kept_uploads.py`, `KeptUpload` and migration 0041, the purge task and its beat entry, the post_delete receiver, `KEPT_UPLOADS_BACKEND`.
+- The three routes and two workers send and read the file inline again, as before B1b-5. A file's sha256 is taken from the inline payload.
+- Removed from task_tracking: the delete on success, cancel and refusal.
+- `students/item_retry.py`: an upload item is never retried in place, and its `why` is #16b (NOT_SAVED, unchanged until the owner approves a plainer one). Text 2 (`deleted_after_days`), `kept_file`, `_upload_retryable`, `_relaunch_upload` and `UPLOAD_EXTRA_RETRYABLE_CODES` go. A grade item's retry is unchanged.
+- `kept_until` is removed from the task-status response and its serializer. App note: "task-status no longer has kept_until; a failed upload item is never retryable: offer a re-upload."
+- The export's `kept_file`, the KeptUpload export scope and the data map entry go; erasure no longer deletes a file.
+- Text 1 is cut to "Top up credits, then resume the remaining items.", a cut of approved text, until the owner approves the replacement. The resume itself stays.
+- LATE_DOOR_EMAIL_APPROVED = False until the owner approves a text 3 without "kept"/"won't need to upload"; the refusal is logged. The student notice is unchanged.
+- In the privacy document, #19 (line 295), #20 (293), #21 (393) and #23 (509) go, and #22 (376) reads "Cloudinary (profile pictures)". The PDF is regenerated.
+- `assignments/upload_prompts.py` (the shared prompt) and `ANSWER_UPLOAD_FALLBACK` stay: same bytes, no behavior.
+
+**Tests.**
+- New module `students/tests_b1b11_no_kept_uploads.py`, red before the change:
+  - K-1..K-3: each of the three routes sends the file inline (`content_b64`) and writes nothing to any store. `students.kept_files` must not be imported, so no Cloudinary upload is possible.
+  - K-4: an upload item that failed retryably is NOT retryable (409 NOT_RETRYABLE, `replace_file`, `why` = #16b).
+  - K-5: no `KeptUpload` model; neither module is importable; no purge beat entry; no `KEPT_UPLOADS_BACKEND`.
+  - K-6: task status has no `kept_until` key.
+  - K-7: text 1's remediation is the cut sentence. The late door sends no teacher email; the refusal is logged.
+  - K-8: the export has no `kept_file`; the data map has no KeptUpload entry.
+- Deleted: `students/tests_kept_files.py`, `tests_kept_uploads.py` and `tests_kept_upload_retry.py`. QueueLifetimeSettingTests and SharedPromptTests move to the new module unchanged.
+- Edited: the kept cases in `students/tests_item_retry.py`, `students/tests_credits_mid_batch.py` (the upload resume), `students/tests_upload_credit_door.py`, `students/tests_data_export.py`, `students/tests_data_erase.py`, `students/tests_student_data_map.py`, `billing/tests/test_b1b8_texts.py` and `AutoGrader/tests_beat_locks.py`. Listed at the end checkpoint.
+
+**Plants.** None. The change is a removal, and its tests assert absence: there is no remaining kept-file code for a plant to change. §11.0's C-1..C-3 were on the stop path, which is on hold. The PK-1, -3, -4, -5, -5b, -6, -7, -8, -9, -10, -13, -6a-1 and P8-2 plants are retired: recorded, not run.
+
+**Runs** (env as §11.0):
+- R11-red: the new module before the change; each test FAILs or ERRORs for its reason.
+- R11-green: OK.
+- N11: the near (`billing students assignments dashboard users` + `guards67.txt`, flag off, `--parallel 4`). The count is declared from `build_suite` before it runs. Declared: OK.
+- B11-on: `billing` alone with `BILLING_HOLDS_ENABLED=1`. The count is declared before it runs. Declared: OK.
