@@ -4581,3 +4581,26 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | N8 (near) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; `--parallel 4`; under flock with `--noinput`; at this commit | `billing students assignments dashboard users` + `guards67.txt` | **Ran 6958, OK (skipped=32)**, 0 FAIL, 0 ERROR |
+
+**N8 result (at 193af955d):** **Ran 6958, OK (skipped=32)**, 0 FAIL, 0 ERROR, exit 0. **As declared.** Log: `step8/N8_near_193af955d.log.gz`.
+
+### §8.13 B1b-8 at the end checkpoint
+
+- **Product:**
+  - 7e9e3e7f7: texts 1–3 from `QUEUE_LIFETIME_DAYS`; the Q8-1 why split; the late-door email for batch rows only; Q8-2 `kept_until` (staff only, `AutoGrader/staff_only.py`); Q8-6 (the cancel closes a queued job, the 0-left backstop, `_send` tested); D8-a; all five switches on (late door, queue, low balance, drift, `kept_file`); the privacy document #19–#23 + PDF; the reason-codes document.
+  - Pre-existing pin edits: 4fc274cbb + 806122ffe.
+- **Merges:** db1f716e5 (staging, H-34) and 991ba0fd0 (staging, the H-34 export decision `aeb8b157e`).
+- **Runs:**
+  - R5 red (accepted, §8.5); R6 green;
+  - BR8 (accepted, §8.8); G8 (STOP §8.9) → G8b;
+  - P8-1..P8-5 all killed; DX8; N8.
+  - All as declared except the three STOPs ruled in §8.5, §8.8 and §8.10.
+- `write_routes()` = 162 (no route added; `kept_until` is a field). No migration.
+- **For the review / owner (SM):**
+  - (a) the batch cancel is taken as enough (built: Q8-6);
+  - (c) no email on a spent license budget (as built);
+  - text 3's variant for a student's single upload (asked of the owner; none written);
+  - the PDF stylesheet (DejaVu, 20 pages; recipe in §8.6);
+  - #19's placement;
+  - D8-a.
+- **Still open from B1b-7:** (b) the unit wrap, not reachable today.
