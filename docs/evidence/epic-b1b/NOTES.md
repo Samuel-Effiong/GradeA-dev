@@ -4368,3 +4368,31 @@ So text 2's "deleted after {days} days" is true only for the lifetime purge.
   - all counts are declared first; subTests don't add to Ran;
   - near: billing + students + assignments + dashboard + users + guards67, with the environment stated;
   - an end checkpoint after. No push, no trailers.
+
+### §8.3 The merge, the B1b-8 tests first, and R5 red declared (before it runs)
+
+**The merge:** `origin/staging` (22 commits, head `1b842050f`, H-34) was merged into `task/epic-b1b` at `db1f716e5` with no conflicts. `makemigrations --check`: "No changes detected". H-34 brings `users/migrations/0042_customuser_admin_locked_at.py` and `users/tests_admin_sign_in_lock.py`, so the users label count changes; it is re-counted at the near declaration.
+
+**Design decisions made here (within the §8.2 rulings):**
+- **The "batch row" of Q8-3** is `row.task_type in students.item_retry.UPLOAD_ITEM_TYPES` (`BATCH_ANSWER_UPLOAD`, `BATCH_ASSIGNMENT_UPLOAD`): the rows a retry route can retry, so text 3's "retry it" is true. Any other row keeps today's warning log, word for word ("…await owner approval, so no email was sent."), so `billing/tests/test_holds_late_door_student.py` (`l3` asserts that line) is untouched.
+- **D8-a (found in the survey; for the SM at the end checkpoint):** `low_balance._send` formats `cycle.expires_at.date()`. `cycle_bucket` can return a MONTHLY bucket with **no** `expires_at`: production never makes one (every MONTHLY create sets `expires_at=grace_expiry(...)`, `billing/services.py:362`, `:619`, `:842`, `:1760`, `:1937`), but test fixtures do. Once the switch is on, that would raise inside an on-commit callback. **The guard:** a cycle bucket with no `expires_at` has no `{cycle_end}`, so `check_low_balance` claims nothing and sends nothing, the same reasoning as §7.7's "no cycle bucket".
+- **Q8-2's student guard** reuses `job_ref`'s student test: a shared `staff_only_keys(*keys)` decorator drops the named keys from a 2xx dict body when a student makes the request. `with_ai_job_id(staff_only=True)` keeps its behavior, through the same helper.
+
+**The new module** `billing/tests/test_b1b8_texts.py` (build_suite: **24 tests, 0 static skips, no subTests**):
+
+| Class | Tests | Red expectation |
+|---|---|---|
+| `MidBatchRemediationTests` | 2 | `…at_the_default`: FAIL `'Top up credits, then resume the remainin[56 chars]ain.' != "Top up credits, then resume the remainin[77 chars]ain."`. `…another_lifetime…`: ERROR `module 'AutoGrader.reason_codes' has no attribute 'mid_batch_remediation'` |
+| `ReuploadWhyTests` | 4 | 4 FAIL: `isn't kept. Up[16 chars]ain." != "This[20 chars]ried because its file wasn't saved` / `… was deleted after 30 day` / `… was deleted after 7 days` / `!= "This item can't be retried as it is."` |
+| `LateDoorEmailTests` | 4 | 3 FAIL (individual, license, override) `Expected 'delay' to have been called once. Called 0 times.`; `…a_single_upload…` passes |
+| `CancelledQueueTests` | 2 | `…closes_the_job…` FAIL `'QUEUED_PENDING_CREDITS' != 'CANCELLED'`; `…one_of_two…` passes |
+| `QueueSendTests` | 7 | 5 FAIL (queued ×2, expiry_warning, restarted, expired) `Expected 'delay' to have been called once. Called 0 times.`; the 2 zero-left tests pass |
+| `KeptUntilStatusTests` | 3 | `…reads_the_kept_until` FAIL `None != datetime.datetime(`; `…null_when_no_file…` FAIL `'absent' != None`; `…student_never…` passes |
+| `LowBalanceNoExpiryTests` | 1 | FAIL `25 is not None` |
+| `SwitchTests` | 1 | FAIL `{'LAT[19 chars]ED': False, 'QUEUE_EMAIL_APPROVED': False` |
+
+The string fragments were computed with unittest's own `assertEqual` on the strings (no test run).
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| R5 (red) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial; at this commit | `billing.tests.test_b1b8_texts` | **Ran 24, FAILED (failures=18, errors=1)**: as the table; 5 pass |
