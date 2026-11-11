@@ -4478,3 +4478,23 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
 | P8-3 (Q8-6 (1)) | `students/task_tracking.py`: the `_close_cancelled_queue(processing_task)` call removed | **Ran 24, FAILED (failures=1)**: only `test_cancelling_every_waiting_paper_closes_the_job_with_no_email`, `'QUEUED_PENDING_CREDITS' != AIJobStatus.CANCELLED` |
 | P8-4 (Q8-6 (2)) | `batch_queue._send`: the `left == 0` return removed | **Ran 24, FAILED (failures=2)**: `test_no_warning_when_nothing_waits` and `test_no_expiry_email_when_nothing_waited`, `Expected 'delay' to not have been called. Called 1 times.` |
 | P8-5 (Q8-3) | `holds.notify_late_door_refusal`: `or row.task_type not in UPLOAD_ITEM_TYPES` removed | **Ran 24, FAILED (failures=1)**: only `test_a_single_upload_is_logged_and_the_teacher_is_not_emailed`, `no logs of level WARNING or higher triggered on billing.holds` |
+
+### §8.7 R6 as declared; BR8 MISMATCH (one extra failure, from the staging merge), recorded unamended: a STOP to the SM
+
+| Run | Declared | Got | Log |
+|---|---|---|---|
+| R6 at 7e9e3e7f7 | Ran 24, OK | **Ran 24, OK**: as declared | `step8/R6_green_7e9e3e7f7.log` |
+| BR8 at 7e9e3e7f7 | Ran 181, FAILED (failures=8, errors=1) | **Ran 181, FAILED (failures=9, errors=1)** | `step8/BR8_break_7e9e3e7f7.log` |
+
+- **All 9 declared tests fail as declared**, each with its declared fragment (8 failures, 1 error).
+- **The extra failure:** `students.tests_data_export.FieldListGuardTests.test_every_field_is_decided_exactly_once`, subTest `label='users.CustomUser'`: `Items in the second set but not the first: 'admin_locked_at' : users.CustomUser`.
+- **The cause is not B1b-8. It is the staging merge (`db1f716e5`).**
+  - H-34 (`583859a30`, on staging at `1b842050f`, and on beta at `2c8165b69`) added `CustomUser.admin_locked_at` (`users/migrations/0042`).
+  - It added no student-data-export field decision for it. `git show origin/staging:students/data_export.py` has no `admin_locked_at`, and neither has `students/student_data_map.py`.
+  - So the NFR-CMP-04 field-decision guard (every model field must be decided once) fails on staging, and very likely on beta, independent of B1b-8. B1b-8 changes no `users` model or field decision.
+  - **Not proven by a run at `db1f716e5`:** I have not run anything unasked. That is the confirming run, if wanted.
+- **My miss:** the §8.3 merge note said "the users label count changes", but I did not ask whether H-34's new user field touches the export guard.
+- **Options:**
+  - **(A) Recommended:** the H-34 owner adds the field decision for `admin_locked_at` on beta (an admin security flag; most likely omitted from a student's export, as the other sign-in lock fields are, though that choice is theirs and the owner's), then merges to staging, and I merge staging again. Until then, B1b-8's runs carry this one known failure, declared as such.
+  - **(B)** I add the decision on `task/epic-b1b`. Not recommended: it is H-34's field and a beta defect, and staging must hold every beta fix.
+- **Holding.** No test edits (G8), plants or near until the SM rules.
