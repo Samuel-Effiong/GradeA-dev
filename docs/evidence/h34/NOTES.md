@@ -598,3 +598,5 @@ Test-only fix, before any product edit:
 
 - Env and labels: the same as R1, 60 tests.
 - Prediction, by test: 4 pass (L6 control; ReadOnlyFields `test_nobody_else_sees_them` and `test_the_sign_in_payload_does_not_carry_them`; L12). The other 56 fail or error, for the same causes as R1.
+
+**R1b result (red):** Ran 60. FAILED (failures=4, errors=59; subtests counted one by one). By test, 56 did not pass and 4 passed: exactly the 4 predicted. Matches the prediction. Logs: 01_red.log.gz (R1) and 01b_red.log.gz (R1b).
