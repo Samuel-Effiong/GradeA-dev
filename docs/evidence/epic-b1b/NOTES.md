@@ -4396,3 +4396,16 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | R5 (red) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; serial; at this commit | `billing.tests.test_b1b8_texts` | **Ran 24, FAILED (failures=18, errors=1)**: as the table; 5 pass |
+
+### §8.4 R5 result: counts as declared, ONE FRAGMENT MISMATCH, recorded unamended: a STOP to the SM
+
+| Run | Declared | Got | Log |
+|---|---|---|---|
+| R5 at 704b9e469 | Ran 24, FAILED (failures=18, errors=1), the fragments in §8.3 | **Ran 24, FAILED (failures=18, errors=1)**: the same 18 failing tests and the same 1 error; 5 pass | `step8/R5_red_704b9e469.log` |
+
+- **17 of the 18 failure fragments and the error match.**
+- **The mismatch:** `CancelledQueueTests.test_cancelling_every_waiting_paper_closes_the_job_with_no_email`.
+  - Declared: `'QUEUED_PENDING_CREDITS' != 'CANCELLED'`.
+  - Got: `AssertionError: 'QUEUED_PENDING_CREDITS' != AIJobStatus.CANCELLED`.
+- **Cause:** the test compares with the enum member `AIJobStatus.CANCELLED`, whose repr in the message is `AIJobStatus.CANCELLED`, not `'CANCELLED'`. I wrote that fragment by hand rather than computing it with unittest, against the doctrine "compute with unittest when unsure". The test fails for the declared reason (the job stays QUEUED). Only the rendered text differs.
+- **Proposed:** accept R5 as run (a fragment-prediction error, the cause shown), with no test change, and go on to the product. Alternative: re-declare that fragment and re-run R5.
