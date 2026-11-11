@@ -3714,3 +3714,48 @@ The plant is reverted afterwards and the file checked by sha256 against 9be23397
 - **Size:** 08b gives 1 day. The job API with its role rows, plus the `ai_job_id` trace, likely make it about 1.5 days. Recorded.
 
 **No product code until the SM's go.**
+
+### §7.5 SM rulings on the §7 design (grade-automator-plus-16, 2026-11-11), recorded unamended in substance
+
+- **The design is ACCEPTED, and tests first may start.** PB6b-2 is accepted at f928fe5d7. The size, 1.5 days, is accepted.
+- **Q7-1: `AIJob (cancel)` stays OUT.** It is in neither plan step 6 nor 08b's B1b-7 row, so `write_routes()` stays 162.
+  - **Open plan gap, recorded:** "AIJob (cancel) role-matrix row (plan 08 §7 item 6, line 840) has no building step; SM to raise". The SM will take it up separately.
+- **Q7-2: not `monthly_credit_total`.**
+  - 100% = `plan_used_credits() + plan_remaining_credits()`: the live non-OVERAGE buckets, the same "% of plan consumed" basis.
+  - Spendable = `holds.spendable_credits`.
+  - The cycle start is the start of the current live non-OVERAGE bucket the pair reads, and `{cycle_end}` is its `expires_at`.
+  - Trace a license teacher's wallet. If a license teacher has no such bucket, or the pair gives 0 for them (a divide by zero, or always "out"), **STOP and report before coding that branch.**
+  - Pin the 0-allocation case with a test: no warning, no crash.
+- **Q7-3: yes.** With the flag off there are no settlements, so no warnings. Pin it with a test.
+- **Q7-4: accepted.** The codes are null / `low` (≤ 25%) / `very_low` (≤ 10%) / `out` (0). The boundaries match the email levels exactly; pin both edges.
+- **Q7-5: accepted, as an internal metric.** The buckets are `<0.5`, `0.5–0.8`, `0.8–1.2`, `1.2–2` and `>2`, plus band_hit, with no alert in B1b. **Plan §7 had no thresholds; the SM set these.** They are not owner wording.
+- **The `ai_job_id` trace** is the first design item: trace all 17 callers to their views before any `ai_job_id` code. If the list grows beyond 08b's 7, record it. Checkpoint only if a non-JSON-object body or a new wording need turns up.
+- **Standing:**
+  - `LOW_BALANCE_EMAIL_APPROVED = False` (switched on in B1b-8);
+  - every run is declared in NOTES first, with its env;
+  - the near is billing + users + guards67;
+  - checkpoint at the end, or at any STOP.
+
+### §7.6 Q7-2 trace: a license teacher's wallet. **STOP for the 0-allocation branch (reported before coding it)**
+
+**How a license teacher gets credits:**
+- `billing/license_service.py` (the monthly refresh, `:1540-1665`) creates one **MONTHLY** bucket per month with `total_credits=grant_amount` and `expires_at=grace_expiry(next_refresh, license_sub.billing_cycle_end)` (`:1661-1666`). It may also create a CARRY_OVER bucket (`:1592`).
+- Overage bought for a teacher is an **OVERAGE** bucket (`:3136`, `:4428`), which the pair leaves out.
+
+**The pair can be 0 for a license teacher. Found, not hypothetical:**
+1. **The license budget is spent.** For `max_seats ≠ 0`, `remaining_budget = max_seats × plan.monthly_credits − total_credits_consumed`. If it is ≤ 0, then `grant_amount = 0` (`:1554-1558`, logged as a WARNING, "this hands the teacher an empty month"). A MONTHLY bucket is still created with `total_credits=0`.
+   - So `plan_used + plan_remaining` = 0 (plus any live carry-over).
+   - The teacher may still have spendable credits from OVERAGE buckets.
+2. **The allocation is 0.** `TeacherCreditAllocation.monthly_allocation` is a `PositiveIntegerField` (`billing/models.py:2716`), so 0 is allowed, and it gives the same result.
+3. **No live non-OVERAGE bucket at all:** for example a teacher with only OVERAGE credits, or one between an expired bucket and the next refresh. Then the pair is 0, and there is no bucket from which to read a cycle start.
+
+**The second ambiguity: which bucket gives the cycle.** A wallet can hold several live non-OVERAGE buckets at once: MONTHLY plus CARRY_OVER (each with its own `expires_at`), MANUAL_GRANT and TRIAL. "The current live non-OVERAGE bucket the pair reads" is then not one bucket. `CreditBucket` has `created_at` and `expires_at`, and nothing else marks a cycle.
+
+**Proposed, not coded; needs the SM's ruling:**
+- **(i) When `plan_used + plan_remaining` ≤ 0:** no warning is sent and no wallet field is written. `balance_status` is null (it is not "out", because the percentage is undefined and overage may be spendable). This is the test the SM asked for: no warning, no crash.
+  - Alternative: `balance_status` is `out` when spendable is also 0. Which one is the SM's call.
+- **(ii) The cycle:** the live **MONTHLY** bucket with the latest `created_at`. Its `created_at` is the cycle start and its `expires_at` is `{cycle_end}`.
+  - With no live MONTHLY bucket, use the live non-OVERAGE bucket with the latest `expires_at` (a TRIAL or MANUAL_GRANT, for example).
+  - With none at all, case (i) applies: no warning.
+  - The once-per-cycle key `low_balance_warned_cycle_start` is that bucket's `created_at` date.
+- **Everything else** (`balance_status` for a positive allocation, the job API, the gap metric) does not depend on this branch. I'm continuing the read-only `ai_job_id` trace while the SM rules. No tests are written for this branch yet.
