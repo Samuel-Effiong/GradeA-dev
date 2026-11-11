@@ -204,6 +204,7 @@ EXPORT_OMITTED = {
         "activation_expires": _SECURITY,
         "failed_login_attempts": _SECURITY,
         "locked_until": _SECURITY,
+        "admin_locked_at": _SECURITY,
         "token_epoch": _SECURITY,
         "must_change_password": _SECURITY,
         "is_superuser": "always false for a student (internal)",
