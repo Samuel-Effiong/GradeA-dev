@@ -1,0 +1,1469 @@
+Using existing test database for alias 'default' ('test_user_list_beta')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_each_filter_from_one_generation (users.tests_user_list_sorting.CacheKeyTests.test_each_filter_from_one_generation) ... Free trial plan not found: no trial activated for user 9170f25e-a076-48e5-bb2c-1fa2ed0b9376.
+Free trial plan not found: no trial activated for user 84bc9b0d-393f-49ff-842b-3567e7b515b6.
+Free trial plan not found: no trial activated for user c319e4fd-7ed7-4cc7-b986-6f0b988eaf01.
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+FAIL
+test_ordering_in_both_directions_from_one_generation (users.tests_user_list_sorting.CacheKeyTests.test_ordering_in_both_directions_from_one_generation) ... Free trial plan not found: no trial activated for user 8525a8e7-7beb-46b2-8a5f-581cdea056b1.
+Free trial plan not found: no trial activated for user 4db05ee0-1cdf-433c-83cd-5f354bf30ab3.
+Free trial plan not found: no trial activated for user 8a5a661a-fe58-451d-b2d4-42e82f075a96.
+FAIL
+test_assignments_created_counts_the_course_teachers_assignments (users.tests_user_list_sorting.CountValueTests.test_assignments_created_counts_the_course_teachers_assignments) ... Free trial plan not found: no trial activated for user 573edc32-7c56-481f-a376-a12ab81843b2.
+Free trial plan not found: no trial activated for user 1a3c87f5-0461-498e-a42f-33add00d2023.
+Free trial plan not found: no trial activated for user 41c52fee-0abf-4fa4-9a9b-c73fe0d4a3f4.
+ERROR
+test_counts_are_zero_not_null (users.tests_user_list_sorting.CountValueTests.test_counts_are_zero_not_null) ... Free trial plan not found: no trial activated for user 4a091c15-d82a-4eab-87a9-b2a2259af68d.
+Free trial plan not found: no trial activated for user 33c2f557-c13c-4f25-ac7a-fc3accac55a2.
+ERROR
+test_papers_graded_counts_ai_graded_submissions_only (users.tests_user_list_sorting.CountValueTests.test_papers_graded_counts_ai_graded_submissions_only) ... Free trial plan not found: no trial activated for user 39a4be68-2bc5-4606-8550-3281bb65566c.
+Free trial plan not found: no trial activated for user 80a8a0c1-55fe-484f-b918-e39bde240a5c.
+Free trial plan not found: no trial activated for user a8461af2-8e1e-4987-a3b5-811ea474b657.
+ERROR
+test_credits_left_is_null_without_a_wallet (users.tests_user_list_sorting.CreditValueTests.test_credits_left_is_null_without_a_wallet) ... Free trial plan not found: no trial activated for user d1c409ce-5887-42a9-aea8-dc2bf81b06db.
+Free trial plan not found: no trial activated for user 123ec148-f5c7-46e4-b0b5-58959aae853c.
+ERROR
+test_credits_used_is_unrefunded_usage_in_display_units (users.tests_user_list_sorting.CreditValueTests.test_credits_used_is_unrefunded_usage_in_display_units) ... Free trial plan not found: no trial activated for user e2d1cd00-0313-40e2-a401-015ef3599ebc.
+Free trial plan not found: no trial activated for user 15563035-9e9d-4b85-be61-085fb5f82896.
+ERROR
+test_credits_used_is_zero_without_usage (users.tests_user_list_sorting.CreditValueTests.test_credits_used_is_zero_without_usage) ... Free trial plan not found: no trial activated for user 0a0bcb60-933a-4556-8711-702dd748a23b.
+Free trial plan not found: no trial activated for user 3849577b-e356-4385-aa94-c9b23a7b099e.
+ERROR
+test_each_fixture_matches_display_balance (users.tests_user_list_sorting.CreditsLeftParityTests.test_each_fixture_matches_display_balance) ... Free trial plan not found: no trial activated for user eed03224-367a-4e4c-ba7c-250af6ec42ae.
+Free trial plan not found: no trial activated for user 52e47ab6-3080-446c-87c2-aae3e72b6989.
+Free trial plan not found: no trial activated for user 34efcfcf-8ae1-4031-819e-37cad7b0ec90.
+Free trial plan not found: no trial activated for user bbdd8304-8483-477d-b5e3-3e0c817527c0.
+Free trial plan not found: no trial activated for user 7f3a280d-7e5d-4f21-88b1-636257c4f7b0.
+Free trial plan not found: no trial activated for user 16c439aa-2028-4d74-89e4-d38429a57152.
+Free trial plan not found: no trial activated for user 2feb1de4-8ac3-4e06-8e06-62afb576b914.
+Free trial plan not found: no trial activated for user e615db10-0e47-4c9c-a120-e8b242b39171.
+Free trial plan not found: no trial activated for user 35a73b7e-7f89-4ea5-b9e9-ec4997e7a2cf.
+Free trial plan not found: no trial activated for user 1ecfa4df-97b3-4c32-a15c-913775602c72.
+Free trial plan not found: no trial activated for user b70e2215-5f73-41dc-913f-4f3fbf44a44d.
+Free trial plan not found: no trial activated for user 14c24b15-8a07-4b25-a42d-97a009f28f90.
+ERROR
+test_negative_balances_floor_like_display_balance (users.tests_user_list_sorting.CreditsLeftParityTests.test_negative_balances_floor_like_display_balance) ... Free trial plan not found: no trial activated for user 39980f79-76a5-4a25-9ab5-a2d4b5c070b8.
+Free trial plan not found: no trial activated for user c0ae7124-b855-4bf5-aea5-95e7b01f1de6.
+Free trial plan not found: no trial activated for user c7476f2c-9f4c-4c10-a887-efff389d7254.
+Free trial plan not found: no trial activated for user 8eef8612-8680-4ce2-b565-b9c656f4bc40.
+ERROR
+test_the_fixtures_are_not_all_zero (users.tests_user_list_sorting.CreditsLeftParityTests.test_the_fixtures_are_not_all_zero) ... Free trial plan not found: no trial activated for user c39501e5-94bb-44c2-93bf-5110da4907b6.
+Free trial plan not found: no trial activated for user 0b82e996-ee61-4576-a1cb-de931fd5f290.
+ERROR
+test_last_login_and_activated_at_are_listed (users.tests_user_list_sorting.DateValueTests.test_last_login_and_activated_at_are_listed) ... Free trial plan not found: no trial activated for user b4aaaf0b-bde6-4e31-9b40-225f26c9131b.
+Free trial plan not found: no trial activated for user 308e7a27-fd4b-4e90-8c16-069ec4772473.
+ERROR
+test_never_signed_in_or_activated_is_null (users.tests_user_list_sorting.DateValueTests.test_never_signed_in_or_activated_is_null) ... Free trial plan not found: no trial activated for user 9d3c5a7c-5cc9-4d8e-867d-d9714ebe6a5e.
+Free trial plan not found: no trial activated for user 789f436f-246a-40a2-83ee-ae910b1f62f7.
+ERROR
+test_a_bad_value_is_a_400 (users.tests_user_list_sorting.FilterTests.test_a_bad_value_is_a_400) ... Free trial plan not found: no trial activated for user 3a79a74f-2e43-4cf2-9e5e-02f88bdbab01.
+
+  test_a_bad_value_is_a_400 (users.tests_user_list_sorting.FilterTests.test_a_bad_value_is_a_400) [{'plan_tier': 'GOLD'}] ... FAIL
+  test_a_bad_value_is_a_400 (users.tests_user_list_sorting.FilterTests.test_a_bad_value_is_a_400) [{'plan_category': 'FAMILY'}] ... FAIL
+  test_a_bad_value_is_a_400 (users.tests_user_list_sorting.FilterTests.test_a_bad_value_is_a_400) [{'plan_interval': 'WEEKLY'}] ... FAIL
+  test_a_bad_value_is_a_400 (users.tests_user_list_sorting.FilterTests.test_a_bad_value_is_a_400) [{'last_login_after': 'not-a-date'}] ... FAIL
+test_activated_after_and_before (users.tests_user_list_sorting.FilterTests.test_activated_after_and_before) ... Free trial plan not found: no trial activated for user c386614e-3345-478c-bc7e-33aea4320164.
+Free trial plan not found: no trial activated for user ca3d137a-f05e-491f-920e-297997ceab21.
+Free trial plan not found: no trial activated for user e0f83aeb-0a94-4364-acc3-f3cbeecc5df7.
+Free trial plan not found: no trial activated for user aeea9325-8c46-46ff-ba8d-cbd27bca9bd5.
+FAIL
+test_filters_combine_with_ordering (users.tests_user_list_sorting.FilterTests.test_filters_combine_with_ordering) ... Free trial plan not found: no trial activated for user 0b881900-f81b-49c4-9d5c-5b600cb0ba22.
+Free trial plan not found: no trial activated for user f3b643a2-6096-4e0f-8f50-a57b2e00bcb2.
+Free trial plan not found: no trial activated for user 2ba000bb-0490-404f-ad59-81b73536e00e.
+FAIL
+test_last_login_after_and_before (users.tests_user_list_sorting.FilterTests.test_last_login_after_and_before) ... Free trial plan not found: no trial activated for user ccd2b36e-4470-4a4b-95c7-a9ab7f5142bb.
+Free trial plan not found: no trial activated for user 74a2b1af-e103-4b3e-91e1-fac0b336f719.
+Free trial plan not found: no trial activated for user 00f7f725-9454-47f2-b8bc-a788cc771137.
+Free trial plan not found: no trial activated for user daa56dda-9319-4d89-8296-f1ea0cc51d33.
+FAIL
+test_plan_filters (users.tests_user_list_sorting.FilterTests.test_plan_filters) ... Free trial plan not found: no trial activated for user 0b47e1b9-69c0-4f94-986a-2b3df0008313.
+Free trial plan not found: no trial activated for user 5e2d71c6-41d4-4121-9f4f-4538afdf9d2b.
+Free trial plan not found: no trial activated for user 82342f1c-2e17-4e53-a204-2911a5d96610.
+Free trial plan not found: no trial activated for user 9649bfc1-c68d-49f6-b6bf-e79939ec2a83.
+Free trial plan not found: no trial activated for user f5c15c13-61e1-450b-8a1c-d4ba7177fddb.
+FAIL
+test_the_date_bounds_are_inclusive (users.tests_user_list_sorting.FilterTests.test_the_date_bounds_are_inclusive) ... Free trial plan not found: no trial activated for user 07d2a371-49c7-4291-8775-c30d67bce647.
+Free trial plan not found: no trial activated for user a099fac6-bbfd-4e59-8e71-d0cfc2b07bfe.
+ok
+test_a_teacher_still_cannot_list (users.tests_user_list_sorting.ListOnlyTests.test_a_teacher_still_cannot_list) ... Free trial plan not found: no trial activated for user caabd086-da18-4cd5-a0c6-ad6afb51808a.
+Free trial plan not found: no trial activated for user ffbe5e06-7067-4149-96d7-334ee325817f.
+API request refused: PermissionDenied (403)
+ok
+test_only_the_super_admin_list_builds_the_list_values (users.tests_user_list_sorting.ListOnlyTests.test_only_the_super_admin_list_builds_the_list_values)
+The per-teacher counts (course__teacher, D5) are built by ... Free trial plan not found: no trial activated for user c3c0a9e4-f345-4332-89c6-69371daa64cb.
+Free trial plan not found: no trial activated for user aaee1897-cffb-42d3-9e99-e815fd6152c8.
+Free trial plan not found: no trial activated for user 2a0ea3c4-e80d-4be9-81b3-acc39464fd6e.
+ERROR
+test_super_admin_non_list_responses (users.tests_user_list_sorting.ListOnlyTests.test_super_admin_non_list_responses) ... Free trial plan not found: no trial activated for user 9c6f71b6-14b1-49dc-bd5b-e6c9580fddec.
+Free trial plan not found: no trial activated for user 39233b6c-318a-459e-adcd-252dfddc9c29.
+ok
+test_teacher_non_list_responses (users.tests_user_list_sorting.ListOnlyTests.test_teacher_non_list_responses) ... Free trial plan not found: no trial activated for user 6ff1ce72-d478-4994-ae33-f585dacbee2a.
+Free trial plan not found: no trial activated for user 24bd154b-5e64-4a39-a91b-2fe5d1754758.
+ok
+test_the_list_carries_all_nine (users.tests_user_list_sorting.ListOnlyTests.test_the_list_carries_all_nine) ... Free trial plan not found: no trial activated for user b8aa0004-8c05-411c-b708-1ffd116f45d4.
+Free trial plan not found: no trial activated for user 2b473775-d191-4ce0-a65c-8389bc464d2c.
+FAIL
+test_the_list_filters_do_nothing_off_the_list_for_others (users.tests_user_list_sorting.ListOnlyTests.test_the_list_filters_do_nothing_off_the_list_for_others) ... Free trial plan not found: no trial activated for user 88669faf-4642-49de-a69a-a0ab232046fe.
+Free trial plan not found: no trial activated for user db75234f-3494-41f9-9b71-55f6bb333da4.
+ok
+test_the_sign_in_payload (users.tests_user_list_sorting.ListOnlyTests.test_the_sign_in_payload) ... Free trial plan not found: no trial activated for user 8efbe39e-b09f-444c-8a28-1c8f593d7fae.
+Free trial plan not found: no trial activated for user ad1361d9-a160-4491-b19f-508e69b83996.
+ok
+test_every_new_filter_is_documented (users.tests_user_list_sorting.OpenApiTests.test_every_new_filter_is_documented) ... Free trial plan not found: no trial activated for user 5d512151-3142-48d2-9272-9878fd601ea9.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "grant_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:grant_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "user_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:user_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_message_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_latest_message_preview". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentViewSet > AssignmentDetailSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [AuthViewSet > GoogleAuthResponse > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [AuthViewSet > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views.py: Error [BetaAnaylicChartViewSet]: exception raised while getting serializer. Hint: Is get_serializer_class() returning None or is get_queryset() not working without a request? Ignoring the view for now. (Exception: 'BetaAnaylicChartViewSet' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method.)
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [CourseViewSet > CourseSerializer]: unable to resolve type hint for function "get_assignment_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [CreditWalletViewSet > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [health]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [beat_health_check]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [client_identity]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'user_type')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/payment_method_views.py: Warning [PaymentMethodViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/payment_method_views.py: Error [PaymentMethodViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/qa_time_travel.py: Error [BillingTimeTravelView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/views.py: Warning [SchoolAdminAuditEventListView]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'school_id')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_label". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_name". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/views.py: Warning [SchoolAdminDashboardView]: could not derive type of path parameter "teacher_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:teacher_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [SchoolViewSet > SchoolAdminSummarySerializer]: Encountered 2 components with identical names "SchoolAdminSummary" and different identities <class 'classrooms.serializers.SchoolAdminSummarySerializer'> and <class 'dashboard.serializers.SchoolAdminSummarySerializer'>. This will very likely result in an incorrect schema. Try renaming one.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_no_of_assignment". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_assignment_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_submitted_assignment_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_grade_letter". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_enrolled_courses". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_in_course". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_percentage_of_submission". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_max_points". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_grade_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_formatted_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionPlanViewSet > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "session_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:session_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Error [TaskViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "task_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:task_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "item_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:item_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/views.py: Error [TeacherAdminDashboardView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_remaining_time". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_exact_due_date". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer]: unable to resolve type hint for function "get_average_grading_turnaround". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "status". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "StatusBbeEnum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: encountered multiple names for the same choice set (CategoryEnum). This may be unwanted even though the generated schema is technically correct. Add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+FAIL
+test_ordering_lists_every_allowed_value (users.tests_user_list_sorting.OpenApiTests.test_ordering_lists_every_allowed_value) ... Free trial plan not found: no trial activated for user 5dd2cd47-63f5-4ccb-90de-ba66b00e477f.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "grant_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:grant_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "user_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:user_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_message_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_latest_message_preview". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentViewSet > AssignmentDetailSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [AuthViewSet > GoogleAuthResponse > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [AuthViewSet > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views.py: Error [BetaAnaylicChartViewSet]: exception raised while getting serializer. Hint: Is get_serializer_class() returning None or is get_queryset() not working without a request? Ignoring the view for now. (Exception: 'BetaAnaylicChartViewSet' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method.)
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [CourseViewSet > CourseSerializer]: unable to resolve type hint for function "get_assignment_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [CreditWalletViewSet > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [health]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [beat_health_check]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [client_identity]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'user_type')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/payment_method_views.py: Warning [PaymentMethodViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/payment_method_views.py: Error [PaymentMethodViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/qa_time_travel.py: Error [BillingTimeTravelView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/views.py: Warning [SchoolAdminAuditEventListView]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'school_id')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_label". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_name". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/views.py: Warning [SchoolAdminDashboardView]: could not derive type of path parameter "teacher_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:teacher_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [SchoolViewSet > SchoolAdminSummarySerializer]: Encountered 2 components with identical names "SchoolAdminSummary" and different identities <class 'classrooms.serializers.SchoolAdminSummarySerializer'> and <class 'dashboard.serializers.SchoolAdminSummarySerializer'>. This will very likely result in an incorrect schema. Try renaming one.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_no_of_assignment". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_assignment_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_submitted_assignment_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_grade_letter". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_enrolled_courses". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_in_course". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_percentage_of_submission". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_max_points". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_grade_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_formatted_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionPlanViewSet > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "session_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:session_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Error [TaskViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "task_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:task_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "item_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:item_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/views.py: Error [TeacherAdminDashboardView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_remaining_time". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_exact_due_date". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer]: unable to resolve type hint for function "get_average_grading_turnaround". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "status". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "StatusBbeEnum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: encountered multiple names for the same choice set (CategoryEnum). This may be unwanted even though the generated schema is technically correct. Add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+FAIL
+test_activated_at (users.tests_user_list_sorting.OrderingTests.test_activated_at) ... Free trial plan not found: no trial activated for user c7bca272-9df7-4376-b7e4-a9d587786aa0.
+Free trial plan not found: no trial activated for user 04801e50-11e6-414f-ab38-cf6093badefe.
+Free trial plan not found: no trial activated for user 2e0f7b6f-4d3d-4179-9e96-40d4e334d934.
+Free trial plan not found: no trial activated for user eefdd9b9-15cd-4051-b168-641f0c30668a.
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+
+  test_activated_at (users.tests_user_list_sorting.OrderingTests.test_activated_at) (key='activated_at', direction='asc') ... FAIL
+test_an_unknown_key_is_ignored (users.tests_user_list_sorting.OrderingTests.test_an_unknown_key_is_ignored) ... Free trial plan not found: no trial activated for user 36d1d516-9042-4905-811a-d7f8ac7c91dc.
+Free trial plan not found: no trial activated for user 6f12e60c-370e-4e80-ba6d-d6941f4db382.
+Free trial plan not found: no trial activated for user 93279737-7b6b-4cc8-b87a-6b710a46a7c4.
+ok
+test_assignments_created (users.tests_user_list_sorting.OrderingTests.test_assignments_created) ... Free trial plan not found: no trial activated for user 9665fdcd-dde4-4650-8660-5dbee1a184cf.
+Free trial plan not found: no trial activated for user 2132759d-af99-4c0c-a138-3696b58c6d2b.
+Free trial plan not found: no trial activated for user 082ca991-a3bd-4348-be2a-6c2c89c25336.
+Free trial plan not found: no trial activated for user 7b516ac8-6159-4de8-b9bd-fc0d62961f34.
+
+  test_assignments_created (users.tests_user_list_sorting.OrderingTests.test_assignments_created) (key='assignments_created', direction='asc') ... FAIL
+test_credits_left (users.tests_user_list_sorting.OrderingTests.test_credits_left) ... Free trial plan not found: no trial activated for user 0cc05b7d-78f1-4655-9a18-67940290bc69.
+Free trial plan not found: no trial activated for user f978329b-8fe6-40fe-9619-5123f50707d2.
+Free trial plan not found: no trial activated for user 7c194aeb-6b8a-49fd-ab88-257c3124cd05.
+Free trial plan not found: no trial activated for user a3fe015d-fa0f-4f5a-859c-2fdbc9e4efba.
+Free trial plan not found: no trial activated for user 2bcbc064-99bf-4a4f-b6d0-7fb0e3c7733e.
+Free trial plan not found: no trial activated for user 7e8db380-04a1-45e7-b831-4ef707cf5647.
+
+  test_credits_left (users.tests_user_list_sorting.OrderingTests.test_credits_left) (key='credits_left', direction='asc') ... FAIL
+  test_credits_left (users.tests_user_list_sorting.OrderingTests.test_credits_left) (key='credits_left', direction='desc') ... FAIL
+test_credits_left_sorts_on_raw_credits (users.tests_user_list_sorting.OrderingTests.test_credits_left_sorts_on_raw_credits) ... Free trial plan not found: no trial activated for user c141d090-79b0-4870-833e-5a15c6d24221.
+Free trial plan not found: no trial activated for user 87713235-7c6a-466c-98f8-55ecc7cd43db.
+Free trial plan not found: no trial activated for user 50b113cf-21fe-4e65-914c-2db71f57fee2.
+FAIL
+test_credits_used (users.tests_user_list_sorting.OrderingTests.test_credits_used) ... Free trial plan not found: no trial activated for user 8b66d6ed-1ae4-41df-ac65-fe69a58aec9e.
+Free trial plan not found: no trial activated for user 4203dc9a-a68c-47f9-a164-e25f2f9c355c.
+Free trial plan not found: no trial activated for user 78058c2d-859f-46f2-a55a-47ef457518a8.
+Free trial plan not found: no trial activated for user 5990bb10-8106-4471-8571-9bfa76ae833b.
+
+  test_credits_used (users.tests_user_list_sorting.OrderingTests.test_credits_used) (key='credits_used', direction='asc') ... FAIL
+test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) ... Free trial plan not found: no trial activated for user 7f4479ca-3872-49c2-9b62-d5a39cd76456.
+Free trial plan not found: no trial activated for user 0b5915a1-5807-446c-ac60-a2d73a29a429.
+Free trial plan not found: no trial activated for user 792cb47a-6e97-4eb6-8f37-308138e4fccf.
+Free trial plan not found: no trial activated for user 1d7ee52d-2a5a-4b5a-9194-657ccc0dc61b.
+Free trial plan not found: no trial activated for user 90d907d7-7ed3-42e4-854f-ca9338b39fb9.
+
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='last_login') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-last_login') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='activated_at') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-activated_at') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='plan_tier') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-plan_tier') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='plan_category') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-plan_category') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='plan_interval') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-plan_interval') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='assignments_created') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-assignments_created') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='papers_graded') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-papers_graded') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='credits_left') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-credits_left') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='credits_used') ... FAIL
+  test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-credits_used') ... FAIL
+test_last_login (users.tests_user_list_sorting.OrderingTests.test_last_login) ... Free trial plan not found: no trial activated for user 944b6720-cb6c-4b23-9ad3-102474cf63aa.
+Free trial plan not found: no trial activated for user ba4c1381-4cfc-4ef0-9dd3-81b86036a64f.
+Free trial plan not found: no trial activated for user c5a1faf2-606d-4085-878d-ee136fef38c7.
+Free trial plan not found: no trial activated for user de63ab65-e8e4-4bb8-a59c-12f28113fa72.
+
+  test_last_login (users.tests_user_list_sorting.OrderingTests.test_last_login) (key='last_login', direction='asc') ... FAIL
+test_papers_graded (users.tests_user_list_sorting.OrderingTests.test_papers_graded) ... Free trial plan not found: no trial activated for user edb8f0db-d952-4f00-b6cf-3699eb3f2294.
+Free trial plan not found: no trial activated for user e03e4726-d598-4c93-a0c7-cf16e496feba.
+Free trial plan not found: no trial activated for user ca8b689f-5c2b-4fd7-8c38-8b979b4d77d9.
+Free trial plan not found: no trial activated for user 12104825-2be6-454c-b386-abb4fc06ca2a.
+
+  test_papers_graded (users.tests_user_list_sorting.OrderingTests.test_papers_graded) (key='papers_graded', direction='asc') ... FAIL
+test_plan_category (users.tests_user_list_sorting.OrderingTests.test_plan_category) ... Free trial plan not found: no trial activated for user b7c5aa25-6bde-4521-9da1-27123eb4dabf.
+Free trial plan not found: no trial activated for user 3793ff98-a24b-4ade-b5bd-cbb78b7f222f.
+Free trial plan not found: no trial activated for user d5a1160e-8d20-467b-9433-dafb83f4aeb4.
+Free trial plan not found: no trial activated for user 360347b0-898d-4962-b7a2-d96c646426d4.
+
+  test_plan_category (users.tests_user_list_sorting.OrderingTests.test_plan_category) (key='plan_category', direction='asc') ... FAIL
+test_plan_interval (users.tests_user_list_sorting.OrderingTests.test_plan_interval) ... Free trial plan not found: no trial activated for user 1cbbe04d-73f1-4451-abb2-35ae4ac29845.
+Free trial plan not found: no trial activated for user b298287b-5503-4396-87d2-67e8836bfcb8.
+Free trial plan not found: no trial activated for user da0e7966-7683-4ba8-a9d7-67e0b4c052e4.
+Free trial plan not found: no trial activated for user a23f06d9-5cb9-46da-a525-40869e752ec0.
+
+  test_plan_interval (users.tests_user_list_sorting.OrderingTests.test_plan_interval) (key='plan_interval', direction='asc') ... FAIL
+test_plan_tier_follows_the_ruled_rank (users.tests_user_list_sorting.OrderingTests.test_plan_tier_follows_the_ruled_rank) ... Free trial plan not found: no trial activated for user bce30565-795f-4b59-86b2-ca1d24bcd825.
+Free trial plan not found: no trial activated for user 1ea3b5fc-65da-4a58-a321-70d7c388eb01.
+Free trial plan not found: no trial activated for user f799b5a9-ea99-4235-b5a7-0e45c150e795.
+Free trial plan not found: no trial activated for user f592002a-5fca-4857-97cb-3a4de36ebfd8.
+Free trial plan not found: no trial activated for user e29cd820-56dc-4499-bd87-25d29ec3f592.
+Free trial plan not found: no trial activated for user 91ffbf11-d187-4d03-8910-85d84e4278f2.
+Free trial plan not found: no trial activated for user 0415823c-297b-4fbe-b84f-d870cbd8b62b.
+Free trial plan not found: no trial activated for user ee6d03dc-2583-4a28-b9fb-4d669eed62a9.
+
+  test_plan_tier_follows_the_ruled_rank (users.tests_user_list_sorting.OrderingTests.test_plan_tier_follows_the_ruled_rank) (key='plan_tier', direction='asc') ... FAIL
+test_the_old_keys_still_work (users.tests_user_list_sorting.OrderingTests.test_the_old_keys_still_work) ... Free trial plan not found: no trial activated for user 8e0269e1-4377-429c-9cc9-871ba46f6fb2.
+Free trial plan not found: no trial activated for user af390802-288f-477c-9147-ae341c51c453.
+Free trial plan not found: no trial activated for user 84bb5444-6a05-4a4e-adbd-adb7f164dd59.
+ok
+test_two_keys_combine (users.tests_user_list_sorting.OrderingTests.test_two_keys_combine) ... Free trial plan not found: no trial activated for user 26ab7469-3f1b-4b26-b5cf-d884bd1ae431.
+Free trial plan not found: no trial activated for user 90f72de4-67b6-4032-b4b1-ed12936316a8.
+Free trial plan not found: no trial activated for user a0fc218a-0a37-422f-875f-29aee2f9ac70.
+Free trial plan not found: no trial activated for user 87fffa5f-144c-4e23-91ee-893187315628.
+FAIL
+test_a_license_admin_allocation_gives_the_license_plan (users.tests_user_list_sorting.PlanValueTests.test_a_license_admin_allocation_gives_the_license_plan) ... Free trial plan not found: no trial activated for user 3a0565e5-f171-4430-92c0-a28169abe577.
+ERROR
+test_a_license_teacher_allocation_wins_over_an_individual_one (users.tests_user_list_sorting.PlanValueTests.test_a_license_teacher_allocation_wins_over_an_individual_one) ... Free trial plan not found: no trial activated for user 0e7aebf8-455a-473c-aa2f-193c395a80fe.
+Free trial plan not found: no trial activated for user 2548c478-e43e-49f4-b711-beab6002ba1f.
+ERROR
+test_a_teacher_allocation_wins_over_an_admin_allocation (users.tests_user_list_sorting.PlanValueTests.test_a_teacher_allocation_wins_over_an_admin_allocation) ... Free trial plan not found: no trial activated for user 973cebaf-8a4c-43bd-9b04-b826c331de4f.
+Free trial plan not found: no trial activated for user 4deaca29-3dda-4c48-8668-f930c9d19583.
+ERROR
+test_an_inactive_allocation_or_license_is_skipped (users.tests_user_list_sorting.PlanValueTests.test_an_inactive_allocation_or_license_is_skipped) ... Free trial plan not found: no trial activated for user 2cf9567a-a748-4ca9-80c3-7e727f5693ea.
+Free trial plan not found: no trial activated for user 0c58164f-33fc-48a4-9d88-92b31dc8e34d.
+ERROR
+test_an_inactive_subscription_gives_no_plan (users.tests_user_list_sorting.PlanValueTests.test_an_inactive_subscription_gives_no_plan) ... Free trial plan not found: no trial activated for user 63f11463-05a7-4acd-9b30-0f3f9537746a.
+Free trial plan not found: no trial activated for user 6fde53d7-be54-457d-b6ce-ea51a86f1761.
+ERROR
+test_an_individual_subscription_gives_its_plan (users.tests_user_list_sorting.PlanValueTests.test_an_individual_subscription_gives_its_plan) ... Free trial plan not found: no trial activated for user 90cfde51-a345-4dfe-b028-6fe95ff4fe84.
+Free trial plan not found: no trial activated for user 55b63b71-ea2c-46c0-a690-f73504745750.
+ERROR
+test_no_subscription_gives_no_plan (users.tests_user_list_sorting.PlanValueTests.test_no_subscription_gives_no_plan) ... Free trial plan not found: no trial activated for user db1009cb-f276-44aa-9f6e-7cd571064b3a.
+Free trial plan not found: no trial activated for user 919c01e9-9b7a-4295-91df-66889ebeaecc.
+ERROR
+test_a_5_row_and_a_25_row_page_cost_the_same (users.tests_user_list_sorting.QueryCountTests.test_a_5_row_and_a_25_row_page_cost_the_same) ... Free trial plan not found: no trial activated for user 5ee29868-a20f-4bc5-9d6b-bf92f65898de.
+Free trial plan not found: no trial activated for user 384dfc20-6285-4c0f-a798-042d9566d9a2.
+Free trial plan not found: no trial activated for user 5aa1172d-c535-4762-8e57-6b7d3d622767.
+Free trial plan not found: no trial activated for user 44299e3d-a09c-41ca-86ab-c0e76a7eebea.
+Free trial plan not found: no trial activated for user 4991c68d-9a30-41b6-8325-8fb16861616c.
+Free trial plan not found: no trial activated for user a06375df-02ba-4d78-85fd-323fe92b2b3f.
+Free trial plan not found: no trial activated for user 2b003e11-c941-4948-9940-db455daffe94.
+Free trial plan not found: no trial activated for user 8db0fd13-85ae-4c81-8777-5d8c03f9a5c9.
+Free trial plan not found: no trial activated for user 7396b918-2a9e-45a0-8f77-b44c8e555e45.
+Free trial plan not found: no trial activated for user 62031214-38cc-47ff-a872-fe521ba59e7d.
+Free trial plan not found: no trial activated for user 13594b8d-1dbd-4e10-b224-fe79e432722a.
+Free trial plan not found: no trial activated for user 3e01de0c-4f8a-4620-82c8-e14dcc6662b6.
+Free trial plan not found: no trial activated for user ac77bb4f-2dd9-4bfe-9dd0-951354de45d7.
+Free trial plan not found: no trial activated for user c3237c6d-7d0f-4ee0-b562-8a7cf19b8c9e.
+Free trial plan not found: no trial activated for user 16756e92-b635-4560-ab53-268db559ae9f.
+Free trial plan not found: no trial activated for user 40e027c5-513d-4c50-80d2-2f2cf348417c.
+Free trial plan not found: no trial activated for user 8e8be697-149e-471d-b036-6bbb29c346e7.
+Free trial plan not found: no trial activated for user f39e5abb-3484-4bf7-a27c-f4caa297aade.
+Free trial plan not found: no trial activated for user a1595218-260d-41f0-b3e0-af778997cf71.
+Free trial plan not found: no trial activated for user e6579f4c-a9b7-406f-8d3c-f128d4557841.
+Free trial plan not found: no trial activated for user 58c507fc-3c71-4aba-8a75-a89a307d9bb4.
+Free trial plan not found: no trial activated for user 3ebdc948-fa4b-49fa-ab8a-73e2f8569c25.
+Free trial plan not found: no trial activated for user b3363ffb-f064-43e3-8a10-44901a50d064.
+Free trial plan not found: no trial activated for user 240ada63-df12-4e5a-85e0-31931674cca4.
+Free trial plan not found: no trial activated for user 25e0c372-536d-46d7-ad5c-8a0cf5c44a2f.
+Free trial plan not found: no trial activated for user 4429cdf8-b2cb-4293-91fb-7a45921aac45.
+Free trial plan not found: no trial activated for user 0d0c5847-ef6b-462a-b579-2cdabe254d38.
+Free trial plan not found: no trial activated for user 10de8cca-bc49-4aca-a630-41753f68580a.
+Free trial plan not found: no trial activated for user 56ae6d4a-975e-4b45-9419-64c10d2e3c15.
+Free trial plan not found: no trial activated for user f56c8410-7785-4bfd-a2ff-5cd51feede67.
+Free trial plan not found: no trial activated for user 049fb027-6f7b-4db2-a6e5-7a2b8e2e1ee7.
+FAIL
+test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) ... Free trial plan not found: no trial activated for user feca5083-e3af-4065-87df-534bac8b4307.
+Free trial plan not found: no trial activated for user 73577893-0f30-497e-87a4-d50192e2aeed.
+Free trial plan not found: no trial activated for user 6c60c085-18d2-4937-9aac-ed3fc7ce7a45.
+Free trial plan not found: no trial activated for user e0b0d354-c685-4379-a299-bf1437cb6377.
+Free trial plan not found: no trial activated for user fa95ff25-63be-40fb-8b8a-b7123e1751e9.
+Free trial plan not found: no trial activated for user 0e5f9a78-9fad-41d2-8d60-1060db909c36.
+Free trial plan not found: no trial activated for user 2c70230d-b037-4c16-84bb-fe24c13e77b5.
+Free trial plan not found: no trial activated for user 6fd9b468-22cf-4e7a-9e1c-0458f262d580.
+Free trial plan not found: no trial activated for user afdc038f-c14c-4ddf-a86f-3fd8108be49e.
+Free trial plan not found: no trial activated for user 35dc025c-2910-49dc-aa3d-8a9b85d5ee5d.
+Free trial plan not found: no trial activated for user e5b580d6-62b5-4e19-8c74-c6ae655eddb1.
+Free trial plan not found: no trial activated for user 43508c5b-4b99-4c50-b179-e9c3806b2c56.
+Free trial plan not found: no trial activated for user dc5448ae-5c00-4155-b546-a4e5f37dc6ce.
+Free trial plan not found: no trial activated for user db1357de-43ec-414a-a24e-834e0eac1380.
+Free trial plan not found: no trial activated for user fad683c9-5753-4827-92cf-a583447074ab.
+Free trial plan not found: no trial activated for user 7d0d64f8-fa48-4939-938d-6679ee2d2fe3.
+Free trial plan not found: no trial activated for user 2a6292b1-ecf6-406f-bca0-75707a36bbcd.
+Free trial plan not found: no trial activated for user 93d3be58-ca92-4fbe-bd29-cbf75d28a419.
+Free trial plan not found: no trial activated for user 8224d1bd-2535-478e-8eb1-18be27ecbd64.
+Free trial plan not found: no trial activated for user f28cbaae-76f8-4202-a036-29c5a8dd8f8c.
+Free trial plan not found: no trial activated for user dcf423ab-8dec-4816-be1b-e6f8f62f6192.
+Free trial plan not found: no trial activated for user b2ee9b2c-b618-4963-88a9-dce8173987a1.
+Free trial plan not found: no trial activated for user b7fb9e10-f1e5-4837-8f76-cfc20371aca9.
+Free trial plan not found: no trial activated for user 50602c27-dd48-4c98-aa2f-2b3b69b3a35e.
+Free trial plan not found: no trial activated for user 3694585f-4b5f-42e7-b2ec-8b1c8a92f5d4.
+Free trial plan not found: no trial activated for user 307017d5-32a0-4c4f-84f8-57a6f85cbc82.
+Free trial plan not found: no trial activated for user 47db31f2-ead7-40e2-bfe4-d8dbbe293751.
+Free trial plan not found: no trial activated for user e18026fc-b63c-4a70-a9d6-59dcb931d2c1.
+Free trial plan not found: no trial activated for user 753aba4d-1946-4e02-b82d-fef4851cfc3f.
+Free trial plan not found: no trial activated for user 9fc1ee55-8900-4413-92be-eae856fd9710.
+Free trial plan not found: no trial activated for user b0d72eb9-e661-47f6-acc0-b8d6f59200e1.
+
+  test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='last_login') ... FAIL
+  test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='activated_at') ... FAIL
+  test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='plan_tier') ... FAIL
+  test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='plan_category') ... FAIL
+  test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='plan_interval') ... FAIL
+  test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='assignments_created') ... FAIL
+  test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='papers_graded') ... FAIL
+  test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='credits_left') ... FAIL
+  test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='credits_used') ... FAIL
+  test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, filters=True) ... FAIL
+test_the_list_payload_is_what_it_was (users.tests_user_list_payload_pin.ListPayloadPinTests.test_the_list_payload_is_what_it_was) ... Free trial plan not found: no trial activated for user f3988907-7f88-4dd7-bdb7-2b5b80dbc1ff.
+Free trial plan not found: no trial activated for user 71fa6458-6369-4168-a1d9-7aa5652fed3e.
+Free trial plan not found: no trial activated for user 73d54d2e-08a5-4e0a-868d-7793f55354f5.
+Free trial plan not found: no trial activated for user a036ffe8-095f-40f8-866c-d061f24d5e04.
+Free trial plan not found: no trial activated for user 32b07ef4-85a2-4159-8b93-7c4c9f6d7334.
+Free trial plan not found: no trial activated for user a9f8987a-b4b5-4f48-971b-d758d85a2586.
+ok
+test_the_pin_is_not_vacuous (users.tests_user_list_payload_pin.ListPayloadPinTests.test_the_pin_is_not_vacuous) ... Free trial plan not found: no trial activated for user 9153b920-c1f7-41a4-b6d4-32bcbaaee5db.
+ok
+test_each_row_equals_its_retrieve (users.tests_user_list_payload_pin.SingleRetrieveParityTests.test_each_row_equals_its_retrieve) ... Free trial plan not found: no trial activated for user 0dfbf982-88a3-4ed4-8d1f-2172c4f286cd.
+Free trial plan not found: no trial activated for user 89b3c13e-eec6-4c4c-9466-7dbe09c78fad.
+Free trial plan not found: no trial activated for user c3518b6c-d950-442f-b8bc-29bd4a9f643c.
+Free trial plan not found: no trial activated for user 8c0f728e-40b9-40eb-b064-506b9dbe9c96.
+Free trial plan not found: no trial activated for user f08db38c-6acb-42d7-94e0-f376b5990fc7.
+Free trial plan not found: no trial activated for user ab546584-3bea-4cba-a235-0daf0b85160e.
+ok
+
+======================================================================
+ERROR: test_assignments_created_counts_the_course_teachers_assignments (users.tests_user_list_sorting.CountValueTests.test_assignments_created_counts_the_course_teachers_assignments)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 377, in test_assignments_created_counts_the_course_teachers_assignments
+    self.assertEqual(self.row(teacher)["assignments_created"], 2)
+                     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'assignments_created'
+
+======================================================================
+ERROR: test_counts_are_zero_not_null (users.tests_user_list_sorting.CountValueTests.test_counts_are_zero_not_null)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 393, in test_counts_are_zero_not_null
+    self.assertEqual(row["assignments_created"], 0)
+                     ~~~^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'assignments_created'
+
+======================================================================
+ERROR: test_papers_graded_counts_ai_graded_submissions_only (users.tests_user_list_sorting.CountValueTests.test_papers_graded_counts_ai_graded_submissions_only)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 388, in test_papers_graded_counts_ai_graded_submissions_only
+    self.assertEqual(self.row(teacher)["papers_graded"], 2)
+                     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+KeyError: 'papers_graded'
+
+======================================================================
+ERROR: test_credits_left_is_null_without_a_wallet (users.tests_user_list_sorting.CreditValueTests.test_credits_left_is_null_without_a_wallet)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 414, in test_credits_left_is_null_without_a_wallet
+    self.assertIsNone(self.row(user)["credits_left"])
+                      ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+KeyError: 'credits_left'
+
+======================================================================
+ERROR: test_credits_used_is_unrefunded_usage_in_display_units (users.tests_user_list_sorting.CreditValueTests.test_credits_used_is_unrefunded_usage_in_display_units)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 405, in test_credits_used_is_unrefunded_usage_in_display_units
+    self.assertEqual(self.row(user)["credits_used"], 4_200 // CONVERSION_FACTOR)
+                     ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+KeyError: 'credits_used'
+
+======================================================================
+ERROR: test_credits_used_is_zero_without_usage (users.tests_user_list_sorting.CreditValueTests.test_credits_used_is_zero_without_usage)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 408, in test_credits_used_is_zero_without_usage
+    self.assertEqual(self.row(self.person())["credits_used"], 0)
+                     ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+KeyError: 'credits_used'
+
+======================================================================
+ERROR: test_each_fixture_matches_display_balance (users.tests_user_list_sorting.CreditsLeftParityTests.test_each_fixture_matches_display_balance)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 454, in test_each_fixture_matches_display_balance
+    listed = {str(r["id"]): r["credits_left"] for r in self.rows()}
+                            ~^^^^^^^^^^^^^^^^
+KeyError: 'credits_left'
+
+======================================================================
+ERROR: test_negative_balances_floor_like_display_balance (users.tests_user_list_sorting.CreditsLeftParityTests.test_negative_balances_floor_like_display_balance)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 472, in test_negative_balances_floor_like_display_balance
+    listed = {str(r["id"]): r["credits_left"] for r in self.rows()}
+                            ~^^^^^^^^^^^^^^^^
+KeyError: 'credits_left'
+
+======================================================================
+ERROR: test_the_fixtures_are_not_all_zero (users.tests_user_list_sorting.CreditsLeftParityTests.test_the_fixtures_are_not_all_zero)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 482, in test_the_fixtures_are_not_all_zero
+    self.assertEqual(self.row(user)["credits_left"], 6)
+                     ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+KeyError: 'credits_left'
+
+======================================================================
+ERROR: test_last_login_and_activated_at_are_listed (users.tests_user_list_sorting.DateValueTests.test_last_login_and_activated_at_are_listed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 277, in test_last_login_and_activated_at_are_listed
+    self.assertEqual(parse_datetime(row["last_login"]), signed_in)
+                                    ~~~^^^^^^^^^^^^^^
+KeyError: 'last_login'
+
+======================================================================
+ERROR: test_never_signed_in_or_activated_is_null (users.tests_user_list_sorting.DateValueTests.test_never_signed_in_or_activated_is_null)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 285, in test_never_signed_in_or_activated_is_null
+    self.assertIsNone(row["last_login"])
+                      ~~~^^^^^^^^^^^^^^
+KeyError: 'last_login'
+
+======================================================================
+ERROR: test_only_the_super_admin_list_builds_the_list_values (users.tests_user_list_sorting.ListOnlyTests.test_only_the_super_admin_list_builds_the_list_values)
+The per-teacher counts (course__teacher, D5) are built by
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 933, in test_only_the_super_admin_list_builds_the_list_values
+    built_by = getattr(users.views, name)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'users.views' has no attribute 'list_queryset'
+
+======================================================================
+ERROR: test_a_license_admin_allocation_gives_the_license_plan (users.tests_user_list_sorting.PlanValueTests.test_a_license_admin_allocation_gives_the_license_plan)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 331, in test_a_license_admin_allocation_gives_the_license_plan
+    self.assertEqual(self.plan_of(admin), ("PRO", "LICENSE", "MONTHLY"))
+                     ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 292, in plan_of
+    return (row["plan_tier"], row["plan_category"], row["plan_interval"])
+            ~~~^^^^^^^^^^^^^
+KeyError: 'plan_tier'
+
+======================================================================
+ERROR: test_a_license_teacher_allocation_wins_over_an_individual_one (users.tests_user_list_sorting.PlanValueTests.test_a_license_teacher_allocation_wins_over_an_individual_one)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 321, in test_a_license_teacher_allocation_wins_over_an_individual_one
+    self.assertEqual(self.plan_of(teacher), ("POWER", "LICENSE", "MONTHLY"))
+                     ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 292, in plan_of
+    return (row["plan_tier"], row["plan_category"], row["plan_interval"])
+            ~~~^^^^^^^^^^^^^
+KeyError: 'plan_tier'
+
+======================================================================
+ERROR: test_a_teacher_allocation_wins_over_an_admin_allocation (users.tests_user_list_sorting.PlanValueTests.test_a_teacher_allocation_wins_over_an_admin_allocation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 347, in test_a_teacher_allocation_wins_over_an_admin_allocation
+    self.assertEqual(self.plan_of(user)[0], "POWER")
+                     ^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 292, in plan_of
+    return (row["plan_tier"], row["plan_category"], row["plan_interval"])
+            ~~~^^^^^^^^^^^^^
+KeyError: 'plan_tier'
+
+======================================================================
+ERROR: test_an_inactive_allocation_or_license_is_skipped (users.tests_user_list_sorting.PlanValueTests.test_an_inactive_allocation_or_license_is_skipped)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 364, in test_an_inactive_allocation_or_license_is_skipped
+    self.assertEqual(self.plan_of(user), ("STANDARD", "INDIVIDUAL", "MONTHLY"))
+                     ^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 292, in plan_of
+    return (row["plan_tier"], row["plan_category"], row["plan_interval"])
+            ~~~^^^^^^^^^^^^^
+KeyError: 'plan_tier'
+
+======================================================================
+ERROR: test_an_inactive_subscription_gives_no_plan (users.tests_user_list_sorting.PlanValueTests.test_an_inactive_subscription_gives_no_plan)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 306, in test_an_inactive_subscription_gives_no_plan
+    self.assertEqual(self.plan_of(user), (None, None, None))
+                     ^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 292, in plan_of
+    return (row["plan_tier"], row["plan_category"], row["plan_interval"])
+            ~~~^^^^^^^^^^^^^
+KeyError: 'plan_tier'
+
+======================================================================
+ERROR: test_an_individual_subscription_gives_its_plan (users.tests_user_list_sorting.PlanValueTests.test_an_individual_subscription_gives_its_plan)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 300, in test_an_individual_subscription_gives_its_plan
+    self.assertEqual(self.plan_of(user), ("PRO", "INDIVIDUAL", "ANNUAL"))
+                     ^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 292, in plan_of
+    return (row["plan_tier"], row["plan_category"], row["plan_interval"])
+            ~~~^^^^^^^^^^^^^
+KeyError: 'plan_tier'
+
+======================================================================
+ERROR: test_no_subscription_gives_no_plan (users.tests_user_list_sorting.PlanValueTests.test_no_subscription_gives_no_plan)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 309, in test_no_subscription_gives_no_plan
+    self.assertEqual(self.plan_of(self.person()), (None, None, None))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 292, in plan_of
+    return (row["plan_tier"], row["plan_category"], row["plan_interval"])
+            ~~~^^^^^^^^^^^^^
+KeyError: 'plan_tier'
+
+======================================================================
+FAIL: test_each_filter_from_one_generation (users.tests_user_list_sorting.CacheKeyTests.test_each_filter_from_one_generation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 807, in test_each_filter_from_one_generation
+    self.assertEqual(self.ids([pro, power], plan_tier="PRO"), [pro])
+AssertionError: Lists differ: [<CustomUser: >, <CustomUser: >] != [<CustomUser: >]
+
+First list contains 1 additional elements.
+First extra element 1:
+<CustomUser: >
+
+- [<CustomUser: >, <CustomUser: >]
++ [<CustomUser: >]
+
+======================================================================
+FAIL: test_ordering_in_both_directions_from_one_generation (users.tests_user_list_sorting.CacheKeyTests.test_ordering_in_both_directions_from_one_generation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 800, in test_ordering_in_both_directions_from_one_generation
+    self.assertEqual(self.ids([low, high], ordering="-credits_left"), [high, low])
+AssertionError: Lists differ: [<CustomUser: A>, <CustomUser: B>] != [<CustomUser: B>, <CustomUser: A>]
+
+First differing element 0:
+<CustomUser: A>
+<CustomUser: B>
+
+- [<CustomUser: A>, <CustomUser: B>]
+?               ^                ^
+
++ [<CustomUser: B>, <CustomUser: A>]
+?               ^                ^
+
+
+======================================================================
+FAIL: test_a_bad_value_is_a_400 (users.tests_user_list_sorting.FilterTests.test_a_bad_value_is_a_400) [{'plan_tier': 'GOLD'}]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 715, in test_a_bad_value_is_a_400
+    self.assertEqual(self.get_list(**params).status_code, 400)
+AssertionError: 200 != 400
+
+======================================================================
+FAIL: test_a_bad_value_is_a_400 (users.tests_user_list_sorting.FilterTests.test_a_bad_value_is_a_400) [{'plan_category': 'FAMILY'}]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 715, in test_a_bad_value_is_a_400
+    self.assertEqual(self.get_list(**params).status_code, 400)
+AssertionError: 200 != 400
+
+======================================================================
+FAIL: test_a_bad_value_is_a_400 (users.tests_user_list_sorting.FilterTests.test_a_bad_value_is_a_400) [{'plan_interval': 'WEEKLY'}]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 715, in test_a_bad_value_is_a_400
+    self.assertEqual(self.get_list(**params).status_code, 400)
+AssertionError: 200 != 400
+
+======================================================================
+FAIL: test_a_bad_value_is_a_400 (users.tests_user_list_sorting.FilterTests.test_a_bad_value_is_a_400) [{'last_login_after': 'not-a-date'}]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 715, in test_a_bad_value_is_a_400
+    self.assertEqual(self.get_list(**params).status_code, 400)
+AssertionError: 200 != 400
+
+======================================================================
+FAIL: test_activated_after_and_before (users.tests_user_list_sorting.FilterTests.test_activated_after_and_before)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 671, in test_activated_after_and_before
+    self.assertEqual(self.listed(people, activated_after=cut), {new})
+AssertionError: Items in the first set but not the second:
+<CustomUser: >
+<CustomUser: >
+
+======================================================================
+FAIL: test_filters_combine_with_ordering (users.tests_user_list_sorting.FilterTests.test_filters_combine_with_ordering)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 723, in test_filters_combine_with_ordering
+    self.assertEqual(
+AssertionError: Lists differ: [<CustomUser: >, <CustomUser: >] != [<CustomUser: >, <CustomUser: >]
+
+First differing element 0:
+<CustomUser: >
+<CustomUser: >
+
+  [<CustomUser: >, <CustomUser: >]
+
+======================================================================
+FAIL: test_last_login_after_and_before (users.tests_user_list_sorting.FilterTests.test_last_login_after_and_before)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 660, in test_last_login_after_and_before
+    self.assertEqual(self.listed(people, last_login_after=cut), {new})
+AssertionError: Items in the first set but not the second:
+<CustomUser: >
+<CustomUser: >
+
+======================================================================
+FAIL: test_plan_filters (users.tests_user_list_sorting.FilterTests.test_plan_filters)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 695, in test_plan_filters
+    self.assertEqual(self.listed(people, plan_tier="PRO"), {pro, lic_teacher})
+AssertionError: Items in the first set but not the second:
+<CustomUser: >
+<CustomUser: >
+
+======================================================================
+FAIL: test_the_list_carries_all_nine (users.tests_user_list_sorting.ListOnlyTests.test_the_list_carries_all_nine)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 829, in test_the_list_carries_all_nine
+    self.assertIn(key, row)
+AssertionError: 'last_login' not found in {'id': '2b473775-d191-4ce0-a65c-8389bc464d2c', 'school': None, 'email': 'p1.sort@x.example', 'first_name': '', 'middle_name': '', 'last_name': '', 'bio': None, 'profile_image': None, 'profile_image_url': None, 'user_type': 'TEACHER', 'is_active': True, 'must_change_password': False, 'date_joined': '2026-11-11T13:29:50.672560Z', 'settings': {'id': '2dea69aa-8758-4017-b01c-720d119e19ce', 'user': UUID('2b473775-d191-4ce0-a65c-8389bc464d2c'), 'theme': 'SYSTEM', 'notify_student_submission': False, 'notify_weekly_summary': False, 'notify_assignment_due_reminder': False, 'notify_grading_complete': False, 'notify_new_assignment_posted': False, 'notify_teacher_activity_alerts': False, 'notify_at_risk_student_alerts': False}, 'credit_wallet': {'id': '6e06249a-196c-4c91-ae8b-cd34b2394d4e', 'user': UUID('2b473775-d191-4ce0-a65c-8389bc464d2c'), 'overage_blocks_used': 0, 'total_remaining_credits': 0, 'display_total_remaining_credits': 0, 'active_buckets_count': 0, 'monthly_credit_total': 0, 'monthly_credit_remaining': 0, 'credit_percentage_remaining': 0.0, 'bucket_breakdown': {CreditBucketType.MONTHLY: 0, CreditBucketType.CARRY_OVER: 0, CreditBucketType.OVERAGE: 0, CreditBucketType.TRIAL: 0}, 'feature_usage_breakdown': None, 'created_at': '2026-11-11T13:29:50.682073Z', 'updated_at': '2026-11-11T13:29:50.682088Z'}, 'is_system_generated_email': False, 'sign_in_locked': False, 'login_locked_until': None}
+
+======================================================================
+FAIL: test_every_new_filter_is_documented (users.tests_user_list_sorting.OpenApiTests.test_every_new_filter_is_documented)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 1001, in test_every_new_filter_is_documented
+    self.assertIn(name, params)
+AssertionError: 'last_login_after' not found in {'enrollments__course': {'in': 'query', 'name': 'enrollments__course', 'schema': {'type': 'string', 'format': 'uuid'}}, 'enrollments__course__isnull': {'in': 'query', 'name': 'enrollments__course__isnull', 'schema': {'type': 'boolean'}}, 'enrollments__course__session': {'in': 'query', 'name': 'enrollments__course__session', 'schema': {'type': 'string', 'format': 'uuid'}}, 'enrollments__enrollment_status': {'in': 'query', 'name': 'enrollments__enrollment_status', 'schema': {'type': 'string', 'enum': ['COMPLETED', 'ENROLLED', 'PENDING', 'WITHDRAWN']}, 'description': '* `ENROLLED` - Enrolled\n* `WITHDRAWN` - Withdrawn\n* `COMPLETED` - Completed\n* `PENDING` - Pending'}, 'enrollments__enrollment_status__in': {'in': 'query', 'name': 'enrollments__enrollment_status__in', 'schema': {'type': 'array', 'items': {'type': 'string', 'enum': ['COMPLETED', 'ENROLLED', 'PENDING', 'WITHDRAWN']}}, 'description': 'Multiple values may be separated by commas.\n\n* `ENROLLED` - Enrolled\n* `WITHDRAWN` - Withdrawn\n* `COMPLETED` - Completed\n* `PENDING` - Pending', 'explode': False, 'style': 'form'}, 'ordering': {'name': 'ordering', 'required': False, 'in': 'query', 'description': 'Which field to use when ordering the results.', 'schema': {'type': 'string'}}, 'page': {'in': 'query', 'name': 'page', 'schema': {'type': 'integer'}, 'description': 'Page number for pagination'}, 'page_size': {'in': 'query', 'name': 'page_size', 'schema': {'type': 'integer'}, 'description': 'Number of results per page'}, 'school__name': {'in': 'query', 'name': 'school__name', 'schema': {'type': 'string'}}, 'search': {'name': 'search', 'required': False, 'in': 'query', 'description': 'A search term.', 'schema': {'type': 'string'}}, 'user_type': {'in': 'query', 'name': 'user_type', 'schema': {'type': 'string', 'enum': ['SCHOOL_ADMIN', 'STUDENT', 'SUPER_ADMIN', 'TEACHER']}, 'description': '* `STUDENT` - Student\n* `TEACHER` - Teacher\n* `SCHOOL_ADMIN` - School Admin\n* `SUPER_ADMIN` - Super Admin'}}
+
+======================================================================
+FAIL: test_ordering_lists_every_allowed_value (users.tests_user_list_sorting.OpenApiTests.test_ordering_lists_every_allowed_value)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 995, in test_ordering_lists_every_allowed_value
+    self.assertIn(value, allowed)
+AssertionError: 'last_login' not found in set()
+
+======================================================================
+FAIL: test_activated_at (users.tests_user_list_sorting.OrderingTests.test_activated_at) (key='activated_at', direction='asc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 497, in assert_order
+    self.assertEqual(got[: len(expected_asc)], list(expected_asc))
+AssertionError: Lists differ: [<CustomUser: A>, <CustomUser: B>] != [<CustomUser: B>, <CustomUser: A>]
+
+First differing element 0:
+<CustomUser: A>
+<CustomUser: B>
+
+- [<CustomUser: A>, <CustomUser: B>]
+?               ^                ^
+
++ [<CustomUser: B>, <CustomUser: A>]
+?               ^                ^
+
+
+======================================================================
+FAIL: test_assignments_created (users.tests_user_list_sorting.OrderingTests.test_assignments_created) (key='assignments_created', direction='asc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 497, in assert_order
+    self.assertEqual(got[: len(expected_asc)], list(expected_asc))
+AssertionError: Lists differ: [<CustomUser: A>, <CustomUser: B>, <CustomUser: C>] != [<CustomUser: C>, <CustomUser: B>, <CustomUser: A>]
+
+First differing element 0:
+<CustomUser: A>
+<CustomUser: C>
+
+- [<CustomUser: A>, <CustomUser: B>, <CustomUser: C>]
+?               ^                                 ^
+
++ [<CustomUser: C>, <CustomUser: B>, <CustomUser: A>]
+?               ^                                 ^
+
+
+======================================================================
+FAIL: test_credits_left (users.tests_user_list_sorting.OrderingTests.test_credits_left) (key='credits_left', direction='asc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 497, in assert_order
+    self.assertEqual(got[: len(expected_asc)], list(expected_asc))
+AssertionError: Lists differ: [<CustomUser: A>, <CustomUser: B>, <CustomUser: C>, <CustomUser: D>] != [<CustomUser: E>, <CustomUser: B>, <CustomUser: C>, <CustomUser: A>]
+
+First differing element 0:
+<CustomUser: A>
+<CustomUser: E>
+
+- [<CustomUser: A>, <CustomUser: B>, <CustomUser: C>, <CustomUser: D>]
+?               ^                                                  ^
+
++ [<CustomUser: E>, <CustomUser: B>, <CustomUser: C>, <CustomUser: A>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_credits_left (users.tests_user_list_sorting.OrderingTests.test_credits_left) (key='credits_left', direction='desc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 501, in assert_order
+    self.assertEqual(got[: len(expected_asc)], list(reversed(expected_asc)))
+AssertionError: Lists differ: [<CustomUser: A>, <CustomUser: B>, <CustomUser: C>, <CustomUser: D>] != [<CustomUser: A>, <CustomUser: C>, <CustomUser: B>, <CustomUser: E>]
+
+First differing element 1:
+<CustomUser: B>
+<CustomUser: C>
+
+- [<CustomUser: A>, <CustomUser: B>, <CustomUser: C>, <CustomUser: D>]
+?                                ^                ^                ^
+
++ [<CustomUser: A>, <CustomUser: C>, <CustomUser: B>, <CustomUser: E>]
+?                                ^                ^                ^
+
+
+======================================================================
+FAIL: test_credits_left_sorts_on_raw_credits (users.tests_user_list_sorting.OrderingTests.test_credits_left_sorts_on_raw_credits)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 600, in test_credits_left_sorts_on_raw_credits
+    self.assertEqual(
+AssertionError: Lists differ: [<CustomUser: A>, <CustomUser: B>] != [<CustomUser: B>, <CustomUser: A>]
+
+First differing element 0:
+<CustomUser: A>
+<CustomUser: B>
+
+- [<CustomUser: A>, <CustomUser: B>]
+?               ^                ^
+
++ [<CustomUser: B>, <CustomUser: A>]
+?               ^                ^
+
+
+======================================================================
+FAIL: test_credits_used (users.tests_user_list_sorting.OrderingTests.test_credits_used) (key='credits_used', direction='asc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 497, in assert_order
+    self.assertEqual(got[: len(expected_asc)], list(expected_asc))
+AssertionError: Lists differ: [<CustomUser: A>, <CustomUser: B>, <CustomUser: C>] != [<CustomUser: C>, <CustomUser: B>, <CustomUser: A>]
+
+First differing element 0:
+<CustomUser: A>
+<CustomUser: C>
+
+- [<CustomUser: A>, <CustomUser: B>, <CustomUser: C>]
+?               ^                                 ^
+
++ [<CustomUser: C>, <CustomUser: B>, <CustomUser: A>]
+?               ^                                 ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='last_login')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-last_login')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='activated_at')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-activated_at')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='plan_tier')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-plan_tier')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='plan_category')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-plan_category')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='plan_interval')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-plan_interval')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='assignments_created')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-assignments_created')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='papers_graded')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-papers_graded')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='credits_left')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-credits_left')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='credits_used')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) (ordering='-credits_used')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 619, in test_id_breaks_every_tie_in_both_directions
+    self.assertEqual(self.order_of(people, ordering=ordering), people)
+AssertionError: Lists differ: [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>] != [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+
+First differing element 0:
+<CustomUser: W>
+<CustomUser: Z>
+
+- [<CustomUser: W>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: Z>]
+?               ^                                                  ^
+
++ [<CustomUser: Z>, <CustomUser: X>, <CustomUser: Y>, <CustomUser: W>]
+?               ^                                                  ^
+
+
+======================================================================
+FAIL: test_last_login (users.tests_user_list_sorting.OrderingTests.test_last_login) (key='last_login', direction='asc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 497, in assert_order
+    self.assertEqual(got[: len(expected_asc)], list(expected_asc))
+AssertionError: Lists differ: [<CustomUser: A>, <CustomUser: B>] != [<CustomUser: B>, <CustomUser: A>]
+
+First differing element 0:
+<CustomUser: A>
+<CustomUser: B>
+
+- [<CustomUser: A>, <CustomUser: B>]
+?               ^                ^
+
++ [<CustomUser: B>, <CustomUser: A>]
+?               ^                ^
+
+
+======================================================================
+FAIL: test_papers_graded (users.tests_user_list_sorting.OrderingTests.test_papers_graded) (key='papers_graded', direction='asc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 497, in assert_order
+    self.assertEqual(got[: len(expected_asc)], list(expected_asc))
+AssertionError: Lists differ: [<CustomUser: A>, <CustomUser: B>, <CustomUser: C>] != [<CustomUser: C>, <CustomUser: B>, <CustomUser: A>]
+
+First differing element 0:
+<CustomUser: A>
+<CustomUser: C>
+
+- [<CustomUser: A>, <CustomUser: B>, <CustomUser: C>]
+?               ^                                 ^
+
++ [<CustomUser: C>, <CustomUser: B>, <CustomUser: A>]
+?               ^                                 ^
+
+
+======================================================================
+FAIL: test_plan_category (users.tests_user_list_sorting.OrderingTests.test_plan_category) (key='plan_category', direction='asc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 497, in assert_order
+    self.assertEqual(got[: len(expected_asc)], list(expected_asc))
+AssertionError: Lists differ: [<CustomUser: A>, <CustomUser: B>] != [<CustomUser: B>, <CustomUser: A>]
+
+First differing element 0:
+<CustomUser: A>
+<CustomUser: B>
+
+- [<CustomUser: A>, <CustomUser: B>]
+?               ^                ^
+
++ [<CustomUser: B>, <CustomUser: A>]
+?               ^                ^
+
+
+======================================================================
+FAIL: test_plan_interval (users.tests_user_list_sorting.OrderingTests.test_plan_interval) (key='plan_interval', direction='asc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 497, in assert_order
+    self.assertEqual(got[: len(expected_asc)], list(expected_asc))
+AssertionError: Lists differ: [<CustomUser: A>, <CustomUser: B>] != [<CustomUser: B>, <CustomUser: A>]
+
+First differing element 0:
+<CustomUser: A>
+<CustomUser: B>
+
+- [<CustomUser: A>, <CustomUser: B>]
+?               ^                ^
+
++ [<CustomUser: B>, <CustomUser: A>]
+?               ^                ^
+
+
+======================================================================
+FAIL: test_plan_tier_follows_the_ruled_rank (users.tests_user_list_sorting.OrderingTests.test_plan_tier_follows_the_ruled_rank) (key='plan_tier', direction='asc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 497, in assert_order
+    self.assertEqual(got[: len(expected_asc)], list(expected_asc))
+AssertionError: Lists differ: [<CustomUser: A>, <CustomUser: B>, <CustomUser: C>, <Cu[42 chars]: F>] != [<CustomUser: F>, <CustomUser: E>, <CustomUser: D>, <Cu[42 chars]: A>]
+
+First differing element 0:
+<CustomUser: A>
+<CustomUser: F>
+
+- [<CustomUser: A>,
+?               ^
+
++ [<CustomUser: F>,
+?               ^
+
++  <CustomUser: E>,
++  <CustomUser: D>,
++  <CustomUser: C>,
+   <CustomUser: B>,
+-  <CustomUser: C>,
+-  <CustomUser: D>,
+-  <CustomUser: E>,
+-  <CustomUser: F>]
+?               ^
+
++  <CustomUser: A>]
+?               ^
+
+
+======================================================================
+FAIL: test_two_keys_combine (users.tests_user_list_sorting.OrderingTests.test_two_keys_combine)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 637, in test_two_keys_combine
+    self.assertEqual(
+AssertionError: Lists differ: [<CustomUser: A>, <CustomUser: A>, <CustomUser: B>] != [<CustomUser: A>, <CustomUser: A>, <CustomUser: B>]
+
+First differing element 0:
+<CustomUser: A>
+<CustomUser: A>
+
+  [<CustomUser: A>, <CustomUser: A>, <CustomUser: B>]
+
+======================================================================
+FAIL: test_a_5_row_and_a_25_row_page_cost_the_same (users.tests_user_list_sorting.QueryCountTests.test_a_5_row_and_a_25_row_page_cost_the_same)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 759, in test_a_5_row_and_a_25_row_page_cost_the_same
+    self.assertEqual(self.count(5), self.count(25))
+AssertionError: 69 != 309
+
+======================================================================
+FAIL: test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='last_login')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 767, in test_sorting_and_filtering_keep_the_cost_fixed
+    self.assertEqual(self.count(size, ordering=f"-{key}"), base)
+AssertionError: 69 != 309
+
+======================================================================
+FAIL: test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='activated_at')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 767, in test_sorting_and_filtering_keep_the_cost_fixed
+    self.assertEqual(self.count(size, ordering=f"-{key}"), base)
+AssertionError: 69 != 309
+
+======================================================================
+FAIL: test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='plan_tier')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 767, in test_sorting_and_filtering_keep_the_cost_fixed
+    self.assertEqual(self.count(size, ordering=f"-{key}"), base)
+AssertionError: 69 != 309
+
+======================================================================
+FAIL: test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='plan_category')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 767, in test_sorting_and_filtering_keep_the_cost_fixed
+    self.assertEqual(self.count(size, ordering=f"-{key}"), base)
+AssertionError: 69 != 309
+
+======================================================================
+FAIL: test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='plan_interval')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 767, in test_sorting_and_filtering_keep_the_cost_fixed
+    self.assertEqual(self.count(size, ordering=f"-{key}"), base)
+AssertionError: 69 != 309
+
+======================================================================
+FAIL: test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='assignments_created')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 767, in test_sorting_and_filtering_keep_the_cost_fixed
+    self.assertEqual(self.count(size, ordering=f"-{key}"), base)
+AssertionError: 69 != 309
+
+======================================================================
+FAIL: test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='papers_graded')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 767, in test_sorting_and_filtering_keep_the_cost_fixed
+    self.assertEqual(self.count(size, ordering=f"-{key}"), base)
+AssertionError: 69 != 309
+
+======================================================================
+FAIL: test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='credits_left')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 767, in test_sorting_and_filtering_keep_the_cost_fixed
+    self.assertEqual(self.count(size, ordering=f"-{key}"), base)
+AssertionError: 69 != 309
+
+======================================================================
+FAIL: test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, ordering='credits_used')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 767, in test_sorting_and_filtering_keep_the_cost_fixed
+    self.assertEqual(self.count(size, ordering=f"-{key}"), base)
+AssertionError: 69 != 309
+
+======================================================================
+FAIL: test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) (size=5, filters=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/tests_user_list_sorting.py", line 769, in test_sorting_and_filtering_keep_the_cost_fixed
+    self.assertEqual(
+AssertionError: 69 != 309
+
+----------------------------------------------------------------------
+Ran 54 tests in 21.046s
+
+FAILED (failures=54, errors=19)
+Preserving test database for alias 'default' ('test_user_list_beta')...
+Found 54 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.

@@ -1,0 +1,548 @@
+Using existing test database for alias 'default' ('test_user_list_beta')...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+test_each_filter_from_one_generation (users.tests_user_list_sorting.CacheKeyTests.test_each_filter_from_one_generation) ... Free trial plan not found: no trial activated for user 562a0da9-bca9-4852-84c8-a5f044cb1cf5.
+Free trial plan not found: no trial activated for user 0057cf15-f25b-4c17-89dc-d8da7f11af9d.
+Free trial plan not found: no trial activated for user 245043e6-9eb1-4fad-8336-d6635a3f2a64.
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_ordering_in_both_directions_from_one_generation (users.tests_user_list_sorting.CacheKeyTests.test_ordering_in_both_directions_from_one_generation) ... Free trial plan not found: no trial activated for user 9778d72a-c1b1-4fcd-bc68-1c82c8af0097.
+Free trial plan not found: no trial activated for user 690aa9ea-e644-4b65-9223-828c0ba84d6b.
+Free trial plan not found: no trial activated for user ebe7ce20-3f93-443f-926d-7db7dbe92732.
+ok
+test_assignments_created_counts_the_course_teachers_assignments (users.tests_user_list_sorting.CountValueTests.test_assignments_created_counts_the_course_teachers_assignments) ... Free trial plan not found: no trial activated for user aac244b2-57b8-4492-853c-91faedc2678f.
+Free trial plan not found: no trial activated for user 5afacb5a-ef88-43ab-a77c-9c6544872ef9.
+Free trial plan not found: no trial activated for user 131d974a-b15c-495f-8ff7-7f2120596ba5.
+ok
+test_counts_are_zero_not_null (users.tests_user_list_sorting.CountValueTests.test_counts_are_zero_not_null) ... Free trial plan not found: no trial activated for user a584c7f0-602a-49ee-a972-da87f46d8e95.
+Free trial plan not found: no trial activated for user ebce4ef0-fab1-4ea9-8928-a1a9ea75f745.
+ok
+test_papers_graded_counts_ai_graded_submissions_only (users.tests_user_list_sorting.CountValueTests.test_papers_graded_counts_ai_graded_submissions_only) ... Free trial plan not found: no trial activated for user 331c93da-605e-4eb9-8603-51445a3ff96f.
+Free trial plan not found: no trial activated for user 4e4161ca-eea8-4c9f-b36c-9a7471df3b84.
+Free trial plan not found: no trial activated for user d5a5c3cd-cd7f-4dff-826e-76a42bcd8c15.
+ok
+test_credits_left_is_null_without_a_wallet (users.tests_user_list_sorting.CreditValueTests.test_credits_left_is_null_without_a_wallet) ... Free trial plan not found: no trial activated for user fae32afe-4db4-4f72-b6fc-68a9353c42ed.
+Free trial plan not found: no trial activated for user 15ff8138-e423-4bd4-b832-7719154a7baa.
+ok
+test_credits_used_is_unrefunded_usage_in_display_units (users.tests_user_list_sorting.CreditValueTests.test_credits_used_is_unrefunded_usage_in_display_units) ... Free trial plan not found: no trial activated for user 64f9e12c-5205-464a-90a9-25bde7970b5c.
+Free trial plan not found: no trial activated for user f9c72df5-7b45-4ee4-b9fc-6b9dde80567b.
+ok
+test_credits_used_is_zero_without_usage (users.tests_user_list_sorting.CreditValueTests.test_credits_used_is_zero_without_usage) ... Free trial plan not found: no trial activated for user ef3820a8-e4d9-4a85-81b2-5dee92e59367.
+Free trial plan not found: no trial activated for user ff9346ac-a8de-42c6-84c5-5b844614d4c3.
+ok
+test_each_fixture_matches_display_balance (users.tests_user_list_sorting.CreditsLeftParityTests.test_each_fixture_matches_display_balance) ... Free trial plan not found: no trial activated for user 32a6c95e-d841-48a7-af7c-46df3db10812.
+Free trial plan not found: no trial activated for user e3d3aa51-a6db-4b9b-abbb-63c41d095c37.
+Free trial plan not found: no trial activated for user 74f246d5-76f1-4eb6-a64b-0d559c59a8c7.
+Free trial plan not found: no trial activated for user a062ad1c-57de-486d-9e1e-7d91aa6ee6e1.
+Free trial plan not found: no trial activated for user 93945063-c991-447c-bf7b-c5c69eac856c.
+Free trial plan not found: no trial activated for user bf333b8b-a639-49ff-9119-0ebfafb314a8.
+Free trial plan not found: no trial activated for user f83eb428-4ae8-4e8f-987e-b76a35703e44.
+Free trial plan not found: no trial activated for user b6de421d-47ba-460c-9078-9a0a449fc651.
+Free trial plan not found: no trial activated for user f6cd0dbe-ab12-4be0-a170-6ceeb982fccf.
+Free trial plan not found: no trial activated for user 58e587cf-9efa-404a-a419-c5d9574df50f.
+Free trial plan not found: no trial activated for user 5bd1ed42-b14d-4d6d-9213-f2fd1bffeaf4.
+Free trial plan not found: no trial activated for user 63dd66ed-cc07-46e0-821c-1a767f1be6d5.
+ok
+test_negative_balances_floor_like_display_balance (users.tests_user_list_sorting.CreditsLeftParityTests.test_negative_balances_floor_like_display_balance) ... Free trial plan not found: no trial activated for user f5913858-bc48-488e-9a44-15821c19e13d.
+Free trial plan not found: no trial activated for user 45e43e72-5e4a-4f6d-871e-f18c09467ff5.
+Free trial plan not found: no trial activated for user e3018a81-8f2c-43d0-8044-90cbacdec0cd.
+Free trial plan not found: no trial activated for user fa849edf-a94b-4d37-aebd-f0c2e9a864b7.
+ok
+test_the_fixtures_are_not_all_zero (users.tests_user_list_sorting.CreditsLeftParityTests.test_the_fixtures_are_not_all_zero) ... Free trial plan not found: no trial activated for user 12e5b10b-6e80-48c4-bda1-c1af54d4fced.
+Free trial plan not found: no trial activated for user 6c9d5b1b-1238-445a-adaf-2df73a870ebd.
+ok
+test_last_login_and_activated_at_are_listed (users.tests_user_list_sorting.DateValueTests.test_last_login_and_activated_at_are_listed) ... Free trial plan not found: no trial activated for user 6aeb779e-5f91-45a3-a7d1-e8bfebebf0ec.
+Free trial plan not found: no trial activated for user 9620b89d-f932-425a-89dc-92257aa8f02c.
+ok
+test_never_signed_in_or_activated_is_null (users.tests_user_list_sorting.DateValueTests.test_never_signed_in_or_activated_is_null) ... Free trial plan not found: no trial activated for user 8ff53bf0-6590-4421-8a76-f98e51344841.
+Free trial plan not found: no trial activated for user 9eb5a63d-b0fe-46ef-88b3-e52036257063.
+ok
+test_a_bad_value_is_a_400 (users.tests_user_list_sorting.FilterTests.test_a_bad_value_is_a_400) ... Free trial plan not found: no trial activated for user bea23132-0092-4bc2-95c6-79c55518cbd4.
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+API request refused: ValidationError (400)
+ok
+test_activated_after_and_before (users.tests_user_list_sorting.FilterTests.test_activated_after_and_before) ... Free trial plan not found: no trial activated for user 55f3c2c3-8442-4ba3-9b30-f3cf844ac7a0.
+Free trial plan not found: no trial activated for user 527c9ac1-7e76-4c21-aa8f-41ffaa24147b.
+Free trial plan not found: no trial activated for user 02863cdb-5074-4c4b-b1d5-d7eed222eefe.
+Free trial plan not found: no trial activated for user 0b89a923-aee9-4e71-b5b3-585b69155f70.
+ok
+test_filters_combine_with_ordering (users.tests_user_list_sorting.FilterTests.test_filters_combine_with_ordering) ... Free trial plan not found: no trial activated for user 1495d4ba-09e7-4c86-87ff-c60f9551433a.
+Free trial plan not found: no trial activated for user 0d8e9b5d-6062-419c-9ccd-631356532db4.
+Free trial plan not found: no trial activated for user e85c9bae-d315-4cce-8526-f8677166df42.
+ok
+test_last_login_after_and_before (users.tests_user_list_sorting.FilterTests.test_last_login_after_and_before) ... Free trial plan not found: no trial activated for user 980445be-8e92-4c8b-a882-aaf068ff0c57.
+Free trial plan not found: no trial activated for user cfd2af2e-c74a-4ea8-b9d2-8ec8eb02ccf6.
+Free trial plan not found: no trial activated for user f7e06ed3-6cfa-44cf-815a-da1303bd8c00.
+Free trial plan not found: no trial activated for user 0fab7fca-d754-457a-b024-f77c9ea27e0f.
+ok
+test_plan_filters (users.tests_user_list_sorting.FilterTests.test_plan_filters) ... Free trial plan not found: no trial activated for user 43efed73-c5f3-40fa-aa3d-9ceef55b8215.
+Free trial plan not found: no trial activated for user 3f399017-e3ac-4168-a743-a58e4d624fa1.
+Free trial plan not found: no trial activated for user ae43f1fb-b08d-4406-a8bc-4ab6dac4a68f.
+Free trial plan not found: no trial activated for user 739168c3-3bc1-48ec-a5b4-940135a976bd.
+Free trial plan not found: no trial activated for user 3cd57920-41ef-4cf8-8cf8-633772d9d258.
+ok
+test_the_date_bounds_are_inclusive (users.tests_user_list_sorting.FilterTests.test_the_date_bounds_are_inclusive) ... Free trial plan not found: no trial activated for user dbbc9488-7c4c-4642-b637-e8375eaf8e0a.
+Free trial plan not found: no trial activated for user d126a7d5-2bbb-4475-872d-00942b1ced06.
+ok
+test_a_teacher_still_cannot_list (users.tests_user_list_sorting.ListOnlyTests.test_a_teacher_still_cannot_list) ... Free trial plan not found: no trial activated for user 6b4047e1-db2a-4876-abea-d769a180a44f.
+Free trial plan not found: no trial activated for user 5ec9e429-4ade-402f-b87c-22c103128051.
+API request refused: PermissionDenied (403)
+ok
+test_only_the_super_admin_list_builds_the_list_values (users.tests_user_list_sorting.ListOnlyTests.test_only_the_super_admin_list_builds_the_list_values)
+The per-teacher counts (course__teacher, D5) are built by ... Free trial plan not found: no trial activated for user 464d6d76-0757-4c1a-8e71-33481ea8fc4d.
+Free trial plan not found: no trial activated for user 04e630fd-0f5d-4b30-8c0b-5762009e10de.
+Free trial plan not found: no trial activated for user 46a69dfd-4b8e-4916-a3a0-565aa9d6b5db.
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+API request refused: PermissionDenied (403)
+ok
+test_super_admin_non_list_responses (users.tests_user_list_sorting.ListOnlyTests.test_super_admin_non_list_responses) ... Free trial plan not found: no trial activated for user 802071a7-9728-4e2e-9dbb-8415d97253b8.
+Free trial plan not found: no trial activated for user d61b1b3a-5121-4509-a92f-377113237b2a.
+ok
+test_teacher_non_list_responses (users.tests_user_list_sorting.ListOnlyTests.test_teacher_non_list_responses) ... Free trial plan not found: no trial activated for user febdf1e0-3e42-4409-af4c-6409a7a427f6.
+Free trial plan not found: no trial activated for user 1d4348cc-86d0-474c-b67f-31cd7d64e58c.
+ok
+test_the_list_carries_all_nine (users.tests_user_list_sorting.ListOnlyTests.test_the_list_carries_all_nine) ... Free trial plan not found: no trial activated for user c53f1373-794e-4d8b-9538-24a3ed7e2530.
+Free trial plan not found: no trial activated for user 5d6138cd-eb3b-4487-a019-8c6c698f2c53.
+ok
+test_the_list_filters_do_nothing_off_the_list_for_others (users.tests_user_list_sorting.ListOnlyTests.test_the_list_filters_do_nothing_off_the_list_for_others) ... Free trial plan not found: no trial activated for user 5f04cc62-d78d-4f3f-a342-5dda0c617474.
+Free trial plan not found: no trial activated for user 7ad64262-82d6-4021-af7c-2cbf9c7bd642.
+ok
+test_the_sign_in_payload (users.tests_user_list_sorting.ListOnlyTests.test_the_sign_in_payload) ... Free trial plan not found: no trial activated for user bb6df31a-dfc3-4b43-919d-fa85187e807f.
+Free trial plan not found: no trial activated for user 2f157cf9-e2a1-486d-989f-f95b301e7137.
+ok
+test_every_new_filter_is_documented (users.tests_user_list_sorting.OpenApiTests.test_every_new_filter_is_documented) ... Free trial plan not found: no trial activated for user c43d4028-6b41-4238-a803-809b2a0df95f.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "grant_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:grant_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "user_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:user_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_message_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_latest_message_preview". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentViewSet > AssignmentDetailSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [AuthViewSet > GoogleAuthResponse > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [AuthViewSet > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views.py: Error [BetaAnaylicChartViewSet]: exception raised while getting serializer. Hint: Is get_serializer_class() returning None or is get_queryset() not working without a request? Ignoring the view for now. (Exception: 'BetaAnaylicChartViewSet' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method.)
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [CourseViewSet > CourseSerializer]: unable to resolve type hint for function "get_assignment_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [CreditWalletViewSet > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [health]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [beat_health_check]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [client_identity]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'user_type')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/payment_method_views.py: Warning [PaymentMethodViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/payment_method_views.py: Error [PaymentMethodViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/qa_time_travel.py: Error [BillingTimeTravelView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/views.py: Warning [SchoolAdminAuditEventListView]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'school_id')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_label". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_name". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/views.py: Warning [SchoolAdminDashboardView]: could not derive type of path parameter "teacher_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:teacher_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [SchoolViewSet > SchoolAdminSummarySerializer]: Encountered 2 components with identical names "SchoolAdminSummary" and different identities <class 'classrooms.serializers.SchoolAdminSummarySerializer'> and <class 'dashboard.serializers.SchoolAdminSummarySerializer'>. This will very likely result in an incorrect schema. Try renaming one.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_no_of_assignment". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_assignment_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_submitted_assignment_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_grade_letter". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_enrolled_courses". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_in_course". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_percentage_of_submission". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_max_points". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_grade_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_formatted_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionPlanViewSet > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "session_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:session_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Error [TaskViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "task_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:task_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "item_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:item_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/views.py: Error [TeacherAdminDashboardView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_remaining_time". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_exact_due_date". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer]: unable to resolve type hint for function "get_average_grading_turnaround". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/list_serializers.py: Warning [CustomUserViewSet > UserListSerializer > ListCreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/list_serializers.py: Warning [CustomUserViewSet > UserListSerializer > ListCreditWalletSerializer]: unable to resolve type hint for function "get_feature_usage_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "status". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "StatusBbeEnum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "user_type". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "UserTypeDe6Enum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: encountered multiple names for the same choice set (CategoryEnum). This may be unwanted even though the generated schema is technically correct. Add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+ok
+test_ordering_lists_every_allowed_value (users.tests_user_list_sorting.OpenApiTests.test_ordering_lists_every_allowed_value) ... Free trial plan not found: no trial activated for user 14a5ad4d-62e2-4687-9f66-e9c030f3a389.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "grant_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:grant_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "user_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:user_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_message_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_latest_message_preview". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentViewSet > AssignmentDetailSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [AuthViewSet > GoogleAuthResponse > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [AuthViewSet > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views.py: Error [BetaAnaylicChartViewSet]: exception raised while getting serializer. Hint: Is get_serializer_class() returning None or is get_queryset() not working without a request? Ignoring the view for now. (Exception: 'BetaAnaylicChartViewSet' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method.)
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [CourseViewSet > CourseSerializer]: unable to resolve type hint for function "get_assignment_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [CreditWalletViewSet > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [health]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [beat_health_check]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [client_identity]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'user_type')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/payment_method_views.py: Warning [PaymentMethodViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/payment_method_views.py: Error [PaymentMethodViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/qa_time_travel.py: Error [BillingTimeTravelView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/views.py: Warning [SchoolAdminAuditEventListView]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'school_id')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_label". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_name". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/views.py: Warning [SchoolAdminDashboardView]: could not derive type of path parameter "teacher_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:teacher_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [SchoolViewSet > SchoolAdminSummarySerializer]: Encountered 2 components with identical names "SchoolAdminSummary" and different identities <class 'classrooms.serializers.SchoolAdminSummarySerializer'> and <class 'dashboard.serializers.SchoolAdminSummarySerializer'>. This will very likely result in an incorrect schema. Try renaming one.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_no_of_assignment". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_assignment_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_submitted_assignment_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_grade_letter". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_enrolled_courses". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_in_course". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_percentage_of_submission". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_max_points". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_grade_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_formatted_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionPlanViewSet > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "session_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:session_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Error [TaskViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "task_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:task_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "item_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:item_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/views.py: Error [TeacherAdminDashboardView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_remaining_time". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_exact_due_date". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer]: unable to resolve type hint for function "get_average_grading_turnaround". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/list_serializers.py: Warning [CustomUserViewSet > UserListSerializer > ListCreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/list_serializers.py: Warning [CustomUserViewSet > UserListSerializer > ListCreditWalletSerializer]: unable to resolve type hint for function "get_feature_usage_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "status". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "StatusBbeEnum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "user_type". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "UserTypeDe6Enum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: encountered multiple names for the same choice set (CategoryEnum). This may be unwanted even though the generated schema is technically correct. Add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+ok
+test_activated_at (users.tests_user_list_sorting.OrderingTests.test_activated_at) ... Free trial plan not found: no trial activated for user 1638bacb-ef39-4390-a8b8-0881558ad7a3.
+Free trial plan not found: no trial activated for user cad8a445-a552-4025-a602-db4f811a16c1.
+Free trial plan not found: no trial activated for user d9c9eee0-3b22-4e84-a688-d613e875bb7a.
+Free trial plan not found: no trial activated for user c209d8ec-bc53-46dc-9fca-0a1679e1c244.
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_an_unknown_key_is_ignored (users.tests_user_list_sorting.OrderingTests.test_an_unknown_key_is_ignored) ... Free trial plan not found: no trial activated for user 91403cd8-4b1e-42b8-a168-ffec2ee1bd04.
+Free trial plan not found: no trial activated for user b69880d6-db20-42c9-8e82-5ba9f4d34249.
+Free trial plan not found: no trial activated for user a033a717-2b5f-4d00-bfac-36652a240628.
+ok
+test_assignments_created (users.tests_user_list_sorting.OrderingTests.test_assignments_created) ... Free trial plan not found: no trial activated for user e2bfc01b-136c-4a67-b0de-71a04a4902ab.
+Free trial plan not found: no trial activated for user 3d0c3b99-2ef0-4692-b364-0731c81f6e5b.
+Free trial plan not found: no trial activated for user b2941061-98aa-4b62-a4da-f5c28de24077.
+Free trial plan not found: no trial activated for user fadbf64b-da7b-444c-9b90-232663c59621.
+ok
+test_credits_left (users.tests_user_list_sorting.OrderingTests.test_credits_left) ... Free trial plan not found: no trial activated for user 43bcf891-9d14-4221-868e-91ef6c278a7c.
+Free trial plan not found: no trial activated for user f7fdf33c-db5f-40f4-9257-4d17aa426c10.
+Free trial plan not found: no trial activated for user f9370605-692f-4b4d-857d-e62e2ad11b16.
+Free trial plan not found: no trial activated for user 70368a8f-bbe5-436a-a783-52e4ed30d454.
+Free trial plan not found: no trial activated for user ba7c8bff-564a-4bb3-8bbb-0343f113de81.
+Free trial plan not found: no trial activated for user 44990d49-96a8-4eaf-b2cb-21039371eb99.
+ok
+test_credits_left_sorts_on_raw_credits (users.tests_user_list_sorting.OrderingTests.test_credits_left_sorts_on_raw_credits) ... Free trial plan not found: no trial activated for user 429a2f2c-0e7d-4ef1-98de-e3ec29801bf4.
+Free trial plan not found: no trial activated for user d0e46148-b0b2-4374-b75e-fc68f45ffe91.
+Free trial plan not found: no trial activated for user eef93cc7-f8f0-4e45-8dae-d8f9fa9ac4e6.
+ok
+test_credits_used (users.tests_user_list_sorting.OrderingTests.test_credits_used) ... Free trial plan not found: no trial activated for user bae5d9e2-e5b7-4b50-a180-cd540665041d.
+Free trial plan not found: no trial activated for user d1d01f8c-2a35-429c-b7a6-1158649708d0.
+Free trial plan not found: no trial activated for user 9ea403e0-1a3c-4deb-9ca7-1f53903d6457.
+Free trial plan not found: no trial activated for user c9f829e5-2786-47b6-aa7a-48708e334787.
+ok
+test_id_breaks_every_tie_in_both_directions (users.tests_user_list_sorting.OrderingTests.test_id_breaks_every_tie_in_both_directions) ... Free trial plan not found: no trial activated for user 40ba4e24-f8c9-4b87-881a-cf711998fee7.
+Free trial plan not found: no trial activated for user fe57af96-3415-42de-8dcb-5d3a582f5e0c.
+Free trial plan not found: no trial activated for user 6dd07b21-59ea-457a-bd0d-213be45ffd06.
+Free trial plan not found: no trial activated for user 27157cf2-2d45-4756-9705-4f6fd07aa084.
+Free trial plan not found: no trial activated for user a721219b-f421-4567-96ef-4fe2b0282f0a.
+ok
+test_last_login (users.tests_user_list_sorting.OrderingTests.test_last_login) ... Free trial plan not found: no trial activated for user c7c1c3ce-73ae-4d22-93a5-4f4075977ace.
+Free trial plan not found: no trial activated for user 92eaa60c-da9a-45aa-999f-297b920116a8.
+Free trial plan not found: no trial activated for user fe460fe0-e600-47c0-8aa7-8c9d702430e1.
+Free trial plan not found: no trial activated for user 2720225d-0e99-4aad-872d-d31023f5903d.
+ok
+test_papers_graded (users.tests_user_list_sorting.OrderingTests.test_papers_graded) ... Free trial plan not found: no trial activated for user a8db34d1-e3cc-49f3-8f3e-240ca32f24e5.
+Free trial plan not found: no trial activated for user be120bde-e185-4b55-a3f1-b90bf31d5e16.
+Free trial plan not found: no trial activated for user 4361bb2d-c191-4c7c-9325-ee048afa6dbc.
+Free trial plan not found: no trial activated for user f1c573ad-8509-4660-a9b0-2976832e675f.
+ok
+test_plan_category (users.tests_user_list_sorting.OrderingTests.test_plan_category) ... Free trial plan not found: no trial activated for user 769a05bd-a0eb-4ea7-8bc1-c1556bf4765c.
+Free trial plan not found: no trial activated for user f9d9398e-f865-46de-a8b7-7dc426572083.
+Free trial plan not found: no trial activated for user 88f104fd-d28b-494d-9cad-d623cec65bf3.
+Free trial plan not found: no trial activated for user 64f56dc9-e09d-46d5-bd8f-8d65ad115d67.
+ok
+test_plan_interval (users.tests_user_list_sorting.OrderingTests.test_plan_interval) ... Free trial plan not found: no trial activated for user af58f079-5b67-451d-aaa6-6b21182e39ba.
+Free trial plan not found: no trial activated for user c0d27be4-e112-42b4-becc-395bd9d65470.
+Free trial plan not found: no trial activated for user 6f523c23-c2c9-4a47-aea3-9ecf410cf4cd.
+Free trial plan not found: no trial activated for user 5e321b77-f577-47b2-80dc-de7863bace47.
+ok
+test_plan_tier_follows_the_ruled_rank (users.tests_user_list_sorting.OrderingTests.test_plan_tier_follows_the_ruled_rank) ... Free trial plan not found: no trial activated for user 0c51fecc-69ce-464d-ac14-7464929fa993.
+Free trial plan not found: no trial activated for user f090381a-c9a6-4f78-8b89-a0544a0ebd93.
+Free trial plan not found: no trial activated for user b515f21f-cd8c-4b0a-b8d0-fb2424da52ee.
+Free trial plan not found: no trial activated for user b8dd372e-942d-4bde-9b03-8df076da8e09.
+Free trial plan not found: no trial activated for user 2e19cc7b-192c-492f-a45c-a86cccf45401.
+Free trial plan not found: no trial activated for user 7c6e6b6f-32cb-4cda-a4c9-98889eccb0c5.
+Free trial plan not found: no trial activated for user 36735c3f-2110-4d8e-82d2-aefd6d3fe1ee.
+Free trial plan not found: no trial activated for user 376ec313-b7db-437a-87e1-b4765d0e5e55.
+ok
+test_the_old_keys_still_work (users.tests_user_list_sorting.OrderingTests.test_the_old_keys_still_work) ... Free trial plan not found: no trial activated for user 6bdd7e99-2df4-4f73-8589-09dfa5b2046c.
+Free trial plan not found: no trial activated for user ac70ca64-70db-481b-882a-f67e4b82e9c4.
+Free trial plan not found: no trial activated for user 24f04564-f75e-4469-905b-359a13a85090.
+ok
+test_two_keys_combine (users.tests_user_list_sorting.OrderingTests.test_two_keys_combine) ... Free trial plan not found: no trial activated for user 184cc386-ab1d-4e08-9ad4-fc12758c30f0.
+Free trial plan not found: no trial activated for user 7624fe36-dad9-40e9-9f44-f5975f8ecf3e.
+Free trial plan not found: no trial activated for user f95ae6ad-0653-42cb-8efd-e00abafef112.
+Free trial plan not found: no trial activated for user def4070a-aeb9-4ba7-a799-c568e7e69b71.
+ok
+test_a_license_admin_allocation_gives_the_license_plan (users.tests_user_list_sorting.PlanValueTests.test_a_license_admin_allocation_gives_the_license_plan) ... Free trial plan not found: no trial activated for user 8e474b9f-c718-40b5-9ba4-be5441c14398.
+ok
+test_a_license_teacher_allocation_wins_over_an_individual_one (users.tests_user_list_sorting.PlanValueTests.test_a_license_teacher_allocation_wins_over_an_individual_one) ... Free trial plan not found: no trial activated for user f73ad3d0-d724-447d-9f93-09163be6d8ff.
+Free trial plan not found: no trial activated for user ed6f6fc5-49f7-4b0a-ad0f-a2b614913646.
+ok
+test_a_teacher_allocation_wins_over_an_admin_allocation (users.tests_user_list_sorting.PlanValueTests.test_a_teacher_allocation_wins_over_an_admin_allocation) ... Free trial plan not found: no trial activated for user cb7d4c2a-3875-4f7a-9568-ae9070dbd477.
+Free trial plan not found: no trial activated for user 4604b96c-6836-4a74-ae72-6d50be919a88.
+ok
+test_an_inactive_allocation_or_license_is_skipped (users.tests_user_list_sorting.PlanValueTests.test_an_inactive_allocation_or_license_is_skipped) ... Free trial plan not found: no trial activated for user 1791f5f1-3bef-4c3e-9749-35464ebea707.
+Free trial plan not found: no trial activated for user 807c713a-5993-413e-9dc4-52b3ea6fab9f.
+ok
+test_an_inactive_subscription_gives_no_plan (users.tests_user_list_sorting.PlanValueTests.test_an_inactive_subscription_gives_no_plan) ... Free trial plan not found: no trial activated for user 7666d420-aeb0-4275-aae7-2d8de6a6c626.
+Free trial plan not found: no trial activated for user 43e447c6-8a06-4809-928a-21259dbc5e24.
+ok
+test_an_individual_subscription_gives_its_plan (users.tests_user_list_sorting.PlanValueTests.test_an_individual_subscription_gives_its_plan) ... Free trial plan not found: no trial activated for user bd86a6b5-aaa1-4b07-8941-2beaf0b1053e.
+Free trial plan not found: no trial activated for user c2e7b7bf-9d27-457e-9bc5-28773ac48cbf.
+ok
+test_no_subscription_gives_no_plan (users.tests_user_list_sorting.PlanValueTests.test_no_subscription_gives_no_plan) ... Free trial plan not found: no trial activated for user c3a768b9-f03f-43cc-9504-0ed0c4f7a1f0.
+Free trial plan not found: no trial activated for user f1b7f124-d728-465f-b57f-8fbddbf20433.
+ok
+test_a_5_row_and_a_25_row_page_cost_the_same (users.tests_user_list_sorting.QueryCountTests.test_a_5_row_and_a_25_row_page_cost_the_same) ... Free trial plan not found: no trial activated for user a01b64f3-373a-4ccb-969b-2a75865a59b0.
+Free trial plan not found: no trial activated for user 0e5b5d38-19a4-420c-87ac-e199edebb265.
+Free trial plan not found: no trial activated for user 306a36b0-5ecc-4ae9-a652-0886e6ed3f35.
+Free trial plan not found: no trial activated for user 6485c860-a78b-4480-80ac-c5c228c35a1f.
+Free trial plan not found: no trial activated for user c829a010-36e4-4a76-b41c-0418f4305f5d.
+Free trial plan not found: no trial activated for user abd4c1e7-0698-42fd-9597-ab899dd8ad6f.
+Free trial plan not found: no trial activated for user e38a425f-b891-414c-bee5-e30bd0cf1e1e.
+Free trial plan not found: no trial activated for user f3d5f6ff-6d98-48e1-9e74-1f03185ad19f.
+Free trial plan not found: no trial activated for user 717317ae-3945-4502-b81d-93b503fe9e82.
+Free trial plan not found: no trial activated for user b392db0f-e4fc-442a-9703-9958c2251878.
+Free trial plan not found: no trial activated for user 4579e89f-bc85-4d49-8e34-85cf4ead148f.
+Free trial plan not found: no trial activated for user 7ee9fb24-952c-49aa-a892-783a0e6219e6.
+Free trial plan not found: no trial activated for user 4273bfae-885a-4a65-9d40-0824ca0fef9d.
+Free trial plan not found: no trial activated for user 58e13d63-e8ca-4843-8681-f383baf7e068.
+Free trial plan not found: no trial activated for user 776f3688-af12-4a42-b1e2-54e0353a1bd8.
+Free trial plan not found: no trial activated for user 5e705675-6721-4627-b374-cb95b775b707.
+Free trial plan not found: no trial activated for user 1fdcdfae-b35d-48c4-aa92-0ff79df74bfb.
+Free trial plan not found: no trial activated for user 835525a9-557f-4fb9-b2aa-ca83e49efaf4.
+Free trial plan not found: no trial activated for user 2452f72c-9f32-4ce0-9b50-bb6d04f4fd90.
+Free trial plan not found: no trial activated for user 7bfc64da-ffa8-4707-8a4f-980769bd8f03.
+Free trial plan not found: no trial activated for user 8701c510-3fc8-4ef4-ae81-ab4589aad35c.
+Free trial plan not found: no trial activated for user f18563e6-2772-41da-b459-09df13e4c5c6.
+Free trial plan not found: no trial activated for user 5bb5b5aa-e741-4b28-b9c1-bcddbdb5fb4a.
+Free trial plan not found: no trial activated for user 02862ebc-9b04-4be6-854d-deb9cae090eb.
+Free trial plan not found: no trial activated for user dfac550c-cdf3-4939-b58a-e76326260bc4.
+Free trial plan not found: no trial activated for user de07838c-eb4c-4247-be45-78761ad2d6f1.
+Free trial plan not found: no trial activated for user 210802df-f8cc-4ba4-901c-80b3d485fe69.
+Free trial plan not found: no trial activated for user c5e78d8f-53a3-4c06-ae50-236a53fc43d4.
+Free trial plan not found: no trial activated for user 0799e2fa-6e03-4721-89be-2d1e1ad7866f.
+Free trial plan not found: no trial activated for user 3d938b75-6694-4377-a4ff-3ded789563b3.
+Free trial plan not found: no trial activated for user 978d3015-15f8-4c47-9690-d87735fe5aa4.
+ok
+test_sorting_and_filtering_keep_the_cost_fixed (users.tests_user_list_sorting.QueryCountTests.test_sorting_and_filtering_keep_the_cost_fixed) ... Free trial plan not found: no trial activated for user 97e08ce5-e9ce-4f91-9e4b-1b5103055ff4.
+Free trial plan not found: no trial activated for user dbbefb10-d2de-48ad-b41f-8c5d8ae5bd21.
+Free trial plan not found: no trial activated for user 47bd0de8-218b-46c9-ba52-508f6aa0c3f8.
+Free trial plan not found: no trial activated for user 1cf6c052-c9c5-4cb5-8536-6887eaf1e730.
+Free trial plan not found: no trial activated for user ea38ad02-16ef-4bb6-89fb-078de464924d.
+Free trial plan not found: no trial activated for user 9a05da70-cdf0-43ee-a327-ff2e0f3c061f.
+Free trial plan not found: no trial activated for user aab50496-3632-49fb-bc6c-7001973baf74.
+Free trial plan not found: no trial activated for user 79af0389-6416-4d25-bba3-561b73de5fb6.
+Free trial plan not found: no trial activated for user b1d8c64f-dcf7-4199-a606-e2bd4d54a912.
+Free trial plan not found: no trial activated for user 8b82b0b5-d374-45dd-b2f3-5fd0c4414151.
+Free trial plan not found: no trial activated for user 7c9fe252-d1d9-4eb0-99cf-021467a8e169.
+Free trial plan not found: no trial activated for user 1fd6d8ce-b075-4228-a6ec-bb2d75506179.
+Free trial plan not found: no trial activated for user c4074662-78a5-4af0-b2c5-bccccd5dbd81.
+Free trial plan not found: no trial activated for user 70b8d586-2bf6-4499-a73d-c7e6cd633b65.
+Free trial plan not found: no trial activated for user c5606266-0955-4c4c-a5e4-bc0ffcc57325.
+Free trial plan not found: no trial activated for user b363730d-aaad-4f09-91c6-60d5704f60ed.
+Free trial plan not found: no trial activated for user f8fe0dd1-769e-4fb8-b11b-2e32d2ee3808.
+Free trial plan not found: no trial activated for user 1ab9de12-5d19-4769-bef7-b20177172234.
+Free trial plan not found: no trial activated for user fff09499-6389-4880-b6aa-df50b10563a8.
+Free trial plan not found: no trial activated for user 79668feb-16cc-47a3-bdcd-37a88cab29ae.
+Free trial plan not found: no trial activated for user c3c53a6f-891e-4690-b05b-0da0714be0b9.
+Free trial plan not found: no trial activated for user 554c64e2-d66f-4d2b-ad28-9ba0b5fee617.
+Free trial plan not found: no trial activated for user 0db1e2bb-0d90-43b2-8dbf-5ad1579045f5.
+Free trial plan not found: no trial activated for user 33914f25-c458-47aa-a208-98025f2f93c4.
+Free trial plan not found: no trial activated for user 2a56ed2d-fca1-4c85-8bfe-00b8e46f7894.
+Free trial plan not found: no trial activated for user 2e22d6cb-943a-437e-ba86-418fd33ccdb8.
+Free trial plan not found: no trial activated for user be127426-0b7a-4510-b84e-48d0e9710487.
+Free trial plan not found: no trial activated for user 8707dee1-9160-4d59-96ea-1e62c9c9a121.
+Free trial plan not found: no trial activated for user 6acc8855-0ecc-452f-ad21-4e73c36f6616.
+Free trial plan not found: no trial activated for user 500abd8c-e494-4ffd-b256-77fc2f853432.
+Free trial plan not found: no trial activated for user 9758f193-6a43-4331-8574-39e1de5617f1.
+ok
+test_the_list_payload_is_what_it_was (users.tests_user_list_payload_pin.ListPayloadPinTests.test_the_list_payload_is_what_it_was) ... Free trial plan not found: no trial activated for user 4cbfbe46-edff-4430-b467-008838d06bac.
+Free trial plan not found: no trial activated for user 8e17c0f5-1a9b-4d89-87ba-78d228c0c7c6.
+Free trial plan not found: no trial activated for user 7166e3c0-724f-47f6-8ef6-764f1b297029.
+Free trial plan not found: no trial activated for user d4d099f2-e2ba-4458-aa9f-944ebac76b93.
+Free trial plan not found: no trial activated for user 91842ad6-3fea-4b45-956b-d8d8ace08028.
+Free trial plan not found: no trial activated for user 0029b9a3-56ba-4b78-b415-47aadf353ec6.
+ok
+test_the_pin_is_not_vacuous (users.tests_user_list_payload_pin.ListPayloadPinTests.test_the_pin_is_not_vacuous) ... Free trial plan not found: no trial activated for user 10a25fbc-a6ee-434d-bc4c-d546178b6ac6.
+ok
+test_each_row_equals_its_retrieve (users.tests_user_list_payload_pin.SingleRetrieveParityTests.test_each_row_equals_its_retrieve) ... Free trial plan not found: no trial activated for user 217898f7-e529-498b-aded-1e7f7030558e.
+Free trial plan not found: no trial activated for user 03049b2e-71ed-49a7-b4e0-a55c05d0f2af.
+Free trial plan not found: no trial activated for user b42922ff-1873-4f18-8a80-de8ba8ee0eba.
+Free trial plan not found: no trial activated for user 37754e9e-e4ff-486c-afea-15dfd91ee911.
+Free trial plan not found: no trial activated for user 79544d65-1160-4633-8c42-2a360bd5337b.
+Free trial plan not found: no trial activated for user 4e1ab924-12bc-471a-8a35-92e50713d505.
+ok
+test_the_two_helpers_agree_for_every_ownership_and_school_shape (classrooms.tests_teacher_access_sweep.HelperAgreementTests.test_the_two_helpers_agree_for_every_ownership_and_school_shape) ... Free trial plan not found: no trial activated for user 9116dc03-7774-4bb6-8178-70947c727013.
+Free trial plan not found: no trial activated for user 7bf8e294-eafd-47b8-a28b-4f3ae5abd026.
+ok
+test_retry_failed_is_not_found_for_a_removed_teacher (classrooms.tests_teacher_access_sweep.TasksNamespaceRoutesFollowTheRule.test_retry_failed_is_not_found_for_a_removed_teacher)
+F6.2's session-level rule, as on status and session-results (SM ... Free trial plan not found: no trial activated for user 66d83363-618d-4b85-aafd-6403ac098e37.
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+ok
+test_retry_item_is_not_found_for_a_removed_teacher (classrooms.tests_teacher_access_sweep.TasksNamespaceRoutesFollowTheRule.test_retry_item_is_not_found_for_a_removed_teacher)
+The session-level rule answers, not item_retry's own item check ... Free trial plan not found: no trial activated for user 9374eff6-7cf8-460c-a3f3-b8835155c0cf.
+API request refused: Http404 (404)
+API request refused: Http404 (404)
+ok
+test_both_mapped_serializers_still_exist (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_both_mapped_serializers_still_exist) ... ok
+test_it_targets_the_assignment_list_serializer (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_it_targets_the_assignment_list_serializer) ... ok
+test_the_discriminator_property_is_declared_and_required (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_discriminator_property_is_declared_and_required)
+A discriminator absent from `properties`/`required` is invalid ... ok
+test_the_mapping_declares_both_teacher_and_student_shapes (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_mapping_declares_both_teacher_and_student_shapes)
+The whole point: one endpoint returns two shapes depending on who ... ok
+test_the_target_serializer_still_exists (assignments.tests_schema_extension.PolymorphicAssignmentExtensionUnitTest.test_the_target_serializer_still_exists)
+target_class is a hand-written import path. A renamed serializer ... ok
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "grant_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:grant_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views_admin_credits.py: Warning [AdminCreditManagementViewSet]: could not derive type of path parameter "user_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:user_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_message_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentGenerationSessionViewSet > AssignmentGenerationSessionSerializer]: unable to resolve type hint for function "get_latest_message_preview". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/assignments/serializers.py: Warning [AssignmentViewSet > AssignmentDetailSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [AuthViewSet > GoogleAuthResponse > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [AuthViewSet > CustomUserSerializer > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/views.py: Error [BetaAnaylicChartViewSet]: exception raised while getting serializer. Hint: Is get_serializer_class() returning None or is get_queryset() not working without a request? Ignoring the view for now. (Exception: 'BetaAnaylicChartViewSet' should either include a `serializer_class` attribute, or override the `get_serializer_class()` method.)
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [CourseViewSet > CourseSerializer]: unable to resolve type hint for function "get_assignment_count". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [CreditWalletViewSet > CreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [health]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [beat_health_check]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/AutoGrader/health.py: Error [client_identity]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'user_type')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/billing_transaction_views.py: Warning [BillingTransactionViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/payment_method_views.py: Warning [PaymentMethodViewSet]: could not derive type of path parameter "id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/payment_method_views.py: Error [PaymentMethodViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/qa_time_travel.py: Error [BillingTimeTravelView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/views.py: Warning [SchoolAdminAuditEventListView]: Failed to obtain model through view's queryset due to raised exception. Prevent this either by setting "queryset = Model.objects.none()" on the view, checking for "getattr(self, "swagger_fake_view", False)" in get_queryset() or by simply using @extend_schema. (Exception: 'AnonymousUser' object has no attribute 'school_id')
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_label". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/audit/serializers.py: Warning [SchoolAdminAuditEventListView > AuditEventSerializer]: unable to resolve type hint for function "get_target_name". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/views.py: Warning [SchoolAdminDashboardView]: could not derive type of path parameter "teacher_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:teacher_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [SchoolViewSet > SchoolAdminSummarySerializer]: Encountered 2 components with identical names "SchoolAdminSummary" and different identities <class 'classrooms.serializers.SchoolAdminSummarySerializer'> and <class 'dashboard.serializers.SchoolAdminSummarySerializer'>. This will very likely result in an incorrect schema. Try renaming one.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_no_of_assignment". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_total_assignment_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_submitted_assignment_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/classrooms/serializers.py: Warning [StudentCourseViewSet > StudentCourseSerializer]: unable to resolve type hint for function "get_grade_letter". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_enrolled_courses". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_teacher". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_in_course". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_total_assignments_submitted". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentCourseViewSet > StudentListSerializer]: unable to resolve type hint for function "get_percentage_of_submission". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionListSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_max_points". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentUploadAnswerSerializer]: unable to resolve type hint for function "get_raw_input". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_email". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_submission_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_score_percentage". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_grade_status". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/students/serializers.py: Warning [StudentSubmissionViewSet > StudentSubmissionDetailSerializer]: unable to resolve type hint for function "get_formatted_grade". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionManagementViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [SubscriptionPlanViewSet > SubscriptionPlanSerializer]: unable to resolve type hint for function "display_overage_block_size". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "session_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:session_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Error [TaskViewSet]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "task_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:task_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/views.py: Warning [TaskViewSet]: could not derive type of path parameter "item_id" because it is untyped and obtaining queryset from the viewset failed. Consider adding a type to the path (e.g. <int:item_id>) or annotating the parameter type with @extend_schema. Defaulting to "string".
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/views.py: Error [TeacherAdminDashboardView]: unable to guess serializer. This is graceful fallback handling for APIViews. Consider using GenericAPIView as view base class, if view is under your control. Either way you may want to add a serializer_class (or method). Ignoring view for now.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_remaining_time". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer > UpcomingAssignmentSerializer]: unable to resolve type hint for function "get_exact_due_date". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/dashboard/serializers.py: Warning [TeacherAdminDashboardView > TeacherDashboardOverviewSerializer]: unable to resolve type hint for function "get_average_grading_turnaround". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_subscription_type". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/billing/serializers.py: Warning [UserSubscriptionViewSet > UserSubscriptionSerializer]: unable to resolve type hint for function "get_is_under_license". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/list_serializers.py: Warning [CustomUserViewSet > UserListSerializer > ListCreditWalletSerializer]: unable to resolve type hint for function "get_bucket_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-user-list-beta/users/list_serializers.py: Warning [CustomUserViewSet > UserListSerializer > ListCreditWalletSerializer]: unable to resolve type hint for function "get_feature_usage_breakdown". Consider using a type hint or @extend_schema_field. Defaulting to string.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "status". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "StatusBbeEnum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: enum naming encountered a non-optimally resolvable collision for fields named "user_type". The same name has been used for multiple choice sets in multiple components. The collision was resolved with "UserTypeDe6Enum". add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+Warning: encountered multiple names for the same choice set (CategoryEnum). This may be unwanted even though the generated schema is technically correct. Add an entry to ENUM_NAME_OVERRIDES to fix the naming.
+test_extensions_is_not_a_real_drf_spectacular_setting (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_extensions_is_not_a_real_drf_spectacular_setting)
+The root cause, asserted directly so an upgrade that ADDS an ... ok
+test_no_production_module_imports_the_extension (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_no_production_module_imports_the_extension)
+The root cause, checked statically. ... ok
+test_the_components_the_mapping_points_at_do_not_exist (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_the_components_the_mapping_points_at_do_not_exist)
+Even if the extension were registered as-is, its refs would dangle: ... ok
+test_the_settings_entry_that_was_meant_to_register_it_is_inert (assignments.tests_schema_extension.PolymorphicExtensionIsNotWiredUpTest.test_the_settings_entry_that_was_meant_to_register_it_is_inert) ... ok
+test_every_grading_dispatch_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_grading_dispatch_checks_reachability) ... ok
+test_every_tasks_route_checks_reachability (classrooms.tests_teacher_access_sweep.TasksNamespaceSweepTests.test_every_tasks_route_checks_reachability) ... ok
+test_allowlist_has_no_stale_entries (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_allowlist_has_no_stale_entries) ... ok
+test_no_unlisted_direct_owner_scoping (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_no_unlisted_direct_owner_scoping) ... ok
+test_scanner_flags_every_shape_it_exists_to_catch (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_flags_every_shape_it_exists_to_catch) ... ok
+test_scanner_ignores_the_shapes_it_must_not_flag (classrooms.tests_teacher_access_sweep.TeacherAccessSweepTests.test_scanner_ignores_the_shapes_it_must_not_flag) ... ok
+
+----------------------------------------------------------------------
+Ran 72 tests in 15.329s
+
+OK
+Preserving test database for alias 'default' ('test_user_list_beta')...
+Found 72 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: anymail, cloudinary, cloudinary_storage, corsheaders, django_extensions, django_filters, drf_spectacular, encrypted_model_fields, humanize, messages, rest_framework, staticfiles
+  Apply all migrations: admin, ai_processor, assignments, audit, auth, authtoken, billing, classrooms, contenttypes, dashboard, django_celery_beat, django_celery_results, sessions, students, token_blacklist, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  No migrations to apply.

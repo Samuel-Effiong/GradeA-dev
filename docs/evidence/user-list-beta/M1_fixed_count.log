@@ -1,0 +1,4 @@
+Ran 1 test in 0.821s
+OK
+MEASURE size 5 queries 13
+MEASURE size 25 queries 13
