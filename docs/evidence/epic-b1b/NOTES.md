@@ -3560,3 +3560,5 @@ After R2b, the fix is committed, and N2 runs at that commit as declared in §6.7
 | PB6b-2 | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; under flock with `--noinput`; at the NOTES commit (product = 9be233973) | `billing.tests.test_estimate_endpoint` | **Ran 13, FAILED (failures=1)**: only `test_501_listed_ids_are_refused_with_the_drf_message`, fragment `'Submission ids: Ensure this field has no [19 chars]nts.' != 'You can get a cost estimate` |
 
 The plant is reverted afterwards and the file checked by sha256 against 9be233973's blob. The log goes to `step6b/PB6b-2_<sha>.log`.
+
+**PB6b-2 result:** Ran 13, FAILED (failures=1), only `test_501_listed_ids_are_refused_with_the_drf_message`. The line is `AssertionError: 'Submission ids: Ensure this field has no [19 chars]nts.' != 'You can get a cost estimate for up to 500[64 chars]ers.'`. **As declared.** The plant was restored, and the file's sha256 `b006f544…90e9` MATCHES the 9be233973 blob. Log: `step6b/PB6b-2_6128868f0.log`.
