@@ -868,6 +868,8 @@ class ListOnlyTests(Base):
         detail = reverse("user-detail", kwargs={"pk": student.pk})
         self.assertEqual(client.get(detail).status_code, 200)
 
+        # The retrieve cache key is the instance id alone, so each request
+        # starts cold: a cached answer would hide the filter (Q-gate R1).
         for params in (
             {"plan_tier": "PRO"},
             {"has_plan": "true"},
@@ -875,6 +877,7 @@ class ListOnlyTests(Base):
             {"activated_before": (self.now - timedelta(days=999)).isoformat()},
         ):
             with self.subTest(params):
+                cache.clear()
                 self.assertEqual(client.get(detail, params).status_code, 200)
 
     def test_a_teacher_still_cannot_list(self):

@@ -203,3 +203,31 @@ the sha256 again. "Killed" means named tests fail or error.
 | Q-listonly | users/views.py | UserListSerializer for every action | 3: ListOnlyTests super_admin_non_list and teacher_non_list (last_login appears; the annotated keys are skipped); SingleRetrieveParityTests (retrieve gains last_login) |
 | Q-prefetch | users/user_list.py | drop the credit_wallet__buckets prefetch | 2: QueryCountTests both. The payload pin still passes, through the fallbacks |
 | Q-gate | users/filters.py | the new filters also apply for non-super admins | 1: ListOnlyTests.test_the_list_filters_do_nothing_off_the_list_for_others |
+
+## Plant results (logs plants/<id>.log; every restore sha256 OK)
+
+| plant | result |
+|---|---|
+| Q-dates | as declared: 5 killed (failures=6 counts subTests) |
+| Q-plan | as declared: 1 |
+| Q-counts | as declared: 1 |
+| Q-credits | 3 killed: the 2 declared, plus the possible 3rd (OrderingTests.test_credits_left; the id order put rich before held) |
+| Q-cache | as declared: the 14 named |
+| Q-listonly | as declared: 3 |
+| Q-prefetch | as declared: 2 |
+| Q-gate | **Prediction wrong: SURVIVED** (Ran 52, OK) |
+
+Q-gate: the test was defective. UserCacheMixin keys a retrieve by instance id
+alone, not by query params. The test's first, unfiltered retrieve was cached,
+so every filtered retrieve after it was answered from the cache with 200,
+filter or not. In production a cold cache still exposes the probe, so the
+gate is needed. Test-only fix: cache.clear() before each filtered request.
+
+Declared for the rerun:
+- Q-gate-2 (the same plant on the fixed test): kills 1,
+  ListOnlyTests.test_the_list_filters_do_nothing_off_the_list_for_others.
+- R2e green with the fixed test: Ran 52, OK.
+
+Side finding, not in scope: the retrieve cache ignores query params, so a
+filtered retrieve inside the TTL returns the unfiltered answer. That is
+existing behavior, unchanged here.
