@@ -5301,3 +5301,9 @@ The SM ACCEPTED the gate summary (§10.3, f015c6f92) and asked that the branch f
 
 - `SignalQueryCountTests` (in D1c) covers a fixed cost under `?ordering=signals` and the signal filters; D2c's three pages show the absolute 13.
 - They run in that order; any mismatch is recorded unamended and is a STOP.
+
+**Results at 82fad80f2 (product b86a5c9f2).**
+- **D1c: as declared.** Ran 129 tests in 91.661s, **OK**. Log: `step10/D1c_82fad80f2.log`.
+- **D2c: MISMATCH (declaration defect), recorded unamended; STOP to the SM.** Ran 2, **OK**. The queries are as declared: 5 rows default = **13**, 25 rows default = **13**, 5 rows `-credits_left` = **13**. The pin section is **not** as declared. I declared `added` = the 5 signal keys on each row; it shows all 7 rows `identical`. Log: `step10/D2c_82fad80f2.log`.
+  - Cause: my declaration was wrong about the fixture. `d2_diag.py` reads `MixedFixture.listed_payload()`, which since the merge pops `(*NEW_KEYS, *SIGNAL_KEYS)` (`users/tests_user_list_payload_pin.py:136`) before d2_diag compares. So `identical` means the payload minus the 14 list-only keys still equals the pin, which is the pin test's own check (passed in D1c).
+  - No product or test file changed. Nothing re-run.

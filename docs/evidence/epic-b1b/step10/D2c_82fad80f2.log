@@ -1,0 +1,146 @@
+B1b-10 D2c: as D2; at 82fad80f2 (product b86a5c9f2); declared Ran 2, OK, 13 queries each, 7 rows added = the 5 signal keys only
+Creating test database for alias 'default'...
+test_d2_queries (__main__.D2Queries.test_d2_queries) ... Free trial plan not found: no trial activated for user 2bf390b4-9f68-4287-bf74-32eacdefb46f.
+Cannot activate automatic trial for user 2bf390b4-9f68-4287-bf74-32eacdefb46f (validation): ValueError
+Free trial plan not found: no trial activated for user 9c6a1af7-a89b-43cf-95d6-2b5e288e0c90.
+Cannot activate automatic trial for user 9c6a1af7-a89b-43cf-95d6-2b5e288e0c90 (validation): ValueError
+Free trial plan not found: no trial activated for user bb6ae376-f723-4970-9f4a-f2891aa17fc7.
+Cannot activate automatic trial for user bb6ae376-f723-4970-9f4a-f2891aa17fc7 (validation): ValueError
+Free trial plan not found: no trial activated for user 8121c0bd-dd8c-4c6e-ac87-866b0fba71a1.
+Cannot activate automatic trial for user 8121c0bd-dd8c-4c6e-ac87-866b0fba71a1 (validation): ValueError
+Free trial plan not found: no trial activated for user 732e0df6-73d3-4c5d-b3fa-6eaa3d621bac.
+Cannot activate automatic trial for user 732e0df6-73d3-4c5d-b3fa-6eaa3d621bac (validation): ValueError
+Free trial plan not found: no trial activated for user bbd5f43d-9626-40e7-8a25-e3eddb5a11fb.
+Cannot activate automatic trial for user bbd5f43d-9626-40e7-8a25-e3eddb5a11fb (validation): ValueError
+Free trial plan not found: no trial activated for user e804ba59-8c8c-41eb-82ba-27722467197a.
+Cannot activate automatic trial for user e804ba59-8c8c-41eb-82ba-27722467197a (validation): ValueError
+Free trial plan not found: no trial activated for user e1bc6fa4-e804-49d3-b9c8-53b7624b32cc.
+Cannot activate automatic trial for user e1bc6fa4-e804-49d3-b9c8-53b7624b32cc (validation): ValueError
+Free trial plan not found: no trial activated for user 3bda08ca-e8b7-409c-8e86-27199e474b00.
+Cannot activate automatic trial for user 3bda08ca-e8b7-409c-8e86-27199e474b00 (validation): ValueError
+Free trial plan not found: no trial activated for user 4d604e66-a695-42f7-9035-1a5a8a658205.
+Cannot activate automatic trial for user 4d604e66-a695-42f7-9035-1a5a8a658205 (validation): ValueError
+Free trial plan not found: no trial activated for user e5ffab7f-dfd4-41a3-a7cc-d7fcd1781039.
+Cannot activate automatic trial for user e5ffab7f-dfd4-41a3-a7cc-d7fcd1781039 (validation): ValueError
+Free trial plan not found: no trial activated for user dc947162-4a4c-492b-b6f2-a50a22649dc7.
+Cannot activate automatic trial for user dc947162-4a4c-492b-b6f2-a50a22649dc7 (validation): ValueError
+Free trial plan not found: no trial activated for user 01ef0a1c-1896-4b7e-a7bf-103104bd7996.
+Cannot activate automatic trial for user 01ef0a1c-1896-4b7e-a7bf-103104bd7996 (validation): ValueError
+Free trial plan not found: no trial activated for user eb3b170a-a498-4bc2-b28a-a17ced91a88b.
+Cannot activate automatic trial for user eb3b170a-a498-4bc2-b28a-a17ced91a88b (validation): ValueError
+Free trial plan not found: no trial activated for user 5df9de5c-29ff-4816-91c1-e647a6c5eea9.
+Cannot activate automatic trial for user 5df9de5c-29ff-4816-91c1-e647a6c5eea9 (validation): ValueError
+Free trial plan not found: no trial activated for user 909af2bc-ce08-4ca6-9e35-92c4cbfd7e98.
+Cannot activate automatic trial for user 909af2bc-ce08-4ca6-9e35-92c4cbfd7e98 (validation): ValueError
+Free trial plan not found: no trial activated for user f302b1b2-300d-4b09-ad05-8a5de83bec70.
+Cannot activate automatic trial for user f302b1b2-300d-4b09-ad05-8a5de83bec70 (validation): ValueError
+Free trial plan not found: no trial activated for user 23a45911-f918-4748-926c-dfec6478b5b5.
+Cannot activate automatic trial for user 23a45911-f918-4748-926c-dfec6478b5b5 (validation): ValueError
+Free trial plan not found: no trial activated for user b6894e77-8c57-4d37-9b6c-c80d15ba0124.
+Cannot activate automatic trial for user b6894e77-8c57-4d37-9b6c-c80d15ba0124 (validation): ValueError
+Free trial plan not found: no trial activated for user d263f2ec-567f-4421-ab0c-037c46f57421.
+Cannot activate automatic trial for user d263f2ec-567f-4421-ab0c-037c46f57421 (validation): ValueError
+Free trial plan not found: no trial activated for user 933078e5-831d-4fd7-b289-0cf3920e05d3.
+Cannot activate automatic trial for user 933078e5-831d-4fd7-b289-0cf3920e05d3 (validation): ValueError
+Free trial plan not found: no trial activated for user 839f5819-8a73-4457-8701-7ebdcfdac55d.
+Cannot activate automatic trial for user 839f5819-8a73-4457-8701-7ebdcfdac55d (validation): ValueError
+Free trial plan not found: no trial activated for user 930da703-a78c-424d-99b3-911ba0e83a2d.
+Cannot activate automatic trial for user 930da703-a78c-424d-99b3-911ba0e83a2d (validation): ValueError
+Free trial plan not found: no trial activated for user 5411e872-5216-4b5f-9b06-05cc2e2b5aee.
+Cannot activate automatic trial for user 5411e872-5216-4b5f-9b06-05cc2e2b5aee (validation): ValueError
+Free trial plan not found: no trial activated for user 244e823f-66d0-451c-bd5f-282dd5f7d720.
+Cannot activate automatic trial for user 244e823f-66d0-451c-bd5f-282dd5f7d720 (validation): ValueError
+Free trial plan not found: no trial activated for user 9c441b40-cd5f-4f73-b1cb-c8c1ae407a44.
+Cannot activate automatic trial for user 9c441b40-cd5f-4f73-b1cb-c8c1ae407a44 (validation): ValueError
+Free trial plan not found: no trial activated for user 5fa0f690-b722-40db-92ba-ffedaaa99324.
+Cannot activate automatic trial for user 5fa0f690-b722-40db-92ba-ffedaaa99324 (validation): ValueError
+Free trial plan not found: no trial activated for user 6b6b7442-18e5-4691-82b2-219a88edaa41.
+Cannot activate automatic trial for user 6b6b7442-18e5-4691-82b2-219a88edaa41 (validation): ValueError
+Free trial plan not found: no trial activated for user 90231d2d-a145-43e7-8ade-b6c68e304286.
+Cannot activate automatic trial for user 90231d2d-a145-43e7-8ade-b6c68e304286 (validation): ValueError
+Free trial plan not found: no trial activated for user 75573470-a321-4c9a-832a-b25abd8fee7d.
+Cannot activate automatic trial for user 75573470-a321-4c9a-832a-b25abd8fee7d (validation): ValueError
+Free trial plan not found: no trial activated for user eff2bc08-697c-4432-9575-9ca85975b393.
+Cannot activate automatic trial for user eff2bc08-697c-4432-9575-9ca85975b393 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+ok
+test_d2_pin (__main__.D2Pin.test_d2_pin) ... Free trial plan not found: no trial activated for user 1079d663-b55f-4285-8429-760cb06ba226.
+Cannot activate automatic trial for user 1079d663-b55f-4285-8429-760cb06ba226 (validation): ValueError
+Free trial plan not found: no trial activated for user 0725230f-a647-4a0a-8e1a-f501c0d83449.
+Cannot activate automatic trial for user 0725230f-a647-4a0a-8e1a-f501c0d83449 (validation): ValueError
+Free trial plan not found: no trial activated for user 1a8930b3-b4c3-4331-a6b2-3edf4a85aee2.
+Cannot activate automatic trial for user 1a8930b3-b4c3-4331-a6b2-3edf4a85aee2 (validation): ValueError
+Free trial plan not found: no trial activated for user 23e2082d-fd35-413c-b674-c6740c5e42ae.
+Cannot activate automatic trial for user 23e2082d-fd35-413c-b674-c6740c5e42ae (validation): ValueError
+Free trial plan not found: no trial activated for user 3b909fda-91be-4d48-9486-ec81e7717939.
+Cannot activate automatic trial for user 3b909fda-91be-4d48-9486-ec81e7717939 (validation): ValueError
+Free trial plan not found: no trial activated for user 1fc1ab07-2888-4b5d-a2eb-0e46a530966b.
+Cannot activate automatic trial for user 1fc1ab07-2888-4b5d-a2eb-0e46a530966b (validation): ValueError
+ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 14.589s
+
+OK
+Destroying test database for alias 'default'...
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+=== 5 rows, default: 13 queries
+   1  SELECT COUNT(*) AS "__count" FROM "users_customuser" LEFT OUTER JOIN "billing_creditwallet" ON ("users_customuser"."id" = "billing_creditwallet"."user_id") LEFT OUTER JOIN "billing_betaprofile" ON ("users_customuser"."id
+   1  SELECT "users_customuser"."password", "users_customuser"."last_login", "users_customuser"."is_superuser", "users_customuser"."first_name", "users_customuser"."last_name", "users_customuser"."is_staff", "users_customuser"
+   1  SELECT "billing_creditbucket"."id", "billing_creditbucket"."wallet_id", "billing_creditbucket"."bucket_type", "billing_creditbucket"."total_credits", "billing_creditbucket"."used_credits", "billing_creditbucket"."expires
+   1  SELECT "billing_usersubscription"."id", "billing_usersubscription"."user_id", "billing_usersubscription"."plan_id", "billing_usersubscription"."is_active", "billing_usersubscription"."billing_cycle_start", "billing_users
+   1  SELECT "billing_licensesubscription"."id", "billing_licensesubscription"."school_id", "billing_licensesubscription"."admin_user_id", "billing_licensesubscription"."plan_id", "billing_licensesubscription"."contract_months
+   1  SELECT "billing_schoolcreditallocation"."id", "billing_schoolcreditallocation"."license_subscription_id", "billing_schoolcreditallocation"."user_id", "billing_schoolcreditallocation"."monthly_allocation", "billing_school
+   1  SAVEPOINT "s129237158225792_x126"
+   1  INSERT INTO "audit_auditevent" ("id", "occurred_at", "actor_id", "actor_role", "actor_email", "school_id", "department_id", "action", "target_type", "target_id", "outcome", "error_class", "reason_code", "trace_id", "clie
+   1  RELEASE SAVEPOINT "s129237158225792_x126"
+   1  SELECT ? AS "a" FROM "audit_auditevent" WHERE ("audit_auditevent"."actor_id" = ?::uuid AND "audit_auditevent"."id" IN (?::uuid)) LIMIT ?
+   1  SELECT ? AS "a" FROM "audit_auditevent" WHERE "audit_auditevent"."id" IN (?::uuid) LIMIT ?
+   1  INSERT INTO "users_useractivity" ("user_id", "timestamp") VALUES (?::uuid, ?::timestamptz) RETURNING "users_useractivity"."id"
+   1  SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwallet"."refund_deficit_credits", "billing_creditwallet"."is_consumption_blocked", "b
+
+=== 25 rows, default: 13 queries
+   1  SELECT COUNT(*) AS "__count" FROM "users_customuser" LEFT OUTER JOIN "billing_creditwallet" ON ("users_customuser"."id" = "billing_creditwallet"."user_id") LEFT OUTER JOIN "billing_betaprofile" ON ("users_customuser"."id
+   1  SELECT "users_customuser"."password", "users_customuser"."last_login", "users_customuser"."is_superuser", "users_customuser"."first_name", "users_customuser"."last_name", "users_customuser"."is_staff", "users_customuser"
+   1  SELECT "billing_creditbucket"."id", "billing_creditbucket"."wallet_id", "billing_creditbucket"."bucket_type", "billing_creditbucket"."total_credits", "billing_creditbucket"."used_credits", "billing_creditbucket"."expires
+   1  SELECT "billing_usersubscription"."id", "billing_usersubscription"."user_id", "billing_usersubscription"."plan_id", "billing_usersubscription"."is_active", "billing_usersubscription"."billing_cycle_start", "billing_users
+   1  SELECT "billing_licensesubscription"."id", "billing_licensesubscription"."school_id", "billing_licensesubscription"."admin_user_id", "billing_licensesubscription"."plan_id", "billing_licensesubscription"."contract_months
+   1  SELECT "billing_schoolcreditallocation"."id", "billing_schoolcreditallocation"."license_subscription_id", "billing_schoolcreditallocation"."user_id", "billing_schoolcreditallocation"."monthly_allocation", "billing_school
+   1  SAVEPOINT "s129237158225792_x127"
+   1  INSERT INTO "audit_auditevent" ("id", "occurred_at", "actor_id", "actor_role", "actor_email", "school_id", "department_id", "action", "target_type", "target_id", "outcome", "error_class", "reason_code", "trace_id", "clie
+   1  RELEASE SAVEPOINT "s129237158225792_x127"
+   1  SELECT ? AS "a" FROM "audit_auditevent" WHERE ("audit_auditevent"."actor_id" = ?::uuid AND "audit_auditevent"."id" IN (?::uuid)) LIMIT ?
+   1  SELECT ? AS "a" FROM "audit_auditevent" WHERE "audit_auditevent"."id" IN (?::uuid) LIMIT ?
+   1  INSERT INTO "users_useractivity" ("user_id", "timestamp") VALUES (?::uuid, ?::timestamptz) RETURNING "users_useractivity"."id"
+   1  SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwallet"."refund_deficit_credits", "billing_creditwallet"."is_consumption_blocked", "b
+
+=== 5 rows, -credits_left: 13 queries
+   1  SELECT COUNT(*) AS "__count" FROM "users_customuser" LEFT OUTER JOIN "billing_creditwallet" ON ("users_customuser"."id" = "billing_creditwallet"."user_id") LEFT OUTER JOIN "billing_betaprofile" ON ("users_customuser"."id
+   1  SELECT "users_customuser"."password", "users_customuser"."last_login", "users_customuser"."is_superuser", "users_customuser"."first_name", "users_customuser"."last_name", "users_customuser"."is_staff", "users_customuser"
+   1  SELECT "billing_creditbucket"."id", "billing_creditbucket"."wallet_id", "billing_creditbucket"."bucket_type", "billing_creditbucket"."total_credits", "billing_creditbucket"."used_credits", "billing_creditbucket"."expires
+   1  SELECT "billing_usersubscription"."id", "billing_usersubscription"."user_id", "billing_usersubscription"."plan_id", "billing_usersubscription"."is_active", "billing_usersubscription"."billing_cycle_start", "billing_users
+   1  SELECT "billing_licensesubscription"."id", "billing_licensesubscription"."school_id", "billing_licensesubscription"."admin_user_id", "billing_licensesubscription"."plan_id", "billing_licensesubscription"."contract_months
+   1  SELECT "billing_schoolcreditallocation"."id", "billing_schoolcreditallocation"."license_subscription_id", "billing_schoolcreditallocation"."user_id", "billing_schoolcreditallocation"."monthly_allocation", "billing_school
+   1  SAVEPOINT "s129237158225792_x128"
+   1  INSERT INTO "audit_auditevent" ("id", "occurred_at", "actor_id", "actor_role", "actor_email", "school_id", "department_id", "action", "target_type", "target_id", "outcome", "error_class", "reason_code", "trace_id", "clie
+   1  RELEASE SAVEPOINT "s129237158225792_x128"
+   1  SELECT ? AS "a" FROM "audit_auditevent" WHERE ("audit_auditevent"."actor_id" = ?::uuid AND "audit_auditevent"."id" IN (?::uuid)) LIMIT ?
+   1  SELECT ? AS "a" FROM "audit_auditevent" WHERE "audit_auditevent"."id" IN (?::uuid) LIMIT ?
+   1  INSERT INTO "users_useractivity" ("user_id", "timestamp") VALUES (?::uuid, ?::timestamptz) RETURNING "users_useractivity"."id"
+   1  SELECT "billing_creditwallet"."id", "billing_creditwallet"."user_id", "billing_creditwallet"."dispute_deficit_credits", "billing_creditwallet"."refund_deficit_credits", "billing_creditwallet"."is_consumption_blocked", "b
+
+=== pin: 7 rows pinned, 7 listed
+rows only in payload: []
+rows only in pin: []
+a.individual.pin@x.example: identical
+b.licteacher.pin@x.example: identical
+c.schooladmin.pin@x.example: identical
+d.student.pin@x.example: identical
+e.nowallet.pin@x.example: identical
+f.nosettings.pin@x.example: identical
+g.empty.pin@x.example: identical
