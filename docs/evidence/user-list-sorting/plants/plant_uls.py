@@ -1,9 +1,13 @@
 """User list plant harness: copy, mutate, sha check, run, restore, sha check.
 
+The saved copy is deleted once the restore sha matches (the sha lines in
+the output are the proof); it is kept only on a mismatch.
+
 Usage (from the worktree root): python plant_uls.py <PLANT_ID> <log_path>
 """
 
 import hashlib
+import os
 import shutil
 import subprocess
 import sys
@@ -134,6 +138,7 @@ def main():
             f"{plant} {path} restored {restored} {'OK' if restored == original else 'MISMATCH'}"
         )
         assert restored == original
+        os.remove(saved)
 
 
 if __name__ == "__main__":
