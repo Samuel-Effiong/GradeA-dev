@@ -3904,3 +3904,20 @@ The plant is reverted afterwards and the file checked by sha256 against 9be23397
 - low_balance: 17 errors, `No module named 'billing.low_balance'`.
 - job_api: 5 failures (`200` or `401` expected, `404` got): owner, anonymous, same-license admin, super admin, removed teacher. 2 pass: other/student/unknown, and other-license admin.
 - gap_metric: 1 error (`has no attribute 'gap_bucket'`) and 3 failures (settled, within the band, the band edge). 4 pass.
+
+### §7.12 R1 result: **MISMATCH. STOP**, recorded unamended
+
+| Run | Declared | Result | Log |
+|---|---|---|---|
+| R1 (red) at c39d76e09; ENV all four unset; serial | Ran 32, FAILED (failures=8, errors=18) | **Ran 32, FAILED (failures=8, errors=26)** | `step7/R1_red_c39d76e09.log` |
+
+- **The failures match:** the 8 predicted (5 job_api, 3 gap_metric), each as declared.
+- **17 low-balance errors** match: `No module named 'billing.low_balance'`, 17 times.
+- **8 extra errors**, from two causes found in the log:
+  1. **+7, a prediction error.** `GapBucketTests.test_the_bucket_edges` loops over 8 `subTest` cases. Each erroring subTest counts as its own ERROR (8, `has no attribute 'gap_bucket'`), not 1 as I declared.
+  2. **+1, a fixture bug in my test.** `JobApiTests.test_a_school_admin_of_another_license_gets_404` calls `make_school_licence` a second time in the same test. That helper's `make_plan` (`billing/tests/test_renewal_guards.py:77`) names the plan from its type and tier, not its tag. The second plan breaks the unique `billing_subscriptionplan_name_key`: `psycopg2.errors.UniqueViolation`. So the test errors before it asks anything, and as written it can never test what it is named for.
+
+**Proposed (needs the SM's ruling; nothing has been changed):**
+- **(1):** none; it's a counting error only. From now on, every subTest is counted as its own result.
+- **(2):** fix the fixture. The second license reuses the first license's plan: a new `School`, a new `SCHOOL_ADMIN` and a `LicenseSubscription.objects.create(..., plan=self.licence.plan, ...)`, without a second `make_plan`. Then re-declare R1 as R1b.
+- **R1b's prediction:** Ran 32, FAILED (failures=8, errors=25): 17 low_balance + 8 bucket subTests. The fixed test passes in red, because the route is missing and the answer is 404.

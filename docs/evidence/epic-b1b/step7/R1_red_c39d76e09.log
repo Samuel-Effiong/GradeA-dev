@@ -1,0 +1,608 @@
+B1b-7 R1 (NOTES §7.11): ENV BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS, CI_REQUIRE_NETWORK unset; serial; declared Ran 32, FAILED (failures=8, errors=18)
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Free trial plan not found: no trial activated for user afda276f-e679-4d70-af77-2981b6614854.
+Cannot activate automatic trial for user afda276f-e679-4d70-af77-2981b6614854 (validation): ValueError
+EFree trial plan not found: no trial activated for user 1691fbe0-d4dc-42d0-aa34-f1e6599505c9.
+Cannot activate automatic trial for user 1691fbe0-d4dc-42d0-aa34-f1e6599505c9 (validation): ValueError
+EFree trial plan not found: no trial activated for user 74b59c6a-3202-4df1-960d-1c0579d5ac29.
+Cannot activate automatic trial for user 74b59c6a-3202-4df1-960d-1c0579d5ac29 (validation): ValueError
+EFree trial plan not found: no trial activated for user c2aeca29-4250-448b-8b13-a7e58dbcb418.
+Cannot activate automatic trial for user c2aeca29-4250-448b-8b13-a7e58dbcb418 (validation): ValueError
+EFree trial plan not found: no trial activated for user e0e3df63-e27b-4aa3-9d8c-81c7819b1264.
+Cannot activate automatic trial for user e0e3df63-e27b-4aa3-9d8c-81c7819b1264 (validation): ValueError
+EFree trial plan not found: no trial activated for user f52b5686-0cba-4a98-b485-8655109814ee.
+Cannot activate automatic trial for user f52b5686-0cba-4a98-b485-8655109814ee (validation): ValueError
+EFree trial plan not found: no trial activated for user da9656fa-e818-4193-9f26-e209c4c41966.
+Cannot activate automatic trial for user da9656fa-e818-4193-9f26-e209c4c41966 (validation): ValueError
+EFree trial plan not found: no trial activated for user a73836c8-3808-4c53-9839-1b1d01628369.
+Cannot activate automatic trial for user a73836c8-3808-4c53-9839-1b1d01628369 (validation): ValueError
+EFree trial plan not found: no trial activated for user 831a09a6-5360-48ce-8460-f5506e04771b.
+Cannot activate automatic trial for user 831a09a6-5360-48ce-8460-f5506e04771b (validation): ValueError
+EFree trial plan not found: no trial activated for user 146178d5-e3f4-4582-81fb-b6276f8abf8a.
+Cannot activate automatic trial for user 146178d5-e3f4-4582-81fb-b6276f8abf8a (validation): ValueError
+EFree trial plan not found: no trial activated for user 3631f3a4-7acb-45f6-acf3-0c317a81c8ec.
+Cannot activate automatic trial for user 3631f3a4-7acb-45f6-acf3-0c317a81c8ec (validation): ValueError
+EFree trial plan not found: no trial activated for user c7416f90-8169-4d5a-9d4c-25dab47c6a66.
+Cannot activate automatic trial for user c7416f90-8169-4d5a-9d4c-25dab47c6a66 (validation): ValueError
+EFree trial plan not found: no trial activated for user ae67cc9c-86f9-4712-91fc-323ce852865b.
+Cannot activate automatic trial for user ae67cc9c-86f9-4712-91fc-323ce852865b (validation): ValueError
+EFree trial plan not found: no trial activated for user 8374abf7-4ff9-4f5d-beb9-db094c0701b5.
+Cannot activate automatic trial for user 8374abf7-4ff9-4f5d-beb9-db094c0701b5 (validation): ValueError
+EFree trial plan not found: no trial activated for user a4178fb5-9a52-43f3-a529-6762d77c64bb.
+Cannot activate automatic trial for user a4178fb5-9a52-43f3-a529-6762d77c64bb (validation): ValueError
+EFree trial plan not found: no trial activated for user 7bfbad8f-93b1-4dcf-b343-fa64ab3ee674.
+Cannot activate automatic trial for user 7bfbad8f-93b1-4dcf-b343-fa64ab3ee674 (validation): ValueError
+EFree trial plan not found: no trial activated for user e710f88a-d310-48f4-9bea-e460faa14ff1.
+Cannot activate automatic trial for user e710f88a-d310-48f4-9bea-e460faa14ff1 (validation): ValueError
+/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/staticfiles/
+  mw_instance = middleware(adapted_handler)
+FFree trial plan not found: no trial activated for user b170d084-8490-41f2-930c-a13fc3d17b3d.
+Cannot activate automatic trial for user b170d084-8490-41f2-930c-a13fc3d17b3d (validation): ValueError
+EFree trial plan not found: no trial activated for user c86a6121-8b8a-4ea0-91bd-575e0bc019fc.
+Cannot activate automatic trial for user c86a6121-8b8a-4ea0-91bd-575e0bc019fc (validation): ValueError
+FFree trial plan not found: no trial activated for user 049f8608-e663-4725-bfc2-56119d180dc4.
+Cannot activate automatic trial for user 049f8608-e663-4725-bfc2-56119d180dc4 (validation): ValueError
+FFree trial plan not found: no trial activated for user 001a6721-f63c-4b62-84e2-03808afc423c.
+Cannot activate automatic trial for user 001a6721-f63c-4b62-84e2-03808afc423c (validation): ValueError
+Free trial plan not found: no trial activated for user 80ce8793-e8e1-4219-b9f0-e1ca65378181.
+Cannot activate automatic trial for user 80ce8793-e8e1-4219-b9f0-e1ca65378181 (validation): ValueError
+.Free trial plan not found: no trial activated for user bf6fa224-925e-4c83-a47e-898222532dd7.
+Cannot activate automatic trial for user bf6fa224-925e-4c83-a47e-898222532dd7 (validation): ValueError
+FFree trial plan not found: no trial activated for user e248bddc-b529-4ecd-8de3-e813f006edb2.
+Cannot activate automatic trial for user e248bddc-b529-4ecd-8de3-e813f006edb2 (validation): ValueError
+FEEEEEEEEFree trial plan not found: no trial activated for user bba64f90-abb5-40e7-aa7a-33100f938c64.
+Cannot activate automatic trial for user bba64f90-abb5-40e7-aa7a-33100f938c64 (validation): ValueError
+.Free trial plan not found: no trial activated for user 90897ec3-7ad7-4d2d-8bd0-e80565a7abe6.
+Cannot activate automatic trial for user 90897ec3-7ad7-4d2d-8bd0-e80565a7abe6 (validation): ValueError
+.Free trial plan not found: no trial activated for user 7e342f6f-9341-4337-b800-01f9a9ecd2bd.
+Cannot activate automatic trial for user 7e342f6f-9341-4337-b800-01f9a9ecd2bd (validation): ValueError
+FFree trial plan not found: no trial activated for user 9ef47191-5130-407f-b246-9a491ab1531f.
+Cannot activate automatic trial for user 9ef47191-5130-407f-b246-9a491ab1531f (validation): ValueError
+.Free trial plan not found: no trial activated for user 3fb43d29-692b-40ee-845d-bd70f4bc89cb.
+Cannot activate automatic trial for user 3fb43d29-692b-40ee-845d-bd70f4bc89cb (validation): ValueError
+.Free trial plan not found: no trial activated for user 0f29b6b5-c3a3-4cf6-b074-3854b7786aac.
+Cannot activate automatic trial for user 0f29b6b5-c3a3-4cf6-b074-3854b7786aac (validation): ValueError
+FFree trial plan not found: no trial activated for user b06c84c3-593d-44f0-b333-2e651add0133.
+Cannot activate automatic trial for user b06c84c3-593d-44f0-b333-2e651add0133 (validation): ValueError
+FFree trial plan not found: no trial activated for user c35f0f39-d370-4ec1-be08-39b16d031f88.
+Cannot activate automatic trial for user c35f0f39-d370-4ec1-be08-39b16d031f88 (validation): ValueError
+E
+======================================================================
+ERROR: test_a_zero_allocation_sends_nothing_writes_nothing_and_does_not_crash (billing.tests.test_b1b7_low_balance.AllocationAndCycleTests.test_a_zero_allocation_sends_nothing_writes_nothing_and_does_not_crash)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_monthly_and_carry_over_give_the_monthly_cycle (billing.tests.test_b1b7_low_balance.AllocationAndCycleTests.test_monthly_and_carry_over_give_the_monthly_cycle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_no_live_non_overage_bucket_sends_nothing_and_does_not_crash (billing.tests.test_b1b7_low_balance.AllocationAndCycleTests.test_no_live_non_overage_bucket_sends_nothing_and_does_not_crash)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_no_monthly_and_a_never_expiring_grant_sends_nothing (billing.tests.test_b1b7_low_balance.AllocationAndCycleTests.test_no_monthly_and_a_never_expiring_grant_sends_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_a_zero_allocation_is_out_only_when_nothing_is_spendable (billing.tests.test_b1b7_low_balance.BalanceStatusTests.test_a_zero_allocation_is_out_only_when_nothing_is_spendable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_the_edges_match_the_email_levels (billing.tests.test_b1b7_low_balance.BalanceStatusTests.test_the_edges_match_the_email_levels)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_the_wallet_endpoint_shows_the_three_new_fields (billing.tests.test_b1b7_low_balance.BalanceStatusTests.test_the_wallet_endpoint_shows_the_three_new_fields)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_with_the_flag_off_a_billed_call_sends_no_warning (billing.tests.test_b1b7_low_balance.FlagOffTests.test_with_the_flag_off_a_billed_call_sends_no_warning)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 314, in test_with_the_flag_off_a_billed_call_sends_no_warning
+    low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True
+    ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_a_jump_past_two_levels_sends_only_the_lowest (billing.tests.test_b1b7_low_balance.WarningTests.test_a_jump_past_two_levels_sends_only_the_lowest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_a_license_teacher_gets_the_license_closing_line (billing.tests.test_b1b7_low_balance.WarningTests.test_a_license_teacher_gets_the_license_closing_line)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_a_new_cycle_starts_over (billing.tests.test_b1b7_low_balance.WarningTests.test_a_new_cycle_starts_over)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_above_25_percent_sends_nothing (billing.tests.test_b1b7_low_balance.WarningTests.test_above_25_percent_sends_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_crossing_25_percent_sends_the_25_email_once (billing.tests.test_b1b7_low_balance.WarningTests.test_crossing_25_percent_sends_the_25_email_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_lower_levels_later_in_the_cycle_each_send (billing.tests.test_b1b7_low_balance.WarningTests.test_lower_levels_later_in_the_cycle_each_send)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_the_same_level_again_in_the_cycle_sends_nothing (billing.tests.test_b1b7_low_balance.WarningTests.test_the_same_level_again_in_the_cycle_sends_nothing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_unapproved_the_fields_move_and_nothing_is_sent (billing.tests.test_b1b7_low_balance.WarningTests.test_unapproved_the_fields_move_and_nothing_is_sent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 115, in setUp
+    approve = patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True)
+                           ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+ERROR: test_a_school_admin_of_another_license_gets_404 (billing.tests.test_b1b7_job_api.JobApiTests.test_a_school_admin_of_another_license_gets_404)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "billing_subscriptionplan_name_key"
+DETAIL:  Key (name)=(PRO_LICENSE) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_job_api.py", line 134, in test_a_school_admin_of_another_license_gets_404
+    _, other = make_school_licence(
+               ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_beat_lock_catch_up.py", line 159, in make_school_licence
+    plan = make_plan(
+           ^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_renewal_guards.py", line 77, in make_plan
+    return SubscriptionPlan.objects.create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 902, in save
+    self.save_base(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/h284_deps_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "billing_subscriptionplan_name_key"
+DETAIL:  Key (name)=(PRO_LICENSE) already exists.
+
+
+======================================================================
+ERROR: test_the_bucket_edges (billing.tests.test_b1b7_gap_metric.GapBucketTests.test_the_bucket_edges) (actual=49)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_gap_metric.py", line 47, in test_the_bucket_edges
+    self.assertEqual(holds().gap_bucket(actual, 100), label)
+                     ^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'gap_bucket'
+
+======================================================================
+ERROR: test_the_bucket_edges (billing.tests.test_b1b7_gap_metric.GapBucketTests.test_the_bucket_edges) (actual=50)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_gap_metric.py", line 47, in test_the_bucket_edges
+    self.assertEqual(holds().gap_bucket(actual, 100), label)
+                     ^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'gap_bucket'
+
+======================================================================
+ERROR: test_the_bucket_edges (billing.tests.test_b1b7_gap_metric.GapBucketTests.test_the_bucket_edges) (actual=79)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_gap_metric.py", line 47, in test_the_bucket_edges
+    self.assertEqual(holds().gap_bucket(actual, 100), label)
+                     ^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'gap_bucket'
+
+======================================================================
+ERROR: test_the_bucket_edges (billing.tests.test_b1b7_gap_metric.GapBucketTests.test_the_bucket_edges) (actual=80)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_gap_metric.py", line 47, in test_the_bucket_edges
+    self.assertEqual(holds().gap_bucket(actual, 100), label)
+                     ^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'gap_bucket'
+
+======================================================================
+ERROR: test_the_bucket_edges (billing.tests.test_b1b7_gap_metric.GapBucketTests.test_the_bucket_edges) (actual=120)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_gap_metric.py", line 47, in test_the_bucket_edges
+    self.assertEqual(holds().gap_bucket(actual, 100), label)
+                     ^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'gap_bucket'
+
+======================================================================
+ERROR: test_the_bucket_edges (billing.tests.test_b1b7_gap_metric.GapBucketTests.test_the_bucket_edges) (actual=121)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_gap_metric.py", line 47, in test_the_bucket_edges
+    self.assertEqual(holds().gap_bucket(actual, 100), label)
+                     ^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'gap_bucket'
+
+======================================================================
+ERROR: test_the_bucket_edges (billing.tests.test_b1b7_gap_metric.GapBucketTests.test_the_bucket_edges) (actual=200)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_gap_metric.py", line 47, in test_the_bucket_edges
+    self.assertEqual(holds().gap_bucket(actual, 100), label)
+                     ^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'gap_bucket'
+
+======================================================================
+ERROR: test_the_bucket_edges (billing.tests.test_b1b7_gap_metric.GapBucketTests.test_the_bucket_edges) (actual=201)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_gap_metric.py", line 47, in test_the_bucket_edges
+    self.assertEqual(holds().gap_bucket(actual, 100), label)
+                     ^^^^^^^^^^^^^^^^^^
+AttributeError: module 'billing.holds' has no attribute 'gap_bucket'
+
+======================================================================
+ERROR: test_two_settlements_crossing_25_percent_send_once (billing.tests.test_b1b7_low_balance.ConcurrentSettlementTests.test_two_settlements_crossing_25_percent_send_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 349, in test_two_settlements_crossing_25_percent_send_once
+    with patch.object(low_balance(), "LOW_BALANCE_EMAIL_APPROVED", True), patch(
+                      ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_low_balance.py", line 77, in low_balance
+    return importlib.import_module("billing.low_balance")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1324, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'billing.low_balance'
+
+======================================================================
+FAIL: test_a_removed_teacher_is_out_of_the_school_admins_scope (billing.tests.test_b1b7_job_api.JobApiTests.test_a_removed_teacher_is_out_of_the_school_admins_scope)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_job_api.py", line 148, in test_a_removed_teacher_is_out_of_the_school_admins_scope
+    self.assertEqual(self.get(self.owner).status_code, 200)
+AssertionError: 404 != 200
+
+======================================================================
+FAIL: test_a_school_admin_of_the_owners_license_gets_it (billing.tests.test_b1b7_job_api.JobApiTests.test_a_school_admin_of_the_owners_license_gets_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_job_api.py", line 130, in test_a_school_admin_of_the_owners_license_gets_it
+    self.assertEqual(response.status_code, 200, response.content[:300])
+AssertionError: 404 != 200 : b'{"success": false, "message": "Not Found", "error": {"detail": "Resource not found"}}'
+
+======================================================================
+FAIL: test_anonymous_gets_401 (billing.tests.test_b1b7_job_api.JobApiTests.test_anonymous_gets_401)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_job_api.py", line 126, in test_anonymous_gets_401
+    self.assertEqual(self.get(None).status_code, 401)
+AssertionError: 404 != 401
+
+======================================================================
+FAIL: test_the_owner_gets_the_job (billing.tests.test_b1b7_job_api.JobApiTests.test_the_owner_gets_the_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_job_api.py", line 97, in test_the_owner_gets_the_job
+    self.assertEqual(response.status_code, 200, response.content[:300])
+AssertionError: 404 != 200 : b'{"success": false, "message": "Not Found", "error": {"detail": "Resource not found"}}'
+
+======================================================================
+FAIL: test_the_super_admin_gets_it (billing.tests.test_b1b7_job_api.JobApiTests.test_the_super_admin_gets_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_job_api.py", line 143, in test_the_super_admin_gets_it
+    self.assertEqual(self.get(admin).status_code, 200)
+AssertionError: 404 != 200
+
+======================================================================
+FAIL: test_a_settled_job_emits_both_once (billing.tests.test_b1b7_gap_metric.GapMetricTests.test_a_settled_job_emits_both_once)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_gap_metric.py", line 72, in test_a_settled_job_emits_both_once
+    self.assertEqual(
+AssertionError: Lists differ: [] != [('credit_estimate_gap', {'bucket': '1.2-2[47 chars]e'})]
+
+Second list contains 2 additional elements.
+First extra element 0:
+('credit_estimate_gap', {'bucket': '1.2-2'})
+
+- []
++ [('credit_estimate_gap', {'bucket': '1.2-2'}),
++  ('credit_estimate_band_hit', {'hit': 'false'})] : actual is consumed + unbilled = 160
+
+======================================================================
+FAIL: test_the_band_edge_is_a_hit (billing.tests.test_b1b7_gap_metric.GapMetricTests.test_the_band_edge_is_a_hit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_gap_metric.py", line 92, in test_the_band_edge_is_a_hit
+    self.assertIn(("credit_estimate_band_hit", {"hit": "true"}), metrics)
+AssertionError: ('credit_estimate_band_hit', {'hit': 'true'}) not found in []
+
+======================================================================
+FAIL: test_within_the_band_is_a_hit (billing.tests.test_b1b7_gap_metric.GapMetricTests.test_within_the_band_is_a_hit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-b1b/billing/tests/test_b1b7_gap_metric.py", line 82, in test_within_the_band_is_a_hit
+    self.assertEqual(
+AssertionError: Lists differ: [] != [('credit_estimate_gap', {'bucket': '0.8-1[48 chars]e'})]
+
+Second list contains 2 additional elements.
+First extra element 0:
+('credit_estimate_gap', {'bucket': '0.8-1.2'})
+
+- []
++ [('credit_estimate_gap', {'bucket': '0.8-1.2'}),
++  ('credit_estimate_band_hit', {'hit': 'true'})]
+
+----------------------------------------------------------------------
+Ran 32 tests in 1.106s
+
+FAILED (failures=8, errors=26)
+Destroying test database for alias 'default'...
+Found 32 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
